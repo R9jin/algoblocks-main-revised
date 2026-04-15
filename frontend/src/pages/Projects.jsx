@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { db } from "../db";
+// Ensure this import matches your localForage exports in db.js
+import { projectsDB } from "../db";
 import "../styles/Projects.css";
 
 // --- Minimal Inline SVG Icons ---
@@ -35,54 +36,44 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      const storedUser = localStorage.getItem("user");
-      if (!storedUser) {
-        setLoading(false); // CHANGED: ensure loading stops even if no user
-        return;
-      }
-
-      const user = JSON.parse(storedUser);
-
-      try {
-        const localProjects = await db.projects
-          .where("owner_id") // filter by owner
-          .equals(user.email)
-          .toArray();
-        setProjects(localProjects);
-
-      } catch (error) {
-        console.error("Failed to load projects from IndexedDB:", error);
-        setProjects([]); // fallback safe state
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProjects();
+    loadProjects();
   }, []);
 
-  const handleOpenProject = (project) => {
-    navigate('/app', { state: { projectToLoad: project } });
+  const loadProjects = async () => {
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) {
+        setLoading(false);
+        return;
+      }
+      const user = JSON.parse(storedUser);
+
+      const loadedProjects = [];
+      // Updated to use localForage iterate as per your db.js configuration
+      await projectsDB.iterate((value) => {
+        if (value.owner_id === user.email) {
+          loadedProjects.push(value);
+        }
+      });
+      setProjects(loadedProjects.sort((a, b) => b.updatedAt - a.updatedAt));
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteProject = async (e, projectId) => {
-    e.stopPropagation(); // Prevents the card click event from firing when clicking delete
+    e.stopPropagation();
     const confirmDelete = window.confirm("Are you sure you want to delete this project? This action cannot be undone.");
     if (!confirmDelete) return;
 
     try {
-      const response = await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
-      const result = await response.json();
-
-      if (response.ok && result.status === "success") {
-        setProjects(projects.filter(p => p._id !== projectId));
-      } else {
-        alert(result.detail || "Failed to delete project");
-      }
+      // Logic for local deletion via localForage
+      await projectsDB.removeItem(projectId);
+      setProjects(projects.filter(p => p._id !== projectId));
     } catch (error) {
       console.error("Failed to delete project:", error);
-      alert("An error occurred while deleting the project.");
     }
   };
 
@@ -116,7 +107,7 @@ export default function Projects() {
           ) : (
             <div className="projects-grid">
               {projects.map(proj => (
-                <div key={proj._id} className="project-card" onClick={() => handleOpenProject(proj)}>
+                <div key={proj._id} className="project-card" onClick={() => navigate(`/app?id=${proj._id}`)}>
                   <div className="project-card-header">
                     <div className="project-icon-wrapper">
                       <FolderIcon />
@@ -131,7 +122,7 @@ export default function Projects() {
                   </div>
                   <div className="project-details">
                     <h3>{proj.title || "Untitled Project"}</h3>
-                    <p>Saved to Cloud</p>
+                    <p>{proj.synced ? "Saved to Cloud" : "Local Draft"}</p>
                   </div>
                 </div>
               ))}
