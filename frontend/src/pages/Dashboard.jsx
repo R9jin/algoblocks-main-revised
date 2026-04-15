@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { db } from "../db"; //
-import "../styles/Dashboard.css"; //
+import { projectsDB } from "../db"; // ✅ using localforage instance correctly
+import "../styles/Dashboard.css";
 import { pushOfflineChangesToCloud } from "../utils/syncManager";
 
 const SYSTEM_TEMPLATES = {
@@ -105,104 +105,153 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Create an event listener for when the internet comes back
+    // =========================
+    // ONLINE SYNC HANDLER
+    // =========================
     const handleOnline = async () => {
-      console.log("Internet restored! Syncing offline changes to MongoDB...");
+      console.log("Internet restored! Syncing offline changes...");
       await pushOfflineChangesToCloud();
-      // Optionally re-fetch local data here to update UI statuses
     };
 
-    // 2. Attach the listener to the browser window
-    window.addEventListener('online', handleOnline);
+    window.addEventListener("online", handleOnline);
 
-    // 3. Load dashboard data from LOCAL database ONLY (because we fetched it on login)
+    // =========================
+    // LOAD LOCAL DATA (FIXED FOR LOCALFORAGE)
+    // =========================
     const loadLocalData = async () => {
       const storedUser = JSON.parse(localStorage.getItem("user"));
       if (!storedUser) return;
 
-      // Push any pending offline changes just in case the app was reloaded
       if (navigator.onLine) {
-        pushOfflineChangesToCloud(); 
+        pushOfflineChangesToCloud();
       }
 
-      const allLocalData = await db.projects.where("owner_id").equals(storedUser.email).toArray();
-      
-      const projects = allLocalData.filter(p => !p.isTemplate);
-      setRecentProjects(projects.sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified)).slice(0, 5));
+      const allProjects = [];
+
+      // FIX: localforage has no query API → must iterate
+      await projectsDB.iterate((value) => {
+        allProjects.push(value);
+      });
+
+      // =========================
+      // FILTER USER PROJECTS
+      // =========================
+      const userProjects = allProjects.filter(
+        (p) => p.owner_id === storedUser.email && !p.isTemplate
+      );
+
+      setRecentProjects(
+        userProjects
+          .sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified))
+          .slice(0, 5)
+      );
+
+      // =========================
+      // GROUP USER TEMPLATES
+      // =========================
+      const templates = allProjects.filter(
+        (p) => p.owner_id === storedUser.email && p.isTemplate
+      );
+
+      const grouped = {};
+
+      templates.forEach((t) => {
+        const category = t.category || "custom";
+        if (!grouped[category]) grouped[category] = [];
+        grouped[category].push(t);
+      });
+
+      setUserTemplatesGrouped(grouped);
+
       setLoading(false);
     };
 
     loadLocalData();
 
-    // 4. Cleanup listener on unmount
     return () => {
-      window.removeEventListener('online', handleOnline);
+      window.removeEventListener("online", handleOnline);
     };
   }, []);
 
   const handleItemClick = (item) => {
-    const confirmMsg = item.isSystem 
-      ? `Start a new project using the "${item.name}" template?` 
+    const confirmMsg = item.isSystem
+      ? `Start a new project using "${item.name}"?`
       : `Load your custom template "${item.name}"?`;
-    
-    if (window.confirm(confirmMsg)) {
-      if (item.isSystem) {
-        navigate("/app", { state: { templatePath: item.path } });
-      } else {
-        navigate("/app", { state: { projectToLoad: { title: item.name, data: item.data, _id: item._id } } });
-      }
+
+    if (!window.confirm(confirmMsg)) return;
+
+    if (item.isSystem) {
+      navigate("/app", { state: { templatePath: item.path } });
+    } else {
+      navigate("/app", {
+        state: {
+          projectToLoad: {
+            title: item.name,
+            data: item.data,
+            _id: item._id
+          }
+        }
+      });
     }
   };
 
   return (
     <div className="dashboard-container">
       <DashboardHeader />
+
       <div className="dashboard-body">
         <main className="dashboard-main">
-          <div className="learning-path-banner" onClick={() => navigate('/learning-path')}>
-            <div className="banner-icon"><img src="/assets/learning-icon.png" alt="Learning" /></div>
-            <div className="banner-text">
-              <h2>Learning Path</h2>
-              <p>Structured lessons - master algorithms step-by-step</p>
-            </div>
-            <div className="banner-arrow">&gt;</div>
-          </div>
-
           <h1 className="section-title">Algorithm Library</h1>
 
           <div className="algorithm-library-grid">
-            {/* System Templates */}
+            {/* SYSTEM TEMPLATES */}
             {Object.entries(SYSTEM_TEMPLATES).map(([catKey, items]) => (
               <div key={catKey} className="algorithm-column">
                 <h3 className="column-title">{catKey.toUpperCase()}</h3>
+
                 {items.map((temp) => (
-                  <div key={temp.name} className="algorithm-card" onClick={() => handleItemClick(temp)}>
+                  <div
+                    key={temp.name}
+                    className="algorithm-card"
+                    onClick={() => handleItemClick(temp)}
+                  >
                     <div className="card-header">
                       <img src={temp.icon} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
                     </div>
+
                     <div className="card-hover-content">
                       <p className="template-card-desc">{temp.desc}</p>
-                      <button className="try-template-btn">Test Template →</button>
+                      <button className="try-template-btn">
+                        Test Template →
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             ))}
 
-            {/* Custom User Templates from IndexedDB */}
+            {/* USER TEMPLATES (FIXED DB LOADING) */}
             {Object.entries(userTemplatesGrouped).map(([category, items]) => (
               <div key={category} className="algorithm-column">
                 <h3 className="column-title">{category.toUpperCase()}</h3>
+
                 {items.map((temp) => (
-                  <div key={temp.name} className="algorithm-card custom-template-card" onClick={() => handleItemClick(temp)}>
+                  <div
+                    key={temp._id}
+                    className="algorithm-card custom-template-card"
+                    onClick={() => handleItemClick(temp)}
+                  >
                     <div className="card-header">
                       <img src={temp.icon} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
                     </div>
+
                     <div className="card-hover-content">
                       <p className="template-card-desc">{temp.desc}</p>
-                      <button className="try-template-btn">Load Template →</button>
+                      <button className="try-template-btn">
+                        Load Template →
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -213,21 +262,29 @@ export default function Dashboard() {
 
         <aside className="dashboard-sidebar">
           <h3 className="sidebar-label">RECENT PROJECTS</h3>
+
           {loading ? (
-            <div className="empty-projects-box">Loading local storage...</div>
+            <div className="empty-projects-box">Loading local database...</div>
           ) : recentProjects.length === 0 ? (
             <div className="empty-projects-box">No recent projects yet.</div>
           ) : (
             <div className="recent-projects-list">
-              {recentProjects.map(proj => (
+              {recentProjects.map((proj) => (
                 <div
-                  key={proj.id}
+                  key={proj._id}
                   className="recent-project-item"
-                  onClick={() => navigate('/app', { state: { projectToLoad: proj } })}
+                  onClick={() =>
+                    navigate("/app", { state: { projectToLoad: proj } })
+                  }
                 >
                   <div className="project-item-title">{proj.title}</div>
-                  <div className={`project-item-status ${proj.isSynced ? 'synced' : 'local'}`}>
-                    {proj.isSynced ? "Cloud Synced" : "Local Only"}
+
+                  <div
+                    className={`project-item-status ${
+                      proj.synced ? "synced" : "local"
+                    }`}
+                  >
+                    {proj.synced ? "Cloud Synced" : "Local Only"}
                   </div>
                 </div>
               ))}
