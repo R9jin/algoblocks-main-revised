@@ -1,0 +1,99 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 5, 20, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  /* Smooth fade and blur for the overlay */
+  animation: fade-in-overlay 0.3s ease-out forwards;
+}
+
+.custom-modal-content {
+  background: #1C1236;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px 32px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  color: #EBE4FF;
+  /* Premium fluid pop curve */
+  animation: modal-smooth-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fade-in-overlay {
+  0% { opacity: 0; backdrop-filter: blur(0px); }
+  100% { opacity: 1; backdrop-filter: blur(5px); }
+}
+
+@keyframes modal-smooth-pop {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.custom-modal-header h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.3rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.custom-modal-body p {
+  margin: 0 0 24px 0;
+  font-size: 0.95rem;
+  color: #c5baff;
+  line-height: 1.5;
+}
+
+.custom-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-modal {
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-modal-cancel {
+  background: transparent;
+  color: #c5baff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.btn-modal-confirm {
+  background: #6C5CE7;
+  /* Default Primary Purple */
+  color: #fff;
+}
+
+.btn-modal-confirm:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+}
+
+.btn-modal-danger {
+  background: #e74c3c;
+  /* Red for destructive actions */
+}
+
+.btn-modal-danger:hover {
+  background: #c0392b;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}

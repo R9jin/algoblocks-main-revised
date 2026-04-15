@@ -1,0 +1,52 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defnoreturn",
+        "id": "TN(3VM[_odyuD@7%mjk=",
+        "x": 13,
+        "y": -112,
+        "deletable": false,
+        "editable": false,
+        "extraState": {
+          "params": [
+            {
+              "name": "n",
+              "id": "$L!%sGDV9_/`aC?YYQdf"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "print_steps"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "comment_block",
+              "id": "[YkaIXxpB1k3:4!wP8lE",
+              "fields": {
+                "TEXT": "print 'Step' n number of times"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "n",
+      "id": "tyO.pA9F`9/^|V^HlXAR"
+    }
+  ],
+  "backpack": []
+}
