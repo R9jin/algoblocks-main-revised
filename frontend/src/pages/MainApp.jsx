@@ -340,17 +340,14 @@ export default function MainApp() {
     setSaveModal({ ...saveModal, isOpen: false });
   };
 
-  // Optimized Delete Handler with Optimistic UI
+  // Optimistic UI Delete
   const handleDeleteItem = async (e, item) => {
     e.stopPropagation(); // Prevents loading the template when clicking delete
 
     const itemLabel = item.saveType === 'template' ? 'Template' : 'Project';
     if (!window.confirm(`Are you sure you want to delete this ${itemLabel}?`)) return;
 
-    // 1. Snapshot the current state in case we need to roll back
     const previousTemplates = [...allTemplates];
-
-    // 2. Optimistically update UI immediately
     setAllTemplates(prev => prev.filter(t => t._id !== item._id));
 
     try {
@@ -361,85 +358,24 @@ export default function MainApp() {
 
       if (res.ok) {
         showToast(`${itemLabel} deleted!`, "success");
-        // If the deleted item was the one currently loaded, clear the workspace
         if (currentLoadedId === item._id) {
           workspaceRef.current?.clear();
           setCurrentLoadedId(null);
           setCurrentProjectTitle("Untitled Project");
         }
       } else {
-        // 3. Roll back if server fails
         setAllTemplates(previousTemplates);
         const errorData = await res.json();
         showToast(errorData.detail || `Failed to delete ${itemLabel}`, "error");
       }
     } catch (err) {
-      // 3. Roll back on network error
       setAllTemplates(previousTemplates);
       showToast("Connection error. Please try again.", "error");
     }
   };
 
-  // --- Execution ---
-  const [isWaitingForInput, setIsWaitingForInput] = useState(false);
-  const [userInput, setUserInput] = useState("");
-  const socketRef = useRef(null);
-
-  const runStandardCode = async () => {
-    setConsoleOutput("> Running on Vercel (Non-interactive mode)...\n");
-    setBottomPanel("console");
-    try {
-      const response = await fetch(`${VERCEL_URL}/api/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: generatedPython }) });
-      const data = await response.json();
-      setConsoleOutput(data.output || "> Program finished with no output.");
-    } catch (error) { setConsoleOutput("❌ Vercel execution failed. Fallback to local if running locally."); }
-  };
-
-  const handleRunAction = () => {
-    const hasInput = generatedPython.includes("input(") || generatedPython.includes("input()");
-    if (hasInput) runCode();
-    else runStandardCode();
-  };
-
-  const runCode = () => {
-    setConsoleOutput("> Initializing session...\n"); setBottomPanel("console"); setIsWaitingForInput(false);
-    const wsUrl = import.meta.env.VITE_BACKEND_WS_URL || `wss://algoblocks-main.onrender.com/api/ws/run`;
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
-    socket.onopen = () => { socket.send(JSON.stringify({ type: "run", code: generatedPython })); };
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "output") setConsoleOutput((prev) => prev + msg.data);
-      else if (msg.type === "input_request") { setConsoleOutput((prev) => prev + msg.prompt); setIsWaitingForInput(true); }
-      else if (msg.type === "error") { setConsoleOutput((prev) => prev + "\nRuntime Error: " + msg.data); setIsWaitingForInput(false); }
-      else if (msg.type === "done") { setConsoleOutput((prev) => prev + "\n> Program finished."); setIsWaitingForInput(false); socket.close(); }
-    };
-    socket.onerror = (e) => { setConsoleOutput("❌ Failed to connect to backend."); setIsWaitingForInput(false); };
-  };
-
-  const handleSendInput = (e) => {
-    if (e.key === "Enter" && isWaitingForInput && socketRef.current) {
-      setConsoleOutput((prev) => prev + userInput + "\n");
-      socketRef.current.send(JSON.stringify({ type: "input_response", data: userInput }));
-      setUserInput(""); setIsWaitingForInput(false);
-    }
-  };
-
-  // --- Search and Group Templates by Category ---
-  const filteredTemplates = allTemplates.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()));
-
-  const groupedTemplates = filteredTemplates.reduce((acc, template) => {
-    const category = template.category || "Uncategorized";
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(template);
-    return acc;
-  }, {});
-
-  const consoleEndRef = useRef(null);
-  useEffect(() => { if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [consoleOutput, isWaitingForInput]);
-
   // --- Web Worker & Infinite Loop Mitigation ---
-  const executeWithTimeout = (studentCode) => {
+  const executeWithTimeout = (pythonCode) => {
     return new Promise((resolve, reject) => {
       const worker = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
       
@@ -457,37 +393,102 @@ export default function MainApp() {
         worker.terminate();
       };
 
-      worker.postMessage({ code: studentCode });
+      worker.postMessage({ code: pythonCode });
     });
   };
 
-  // --- Run Handler ---
+  // --- Execution ---
+  const [isWaitingForInput, setIsWaitingForInput] = useState(false);
+  const [userInput, setUserInput] = useState("");
+  const socketRef = useRef(null);
+
+  const runStandardCode = async () => {
+    setConsoleOutput((prev) => prev + "> Running on Vercel (Non-interactive mode)...\n");
+    try {
+      const response = await fetch(`${VERCEL_URL}/api/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: generatedPython }) });
+      const data = await response.json();
+      setConsoleOutput((prev) => prev + (data.output || "> Program finished with no output."));
+    } catch (error) { setConsoleOutput((prev) => prev + "❌ Vercel execution failed. Fallback to local if running locally."); }
+  };
+
+  const runCode = () => {
+    setConsoleOutput((prev) => prev + "> Initializing interactive session...\n");
+    setIsWaitingForInput(false);
+    const wsUrl = import.meta.env.VITE_BACKEND_WS_URL || `wss://algoblocks-main.onrender.com/api/ws/run`;
+    const socket = new WebSocket(wsUrl);
+    socketRef.current = socket;
+    socket.onopen = () => { socket.send(JSON.stringify({ type: "run", code: generatedPython })); };
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === "output") setConsoleOutput((prev) => prev + msg.data);
+      else if (msg.type === "input_request") { setConsoleOutput((prev) => prev + msg.prompt); setIsWaitingForInput(true); }
+      else if (msg.type === "error") { setConsoleOutput((prev) => prev + "\nRuntime Error: " + msg.data); setIsWaitingForInput(false); }
+      else if (msg.type === "done") { setConsoleOutput((prev) => prev + "\n> Program finished."); setIsWaitingForInput(false); socket.close(); }
+    };
+    socket.onerror = (e) => { setConsoleOutput((prev) => prev + "❌ Failed to connect to backend websocket."); setIsWaitingForInput(false); };
+  };
+
+  const handleRunAction = () => {
+    const hasInput = generatedPython.includes("input(") || generatedPython.includes("input()");
+    if (hasInput) runCode();
+    else runStandardCode();
+  };
+
+  const handleSendInput = (e) => {
+    if (e.key === "Enter" && isWaitingForInput && socketRef.current) {
+      setConsoleOutput((prev) => prev + userInput + "\n");
+      socketRef.current.send(JSON.stringify({ type: "input_response", data: userInput }));
+      setUserInput(""); setIsWaitingForInput(false);
+    }
+  };
+
+  // --- Run Handler with Pre-flight Infinite Loop Catching ---
   const handleRunCode = async () => {
-    if (!generatedCode.trim()) {
+    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
       return;
     }
 
     setIsEvaluating(true);
-    setConsoleOutput("Evaluating algorithm against lesson requirements...");
+    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
     setBottomPanel("console");
     
     try {
-      const result = await executeWithTimeout(generatedCode);
-      if (result.error) throw new Error(result.error);
+      // Use web worker to evaluate safely with a timeout to catch infinite loops
+      const result = await executeWithTimeout(generatedPython);
+      if (result && result.error) throw new Error(result.error);
 
-      setAnalysisResult(result);
-      setConsoleOutput(`Execution Successful!\n\nTime Complexity: ${result.time_complexity}\nSpace Complexity: ${result.space_complexity}`);
-      setBottomPanel("complexity");
+      // If the worker returns analysis data, we can optionally update the analysis state
+      if (result && (result.time_complexity || result.total)) {
+        setAnalysisResult(result);
+      }
+      
+      setConsoleOutput("Pre-flight checks passed! Starting code execution...\n\n");
+      
+      // Infinite loop check passed, proceed to actual server execution
+      handleRunAction();
 
     } catch (failure) {
-      setConsoleOutput(`Execution Failed:\n\n${failure.error || failure.message}`);
+      setConsoleOutput(`Execution Prevented:\n\n${failure.error || failure.message}`);
       setBottomPanel("console");
     } finally {
       setIsEvaluating(false);
     }
   };
+
+  // --- Search and Group Templates by Category ---
+  const filteredTemplates = allTemplates.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const groupedTemplates = filteredTemplates.reduce((acc, template) => {
+    const category = template.category || "Uncategorized";
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(template);
+    return acc;
+  }, {});
+
+  const consoleEndRef = useRef(null);
+  useEffect(() => { if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [consoleOutput, isWaitingForInput]);
 
   return (
     <div className="workspace-app-container">
