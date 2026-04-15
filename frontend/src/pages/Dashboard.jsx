@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { db } from "../db"; //
 import "../styles/Dashboard.css"; //
-import { syncProjectsToCloud } from "../utils/syncManager"; //
+import { pushOfflineChangesToCloud } from "../utils/syncManager";
 
 const SYSTEM_TEMPLATES = {
   sorting: [
@@ -105,57 +105,39 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      const storedUser = localStorage.getItem("user");
-      if (!storedUser) {
-        setLoading(false);
-        return;
-      }
-      const user = JSON.parse(storedUser);
-
-      try {
-        // Trigger background sync to MongoDB if online
-        if (navigator.onLine) {
-          syncProjectsToCloud(); 
-        }
-
-        // 1. Load ALL projects from IndexedDB for this user
-        const allLocalData = await db.projects
-          .where("owner_id")
-          .equals(user.email)
-          .toArray();
-
-        // 2. Filter for regular projects (Recent Projects)
-        const projects = allLocalData.filter(p => !p.isTemplate);
-        setRecentProjects(
-          projects.sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified)).slice(0, 5)
-        );
-
-        // 3. Filter and group Custom User Templates
-        const customTemplates = allLocalData.filter(p => p.isTemplate);
-        const grouped = customTemplates.reduce((acc, t) => {
-          const cat = t.category || "Custom Templates";
-          if (!acc[cat]) acc[cat] = [];
-          acc[cat].push({
-            name: t.title,
-            desc: t.description || "User created template",
-            data: t.data,
-            icon: "/assets/user-icon.png",
-            isSystem: false,
-            _id: t._id || t.id // Use MongoDB _id if it exists, otherwise local ID
-          });
-          return acc;
-        }, {});
-        setUserTemplatesGrouped(grouped);
-
-      } catch (error) {
-        console.error("Dashboard data load error:", error);
-      } finally {
-        setLoading(false);
-      }
+    // 1. Create an event listener for when the internet comes back
+    const handleOnline = async () => {
+      console.log("Internet restored! Syncing offline changes to MongoDB...");
+      await pushOfflineChangesToCloud();
+      // Optionally re-fetch local data here to update UI statuses
     };
 
-    loadDashboardData();
+    // 2. Attach the listener to the browser window
+    window.addEventListener('online', handleOnline);
+
+    // 3. Load dashboard data from LOCAL database ONLY (because we fetched it on login)
+    const loadLocalData = async () => {
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+      if (!storedUser) return;
+
+      // Push any pending offline changes just in case the app was reloaded
+      if (navigator.onLine) {
+        pushOfflineChangesToCloud(); 
+      }
+
+      const allLocalData = await db.projects.where("owner_id").equals(storedUser.email).toArray();
+      
+      const projects = allLocalData.filter(p => !p.isTemplate);
+      setRecentProjects(projects.sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified)).slice(0, 5));
+      setLoading(false);
+    };
+
+    loadLocalData();
+
+    // 4. Cleanup listener on unmount
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
   }, []);
 
   const handleItemClick = (item) => {

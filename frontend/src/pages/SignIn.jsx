@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+import { db } from "../db";
 import "../styles/Auth.css";
 
 export default function SignIn() {
@@ -27,15 +28,19 @@ export default function SignIn() {
         return;
       }
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
+      // 1. Save user session
+      localStorage.setItem("user", JSON.stringify({
           email: data.email,
           name: data.name,
-          progress: data.progress || {},
-        })
-      );
+      }));
 
+      // 2. DUMP CURRENT PROJECTS (Wipe previous user's offline data)
+      await db.projects.clear();
+
+      // 3. FETCH NEW USER'S PROJECTS (Download from MongoDB)
+      await pullProjectsFromCloud(data.email);
+
+      // 4. Proceed to dashboard
       navigate("/dashboard");
     } catch (error) {
       console.error(error);
