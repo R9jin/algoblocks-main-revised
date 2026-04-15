@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "code": "for i in range(n):\n    print(i)",
+    "time_complexity": "O(n)",
+    "space_complexity": "O(1)"
+  },
+  {
+    "id": 2,
+    "code": "print('Hello World')",
+    "time_complexity": "O(1)",
+    "space_complexity": "O(1)"
+  }
+]
