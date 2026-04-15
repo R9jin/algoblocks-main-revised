@@ -1,18 +1,54 @@
 import { useState } from "react";
 import { FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { db } from "../db";
+import { projectsDB, syncQueueDB, templatesDB } from "../db"; // FIX: Import the correct DB instances
 import "../styles/Auth.css";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE = import.meta.env.VITE_API_URL || "";
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000"; // Ensure fallback points to your FastAPI
+
+  // FIX: Added the missing function to sync the user's data from Cloud to IndexedDB
+  const pullProjectsFromCloud = async (userEmail) => {
+    try {
+      const [projRes, tempRes] = await Promise.all([
+        fetch(`${API_BASE}/api/projects`),
+        fetch(`${API_BASE}/api/templates`)
+      ]);
+
+      if (projRes.ok) {
+        const projData = await projRes.json();
+        if (projData.status === 'success') {
+          for (let p of projData.projects) {
+            if (p.owner_id === userEmail) {
+              await projectsDB.setItem(p._id, { ...p, synced: true });
+            }
+          }
+        }
+      }
+
+      if (tempRes.ok) {
+        const tempData = await tempRes.json();
+        if (tempData.status === 'success') {
+          for (let t of tempData.templates) {
+            if (t.owner_id === userEmail) {
+              await templatesDB.setItem(t._id, { ...t, synced: true });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("Could not pull data from cloud. Proceeding with local data.", error);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     try {
       const response = await fetch(`${API_BASE}/api/login`, {
@@ -25,6 +61,7 @@ export default function SignIn() {
 
       if (!response.ok) {
         alert(data.detail || "Invalid email or password");
+        setIsLoading(false);
         return;
       }
 
@@ -34,10 +71,12 @@ export default function SignIn() {
           name: data.name,
       }));
 
-      // 2. DUMP CURRENT PROJECTS (Wipe previous user's offline data)
-      await db.projects.clear();
+      // 2. FIX: DUMP CURRENT PROJECTS & TEMPLATES (Wipe previous user's offline data)
+      await projectsDB.clear();
+      await templatesDB.clear();
+      await syncQueueDB.clear();
 
-      // 3. FETCH NEW USER'S PROJECTS (Download from MongoDB)
+      // 3. FETCH NEW USER'S PROJECTS (Download from MongoDB to local IndexedDB)
       await pullProjectsFromCloud(data.email);
 
       // 4. Proceed to dashboard
@@ -45,10 +84,11 @@ export default function SignIn() {
     } catch (error) {
       console.error(error);
       alert("Server not reachable. Check backend connection.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -64,6 +104,7 @@ export default function SignIn() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -77,15 +118,18 @@ export default function SignIn() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
-          <button type="submit" className="auth-button">Sign In</button>
+          <button type="submit" className="auth-button" disabled={isLoading}>
+            {isLoading ? "Signing In..." : "Sign In"}
+          </button>
         </form>
 
         <div className="auth-links">
           <Link to="/forgot-password">Forgot password?</Link>
-          <p>Don't have an account?<Link to="/signup">Sign up</Link></p>
+          <p>Don't have an account? <Link to="/signup">Sign up</Link></p>
         </div>
       </div>
     </div>
