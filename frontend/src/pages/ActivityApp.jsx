@@ -311,6 +311,7 @@ const ActivityApp = () => {
   const socketRef = useRef(null);
   const isDragging = useRef(false);
   const hasLoadedRef = useRef(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
 
   // =========================================================
   // 2. DERIVED DATA
@@ -665,12 +666,44 @@ const ActivityApp = () => {
     }
   };
 
-  const handleActivityRun = () => {
-    const hasInput = generatedPython.includes("input(") || generatedPython.includes("input()");
-    if (hasInput) {
-      runCode(); // Hits Render WebSocket
-    } else {
-      runStandardCode(); // Hits Vercel standard API
+  const handleActivityRun = async () => {
+    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console");
+      return;
+    }
+
+    setIsEvaluating(true);
+    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
+    setBottomPanel("console");
+
+    try {
+      const result = await executeWithTimeout(generatedPython);
+      if (result && result.error) throw new Error(result.error);
+
+      if (result && (result.time_complexity || result.total)) {
+        setAnalysisResult({
+          total: result.total || "O(1)",
+          space_total: result.space_total || "O(1)",
+          lines: result.lines || [],
+          is_recursive: result.is_recursive || false,
+        });
+      }
+
+      setConsoleOutput("Pre-flight checks passed! Starting code execution...\n\n");
+
+      const hasInput = generatedPython.includes("input(") || generatedPython.includes("input()");
+      if (hasInput) {
+        runCode();
+      } else {
+        runStandardCode();
+      }
+
+    } catch (failure) {
+      setConsoleOutput(`Execution Prevented:\n\n${failure.error || failure.message}`);
+      setBottomPanel("console");
+    } finally {
+      setIsEvaluating(false);
     }
   };
 
@@ -759,6 +792,28 @@ const ActivityApp = () => {
       activityData?.testCasesList;
 
     if (!testCases) return;
+
+    // --- NEW: Prevent empty execution and run pre-flight checks ---
+    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console");
+      return;
+    }
+
+    setIsEvaluating(true);
+    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
+    setBottomPanel("console");
+
+    try {
+      const result = await executeWithTimeout(generatedPython);
+      if (result && result.error) throw new Error(result.error);
+    } catch (failure) {
+      setConsoleOutput(`Test Execution Prevented:\n\n${failure.error || failure.message}`);
+      setBottomPanel("console");
+      setIsEvaluating(false);
+      return;
+    }
+    // ---------------------------------------------------------------
 
     setBottomPanel("console");
     setConsoleOutput("> Running Tests...\n");
@@ -872,6 +927,29 @@ const ActivityApp = () => {
         setConsoleOutput(fullOutput);
       }
     }
+    setIsEvaluating(false);
+  };
+
+  const executeWithTimeout = (pythonCode) => {
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+
+      const timeout = setTimeout(() => {
+        worker.terminate();
+        reject({
+          error: "Root Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False."
+        });
+      }, 3000);
+
+      worker.onmessage = (e) => {
+        clearTimeout(timeout);
+        if (e.data.status === 'success') resolve(e.data.result);
+        else reject({ error: e.data.error });
+        worker.terminate();
+      };
+
+      worker.postMessage({ code: pythonCode });
+    });
   };
 
   return (
