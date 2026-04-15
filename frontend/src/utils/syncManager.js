@@ -1,23 +1,21 @@
 // frontend/src/utils/syncManager.js
-import { db } from "../db";
+// Change this import to match what is actually exported in db.js
+import { projectsDB } from "../db";
 
-// 1. PULL FROM CLOUD (Used when a user logs in)
 export const pullProjectsFromCloud = async (userEmail) => {
-  if (!navigator.onLine) return; // Cannot pull if offline
+  if (!navigator.onLine) return;
 
   try {
     const response = await fetch("/api/projects");
     if (response.ok) {
       const data = await response.json();
-      
-      // Filter only this user's projects
       const cloudProjects = data.projects.filter(p => p.owner_id === userEmail);
       
-      // Save them all to local IndexedDB
       for (const proj of cloudProjects) {
-        await db.projects.put({
+        // Use localForage syntax (setItem) instead of Dexie syntax (put)
+        await projectsDB.setItem(proj._id, {
           ...proj,
-          isSynced: 1 // Mark as synced since it came from the cloud
+          isSynced: 1 
         });
       }
     }
@@ -26,31 +24,31 @@ export const pullProjectsFromCloud = async (userEmail) => {
   }
 };
 
-// 2. PUSH TO CLOUD (Used to sync offline changes back to MongoDB)
 export const pushOfflineChangesToCloud = async () => {
   if (!navigator.onLine) return; 
 
-  // Find all projects that were saved locally while offline
-  const unsyncedProjects = await db.projects.where("isSynced").equals(0).toArray();
-
-  for (const project of unsyncedProjects) {
-    try {
-      const response = await fetch("/api/projects/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(project),
-      });
-
-      if (response.ok) {
-        const cloudData = await response.json();
-        // Update the local record to show it is now synced, and attach the MongoDB _id
-        await db.projects.update(project.id, { 
-          isSynced: 1,
-          _id: cloudData.insertedId || project._id
+  // localForage does not support .where() queries like Dexie.
+  // You must iterate through the projects to find unsynced ones.
+  await projectsDB.iterate(async (project, id) => {
+    if (project.isSynced === 0) {
+      try {
+        const response = await fetch("/api/projects/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(project),
         });
+
+        if (response.ok) {
+          const cloudData = await response.json();
+          await projectsDB.setItem(id, { 
+            ...project,
+            isSynced: 1,
+            _id: cloudData.insertedId || project._id
+          });
+        }
+      } catch (err) {
+        console.error("Sync failed for project:", project.title);
       }
-    } catch (err) {
-      console.error("Sync failed for project:", project.title);
     }
-  }
+  });
 };
