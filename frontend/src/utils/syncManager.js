@@ -1,9 +1,10 @@
+// frontend/src/utils/syncManager.js
 import { db } from "../db";
 
-export const syncLocalToCloud = async () => {
-  if (!navigator.onLine) return; // Only sync if online
+export const syncProjectsToCloud = async () => {
+  if (!navigator.onLine) return; // Silent return if offline
 
-  const unsynced = await db.projects.where("is_synced").equals(0).toArray();
+  const unsynced = await db.projects.where("isSynced").equals(0).toArray();
 
   for (const project of unsynced) {
     try {
@@ -14,11 +15,12 @@ export const syncLocalToCloud = async () => {
       });
 
       if (response.ok) {
-        // Mark as synced in IndexedDB so we don't upload it again
-        await db.projects.update(project.id, { is_synced: 1 });
+        const { cloudId } = await response.json();
+        // Update local record with the MongoDB _id and mark as synced
+        await db.projects.update(project.id, { _id: cloudId, isSynced: 1 });
       }
-    } catch (error) {
-      console.error("Sync failed for project:", project.title);
+    } catch (err) {
+      console.error("Sync failed for:", project.title, err);
     }
   }
 };

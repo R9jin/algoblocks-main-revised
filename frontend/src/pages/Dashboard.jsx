@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import "../styles/Dashboard.css";
+import { db } from "../db"; //
+import "../styles/Dashboard.css"; //
+import { syncProjectsToCloud } from "../utils/syncManager"; //
 
 const SYSTEM_TEMPLATES = {
   sorting: [
@@ -103,7 +105,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadDashboardData = async () => {
       const storedUser = localStorage.getItem("user");
       if (!storedUser) {
         setLoading(false);
@@ -112,58 +114,59 @@ export default function Dashboard() {
       const user = JSON.parse(storedUser);
 
       try {
-        // Fetch Projects and Custom Templates simultaneously
-        const [projRes, tempRes] = await Promise.all([
-          fetch("/api/projects"),
-          fetch("/api/templates")
-        ]);
-
-        const projData = await projRes.json();
-        const tempData = await tempRes.json();
-
-        if (projRes.ok && projData.status === "success") {
-          const userProjects = projData.projects.filter(p => p.owner_id === user.email);
-          setRecentProjects(userProjects.reverse().slice(0, 5));
+        // Trigger background sync to MongoDB if online
+        if (navigator.onLine) {
+          syncProjectsToCloud(); 
         }
 
-        if (tempRes.ok && tempData.status === "success") {
-          // Filter user templates and group by category
-          const userTemplates = tempData.templates.filter(t => t.owner_id === user.email);
-          const grouped = userTemplates.reduce((acc, t) => {
-            const cat = t.category || "Custom Templates";
-            if (!acc[cat]) acc[cat] = [];
-            acc[cat].push({
-              name: t.title,
-              desc: t.description,
-              data: t.data,
-              icon: "/assets/user-icon.png", // Use user icon for custom templates
-              isSystem: false,
-              _id: t._id
-            });
-            return acc;
-          }, {});
-          setUserTemplatesGrouped(grouped);
-        }
+        // 1. Load ALL projects from IndexedDB for this user
+        const allLocalData = await db.projects
+          .where("owner_id")
+          .equals(user.email)
+          .toArray();
+
+        // 2. Filter for regular projects (Recent Projects)
+        const projects = allLocalData.filter(p => !p.isTemplate);
+        setRecentProjects(
+          projects.sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified)).slice(0, 5)
+        );
+
+        // 3. Filter and group Custom User Templates
+        const customTemplates = allLocalData.filter(p => p.isTemplate);
+        const grouped = customTemplates.reduce((acc, t) => {
+          const cat = t.category || "Custom Templates";
+          if (!acc[cat]) acc[cat] = [];
+          acc[cat].push({
+            name: t.title,
+            desc: t.description || "User created template",
+            data: t.data,
+            icon: "/assets/user-icon.png",
+            isSystem: false,
+            _id: t._id || t.id // Use MongoDB _id if it exists, otherwise local ID
+          });
+          return acc;
+        }, {});
+        setUserTemplatesGrouped(grouped);
+
       } catch (error) {
-        console.error("Dashboard fetch error:", error);
+        console.error("Dashboard data load error:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    loadDashboardData();
   }, []);
 
   const handleItemClick = (item) => {
     const confirmMsg = item.isSystem 
       ? `Start a new project using the "${item.name}" template?` 
-      : `Load your custom template "${item.name}"? This will overwrite your workspace.`;
+      : `Load your custom template "${item.name}"?`;
     
     if (window.confirm(confirmMsg)) {
       if (item.isSystem) {
         navigate("/app", { state: { templatePath: item.path } });
       } else {
-        // For custom templates, we pass the data directly
         navigate("/app", { state: { projectToLoad: { title: item.name, data: item.data, _id: item._id } } });
       }
     }
@@ -172,13 +175,10 @@ export default function Dashboard() {
   return (
     <div className="dashboard-container">
       <DashboardHeader />
-
       <div className="dashboard-body">
         <main className="dashboard-main">
           <div className="learning-path-banner" onClick={() => navigate('/learning-path')}>
-            <div className="banner-icon">
-              <img src="/assets/learning-icon.png" alt="Learning Path" />
-            </div>
+            <div className="banner-icon"><img src="/assets/learning-icon.png" alt="Learning" /></div>
             <div className="banner-text">
               <h2>Learning Path</h2>
               <p>Structured lessons - master algorithms step-by-step</p>
@@ -189,42 +189,38 @@ export default function Dashboard() {
           <h1 className="section-title">Algorithm Library</h1>
 
           <div className="algorithm-library-grid">
-            {/* 1. Render Built-in Categories */}
+            {/* System Templates */}
             {Object.entries(SYSTEM_TEMPLATES).map(([catKey, items]) => (
               <div key={catKey} className="algorithm-column">
                 <h3 className="column-title">{catKey.toUpperCase()}</h3>
                 {items.map((temp) => (
-                  <div key={temp.name} className="algorithm-card">
+                  <div key={temp.name} className="algorithm-card" onClick={() => handleItemClick(temp)}>
                     <div className="card-header">
                       <img src={temp.icon} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
                     </div>
                     <div className="card-hover-content">
                       <p className="template-card-desc">{temp.desc}</p>
-                      <button className="try-template-btn" onClick={() => handleItemClick(temp)}>
-                        Test Template →
-                      </button>
+                      <button className="try-template-btn">Test Template →</button>
                     </div>
                   </div>
                 ))}
               </div>
             ))}
 
-            {/* 2. Render Custom Categories from User */}
+            {/* Custom User Templates from IndexedDB */}
             {Object.entries(userTemplatesGrouped).map(([category, items]) => (
               <div key={category} className="algorithm-column">
                 <h3 className="column-title">{category.toUpperCase()}</h3>
                 {items.map((temp) => (
-                  <div key={temp._id} className="algorithm-card custom-template-card">
+                  <div key={temp.name} className="algorithm-card custom-template-card" onClick={() => handleItemClick(temp)}>
                     <div className="card-header">
                       <img src={temp.icon} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
                     </div>
                     <div className="card-hover-content">
-                      <p className="template-card-desc">{temp.desc || "User created template"}</p>
-                      <button className="try-template-btn" onClick={() => handleItemClick(temp)}>
-                        Load Template →
-                      </button>
+                      <p className="template-card-desc">{temp.desc}</p>
+                      <button className="try-template-btn">Load Template →</button>
                     </div>
                   </div>
                 ))}
@@ -236,26 +232,21 @@ export default function Dashboard() {
         <aside className="dashboard-sidebar">
           <h3 className="sidebar-label">RECENT PROJECTS</h3>
           {loading ? (
-            <div className="empty-projects-box">Loading...</div>
+            <div className="empty-projects-box">Loading local storage...</div>
           ) : recentProjects.length === 0 ? (
             <div className="empty-projects-box">No recent projects yet.</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px' }}>
+            <div className="recent-projects-list">
               {recentProjects.map(proj => (
                 <div
-                  key={proj._id}
+                  key={proj.id}
                   className="recent-project-item"
-                  style={{
-                    backgroundColor: '#2A1F4C',
-                    padding: '15px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
                   onClick={() => navigate('/app', { state: { projectToLoad: proj } })}
                 >
-                  <div style={{ fontWeight: 'bold', color: '#EBE4FF', marginBottom: '4px' }}>{proj.title}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#A594DC' }}>Saved to Cloud</div>
+                  <div className="project-item-title">{proj.title}</div>
+                  <div className={`project-item-status ${proj.isSynced ? 'synced' : 'local'}`}>
+                    {proj.isSynced ? "Cloud Synced" : "Local Only"}
+                  </div>
                 </div>
               ))}
             </div>

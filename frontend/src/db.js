@@ -1,9 +1,9 @@
+// frontend/src/db.js
 import Dexie from 'dexie';
 
 export const db = new Dexie('AlgoBlocksDB');
-
-// Define your local schema
 db.version(1).stores({
-  projects: '++id, title, owner_id, last_modified, is_synced', // is_synced tracks cloud status
+  // 'isSynced' tracks if local changes have reached MongoDB
+  projects: '++id, _id, title, data, owner_id, last_modified, isSynced, isTemplate, category',
   user_progress: 'email, last_path'
 });
