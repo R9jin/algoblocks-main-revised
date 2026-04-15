@@ -445,6 +445,54 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || ""
 
+  // Inside your BlocklyWorkspace component
+
+  const handleRunCode = async (studentCode) => {
+    console.log("Sending code to Pyodide Worker...");
+
+    try {
+      const result = await runCodeWithWorker(studentCode);
+      console.log("Analysis Result:", result);
+      // TODO: Update your UI state with the result (Big O, frequency count, worst-case bottleneck)
+    } catch (error) {
+      console.error("Analysis Failed:", error);
+      // TODO: Show an error modal or toast to the user
+    }
+  };
+
+  const runCodeWithWorker = (studentCode) => {
+    return new Promise((resolve, reject) => {
+      // Spawn the worker
+      const worker = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+
+      // Panel Requirement: 3-Second Timeout for Infinite Loops
+      const timeout = setTimeout(() => {
+        worker.terminate(); // Force kill the thread
+        reject({
+          error: "Root Cause: Infinite Loop detected. Suggestion: Check your loop conditions to ensure they eventually terminate."
+        });
+      }, 3000);
+
+      // Listen for the result
+      worker.onmessage = (e) => {
+        clearTimeout(timeout); // Cancel the kill switch if it finished in time
+        if (e.data.status === 'success') {
+          if (e.data.result.error) {
+            reject(e.data.result.error);
+          } else {
+            resolve(e.data.result);
+          }
+        } else {
+          reject(e.data.error);
+        }
+        worker.terminate(); // Clean up memory
+      };
+
+      // Fire off the code!
+      worker.postMessage({ code: studentCode });
+    });
+  };
+
   useImperativeHandle(ref, () => ({
     clear: () => {
       if (workspace.current) {

@@ -40,6 +40,7 @@ export default function MainApp() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [syntaxError, setSyntaxError] = useState(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
 
   // --- Unified Template List State ---
   const [allTemplates, setAllTemplates] = useState([]);
@@ -437,6 +438,57 @@ export default function MainApp() {
   const consoleEndRef = useRef(null);
   useEffect(() => { if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [consoleOutput, isWaitingForInput]);
 
+  // --- Web Worker & Infinite Loop Mitigation ---
+  const executeWithTimeout = (studentCode) => {
+    return new Promise((resolve, reject) => {
+      const worker = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+      
+      const timeout = setTimeout(() => {
+        worker.terminate();
+        reject({
+          error: "Root Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False."
+        });
+      }, 3000);
+
+      worker.onmessage = (e) => {
+        clearTimeout(timeout);
+        if (e.data.status === 'success') resolve(e.data.result);
+        else reject({ error: e.data.error });
+        worker.terminate();
+      };
+
+      worker.postMessage({ code: studentCode });
+    });
+  };
+
+  // --- Run Handler ---
+  const handleRunCode = async () => {
+    if (!generatedCode.trim()) {
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console");
+      return;
+    }
+
+    setIsEvaluating(true);
+    setConsoleOutput("Evaluating algorithm against lesson requirements...");
+    setBottomPanel("console");
+    
+    try {
+      const result = await executeWithTimeout(generatedCode);
+      if (result.error) throw new Error(result.error);
+
+      setAnalysisResult(result);
+      setConsoleOutput(`Execution Successful!\n\nTime Complexity: ${result.time_complexity}\nSpace Complexity: ${result.space_complexity}`);
+      setBottomPanel("complexity");
+
+    } catch (failure) {
+      setConsoleOutput(`Execution Failed:\n\n${failure.error || failure.message}`);
+      setBottomPanel("console");
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
   return (
     <div className="workspace-app-container">
       {toast.show && (<div className={`toast-notification ${toast.type === 'error' ? 'toast-error' : 'toast-success'}`}>{toast.message}</div>)}
@@ -488,7 +540,7 @@ export default function MainApp() {
       <WorkspaceHeader
         viewMode={viewMode}
         setViewMode={setViewMode}
-        runCode={handleRunAction}
+        runCode={handleRunCode}
         handleExport={openSaveModal}
         handleSaveToDB={openSaveModal}
         currentProjectId={currentLoadedId}
