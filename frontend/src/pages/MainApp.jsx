@@ -6,6 +6,7 @@ import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from '../components/ComplexityGraph.jsx';
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
+import { projectsDB, syncQueueDB, templatesDB } from '../db.js';
 import "../styles/MainApp.css";
 import { formatComplexity } from "../utils/formatters";
 
@@ -29,6 +30,10 @@ export default function MainApp() {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "";
   const location = useLocation();
   const workspaceRef = useRef(null);
+  
+  // Web Worker & Execution Refs
+  const workerRef = useRef(null);
+  const runTimeoutRef = useRef(null);
 
   // --- UI & Analysis States ---
   const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
@@ -41,17 +46,17 @@ export default function MainApp() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [syntaxError, setSyntaxError] = useState(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isWaitingForInput, setIsWaitingForInput] = useState(false);
+  const [userInput, setUserInput] = useState("");
 
   // --- Unified Template List State ---
   const [allTemplates, setAllTemplates] = useState([]);
   const [currentLoadedId, setCurrentLoadedId] = useState(null);
   const [currentProjectTitle, setCurrentProjectTitle] = useState("Untitled Project");
-  const [currentSaveType, setCurrentSaveType] = useState("project"); // Tracks if the currently opened item is a project or template
+  const [currentSaveType, setCurrentSaveType] = useState("project");
 
   // --- Modals & Notifications ---
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
-  
-  // Refined Save Modal State to support metadata editing
   const [saveModal, setSaveModal] = useState({
     isOpen: false,
     isEditMetadataOnly: false,
@@ -78,6 +83,55 @@ export default function MainApp() {
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+
+  // --- Initialize Pyodide Web Worker ---
+  const initWorker = () => {
+    if (workerRef.current) workerRef.current.terminate();
+    
+    workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+    
+    workerRef.current.onmessage = (event) => {
+      const { type, data } = event.data;
+      
+      if (type === 'ANALYZE_RESULT') {
+        if (data.status === "success") {
+          setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+          setSyntaxError(null);
+        } else {
+          setSyntaxError({ line: data.line, message: data.message });
+        }
+      } 
+      else if (type === 'RUN_RESULT') {
+        clearTimeout(runTimeoutRef.current);
+        setConsoleOutput(prev => prev + data + "\n> Program finished.");
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
+      } 
+      else if (type === 'OUTPUT') {
+        clearTimeout(runTimeoutRef.current); // Reset timeout on active output
+        setConsoleOutput(prev => prev + data);
+      }
+      else if (type === 'INPUT_REQUEST') {
+        clearTimeout(runTimeoutRef.current); // Pause infinite loop checker while waiting for user
+        setConsoleOutput(prev => prev + data.prompt);
+        setIsWaitingForInput(true);
+      }
+      else if (type === 'ERROR') {
+        clearTimeout(runTimeoutRef.current);
+        setConsoleOutput(prev => prev + "\nRuntime Error: " + data);
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
+      }
+    };
+  };
+
+  useEffect(() => {
+    initWorker();
+    return () => {
+      if (workerRef.current) workerRef.current.terminate();
+      clearTimeout(runTimeoutRef.current);
+    };
+  }, []);
 
   // --- Resizing Bottom Panel Logic ---
   useEffect(() => {
@@ -110,7 +164,7 @@ export default function MainApp() {
     }
   }, [location.state]);
 
-  // --- Fetch Both Projects AND Templates for Sidebar ---
+  // --- Fetch Templates (IndexedDB Offline + Cloud Sync) ---
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
@@ -118,51 +172,74 @@ export default function MainApp() {
       if (!storedUser) { setAllTemplates(baseTemplates); return; }
 
       const user = JSON.parse(storedUser);
-
-      // Fetch from both collections simultaneously
-      const [projRes, tempRes] = await Promise.all([
-        fetch(`${VERCEL_URL}/api/projects`),
-        fetch(`${VERCEL_URL}/api/templates`)
-      ]);
-
-      const projData = await projRes.json();
-      const tempData = await tempRes.json();
-
       let customItems = [];
 
-      // 1. Process Projects
-      if (projData.status === 'success') {
-        const userProjects = projData.projects
-          .filter(p => p.owner_id === user.email)
-          .map(p => ({
-            _id: p._id,
-            title: p.title,
-            description: p.description || "Saved Project",
-            category: "My Projects",
-            isSystem: false,
-            saveType: "project",
-            data: p.data
-          }));
-        customItems = [...customItems, ...userProjects];
+      // 1. Fetch Local IndexedDB Projects
+      await projectsDB.iterate((value) => {
+         if (value.owner_id === user.email) {
+             customItems.push({
+                _id: value._id, title: value.title, description: value.description || "Saved Project", 
+                category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced
+             });
+         }
+      });
+
+      // 2. Fetch Local IndexedDB Templates
+      await templatesDB.iterate((value) => {
+         if (value.owner_id === user.email) {
+             customItems.push({
+                _id: value._id, title: value.title, description: value.description || "Custom template", 
+                category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced
+             });
+         }
+      });
+
+      // 3. Online Cloud Sync Merge
+      if (navigator.onLine && VERCEL_URL) {
+          try {
+              const [projRes, tempRes] = await Promise.all([
+                fetch(`${VERCEL_URL}/api/projects`).catch(() => null),
+                fetch(`${VERCEL_URL}/api/templates`).catch(() => null)
+              ]);
+
+              if (projRes && projRes.ok) {
+                 const projData = await projRes.json();
+                 if (projData.status === 'success') {
+                     for(let p of projData.projects) {
+                         if (p.owner_id === user.email) await projectsDB.setItem(p._id, {...p, synced: true});
+                     }
+                 }
+              }
+
+              if (tempRes && tempRes.ok) {
+                 const tempData = await tempRes.json();
+                 if (tempData.status === 'success') {
+                     for(let t of tempData.templates) {
+                         if (t.owner_id === user.email) await templatesDB.setItem(t._id, {...t, synced: true});
+                     }
+                 }
+              }
+              
+              // Re-read after sync
+              customItems = [];
+              await projectsDB.iterate((value) => {
+                 if (value.owner_id === user.email) {
+                     customItems.push({ _id: value._id, title: value.title, description: value.description, category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced });
+                 }
+              });
+              await templatesDB.iterate((value) => {
+                 if (value.owner_id === user.email) {
+                     customItems.push({ _id: value._id, title: value.title, description: value.description, category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced });
+                 }
+              });
+          } catch(e) { console.warn("Cloud sync failed, showing local data only."); }
       }
 
-      // 2. Process Custom Templates
-      if (tempData.status === 'success') {
-        const userTemplates = tempData.templates
-          .filter(t => t.owner_id === user.email)
-          .map(t => ({
-            _id: t._id,
-            title: t.title,
-            description: t.description || "Custom template",
-            category: t.category || "Custom Templates",
-            isSystem: false,
-            saveType: "template",
-            data: t.data
-          }));
-        customItems = [...customItems, ...userTemplates];
-      }
-
-      setAllTemplates([...baseTemplates, ...customItems]);
+      // Deduplicate by ID
+      const uniqueItemsMap = new Map();
+      customItems.forEach(item => uniqueItemsMap.set(item._id, item));
+      
+      setAllTemplates([...baseTemplates, ...Array.from(uniqueItemsMap.values())]);
     } catch (e) {
       console.error("Failed to load templates", e);
       setAllTemplates(baseTemplates);
@@ -180,7 +257,7 @@ export default function MainApp() {
         if (!response.ok) throw new Error("Template not found");
         json = await response.json();
         setCurrentLoadedId(null);
-        setCurrentSaveType("project"); // Disconnect from a specific template ID
+        setCurrentSaveType("project"); 
       } else {
         json = item.data;
         setCurrentLoadedId(item._id);
@@ -204,36 +281,20 @@ export default function MainApp() {
     });
   };
 
-  // --- Blockly View Changes & Analysis ---
-  const handleBlocklyChange = async (json, pythonCode) => {
+  // --- Offline Pyodide Analysis ---
+  const handleBlocklyChange = (json, pythonCode) => {
     if (!isEditingCode) setGeneratedPython(pythonCode);
     setBlocklyJson(json);
-    try {
-      const response = await fetch(`${VERCEL_URL}/api/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: pythonCode }) });
-      const data = await response.json();
-
-      if (data.status === "success") {
-        setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
-        setSyntaxError(null);
-      } else if (data.status === "error" && data.error_type === "SyntaxError") {
-        setSyntaxError({ line: data.line, message: data.message });
-      }
-    } catch (e) { console.error("Analysis Error:", e); }
+    
+    if (workerRef.current && pythonCode.trim() !== "") {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: pythonCode });
+    }
   };
 
   useEffect(() => {
-    if (!isEditingCode) return;
-    const timeoutId = setTimeout(async () => {
-      try {
-        const response = await fetch(`${VERCEL_URL}/api/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: generatedPython }) });
-        const data = await response.json();
-        if (data.status === "success") {
-          setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
-          setSyntaxError(null);
-        } else if (data.status === "error" && data.error_type === "SyntaxError") {
-          setSyntaxError({ line: data.line, message: data.message });
-        }
-      } catch (error) { console.error("Analysis Error:", error); }
+    if (!isEditingCode || !workerRef.current) return;
+    const timeoutId = setTimeout(() => {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
     }, 500);
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode]);
@@ -264,7 +325,7 @@ export default function MainApp() {
     });
   };
 
-  // --- Dual Save & Edit Logic ---
+  // --- Offline & Cloud Dual Save Logic ---
   const openSaveModal = () => {
     if (!blocklyJson) { showToast("The workspace is empty. Nothing to save!", "error"); return; }
     setSaveModal({
@@ -296,154 +357,117 @@ export default function MainApp() {
   const submitSave = async () => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) { showToast("You must be signed in to save.", "error"); return; }
-
     const user = JSON.parse(storedUser);
-    const endpoint = saveModal.saveType === 'template' ? '/api/templates' : '/api/projects';
 
     const payload = {
+      _id: saveModal.editingId || `local_${Date.now()}`,
       title: saveModal.title || "Untitled",
       description: saveModal.description || "",
       data: saveModal.isEditMetadataOnly ? saveModal.editingData : blocklyJson,
-      owner_id: user.email
+      owner_id: user.email,
+      synced: false,
+      updatedAt: Date.now(),
     };
 
-    if (saveModal.saveType === 'template') {
-      payload.category = saveModal.category || "Custom Templates";
-    }
+    if (saveModal.saveType === 'template') payload.category = saveModal.category || "Custom Templates";
 
     try {
-      let res;
-      if (saveModal.editingId) {
-        res = await fetch(`${VERCEL_URL}${endpoint}/${saveModal.editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      } else {
-        res = await fetch(`${VERCEL_URL}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      // 1. Save Locally to IndexedDB
+      if (saveModal.saveType === 'template') await templatesDB.setItem(payload._id, payload);
+      else await projectsDB.setItem(payload._id, payload);
+      
+      // 2. Queue for Sync
+      await syncQueueDB.setItem(payload._id, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
+
+      showToast(`${saveModal.saveType === 'template' ? 'Template' : 'Project'} saved locally!`, "success");
+
+      // 3. Opportunistic Cloud Sync
+      if (navigator.onLine && VERCEL_URL) {
+          const endpoint = saveModal.saveType === 'template' ? '/api/templates' : '/api/projects';
+          try {
+              const isUpdate = !payload._id.startsWith('local_');
+              const method = isUpdate ? 'PUT' : 'POST';
+              const url = isUpdate ? `${VERCEL_URL}${endpoint}/${payload._id}` : `${VERCEL_URL}${endpoint}`;
+              
+              const { _id, synced, updatedAt, ...mongoPayload } = payload;
+              
+              const res = await fetch(url, { 
+                method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(isUpdate ? payload : mongoPayload) 
+              });
+
+              if (res.ok) {
+                  const result = await res.json();
+                  if (!isUpdate && result.id) {
+                      if (saveModal.saveType === 'template') {
+                          await templatesDB.removeItem(payload._id);
+                          payload._id = result.id;
+                          await templatesDB.setItem(result.id, {...payload, synced: true});
+                      } else {
+                          await projectsDB.removeItem(payload._id);
+                          payload._id = result.id;
+                          await projectsDB.setItem(result.id, {...payload, synced: true});
+                      }
+                  } else {
+                      payload.synced = true;
+                      if (saveModal.saveType === 'template') await templatesDB.setItem(payload._id, payload);
+                      else await projectsDB.setItem(payload._id, payload);
+                  }
+                  await syncQueueDB.removeItem(payload._id); 
+                  showToast("Synced to cloud!", "success");
+              }
+          } catch (e) {
+              console.warn("Could not sync immediately, stored in queue.");
+          }
       }
 
-      if (res.ok) {
-        const result = await res.json();
-        showToast(`${saveModal.saveType === 'template' ? 'Template' : 'Project'} saved!`, "success");
-        
-        // Sync the current workspace tracking only if we modified the active item
-        if (!saveModal.isEditMetadataOnly || saveModal.editingId === currentLoadedId) {
-          if (!saveModal.editingId) setCurrentLoadedId(result.id);
-          setCurrentProjectTitle(payload.title);
-          setCurrentSaveType(saveModal.saveType);
-        }
-
-        // Always fetch to update the sidebar with any new projects or templates
-        fetchTemplates();
-      } else {
-        showToast("Failed to save", "error");
+      // 4. Update UI State
+      if (!saveModal.isEditMetadataOnly || saveModal.editingId === currentLoadedId) {
+         setCurrentLoadedId(payload._id);
+         setCurrentProjectTitle(payload.title);
+         setCurrentSaveType(saveModal.saveType);
       }
-    } catch (e) { showToast("Error saving.", "error"); }
+      fetchTemplates();
+
+    } catch(e) {
+       showToast("Error saving offline.", "error");
+    }
 
     setSaveModal({ ...saveModal, isOpen: false });
   };
 
-  // Optimistic UI Delete
   const handleDeleteItem = async (e, item) => {
-    e.stopPropagation(); // Prevents loading the template when clicking delete
-
+    e.stopPropagation(); 
     const itemLabel = item.saveType === 'template' ? 'Template' : 'Project';
     if (!window.confirm(`Are you sure you want to delete this ${itemLabel}?`)) return;
 
-    const previousTemplates = [...allTemplates];
+    // Optimistic UI Update
     setAllTemplates(prev => prev.filter(t => t._id !== item._id));
 
     try {
-      const endpoint = item.saveType === 'template' ? '/api/templates' : '/api/projects';
-      const res = await fetch(`${VERCEL_URL}${endpoint}/${item._id}`, {
-        method: "DELETE"
-      });
+      // Delete local
+      if (item.saveType === 'template') await templatesDB.removeItem(item._id);
+      else await projectsDB.removeItem(item._id);
 
-      if (res.ok) {
-        showToast(`${itemLabel} deleted!`, "success");
-        if (currentLoadedId === item._id) {
-          workspaceRef.current?.clear();
-          setCurrentLoadedId(null);
-          setCurrentProjectTitle("Untitled Project");
-        }
-      } else {
-        setAllTemplates(previousTemplates);
-        const errorData = await res.json();
-        showToast(errorData.detail || `Failed to delete ${itemLabel}`, "error");
+      // Delete Cloud if online
+      if (navigator.onLine && !item._id.startsWith('local_') && VERCEL_URL) {
+        const endpoint = item.saveType === 'template' ? '/api/templates' : '/api/projects';
+        await fetch(`${VERCEL_URL}${endpoint}/${item._id}`, { method: "DELETE" });
+      }
+
+      showToast(`${itemLabel} deleted!`, "success");
+      if (currentLoadedId === item._id) {
+        workspaceRef.current?.clear();
+        setCurrentLoadedId(null);
+        setCurrentProjectTitle("Untitled Project");
       }
     } catch (err) {
-      setAllTemplates(previousTemplates);
-      showToast("Connection error. Please try again.", "error");
+      showToast("Error deleting item.", "error");
+      fetchTemplates(); // Revert on fail
     }
   };
 
-  // --- Web Worker & Infinite Loop Mitigation ---
-  const executeWithTimeout = (pythonCode) => {
-    return new Promise((resolve, reject) => {
-      const worker = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-      
-      const timeout = setTimeout(() => {
-        worker.terminate();
-        reject({
-          error: "Root Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False."
-        });
-      }, 3000);
-
-      worker.onmessage = (e) => {
-        clearTimeout(timeout);
-        if (e.data.status === 'success') resolve(e.data.result);
-        else reject({ error: e.data.error });
-        worker.terminate();
-      };
-
-      worker.postMessage({ code: pythonCode });
-    });
-  };
-
-  // --- Execution ---
-  const [isWaitingForInput, setIsWaitingForInput] = useState(false);
-  const [userInput, setUserInput] = useState("");
-  const socketRef = useRef(null);
-
-  const runStandardCode = async () => {
-    setConsoleOutput((prev) => prev + "> Running on Vercel (Non-interactive mode)...\n");
-    try {
-      const response = await fetch(`${VERCEL_URL}/api/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: generatedPython }) });
-      const data = await response.json();
-      setConsoleOutput((prev) => prev + (data.output || "> Program finished with no output."));
-    } catch (error) { setConsoleOutput((prev) => prev + "❌ Vercel execution failed. Fallback to local if running locally."); }
-  };
-
-  const runCode = () => {
-    setConsoleOutput((prev) => prev + "> Initializing interactive session...\n");
-    setIsWaitingForInput(false);
-    const wsUrl = import.meta.env.VITE_BACKEND_WS_URL || `wss://algoblocks-main.onrender.com/api/ws/run`;
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
-    socket.onopen = () => { socket.send(JSON.stringify({ type: "run", code: generatedPython })); };
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === "output") setConsoleOutput((prev) => prev + msg.data);
-      else if (msg.type === "input_request") { setConsoleOutput((prev) => prev + msg.prompt); setIsWaitingForInput(true); }
-      else if (msg.type === "error") { setConsoleOutput((prev) => prev + "\nRuntime Error: " + msg.data); setIsWaitingForInput(false); }
-      else if (msg.type === "done") { setConsoleOutput((prev) => prev + "\n> Program finished."); setIsWaitingForInput(false); socket.close(); }
-    };
-    socket.onerror = (e) => { setConsoleOutput((prev) => prev + "❌ Failed to connect to backend websocket."); setIsWaitingForInput(false); };
-  };
-
-  const handleRunAction = () => {
-    const hasInput = generatedPython.includes("input(") || generatedPython.includes("input()");
-    if (hasInput) runCode();
-    else runStandardCode();
-  };
-
-  const handleSendInput = (e) => {
-    if (e.key === "Enter" && isWaitingForInput && socketRef.current) {
-      setConsoleOutput((prev) => prev + userInput + "\n");
-      socketRef.current.send(JSON.stringify({ type: "input_response", data: userInput }));
-      setUserInput(""); setIsWaitingForInput(false);
-    }
-  };
-
-  // --- Run Handler with Pre-flight Infinite Loop Catching ---
-  const handleRunCode = async () => {
+  // --- Run Code (Offline Pyodide Execution) ---
+  const handleRunCode = () => {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
@@ -451,33 +475,41 @@ export default function MainApp() {
     }
 
     setIsEvaluating(true);
-    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
+    setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
     
-    try {
-      // Use web worker to evaluate safely with a timeout to catch infinite loops
-      const result = await executeWithTimeout(generatedPython);
-      if (result && result.error) throw new Error(result.error);
+    // Start execution via Worker
+    workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
-      // If the worker returns analysis data, we can optionally update the analysis state
-      if (result && (result.time_complexity || result.total)) {
-        setAnalysisResult(result);
-      }
-      
-      setConsoleOutput("Pre-flight checks passed! Starting code execution...\n\n");
-      
-      // Infinite loop check passed, proceed to actual server execution
-      handleRunAction();
-
-    } catch (failure) {
-      setConsoleOutput(`Execution Prevented:\n\n${failure.error || failure.message}`);
-      setBottomPanel("console");
-    } finally {
+    // Infinite Loop Safety Timeout
+    runTimeoutRef.current = setTimeout(() => {
+      workerRef.current.terminate();
+      setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
       setIsEvaluating(false);
+      setIsWaitingForInput(false);
+      initWorker(); // Re-initialize the worker for next run
+    }, 3000);
+  };
+
+  const handleSendInput = (e) => {
+    if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
+      setConsoleOutput((prev) => prev + userInput + "\n");
+      workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
+      setUserInput(""); 
+      setIsWaitingForInput(false);
+
+      // Resume infinite loop timeout after input is provided
+      runTimeoutRef.current = setTimeout(() => {
+        workerRef.current.terminate();
+        setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
+        initWorker(); 
+      }, 3000);
     }
   };
 
-  // --- Search and Group Templates by Category ---
+  // --- Search and Group Templates ---
   const filteredTemplates = allTemplates.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const groupedTemplates = filteredTemplates.reduce((acc, template) => {
