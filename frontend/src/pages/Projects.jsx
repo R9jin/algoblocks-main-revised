@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import { db } from "../db";
 import "../styles/Projects.css";
 
 // --- Minimal Inline SVG Icons ---
@@ -37,22 +38,22 @@ export default function Projects() {
     const fetchProjects = async () => {
       const storedUser = localStorage.getItem("user");
       if (!storedUser) {
-        setLoading(false);
-        return; // User is not signed in
+        setLoading(false); // CHANGED: ensure loading stops even if no user
+        return;
       }
 
       const user = JSON.parse(storedUser);
 
       try {
-        const response = await fetch("/api/projects");
-        const result = await response.json();
+        const localProjects = await db.projects
+          .where("owner_id") // filter by owner
+          .equals(user.email)
+          .toArray();
+        setProjects(localProjects);
 
-        if (response.ok && result.status === "success") {
-          const userProjects = result.projects.filter(p => p.owner_id === user.email);
-          setProjects(userProjects);
-        }
       } catch (error) {
-        console.error("Failed to fetch projects:", error);
+        console.error("Failed to load projects from IndexedDB:", error);
+        setProjects([]); // fallback safe state
       } finally {
         setLoading(false);
       }
@@ -120,8 +121,8 @@ export default function Projects() {
                     <div className="project-icon-wrapper">
                       <FolderIcon />
                     </div>
-                    <button 
-                      className="btn-delete" 
+                    <button
+                      className="btn-delete"
                       title="Delete Project"
                       onClick={(e) => handleDeleteProject(e, proj._id)}
                     >
