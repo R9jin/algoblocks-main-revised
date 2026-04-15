@@ -801,3 +801,57 @@
 .custom-template-card {
   border-left: 4px solid #7F57F9; /* Add a purple accent to user templates */
 }
+
+/* Sidebar Project Item Adjustments */
+.recent-project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recent-project-item:hover {
+  border-color: #BCA1FC;
+  background-color: #f8fafc;
+  transform: translateX(4px);
+}
+
+.project-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-item-title {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.95rem;
+}
+
+.project-item-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.project-item-status {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.project-item-status.synced {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.project-item-status.local {
+  background-color: #fff7ed;
+  color: #d97706;
+}

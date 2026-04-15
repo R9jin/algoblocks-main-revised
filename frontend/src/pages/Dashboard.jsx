@@ -105,19 +105,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // =========================
-    // ONLINE SYNC HANDLER
-    // =========================
     const handleOnline = async () => {
-      console.log("Internet restored! Syncing offline changes...");
       await pushOfflineChangesToCloud();
     };
 
     window.addEventListener("online", handleOnline);
 
-    // =========================
-    // LOAD LOCAL DATA (FIXED FOR LOCALFORAGE)
-    // =========================
     const loadLocalData = async () => {
       const storedUser = JSON.parse(localStorage.getItem("user"));
       if (!storedUser) return;
@@ -127,15 +120,10 @@ export default function Dashboard() {
       }
 
       const allProjects = [];
-
-      // FIX: localforage has no query API → must iterate
       await projectsDB.iterate((value) => {
         allProjects.push(value);
       });
 
-      // =========================
-      // FILTER USER PROJECTS
-      // =========================
       const userProjects = allProjects.filter(
         (p) => p.owner_id === storedUser.email && !p.isTemplate
       );
@@ -146,15 +134,11 @@ export default function Dashboard() {
           .slice(0, 5)
       );
 
-      // =========================
-      // GROUP USER TEMPLATES
-      // =========================
       const templates = allProjects.filter(
         (p) => p.owner_id === storedUser.email && p.isTemplate
       );
 
       const grouped = {};
-
       templates.forEach((t) => {
         const category = t.category || "custom";
         if (!grouped[category]) grouped[category] = [];
@@ -162,7 +146,6 @@ export default function Dashboard() {
       });
 
       setUserTemplatesGrouped(grouped);
-
       setLoading(false);
     };
 
@@ -201,6 +184,18 @@ export default function Dashboard() {
 
       <div className="dashboard-body">
         <main className="dashboard-main">
+          {/* Learning Path Banner aligned with CSS .learning-path-banner */}
+          <div className="learning-path-banner" onClick={() => navigate("/learning-path")}>
+            <div className="banner-icon">
+              <img src="/assets/learning-icon.png" alt="Learning Path" />
+            </div>
+            <div className="banner-text">
+              <h2>Learning Path</h2>
+              <p>Follow a structured curriculum to master algorithms step-by-step.</p>
+            </div>
+            <div className="banner-arrow">→</div>
+          </div>
+
           <h1 className="section-title">Algorithm Library</h1>
 
           <div className="algorithm-library-grid">
@@ -208,7 +203,6 @@ export default function Dashboard() {
             {Object.entries(SYSTEM_TEMPLATES).map(([catKey, items]) => (
               <div key={catKey} className="algorithm-column">
                 <h3 className="column-title">{catKey.toUpperCase()}</h3>
-
                 {items.map((temp) => (
                   <div
                     key={temp.name}
@@ -219,23 +213,20 @@ export default function Dashboard() {
                       <img src={temp.icon} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
                     </div>
-
+                    {/* Hover content wrapper for CSS animation */}
                     <div className="card-hover-content">
                       <p className="template-card-desc">{temp.desc}</p>
-                      <button className="try-template-btn">
-                        Test Template →
-                      </button>
+                      <button className="try-template-btn">Test Template →</button>
                     </div>
                   </div>
                 ))}
               </div>
             ))}
 
-            {/* USER TEMPLATES (FIXED DB LOADING) */}
+            {/* USER TEMPLATES */}
             {Object.entries(userTemplatesGrouped).map(([category, items]) => (
               <div key={category} className="algorithm-column">
                 <h3 className="column-title">{category.toUpperCase()}</h3>
-
                 {items.map((temp) => (
                   <div
                     key={temp._id}
@@ -243,15 +234,12 @@ export default function Dashboard() {
                     onClick={() => handleItemClick(temp)}
                   >
                     <div className="card-header">
-                      <img src={temp.icon} alt={temp.name} className="card-icon-img" />
+                      <img src={temp.icon || "/assets/folder-icon.png"} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
                     </div>
-
                     <div className="card-hover-content">
-                      <p className="template-card-desc">{temp.desc}</p>
-                      <button className="try-template-btn">
-                        Load Template →
-                      </button>
+                      <p className="template-card-desc">{temp.desc || "User defined template."}</p>
+                      <button className="try-template-btn">Load Template →</button>
                     </div>
                   </div>
                 ))}
@@ -262,7 +250,6 @@ export default function Dashboard() {
 
         <aside className="dashboard-sidebar">
           <h3 className="sidebar-label">RECENT PROJECTS</h3>
-
           {loading ? (
             <div className="empty-projects-box">Loading local database...</div>
           ) : recentProjects.length === 0 ? (
@@ -277,12 +264,16 @@ export default function Dashboard() {
                     navigate("/app", { state: { projectToLoad: proj } })
                   }
                 >
-                  <div className="project-item-title">{proj.title}</div>
+                  <div className="project-item-info">
+                    <div className="project-item-title">{proj.title}</div>
+                    <div className="project-item-meta">
+                      Last modified: {new Date(proj.last_modified).toLocaleDateString()}
+                    </div>
+                  </div>
 
                   <div
-                    className={`project-item-status ${
-                      proj.synced ? "synced" : "local"
-                    }`}
+                    className={`project-item-status ${proj.synced ? "synced" : "local"
+                      }`}
                   >
                     {proj.synced ? "Cloud Synced" : "Local Only"}
                   </div>
