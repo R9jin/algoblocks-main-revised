@@ -1,202 +1,111 @@
-/* ... (keep existing top section) ... */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600&display=swap');
-
 :root {
-  font-family: 'Outfit', system-ui, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light;
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
 }
 
 body {
   margin: 0;
-  padding: 0;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background-color: #f4f4f4;
 }
 
-.app-container {
+#root {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  border-inline: 1px solid var(--border);
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  box-sizing: border-box;
 }
 
-.app-header {
-  height: 60px;
-  background-color: #3C2D76;
-  color: white;
-  padding: 0 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 2px solid #1a252f;
-  flex-shrink: 0;
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
 }
 
-/* --- ADD THESE NEW STYLES --- */
-.header-left-group {
-  display: flex;
-  gap: 10px;
-  align-items: center;
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
 }
-
-.save-button {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: bold;
-  transition: background-color 0.2s;
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
 }
-
-.save-button:hover {
-  background-color: #2980b9;
-}
-
-/* ---------------------------- */
-
-.complexity-badge {
-  background-color: #3a2661;
-  color: #2c3e50;
-  padding: 5px 15px;
-  border-radius: 20px;
-  font-weight: bold;
-}
-
-/* ... (keep the rest of your split pane styles below) ... */
-.main-content {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.left-column {
-  display: flex;
-  flex-direction: column;
-  border-right: 4px solid #ddd;
-}
-
-.right-column {
-  display: flex;
-  flex-direction: column;
-  background-color: #fff;
-}
-
-.workspace-area {
-  position: relative;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.code-area {
-  background-color: #282c34;
-  color: #abb2bf;
-  border-top: 4px solid #ddd;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.complexity-area {
-  overflow-y: auto;
-  border-bottom: 4px solid #ddd;
-}
-
-.console-area {
-  background-color: #1e1e1e;
-  color: #0f0;
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-header {
-  background: #e0e0e0;
-  color: #333;
-  padding: 5px 10px;
-  font-weight: bold;
-  font-size: 0.9rem;
-  border-bottom: 1px solid #ccc;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-pre {
+p {
   margin: 0;
-  padding: 10px;
-  font-family: "Fira Code", monospace;
-  white-space: pre-wrap;
-  overflow: auto;
-  flex: 1;
 }
 
-.run-button {
-  background-color: #27ae60;
-  color: white;
-  border: none;
-  padding: 5px 15px;
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
   border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 0.8rem;
+  color: var(--text-h);
 }
 
-.run-button:hover {
-  background-color: #2ecc71;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-th {
-  text-align: left;
-  background-color: #f0f0f0;
-  padding: 8px;
-  border-bottom: 2px solid #ccc;
-  position: sticky;
-  top: 0;
-}
-
-td {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-  font-family: monospace;
-  color: #4b4b4b;
-}
-
-.gutter {
-  background-color: #4f008b;
-  background-repeat: no-repeat;
-  background-position: 50%;
-}
-
-.gutter.gutter-horizontal {
-  cursor: col-resize;
-  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
-}
-
-.gutter.gutter-vertical {
-  cursor: row-resize;
-  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
-}
-
-.split {
-  display: flex;
-  flex-direction: row;
-}
-
-.left-column,
-.right-column {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
 }
