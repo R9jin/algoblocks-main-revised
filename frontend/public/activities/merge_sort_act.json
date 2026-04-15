@@ -1,0 +1,52 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defreturn",
+        "id": ":Y4O}qUUt|X+~#ZCO?xK",
+        "x": 38,
+        "y": -87,
+        "deletable": false,
+        "editable": false,
+        "extraState": {
+          "params": [
+            {
+              "name": "arr",
+              "id": "$L!%sGDV9_/`aC?YYQdf"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "merge_sort"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "comment_block",
+              "id": ")wx!U(]gWv|{:lTZB;3X",
+              "fields": {
+                "TEXT": "arr: list of elements to sort"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "arr",
+      "id": "$L!%sGDV9_/`aC?YYQdf"
+    }
+  ],
+  "backpack": []
+}

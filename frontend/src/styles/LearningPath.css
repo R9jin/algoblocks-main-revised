@@ -1,0 +1,514 @@
+.learning-path-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #ffffff;
+  color: #3C2D76;
+  font-family: 'Outfit', sans-serif;
+  overflow-y: auto;
+}
+
+/* HEADER */
+
+.lp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.lp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.lp-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-logo img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.lp-logo h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.lp-back-link {
+  text-decoration: none;
+  color: #5A1398;
+  font-weight: 600;
+  font-size: .9rem;
+}
+
+.lp-user-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #BCA1FC;
+  border-radius: 50%;
+  padding: 5px;
+}
+
+.lp-user-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* MAIN CONTENT */
+
+.lp-main {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* HERO */
+
+.lp-hero {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.lp-hero-icon {
+  background: #C994FF;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  margin-right: 20px;
+  box-shadow: 0 4px 10px rgba(201, 148, 255, .4);
+}
+
+.lp-hero-icon img {
+  width: 40px;
+  height: 40px;
+  filter: brightness(0) invert(1);
+}
+
+.lp-hero-text h2 {
+  font-size: 2rem;
+  margin: 0 0 5px;
+  color: #1a1a1a;
+}
+
+.lp-hero-text p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+/* INFO BOX */
+
+.lp-info-box {
+  background: #F5EFFF;
+  color: #5A1398;
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-size: .9rem;
+  margin-bottom: 40px;
+}
+
+/* LESSONS */
+
+.lp-lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.lp-lesson-card {
+  background: white;
+  border: 1px solid #E4DBFF;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .04);
+  transition: .2s;
+}
+
+.lp-lesson-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .08);
+}
+
+.lp-lesson-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.lp-book-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.lp-lesson-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-lesson-number {
+  color: #BCA1FC;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.lp-lesson-title {
+  margin: 2px 0 0;
+  font-size: 1.3rem;
+  color: #1a1a1a;
+}
+
+/* TOPICS */
+
+.lp-topic-container {
+  background: #FAF9FF;
+  border: 1px solid #E6DEFF;
+  border-radius: 10px;
+  margin-left: 43px;
+  overflow: hidden;
+  transition: .25s;
+}
+
+.lp-topic-container.expanded {
+  border-color: #C9B6FF;
+  box-shadow: 0 4px 12px rgba(127, 87, 249, .12);
+}
+
+.lp-topic-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.lp-topic-row:hover {
+  background: #F7F3FF;
+}
+
+.lp-topic-row-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* NEW STATUS BADGES SECTION */
+.lp-topic-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.score-badge {
+  font-size: .75rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Full score style */
+.score-badge.perfect {
+  background: #EAF8F1;
+  color: #27AE60;
+  border: 1px solid #C3E6D3;
+}
+
+/* Partially complete style */
+.score-badge.partial {
+  background: #FFF8E8;
+  color: #F5A623;
+  border: 1px solid #FFDDA6;
+}
+
+.pending-badge {
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: #F3F4F6;
+  color: #6B7280;
+  border: 1px solid #E5E7EB;
+}
+
+.lp-topic-arrow {
+  color: #BCA1FC;
+  font-weight: bold;
+  font-family: monospace;
+  font-size: 1.1rem;
+  width: 15px;
+}
+
+.lp-topic-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-topic-number {
+  color: #888;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+.lp-topic-name {
+  margin: 2px 0 0;
+  color: #3C2D76;
+  font-size: .95rem;
+  font-weight: 600;
+}
+
+/* BADGES */
+
+.lp-topic-badge {
+  font-size: .65rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.lp-topic-badge.intermediate {
+  background: #FEF9C3;
+  color: #A16207;
+}
+
+.lp-topic-badge.advanced {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+/* EXPANDED CONTENT */
+
+.lp-topic-content {
+  padding: 25px 25px 25px 55px;
+  border-top: 1px solid #EEE8FF;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.lp-topic-desc {
+  font-size: .85rem;
+  color: #444;
+}
+
+/* TASK */
+
+.lp-topic-task {
+  background: #FFF8E8;
+  border: 1px solid #FFDDA6;
+  border-left: 5px solid #F5A623;
+  padding: 16px;
+  border-radius: 10px;
+}
+
+.lp-task-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: #4b2e00;
+  margin-bottom: 6px;
+}
+
+.lp-task-desc {
+  font-size: .88rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+/* TEACHING */
+
+.lp-teaching-section {
+  background: #F7F4FF;
+  border: 1px solid #E6DEFF;
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.lp-teaching-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #3C2D76;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.lp-topic-teaching {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: .9rem;
+  color: #1a1a1a;
+}
+
+/* ALGORITHM */
+
+.lp-algorithm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-steps-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #3C2D76;
+}
+
+/* CODE BLOCK */
+
+.lp-code-block {
+  background: #ffffff;
+  border: 1px solid #e7e7e7;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, .3);
+}
+
+.lp-code-block pre {
+  margin: 0;
+}
+
+.lp-code-block code {
+  font-family: "Fira Code", "Courier New", monospace;
+  font-size: .9rem;
+  color: #303030;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* REFERENCES */
+
+/* --- References Section --- */
+.lp-references-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f4f4f4;
+  border-radius: 6px;
+  border-width: 1px 1px 1px 4px;
+  border-style: solid;
+  border-color: #a78bfa;
+}
+
+.lp-references-title {
+  color: #a78bfa;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: block;
+}
+
+.lp-references-list {
+  margin: 10px 0 0 20px;
+  padding: 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+.lp-references-list li {
+  margin-bottom: 6px;
+}
+
+/* Make the link interactive and distinct */
+.lp-reference-link {
+  color: #000000;
+  text-decoration: underline;
+  text-decoration-color: #555;
+  transition: color 0.2s ease-in-out, text-decoration-color 0.2s ease-in-out;
+}
+
+.lp-reference-link:hover {
+  color: #a78bfa;
+  text-decoration-color: #a78bfa;
+}
+
+/* FOOTER */
+
+.lp-topic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+}
+
+.lp-test-cases {
+  font-size: .85rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lp-review-btn {
+  background: #EAF8F1;
+  border: 1px solid #27AE60;
+  padding: 10px 22px;
+  border-radius: 8px;
+  color: #27AE60;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.lp-review-btn:hover {
+  background: #D5EFE1;
+}
+
+.lp-start-btn {
+  background: linear-gradient(135deg, #7F57F9, #9F7AEA);
+  border: none;
+  padding: 10px 22px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.lp-start-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(127, 87, 249, .35);
+}
+
+/* BACK LINK */
+
+.lp-back-container {
+  margin-bottom: 25px;
+}
+
+.lp-back-icon {
+  margin-right: 6px;
+}
