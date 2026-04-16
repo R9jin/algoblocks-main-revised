@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import { projectsDB } from "../db"; // ✅ using localforage instance correctly
 import "../styles/Dashboard.css";
-import { pushOfflineChangesToCloud } from "../utils/syncManager";
 
 const SYSTEM_TEMPLATES = {
   sorting: [
@@ -104,19 +104,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleOnline = async () => {
-      await pushOfflineChangesToCloud();
-    };
-
     window.addEventListener("online", handleOnline);
 
     const loadLocalData = async () => {
       const storedUser = JSON.parse(localStorage.getItem("user"));
       if (!storedUser) return;
-
-      if (navigator.onLine) {
-        pushOfflineChangesToCloud();
-      }
 
       const allProjects = [];
       await projectsDB.iterate((value) => {
