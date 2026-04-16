@@ -308,7 +308,11 @@ const ActivityApp = () => {
 
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
-  const socketRef = useRef(null);
+
+  // NEW PWA OFFLINE REFS (Replaces socketRef)
+  const workerRef = useRef(null);
+  const runTimeoutRef = useRef(null);
+
   const isDragging = useRef(false);
   const hasLoadedRef = useRef(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -370,6 +374,60 @@ const ActivityApp = () => {
   const [expandedLines, setExpandedLines] = useState({});
 
   const [panelHeight, setPanelHeight] = useState(300);
+
+  // --- Initialize Pyodide Web Worker ---
+  const initWorker = () => {
+    if (workerRef.current) workerRef.current.terminate();
+
+    workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+
+    workerRef.current.onmessage = (event) => {
+      const { type, data } = event.data;
+
+      if (type === 'ANALYZE_RESULT') {
+        if (data.status === "success") {
+          setAnalysisResult({
+            total: data.total,
+            space_total: data.space_total || "O(1)",
+            lines: data.lines || [],
+            is_recursive: data.is_recursive || false
+          });
+          setSyntaxError(null);
+        } else {
+          setSyntaxError({ line: data.line, message: data.message });
+        }
+      }
+      else if (type === 'RUN_RESULT') {
+        clearTimeout(runTimeoutRef.current);
+        setConsoleOutput(prev => prev + data + "\n> Program finished.");
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
+      }
+      else if (type === 'OUTPUT') {
+        clearTimeout(runTimeoutRef.current);
+        setConsoleOutput(prev => prev + data);
+      }
+      else if (type === 'INPUT_REQUEST') {
+        clearTimeout(runTimeoutRef.current);
+        setConsoleOutput(prev => prev + data.prompt);
+        setIsWaitingForInput(true);
+      }
+      else if (type === 'ERROR') {
+        clearTimeout(runTimeoutRef.current);
+        setConsoleOutput(prev => prev + "\nRuntime Error: " + data);
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
+      }
+    };
+  };
+
+  useEffect(() => {
+    initWorker();
+    return () => {
+      if (workerRef.current) workerRef.current.terminate();
+      clearTimeout(runTimeoutRef.current);
+    };
+  }, []);
 
   // =========================================================
   // 4. UI HELPERS
@@ -440,48 +498,12 @@ const ActivityApp = () => {
     };
   }, []);
 
-  // analysis effect
+  // analysis effect (Offline Worker Version)
   useEffect(() => {
-    if (!isEditingCode) return;
+    if (!isEditingCode || !workerRef.current) return;
 
-    const timeoutId = setTimeout(async () => {
-      try {
-        const response = await fetch(`${VERCEL_URL}/api/analyze`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: generatedPython }),
-        });
-
-        const data = await response.json();
-
-        if (data.status === "success") {
-          setAnalysisResult({
-            total: data.total,
-            space_total: data.space_total || "O(1)",
-            lines: data.lines || [],
-            is_recursive: data.is_recursive || false,
-          });
-
-          setSyntaxError(null);
-        } else if (
-          data.status === "error" &&
-          data.error_type === "SyntaxError"
-        ) {
-          setSyntaxError({
-            line: data.line,
-            message: data.message,
-          });
-
-          setAnalysisResult({
-            lines: [],
-            total: "Syntax Error",
-            space_total: "-",
-            is_recursive: false,
-          });
-        }
-      } catch (error) {
-        console.error("Analysis Error:", error);
-      }
+    const timeoutId = setTimeout(() => {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
     }, 500);
 
     return () => clearTimeout(timeoutId);
@@ -511,24 +533,20 @@ const ActivityApp = () => {
 
     const user = JSON.parse(storedUser);
 
+    // Update offline progress instantly
+    if (!user.progress) user.progress = {};
+    user.progress[lessonId] = Math.max(user.progress[lessonId] || 0, score);
+    localStorage.setItem("user", JSON.stringify(user));
+
     try {
-      const response = await fetch(`${VERCEL_URL}/api/update-progress`, {
+      // Fire-and-forget sync to the cloud
+      fetch(`${VERCEL_URL}/api/update-progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.email,
-          lesson_id: lessonId,
-          score,
-        }),
+        body: JSON.stringify({ email: user.email, lesson_id: lessonId, score }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        user.progress = data.progress;
-        localStorage.setItem("user", JSON.stringify(user));
-      }
     } catch (error) {
-      console.error("Failed to save progress:", error);
+      console.warn("Offline mode: Progress saved locally.");
     }
   };
 
@@ -604,27 +622,8 @@ const ActivityApp = () => {
       setGeneratedPython(pythonCode);
     }
 
-    try {
-      const response = await fetch(`${VERCEL_URL}/api/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: pythonCode }),
-      });
-
-      const data = await response.json();
-
-      if (data.status === "success") {
-        setAnalysisResult({
-          total: data.total,
-          space_total: data.space_total || "O(1)",
-          lines: data.lines || [],
-          is_recursive: data.is_recursive || false,
-        });
-
-        setSyntaxError(null);
-      }
-    } catch (error) {
-      console.error("Analysis Error:", error);
+    if (workerRef.current && pythonCode.trim() !== "") {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: pythonCode });
     }
   };
 
@@ -648,25 +647,7 @@ const ActivityApp = () => {
     }
   };
 
-  const runStandardCode = async () => {
-    setConsoleOutput("> Running on Vercel (Non-interactive mode)...\n");
-    setBottomPanel("console");
-
-    try {
-      const response = await fetch(`${VERCEL_URL}/api/run`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: generatedPython }),
-      });
-
-      const data = await response.json();
-      setConsoleOutput(data.output || "> Program finished with no output.");
-    } catch (error) {
-      setConsoleOutput("❌ Vercel execution failed. Fallback to local if running locally.");
-    }
-  };
-
-  const handleActivityRun = async () => {
+  const handleActivityRun = () => {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
@@ -674,109 +655,38 @@ const ActivityApp = () => {
     }
 
     setIsEvaluating(true);
-    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
+    setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
 
-    try {
-      const result = await executeWithTimeout(generatedPython);
-      if (result && result.error) throw new Error(result.error);
+    // Start execution via Worker
+    workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
-      if (result && (result.time_complexity || result.total)) {
-        setAnalysisResult({
-          total: result.total || "O(1)",
-          space_total: result.space_total || "O(1)",
-          lines: result.lines || [],
-          is_recursive: result.is_recursive || false,
-        });
-      }
-
-      setConsoleOutput("Pre-flight checks passed! Starting code execution...\n\n");
-
-      const hasInput = generatedPython.includes("input(") || generatedPython.includes("input()");
-      if (hasInput) {
-        runCode();
-      } else {
-        runStandardCode();
-      }
-
-    } catch (failure) {
-      setConsoleOutput(`Execution Prevented:\n\n${failure.error || failure.message}`);
-      setBottomPanel("console");
-    } finally {
+    // Infinite Loop Safety Timeout
+    runTimeoutRef.current = setTimeout(() => {
+      workerRef.current.terminate();
+      setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
       setIsEvaluating(false);
-    }
+      setIsWaitingForInput(false);
+      initWorker(); // Re-initialize the worker for next run
+    }, 3000);
   };
 
-  const runCode = () => {
-    // =========================
-    // UI RESET (RUN START)
-    // =========================
-    setConsoleOutput("> Initializing session...\n");
-    setBottomPanel("console");
-    setIsWaitingForInput(false); // reset input state immediately
-
-    // =========================
-    // SOCKET SETUP
-    // =========================
-    const wsUrl = import.meta.env.VITE_BACKEND_WS_URL || `wss://algoblocks-main.onrender.com/api/ws/run`;
-    const socket = new WebSocket(wsUrl);
-
-    socketRef.current = socket;
-
-    // =========================
-    // CONNECTION OPEN
-    // =========================
-    socket.onopen = () => {
-      console.log("✅ Connected");
-
-      // FIX: DO NOT clear console here anymore (prevents race condition)
-      socket.send(
-        JSON.stringify({
-          type: "run",
-          code: generatedPython
-        })
-      );
-    };
-
-    // =========================
-    // MESSAGE HANDLER
-    // =========================
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-
-      if (msg.type === "output") {
-        setConsoleOutput((prev) => prev + msg.data);
-      }
-
-      else if (msg.type === "input_request") {
-        setConsoleOutput((prev) => prev + msg.prompt);
-        setIsWaitingForInput(true);
-      }
-
-      else if (msg.type === "error") {
-        setConsoleOutput((prev) => prev + "\nRuntime Error: " + msg.data);
-        setIsWaitingForInput(false);
-      }
-
-      else if (msg.type === "done") {
-        setConsoleOutput((prev) => prev + "\n> Program finished.");
-        setIsWaitingForInput(false);
-        socket.close();
-      }
-    };
-
-    // =========================
-    // ERROR HANDLING
-    // =========================
-    socket.onerror = (e) => {
-      console.error("❌ WebSocket error:", e);
-      setConsoleOutput("❌ Failed to connect to backend.");
+  const handleSendInput = (e) => {
+    if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
+      setConsoleOutput((prev) => prev + userInput + "\n");
+      workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
+      setUserInput("");
       setIsWaitingForInput(false);
-    };
 
-    socket.onclose = () => {
-      console.log("⚠️ Socket closed");
-    };
+      // Resume infinite loop timeout after input is provided
+      runTimeoutRef.current = setTimeout(() => {
+        workerRef.current.terminate();
+        setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
+        initWorker();
+      }, 3000);
+    }
   };
 
   const toggleTest = (index) => {
@@ -793,7 +703,7 @@ const ActivityApp = () => {
 
     if (!testCases) return;
 
-    // --- NEW: Prevent empty execution and run pre-flight checks ---
+    // --- PRE-FLIGHT CHECK ---
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
@@ -813,8 +723,8 @@ const ActivityApp = () => {
       setIsEvaluating(false);
       return;
     }
-    // ---------------------------------------------------------------
 
+    // ------------------------
     setBottomPanel("console");
     setConsoleOutput("> Running Tests...\n");
     setPassedTests(0);
@@ -838,9 +748,6 @@ const ActivityApp = () => {
       const isIntroLevel =
         taskId === "l1-t1" || taskId === "l1-t3";
 
-      // =========================
-      // CODE GENERATION LOGIC
-      // =========================
       if (isFunctionCall && !isIntroLevel) {
         codeToRun =
           generatedPython +
@@ -849,25 +756,10 @@ const ActivityApp = () => {
         codeToRun = `${generatedPython}\n${tc.call || ""}`;
       }
 
-      // Inside runTestCases() loop:
       try {
-        const response = await fetch(`${VERCEL_URL}/api/run`, { // <-- CHANGE THIS from RENDER_URL
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: codeToRun }),
-        });
+        const rawOutput = await executeTestOffline(codeToRun);
+        const actualOutput = rawOutput.trim();
 
-        const data = await response.json();
-
-        const rawOutput = (data.output || "")
-          .replace("> Code ran successfully.", "")
-          .trim();
-
-        const actualOutput = rawOutput;
-
-        // =========================
-        // EXPECTED VALUE HANDLING
-        // =========================
         const expected = String(tc.expected)
           .replace(/^['"]|['"]$/g, "")
           .replace(/\\n/g, "\n")
@@ -875,9 +767,6 @@ const ActivityApp = () => {
 
         let testPassed = false;
 
-        // =========================
-        // EVALUATION LOGIC
-        // =========================
         if (isFunctionCall && !isIntroLevel) {
           if (actualOutput.includes("TEST_PASSED_FLAG")) {
             passed++;
@@ -890,9 +779,6 @@ const ActivityApp = () => {
           }
         }
 
-        // =========================
-        // OUTPUT LOGGING (NEW FIX)
-        // =========================
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
 
         if (!testPassed) {
@@ -905,17 +791,11 @@ const ActivityApp = () => {
         setConsoleOutput(fullOutput);
         setPassedTests(passed);
 
-        // =========================
-        // PROGRESS SAVE
-        // =========================
         const lessonId =
           initialTemplate?.split("/").pop() || "unknown";
 
         saveLessonProgress(lessonId, passed);
 
-        // =========================
-        // SUCCESS CHECK
-        // =========================
         if (passed === total && total > 0) {
           handleSuccess(passed, total);
         }
@@ -927,28 +807,38 @@ const ActivityApp = () => {
         setConsoleOutput(fullOutput);
       }
     }
+
     setIsEvaluating(false);
   };
 
-  const executeWithTimeout = (pythonCode) => {
+  const executeTestOffline = (codeToRun) => {
     return new Promise((resolve, reject) => {
-      const worker = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+      // Spin up a temporary worker just for this test case
+      const testWorker = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+      let outputAccumulator = "";
 
       const timeout = setTimeout(() => {
-        worker.terminate();
-        reject({
-          error: "Root Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False."
-        });
+        testWorker.terminate();
+        reject(new Error("Infinite Loop detected. Execution timed out after 3 seconds."));
       }, 3000);
 
-      worker.onmessage = (e) => {
-        clearTimeout(timeout);
-        if (e.data.status === 'success') resolve(e.data.result);
-        else reject({ error: e.data.error });
-        worker.terminate();
+      testWorker.onmessage = (event) => {
+        const { type, data } = event.data;
+        if (type === 'OUTPUT') {
+          outputAccumulator += data;
+        } else if (type === 'RUN_RESULT') {
+          clearTimeout(timeout);
+          outputAccumulator += data;
+          testWorker.terminate();
+          resolve(outputAccumulator);
+        } else if (type === 'ERROR') {
+          clearTimeout(timeout);
+          testWorker.terminate();
+          reject(new Error(data));
+        }
       };
 
-      worker.postMessage({ code: pythonCode });
+      testWorker.postMessage({ type: 'RUN_CODE', code: codeToRun });
     });
   };
 
