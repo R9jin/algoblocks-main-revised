@@ -27,7 +27,6 @@ const SIDEBAR_TEMPLATES = [
 ];
 
 export default function MainApp() {
-  const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "";
   const location = useLocation();
   const workspaceRef = useRef(null);
 
@@ -108,11 +107,11 @@ export default function MainApp() {
         setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
-        clearTimeout(runTimeoutRef.current); // Reset timeout on active output
+        clearTimeout(runTimeoutRef.current);
         setConsoleOutput(prev => prev + data);
       }
       else if (type === 'INPUT_REQUEST') {
-        clearTimeout(runTimeoutRef.current); // Pause infinite loop checker while waiting for user
+        clearTimeout(runTimeoutRef.current);
         setConsoleOutput(prev => prev + data.prompt);
         setIsWaitingForInput(true);
       }
@@ -164,7 +163,7 @@ export default function MainApp() {
     }
   }, [location.state]);
 
-  // --- Fetch Templates (IndexedDB Offline + Cloud Sync) ---
+  // --- Fetch Templates (Offline First: LocalForage ONLY) ---
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
@@ -193,47 +192,6 @@ export default function MainApp() {
           });
         }
       });
-
-      // 3. Online Cloud Sync Merge
-      if (navigator.onLine && VERCEL_URL) {
-        try {
-          const [projRes, tempRes] = await Promise.all([
-            fetch(`${VERCEL_URL}/api/projects`).catch(() => null),
-            fetch(`${VERCEL_URL}/api/templates`).catch(() => null)
-          ]);
-
-          if (projRes && projRes.ok) {
-            const projData = await projRes.json();
-            if (projData.status === 'success') {
-              for (let p of projData.projects) {
-                if (p.owner_id === user.email) await projectsDB.setItem(p._id, { ...p, synced: true });
-              }
-            }
-          }
-
-          if (tempRes && tempRes.ok) {
-            const tempData = await tempRes.json();
-            if (tempData.status === 'success') {
-              for (let t of tempData.templates) {
-                if (t.owner_id === user.email) await templatesDB.setItem(t._id, { ...t, synced: true });
-              }
-            }
-          }
-
-          // Re-read after sync
-          customItems = [];
-          await projectsDB.iterate((value) => {
-            if (value.owner_id === user.email) {
-              customItems.push({ _id: value._id, title: value.title, description: value.description, category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced });
-            }
-          });
-          await templatesDB.iterate((value) => {
-            if (value.owner_id === user.email) {
-              customItems.push({ _id: value._id, title: value.title, description: value.description, category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced });
-            }
-          });
-        } catch (e) { console.warn("Cloud sync failed, showing local data only."); }
-      }
 
       // Deduplicate by ID
       const uniqueItemsMap = new Map();
@@ -325,7 +283,7 @@ export default function MainApp() {
     });
   };
 
-  // --- Offline & Cloud Dual Save Logic ---
+  // --- Offline-First Dual Save Logic ---
   const openSaveModal = () => {
     if (!blocklyJson) { showToast("The workspace is empty. Nothing to save!", "error"); return; }
     setSaveModal({
@@ -361,26 +319,28 @@ export default function MainApp() {
     const payload = {
       _id: id,
       title: saveModal.title,
+      description: saveModal.description,
+      category: saveModal.saveType === 'template' ? saveModal.category : undefined,
       data: blocklyJson,
       owner_id: user.email,
       synced: false,
       updatedAt: Date.now(),
     };
 
-    // 1. Save to IndexedDB (Immediate)
+    // 1. Save to IndexedDB (Immediate, local state)
     const db = saveModal.saveType === 'template' ? templatesDB : projectsDB;
     await db.setItem(id, payload);
 
-    // 2. Add to Sync Queue (The "Silent" instruction)
+    // 2. Add to Sync Queue (Let background worker handle the cloud pushing)
     await syncQueueDB.setItem(id, {
       type: saveModal.saveType.toUpperCase(),
       action: 'UPSERT',
       data: payload
     });
 
-    showToast("Saved locally. Syncing in background...");
+    showToast("Saved locally. Background sync queued.");
     setSaveModal({ ...saveModal, isOpen: false });
-    fetchTemplates(); // Refresh UI list from IndexedDB
+    fetchTemplates(); // Refresh UI list from IndexedDB instantly
   };
 
   const handleDeleteItem = async (e, item) => {
@@ -392,17 +352,24 @@ export default function MainApp() {
     setAllTemplates(prev => prev.filter(t => t._id !== item._id));
 
     try {
-      // Delete local
+      // 1. Delete local
       if (item.saveType === 'template') await templatesDB.removeItem(item._id);
       else await projectsDB.removeItem(item._id);
 
-      // Delete Cloud if online
-      if (navigator.onLine && !item._id.startsWith('local_') && VERCEL_URL) {
-        const endpoint = item.saveType === 'template' ? '/api/templates' : '/api/projects';
-        await fetch(`${VERCEL_URL}${endpoint}/${item._id}`, { method: "DELETE" });
+      // 2. Queue for Cloud Sync Deletion (Only if it's already on the cloud)
+      if (item._id.startsWith('local_')) {
+        // Just remove its pending upload from the queue
+        await syncQueueDB.removeItem(item._id);
+      } else {
+        // Provide deletion task
+        await syncQueueDB.setItem(`delete_${item._id}`, { 
+          type: item.saveType.toUpperCase(), 
+          action: 'DELETE', 
+          data: { _id: item._id } 
+        });
       }
 
-      showToast(`${itemLabel} deleted!`, "success");
+      showToast(`${itemLabel} deleted locally!`, "success");
       if (currentLoadedId === item._id) {
         workspaceRef.current?.clear();
         setCurrentLoadedId(null);
@@ -478,7 +445,7 @@ export default function MainApp() {
         <div className="modal-overlay">
           <div className="save-modal-content">
             <h2 className="save-modal-title">
-              {saveModal.isEditMetadataOnly ? "Edit Details" : "Save to Cloud"}
+              {saveModal.isEditMetadataOnly ? "Edit Details" : "Save Workspace"}
             </h2>
 
             <div className="save-type-toggle" style={{ display: 'flex', gap: '20px', marginBottom: '20px', background: '#f1f5f9', padding: '10px', borderRadius: '8px' }}>

@@ -1,7 +1,8 @@
+// frontend/src/pages/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { projectsDB } from "../db"; // ✅ using localforage instance correctly
+import { projectsDB, templatesDB } from "../db"; // ✅ Uses separate local stores
 import "../styles/Dashboard.css";
 
 const SYSTEM_TEMPLATES = {
@@ -104,36 +105,47 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    window.addEventListener("online", handleOnline);
-
     const loadLocalData = async () => {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      if (!storedUser) return;
+      const storedUserStr = localStorage.getItem("user");
+      if (!storedUserStr) {
+        setLoading(false);
+        return;
+      }
+      const storedUser = JSON.parse(storedUserStr);
 
-      const allProjects = [];
+      // 1. Fetch User Projects from Local IndexedDB
+      const userProjects = [];
       await projectsDB.iterate((value) => {
-        allProjects.push(value);
+        if (value.owner_id === storedUser.email) {
+          userProjects.push(value);
+        }
       });
 
-      const userProjects = allProjects.filter(
-        (p) => p.owner_id === storedUser.email && !p.isTemplate
-      );
-
+      // Sort by latest update and limit to 5
       setRecentProjects(
         userProjects
-          .sort((a, b) => new Date(b.last_modified) - new Date(a.last_modified))
+          .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
           .slice(0, 5)
       );
 
-      const templates = allProjects.filter(
-        (p) => p.owner_id === storedUser.email && p.isTemplate
-      );
+      // 2. Fetch User Templates from Local IndexedDB
+      const userTemplates = [];
+      await templatesDB.iterate((value) => {
+        if (value.owner_id === storedUser.email) {
+          userTemplates.push(value);
+        }
+      });
 
+      // Group templates by category
       const grouped = {};
-      templates.forEach((t) => {
-        const category = t.category || "custom";
+      userTemplates.forEach((t) => {
+        const category = t.category || "Custom Templates";
         if (!grouped[category]) grouped[category] = [];
-        grouped[category].push(t);
+        grouped[category].push({
+            ...t,
+            name: t.title || t.name, // Normalize mapping
+            desc: t.description || t.desc
+        });
       });
 
       setUserTemplatesGrouped(grouped);
@@ -141,11 +153,7 @@ export default function Dashboard() {
     };
 
     loadLocalData();
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-    };
-  }, []);
+  }, []); // Only run once on mount
 
   const handleItemClick = (item) => {
     const confirmMsg = item.isSystem
@@ -175,7 +183,7 @@ export default function Dashboard() {
 
       <div className="dashboard-body">
         <main className="dashboard-main">
-          {/* Learning Path Banner aligned with CSS .learning-path-banner */}
+          {/* Learning Path Banner */}
           <div className="learning-path-banner" onClick={() => navigate("/learning-path")}>
             <div className="banner-icon">
               <img src="/assets/learning-icon.png" alt="Learning Path" />
@@ -204,7 +212,6 @@ export default function Dashboard() {
                       <img src={temp.icon} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
                     </div>
-                    {/* Hover content wrapper for CSS animation */}
                     <div className="card-hover-content">
                       <p className="template-card-desc">{temp.desc}</p>
                       <button className="try-template-btn">Test Template →</button>
@@ -258,7 +265,8 @@ export default function Dashboard() {
                   <div className="project-item-info">
                     <div className="project-item-title">{proj.title}</div>
                     <div className="project-item-meta">
-                      Last modified: {new Date(proj.last_modified).toLocaleDateString()}
+                      {/* Uses updatedAt mapping from MainApp.jsx */}
+                      Last modified: {new Date(proj.updatedAt || Date.now()).toLocaleDateString()}
                     </div>
                   </div>
 
