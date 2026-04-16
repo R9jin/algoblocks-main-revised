@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { projectsDB } from "../db"; // ✅ using localforage instance correctly
 import "../styles/Dashboard.css";
 import { pushOfflineChangesToCloud } from "../utils/syncManager";
 

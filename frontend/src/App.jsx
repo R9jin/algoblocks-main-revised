@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom"; // <-- Removed BrowserRouter from import
 import ActivityApp from "./pages/ActivityApp";
 import Dashboard from "./pages/Dashboard";
