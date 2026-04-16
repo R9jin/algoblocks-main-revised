@@ -1,54 +1,47 @@
 // frontend/src/utils/syncManager.js
-// Change this import to match what is actually exported in db.js
-import { projectsDB } from "../db";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
 
-export const pullProjectsFromCloud = async (userEmail) => {
-  if (!navigator.onLine) return;
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-  try {
-    const response = await fetch("/api/projects");
-    if (response.ok) {
-      const data = await response.json();
-      const cloudProjects = data.projects.filter(p => p.owner_id === userEmail);
-      
-      for (const proj of cloudProjects) {
-        // Use localForage syntax (setItem) instead of Dexie syntax (put)
-        await projectsDB.setItem(proj._id, {
-          ...proj,
-          isSynced: 1 
-        });
-      }
-    }
-  } catch (error) {
-    console.error("Failed to pull projects from cloud:", error);
-  }
-};
+/**
+ * Pushes pending changes from IndexedDB to MongoDB silently.
+ */
+export const startBackgroundSync = () => {
+  // Check every 30 seconds or when the browser comes back online
+  const sync = async () => {
+    if (!navigator.onLine) return;
 
-export const pushOfflineChangesToCloud = async () => {
-  if (!navigator.onLine) return; 
-
-  // localForage does not support .where() queries like Dexie.
-  // You must iterate through the projects to find unsynced ones.
-  await projectsDB.iterate(async (project, id) => {
-    if (project.isSynced === 0) {
+    await syncQueueDB.iterate(async (task, id) => {
       try {
-        const response = await fetch("/api/projects/sync", {
-          method: "POST",
+        const endpoint = task.type === 'TEMPLATE' ? '/api/templates' : '/api/projects';
+        const method = task.action === 'DELETE' ? 'DELETE' : (task.data._id.startsWith('local_') ? 'POST' : 'PUT');
+        const url = method === 'POST' ? `${API_BASE}${endpoint}` : `${API_BASE}${endpoint}/${id}`;
+
+        const response = await fetch(url, {
+          method,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(project),
+          body: method === 'DELETE' ? null : JSON.stringify(task.data),
         });
 
         if (response.ok) {
-          const cloudData = await response.json();
-          await projectsDB.setItem(id, { 
-            ...project,
-            isSynced: 1,
-            _id: cloudData.insertedId || project._id
-          });
+          const result = await response.json();
+          // If it was a new item, update the local ID from "local_..." to the MongoDB ObjectId
+          if (method === 'POST' && result.id) {
+            const db = task.type === 'TEMPLATE' ? templatesDB : projectsDB;
+            const item = await db.getItem(id);
+            await db.removeItem(id);
+            await db.setItem(result.id, { ...item, _id: result.id, synced: true });
+          }
+          // Remove from queue after successful sync
+          await syncQueueDB.removeItem(id);
         }
       } catch (err) {
-        console.error("Sync failed for project:", project.title);
+        console.warn("Background sync failed for item:", id, err);
       }
-    }
-  });
+    });
+  };
+
+  window.addEventListener('online', sync);
+  setInterval(sync, 30000); // Poll every 30s
+  sync(); // Run immediately on start
 };

@@ -1,7 +1,8 @@
+// frontend/src/pages/SignIn.jsx
 import { useState } from "react";
 import { FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { projectsDB, syncQueueDB, templatesDB } from "../db"; // FIX: Import the correct DB instances
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
 
 export default function SignIn() {
@@ -10,16 +11,25 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000"; // Ensure fallback points to your FastAPI
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-  // FIX: Added the missing function to sync the user's data from Cloud to IndexedDB
-  const pullProjectsFromCloud = async (userEmail) => {
+  // Hydrate local IndexedDB from MongoDB Cloud after wiping
+  const syncUserCloudData = async (userEmail) => {
     try {
+      // 1. Wipe previous offline data to ensure a clean slate
+      await Promise.all([
+        projectsDB.clear(), 
+        templatesDB.clear(), 
+        syncQueueDB.clear()
+      ]);
+
+      // 2. Fetch user's data from MongoDB
       const [projRes, tempRes] = await Promise.all([
         fetch(`${API_BASE}/api/projects`),
         fetch(`${API_BASE}/api/templates`)
       ]);
 
+      // 3. Populate Local Projects DB
       if (projRes.ok) {
         const projData = await projRes.json();
         if (projData.status === 'success') {
@@ -31,6 +41,7 @@ export default function SignIn() {
         }
       }
 
+      // 4. Populate Local Templates DB
       if (tempRes.ok) {
         const tempData = await tempRes.json();
         if (tempData.status === 'success') {
@@ -65,21 +76,16 @@ export default function SignIn() {
         return;
       }
 
-      // 1. Save user session
+      // 1. Save user session locally
       localStorage.setItem("user", JSON.stringify({
           email: data.email,
           name: data.name,
       }));
 
-      // 2. FIX: DUMP CURRENT PROJECTS & TEMPLATES (Wipe previous user's offline data)
-      await projectsDB.clear();
-      await templatesDB.clear();
-      await syncQueueDB.clear();
+      // 2. Hydrate local IndexedDB databases with Cloud state
+      await syncUserCloudData(data.email);
 
-      // 3. FETCH NEW USER'S PROJECTS (Download from MongoDB to local IndexedDB)
-      await pullProjectsFromCloud(data.email);
-
-      // 4. Proceed to dashboard
+      // 3. Proceed to dashboard
       navigate("/dashboard");
     } catch (error) {
       console.error(error);
