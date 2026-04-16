@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 // Ensure this import matches your localForage exports in db.js
-import { projectsDB } from "../db";
+import { projectsDB, syncQueueDB } from "../db";
 import "../styles/Projects.css";
 
 // --- Minimal Inline SVG Icons ---
@@ -69,8 +69,23 @@ export default function Projects() {
     if (!confirmDelete) return;
 
     try {
-      // Logic for local deletion via localForage
+      // 1. Delete locally
       await projectsDB.removeItem(projectId);
+
+      // 2. Queue for Cloud Sync Deletion
+      if (projectId.startsWith('local_')) {
+        // It was never pushed to the cloud, just remove its pending upload
+        await syncQueueDB.removeItem(projectId);
+      } else {
+        // It exists on the cloud, queue a DELETE request
+        await syncQueueDB.setItem(`delete_${projectId}`, {
+          type: 'PROJECT',
+          action: 'DELETE',
+          data: { _id: projectId }
+        });
+      }
+
+      // 3. Update UI
       setProjects(projects.filter(p => p._id !== projectId));
     } catch (error) {
       console.error("Failed to delete project:", error);
@@ -107,7 +122,7 @@ export default function Projects() {
           ) : (
             <div className="projects-grid">
               {projects.map(proj => (
-                <div key={proj._id} className="project-card" onClick={() => navigate(`/app?id=${proj._id}`)}>
+                <div key={proj._id} className="project-card" onClick={() => navigate("/app", { state: { projectToLoad: proj } })}>
                   <div className="project-card-header">
                     <div className="project-icon-wrapper">
                       <FolderIcon />
