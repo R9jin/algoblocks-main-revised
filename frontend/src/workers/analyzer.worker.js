@@ -1,5 +1,5 @@
 // frontend/src/workers/analyzer.worker.js
-import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.mjs";
+import { loadPyodide } from "/pyodide/pyodide.mjs";
 
 let pyodide = null;
 
