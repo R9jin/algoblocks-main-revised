@@ -1,0 +1,857 @@
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #ffffff;
+  color: #3C2D76;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
+}
+
+.dashboard-header .header-left,
+.dashboard-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.back-home {
+  text-decoration: none;
+  color: #5A1398;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Update the existing class to align the image and text */
+.btn-open-project {
+  background: transparent;
+  color: #5A1398;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Adds space between the icon and the text */
+}
+
+/* Add this new class to control the size of your icon */
+.btn-icon-open {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.btn-new-project {
+  background: #5A1398;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.user-profile-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  /* <-- Changed from '1px solid #5A1398' to 'none' */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  background-color: transparent;
+  /* Changed to transparent so there's no background box */
+}
+
+.user-profile-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dashboard-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.dashboard-main {
+  flex: 3;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.dashboard-sidebar {
+  flex: 1;
+  border-left: 1px solid #e0e0e0;
+  padding: 40px;
+  background-color: #fcfcff;
+}
+
+/* Learning Path Banner */
+.learning-path-banner {
+  display: flex;
+  align-items: center;
+  border: 1px solid #BCA1FC;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 40px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.learning-path-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(90, 19, 152, 0.1);
+}
+
+/* --- Update Banner Icon --- */
+.banner-icon {
+  background: #C994FF;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  margin-right: 20px;
+}
+
+/* Add this to constrain the banner image */
+.banner-icon img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  /* Prevents image stretching */
+}
+
+.banner-text h2 {
+  margin: 0 0 5px 0;
+  color: #1a1a1a;
+}
+
+.banner-text p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.banner-arrow {
+  margin-left: auto;
+  font-size: 1.5rem;
+  color: #5A1398;
+  font-weight: bold;
+}
+
+/* Templates Section */
+.section-title {
+  color: #3C2D76;
+  font-size: 2rem;
+  margin-bottom: 30px;
+}
+
+.category-label {
+  color: #6e6e8e;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+}
+
+/* ... keep your other existing dashboard CSS ... */
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+  align-items: start;
+  /* Prevents cards from stretching heights to match neighbors */
+}
+
+.template-card {
+  background-color: #EBE4FF;
+  border: 1px solid #BCA1FC;
+  border-radius: 10px;
+  padding: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.template-card:hover {
+  transform: translateY(-3px);
+  background-color: #e0d4ff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+  transition: margin-bottom 0.3s ease;
+}
+
+/* Header of the card */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Removed the hardcoded margin-bottom so the card is compact when collapsed */
+  margin-bottom: 0;
+  transition: margin-bottom 0.3s ease;
+}
+
+.card-header h4 {
+  margin: 0;
+  color: #1a1a1a;
+  font-size: 1.1rem;
+}
+
+.card-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* --- HOVER ANIMATION LOGIC --- */
+
+/* Base state: The container for both description and button is hidden */
+.card-hover-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+}
+
+/* Hover state: Expand the container to reveal both text and button */
+.template-card:hover .card-hover-content {
+  max-height: 250px;
+  /* Made slightly taller to ensure long descriptions + button fit */
+  opacity: 1;
+  margin-top: 12px;
+}
+
+/* Base text styling */
+.template-card-desc {
+  margin: 0;
+  color: #555;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 15px;
+  /* Adds space between the text and the button */
+}
+
+/* Test Template Button Styling */
+.try-template-btn {
+  background-color: #5A1398;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s, transform 0.2s;
+  box-shadow: 0 4px 10px rgba(90, 19, 152, 0.2);
+}
+
+.try-template-btn:hover {
+  background-color: #7F57F9;
+  transform: translateY(-1px);
+}
+
+/* ... keep sidebar and banner CSS ... */
+
+/* Sidebar */
+.sidebar-label {
+  color: #3C2D76;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.empty-projects-box {
+  background-color: #EBE4FF;
+  border: 1px solid #BCA1FC;
+  border-radius: 8px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a8a8a;
+  font-size: 0.9rem;
+}
+
+/* User Profile Menu & Button Resets */
+.user-menu {
+  margin-left: 15px;
+  position: relative; /* Keeps the dropdown anchored to the menu */
+}
+
+.user-menu-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* User Profile Image Styling */
+.user-profile-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%; /* Forces the square image into a circle */
+  object-fit: cover;  /* Prevents image distortion */
+  background-color: #EBE4FF; 
+  border: 2px solid #A594DC; 
+  transition: transform 0.2s ease;
+}
+
+.user-profile-img:hover {
+  transform: scale(1.05); /* Slight zoom effect on hover */
+}
+
+/* =========================================
+   USER PROFILE DROPDOWN MENU
+   ========================================= */
+
+/* =========================================
+   USER PROFILE DROPDOWN MENU (LIGHT MODE)
+   ========================================= */
+
+/* The floating menu container */
+.user-dropdown {
+  position: absolute;
+  top: 55px; 
+  right: 0;
+  background-color: #ffffff; /* Clean white background */
+  border: 1px solid #e2e8f0; /* Light gray border */
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* Soft, airy drop shadow */
+  width: 220px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* The header area inside the dropdown */
+.user-dropdown-head {
+  padding: 16px;
+  background-color: #f8fafc; /* Very soft gray background for the header */
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.dropdown-avatar-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  border: 2px solid #cbd5e1; /* Subtle outline for the image */
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.user-name {
+  color: #1e293b; /* Dark, high-contrast text */
+  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.user-email {
+  color: #64748b; /* Muted gray text for secondary info */
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+/* The clickable buttons inside the menu */
+.user-dd-item {
+  background: none;
+  border: none;
+  color: #334155; 
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  width: 100%;
+}
+
+.user-dd-item:hover {
+  background-color: #f1f5f9; /* Light gray hover state */
+}
+
+.user-dd-item svg {
+  color: #64748b; /* Muted icon color */
+}
+
+/* Specific styling for the Sign Out button */
+.user-dd-item.danger {
+  color: #ef4444; /* Clean, modern red */
+}
+
+.user-dd-item.danger svg {
+  color: #ef4444;
+}
+
+.user-dd-item.danger:hover {
+  background-color: #fef2f2; /* Very faint red hover background */
+}
+
+/* The line that separates the items */
+.user-dd-divider {
+  height: 1px;
+  background-color: #e2e8f0;
+  margin: 4px 0;
+}
+
+/* ========================= */
+/* Responsive Improvements */
+/* ========================= */
+
+/* Large Tablets */
+@media (max-width: 1024px) {
+
+  .dashboard-main,
+  .dashboard-sidebar {
+    padding: 25px;
+  }
+
+  .section-title {
+    font-size: 1.7rem;
+  }
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+
+  /* Stack sidebar below main content */
+  .dashboard-body {
+    flex-direction: column;
+  }
+
+  .dashboard-sidebar {
+    border-left: none;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  /* Header wraps properly */
+  .dashboard-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+    padding: 15px 20px;
+  }
+
+  .dashboard-header .header-left,
+  .dashboard-header .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dashboard-main,
+  .dashboard-sidebar {
+    padding: 20px;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .learning-path-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .banner-arrow {
+    align-self: flex-end;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+
+  .dashboard-main,
+  .dashboard-sidebar {
+    padding: 15px;
+  }
+
+  .section-title {
+    font-size: 1.3rem;
+  }
+
+  /* Make buttons full width on small screens */
+  .btn-new-project,
+  .btn-open-project {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Smaller profile icon */
+  .user-profile-icon {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+
+  /* Grid becomes tighter */
+  .template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Banner icon smaller */
+  .banner-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .banner-icon img {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.algorithm-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* 3 columns for Sorting, Searching, Recursive */
+  gap: 40px;
+  /* space between columns */
+  margin-bottom: 50px;
+}
+
+.algorithm-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-title {
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  color: #6e6e8e;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+.algorithm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.algorithm-item:hover {
+  transform: translateX(5px);
+  color: #5A1398;
+}
+
+.algo-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+@media (max-width: 900px) {
+  .algorithm-library-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .algorithm-library-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.algorithm-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* 3 columns for Sorting / Searching / Recursive */
+  gap: 40px;
+  /* spacing between columns */
+  margin-bottom: 50px;
+}
+
+.algorithm-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-title {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  color: #6e6e8e;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+/* Reuse your old card styles */
+.algorithm-card {
+  background-color: #EBE4FF;
+  border: 1px solid #BCA1FC;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.algorithm-card:hover {
+  transform: translateY(-3px);
+  background-color: #e0d4ff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.card-header h4 {
+  margin: 0;
+  color: #1a1a1a;
+  font-size: 1.05rem;
+}
+
+.card-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Hover content */
+.card-hover-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+}
+
+.algorithm-card:hover .card-hover-content {
+  max-height: 250px;
+  /* enough space for desc + button */
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.template-card-desc {
+  margin: 0 0 10px 0;
+  color: #555;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.try-template-btn {
+  background-color: #5A1398;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.try-template-btn:hover {
+  background-color: #7F57F9;
+  transform: translateY(-1px);
+}
+
+.algorithm-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* 3 columns for Sorting / Searching / Recursive */
+  gap: 40px;
+  /* spacing between columns */
+  margin-bottom: 50px;
+}
+
+.algorithm-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-title {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  color: #6e6e8e;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+/* Reuse your old card styles */
+.algorithm-card {
+  background-color: #EBE4FF;
+  border: 1px solid #BCA1FC;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.algorithm-card:hover {
+  transform: translateY(-3px);
+  background-color: #e0d4ff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.card-header h4 {
+  margin: 0;
+  color: #1a1a1a;
+  font-size: 1.05rem;
+}
+
+.card-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Hover content */
+.card-hover-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+}
+
+.algorithm-card:hover .card-hover-content {
+  max-height: 250px;
+  /* enough space for desc + button */
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.template-card-desc {
+  margin: 0 0 10px 0;
+  color: #555;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.try-template-btn {
+  background-color: #5A1398;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.try-template-btn:hover {
+  background-color: #7F57F9;
+  transform: translateY(-1px);
+}
+
+.dashboard-body>* {
+  height: 100%;
+}
+
+.dashboard-body {
+  height: calc(100vh - 80px);
+  /* adjust if your header height is 80px */
+}
+
+.custom-template-card {
+  border-left: 4px solid #7F57F9; /* Add a purple accent to user templates */
+}
+
+/* Sidebar Project Item Adjustments */
+.recent-project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recent-project-item:hover {
+  border-color: #BCA1FC;
+  background-color: #f8fafc;
+  transform: translateX(4px);
+}
+
+.project-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-item-title {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.95rem;
+}
+
+.project-item-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.project-item-status {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.project-item-status.synced {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.project-item-status.local {
+  background-color: #fff7ed;
+  color: #d97706;
+}

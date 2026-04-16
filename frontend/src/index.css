@@ -1,0 +1,202 @@
+/* ... (keep existing top section) ... */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600&display=swap');
+
+:root {
+  font-family: 'Outfit', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #f4f4f4;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  height: 60px;
+  background-color: #3C2D76;
+  color: white;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #1a252f;
+  flex-shrink: 0;
+}
+
+/* --- ADD THESE NEW STYLES --- */
+.header-left-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.save-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.save-button:hover {
+  background-color: #2980b9;
+}
+
+/* ---------------------------- */
+
+.complexity-badge {
+  background-color: #3a2661;
+  color: #2c3e50;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+}
+
+/* ... (keep the rest of your split pane styles below) ... */
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  border-right: 4px solid #ddd;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+}
+
+.workspace-area {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.code-area {
+  background-color: #282c34;
+  color: #abb2bf;
+  border-top: 4px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.complexity-area {
+  overflow-y: auto;
+  border-bottom: 4px solid #ddd;
+}
+
+.console-area {
+  background-color: #1e1e1e;
+  color: #0f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  background: #e0e0e0;
+  color: #333;
+  padding: 5px 10px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+pre {
+  margin: 0;
+  padding: 10px;
+  font-family: "Fira Code", monospace;
+  white-space: pre-wrap;
+  overflow: auto;
+  flex: 1;
+}
+
+.run-button {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 5px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.run-button:hover {
+  background-color: #2ecc71;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  background-color: #f0f0f0;
+  padding: 8px;
+  border-bottom: 2px solid #ccc;
+  position: sticky;
+  top: 0;
+}
+
+td {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  font-family: monospace;
+  color: #4b4b4b;
+}
+
+.gutter {
+  background-color: #4f008b;
+  background-repeat: no-repeat;
+  background-position: 50%;
+}
+
+.gutter.gutter-horizontal {
+  cursor: col-resize;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+}
+
+.gutter.gutter-vertical {
+  cursor: row-resize;
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+}
+
+.split {
+  display: flex;
+  flex-direction: row;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}

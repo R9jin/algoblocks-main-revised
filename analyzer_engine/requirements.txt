@@ -1,0 +1,15 @@
+fastapi==0.135.3
+uvicorn[standard]==0.44.0
+websockets==12.0
+pydantic==2.13.0
+pymongo[srv]==4.7.2
+python-dotenv==1.0.1
+requests==2.32.3
+
+# optional but already in your freeze (safe to keep)
+anyio==4.13.0
+click==8.3.2
+colorama==0.4.6
+h11==0.16.0
+idna==3.11
+typing_extensions==4.15.0

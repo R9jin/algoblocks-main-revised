@@ -1,0 +1,56 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defreturn",
+        "id": ":Y4O}qUUt|X+~#ZCO?xK",
+        "x": 38,
+        "y": -87,
+        "deletable": false,
+        "editable": false,
+        "extraState": {
+          "params": [
+            {
+              "name": "n",
+              "id": "tyO.pA9F`9/^|V^HlXAR"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "factorial"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "comment_block",
+              "id": ")wx!U(]gWv|{:lTZB;3X",
+              "fields": {
+                "TEXT": "n: integer to calculate factorial"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "arr",
+      "id": "$L!%sGDV9_/`aC?YYQdf"
+    },
+    {
+      "name": "n",
+      "id": "tyO.pA9F`9/^|V^HlXAR"
+    }
+  ],
+  "backpack": []
+}
