@@ -9,8 +9,12 @@ import Projects from "./pages/Projects";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
+import { startBackgroundSync } from "./utils/syncManager";
 
 function App() {
+  useEffect(() => {
+    startBackgroundSync();
+  }, []);
   return (
     // Removed <BrowserRouter> from here since it's already in index.jsx
     <Routes>

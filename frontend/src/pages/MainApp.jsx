@@ -30,7 +30,7 @@ export default function MainApp() {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "";
   const location = useLocation();
   const workspaceRef = useRef(null);
-  
+
   // Web Worker & Execution Refs
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
@@ -87,12 +87,12 @@ export default function MainApp() {
   // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
     if (workerRef.current) workerRef.current.terminate();
-    
+
     workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-    
+
     workerRef.current.onmessage = (event) => {
       const { type, data } = event.data;
-      
+
       if (type === 'ANALYZE_RESULT') {
         if (data.status === "success") {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
@@ -100,13 +100,13 @@ export default function MainApp() {
         } else {
           setSyntaxError({ line: data.line, message: data.message });
         }
-      } 
+      }
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
         setConsoleOutput(prev => prev + data + "\n> Program finished.");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
-      } 
+      }
       else if (type === 'OUTPUT') {
         clearTimeout(runTimeoutRef.current); // Reset timeout on active output
         setConsoleOutput(prev => prev + data);
@@ -176,69 +176,69 @@ export default function MainApp() {
 
       // 1. Fetch Local IndexedDB Projects
       await projectsDB.iterate((value) => {
-         if (value.owner_id === user.email) {
-             customItems.push({
-                _id: value._id, title: value.title, description: value.description || "Saved Project", 
-                category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced
-             });
-         }
+        if (value.owner_id === user.email) {
+          customItems.push({
+            _id: value._id, title: value.title, description: value.description || "Saved Project",
+            category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced
+          });
+        }
       });
 
       // 2. Fetch Local IndexedDB Templates
       await templatesDB.iterate((value) => {
-         if (value.owner_id === user.email) {
-             customItems.push({
-                _id: value._id, title: value.title, description: value.description || "Custom template", 
-                category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced
-             });
-         }
+        if (value.owner_id === user.email) {
+          customItems.push({
+            _id: value._id, title: value.title, description: value.description || "Custom template",
+            category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced
+          });
+        }
       });
 
       // 3. Online Cloud Sync Merge
       if (navigator.onLine && VERCEL_URL) {
-          try {
-              const [projRes, tempRes] = await Promise.all([
-                fetch(`${VERCEL_URL}/api/projects`).catch(() => null),
-                fetch(`${VERCEL_URL}/api/templates`).catch(() => null)
-              ]);
+        try {
+          const [projRes, tempRes] = await Promise.all([
+            fetch(`${VERCEL_URL}/api/projects`).catch(() => null),
+            fetch(`${VERCEL_URL}/api/templates`).catch(() => null)
+          ]);
 
-              if (projRes && projRes.ok) {
-                 const projData = await projRes.json();
-                 if (projData.status === 'success') {
-                     for(let p of projData.projects) {
-                         if (p.owner_id === user.email) await projectsDB.setItem(p._id, {...p, synced: true});
-                     }
-                 }
+          if (projRes && projRes.ok) {
+            const projData = await projRes.json();
+            if (projData.status === 'success') {
+              for (let p of projData.projects) {
+                if (p.owner_id === user.email) await projectsDB.setItem(p._id, { ...p, synced: true });
               }
+            }
+          }
 
-              if (tempRes && tempRes.ok) {
-                 const tempData = await tempRes.json();
-                 if (tempData.status === 'success') {
-                     for(let t of tempData.templates) {
-                         if (t.owner_id === user.email) await templatesDB.setItem(t._id, {...t, synced: true});
-                     }
-                 }
+          if (tempRes && tempRes.ok) {
+            const tempData = await tempRes.json();
+            if (tempData.status === 'success') {
+              for (let t of tempData.templates) {
+                if (t.owner_id === user.email) await templatesDB.setItem(t._id, { ...t, synced: true });
               }
-              
-              // Re-read after sync
-              customItems = [];
-              await projectsDB.iterate((value) => {
-                 if (value.owner_id === user.email) {
-                     customItems.push({ _id: value._id, title: value.title, description: value.description, category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced });
-                 }
-              });
-              await templatesDB.iterate((value) => {
-                 if (value.owner_id === user.email) {
-                     customItems.push({ _id: value._id, title: value.title, description: value.description, category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced });
-                 }
-              });
-          } catch(e) { console.warn("Cloud sync failed, showing local data only."); }
+            }
+          }
+
+          // Re-read after sync
+          customItems = [];
+          await projectsDB.iterate((value) => {
+            if (value.owner_id === user.email) {
+              customItems.push({ _id: value._id, title: value.title, description: value.description, category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced });
+            }
+          });
+          await templatesDB.iterate((value) => {
+            if (value.owner_id === user.email) {
+              customItems.push({ _id: value._id, title: value.title, description: value.description, category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced });
+            }
+          });
+        } catch (e) { console.warn("Cloud sync failed, showing local data only."); }
       }
 
       // Deduplicate by ID
       const uniqueItemsMap = new Map();
       customItems.forEach(item => uniqueItemsMap.set(item._id, item));
-      
+
       setAllTemplates([...baseTemplates, ...Array.from(uniqueItemsMap.values())]);
     } catch (e) {
       console.error("Failed to load templates", e);
@@ -257,7 +257,7 @@ export default function MainApp() {
         if (!response.ok) throw new Error("Template not found");
         json = await response.json();
         setCurrentLoadedId(null);
-        setCurrentSaveType("project"); 
+        setCurrentSaveType("project");
       } else {
         json = item.data;
         setCurrentLoadedId(item._id);
@@ -285,7 +285,7 @@ export default function MainApp() {
   const handleBlocklyChange = (json, pythonCode) => {
     if (!isEditingCode) setGeneratedPython(pythonCode);
     setBlocklyJson(json);
-    
+
     if (workerRef.current && pythonCode.trim() !== "") {
       workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: pythonCode });
     }
@@ -355,88 +355,36 @@ export default function MainApp() {
   };
 
   const submitSave = async () => {
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) { showToast("You must be signed in to save.", "error"); return; }
-    const user = JSON.parse(storedUser);
+    const user = JSON.parse(localStorage.getItem("user"));
+    const id = saveModal.editingId || `local_${Date.now()}`;
 
     const payload = {
-      _id: saveModal.editingId || `local_${Date.now()}`,
-      title: saveModal.title || "Untitled",
-      description: saveModal.description || "",
-      data: saveModal.isEditMetadataOnly ? saveModal.editingData : blocklyJson,
+      _id: id,
+      title: saveModal.title,
+      data: blocklyJson,
       owner_id: user.email,
       synced: false,
       updatedAt: Date.now(),
     };
 
-    if (saveModal.saveType === 'template') payload.category = saveModal.category || "Custom Templates";
+    // 1. Save to IndexedDB (Immediate)
+    const db = saveModal.saveType === 'template' ? templatesDB : projectsDB;
+    await db.setItem(id, payload);
 
-    try {
-      // 1. Save Locally to IndexedDB
-      if (saveModal.saveType === 'template') await templatesDB.setItem(payload._id, payload);
-      else await projectsDB.setItem(payload._id, payload);
-      
-      // 2. Queue for Sync
-      await syncQueueDB.setItem(payload._id, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
+    // 2. Add to Sync Queue (The "Silent" instruction)
+    await syncQueueDB.setItem(id, {
+      type: saveModal.saveType.toUpperCase(),
+      action: 'UPSERT',
+      data: payload
+    });
 
-      showToast(`${saveModal.saveType === 'template' ? 'Template' : 'Project'} saved locally!`, "success");
-
-      // 3. Opportunistic Cloud Sync
-      if (navigator.onLine && VERCEL_URL) {
-          const endpoint = saveModal.saveType === 'template' ? '/api/templates' : '/api/projects';
-          try {
-              const isUpdate = !payload._id.startsWith('local_');
-              const method = isUpdate ? 'PUT' : 'POST';
-              const url = isUpdate ? `${VERCEL_URL}${endpoint}/${payload._id}` : `${VERCEL_URL}${endpoint}`;
-              
-              const { _id, synced, updatedAt, ...mongoPayload } = payload;
-              
-              const res = await fetch(url, { 
-                method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(isUpdate ? payload : mongoPayload) 
-              });
-
-              if (res.ok) {
-                  const result = await res.json();
-                  if (!isUpdate && result.id) {
-                      if (saveModal.saveType === 'template') {
-                          await templatesDB.removeItem(payload._id);
-                          payload._id = result.id;
-                          await templatesDB.setItem(result.id, {...payload, synced: true});
-                      } else {
-                          await projectsDB.removeItem(payload._id);
-                          payload._id = result.id;
-                          await projectsDB.setItem(result.id, {...payload, synced: true});
-                      }
-                  } else {
-                      payload.synced = true;
-                      if (saveModal.saveType === 'template') await templatesDB.setItem(payload._id, payload);
-                      else await projectsDB.setItem(payload._id, payload);
-                  }
-                  await syncQueueDB.removeItem(payload._id); 
-                  showToast("Synced to cloud!", "success");
-              }
-          } catch (e) {
-              console.warn("Could not sync immediately, stored in queue.");
-          }
-      }
-
-      // 4. Update UI State
-      if (!saveModal.isEditMetadataOnly || saveModal.editingId === currentLoadedId) {
-         setCurrentLoadedId(payload._id);
-         setCurrentProjectTitle(payload.title);
-         setCurrentSaveType(saveModal.saveType);
-      }
-      fetchTemplates();
-
-    } catch(e) {
-       showToast("Error saving offline.", "error");
-    }
-
+    showToast("Saved locally. Syncing in background...");
     setSaveModal({ ...saveModal, isOpen: false });
+    fetchTemplates(); // Refresh UI list from IndexedDB
   };
 
   const handleDeleteItem = async (e, item) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     const itemLabel = item.saveType === 'template' ? 'Template' : 'Project';
     if (!window.confirm(`Are you sure you want to delete this ${itemLabel}?`)) return;
 
@@ -477,7 +425,7 @@ export default function MainApp() {
     setIsEvaluating(true);
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
-    
+
     // Start execution via Worker
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
@@ -495,7 +443,7 @@ export default function MainApp() {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
-      setUserInput(""); 
+      setUserInput("");
       setIsWaitingForInput(false);
 
       // Resume infinite loop timeout after input is provided
@@ -504,7 +452,7 @@ export default function MainApp() {
         setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
-        initWorker(); 
+        initWorker();
       }, 3000);
     }
   };
