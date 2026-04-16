@@ -1,16 +1,16 @@
-// DELETE THIS LINE:
-import { loadPyodide } from "/pyodide/pyodide.mjs"; 
-Update your initPyodide() function to dynamically import it instead. Modify it to look exactly like this:
-
-JavaScript
+// frontend/src/workers/analyzer.worker.js
 let pyodide = null;
 
 async function initPyodide() {
   if (pyodide) return;
-  
-  // Dynamically import Pyodide at runtime, bypassing Vite's static build analysis
-  const { loadPyodide } = await import(/* @vite-ignore */ '/pyodide/pyodide.mjs');
-  
+
+  // By prepending the full website origin (e.g., http://localhost:5173), 
+  // Vite treats this as an external web request and completely ignores it,
+  // allowing the browser to naturally fetch the file from the public folder!
+  const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
+  const module = await import(/* @vite-ignore */ pyodideUrl);
+  const loadPyodide = module.loadPyodide;
+
   pyodide = await loadPyodide();
 
   // 1. Fetch Python files from the public folder
