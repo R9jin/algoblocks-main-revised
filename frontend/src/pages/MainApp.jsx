@@ -560,14 +560,16 @@ export default function MainApp() {
   const consoleEndRef = useRef(null);
   useEffect(() => { if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [consoleOutput, isWaitingForInput]);
 
-  // --- Identify Bottlenecks ---
+  // --- Identify Bottlenecks Dynamically Based on Active Tab ---
   const lines = analysisResult?.lines || [];
   let maxWeight = 0;
   let bottleneckIndices = [];
 
   lines.forEach((line, index) => {
-    // Bottlenecks are determined by their Global Time impact
-    const weight = getComplexityWeight(line.global_time);
+    // Bottleneck checks whether user is currently looking at Local or Global time
+    const targetComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
+    const weight = getComplexityWeight(targetComplexity);
+    
     if (weight > maxWeight) {
       maxWeight = weight;
       bottleneckIndices = [index];
@@ -739,6 +741,7 @@ export default function MainApp() {
                       </div>
                     </div>
                     <div className="complexity-table-wrapper">
+                      
                       <table className="complexity-table">
                         <thead>
                           <tr>
@@ -802,8 +805,8 @@ export default function MainApp() {
                                         marginLeft: '10px',
                                         boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)',
                                         animation: 'pulse 1.5s infinite'
-                                      }} title="Highest computational weight detected">
-                                        Bottleneck
+                                      }} title={`Highest ${activeTab} computational weight detected`}>
+                                        🔥 Bottleneck
                                       </span>
                                     )}
                                   </td>
