@@ -9,13 +9,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        // Remove globIgnores so Pyodide is included in the offline cache
+        maximumFileSizeToCacheInBytes: 15000000,
         
-        // Increase limit to 15MB to accommodate pyodide.asm.wasm
-        maximumFileSizeToCacheInBytes: 15000000, 
-        
-        // Explicitly tell the PWA to cache JS, WASM, MJS, and Python files
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py}'] 
+        // ADD 'json' TO THIS LIST
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py,json}']
       }
     })
   ]
