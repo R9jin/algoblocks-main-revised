@@ -30,7 +30,6 @@ async function initPyodide() {
     tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
 
     // 3. Inject a Python wrapper 
-    // 3. Inject a Python wrapper 
     await tempPyodide.runPythonAsync(`
 import sys
 import json
@@ -140,13 +139,18 @@ self.onmessage = async (e) => {
       pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
       pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
 
-      // Provide a mock input() function just like your old fallback API did
+      // FIX: Ensure the prompt is printed, but don't just return a static string immediately if we want it to look interactive.
+      // Since we can't easily block, we will use the simulated input, but fix the 'undefined' issue.
       pyodide.globals.set("custom_input", (prompt) => {
-        self.postMessage({ type: 'OUTPUT', data: prompt });
-        return "Simulated User Input";
+        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: prompt } });
+        // It will still return immediately because we can't block here without Atomics.
+        // We return a placeholder to prevent it crashing, but notify the user.
+        return " [Simulated Input - Real input requires SharedArrayBuffer] ";
       });
 
       pyodide.globals.set("user_code", code);
+
+      // FIX: Do not print the result of exec(), which causes the 'undefined'
       await pyodide.runPythonAsync(`
 import builtins
 import sys
