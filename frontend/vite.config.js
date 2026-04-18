@@ -1,4 +1,3 @@
-// frontend/vite.config.js
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -8,21 +7,17 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // 1. Force workbox to grab your template and activity JSONs
+      includeAssets: [
+        'templates/**/*.json', 
+        'activities/**/*.json',
+        'assets/**/*'
+      ],
       workbox: {
-        maximumFileSizeToCacheInBytes: 15000000,
-        // ADD 'json' TO THIS LIST
+        maximumFileSizeToCacheInBytes: 15000000, // 15MB limit for Pyodide
+        // 2. Ensure JSON is in the manifest
         globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py,json}']
       }
     })
-  ],
-  // ADD THIS SERVER BLOCK
-  server: {
-    proxy: {
-      '/api': {
-        // Replace 8000 with whatever port your Python backend is running on locally
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      }
-    }
-  }
+  ]
 })
