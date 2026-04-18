@@ -1,28 +1,36 @@
-// frontend/src/workers/analyzer.worker.js
+let pyodide = null;
 
 async function initPyodide() {
   if (pyodide) return;
 
-  const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
-  const module = await import(/* @vite-ignore */ pyodideUrl);
-  const loadPyodide = module.loadPyodide;
+  try {
+    const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
+    const module = await import(/* @vite-ignore */ pyodideUrl);
+    const loadPyodide = module.loadPyodide;
 
-  pyodide = await loadPyodide();
+    // Load into a temporary variable. Don't mark as "ready" until we succeed!
+    const tempPyodide = await loadPyodide();
 
-  // 1. Fetch Python files from the public folder (NOW INCLUDES semantic_nlg.py)
-  const [analyzerCode, astCode, nlgCode] = await Promise.all([
-    fetch("/python_engine/analyzer.py").then(res => res.text()),
-    fetch("/python_engine/blockly_ast.py").then(res => res.text()),
-    fetch("/python_engine/semantic_nlg.py").then(res => res.text()) // <-- NEW
-  ]);
+    // 1. Use a cache-buster (?t=...) to completely bypass the PWA offline cache!
+    const cacheBuster = "?t=" + Date.now();
+    const [analyzerCode, astCode, nlgCode] = await Promise.all([
+      fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
+      fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
+      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text())
+    ]);
 
-  // 2. Write to Pyodide's virtual filesystem
-  pyodide.FS.writeFile("analyzer.py", analyzerCode);
-  pyodide.FS.writeFile("blockly_ast.py", astCode);
-  pyodide.FS.writeFile("semantic_nlg.py", nlgCode); // <-- NEW
+    // Safety check: Did Vite/PWA serve the default HTML fallback?
+    if (nlgCode.includes("<!DOCTYPE html>")) {
+      throw new Error("Service Worker served index.html instead of semantic_nlg.py! Please hard refresh the page.");
+    }
 
-  // 3. Inject a Python wrapper 
-  await pyodide.runPythonAsync(`
+    // 2. Write to Pyodide's virtual filesystem
+    tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
+    tempPyodide.FS.writeFile("blockly_ast.py", astCode);
+    tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
+
+    // 3. Inject a Python wrapper 
+    await tempPyodide.runPythonAsync(`
 import sys
 import json
 import ast
@@ -81,7 +89,16 @@ def do_analyze(code):
         return json.dumps({"status": "error", "line": e.lineno, "message": e.msg})
     except Exception as e:
         return json.dumps({"status": "error", "message": str(e)})
-  `);
+    `);
+
+    // Only assign to the global variable AFTER everything initialized perfectly!
+    pyodide = tempPyodide;
+
+  } catch (error) {
+    console.error("Pyodide Engine Crash during boot:", error);
+    pyodide = null; // Ensure it attempts to re-initialize on the next ping
+    throw error;
+  }
 }
 
 self.onmessage = async (e) => {
