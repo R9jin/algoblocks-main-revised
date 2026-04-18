@@ -10,6 +10,9 @@ import { projectsDB, syncQueueDB, templatesDB } from '../db.js';
 import "../styles/MainApp.css";
 import { formatComplexity } from "../utils/formatters";
 
+// 1. Import the shared eager-loaded worker
+import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
+
 // --- Base System Templates ---
 const SIDEBAR_TEMPLATES = [
   { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element until the target is found.", category: "Search" },
@@ -85,9 +88,7 @@ export default function MainApp() {
 
   // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
-    if (workerRef.current) workerRef.current.terminate();
-
-    workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+    if (!workerRef.current) return;
 
     workerRef.current.onmessage = (event) => {
       const { type, data } = event.data;
@@ -125,9 +126,12 @@ export default function MainApp() {
   };
 
   useEffect(() => {
+    // Mount the pre-warmed shared worker
+    workerRef.current = sharedAnalyzerWorker;
     initWorker();
+
     return () => {
-      if (workerRef.current) workerRef.current.terminate();
+      // DO NOT terminate the worker here, keep it alive for the rest of the app
       clearTimeout(runTimeoutRef.current);
     };
   }, []);
@@ -398,11 +402,16 @@ export default function MainApp() {
 
     // Infinite Loop Safety Timeout
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current.terminate();
+      workerRef.current.terminate(); // Kill crashed engine
+      
+      // Recover with a new local engine so the app doesn't break
+      workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+      workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
+      initWorker(); // Reattach listeners
+
       setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
       setIsEvaluating(false);
       setIsWaitingForInput(false);
-      initWorker(); // Re-initialize the worker for next run
     }, 3000);
   };
 
@@ -416,10 +425,15 @@ export default function MainApp() {
       // Resume infinite loop timeout after input is provided
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
+
+        // Recover with a new local engine
+        workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
+        initWorker(); // Reattach listeners
+
         setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
-        initWorker();
       }, 3000);
     }
   };

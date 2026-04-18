@@ -4,11 +4,13 @@ import "../styles/ActivityApp.css";
 
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
+import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from '../components/ComplexityGraph.jsx';
 import ConfirmModal from "../components/ConfirmModal.jsx";
-// ADD THIS IMPORT:
-import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import { formatComplexity } from "../utils/formatters";
+
+// 1. Import the shared eager-loaded worker
+import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
 const ACTIVITY_TASKS = [
   {
@@ -26,7 +28,6 @@ Output: "Hello World"
 • You must familiarize yourself with the visual block interface.
 • Connect a simple sequence of Output blocks to print exactly "Hello" and "World".
 • Pay attention to capitalization and spacing.`,
-    // ADD THIS TEST CASE ARRAY:
     testCasesList: [
       { call: "", expected: "Hello World" }
     ]
@@ -77,7 +78,6 @@ Output:
 **Constraints:**
 • 0 <= n <= 10
 • You must use a Loop block that executes exactly \`n\` times, demonstrating linear growth.`,
-    // New Test Cases for Topic 3
     testCasesList: [
       { call: "print_steps(3)", expected: "Step\\nStep\\nStep" },
       { call: "print_steps(1)", expected: "Step" },
@@ -300,6 +300,7 @@ const renderFormattedTask = (text) => {
 const ActivityApp = () => {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "";
   const RENDER_URL = import.meta.env.VITE_RENDER_URL || "";
+  
   // =========================================================
   // 1. ROUTING + REFS
   // =========================================================
@@ -309,7 +310,7 @@ const ActivityApp = () => {
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
 
-  // NEW PWA OFFLINE REFS (Replaces socketRef)
+  // Web Worker Refs
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
 
@@ -377,9 +378,7 @@ const ActivityApp = () => {
 
   // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
-    if (workerRef.current) workerRef.current.terminate();
-
-    workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+    if (!workerRef.current) return;
 
     workerRef.current.onmessage = (event) => {
       const { type, data } = event.data;
@@ -422,9 +421,12 @@ const ActivityApp = () => {
   };
 
   useEffect(() => {
+    // Mount the pre-warmed shared worker
+    workerRef.current = sharedAnalyzerWorker;
     initWorker();
+
     return () => {
-      if (workerRef.current) workerRef.current.terminate();
+      // DO NOT terminate the worker here, keep it alive for the rest of the app
       clearTimeout(runTimeoutRef.current);
     };
   }, []);
@@ -453,19 +455,16 @@ const ActivityApp = () => {
   // 5. EFFECTS (LIFECYCLE)
   // =========================================================
 
-  // redirect if no data
   useEffect(() => {
     if (!activityData) navigate("/learning-path");
   }, [activityData, navigate]);
 
-  // auto scroll terminal
   useEffect(() => {
     if (consoleEndRef.current) {
       consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [consoleOutput, isWaitingForInput]);
 
-  // resize panel drag logic
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
@@ -509,7 +508,6 @@ const ActivityApp = () => {
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode]);
 
-  // template loader (single version kept)
   useEffect(() => {
     if (!initialTemplate || !activityData) return;
     if (hasLoadedRef.current) return;
@@ -658,16 +656,20 @@ const ActivityApp = () => {
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
 
-    // Start execution via Worker
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
     // Infinite Loop Safety Timeout
     runTimeoutRef.current = setTimeout(() => {
       workerRef.current.terminate();
+
+      // Recover with a new local engine so the app doesn't break
+      workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+      workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
+      initWorker(); // Reattach listeners
+
       setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
       setIsEvaluating(false);
       setIsWaitingForInput(false);
-      initWorker(); // Re-initialize the worker for next run
     }, 3000);
   };
 
@@ -681,10 +683,15 @@ const ActivityApp = () => {
       // Resume infinite loop timeout after input is provided
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
+
+        // Recover with a new local engine
+        workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
+        initWorker(); // Reattach listeners
+
         setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
-        initWorker();
       }, 3000);
     }
   };
@@ -715,8 +722,8 @@ const ActivityApp = () => {
     setBottomPanel("console");
 
     try {
-      const result = await executeWithTimeout(generatedPython);
-      if (result && result.error) throw new Error(result.error);
+      const result = await executeTestOffline(generatedPython);
+      // Let the first run pass implicitly if no error is thrown
     } catch (failure) {
       setConsoleOutput(`Test Execution Prevented:\n\n${failure.error || failure.message}`);
       setBottomPanel("console");
@@ -813,32 +820,38 @@ const ActivityApp = () => {
 
   const executeTestOffline = (codeToRun) => {
     return new Promise((resolve, reject) => {
-      // Spin up a temporary worker just for this test case
-      const testWorker = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+      // Safely borrow the shared worker to evaluate a single test case
       let outputAccumulator = "";
 
       const timeout = setTimeout(() => {
-        testWorker.terminate();
+        workerRef.current.terminate();
+        
+        // Recover with a new local engine 
+        workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
+        initWorker(); // Restore standard component listener
+        
         reject(new Error("Infinite Loop detected. Execution timed out after 3 seconds."));
       }, 3000);
 
-      testWorker.onmessage = (event) => {
+      // Temporarily override the main worker listener for the duration of this specific execution
+      workerRef.current.onmessage = (event) => {
         const { type, data } = event.data;
         if (type === 'OUTPUT') {
           outputAccumulator += data;
         } else if (type === 'RUN_RESULT') {
           clearTimeout(timeout);
           outputAccumulator += data;
-          testWorker.terminate();
+          initWorker(); // Release control back to standard component listener!
           resolve(outputAccumulator);
         } else if (type === 'ERROR') {
           clearTimeout(timeout);
-          testWorker.terminate();
+          initWorker(); // Release control back to standard component listener!
           reject(new Error(data));
         }
       };
 
-      testWorker.postMessage({ type: 'RUN_CODE', code: codeToRun });
+      workerRef.current.postMessage({ type: 'RUN_CODE', code: codeToRun });
     });
   };
 
