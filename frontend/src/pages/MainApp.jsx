@@ -29,7 +29,36 @@ const SIDEBAR_TEMPLATES = [
   { name: "Tower of Hanoi (Recursive)", path: "recursive/recursive_tower_of_hanoi", desc: "Moves disks between rods following rules.", category: "Recursive" },
 ];
 
+// Helper function to color-code Big O notation
+const getComplexityColor = (complexity) => {
+  const comp = String(complexity || "").toLowerCase();
+  if (comp.includes("o(1)")) return "#2ecc71"; // Green
+  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
+  if (comp.includes("n log n")) return "#e67e22"; // Orange
+  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
+  return "#95a5a6"; // Gray
+};
+
+// Helper function to rank computational weight for bottlenecks
+const getComplexityWeight = (complexity) => {
+  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+  if (comp.includes("o(1)")) return 1;
+  if (comp.includes("logn") && !comp.includes("nlog")) return 2;
+  if (comp.includes("o(n)") && !comp.includes("log")) return 3;
+  if (comp.includes("nlogn")) return 4;
+  if (comp.includes("n^2") || comp.includes("n²")) return 5;
+  if (comp.includes("n^3") || comp.includes("n³")) return 6;
+  if (comp.includes("2^n") || comp.includes("2ⁿ")) return 7;
+  if (comp.includes("n!")) return 8;
+  return 0; 
+};
+
 export default function MainApp() {
+  const outputCountRef = useRef(0);
+  const pendingOutputRef = useRef("");
+  const renderIntervalRef = useRef(null);
   const location = useLocation();
   const workspaceRef = useRef(null);
 
@@ -74,6 +103,7 @@ export default function MainApp() {
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("local");
   const [expandedLines, setExpandedLines] = useState({});
+  
   const toggleLine = (index) => {
     setExpandedLines((prev) => ({
       ...prev,
@@ -90,18 +120,6 @@ export default function MainApp() {
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
-
-  // Helper function to color-code Big O notation
-  const getComplexityColor = (complexity) => {
-    const comp = String(complexity || "").toLowerCase();
-    if (comp.includes("o(1)")) return "#2ecc71"; // Green
-    if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
-    if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
-    if (comp.includes("n log n")) return "#e67e22"; // Orange
-    if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
-    if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
-    return "#95a5a6"; // Gray
-  };
 
   // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
@@ -120,22 +138,61 @@ export default function MainApp() {
       }
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
-        setConsoleOutput(prev => prev + data + "\n> Program finished.");
+        clearInterval(renderIntervalRef.current); // Stop buffer loop
+
+        // Cache exactly what is in the buffer BEFORE React batches the update!
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = ""; // Reset buffer securely
+
+        const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
+        setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
+
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
-        clearTimeout(runTimeoutRef.current);
-        setConsoleOutput(prev => prev + data);
+        outputCountRef.current += 1;
+        pendingOutputRef.current += data;
+
+        // 🚨 FLOOD GATE: Raised to 5000 to prevent false positives
+        if (outputCountRef.current > 5000) {
+          clearTimeout(runTimeoutRef.current);
+          clearInterval(renderIntervalRef.current);
+          workerRef.current.terminate();
+
+          workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+          workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+          initWorker();
+
+          const flushed = pendingOutputRef.current;
+          pendingOutputRef.current = "";
+
+          setConsoleOutput(prev => prev + flushed + "\n\n❌ Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          setIsEvaluating(false);
+          setIsWaitingForInput(false);
+          outputCountRef.current = 0;
+          return;
+        }
       }
       else if (type === 'INPUT_REQUEST') {
         clearTimeout(runTimeoutRef.current);
-        setConsoleOutput(prev => prev + data.prompt);
+        clearInterval(renderIntervalRef.current); // Pause rendering
+
+        // Flush buffer + prompt to screen
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
+
+        setConsoleOutput(prev => prev + flushed + data.prompt);
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
         clearTimeout(runTimeoutRef.current);
-        setConsoleOutput(prev => prev + "\nRuntime Error: " + data);
+        clearInterval(renderIntervalRef.current);
+
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
+
+        setConsoleOutput(prev => prev + flushed + "\nRuntime Error: " + data);
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -150,6 +207,7 @@ export default function MainApp() {
     return () => {
       // DO NOT terminate the worker here, keep it alive for the rest of the app
       clearTimeout(runTimeoutRef.current);
+      clearInterval(renderIntervalRef.current);
     };
   }, []);
 
@@ -402,56 +460,90 @@ export default function MainApp() {
     }
   };
 
-  // --- Run Code (Offline Pyodide Execution) ---
   const handleRunCode = () => {
+    if (isEvaluating) return; // Prevent concurrent evaluation triggers
+
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
       return;
     }
 
+    // Explicitly wipe existing intervals
+    clearTimeout(runTimeoutRef.current);
+    clearInterval(renderIntervalRef.current);
+
     setIsEvaluating(true);
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
 
-    // Start execution via Worker
+    outputCountRef.current = 0;
+    pendingOutputRef.current = "";
+
+    renderIntervalRef.current = setInterval(() => {
+      if (pendingOutputRef.current) {
+        // Securely capture and clear before rendering to prevent dropped letters
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
+        setConsoleOutput(prev => prev + flushed);
+      }
+    }, 100);
+
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
-    // Infinite Loop Safety Timeout
+    // Infinite Loop Safety Timeout (Extended to 10s)
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current.terminate(); // Kill crashed engine
+      workerRef.current.terminate();
+      clearInterval(renderIntervalRef.current);
 
-      // Recover with a new local engine so the app doesn't break
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-      workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
-      initWorker(); // Reattach listeners
+      workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+      initWorker();
 
-      setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+      const flushed = pendingOutputRef.current;
+      pendingOutputRef.current = "";
+
+      setConsoleOutput(prev => prev + flushed + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+
       setIsEvaluating(false);
       setIsWaitingForInput(false);
-    }, 3000);
+    }, 10000);
   };
 
   const handleSendInput = (e) => {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
+
+      outputCountRef.current = 0;
       setUserInput("");
       setIsWaitingForInput(false);
 
-      // Resume infinite loop timeout after input is provided
+      // ⏱️ RESUME FLUSHER
+      renderIntervalRef.current = setInterval(() => {
+        if (pendingOutputRef.current) {
+          const flushed = pendingOutputRef.current;
+          pendingOutputRef.current = "";
+          setConsoleOutput(prev => prev + flushed);
+        }
+      }, 100);
+
+      // Resume infinite loop timeout after input is provided (Extended to 10s)
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
+        clearInterval(renderIntervalRef.current); // 👈 Clear flusher
 
-        // Recover with a new local engine
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
-        initWorker(); // Reattach listeners
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+        initWorker();
 
-        setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
+
+        setConsoleOutput(prev => prev + flushed + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
-      }, 3000);
+      }, 10000);
     }
   };
 
@@ -467,6 +559,27 @@ export default function MainApp() {
 
   const consoleEndRef = useRef(null);
   useEffect(() => { if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [consoleOutput, isWaitingForInput]);
+
+  // --- Identify Bottlenecks Dynamically Based on Active Tab ---
+  const lines = analysisResult?.lines || [];
+  let maxWeight = 0;
+  let bottleneckIndices = [];
+
+  lines.forEach((line, index) => {
+    // Bottleneck checks whether user is currently looking at Local or Global time
+    const targetComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
+    const weight = getComplexityWeight(targetComplexity);
+    
+    if (weight > maxWeight) {
+      maxWeight = weight;
+      bottleneckIndices = [index];
+    } else if (weight === maxWeight && weight > 0) {
+      bottleneckIndices.push(index);
+    }
+  });
+
+  // Only flag lines as bottlenecks if they are worse than O(1)
+  const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
 
   return (
     <div className="workspace-app-container">
@@ -525,6 +638,7 @@ export default function MainApp() {
         currentProjectId={currentLoadedId}
         currentProjectTitle={currentProjectTitle}
         handleUpdateDB={openSaveModal}
+        isEvaluating={isEvaluating}
       />
 
       <Split className={`workspace-split ${!isSidebarVisible ? 'sidebar-hidden' : ''}`} sizes={[20, 80]} minSize={[250, 400]} gutterSize={8}>
@@ -627,21 +741,7 @@ export default function MainApp() {
                       </div>
                     </div>
                     <div className="complexity-table-wrapper">
-                      {/* Helper function to color-code Big O notation (Place outside the component or at the top) */}
-                      {(() => {
-                        window.getComplexityColor = (complexity) => {
-                          const comp = String(complexity || "").toLowerCase();
-                          if (comp.includes("o(1)")) return "#2ecc71"; // Green
-                          if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
-                          if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
-                          if (comp.includes("n log n")) return "#e67e22"; // Orange
-                          if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
-                          if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
-                          return "#95a5a6"; // Gray
-                        };
-                        return null;
-                      })()}
-
+                      
                       <table className="complexity-table">
                         <thead>
                           <tr>
@@ -669,23 +769,46 @@ export default function MainApp() {
                             const timeColor = getComplexityColor(timeComplexity);
                             const spaceColor = getComplexityColor(spaceComplexity);
 
+                            // CHECK IF CURRENT LINE IS THE BOTTLENECK
+                            const isBottleneck = actualBottleneckIndices.includes(i);
+
                             return (
                               <React.Fragment key={i}>
                                 {/* Main Clickable Row */}
                                 <tr
-                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`}
+                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
                                   onClick={() => toggleLine(i)}
                                   style={{
                                     cursor: 'pointer',
-                                    borderLeft: expandedLines[i] ? `3px solid ${timeColor}` : 'none'
+                                    borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                    backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
                                   }}
                                   title="Click to view explanation"
                                 >
                                   <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
                                   </td>
-                                  <td className="operation-cell" style={{ color: '#000000' }}>
+                                  <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {line.operation || '-'}
+
+                                    {/* RENDER HIGHLY VISIBLE BOTTLENECK BADGE */}
+                                    {isBottleneck && (
+                                      <span style={{
+                                        backgroundColor: '#ff375f',
+                                        color: 'white',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 'bold',
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                        marginLeft: '10px',
+                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)',
+                                        animation: 'pulse 1.5s infinite'
+                                      }} title={`Highest ${activeTab} computational weight detected`}>
+                                        🔥 Bottleneck
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
                                     {formatComplexity(timeComplexity)}
