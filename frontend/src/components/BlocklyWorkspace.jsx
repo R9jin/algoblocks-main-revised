@@ -808,7 +808,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         }, 400);
       });
 
-      // Safe resize listener that won't cause infinite DOM loops
+      // Safe resize listener
       const handleResize = () => {
         if (workspace.current) {
           Blockly.svgResize(workspace.current);
@@ -817,34 +817,36 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
 
       window.addEventListener('resize', handleResize);
 
-      // And make sure to update the cleanup function below it:
+      // ✅ FIXED: SINGLE CLEANUP FUNCTION (merged both returns)
       return () => {
+        // ✅ remove resize listener
         window.removeEventListener('resize', handleResize);
-        // ... rest of your cleanup code
-      };
 
-      return () => {
+        // ✅ dispose plugins
         try {
-          if (searchPlugin?.dispose) searchPlugin.dispose();
-          if (minimapPlugin?.dispose) minimapPlugin.dispose();
-          if (modalPlugin?.dispose) modalPlugin.dispose();
-          if (backpackPlugin?.dispose) backpackPlugin.dispose();
-          if (highlightPlugin?.dispose) highlightPlugin.dispose();
+          if (searchPlugin?.dispose) searchPlugin.dispose(); // ✅ added
+          if (minimapPlugin?.dispose) minimapPlugin.dispose(); // ✅ added
+          if (modalPlugin?.dispose) modalPlugin.dispose(); // ✅ added
+          if (backpackPlugin?.dispose) backpackPlugin.dispose(); // ✅ added
+          if (highlightPlugin?.dispose) highlightPlugin.dispose(); // ✅ added
         } catch (e) {
           console.warn("Plugin dispose skipped:", e.message);
         }
 
+        // ✅ dispose workspace
         if (workspace.current) {
           workspace.current.dispose();
           workspace.current = null;
         }
 
+        // ✅ cleanup observer
         if (blocklyDiv.current?.resizeObserver) {
           blocklyDiv.current.resizeObserver.disconnect();
         }
       };
-    }, []);
-
+    }
+  }, []);
+  
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
