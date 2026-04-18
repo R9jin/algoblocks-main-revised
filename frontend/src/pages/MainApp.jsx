@@ -91,6 +91,18 @@ export default function MainApp() {
   };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
+  // Helper function to color-code Big O notation
+  const getComplexityColor = (complexity) => {
+    const comp = String(complexity || "").toLowerCase();
+    if (comp.includes("o(1)")) return "#2ecc71"; // Green
+    if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
+    if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
+    if (comp.includes("n log n")) return "#e67e22"; // Orange
+    if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
+    if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
+    return "#95a5a6"; // Gray
+  };
+
   // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
     if (!workerRef.current) return;
@@ -616,63 +628,101 @@ export default function MainApp() {
                     </div>
                     <div className="complexity-table-wrapper">
                       <table className="complexity-table">
-                        <thead><tr><th>Line of Code</th><th>Operation</th><th>{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th><th>{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th></tr></thead>
+                        <thead>
+                          <tr>
+                            <th>Line of Code</th>
+                            <th>Operation</th>
+                            <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
+                            <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
+                          </tr>
+                        </thead>
                         <tbody>
                           {analysisResult.lines.map((line, i) => {
-                            // Check if the NLG engine successfully attached explanations to this line
-                            const hasExplanation = line.time_explanation || line.space_explanation;
+                            // 1. Grab the active tab's complexities
+                            const timeComplexity = activeTab === 'local' ? line.local_time : line.global_time;
+                            const spaceComplexity = activeTab === 'local' ? line.local_space : line.global_space;
+
+                            // 2. BULLETPROOF EXPLANATION CHECK: 
+                            // Handles BOTH algoblocks-main (local_explanation) AND algoblocks-main-revised (time_explanation)
+                            const fallbackExp = activeTab === 'local' ? line.local_explanation : line.global_explanation;
+                            const timeExp = line.time_explanation || fallbackExp;
+                            const spaceExp = line.space_explanation || fallbackExp;
+
+                            // If any explanation exists, this row becomes clickable
+                            const hasExplanation = Boolean(timeExp || spaceExp);
+
+                            const timeColor = getComplexityColor(timeComplexity);
+                            const spaceColor = getComplexityColor(spaceComplexity);
 
                             return (
                               <React.Fragment key={i}>
-                                {/* Main Data Row */}
+                                {/* Main Row */}
                                 <tr
-                                  className={`complexity-row ${expandedLines[i] ? 'active' : ''}`}
-                                  onClick={() => hasExplanation && toggleLine(i)}
-                                  style={{ cursor: hasExplanation ? 'pointer' : 'default' }}
+                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`}
+                                  // The click will now properly fire!
+                                  onClick={() => {
+                                    if (hasExplanation) toggleLine(i);
+                                  }}
+                                  style={{
+                                    cursor: hasExplanation ? 'pointer' : 'default',
+                                    borderLeft: hasExplanation ? `3px solid ${timeColor}` : 'none'
+                                  }}
                                 >
-                                  <td className="code-cell"><code>{line.lineOfCode || line.code}</code></td>
-                                  <td>{line.operation || '-'}</td>
-                                  <td>{activeTab === 'local' ? line.local_time : line.global_time}</td>
-                                  <td>{activeTab === 'local' ? line.local_space : line.global_space}</td>
-                                  <td className="chevron-cell">
-                                    {/* Only show the chevron if there is an explanation to reveal */}
-                                    {hasExplanation && <span>{expandedLines[i] ? '▼' : '▶'}</span>}
+                                  <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
+                                    {line.lineOfCode || line.code}
+                                  </td>
+                                  <td className="operation-cell" style={{ color: '#b2bec3' }}>
+                                    {line.operation || '-'}
+                                  </td>
+                                  <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
+                                    {formatComplexity(timeComplexity)}
+                                  </td>
+                                  <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
+                                    {formatComplexity(spaceComplexity)}
+                                    {hasExplanation && <span className="dropdown-chevron">▶</span>}
                                   </td>
                                 </tr>
 
-                                {/* Expansion/Dropdown Row */}
-                                {/* Expansion/Dropdown Row */}
+                                {/* Explanation Row */}
                                 {expandedLines[i] && hasExplanation && (
                                   <tr className="explanation-row">
-                                    <td colSpan="5" style={{ padding: 0 }}>
-                                      {/* REMOVED the inline styles here! */}
-                                      <div className="explanation-content">
+                                    <td colSpan="4">
+                                      <div className="explanation-content" style={{ borderLeftColor: timeColor }}>
 
-                                        {/* Time Complexity Panel */}
-                                        <div style={{ flex: '1 1 300px' }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                                            <strong style={{ color: '#BCA1FC', fontSize: '0.85rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                                              ⏱️ Time Complexity
-                                            </strong>
+                                        {/* Time Complexity Split */}
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px' }} />
+                                            <div>
+                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                Time Complexity
+                                              </strong>
+                                              <p style={{ color: '#e2e8f0', marginTop: '4px', fontSize: '0.9rem' }}>
+                                                {timeExp || "No time complexity analysis available."}
+                                              </p>
+                                            </div>
                                           </div>
-                                          <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.5' }}>
-                                            {line.time_explanation || "Analysis not available."}
-                                          </p>
-                                          <div style={{ marginTop: '12px' }}>
-                                            <ComplexityGraph data={activeTab === 'local' ? line.local_time : line.global_time} />
+                                          <div className="explanation-graph" style={{ marginTop: '12px', height: '110px' }}>
+                                            <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
                                           </div>
                                         </div>
 
-                                        {/* Space Complexity Panel */}
-                                        <div style={{ flex: '1 1 300px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                                            <strong style={{ color: '#00b8a3', fontSize: '0.85rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                                              💾 Space Complexity
-                                            </strong>
+                                        {/* Space Complexity Split */}
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px' }} />
+                                            <div>
+                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                Space Complexity
+                                              </strong>
+                                              <p style={{ color: '#e2e8f0', marginTop: '4px', fontSize: '0.9rem' }}>
+                                                {spaceExp || "No space complexity analysis available."}
+                                              </p>
+                                            </div>
                                           </div>
-                                          <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.5' }}>
-                                            {line.space_explanation || "Analysis not available."}
-                                          </p>
+                                          <div className="explanation-graph" style={{ marginTop: '12px', height: '110px' }}>
+                                            <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                          </div>
                                         </div>
 
                                       </div>
