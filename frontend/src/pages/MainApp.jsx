@@ -31,6 +31,8 @@ const SIDEBAR_TEMPLATES = [
 
 export default function MainApp() {
   const outputCountRef = useRef(0);
+  const pendingOutputRef = useRef("");
+  const renderIntervalRef = useRef(null);
   const location = useLocation();
   const workspaceRef = useRef(null);
 
@@ -120,42 +122,54 @@ export default function MainApp() {
         }
       }
       else if (type === 'RUN_RESULT') {
-        clearTimeout(runTimeoutRef.current); // Cleared because program finished successfully
-        setConsoleOutput(prev => prev + data + "\n> Program finished.");
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current); // Stop buffer loop
+
+        // Flush remaining buffer to screen
+        setConsoleOutput(prev => prev + pendingOutputRef.current + data + "\n> Program finished.");
+        pendingOutputRef.current = ""; // Reset buffer
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
         outputCountRef.current += 1;
 
-        // 🚨 FLOOD GATE: If it prints more than 500 times, it's a runaway loop!
-        if (outputCountRef.current > 500) {
-          clearTimeout(runTimeoutRef.current);
-          workerRef.current.terminate(); // Instantly kill the rogue engine
+        // Push to buffer INSTEAD of updating React state immediately
+        pendingOutputRef.current += data;
 
-          // Recover with a new local engine
+        // 🚨 FLOOD GATE: Raised to 5000 to prevent false positives
+        if (outputCountRef.current > 5000) {
+          clearTimeout(runTimeoutRef.current);
+          clearInterval(renderIntervalRef.current);
+          workerRef.current.terminate();
+
           workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
           workerRef.current.postMessage({ type: 'INIT_ENGINE' });
           initWorker();
 
-          setConsoleOutput(prev => prev + "\n\n❌ Execution Prevented: \nRoot Cause: Infinite Loop (Output Flood) detected. \nSuggestion: Check your loop conditions.\n");
+          setConsoleOutput(prev => prev + pendingOutputRef.current + "\n\n❌ Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          pendingOutputRef.current = "";
           setIsEvaluating(false);
           setIsWaitingForInput(false);
-          outputCountRef.current = 0; // Reset
+          outputCountRef.current = 0;
           return;
         }
-
-        // Normal print behavior
-        setConsoleOutput(prev => prev + data);
       }
       else if (type === 'INPUT_REQUEST') {
-        clearTimeout(runTimeoutRef.current); // Cleared because program naturally paused
-        setConsoleOutput(prev => prev + data.prompt);
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current); // Pause rendering
+
+        // Flush buffer + prompt to screen
+        setConsoleOutput(prev => prev + pendingOutputRef.current + data.prompt);
+        pendingOutputRef.current = "";
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
-        clearTimeout(runTimeoutRef.current); // Cleared because program threw an error
-        setConsoleOutput(prev => prev + "\nRuntime Error: " + data);
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
+
+        setConsoleOutput(prev => prev + pendingOutputRef.current + "\nRuntime Error: " + data);
+        pendingOutputRef.current = "";
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -422,7 +436,6 @@ export default function MainApp() {
     }
   };
 
-  // --- Run Code (Offline Pyodide Execution) ---
   const handleRunCode = () => {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
@@ -435,19 +448,28 @@ export default function MainApp() {
     setBottomPanel("console");
 
     outputCountRef.current = 0;
+    pendingOutputRef.current = "";
+
+    renderIntervalRef.current = setInterval(() => {
+      if (pendingOutputRef.current) {
+        setConsoleOutput(prev => prev + pendingOutputRef.current);
+        pendingOutputRef.current = "";
+      }
+    }, 100);
 
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
     // Infinite Loop Safety Timeout
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current.terminate(); // Kill crashed engine
+      workerRef.current.terminate();
+      clearInterval(renderIntervalRef.current);
 
-      // Recover with a new local engine so the app doesn't break
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-      workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
-      initWorker(); // Reattach listeners
+      workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+      initWorker();
 
-      setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+      setConsoleOutput(prev => prev + pendingOutputRef.current + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+      pendingOutputRef.current = "";
       setIsEvaluating(false);
       setIsWaitingForInput(false);
     }, 3000);
@@ -458,21 +480,28 @@ export default function MainApp() {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
 
-      outputCountRef.current = 0; // 👈 ADD THIS HERE TOO
-
+      outputCountRef.current = 0;
       setUserInput("");
       setIsWaitingForInput(false);
 
-      // Resume infinite loop timeout after input is provided
+      // ⏱️ RESUME FLUSHER
+      renderIntervalRef.current = setInterval(() => {
+        if (pendingOutputRef.current) {
+          setConsoleOutput(prev => prev + pendingOutputRef.current);
+          pendingOutputRef.current = "";
+        }
+      }, 100);
+
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
+        clearInterval(renderIntervalRef.current); // 👈 Clear flusher
 
-        // Recover with a new local engine
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
-        initWorker(); // Reattach listeners
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+        initWorker();
 
-        setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        setConsoleOutput(prev => prev + pendingOutputRef.current + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        pendingOutputRef.current = "";
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }, 3000);
