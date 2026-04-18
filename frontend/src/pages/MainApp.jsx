@@ -30,6 +30,7 @@ const SIDEBAR_TEMPLATES = [
 ];
 
 export default function MainApp() {
+  const outputCountRef = useRef(0);
   const location = useLocation();
   const workspaceRef = useRef(null);
 
@@ -125,6 +126,26 @@ export default function MainApp() {
         setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
+        outputCountRef.current += 1;
+
+        // 🚨 FLOOD GATE: If it prints more than 500 times, it's a runaway loop!
+        if (outputCountRef.current > 500) {
+          clearTimeout(runTimeoutRef.current);
+          workerRef.current.terminate(); // Instantly kill the rogue engine
+
+          // Recover with a new local engine
+          workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+          workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+          initWorker();
+
+          setConsoleOutput(prev => prev + "\n\n❌ Execution Prevented: \nRoot Cause: Infinite Loop (Output Flood) detected. \nSuggestion: Check your loop conditions.\n");
+          setIsEvaluating(false);
+          setIsWaitingForInput(false);
+          outputCountRef.current = 0; // Reset
+          return;
+        }
+
+        // Normal print behavior
         setConsoleOutput(prev => prev + data);
       }
       else if (type === 'INPUT_REQUEST') {
@@ -413,7 +434,8 @@ export default function MainApp() {
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
 
-    // Start execution via Worker
+    outputCountRef.current = 0;
+
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
     // Infinite Loop Safety Timeout
@@ -435,6 +457,9 @@ export default function MainApp() {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
+
+      outputCountRef.current = 0; // 👈 ADD THIS HERE TOO
+
       setUserInput("");
       setIsWaitingForInput(false);
 
