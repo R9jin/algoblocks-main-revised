@@ -641,20 +641,22 @@ export default function MainApp() {
                                 </tr>
 
                                 {/* Expansion/Dropdown Row */}
+                                {/* Expansion/Dropdown Row */}
                                 {expandedLines[i] && hasExplanation && (
                                   <tr className="explanation-row">
                                     <td colSpan="5" style={{ padding: 0 }}>
-                                      <div className="explanation-content" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', padding: '16px 24px', backgroundColor: 'rgba(0, 0, 0, 0.02)', borderBottom: '2px solid #eaeaea' }}>
+                                      {/* REMOVED the inline styles here! */}
+                                      <div className="explanation-content">
 
                                         {/* Time Complexity Panel */}
                                         <div style={{ flex: '1 1 300px' }}>
                                           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                                            <strong style={{ color: '#6C5CE7', fontSize: '0.85rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                                              ⏱️ Time Complexity Analysis
+                                            <strong style={{ color: '#BCA1FC', fontSize: '0.85rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                              ⏱️ Time Complexity
                                             </strong>
                                           </div>
-                                          <p style={{ margin: 0, fontSize: '0.95rem', color: '#444', lineHeight: '1.5' }}>
-                                            {line.time_explanation || "Time complexity analysis not available for this operation."}
+                                          <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                                            {line.time_explanation || "Analysis not available."}
                                           </p>
                                           <div style={{ marginTop: '12px' }}>
                                             <ComplexityGraph data={activeTab === 'local' ? line.local_time : line.global_time} />
@@ -662,14 +664,14 @@ export default function MainApp() {
                                         </div>
 
                                         {/* Space Complexity Panel */}
-                                        <div style={{ flex: '1 1 300px', borderLeft: '1px solid #ddd', paddingLeft: '20px' }}>
+                                        <div style={{ flex: '1 1 300px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                                             <strong style={{ color: '#00b8a3', fontSize: '0.85rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                                              💾 Space Complexity Analysis
+                                              💾 Space Complexity
                                             </strong>
                                           </div>
-                                          <p style={{ margin: 0, fontSize: '0.95rem', color: '#444', lineHeight: '1.5' }}>
-                                            {line.space_explanation || "Space complexity analysis not available for this operation."}
+                                          <p style={{ margin: 0, fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                                            {line.space_explanation || "Analysis not available."}
                                           </p>
                                         </div>
 
