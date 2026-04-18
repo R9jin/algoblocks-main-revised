@@ -119,22 +119,21 @@ export default function MainApp() {
         }
       }
       else if (type === 'RUN_RESULT') {
-        clearTimeout(runTimeoutRef.current);
+        clearTimeout(runTimeoutRef.current); // Cleared because program finished successfully
         setConsoleOutput(prev => prev + data + "\n> Program finished.");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
-        clearTimeout(runTimeoutRef.current);
         setConsoleOutput(prev => prev + data);
       }
       else if (type === 'INPUT_REQUEST') {
-        clearTimeout(runTimeoutRef.current);
+        clearTimeout(runTimeoutRef.current); // Cleared because program naturally paused
         setConsoleOutput(prev => prev + data.prompt);
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
-        clearTimeout(runTimeoutRef.current);
+        clearTimeout(runTimeoutRef.current); // Cleared because program threw an error
         setConsoleOutput(prev => prev + "\nRuntime Error: " + data);
         setIsEvaluating(false);
         setIsWaitingForInput(false);
