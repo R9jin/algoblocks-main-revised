@@ -182,41 +182,61 @@
     border-right-color: var(--border);
   }
 }
-/* --- Global Offline Indicator --- */
-.offline-global-indicator {
+/* --- Dynamic Network Popup Indicator --- */
+.network-popup {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px); /* Start hidden above the screen */
+  color: white;
+  padding: 14px 24px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  z-index: 10000;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none; /* Let users click through it */
+}
+
+/* Animation Classes controlled by React */
+.network-popup.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.network-popup.hide {
+  transform: translateX(-50%) translateY(-100px);
+  opacity: 0;
+}
+
+/* State Colors */
+.network-popup.offline {
   background-color: #ef4444; /* Alert Red */
-  color: #ffffff;
-  padding: 14px 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  z-index: 9999; /* Ensure it stays on top of sidebars and modals */
-  font-size: 0.9rem;
+}
+
+.network-popup.restored {
+  background-color: #10b981; /* Success Green */
+}
+
+/* Content Layout */
+.network-popup-content {
   display: flex;
   align-items: center;
-  gap: 12px;
-  pointer-events: none; /* Allows users to click through it if it blocks something */
-  animation: slideUpFade 0.4s ease-out forwards;
+  gap: 16px;
 }
 
-.offline-global-indicator strong {
-  font-weight: 700;
-  margin-right: 4px;
+.network-popup-content strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 2px;
 }
 
-.offline-icon {
-  font-size: 1.25rem;
+.network-popup-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
 }
 
-@keyframes slideUpFade {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+.network-icon {
+  font-size: 1.8rem;
 }
