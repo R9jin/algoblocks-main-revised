@@ -11,7 +11,7 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const API_BASE = import.meta.env.VITE_API_URL || "";
 
   // Hydrate local IndexedDB from MongoDB Cloud after wiping
   const syncUserCloudData = async (userEmail) => {
