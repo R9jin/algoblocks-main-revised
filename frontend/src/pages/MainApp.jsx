@@ -618,39 +618,68 @@ export default function MainApp() {
                       <table className="complexity-table">
                         <thead><tr><th>Line of Code</th><th>Operation</th><th>{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th><th>{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th></tr></thead>
                         <tbody>
-                          {analysisResult.lines.map((line, i) => (
-                            <React.Fragment key={i}>
-                              {/* Main Data Row */}
-                              <tr
-                                className={`complexity-row ${expandedLines[i] ? 'active' : ''}`}
-                                onClick={() => toggleLine(i)}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                <td className="code-cell"><code>{line.code}</code></td>
-                                <td>{line.operation || '-'}</td>
-                                <td>{activeTab === 'local' ? line.local_time : line.global_time}</td>
-                                <td>{activeTab === 'local' ? line.local_space : line.global_space}</td>
-                                <td className="chevron-cell">
-                                  {/* Visual indicator for the dropdown */}
-                                  <span>{expandedLines[i] ? '▼' : '▶'}</span>
-                                </td>
-                              </tr>
+                          {analysisResult.lines.map((line, i) => {
+                            // Check if the NLG engine successfully attached explanations to this line
+                            const hasExplanation = line.time_explanation || line.space_explanation;
 
-                              {/* Expansion/Dropdown Row */}
-                              {expandedLines[i] && (
-                                <tr className="explanation-row">
-                                  <td colSpan="5">
-                                    <div className="explanation-content">
-                                      <h4>Explanation:</h4>
-                                      <p>{activeTab === 'local' ? line.local_explanation : line.global_explanation}</p>
-                                      {/* If you want the graph back too: */}
-                                      <ComplexityGraph data={activeTab === 'local' ? line.local_time : line.global_time} />
-                                    </div>
+                            return (
+                              <React.Fragment key={i}>
+                                {/* Main Data Row */}
+                                <tr
+                                  className={`complexity-row ${expandedLines[i] ? 'active' : ''}`}
+                                  onClick={() => hasExplanation && toggleLine(i)}
+                                  style={{ cursor: hasExplanation ? 'pointer' : 'default' }}
+                                >
+                                  <td className="code-cell"><code>{line.lineOfCode || line.code}</code></td>
+                                  <td>{line.operation || '-'}</td>
+                                  <td>{activeTab === 'local' ? line.local_time : line.global_time}</td>
+                                  <td>{activeTab === 'local' ? line.local_space : line.global_space}</td>
+                                  <td className="chevron-cell">
+                                    {/* Only show the chevron if there is an explanation to reveal */}
+                                    {hasExplanation && <span>{expandedLines[i] ? '▼' : '▶'}</span>}
                                   </td>
                                 </tr>
-                              )}
-                            </React.Fragment>
-                          ))}
+
+                                {/* Expansion/Dropdown Row */}
+                                {expandedLines[i] && hasExplanation && (
+                                  <tr className="explanation-row">
+                                    <td colSpan="5" style={{ padding: 0 }}>
+                                      <div className="explanation-content" style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', padding: '16px 24px', backgroundColor: 'rgba(0, 0, 0, 0.02)', borderBottom: '2px solid #eaeaea' }}>
+
+                                        {/* Time Complexity Panel */}
+                                        <div style={{ flex: '1 1 300px' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                                            <strong style={{ color: '#6C5CE7', fontSize: '0.85rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                              ⏱️ Time Complexity Analysis
+                                            </strong>
+                                          </div>
+                                          <p style={{ margin: 0, fontSize: '0.95rem', color: '#444', lineHeight: '1.5' }}>
+                                            {line.time_explanation || "Time complexity analysis not available for this operation."}
+                                          </p>
+                                          <div style={{ marginTop: '12px' }}>
+                                            <ComplexityGraph data={activeTab === 'local' ? line.local_time : line.global_time} />
+                                          </div>
+                                        </div>
+
+                                        {/* Space Complexity Panel */}
+                                        <div style={{ flex: '1 1 300px', borderLeft: '1px solid #ddd', paddingLeft: '20px' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                                            <strong style={{ color: '#00b8a3', fontSize: '0.85rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                                              💾 Space Complexity Analysis
+                                            </strong>
+                                          </div>
+                                          <p style={{ margin: 0, fontSize: '0.95rem', color: '#444', lineHeight: '1.5' }}>
+                                            {line.space_explanation || "Space complexity analysis not available for this operation."}
+                                          </p>
+                                        </div>
+
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
