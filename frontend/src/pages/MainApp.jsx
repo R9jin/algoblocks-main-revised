@@ -627,6 +627,21 @@ export default function MainApp() {
                       </div>
                     </div>
                     <div className="complexity-table-wrapper">
+                      {/* Helper function to color-code Big O notation (Place outside the component or at the top) */}
+                      {(() => {
+                        window.getComplexityColor = (complexity) => {
+                          const comp = String(complexity || "").toLowerCase();
+                          if (comp.includes("o(1)")) return "#2ecc71"; // Green
+                          if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
+                          if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
+                          if (comp.includes("n log n")) return "#e67e22"; // Orange
+                          if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
+                          if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
+                          return "#95a5a6"; // Gray
+                        };
+                        return null;
+                      })()}
+
                       <table className="complexity-table">
                         <thead>
                           <tr>
@@ -638,31 +653,30 @@ export default function MainApp() {
                         </thead>
                         <tbody>
                           {analysisResult.lines.map((line, i) => {
-                            // 1. Safely extract complexities for the graphs
+                            // Extract complexities for graphs and colors
                             const timeComplexity = activeTab === 'local'
-                              ? (line.local_time || line.time_complexity || "O(1)")
-                              : (line.global_time || line.time_complexity || "O(1)");
+                              ? (line.local_time || "O(1)")
+                              : (line.global_time || "O(1)");
 
                             const spaceComplexity = activeTab === 'local'
-                              ? (line.local_space || line.space_complexity || "O(1)")
-                              : (line.global_space || line.space_complexity || "O(1)");
+                              ? (line.local_space || "O(1)")
+                              : (line.global_space || "O(1)");
 
-                            // 2. EXHAUSTIVE FALLBACK FOR EXPLANATIONS
-                            // Checks every single way your backend might name the explanation key
-                            const timeExp = line.time_explanation || line.local_explanation || line.explanation || "NLG time complexity analysis pending for this operation.";
-                            const spaceExp = line.space_explanation || line.global_explanation || line.explanation || "NLG space complexity analysis pending for this operation.";
+                            // Extract explanations from the Semantic NLG output
+                            const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
+                            const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
 
-                            const timeColor = getComplexityColor(timeComplexity);
-                            const spaceColor = getComplexityColor(spaceComplexity);
+                            const timeColor = window.getComplexityColor(timeComplexity);
+                            const spaceColor = window.getComplexityColor(spaceComplexity);
 
                             return (
                               <React.Fragment key={i}>
-                                {/* Main Row - REMOVED THE CLICK GUARD, ALWAYS CLICKABLE NOW */}
+                                {/* Main Clickable Row */}
                                 <tr
                                   className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`}
                                   onClick={() => toggleLine(i)}
                                   style={{
-                                    cursor: 'pointer', // Forces pointer so you know it works
+                                    cursor: 'pointer',
                                     borderLeft: expandedLines[i] ? `3px solid ${timeColor}` : 'none'
                                   }}
                                 >
@@ -677,7 +691,6 @@ export default function MainApp() {
                                   </td>
                                   <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
                                     {formatComplexity(spaceComplexity)}
-                                    {/* Inline dynamic rotation for the chevron so it definitely moves */}
                                     <span
                                       className="dropdown-chevron"
                                       style={{
@@ -692,7 +705,7 @@ export default function MainApp() {
                                   </td>
                                 </tr>
 
-                                {/* Explanation Row */}
+                                {/* Explanation Dropdown Row */}
                                 {expandedLines[i] && (
                                   <tr className="explanation-row">
                                     <td colSpan="4" style={{ padding: 0, border: 'none' }}>
@@ -706,8 +719,6 @@ export default function MainApp() {
                                           background: 'rgba(255, 255, 255, 0.05)',
                                           margin: '0 16px 12px 16px',
                                           borderRadius: '8px',
-                                          // Bypass MainApp.css max-height cutoff just in case!
-                                          maxHeight: '1000px',
                                           animation: 'slideDown 0.3s ease forwards',
                                         }}
                                       >
