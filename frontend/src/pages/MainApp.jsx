@@ -666,8 +666,8 @@ export default function MainApp() {
                             const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
                             const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
 
-                            const timeColor = window.getComplexityColor(timeComplexity);
-                            const spaceColor = window.getComplexityColor(spaceComplexity);
+                            const timeColor = getComplexityColor(timeComplexity);
+                            const spaceColor = getComplexityColor(spaceComplexity);
 
                             return (
                               <React.Fragment key={i}>
@@ -679,11 +679,12 @@ export default function MainApp() {
                                     cursor: 'pointer',
                                     borderLeft: expandedLines[i] ? `3px solid ${timeColor}` : 'none'
                                   }}
+                                  title="Click to view explanation"
                                 >
-                                  <td className="code-cell" style={{ color: '#EBE4FF', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
+                                  <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
                                   </td>
-                                  <td className="operation-cell" style={{ color: '#b2bec3' }}>
+                                  <td className="operation-cell" style={{ color: '#000000' }}>
                                     {line.operation || '-'}
                                   </td>
                                   <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
@@ -731,7 +732,7 @@ export default function MainApp() {
                                               <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                                 Time Complexity
                                               </strong>
-                                              <p style={{ color: '#e2e8f0', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
                                                 {timeExp}
                                               </p>
                                             </div>
@@ -749,7 +750,7 @@ export default function MainApp() {
                                               <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                                 Space Complexity
                                               </strong>
-                                              <p style={{ color: '#e2e8f0', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
                                                 {spaceExp}
                                               </p>
                                             </div>

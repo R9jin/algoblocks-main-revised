@@ -30,11 +30,18 @@ async function initPyodide() {
     tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
 
     // 3. Inject a Python wrapper 
+    // 3. Inject a Python wrapper 
     await tempPyodide.runPythonAsync(`
 import sys
 import json
 import ast
+import importlib
+
+# Ensure the newly written modules are actually re-evaluated
+import semantic_nlg
 import analyzer
+importlib.reload(semantic_nlg)
+importlib.reload(analyzer)
 
 def do_analyze(code):
     try:
@@ -90,7 +97,6 @@ def do_analyze(code):
     except Exception as e:
         return json.dumps({"status": "error", "message": str(e)})
     `);
-
     // Only assign to the global variable AFTER everything initialized perfectly!
     pyodide = tempPyodide;
 
