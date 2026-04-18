@@ -29,6 +29,32 @@ const SIDEBAR_TEMPLATES = [
   { name: "Tower of Hanoi (Recursive)", path: "recursive/recursive_tower_of_hanoi", desc: "Moves disks between rods following rules.", category: "Recursive" },
 ];
 
+// Helper function to color-code Big O notation
+const getComplexityColor = (complexity) => {
+  const comp = String(complexity || "").toLowerCase();
+  if (comp.includes("o(1)")) return "#2ecc71"; // Green
+  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
+  if (comp.includes("n log n")) return "#e67e22"; // Orange
+  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
+  return "#95a5a6"; // Gray
+};
+
+// Helper function to rank computational weight for bottlenecks
+const getComplexityWeight = (complexity) => {
+  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+  if (comp.includes("o(1)")) return 1;
+  if (comp.includes("logn") && !comp.includes("nlog")) return 2;
+  if (comp.includes("o(n)") && !comp.includes("log")) return 3;
+  if (comp.includes("nlogn")) return 4;
+  if (comp.includes("n^2") || comp.includes("n²")) return 5;
+  if (comp.includes("n^3") || comp.includes("n³")) return 6;
+  if (comp.includes("2^n") || comp.includes("2ⁿ")) return 7;
+  if (comp.includes("n!")) return 8;
+  return 0; 
+};
+
 export default function MainApp() {
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
@@ -77,6 +103,7 @@ export default function MainApp() {
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("local");
   const [expandedLines, setExpandedLines] = useState({});
+  
   const toggleLine = (index) => {
     setExpandedLines((prev) => ({
       ...prev,
@@ -93,18 +120,6 @@ export default function MainApp() {
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
-
-  // Helper function to color-code Big O notation
-  const getComplexityColor = (complexity) => {
-    const comp = String(complexity || "").toLowerCase();
-    if (comp.includes("o(1)")) return "#2ecc71"; // Green
-    if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
-    if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
-    if (comp.includes("n log n")) return "#e67e22"; // Orange
-    if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
-    if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
-    return "#95a5a6"; // Gray
-  };
 
   // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
@@ -724,21 +739,7 @@ export default function MainApp() {
                       </div>
                     </div>
                     <div className="complexity-table-wrapper">
-                      {/* Helper function to color-code Big O notation (Place outside the component or at the top) */}
-                      {(() => {
-                        window.getComplexityColor = (complexity) => {
-                          const comp = String(complexity || "").toLowerCase();
-                          if (comp.includes("o(1)")) return "#2ecc71"; // Green
-                          if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
-                          if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
-                          if (comp.includes("n log n")) return "#e67e22"; // Orange
-                          if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
-                          if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
-                          return "#95a5a6"; // Gray
-                        };
-                        return null;
-                      })()}
-
+                      
                       <table className="complexity-table">
                         <thead>
                           <tr>
@@ -750,9 +751,16 @@ export default function MainApp() {
                         </thead>
                         <tbody>
                           {analysisResult.lines.map((line, i) => {
-                            const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
-                            const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
+                            // Extract complexities for graphs and colors
+                            const timeComplexity = activeTab === 'local'
+                              ? (line.local_time || "O(1)")
+                              : (line.global_time || "O(1)");
 
+                            const spaceComplexity = activeTab === 'local'
+                              ? (line.local_space || "O(1)")
+                              : (line.global_space || "O(1)");
+
+                            // Extract explanations from the Semantic NLG output
                             const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
                             const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
 
@@ -764,6 +772,7 @@ export default function MainApp() {
 
                             return (
                               <React.Fragment key={i}>
+                                {/* Main Clickable Row */}
                                 <tr
                                   className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
                                   onClick={() => toggleLine(i)}
@@ -805,6 +814,7 @@ export default function MainApp() {
                                     </span>
                                   </td>
                                 </tr>
+
                                 {/* Explanation Dropdown Row */}
                                 {expandedLines[i] && (
                                   <tr className="explanation-row">
