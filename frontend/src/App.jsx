@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Route, Routes } from "react-router-dom"; // <-- Removed BrowserRouter from import
+import { Route, Routes } from "react-router-dom";
 import ActivityApp from "./pages/ActivityApp";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -12,12 +12,20 @@ import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 
+// 1. Import the shared worker
+import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
+
 function App() {
   useEffect(() => {
+    // Start syncing data
     startBackgroundSync();
+    
+    // 2. Silently boot up Pyodide in the background immediately
+    sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
+    
   }, []);
+
   return (
-    // Removed <BrowserRouter> from here since it's already in index.jsx
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/signin" element={<SignIn />} />

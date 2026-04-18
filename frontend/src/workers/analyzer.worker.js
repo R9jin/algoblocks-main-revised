@@ -96,20 +96,31 @@ def do_analyze(code):
 
 self.onmessage = async (e) => {
   const { type, code } = e.data;
-  
+
+  // NEW: Catch the boot-up message from App.jsx
+  if (type === 'INIT_ENGINE') {
+    try {
+      await initPyodide();
+      self.postMessage({ type: 'ENGINE_READY' });
+    } catch (err) {
+      console.error("Failed to pre-warm Pyodide:", err);
+    }
+    return;
+  }
+
   try {
     await initPyodide();
-    
+
     // --- MODE 1: ANALYZE COMPLEXITY ---
     if (type === 'ANALYZE_CODE') {
       pyodide.globals.set("user_code", code);
       const resultJsonStr = await pyodide.runPythonAsync(`do_analyze(user_code)`);
       const resultData = JSON.parse(resultJsonStr);
-      
+
       // Reply in the exact format MainApp.jsx expects
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
     }
-    
+
     // --- MODE 2: RUN THE CODE (CONSOLE OUTPUT) ---
     else if (type === 'RUN_CODE') {
       // Intercept standard output (print statements) and send to MainApp console
@@ -133,7 +144,7 @@ except Exception as e:
     import traceback
     print(traceback.format_exc(), file=sys.stderr)
       `);
-      
+
       self.postMessage({ type: 'RUN_RESULT', data: "" });
     }
 
