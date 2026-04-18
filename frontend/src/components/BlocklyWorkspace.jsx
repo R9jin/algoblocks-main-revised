@@ -808,38 +808,42 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         }, 400);
       });
 
-      let resizeFrame;
-      const observer = new ResizeObserver(() => {
-        if (resizeFrame) cancelAnimationFrame(resizeFrame);
-        resizeFrame = requestAnimationFrame(() => {
-          if (workspace.current) Blockly.svgResize(workspace.current);
-        });
-      });
-      observer.observe(blocklyDiv.current);
-      blocklyDiv.current.resizeObserver = observer;
-    }
+      // Safe resize listener that won't cause infinite DOM loops
+      const handleResize = () => {
+        if (workspace.current) {
+          Blockly.svgResize(workspace.current);
+        }
+      };
 
-    return () => {
-      try {
-        if (searchPlugin?.dispose) searchPlugin.dispose();
-        if (minimapPlugin?.dispose) minimapPlugin.dispose();
-        if (modalPlugin?.dispose) modalPlugin.dispose();
-        if (backpackPlugin?.dispose) backpackPlugin.dispose();
-        if (highlightPlugin?.dispose) highlightPlugin.dispose();
-      } catch (e) {
-        console.warn("Plugin dispose skipped:", e.message);
-      }
+      window.addEventListener('resize', handleResize);
 
-      if (workspace.current) {
-        workspace.current.dispose();
-        workspace.current = null;
-      }
+      // And make sure to update the cleanup function below it:
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        // ... rest of your cleanup code
+      };
 
-      if (blocklyDiv.current?.resizeObserver) {
-        blocklyDiv.current.resizeObserver.disconnect();
-      }
-    };
-  }, []);
+      return () => {
+        try {
+          if (searchPlugin?.dispose) searchPlugin.dispose();
+          if (minimapPlugin?.dispose) minimapPlugin.dispose();
+          if (modalPlugin?.dispose) modalPlugin.dispose();
+          if (backpackPlugin?.dispose) backpackPlugin.dispose();
+          if (highlightPlugin?.dispose) highlightPlugin.dispose();
+        } catch (e) {
+          console.warn("Plugin dispose skipped:", e.message);
+        }
+
+        if (workspace.current) {
+          workspace.current.dispose();
+          workspace.current = null;
+        }
+
+        if (blocklyDiv.current?.resizeObserver) {
+          blocklyDiv.current.resizeObserver.disconnect();
+        }
+      };
+    }, []);
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
