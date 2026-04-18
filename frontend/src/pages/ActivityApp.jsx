@@ -921,14 +921,16 @@ const ActivityApp = () => {
     });
   };
 
-  // --- Identify Bottlenecks ---
+  // --- Identify Bottlenecks (Dynamic Based on activeTab) ---
   const lines = analysisResult?.lines || [];
   let maxWeight = 0;
   let bottleneckIndices = [];
 
   lines.forEach((line, index) => {
-    // Bottlenecks are determined by their Global Time impact
-    const weight = getComplexityWeight(line.global_time);
+    // Bottlenecks are determined dynamically based on the current active tab
+    const timeToEvaluate = activeTab === 'local' ? line.local_time : line.global_time;
+    const weight = getComplexityWeight(timeToEvaluate);
+    
     if (weight > maxWeight) {
       maxWeight = weight;
       bottleneckIndices = [index];
@@ -1214,7 +1216,7 @@ const ActivityApp = () => {
                                         boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)',
                                         animation: 'pulse 1.5s infinite'
                                       }} title="Highest computational weight detected">
-                                        Bottleneck
+                                        🔥 Bottleneck
                                       </span>
                                     )}
                                   </td>
