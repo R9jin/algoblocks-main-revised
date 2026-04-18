@@ -182,3 +182,41 @@
     border-right-color: var(--border);
   }
 }
+/* --- Global Offline Indicator --- */
+.offline-global-indicator {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: #ef4444; /* Alert Red */
+  color: #ffffff;
+  padding: 14px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  z-index: 9999; /* Ensure it stays on top of sidebars and modals */
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none; /* Allows users to click through it if it blocks something */
+  animation: slideUpFade 0.4s ease-out forwards;
+}
+
+.offline-global-indicator strong {
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.offline-icon {
+  font-size: 1.25rem;
+}
+
+@keyframes slideUpFade {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
