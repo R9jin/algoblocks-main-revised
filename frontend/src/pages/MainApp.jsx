@@ -638,37 +638,35 @@ export default function MainApp() {
                         </thead>
                         <tbody>
                           {analysisResult.lines.map((line, i) => {
-                            // 1. Grab the active tab's complexities
-                            const timeComplexity = activeTab === 'local' ? line.local_time : line.global_time;
-                            const spaceComplexity = activeTab === 'local' ? line.local_space : line.global_space;
+                            // 1. Safely extract complexities for the graphs
+                            const timeComplexity = activeTab === 'local'
+                              ? (line.local_time || line.time_complexity || "O(1)")
+                              : (line.global_time || line.time_complexity || "O(1)");
 
-                            // 2. BULLETPROOF EXPLANATION CHECK: 
-                            // Handles BOTH algoblocks-main (local_explanation) AND algoblocks-main-revised (time_explanation)
-                            const fallbackExp = activeTab === 'local' ? line.local_explanation : line.global_explanation;
-                            const timeExp = line.time_explanation || fallbackExp;
-                            const spaceExp = line.space_explanation || fallbackExp;
+                            const spaceComplexity = activeTab === 'local'
+                              ? (line.local_space || line.space_complexity || "O(1)")
+                              : (line.global_space || line.space_complexity || "O(1)");
 
-                            // If any explanation exists, this row becomes clickable
-                            const hasExplanation = Boolean(timeExp || spaceExp);
+                            // 2. EXHAUSTIVE FALLBACK FOR EXPLANATIONS
+                            // Checks every single way your backend might name the explanation key
+                            const timeExp = line.time_explanation || line.local_explanation || line.explanation || "NLG time complexity analysis pending for this operation.";
+                            const spaceExp = line.space_explanation || line.global_explanation || line.explanation || "NLG space complexity analysis pending for this operation.";
 
                             const timeColor = getComplexityColor(timeComplexity);
                             const spaceColor = getComplexityColor(spaceComplexity);
 
                             return (
                               <React.Fragment key={i}>
-                                {/* Main Row */}
+                                {/* Main Row - REMOVED THE CLICK GUARD, ALWAYS CLICKABLE NOW */}
                                 <tr
                                   className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`}
-                                  // The click will now properly fire!
-                                  onClick={() => {
-                                    if (hasExplanation) toggleLine(i);
-                                  }}
+                                  onClick={() => toggleLine(i)}
                                   style={{
-                                    cursor: hasExplanation ? 'pointer' : 'default',
-                                    borderLeft: hasExplanation ? `3px solid ${timeColor}` : 'none'
+                                    cursor: 'pointer', // Forces pointer so you know it works
+                                    borderLeft: expandedLines[i] ? `3px solid ${timeColor}` : 'none'
                                   }}
                                 >
-                                  <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
+                                  <td className="code-cell" style={{ color: '#EBE4FF', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
                                   </td>
                                   <td className="operation-cell" style={{ color: '#b2bec3' }}>
@@ -679,48 +677,73 @@ export default function MainApp() {
                                   </td>
                                   <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
                                     {formatComplexity(spaceComplexity)}
-                                    {hasExplanation && <span className="dropdown-chevron">▶</span>}
+                                    {/* Inline dynamic rotation for the chevron so it definitely moves */}
+                                    <span
+                                      className="dropdown-chevron"
+                                      style={{
+                                        display: 'inline-block',
+                                        marginLeft: '10px',
+                                        transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s ease'
+                                      }}
+                                    >
+                                      ▶
+                                    </span>
                                   </td>
                                 </tr>
 
                                 {/* Explanation Row */}
-                                {expandedLines[i] && hasExplanation && (
+                                {expandedLines[i] && (
                                   <tr className="explanation-row">
-                                    <td colSpan="4">
-                                      <div className="explanation-content" style={{ borderLeftColor: timeColor }}>
+                                    <td colSpan="4" style={{ padding: 0, border: 'none' }}>
+                                      <div
+                                        className="explanation-content"
+                                        style={{
+                                          borderLeftColor: timeColor,
+                                          display: 'flex',
+                                          gap: '20px',
+                                          padding: '16px',
+                                          background: 'rgba(255, 255, 255, 0.05)',
+                                          margin: '0 16px 12px 16px',
+                                          borderRadius: '8px',
+                                          // Bypass MainApp.css max-height cutoff just in case!
+                                          maxHeight: '1000px',
+                                          animation: 'slideDown 0.3s ease forwards',
+                                        }}
+                                      >
 
-                                        {/* Time Complexity Split */}
+                                        {/* Time Panel */}
                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                           <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px' }} />
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
                                             <div>
                                               <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                                 Time Complexity
                                               </strong>
-                                              <p style={{ color: '#e2e8f0', marginTop: '4px', fontSize: '0.9rem' }}>
-                                                {timeExp || "No time complexity analysis available."}
+                                              <p style={{ color: '#e2e8f0', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                                {timeExp}
                                               </p>
                                             </div>
                                           </div>
-                                          <div className="explanation-graph" style={{ marginTop: '12px', height: '110px' }}>
+                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
                                             <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
                                           </div>
                                         </div>
 
-                                        {/* Space Complexity Split */}
+                                        {/* Space Panel */}
                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                           <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px' }} />
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
                                             <div>
                                               <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                                 Space Complexity
                                               </strong>
-                                              <p style={{ color: '#e2e8f0', marginTop: '4px', fontSize: '0.9rem' }}>
-                                                {spaceExp || "No space complexity analysis available."}
+                                              <p style={{ color: '#e2e8f0', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                                {spaceExp}
                                               </p>
                                             </div>
                                           </div>
-                                          <div className="explanation-graph" style={{ marginTop: '12px', height: '110px' }}>
+                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
                                             <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
                                           </div>
                                         </div>
