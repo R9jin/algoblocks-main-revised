@@ -315,6 +315,22 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         current_poly, current_log, current_sqrt, current_graph = self.loop_depth, self.log_loop_depth, getattr(self, 'sqrt_loop_depth', 0), getattr(self, 'graph_depth', 0)
         override_poly = override_log = override_sqrt = override_graph = 0
         is_recurrence = False
+        
+        # 1. ADD THIS: Map the AST node type to a readable operation name
+        node_type = type(node).__name__
+        op_map = {
+            "Assign": "Assignment",
+            "AugAssign": "Assignment",
+            "For": "For Loop",
+            "While": "While Loop",
+            "If": "Condition",
+            "Return": "Return",
+            "FunctionDef": "Definition",
+            "Expr": "Expression",
+            "Call": "Function Call",
+            "ListComp": "List Comprehension"
+        }
+        operation_name = op_map.get(node_type, node_type)
 
         if time_override:
             if time_override.startswith("T(") or any(x in time_override for x in ["T(n) =", "n!", "2^n", "2T("]): is_recurrence = True
@@ -372,6 +388,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         entry = {
             "lineOfCode": line_text, 
+            "operation": operation_name,  # 2. ADD THIS KEY
             "local_time": local_t, 
             "global_time": global_t,
             "local_space": local_s, 
