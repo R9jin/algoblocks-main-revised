@@ -358,7 +358,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
             local_s = space_override if space_override else "O(1)"
             
-            # Context-Aware Global Space Routing
             if getattr(self, 'in_graph_context', False) or "V" in local_s or total_graph > 0:
                 global_s = "O(V)"
             elif "n" in local_s or self.recursive_calls_count > 0 or getattr(self, 'max_space_weight', 0) > 0:
@@ -366,14 +365,22 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else:
                 global_s = local_s
 
-        explanation = self._generate_explanation(node, local_t, global_t, is_dead)
+        # DYNAMIC NLG DELEGATION
+        time_exp, space_exp = self.nlg_engine.generate_explanations(
+            node, local_t, global_t, local_s, global_s, is_dead, line_text
+        )
 
         entry = {
-            "lineOfCode": line_text, "local_time": local_t, "global_time": global_t,
-            "local_space": local_s, "global_space": global_s, "indent": self.current_depth,
-            "color": self.get_color(global_t), "weight": t_w, 
-            "local_explanation": explanation, 
-            "global_explanation": f"In the current execution context, this operation scales to a cumulative complexity of {global_t}."
+            "lineOfCode": line_text, 
+            "local_time": local_t, 
+            "global_time": global_t,
+            "local_space": local_s, 
+            "global_space": global_s, 
+            "indent": self.current_depth,
+            "color": self.get_color(global_t), 
+            "weight": t_w, 
+            "time_explanation": time_exp,
+            "space_explanation": space_exp
         }
         
         if self.details and self.details[-1]["lineOfCode"] == line_text:
@@ -384,7 +391,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if t_w > self.max_complexity:
                 self.max_complexity = t_w
                 if t_w < 998: self.max_poly, self.max_log, self.max_sqrt, self.max_graph_ve = total_poly, total_log, total_sqrt, total_graph
-
+                
     def generic_visit(self, node):
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):

@@ -20,7 +20,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         // Replace 8000 with whatever port your Python backend is running on locally
-        target: 'http://localhost:8000', 
+        target: 'http://localhost:8000',
         changeOrigin: true,
       }
     }

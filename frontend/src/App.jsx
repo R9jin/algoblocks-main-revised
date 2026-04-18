@@ -20,17 +20,17 @@ function App() {
   useEffect(() => {
     // Start syncing data
     startBackgroundSync();
-    
+
     // Silently boot up Pyodide in the background immediately
     sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
-    
+
   }, []);
 
   return (
     <>
       {/* 2. Place the indicator outside the Routes */}
-      <OfflineIndicator /> 
-      
+      <OfflineIndicator />
+
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/signin" element={<SignIn />} />

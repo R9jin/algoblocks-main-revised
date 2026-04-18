@@ -74,7 +74,12 @@ export default function MainApp() {
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("local");
   const [expandedLines, setExpandedLines] = useState({});
-  const toggleLine = (index) => setExpandedLines(prev => ({ ...prev, [index]: !prev[index] }));
+  const toggleLine = (index) => {
+    setExpandedLines((prev) => ({
+      ...prev,
+      [index]: !prev[index], // This toggles the specific line index
+    }));
+  };
 
   const [panelHeight, setPanelHeight] = useState(450);
   const isDragging = useRef(false);
@@ -366,10 +371,10 @@ export default function MainApp() {
         await syncQueueDB.removeItem(item._id);
       } else {
         // Provide deletion task
-        await syncQueueDB.setItem(`delete_${item._id}`, { 
-          type: item.saveType.toUpperCase(), 
-          action: 'DELETE', 
-          data: { _id: item._id } 
+        await syncQueueDB.setItem(`delete_${item._id}`, {
+          type: item.saveType.toUpperCase(),
+          action: 'DELETE',
+          data: { _id: item._id }
         });
       }
 
@@ -403,7 +408,7 @@ export default function MainApp() {
     // Infinite Loop Safety Timeout
     runTimeoutRef.current = setTimeout(() => {
       workerRef.current.terminate(); // Kill crashed engine
-      
+
       // Recover with a new local engine so the app doesn't break
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
       workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
@@ -613,31 +618,39 @@ export default function MainApp() {
                       <table className="complexity-table">
                         <thead><tr><th>Line of Code</th><th>Operation</th><th>{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th><th>{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th></tr></thead>
                         <tbody>
-                          {analysisResult.lines.map((row, i) => {
-                            const explanationText = activeTab === 'local' ? row.local_explanation : row.global_explanation;
-                            const graphComplexity = activeTab === 'local' ? row.local_time : row.global_time;
-                            const graphLabel = activeTab === 'local' ? 'Local Complexity' : 'Global Complexity';
-                            return (
-                              <React.Fragment key={i}>
-                                <tr className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`} onClick={() => toggleLine(i)} style={{ cursor: explanationText ? 'pointer' : 'default' }}>
-                                  <td className="code-cell" style={{ color: row.color || 'white', paddingLeft: `${((row.indent || 0) * 15) + 20}px` }}>{row.lineOfCode}</td>
-                                  <td className="operation-cell">{row.operation || '-'}</td>
-                                  <td className="complexity-cell" style={{ fontWeight: activeTab === 'global' ? 'bold' : 'normal' }}>{formatComplexity(activeTab === 'local' ? row.local_time : row.global_time)}</td>
-                                  <td className="complexity-cell" style={{ fontWeight: activeTab === 'global' ? 'bold' : 'normal' }}>{formatComplexity(activeTab === 'local' ? row.local_space : row.global_space)}{explanationText && <span className="dropdown-chevron">{expandedLines[i] ? '▼' : '▶'}</span>}</td>
+                          {analysisResult.lines.map((line, i) => (
+                            <React.Fragment key={i}>
+                              {/* Main Data Row */}
+                              <tr
+                                className={`complexity-row ${expandedLines[i] ? 'active' : ''}`}
+                                onClick={() => toggleLine(i)}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                <td className="code-cell"><code>{line.code}</code></td>
+                                <td>{line.operation || '-'}</td>
+                                <td>{activeTab === 'local' ? line.local_time : line.global_time}</td>
+                                <td>{activeTab === 'local' ? line.local_space : line.global_space}</td>
+                                <td className="chevron-cell">
+                                  {/* Visual indicator for the dropdown */}
+                                  <span>{expandedLines[i] ? '▼' : '▶'}</span>
+                                </td>
+                              </tr>
+
+                              {/* Expansion/Dropdown Row */}
+                              {expandedLines[i] && (
+                                <tr className="explanation-row">
+                                  <td colSpan="5">
+                                    <div className="explanation-content">
+                                      <h4>Explanation:</h4>
+                                      <p>{activeTab === 'local' ? line.local_explanation : line.global_explanation}</p>
+                                      {/* If you want the graph back too: */}
+                                      <ComplexityGraph data={activeTab === 'local' ? line.local_time : line.global_time} />
+                                    </div>
+                                  </td>
                                 </tr>
-                                {expandedLines[i] && explanationText && (
-                                  <tr className="explanation-row">
-                                    <td colSpan="4">
-                                      <div className="explanation-content">
-                                        <div className="explanation-text"><img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" /><p>{explanationText}</p></div>
-                                        <div className="explanation-graph"><ComplexityGraph complexity={graphComplexity} color={row.color} label={graphLabel} /></div>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            )
-                          })}
+                              )}
+                            </React.Fragment>
+                          ))}
                         </tbody>
                       </table>
                     </div>
