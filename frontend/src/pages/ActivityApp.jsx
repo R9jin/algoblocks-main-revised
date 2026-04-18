@@ -308,9 +308,23 @@ const getComplexityColor = (complexity) => {
   return "#95a5a6"; // Gray
 };
 
+// Helper function to rank computational weight for bottlenecks
+const getComplexityWeight = (complexity) => {
+  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+  if (comp.includes("o(1)")) return 1;
+  if (comp.includes("logn") && !comp.includes("nlog")) return 2;
+  if (comp.includes("o(n)") && !comp.includes("log")) return 3;
+  if (comp.includes("nlogn")) return 4;
+  if (comp.includes("n^2") || comp.includes("n²")) return 5;
+  if (comp.includes("n^3") || comp.includes("n³")) return 6;
+  if (comp.includes("2^n") || comp.includes("2ⁿ")) return 7;
+  if (comp.includes("n!")) return 8;
+  return 0; 
+};
+
 const ActivityApp = () => {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "";
-  
+
   // =========================================================
   // 1. ROUTING + REFS
   // =========================================================
@@ -403,16 +417,18 @@ const ActivityApp = () => {
         clearTimeout(runTimeoutRef.current);
         clearInterval(renderIntervalRef.current); // Stop buffer loop
 
-        // Flush remaining buffer to screen
-        setConsoleOutput(prev => prev + pendingOutputRef.current + data + "\n> Program finished.");
-        pendingOutputRef.current = ""; // Reset buffer
+        // Cache exactly what is in the buffer BEFORE React batches the update!
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = ""; // Reset buffer securely
+
+        const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
+        setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
+
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
         outputCountRef.current += 1;
-
-        // Push to buffer INSTEAD of updating React state immediately
         pendingOutputRef.current += data;
 
         // 🚨 FLOOD GATE: Raised to 5000 to prevent false positives
@@ -425,8 +441,10 @@ const ActivityApp = () => {
           workerRef.current.postMessage({ type: 'INIT_ENGINE' });
           initWorker();
 
-          setConsoleOutput(prev => prev + pendingOutputRef.current + "\n\n❌ Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          const flushed = pendingOutputRef.current;
           pendingOutputRef.current = "";
+
+          setConsoleOutput(prev => prev + flushed + "\n\n❌ Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
           setIsEvaluating(false);
           setIsWaitingForInput(false);
           outputCountRef.current = 0;
@@ -438,16 +456,20 @@ const ActivityApp = () => {
         clearInterval(renderIntervalRef.current); // Pause rendering
 
         // Flush buffer + prompt to screen
-        setConsoleOutput(prev => prev + pendingOutputRef.current + data.prompt);
+        const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
+
+        setConsoleOutput(prev => prev + flushed + data.prompt);
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
         clearTimeout(runTimeoutRef.current);
         clearInterval(renderIntervalRef.current);
 
-        setConsoleOutput(prev => prev + pendingOutputRef.current + "\nRuntime Error: " + data);
+        const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
+
+        setConsoleOutput(prev => prev + flushed + "\nRuntime Error: " + data);
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -590,7 +612,6 @@ const ActivityApp = () => {
     try {
       let json = null;
 
-      // 1. Fetch the JSON data
       if (dataFromState && dataFromState.blocks) {
         json = dataFromState;
       } else if (path) {
@@ -605,11 +626,9 @@ const ActivityApp = () => {
 
       if (!json) return;
 
-      // 2. Safe Polling: Wait for Blockly to finish mounting before loading
       const tryLoad = (retries = 15) => {
         if (!workspaceRef.current) {
           if (retries > 0) {
-            // Workspace not ready yet, wait 100ms and try again
             setTimeout(() => tryLoad(retries - 1), 100);
           } else {
             console.error("❌ Workspace took too long to initialize.");
@@ -617,7 +636,6 @@ const ActivityApp = () => {
           return;
         }
 
-        // 3. Workspace is ready! Load the blocks.
         try {
           if (workspaceRef.current.clear) workspaceRef.current.clear();
           const payload = json.data ? json.data : json;
@@ -667,11 +685,17 @@ const ActivityApp = () => {
   };
 
   const handleActivityRun = () => {
+    if (isEvaluating) return; // Prevent concurrent evaluation triggers 
+
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
       return;
     }
+
+    // Explicitly wipe existing intervals in case user spammed Run Code
+    clearTimeout(runTimeoutRef.current);
+    clearInterval(renderIntervalRef.current);
 
     setIsEvaluating(true);
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
@@ -682,35 +706,40 @@ const ActivityApp = () => {
 
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
-        setConsoleOutput(prev => prev + pendingOutputRef.current);
+        // Securely capture and clear before rendering to prevent dropped letters
+        const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
+        setConsoleOutput(prev => prev + flushed);
       }
     }, 100);
 
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
-    // Infinite Loop Safety Timeout
+    // Infinite Loop Safety Timeout (Extended to 10s to allow AST parsing to clear out of worker queue first)
     runTimeoutRef.current = setTimeout(() => {
       workerRef.current.terminate();
       clearInterval(renderIntervalRef.current);
 
       // Recover with a new local engine so the app doesn't break
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-      workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
-      initWorker(); // Reattach listeners
+      workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+      initWorker();
 
-      setConsoleOutput(prev => prev + pendingOutputRef.current + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+      const flushed = pendingOutputRef.current;
       pendingOutputRef.current = "";
+
+      setConsoleOutput(prev => prev + flushed + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+
       setIsEvaluating(false);
       setIsWaitingForInput(false);
-    }, 3000);
+    }, 10000);
   };
 
   const handleSendInput = (e) => {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
-      
+
       outputCountRef.current = 0;
       setUserInput("");
       setIsWaitingForInput(false);
@@ -718,26 +747,29 @@ const ActivityApp = () => {
       // ⏱️ RESUME FLUSHER
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
-          setConsoleOutput(prev => prev + pendingOutputRef.current);
+          const flushed = pendingOutputRef.current;
           pendingOutputRef.current = "";
+          setConsoleOutput(prev => prev + flushed);
         }
       }, 100);
 
-      // Resume infinite loop timeout after input is provided
+      // Resume infinite loop timeout after input is provided (Extended to 10s)
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
         clearInterval(renderIntervalRef.current);
 
         // Recover with a new local engine
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
-        initWorker(); // Reattach listeners
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+        initWorker();
 
-        setConsoleOutput(prev => prev + pendingOutputRef.current + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
+
+        setConsoleOutput(prev => prev + flushed + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
-      }, 3000);
+      }, 10000);
     }
   };
 
@@ -749,6 +781,8 @@ const ActivityApp = () => {
   };
 
   const runTestCases = async () => {
+    if (isEvaluating) return;
+
     const testCases = currentTask?.testCasesList || activityData?.testCasesList;
 
     if (!testCases) return;
@@ -857,14 +891,14 @@ const ActivityApp = () => {
 
       const timeout = setTimeout(() => {
         workerRef.current.terminate();
-        
+
         // Recover with a new local engine 
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
         initWorker(); // Restore standard component listener
-        
-        reject(new Error("Infinite Loop detected. Execution timed out after 3 seconds."));
-      }, 3000);
+
+        reject(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
+      }, 10000); // Increased to 10s
 
       // Temporarily override the main worker listener for the duration of this specific execution
       workerRef.current.onmessage = (event) => {
@@ -873,7 +907,7 @@ const ActivityApp = () => {
           outputAccumulator += data;
         } else if (type === 'RUN_RESULT') {
           clearTimeout(timeout);
-          outputAccumulator += data;
+          outputAccumulator += (data !== undefined && data !== null) ? data : "";
           initWorker(); // Release control back to standard component listener
           resolve(outputAccumulator);
         } else if (type === 'ERROR') {
@@ -886,6 +920,25 @@ const ActivityApp = () => {
       workerRef.current.postMessage({ type: 'RUN_CODE', code: codeToRun });
     });
   };
+
+  // --- Identify Bottlenecks ---
+  const lines = analysisResult?.lines || [];
+  let maxWeight = 0;
+  let bottleneckIndices = [];
+
+  lines.forEach((line, index) => {
+    // Bottlenecks are determined by their Global Time impact
+    const weight = getComplexityWeight(line.global_time);
+    if (weight > maxWeight) {
+      maxWeight = weight;
+      bottleneckIndices = [index];
+    } else if (weight === maxWeight && weight > 0) {
+      bottleneckIndices.push(index);
+    }
+  });
+
+  // Only flag lines as bottlenecks if they are worse than O(1)
+  const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
 
   return (
     <div className="activity-app-container">
@@ -913,13 +966,13 @@ const ActivityApp = () => {
           <button
             className="activity-action-btn"
             onClick={handleActivityRun}
-            style={{ backgroundColor: '#2D234A', border: '1px solid #6C5CE7', color: '#EBE4FF' }}
+            style={{ backgroundColor: '#2D234A', border: '1px solid #6C5CE7', color: '#EBE4FF', opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }}
             title="Run code in console without submitting to test cases"
           >
-            ▷ Run Code
+            {isEvaluating ? "..." : "▷ Run Code"}
           </button>
-          <button className="activity-action-btn run-btn" onClick={runTestCases}>
-            ▶ Run Tests
+          <button className="activity-action-btn run-btn" onClick={runTestCases} style={{ opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }}>
+            {isEvaluating ? "..." : "▶ Run Tests"}
           </button>
         </div>
       </header>
@@ -1125,22 +1178,45 @@ const ActivityApp = () => {
                             const timeColor = getComplexityColor(timeComplexity);
                             const spaceColor = getComplexityColor(spaceComplexity);
 
+                            // CHECK IF CURRENT LINE IS THE BOTTLENECK
+                            const isBottleneck = actualBottleneckIndices.includes(i);
+
                             return (
                               <React.Fragment key={i}>
                                 <tr
-                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`}
+                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
                                   onClick={() => toggleLine(i)}
                                   style={{
                                     cursor: 'pointer',
-                                    borderLeft: expandedLines[i] ? `3px solid ${timeColor}` : 'none'
+                                    borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                    backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
                                   }}
                                   title="Click to view explanation"
                                 >
                                   <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
                                   </td>
-                                  <td className="operation-cell" style={{ color: '#000000' }}>
+                                  <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {line.operation || '-'}
+
+                                    {/* RENDER HIGHLY VISIBLE BOTTLENECK BADGE */}
+                                    {isBottleneck && (
+                                      <span style={{
+                                        backgroundColor: '#ff375f',
+                                        color: 'white',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 'bold',
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                        marginLeft: '10px',
+                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)',
+                                        animation: 'pulse 1.5s infinite'
+                                      }} title="Highest computational weight detected">
+                                        Bottleneck
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
                                     {formatComplexity(timeComplexity)}

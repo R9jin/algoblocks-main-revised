@@ -739,7 +739,6 @@ export default function MainApp() {
                       </div>
                     </div>
                     <div className="complexity-table-wrapper">
-                      
                       <table className="complexity-table">
                         <thead>
                           <tr>
@@ -778,8 +777,8 @@ export default function MainApp() {
                                   onClick={() => toggleLine(i)}
                                   style={{
                                     cursor: 'pointer',
-                                    borderLeft: expandedLines[i] ? `3px solid ${timeColor}` : 'none',
-                                    backgroundColor: isBottleneck ? 'rgba(231, 76, 60, 0.05)' : 'transparent' // Subtle red tint for bottlenecks
+                                    borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                    backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
                                   }}
                                   title="Click to view explanation"
                                 >
@@ -789,10 +788,22 @@ export default function MainApp() {
                                   <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {line.operation || '-'}
 
-                                    {/* RENDER BOTTLENECK BADGE */}
-                                    {isBottleneck && activeTab === 'global' && (
-                                      <span className="bottleneck-badge" title="Highest computational weight detected">
-                                        🔥 Bottleneck
+                                    {/* RENDER HIGHLY VISIBLE BOTTLENECK BADGE */}
+                                    {isBottleneck && (
+                                      <span style={{
+                                        backgroundColor: '#ff375f',
+                                        color: 'white',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 'bold',
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                        marginLeft: '10px',
+                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)',
+                                        animation: 'pulse 1.5s infinite'
+                                      }} title="Highest computational weight detected">
+                                        Bottleneck
                                       </span>
                                     )}
                                   </td>
