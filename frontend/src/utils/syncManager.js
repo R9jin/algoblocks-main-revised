@@ -1,7 +1,7 @@
 // frontend/src/utils/syncManager.js
 import { projectsDB, syncQueueDB, templatesDB } from "../db";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 /**
  * Pushes pending changes from IndexedDB to MongoDB silently.
