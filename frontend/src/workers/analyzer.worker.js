@@ -1,29 +1,27 @@
 // frontend/src/workers/analyzer.worker.js
-let pyodide = null;
 
 async function initPyodide() {
   if (pyodide) return;
 
-  // By prepending the full website origin (e.g., http://localhost:5173), 
-  // Vite treats this as an external web request and completely ignores it,
-  // allowing the browser to naturally fetch the file from the public folder!
   const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
   const module = await import(/* @vite-ignore */ pyodideUrl);
   const loadPyodide = module.loadPyodide;
 
   pyodide = await loadPyodide();
 
-  // 1. Fetch Python files from the public folder
-  const [analyzerCode, astCode] = await Promise.all([
+  // 1. Fetch Python files from the public folder (NOW INCLUDES semantic_nlg.py)
+  const [analyzerCode, astCode, nlgCode] = await Promise.all([
     fetch("/python_engine/analyzer.py").then(res => res.text()),
-    fetch("/python_engine/blockly_ast.py").then(res => res.text())
+    fetch("/python_engine/blockly_ast.py").then(res => res.text()),
+    fetch("/python_engine/semantic_nlg.py").then(res => res.text()) // <-- NEW
   ]);
 
   // 2. Write to Pyodide's virtual filesystem
   pyodide.FS.writeFile("analyzer.py", analyzerCode);
   pyodide.FS.writeFile("blockly_ast.py", astCode);
+  pyodide.FS.writeFile("semantic_nlg.py", nlgCode); // <-- NEW
 
-  // 3. Inject a Python wrapper that mimics your old FastAPI index.py formatting
+  // 3. Inject a Python wrapper 
   await pyodide.runPythonAsync(`
 import sys
 import json
@@ -46,7 +44,6 @@ def do_analyze(code):
         
         anal.visit(tree)
         
-        # Helper to map raw outputs to asymptotic Big O notation
         def to_asymp(comp):
             if not comp: return "-"
             if "n * T(n-1)" in comp: return "O(n!)"
@@ -69,8 +66,8 @@ def do_analyze(code):
                 "indent": line.get("indent", 0),
                 "color": line.get("color"),
                 "weight": line.get("weight", 0),
-                "local_explanation": line.get("local_explanation", ""),
-                "global_explanation": line.get("global_explanation", "")
+                "time_explanation": line.get("time_explanation", ""),
+                "space_explanation": line.get("space_explanation", "")
             })
 
         return json.dumps({
@@ -81,16 +78,9 @@ def do_analyze(code):
             "is_recursive": any("T(n)" in str(l.get("global_time", "")) for l in anal.details)
         })
     except SyntaxError as e:
-        return json.dumps({
-            "status": "error",
-            "line": e.lineno,
-            "message": e.msg
-        })
+        return json.dumps({"status": "error", "line": e.lineno, "message": e.msg})
     except Exception as e:
-        return json.dumps({
-            "status": "error",
-            "message": str(e)
-        })
+        return json.dumps({"status": "error", "message": str(e)})
   `);
 }
 
@@ -124,8 +114,8 @@ self.onmessage = async (e) => {
     // --- MODE 2: RUN THE CODE (CONSOLE OUTPUT) ---
     else if (type === 'RUN_CODE') {
       // Intercept standard output (print statements) and send to MainApp console
-      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\\n" }) });
-      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\\n" }) });
+      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
+      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
 
       // Provide a mock input() function just like your old fallback API did
       pyodide.globals.set("custom_input", (prompt) => {

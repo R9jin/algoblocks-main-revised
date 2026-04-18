@@ -2,6 +2,7 @@
 import ast
 import re
 from collections import deque
+from semantic_nlg import SemanticNLGEngine  # <-- NEW IMPORT
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     """
@@ -59,7 +60,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'max': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan across every element to identify the largest value'},
             'len': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'accesses a pre-stored attribute of the object, requiring no iteration'}
         }
-        self.aliases = {} 
+        self.aliases = {}
+        
+        # Initialize the Dynamic NLG Component
+        self.nlg_engine = SemanticNLGEngine(self)
 
     # --- PASS 1: CALL GRAPH & BFS ---
     def bfs_first_pass(self, tree):
