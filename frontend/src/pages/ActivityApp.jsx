@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import "../styles/ActivityApp.css";
-
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from '../components/ComplexityGraph.jsx';
 import ConfirmModal from "../components/ConfirmModal.jsx";
+import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
 // 1. Import the shared eager-loaded worker
@@ -297,9 +296,20 @@ const renderFormattedTask = (text) => {
   return <div dangerouslySetInnerHTML={{ __html: formattedHtml }} />;
 };
 
+// Helper function to color-code Big O notation
+const getComplexityColor = (complexity) => {
+  const comp = String(complexity || "").toLowerCase();
+  if (comp.includes("o(1)")) return "#2ecc71"; // Green
+  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
+  if (comp.includes("n log n")) return "#e67e22"; // Orange
+  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
+  return "#95a5a6"; // Gray
+};
+
 const ActivityApp = () => {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "";
-  const RENDER_URL = import.meta.env.VITE_RENDER_URL || "";
   
   // =========================================================
   // 1. ROUTING + REFS
@@ -310,9 +320,12 @@ const ActivityApp = () => {
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
 
-  // Web Worker Refs
+  // Web Worker & Output Buffering Refs
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
+  const outputCountRef = useRef(0);
+  const pendingOutputRef = useRef("");
+  const renderIntervalRef = useRef(null);
 
   const isDragging = useRef(false);
   const hasLoadedRef = useRef(false);
@@ -322,24 +335,14 @@ const ActivityApp = () => {
   // 2. DERIVED DATA
   // =========================================================
   const activityData = location.state?.activityData || null;
-
-  const initialTemplate =
-    location.state?.templatePath ||
-    location.state?.activityData?.templatePath ||
-    "";
-
-  const currentTask = ACTIVITY_TASKS.find(
-    (t) => t.templatePath === initialTemplate
-  );
-
+  const initialTemplate = location.state?.templatePath || location.state?.activityData?.templatePath || "";
+  const currentTask = ACTIVITY_TASKS.find((t) => t.templatePath === initialTemplate);
   const totalTests = activityData?.testCasesList?.length || 0;
 
   // =========================================================
   // 3. UI STATE
   // =========================================================
-  const [generatedPython, setGeneratedPython] = useState(
-    "# Drag blocks to generate Python code"
-  );
+  const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("");
   const [viewMode, setViewMode] = useState("workspace");
   const [passedTests, setPassedTests] = useState(0);
@@ -398,22 +401,53 @@ const ActivityApp = () => {
       }
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
-        setConsoleOutput(prev => prev + data + "\n> Program finished.");
+        clearInterval(renderIntervalRef.current); // Stop buffer loop
+
+        // Flush remaining buffer to screen
+        setConsoleOutput(prev => prev + pendingOutputRef.current + data + "\n> Program finished.");
+        pendingOutputRef.current = ""; // Reset buffer
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
-        clearTimeout(runTimeoutRef.current);
-        setConsoleOutput(prev => prev + data);
+        outputCountRef.current += 1;
+
+        // Push to buffer INSTEAD of updating React state immediately
+        pendingOutputRef.current += data;
+
+        // 🚨 FLOOD GATE: Raised to 5000 to prevent false positives
+        if (outputCountRef.current > 5000) {
+          clearTimeout(runTimeoutRef.current);
+          clearInterval(renderIntervalRef.current);
+          workerRef.current.terminate();
+
+          workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+          workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+          initWorker();
+
+          setConsoleOutput(prev => prev + pendingOutputRef.current + "\n\n❌ Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          pendingOutputRef.current = "";
+          setIsEvaluating(false);
+          setIsWaitingForInput(false);
+          outputCountRef.current = 0;
+          return;
+        }
       }
       else if (type === 'INPUT_REQUEST') {
         clearTimeout(runTimeoutRef.current);
-        setConsoleOutput(prev => prev + data.prompt);
+        clearInterval(renderIntervalRef.current); // Pause rendering
+
+        // Flush buffer + prompt to screen
+        setConsoleOutput(prev => prev + pendingOutputRef.current + data.prompt);
+        pendingOutputRef.current = "";
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
         clearTimeout(runTimeoutRef.current);
-        setConsoleOutput(prev => prev + "\nRuntime Error: " + data);
+        clearInterval(renderIntervalRef.current);
+
+        setConsoleOutput(prev => prev + pendingOutputRef.current + "\nRuntime Error: " + data);
+        pendingOutputRef.current = "";
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -426,8 +460,8 @@ const ActivityApp = () => {
     initWorker();
 
     return () => {
-      // DO NOT terminate the worker here, keep it alive for the rest of the app
       clearTimeout(runTimeoutRef.current);
+      clearInterval(renderIntervalRef.current);
     };
   }, []);
 
@@ -468,21 +502,14 @@ const ActivityApp = () => {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
-
-      const newHeight =
-        window.innerHeight - e.clientY - 48;
-
-      if (
-        newHeight >= 150 &&
-        newHeight <= window.innerHeight - 150
-      ) {
+      const newHeight = window.innerHeight - e.clientY - 48;
+      if (newHeight >= 150 && newHeight <= window.innerHeight - 150) {
         setPanelHeight(newHeight);
       }
     };
 
     const handleMouseUp = () => {
       if (!isDragging.current) return;
-
       isDragging.current = false;
       document.body.style.cursor = "default";
       document.body.style.userSelect = "auto";
@@ -500,11 +527,9 @@ const ActivityApp = () => {
   // analysis effect (Offline Worker Version)
   useEffect(() => {
     if (!isEditingCode || !workerRef.current) return;
-
     const timeoutId = setTimeout(() => {
       workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
     }, 500);
-
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode]);
 
@@ -513,7 +538,6 @@ const ActivityApp = () => {
     if (hasLoadedRef.current) return;
 
     hasLoadedRef.current = true;
-
     const timer = setTimeout(() => {
       loadActivityTemplate(initialTemplate, activityData);
     }, 300);
@@ -596,8 +620,6 @@ const ActivityApp = () => {
         // 3. Workspace is ready! Load the blocks.
         try {
           if (workspaceRef.current.clear) workspaceRef.current.clear();
-
-          // Ensure we pass the correct root object
           const payload = json.data ? json.data : json;
           workspaceRef.current.loadTemplate(payload);
 
@@ -608,7 +630,7 @@ const ActivityApp = () => {
         }
       };
 
-      tryLoad(); // Start the loading loop
+      tryLoad();
 
     } catch (error) {
       console.error("Failed to load template:", error);
@@ -629,7 +651,6 @@ const ActivityApp = () => {
     if (workspaceRef.current && generatedPython) {
       try {
         await workspaceRef.current.loadFromPython(generatedPython);
-
         setIsEditingCode(false);
         setViewMode("workspace");
       } catch (e) {
@@ -656,18 +677,30 @@ const ActivityApp = () => {
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
 
+    outputCountRef.current = 0;
+    pendingOutputRef.current = "";
+
+    renderIntervalRef.current = setInterval(() => {
+      if (pendingOutputRef.current) {
+        setConsoleOutput(prev => prev + pendingOutputRef.current);
+        pendingOutputRef.current = "";
+      }
+    }, 100);
+
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
     // Infinite Loop Safety Timeout
     runTimeoutRef.current = setTimeout(() => {
       workerRef.current.terminate();
+      clearInterval(renderIntervalRef.current);
 
       // Recover with a new local engine so the app doesn't break
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
       workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
       initWorker(); // Reattach listeners
 
-      setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+      setConsoleOutput(prev => prev + pendingOutputRef.current + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+      pendingOutputRef.current = "";
       setIsEvaluating(false);
       setIsWaitingForInput(false);
     }, 3000);
@@ -677,19 +710,31 @@ const ActivityApp = () => {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
+      
+      outputCountRef.current = 0;
       setUserInput("");
       setIsWaitingForInput(false);
+
+      // ⏱️ RESUME FLUSHER
+      renderIntervalRef.current = setInterval(() => {
+        if (pendingOutputRef.current) {
+          setConsoleOutput(prev => prev + pendingOutputRef.current);
+          pendingOutputRef.current = "";
+        }
+      }, 100);
 
       // Resume infinite loop timeout after input is provided
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
+        clearInterval(renderIntervalRef.current);
 
         // Recover with a new local engine
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
         initWorker(); // Reattach listeners
 
-        setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        setConsoleOutput(prev => prev + pendingOutputRef.current + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        pendingOutputRef.current = "";
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }, 3000);
@@ -704,9 +749,7 @@ const ActivityApp = () => {
   };
 
   const runTestCases = async () => {
-    const testCases =
-      currentTask?.testCasesList ||
-      activityData?.testCasesList;
+    const testCases = currentTask?.testCasesList || activityData?.testCasesList;
 
     if (!testCases) return;
 
@@ -722,8 +765,7 @@ const ActivityApp = () => {
     setBottomPanel("console");
 
     try {
-      const result = await executeTestOffline(generatedPython);
-      // Let the first run pass implicitly if no error is thrown
+      await executeTestOffline(generatedPython);
     } catch (failure) {
       setConsoleOutput(`Test Execution Prevented:\n\n${failure.error || failure.message}`);
       setBottomPanel("console");
@@ -740,20 +782,13 @@ const ActivityApp = () => {
     const total = testCases.length;
 
     let fullOutput = "> --- Running Test Cases ---\n";
-    let newExpanded = { ...expandedTests };
 
     for (let i = 0; i < total; i++) {
       const tc = testCases[i];
-
       let codeToRun = "";
-      const isFunctionCall =
-        tc.call?.includes("(") && tc.call?.includes(")");
-
-      const taskId =
-        currentTask?.id || activityData?.id || "";
-
-      const isIntroLevel =
-        taskId === "l1-t1" || taskId === "l1-t3";
+      const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
+      const taskId = currentTask?.id || activityData?.id || "";
+      const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
 
       if (isFunctionCall && !isIntroLevel) {
         codeToRun =
@@ -798,9 +833,7 @@ const ActivityApp = () => {
         setConsoleOutput(fullOutput);
         setPassedTests(passed);
 
-        const lessonId =
-          initialTemplate?.split("/").pop() || "unknown";
-
+        const lessonId = initialTemplate?.split("/").pop() || "unknown";
         saveLessonProgress(lessonId, passed);
 
         if (passed === total && total > 0) {
@@ -820,7 +853,6 @@ const ActivityApp = () => {
 
   const executeTestOffline = (codeToRun) => {
     return new Promise((resolve, reject) => {
-      // Safely borrow the shared worker to evaluate a single test case
       let outputAccumulator = "";
 
       const timeout = setTimeout(() => {
@@ -842,11 +874,11 @@ const ActivityApp = () => {
         } else if (type === 'RUN_RESULT') {
           clearTimeout(timeout);
           outputAccumulator += data;
-          initWorker(); // Release control back to standard component listener!
+          initWorker(); // Release control back to standard component listener
           resolve(outputAccumulator);
         } else if (type === 'ERROR') {
           clearTimeout(timeout);
-          initWorker(); // Release control back to standard component listener!
+          initWorker(); // Release control back to standard component listener
           reject(new Error(data));
         }
       };
@@ -857,7 +889,6 @@ const ActivityApp = () => {
 
   return (
     <div className="activity-app-container">
-
       <header className="activity-topbar">
         <div className="activity-back-btn" onClick={() => navigate('/learning-path')}>
           <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
@@ -899,7 +930,6 @@ const ActivityApp = () => {
         minSize={[isLeftPanelVisible ? 250 : 0, 400, 250]}
         gutterSize={8}
       >
-
         <aside className="activity-left-panel">
           <div className="activity-panel-header">
             <h2>
@@ -942,7 +972,6 @@ const ActivityApp = () => {
         </aside>
 
         <main className="workspace-main activity-center-panel">
-
           <button
             className={`sidebar-toggle-btn ${!isLeftPanelVisible ? 'closed' : ''}`}
             onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)}
@@ -951,10 +980,7 @@ const ActivityApp = () => {
             <span className="toggle-icon">{isLeftPanelVisible ? '❮' : '❯'}</span>
           </button>
 
-          {/* ADD THE EDITOR CONTAINER WRAPPER */}
           <div className="editor-container" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-
-            {/* ADD THIS MISSING WORKSPACE VIEW */}
             <div className={viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'}
               style={{ display: viewMode === 'workspace' ? 'block' : 'none', height: '100%' }}>
               <BlocklyWorkspace
@@ -965,7 +991,6 @@ const ActivityApp = () => {
               />
             </div>
 
-            {/* EXISTING PYTHON VIEW */}
             <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}
               style={{ display: viewMode === 'python' ? 'flex' : 'none', flexDirection: 'column', height: '100%', background: '#1C1236' }}>
 
@@ -1069,98 +1094,129 @@ const ActivityApp = () => {
                   </div>
                 ) : (
                   <div className="complexity-content">
-                    <div className="complexity-tabs" style={{ justifyContent: 'space-between', padding: '0 15px' }}>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                          onClick={() => { setActiveTab("local"); setExpandedLines({}); }}
-                          className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>
-                          Local Complexity
-                        </button>
-                        <button
-                          onClick={() => { setActiveTab("global"); setExpandedLines({}); }}
-                          className={`tab-btn ${activeTab === 'global' ? 'active' : ''}`}>
-                          Global Complexity
-                        </button>
+                    <div className="complexity-tabs">
+                      <div className="tab-btn-group">
+                        <button onClick={() => { setActiveTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>Local Complexity</button>
+                        <button onClick={() => { setActiveTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'global' ? 'active' : ''}`}>Global Complexity</button>
                       </div>
-                      <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                        <span className="total-badge">
-                          <span className="total-label">Total Time:</span>{" "}
-                          <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>
-                            {formatComplexity(analysisResult.total)}
-                          </span>
-                        </span>
-                        <span
-                          className="total-badge"
-                          style={{
-                            backgroundColor: 'rgba(0, 184, 163, 0.15)',
-                            color: '#00b8a3',
-                            border: '1px solid rgba(0, 184, 163, 0.3)'
-                          }}
-                        >
-                          <span className="total-label" style={{ color: '#00b8a3' }}>
-                            Total Space:
-                          </span>{" "}
-                          <span style={{ fontSize: "20px", fontWeight: "bold" }}>
-                            {formatComplexity(analysisResult.space_total)}
-                          </span>
-                        </span>
+                      <div className="total-badge-group">
+                        <span className="total-badge"><span className="total-label">Total Time:</span> <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>{formatComplexity(analysisResult.total)}</span></span>
+                        <span className="total-badge" style={{ backgroundColor: 'rgba(0, 184, 163, 0.15)', color: '#00b8a3', border: '1px solid rgba(0, 184, 163, 0.3)' }}><span className="total-label" style={{ color: '#00b8a3' }}>Total Space:</span> <span style={{ fontSize: "20px", fontWeight: "bold" }}>{formatComplexity(analysisResult.space_total)}</span></span>
                       </div>
                     </div>
-
-                    <div className="complexity-table-wrapper" style={{ overflowX: 'auto' }}>
-                      <table className="complexity-table" style={{ width: '100%', minWidth: '800px', textAlign: 'left' }}>
+                    <div className="complexity-table-wrapper">
+                      <table className="complexity-table">
                         <thead>
                           <tr>
                             <th>Line of Code</th>
                             <th>Operation</th>
-                            <th>{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
-                            <th>{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
+                            <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
+                            <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {analysisResult.lines.map((row, i) => {
-                            const explanationText = activeTab === 'local' ? row.local_explanation : row.global_explanation;
+                          {analysisResult.lines.map((line, i) => {
+                            const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
+                            const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
+
+                            const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
+                            const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
+
+                            const timeColor = getComplexityColor(timeComplexity);
+                            const spaceColor = getComplexityColor(spaceComplexity);
+
                             return (
                               <React.Fragment key={i}>
                                 <tr
                                   className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`}
                                   onClick={() => toggleLine(i)}
-                                  style={{ cursor: explanationText ? 'pointer' : 'default' }}
+                                  style={{
+                                    cursor: 'pointer',
+                                    borderLeft: expandedLines[i] ? `3px solid ${timeColor}` : 'none'
+                                  }}
                                   title="Click to view explanation"
                                 >
-                                  <td className="code-cell" style={{ color: row.color || 'white', paddingLeft: `${((row.indent || 0) * 15) + 20}px` }}>
-                                    {row.lineOfCode}
+                                  <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
+                                    {line.lineOfCode || line.code}
                                   </td>
-                                  <td style={{ color: '#000000' }}>{row.operation || '-'}</td>
-                                  <td className="complexity-cell" style={{ fontWeight: activeTab === 'global' ? 'bold' : 'normal' }}>
-                                    {formatComplexity(activeTab === 'local' ? row.local_time : row.global_time)}
+                                  <td className="operation-cell" style={{ color: '#000000' }}>
+                                    {line.operation || '-'}
                                   </td>
-                                  <td className="complexity-cell" style={{ fontWeight: activeTab === 'global' ? 'bold' : 'normal' }}>
-                                    {formatComplexity(activeTab === 'local' ? row.local_space : row.global_space)}
-                                    {explanationText && (
-                                      <span className="dropdown-chevron" style={{ marginLeft: '10px' }}>
-                                        {expandedLines[i] ? '▼' : '▶'}
-                                      </span>
-                                    )}
+                                  <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
+                                    {formatComplexity(timeComplexity)}
+                                  </td>
+                                  <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
+                                    {formatComplexity(spaceComplexity)}
+                                    <span
+                                      className="dropdown-chevron"
+                                      style={{
+                                        display: 'inline-block',
+                                        marginLeft: '10px',
+                                        transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s ease'
+                                      }}
+                                    >
+                                      ▶
+                                    </span>
                                   </td>
                                 </tr>
 
-                                {expandedLines[i] && explanationText && (
+                                {expandedLines[i] && (
                                   <tr className="explanation-row">
-                                    <td colSpan="4">
-                                      <div className="explanation-content">
-                                        <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon" />
-                                        <p>{explanationText}</p>
-                                        <ComplexityGraph
-                                          complexity={row.global_time}
-                                          color={row.color}
-                                        />
+                                    <td colSpan="4" style={{ padding: 0, border: 'none' }}>
+                                      <div
+                                        className="explanation-content"
+                                        style={{
+                                          borderLeftColor: timeColor,
+                                          display: 'flex',
+                                          gap: '20px',
+                                          padding: '16px',
+                                          background: 'rgba(255, 255, 255, 0.05)',
+                                          margin: '0 16px 12px 16px',
+                                          borderRadius: '8px',
+                                          animation: 'slideDown 0.3s ease forwards',
+                                        }}
+                                      >
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                            <div>
+                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                Time Complexity
+                                              </strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                                {timeExp}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                            <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                          </div>
+                                        </div>
+
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                            <div>
+                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                Space Complexity
+                                              </strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                                {spaceExp}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                            <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                          </div>
+                                        </div>
+
                                       </div>
                                     </td>
                                   </tr>
                                 )}
                               </React.Fragment>
-                            )
+                            );
                           })}
                         </tbody>
                       </table>
@@ -1186,9 +1242,8 @@ const ActivityApp = () => {
                 <img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity
               </button>
               <button
-                className="footer-tab"
+                className="footer-tab big-o-btn"
                 onClick={() => setIsBigOModalOpen(true)}
-                style={{ color: '#ffffff', fontWeight: 'bold' }}
               >
                 <img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference
               </button>
@@ -1211,7 +1266,6 @@ const ActivityApp = () => {
               </button>
             </div>
           </footer>
-
         </main>
 
         <aside className="activity-right-panel">
@@ -1223,9 +1277,9 @@ const ActivityApp = () => {
           <div className="activity-panel-content">
             {activityData.testCasesList?.map((tc, i) => {
               const testIdentifier = `Test ${i + 1}`;
-              const isPassing = consoleOutput.includes(`${testIdentifier} Passed`);
-              const isFailing = consoleOutput.includes(`${testIdentifier} Failed`);
-              const isError = consoleOutput.includes(`${testIdentifier} Error`);
+              const isPassing = consoleOutput.includes(`${testIdentifier}: PASSED`);
+              const isFailing = consoleOutput.includes(`${testIdentifier}: FAILED`);
+              const isError = consoleOutput.includes(`${testIdentifier}: ERROR`);
 
               const isExpanded = expandedTests[i];
               const statusClass = isPassing ? 'passing' : (isFailing || isError) ? 'failing' : '';
