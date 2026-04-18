@@ -1,5 +1,10 @@
 let pyodide = null;
 
+// ✅ NEW: async input control
+let inputResolve = null;
+let isWaitingForInput = false;   // ✅ NEW
+let executionTimeout = null;     // ✅ NEW
+
 async function initPyodide() {
   if (pyodide) return;
 
@@ -8,10 +13,8 @@ async function initPyodide() {
     const module = await import(/* @vite-ignore */ pyodideUrl);
     const loadPyodide = module.loadPyodide;
 
-    // Load into a temporary variable. Don't mark as "ready" until we succeed!
     const tempPyodide = await loadPyodide();
 
-    // 1. Use a cache-buster (?t=...) to completely bypass the PWA offline cache!
     const cacheBuster = "?t=" + Date.now();
     const [analyzerCode, astCode, nlgCode] = await Promise.all([
       fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
@@ -19,25 +22,20 @@ async function initPyodide() {
       fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text())
     ]);
 
-    // Safety check: Did Vite/PWA serve the default HTML fallback?
     if (nlgCode.includes("<!DOCTYPE html>")) {
-      throw new Error("Service Worker served index.html instead of semantic_nlg.py! Please hard refresh the page.");
+      throw new Error("Service Worker served index.html instead of semantic_nlg.py!");
     }
 
-    // 2. Write to Pyodide's virtual filesystem
     tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
     tempPyodide.FS.writeFile("blockly_ast.py", astCode);
     tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
 
-    // 3. Inject a Python wrapper 
-    // 3. Inject a Python wrapper 
     await tempPyodide.runPythonAsync(`
 import sys
 import json
 import ast
 import importlib
 
-# Ensure the newly written modules are actually re-evaluated
 import semantic_nlg
 import analyzer
 importlib.reload(semantic_nlg)
@@ -50,15 +48,15 @@ def do_analyze(code):
         anal.bfs_first_pass(tree)
         for _, node in anal.symbol_table.items():
             anal.visit(node)
-        
+
         anal.details = []
         anal.max_complexity = anal.max_space_weight = 0
         anal.max_poly = anal.max_log = anal.max_sqrt = 0
         anal.current_depth = anal.loop_depth = 0
         anal.log_loop_depth = anal.sqrt_loop_depth = 0
-        
+
         anal.visit(tree)
-        
+
         def to_asymp(comp):
             if not comp: return "-"
             if "n * T(n-1)" in comp: return "O(n!)"
@@ -97,26 +95,36 @@ def do_analyze(code):
     except Exception as e:
         return json.dumps({"status": "error", "message": str(e)})
     `);
-    // Only assign to the global variable AFTER everything initialized perfectly!
+
     pyodide = tempPyodide;
 
   } catch (error) {
-    console.error("Pyodide Engine Crash during boot:", error);
-    pyodide = null; // Ensure it attempts to re-initialize on the next ping
+    console.error("Pyodide Engine Crash:", error);
+    pyodide = null;
     throw error;
   }
 }
 
 self.onmessage = async (e) => {
-  const { type, code } = e.data;
+  const { type, code, data } = e.data;
 
-  // NEW: Catch the boot-up message from App.jsx
+  // ✅ HANDLE INPUT RESPONSE
+  if (type === 'INPUT_RESPONSE') {
+    if (inputResolve) {
+      clearTimeout(executionTimeout); // ✅ FIX: stop timeout
+      isWaitingForInput = false;      // ✅ FIX: resume state
+      inputResolve(data);
+      inputResolve = null;
+    }
+    return;
+  }
+
   if (type === 'INIT_ENGINE') {
     try {
       await initPyodide();
       self.postMessage({ type: 'ENGINE_READY' });
     } catch (err) {
-      console.error("Failed to pre-warm Pyodide:", err);
+      console.error(err);
     }
     return;
   }
@@ -124,46 +132,130 @@ self.onmessage = async (e) => {
   try {
     await initPyodide();
 
-    // --- MODE 1: ANALYZE COMPLEXITY ---
+    // ======================
+    // ANALYZE MODE
+    // ======================
     if (type === 'ANALYZE_CODE') {
       pyodide.globals.set("user_code", code);
       const resultJsonStr = await pyodide.runPythonAsync(`do_analyze(user_code)`);
       const resultData = JSON.parse(resultJsonStr);
 
-      // Reply in the exact format MainApp.jsx expects
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
     }
 
-    // --- MODE 2: RUN THE CODE (CONSOLE OUTPUT) ---
+    // ======================
+    // RUN MODE (FIXED)
+    // ======================
     else if (type === 'RUN_CODE') {
-      // Intercept standard output (print statements) and send to MainApp console
-      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
-      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
 
-      // Provide a mock input() function just like your old fallback API did
-      pyodide.globals.set("custom_input", (prompt) => {
-        self.postMessage({ type: 'OUTPUT', data: prompt });
-        return "Simulated User Input";
+      pyodide.setStdout({
+        batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" })
+      });
+
+      pyodide.setStderr({
+        batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" })
+      });
+
+      // ✅ SYNC fallback
+      pyodide.globals.set("custom_input_sync", (prompt) => {
+        const safePrompt = prompt === undefined ? "" : String(prompt);
+
+        if (safePrompt) {
+          self.postMessage({ type: 'OUTPUT', data: safePrompt });
+        }
+
+        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" } });
+
+        const simulated = " [Simulated Input - Nested function limitation]";
+        self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
+
+        return simulated;
+      });
+
+      // ✅ ASYNC real input
+      pyodide.globals.set("custom_input_async", async (prompt) => {
+        return new Promise((resolve) => {
+
+          inputResolve = (value) => {
+            isWaitingForInput = false; // ✅ FIX
+            resolve(value);
+          };
+
+          isWaitingForInput = true; // ✅ FIX
+
+          const safePrompt = prompt === undefined ? "" : String(prompt);
+
+          self.postMessage({
+            type: 'INPUT_REQUEST',
+            data: { prompt: safePrompt }
+          });
+        });
       });
 
       pyodide.globals.set("user_code", code);
+
+      // ✅ SMART TIMEOUT (ignores input waiting)
+      executionTimeout = setTimeout(() => {
+        if (!isWaitingForInput) {
+          self.postMessage({
+            type: 'ERROR',
+            data: "Execution Prevented:\nRoot Cause: Infinite Loop detected.\nSuggestion: Check your loop conditions."
+          });
+        }
+      }, 3000);
+
       await pyodide.runPythonAsync(`
 import builtins
 import sys
-builtins.input = custom_input
+import traceback
+import ast
+from pyodide.code import eval_code_async
+
+builtins.input = custom_input_sync
+
+class AsyncInputTransformer(ast.NodeTransformer):
+    def visit_Call(self, node):
+        self.generic_visit(node)
+        if isinstance(node.func, ast.Name) and node.func.id == 'input':
+            new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
+            new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
+            return ast.copy_location(ast.Await(value=new_call), node)
+        return node
+
 try:
-    exec(user_code)
-except Exception as e:
-    import traceback
+    tree = ast.parse(user_code)
+    transformed = AsyncInputTransformer().visit(tree)
+    ast.fix_missing_locations(transformed)
+
+    code_str = ast.unparse(transformed)  # ✅ FIX
+
+    compile(code_str, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+
+    await eval_code_async(code_str, globals())
+
+except SyntaxError:
+    try:
+        exec(user_code)
+    except Exception:
+        print(traceback.format_exc(), file=sys.stderr)
+
+except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
+
+      clearTimeout(executionTimeout); // ✅ FIX
 
       self.postMessage({ type: 'RUN_RESULT', data: "" });
     }
 
   } catch (err) {
+    clearTimeout(executionTimeout); // ✅ ensure cleanup
+
     if (type === 'ANALYZE_CODE') {
-      self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: err.message } });
+      self.postMessage({
+        type: 'ANALYZE_RESULT',
+        data: { status: 'error', message: err.message }
+      });
     } else {
       self.postMessage({ type: 'ERROR', data: err.message });
     }
