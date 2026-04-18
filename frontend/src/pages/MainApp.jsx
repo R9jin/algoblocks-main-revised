@@ -10,6 +10,9 @@ import { projectsDB, syncQueueDB, templatesDB } from '../db.js';
 import "../styles/MainApp.css";
 import { formatComplexity } from "../utils/formatters";
 
+// 1. Import the shared eager-loaded worker
+import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
+
 // --- Base System Templates ---
 const SIDEBAR_TEMPLATES = [
   { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element until the target is found.", category: "Search" },
@@ -71,7 +74,12 @@ export default function MainApp() {
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("local");
   const [expandedLines, setExpandedLines] = useState({});
-  const toggleLine = (index) => setExpandedLines(prev => ({ ...prev, [index]: !prev[index] }));
+  const toggleLine = (index) => {
+    setExpandedLines((prev) => ({
+      ...prev,
+      [index]: !prev[index], // This toggles the specific line index
+    }));
+  };
 
   const [panelHeight, setPanelHeight] = useState(450);
   const isDragging = useRef(false);
@@ -83,11 +91,21 @@ export default function MainApp() {
   };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
+  // Helper function to color-code Big O notation
+  const getComplexityColor = (complexity) => {
+    const comp = String(complexity || "").toLowerCase();
+    if (comp.includes("o(1)")) return "#2ecc71"; // Green
+    if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
+    if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
+    if (comp.includes("n log n")) return "#e67e22"; // Orange
+    if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
+    if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
+    return "#95a5a6"; // Gray
+  };
+
   // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
-    if (workerRef.current) workerRef.current.terminate();
-
-    workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+    if (!workerRef.current) return;
 
     workerRef.current.onmessage = (event) => {
       const { type, data } = event.data;
@@ -125,9 +143,12 @@ export default function MainApp() {
   };
 
   useEffect(() => {
+    // Mount the pre-warmed shared worker
+    workerRef.current = sharedAnalyzerWorker;
     initWorker();
+
     return () => {
-      if (workerRef.current) workerRef.current.terminate();
+      // DO NOT terminate the worker here, keep it alive for the rest of the app
       clearTimeout(runTimeoutRef.current);
     };
   }, []);
@@ -362,10 +383,10 @@ export default function MainApp() {
         await syncQueueDB.removeItem(item._id);
       } else {
         // Provide deletion task
-        await syncQueueDB.setItem(`delete_${item._id}`, { 
-          type: item.saveType.toUpperCase(), 
-          action: 'DELETE', 
-          data: { _id: item._id } 
+        await syncQueueDB.setItem(`delete_${item._id}`, {
+          type: item.saveType.toUpperCase(),
+          action: 'DELETE',
+          data: { _id: item._id }
         });
       }
 
@@ -398,11 +419,16 @@ export default function MainApp() {
 
     // Infinite Loop Safety Timeout
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current.terminate();
+      workerRef.current.terminate(); // Kill crashed engine
+
+      // Recover with a new local engine so the app doesn't break
+      workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+      workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
+      initWorker(); // Reattach listeners
+
       setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
       setIsEvaluating(false);
       setIsWaitingForInput(false);
-      initWorker(); // Re-initialize the worker for next run
     }, 3000);
   };
 
@@ -416,10 +442,15 @@ export default function MainApp() {
       // Resume infinite loop timeout after input is provided
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
+
+        // Recover with a new local engine
+        workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
+        initWorker(); // Reattach listeners
+
         setConsoleOutput(prev => prev + "\nExecution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
-        initWorker();
       }, 3000);
     }
   };
@@ -596,33 +627,145 @@ export default function MainApp() {
                       </div>
                     </div>
                     <div className="complexity-table-wrapper">
+                      {/* Helper function to color-code Big O notation (Place outside the component or at the top) */}
+                      {(() => {
+                        window.getComplexityColor = (complexity) => {
+                          const comp = String(complexity || "").toLowerCase();
+                          if (comp.includes("o(1)")) return "#2ecc71"; // Green
+                          if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
+                          if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
+                          if (comp.includes("n log n")) return "#e67e22"; // Orange
+                          if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
+                          if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
+                          return "#95a5a6"; // Gray
+                        };
+                        return null;
+                      })()}
+
                       <table className="complexity-table">
-                        <thead><tr><th>Line of Code</th><th>Operation</th><th>{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th><th>{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th></tr></thead>
+                        <thead>
+                          <tr>
+                            <th>Line of Code</th>
+                            <th>Operation</th>
+                            <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
+                            <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
+                          </tr>
+                        </thead>
                         <tbody>
-                          {analysisResult.lines.map((row, i) => {
-                            const explanationText = activeTab === 'local' ? row.local_explanation : row.global_explanation;
-                            const graphComplexity = activeTab === 'local' ? row.local_time : row.global_time;
-                            const graphLabel = activeTab === 'local' ? 'Local Complexity' : 'Global Complexity';
+                          {analysisResult.lines.map((line, i) => {
+                            // Extract complexities for graphs and colors
+                            const timeComplexity = activeTab === 'local'
+                              ? (line.local_time || "O(1)")
+                              : (line.global_time || "O(1)");
+
+                            const spaceComplexity = activeTab === 'local'
+                              ? (line.local_space || "O(1)")
+                              : (line.global_space || "O(1)");
+
+                            // Extract explanations from the Semantic NLG output
+                            const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
+                            const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
+
+                            const timeColor = getComplexityColor(timeComplexity);
+                            const spaceColor = getComplexityColor(spaceComplexity);
+
                             return (
                               <React.Fragment key={i}>
-                                <tr className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`} onClick={() => toggleLine(i)} style={{ cursor: explanationText ? 'pointer' : 'default' }}>
-                                  <td className="code-cell" style={{ color: row.color || 'white', paddingLeft: `${((row.indent || 0) * 15) + 20}px` }}>{row.lineOfCode}</td>
-                                  <td className="operation-cell">{row.operation || '-'}</td>
-                                  <td className="complexity-cell" style={{ fontWeight: activeTab === 'global' ? 'bold' : 'normal' }}>{formatComplexity(activeTab === 'local' ? row.local_time : row.global_time)}</td>
-                                  <td className="complexity-cell" style={{ fontWeight: activeTab === 'global' ? 'bold' : 'normal' }}>{formatComplexity(activeTab === 'local' ? row.local_space : row.global_space)}{explanationText && <span className="dropdown-chevron">{expandedLines[i] ? '▼' : '▶'}</span>}</td>
+                                {/* Main Clickable Row */}
+                                <tr
+                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''}`}
+                                  onClick={() => toggleLine(i)}
+                                  style={{
+                                    cursor: 'pointer',
+                                    borderLeft: expandedLines[i] ? `3px solid ${timeColor}` : 'none'
+                                  }}
+                                  title="Click to view explanation"
+                                >
+                                  <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
+                                    {line.lineOfCode || line.code}
+                                  </td>
+                                  <td className="operation-cell" style={{ color: '#000000' }}>
+                                    {line.operation || '-'}
+                                  </td>
+                                  <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
+                                    {formatComplexity(timeComplexity)}
+                                  </td>
+                                  <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
+                                    {formatComplexity(spaceComplexity)}
+                                    <span
+                                      className="dropdown-chevron"
+                                      style={{
+                                        display: 'inline-block',
+                                        marginLeft: '10px',
+                                        transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s ease'
+                                      }}
+                                    >
+                                      ▶
+                                    </span>
+                                  </td>
                                 </tr>
-                                {expandedLines[i] && explanationText && (
+
+                                {/* Explanation Dropdown Row */}
+                                {expandedLines[i] && (
                                   <tr className="explanation-row">
-                                    <td colSpan="4">
-                                      <div className="explanation-content">
-                                        <div className="explanation-text"><img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" /><p>{explanationText}</p></div>
-                                        <div className="explanation-graph"><ComplexityGraph complexity={graphComplexity} color={row.color} label={graphLabel} /></div>
+                                    <td colSpan="4" style={{ padding: 0, border: 'none' }}>
+                                      <div
+                                        className="explanation-content"
+                                        style={{
+                                          borderLeftColor: timeColor,
+                                          display: 'flex',
+                                          gap: '20px',
+                                          padding: '16px',
+                                          background: 'rgba(255, 255, 255, 0.05)',
+                                          margin: '0 16px 12px 16px',
+                                          borderRadius: '8px',
+                                          animation: 'slideDown 0.3s ease forwards',
+                                        }}
+                                      >
+
+                                        {/* Time Panel */}
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                            <div>
+                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                Time Complexity
+                                              </strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                                {timeExp}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                            <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                          </div>
+                                        </div>
+
+                                        {/* Space Panel */}
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                            <div>
+                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                Space Complexity
+                                              </strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                                {spaceExp}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                            <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                          </div>
+                                        </div>
+
                                       </div>
                                     </td>
                                   </tr>
                                 )}
                               </React.Fragment>
-                            )
+                            );
                           })}
                         </tbody>
                       </table>

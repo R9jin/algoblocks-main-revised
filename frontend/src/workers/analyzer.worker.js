@@ -1,34 +1,47 @@
-// frontend/src/workers/analyzer.worker.js
 let pyodide = null;
 
 async function initPyodide() {
   if (pyodide) return;
 
-  // By prepending the full website origin (e.g., http://localhost:5173), 
-  // Vite treats this as an external web request and completely ignores it,
-  // allowing the browser to naturally fetch the file from the public folder!
-  const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
-  const module = await import(/* @vite-ignore */ pyodideUrl);
-  const loadPyodide = module.loadPyodide;
+  try {
+    const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
+    const module = await import(/* @vite-ignore */ pyodideUrl);
+    const loadPyodide = module.loadPyodide;
 
-  pyodide = await loadPyodide();
+    // Load into a temporary variable. Don't mark as "ready" until we succeed!
+    const tempPyodide = await loadPyodide();
 
-  // 1. Fetch Python files from the public folder
-  const [analyzerCode, astCode] = await Promise.all([
-    fetch("/python_engine/analyzer.py").then(res => res.text()),
-    fetch("/python_engine/blockly_ast.py").then(res => res.text())
-  ]);
+    // 1. Use a cache-buster (?t=...) to completely bypass the PWA offline cache!
+    const cacheBuster = "?t=" + Date.now();
+    const [analyzerCode, astCode, nlgCode] = await Promise.all([
+      fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
+      fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
+      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text())
+    ]);
 
-  // 2. Write to Pyodide's virtual filesystem
-  pyodide.FS.writeFile("analyzer.py", analyzerCode);
-  pyodide.FS.writeFile("blockly_ast.py", astCode);
+    // Safety check: Did Vite/PWA serve the default HTML fallback?
+    if (nlgCode.includes("<!DOCTYPE html>")) {
+      throw new Error("Service Worker served index.html instead of semantic_nlg.py! Please hard refresh the page.");
+    }
 
-  // 3. Inject a Python wrapper that mimics your old FastAPI index.py formatting
-  await pyodide.runPythonAsync(`
+    // 2. Write to Pyodide's virtual filesystem
+    tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
+    tempPyodide.FS.writeFile("blockly_ast.py", astCode);
+    tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
+
+    // 3. Inject a Python wrapper 
+    // 3. Inject a Python wrapper 
+    await tempPyodide.runPythonAsync(`
 import sys
 import json
 import ast
+import importlib
+
+# Ensure the newly written modules are actually re-evaluated
+import semantic_nlg
 import analyzer
+importlib.reload(semantic_nlg)
+importlib.reload(analyzer)
 
 def do_analyze(code):
     try:
@@ -46,7 +59,6 @@ def do_analyze(code):
         
         anal.visit(tree)
         
-        # Helper to map raw outputs to asymptotic Big O notation
         def to_asymp(comp):
             if not comp: return "-"
             if "n * T(n-1)" in comp: return "O(n!)"
@@ -69,8 +81,8 @@ def do_analyze(code):
                 "indent": line.get("indent", 0),
                 "color": line.get("color"),
                 "weight": line.get("weight", 0),
-                "local_explanation": line.get("local_explanation", ""),
-                "global_explanation": line.get("global_explanation", "")
+                "time_explanation": line.get("time_explanation", ""),
+                "space_explanation": line.get("space_explanation", "")
             })
 
         return json.dumps({
@@ -81,40 +93,52 @@ def do_analyze(code):
             "is_recursive": any("T(n)" in str(l.get("global_time", "")) for l in anal.details)
         })
     except SyntaxError as e:
-        return json.dumps({
-            "status": "error",
-            "line": e.lineno,
-            "message": e.msg
-        })
+        return json.dumps({"status": "error", "line": e.lineno, "message": e.msg})
     except Exception as e:
-        return json.dumps({
-            "status": "error",
-            "message": str(e)
-        })
-  `);
+        return json.dumps({"status": "error", "message": str(e)})
+    `);
+    // Only assign to the global variable AFTER everything initialized perfectly!
+    pyodide = tempPyodide;
+
+  } catch (error) {
+    console.error("Pyodide Engine Crash during boot:", error);
+    pyodide = null; // Ensure it attempts to re-initialize on the next ping
+    throw error;
+  }
 }
 
 self.onmessage = async (e) => {
   const { type, code } = e.data;
-  
+
+  // NEW: Catch the boot-up message from App.jsx
+  if (type === 'INIT_ENGINE') {
+    try {
+      await initPyodide();
+      self.postMessage({ type: 'ENGINE_READY' });
+    } catch (err) {
+      console.error("Failed to pre-warm Pyodide:", err);
+    }
+    return;
+  }
+
   try {
     await initPyodide();
-    
+
     // --- MODE 1: ANALYZE COMPLEXITY ---
     if (type === 'ANALYZE_CODE') {
       pyodide.globals.set("user_code", code);
       const resultJsonStr = await pyodide.runPythonAsync(`do_analyze(user_code)`);
       const resultData = JSON.parse(resultJsonStr);
-      
+
       // Reply in the exact format MainApp.jsx expects
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
     }
-    
+
     // --- MODE 2: RUN THE CODE (CONSOLE OUTPUT) ---
     else if (type === 'RUN_CODE') {
       // Intercept standard output (print statements) and send to MainApp console
-      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\\n" }) });
-      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\\n" }) });
+      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
+      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
 
       // Provide a mock input() function just like your old fallback API did
       pyodide.globals.set("custom_input", (prompt) => {
@@ -133,7 +157,7 @@ except Exception as e:
     import traceback
     print(traceback.format_exc(), file=sys.stderr)
       `);
-      
+
       self.postMessage({ type: 'RUN_RESULT', data: "" });
     }
 

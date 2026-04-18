@@ -809,9 +809,10 @@
 
   100% {
     opacity: 1;
-    max-height: 200px;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    /* Increased from 200px to 500px to accommodate the graph and dual text */
+    max-height: 500px; 
+    padding-top: 16px;
+    padding-bottom: 16px;
     transform: scaleY(1);
   }
 }

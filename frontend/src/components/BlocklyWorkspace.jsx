@@ -445,6 +445,26 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || ""
 
+  // A lightweight heuristic to guess if the code is NOT Python
+  const detectForeignLanguage = (code) => {
+    // Check for Java signatures
+    if (/public\s+class|System\.out\.print|public\s+static\s+void\s+main/.test(code)) return "Java";
+
+    // Check for JavaScript / TypeScript signatures
+    if (/(?:const|let)\s+[a-zA-Z_]\w*\s*=|console\.log\(|document\.querySelector|=>/.test(code)) return "JavaScript";
+
+    // Check for C / C++ signatures
+    if (/#include\s*<.*>|int\s+main\s*\(|std::cout/.test(code)) return "C/C++";
+
+    // Check for C# signatures
+    if (/using\s+System;|namespace\s+[a-zA-Z_]|Console\.WriteLine/.test(code)) return "C#";
+
+    // Check for PHP signatures
+    if (/<\?php|echo\s+/.test(code)) return "PHP";
+
+    return null; // Null means we didn't detect a foreign language (likely Python or just pseudo-code)
+  };
+  
   useImperativeHandle(ref, () => ({
     clear: () => {
       if (workspace.current) {
@@ -481,10 +501,16 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       }
     },
 
-    // Inside BlocklyWorkspace.jsx - replace loadFromPython
-    // ... existing imports
     loadFromPython: async (pythonCode) => {
       if (!workspace.current) return;
+
+      // --- NEW: Check for foreign languages first ---
+      const foreignLang = detectForeignLanguage(pythonCode);
+      if (foreignLang) {
+        // Throw an error so MainApp.jsx's catch block can display it nicely
+        throw new Error(`It looks like you pasted ${foreignLang} code. AlgoBlocks currently only supports converting Python to blocks.`);
+      }
+      // ----------------------------------------------
 
       try {
         const response = await fetch(`${API_URL}/api/ast-to-blocks`, {
@@ -495,7 +521,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         const data = await response.json();
 
         if (data.status === "error") {
-          // Use the actual error message from the backend
           throw new Error(data.message || "Failed to parse Python code.");
         }
 
@@ -510,7 +535,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         }
       } catch (error) {
         console.error("AST Parsing failed:", error.message);
-        throw error; // Re-throw so MainApp.jsx can display it
+        throw error;
       }
     }
   }));
@@ -846,7 +871,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       };
     }
   }, []);
-  
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />

@@ -1,4 +1,4 @@
-// vite.config.js
+// frontend/vite.config.js
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -9,10 +9,20 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        // TELL THE PWA NOT TO PRE-CACHE PYODIDE ON LOAD
-        globIgnores: ['**/pyodide/**/*'], 
-        maximumFileSizeToCacheInBytes: 5000000 // 5MB limit to prevent crashes
+        maximumFileSizeToCacheInBytes: 15000000,
+        // ADD 'json' TO THIS LIST
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py,json}']
       }
     })
-  ]
+  ],
+  // ADD THIS SERVER BLOCK
+  server: {
+    proxy: {
+      '/api': {
+        // Replace 8000 with whatever port your Python backend is running on locally
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
+    }
+  }
 })
