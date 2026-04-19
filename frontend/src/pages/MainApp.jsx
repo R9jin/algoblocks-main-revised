@@ -16,6 +16,24 @@ import Editor from "@monaco-editor/react";
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
+// --- Custom Monaco Theme Injection ---
+const handleEditorWillMount = (monaco) => {
+  monaco.editor.defineTheme('algoblocks-purple', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': '#1C1236', // Match the app's deep purple background
+      'editor.foreground': '#EBE4FF', // Match the light purple text
+      'editorLineNumber.foreground': '#6C5CE7', // Accent purple for line numbers
+      'editor.lineHighlightBackground': '#2D234A', // Subtle highlight for current line
+      'editorCursor.foreground': '#FFFFFF', // Bright white cursor
+      'editor.selectionBackground': '#6C5CE755', // Purple selection highlighting
+      'editor.inactiveSelectionBackground': '#6C5CE733'
+    }
+  });
+};
+
 // --- Base System Templates ---
 const SIDEBAR_TEMPLATES = [
   { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element until the target is found.", category: "Search" },
@@ -57,14 +75,19 @@ const getComplexityWeight = (complexity) => {
 };
 
 export default function MainApp() {
+  // ==========================================
+  // STRICT HOOK ORDERING (ALL AT THE TOP)
+  // ==========================================
+  const location = useLocation();
+  const workspaceRef = useRef(null);
+  const consoleEndRef = useRef(null);
+  const workerRef = useRef(null);
+  const runTimeoutRef = useRef(null);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const renderIntervalRef = useRef(null);
-  const location = useLocation();
-  const workspaceRef = useRef(null);
-
-  const workerRef = useRef(null);
-  const runTimeoutRef = useRef(null);
+  const isDragging = useRef(false);
+  const analysisStartTimeRef = useRef(0);
 
   const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
@@ -78,40 +101,35 @@ export default function MainApp() {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
-
   const [analysisTime, setAnalysisTime] = useState("0.0");
-  const analysisStartTimeRef = useRef(0);
   const [lineExecutions, setLineExecutions] = useState({}); 
-
   const [allTemplates, setAllTemplates] = useState([]);
   const [currentLoadedId, setCurrentLoadedId] = useState(null);
   const [currentProjectTitle, setCurrentProjectTitle] = useState("Untitled Project");
   const [currentSaveType, setCurrentSaveType] = useState("project");
-
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [saveModal, setSaveModal] = useState({
     isOpen: false, isEditMetadataOnly: false, editingId: null, editingData: null,
     title: "", description: "", category: "Custom Templates", saveType: "project"
   });
-
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("local");
   const [expandedLines, setExpandedLines] = useState({});
-  
-  const toggleLine = (index) => {
-    setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
-  };
-
   const [panelHeight, setPanelHeight] = useState(450);
-  const isDragging = useRef(false);
   const [isEditingCode, setIsEditingCode] = useState(false);
+
+  // ==========================================
+  // LOGIC & EFFECTS
+  // ==========================================
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
+  
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+  const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const initWorker = () => {
     if (!workerRef.current) return;
@@ -200,6 +218,10 @@ export default function MainApp() {
       clearInterval(renderIntervalRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); 
+  }, [consoleOutput, isWaitingForInput]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -488,9 +510,6 @@ export default function MainApp() {
     return acc;
   }, {});
 
-  const consoleEndRef = useRef(null);
-  useEffect(() => { if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [consoleOutput, isWaitingForInput]);
-
   const lines = analysisResult?.lines || [];
   let maxWeight = 0;
   let bottleneckIndices = [];
@@ -517,7 +536,6 @@ export default function MainApp() {
 
       {saveModal.isOpen && (
         <div className="modal-overlay">
-          {/* ... Save Modal HTML Remains Unchanged ... */}
           <div className="save-modal-content">
             <h2 className="save-modal-title">
               {saveModal.isEditMetadataOnly ? "Edit Details" : "Save Workspace"}
@@ -621,10 +639,10 @@ export default function MainApp() {
               <BlocklyWorkspace ref={workspaceRef} onChange={handleBlocklyChange} syntaxError={syntaxError} />
             </div>
 
-            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ flexDirection: 'column' }}>
-              <div className="python-header">
-                <span className="python-sync-status">{isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
-                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks ↻ </button>
+            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ flexDirection: 'column', background: '#1C1236' }}>
+              <div className="python-header" style={{ padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
+                <span className="python-sync-status" style={{ color: '#EBE4FF', fontSize: '0.85rem' }}>{isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
+                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`} style={{ padding: '5px 12px', borderRadius: '4px', cursor: isEditingCode ? 'pointer' : 'not-allowed', backgroundColor: isEditingCode ? '#6C5CE7' : '#444', color: 'white', border: 'none' }}> Sync to Blocks ↻ </button>
               </div>
 
               {/* --- MONACO VSCODE EDITOR INTEGRATION --- */}
@@ -638,7 +656,8 @@ export default function MainApp() {
                 <Editor
                   height="100%"
                   language="python"
-                  theme="vs-dark"
+                  theme="algoblocks-purple"
+                  beforeMount={handleEditorWillMount}
                   value={generatedPython}
                   onChange={(value) => {
                     setGeneratedPython(value || "");
@@ -683,7 +702,6 @@ export default function MainApp() {
                   </div>
                 ) : (
                   <div className="complexity-content">
-                    {/* ... Complexity Table Remains Unchanged ... */}
                     <div className="complexity-tabs">
                       <div className="tab-btn-group">
                         <button onClick={() => { setActiveTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>Local Complexity</button>

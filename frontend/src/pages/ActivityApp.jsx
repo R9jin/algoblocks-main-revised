@@ -14,6 +14,24 @@ import Editor from "@monaco-editor/react";
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
+// --- Custom Monaco Theme Injection ---
+const handleEditorWillMount = (monaco) => {
+  monaco.editor.defineTheme('algoblocks-purple', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': '#1C1236', // Match the app's deep purple background
+      'editor.foreground': '#EBE4FF', // Match the light purple text
+      'editorLineNumber.foreground': '#6C5CE7', // Accent purple for line numbers
+      'editor.lineHighlightBackground': '#2D234A', // Subtle highlight for current line
+      'editorCursor.foreground': '#FFFFFF', // Bright white cursor
+      'editor.selectionBackground': '#6C5CE755', // Purple selection highlighting
+      'editor.inactiveSelectionBackground': '#6C5CE733'
+    }
+  });
+};
+
 const ACTIVITY_TASKS = [
   {
     id: "l1-t1",
@@ -328,20 +346,18 @@ const ActivityApp = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
-
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const renderIntervalRef = useRef(null);
-
   const isDragging = useRef(false);
   const hasLoadedRef = useRef(false);
-  const [isEvaluating, setIsEvaluating] = useState(false);
+  const analysisStartTimeRef = useRef(0); 
 
+  const [isEvaluating, setIsEvaluating] = useState(false);
   const activityData = location.state?.activityData || null;
   const initialTemplate = location.state?.templatePath || location.state?.activityData?.templatePath || "";
   const currentTask = ACTIVITY_TASKS.find((t) => t.templatePath === initialTemplate);
@@ -361,19 +377,14 @@ const ActivityApp = () => {
   const [userInput, setUserInput] = useState("");
 
   const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
-
   const [analysisTime, setAnalysisTime] = useState("0.0"); 
-  const analysisStartTimeRef = useRef(0); 
   const [lineExecutions, setLineExecutions] = useState({}); 
 
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
-
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [syntaxError, setSyntaxError] = useState(null);
-
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [expandedLines, setExpandedLines] = useState({});
-
   const [panelHeight, setPanelHeight] = useState(300);
 
   const initWorker = () => {
@@ -464,36 +475,18 @@ const ActivityApp = () => {
     };
   }, []);
 
-  const toggleLine = (index) => {
-    setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
-  };
-
+  const toggleLine = (index) => { setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] })); };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+  const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
 
-  const handleDragStart = (e) => {
-    e.preventDefault();
-    isDragging.current = true;
-    document.body.style.cursor = "ns-resize";
-    document.body.style.userSelect = "none";
-  };
-
-  useEffect(() => {
-    if (!activityData) navigate("/learning-path");
-  }, [activityData, navigate]);
-
-  useEffect(() => {
-    if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [consoleOutput, isWaitingForInput]);
+  useEffect(() => { if (!activityData) navigate("/learning-path"); }, [activityData, navigate]);
+  useEffect(() => { if (consoleEndRef.current) { consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); } }, [consoleOutput, isWaitingForInput]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
       const newHeight = window.innerHeight - e.clientY - 48;
-      if (newHeight >= 150 && newHeight <= window.innerHeight - 150) {
-        setPanelHeight(newHeight);
-      }
+      if (newHeight >= 150 && newHeight <= window.innerHeight - 150) { setPanelHeight(newHeight); }
     };
     const handleMouseUp = () => {
       if (!isDragging.current) return;
@@ -503,10 +496,7 @@ const ActivityApp = () => {
     };
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
+    return () => { document.removeEventListener("mousemove", handleMouseMove); document.removeEventListener("mouseup", handleMouseUp); };
   }, []);
 
   useEffect(() => {
@@ -523,10 +513,7 @@ const ActivityApp = () => {
     if (hasLoadedRef.current) return;
 
     hasLoadedRef.current = true;
-    const timer = setTimeout(() => {
-      loadActivityTemplate(initialTemplate, activityData);
-    }, 300);
-
+    const timer = setTimeout(() => { loadActivityTemplate(initialTemplate, activityData); }, 300);
     return () => clearTimeout(timer);
   }, [initialTemplate, activityData]);
 
@@ -540,21 +527,12 @@ const ActivityApp = () => {
     localStorage.setItem("user", JSON.stringify(user));
 
     try {
-      fetch(`${VERCEL_URL}/api/update-progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, lesson_id: lessonId, score }),
-      });
-    } catch (error) {
-      console.warn("Offline mode: Progress saved locally.");
-    }
+      fetch(`${VERCEL_URL}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, lesson_id: lessonId, score }) });
+    } catch (error) {}
   };
 
   const handleSuccess = (passed, total) => {
-    setModalConfig({
-      isOpen: true, title: "Activity Completed! 🎉", message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.`, confirmText: "Return to Dashboard", isDanger: false,
-      onConfirmAction: () => { closeModal(); navigate("/learning-path"); },
-    });
+    setModalConfig({ isOpen: true, title: "Activity Completed! 🎉", message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.`, confirmText: "Return to Dashboard", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); } });
   };
 
   const loadActivityTemplate = async (path, dataFromState) => {
@@ -896,7 +874,8 @@ const ActivityApp = () => {
                 <Editor
                   height="100%"
                   language="python"
-                  theme="vs-dark"
+                  theme="algoblocks-purple"
+                  beforeMount={handleEditorWillMount}
                   value={generatedPython}
                   onChange={(value) => {
                     setGeneratedPython(value || "");
@@ -922,11 +901,15 @@ const ActivityApp = () => {
 
           {bottomPanel && (
             <div className="bottom-hover-panel" style={{ height: `${panelHeight}px` }}>
-              <div className="panel-resizer" onMouseDown={handleDragStart}><div className="resizer-dash"></div></div>
+              <div className="panel-resizer" onMouseDown={handleDragStart}>
+                <div className="resizer-dash"></div>
+              </div>
+
               <div className="panel-header">
                 <span className="panel-title">{bottomPanel === 'console' ? 'Console Output' : 'Complexity Analysis'}</span>
                 <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
               </div>
+
               <div className="panel-body">
                 {bottomPanel === 'console' ? (
                   <div className="console-container">
@@ -934,7 +917,14 @@ const ActivityApp = () => {
                     {isWaitingForInput && (
                       <div className="console-input-line">
                         <span className="console-cursor">❯</span>
-                        <input autoFocus value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={handleSendInput} className="console-input-field" placeholder="Type here and press Enter..." />
+                        <input
+                          autoFocus
+                          value={userInput}
+                          onChange={(e) => setUserInput(e.target.value)}
+                          onKeyDown={handleSendInput}
+                          className="console-input-field"
+                          placeholder="Type here and press Enter..."
+                        />
                       </div>
                     )}
                     <div ref={consoleEndRef} />
@@ -998,7 +988,6 @@ const ActivityApp = () => {
                                   <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
 
-                                    {/* DYNAMIC EXECUTION FREQUENCY BADGE */}
                                     {execCount > 0 && (
                                       <span style={{
                                         marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
@@ -1087,13 +1076,38 @@ const ActivityApp = () => {
 
           <footer className="workspace-footer">
             <div className="footer-left">
-              <button className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button>
-              <button className={`footer-tab ${bottomPanel === 'complexity' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'complexity' ? null : 'complexity')}><img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity</button>
-              <button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button>
+              <button
+                className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`}
+                onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}
+              >
+                <img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console
+              </button>
+              <button
+                className={`footer-tab ${bottomPanel === 'complexity' ? 'active' : ''}`}
+                onClick={() => setBottomPanel(bottomPanel === 'complexity' ? null : 'complexity')}
+              >
+                <img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity
+              </button>
+              <button
+                className="footer-tab big-o-btn"
+                onClick={() => setIsBigOModalOpen(true)}
+              >
+                <img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference
+              </button>
             </div>
+
             <div className="footer-right">
               <button className="footer-action-icon" onClick={() => {
-                setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", isDanger: true, onConfirmAction: () => { window.location.reload(); } });
+                setModalConfig({
+                  isOpen: true,
+                  title: "Restart Activity?",
+                  message: "Are you sure you want to restart this activity? Your progress will be lost.",
+                  confirmText: "Restart",
+                  isDanger: true,
+                  onConfirmAction: () => {
+                    window.location.reload();
+                  }
+                });
               }} title="Restart Activity">
                 <img src="/assets/recursive-icon.png" alt="Restart" />
               </button>
@@ -1158,8 +1172,21 @@ const ActivityApp = () => {
 
       </Split>
 
-      <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} isDanger={modalConfig.isDanger} onCancel={closeModal} onConfirm={modalConfig.onConfirmAction} />
-      <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        isDanger={modalConfig.isDanger}
+        onCancel={closeModal}
+        onConfirm={modalConfig.onConfirmAction}
+      />
+
+      <BigOModal
+        isOpen={isBigOModalOpen}
+        onClose={() => setIsBigOModalOpen(false)}
+      />
+
     </div>
   );
 };
