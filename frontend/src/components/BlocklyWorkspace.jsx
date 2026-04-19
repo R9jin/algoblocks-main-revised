@@ -484,11 +484,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     loadFromPython: async (pythonCode) => {
       if (!workspace.current) return;
 
-      const foreignLang = detectForeignLanguage(pythonCode);
-      if (foreignLang) {
-        throw new Error(`It looks like you pasted ${foreignLang} code. AlgoBlocks currently only supports converting Python to blocks.`);
-      }
-
       try {
         const response = await fetch(`${API_URL}/api/ast-to-blocks`, {
           method: 'POST',
