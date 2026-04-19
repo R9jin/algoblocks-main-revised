@@ -10,8 +10,9 @@ import { projectsDB, syncQueueDB, templatesDB } from '../db.js';
 import "../styles/MainApp.css";
 import { formatComplexity } from "../utils/formatters";
 
-// --- IMPORT MONACO EDITOR ---
+// --- IMPORT MONACO EDITOR & TRANSLATOR ---
 import Editor from "@monaco-editor/react";
+import { translatePythonError } from "../utils/errorTranslator.js"; // <-- NEW IMPORT
 
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
@@ -23,18 +24,17 @@ const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#1C1236', // Match the app's deep purple background
-      'editor.foreground': '#EBE4FF', // Match the light purple text
-      'editorLineNumber.foreground': '#6C5CE7', // Accent purple for line numbers
-      'editor.lineHighlightBackground': '#2D234A', // Subtle highlight for current line
-      'editorCursor.foreground': '#FFFFFF', // Bright white cursor
-      'editor.selectionBackground': '#6C5CE755', // Purple selection highlighting
+      'editor.background': '#1C1236', 
+      'editor.foreground': '#EBE4FF', 
+      'editorLineNumber.foreground': '#6C5CE7', 
+      'editor.lineHighlightBackground': '#2D234A', 
+      'editorCursor.foreground': '#FFFFFF', 
+      'editor.selectionBackground': '#6C5CE755', 
       'editor.inactiveSelectionBackground': '#6C5CE733'
     }
   });
 };
 
-// --- Base System Templates ---
 const SIDEBAR_TEMPLATES = [
   { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element until the target is found.", category: "Search" },
   { name: "Binary Search", path: "search/binary_search", desc: "Finds the position of a target value within a sorted array.", category: "Search" },
@@ -75,9 +75,6 @@ const getComplexityWeight = (complexity) => {
 };
 
 export default function MainApp() {
-  // ==========================================
-  // STRICT HOOK ORDERING (ALL AT THE TOP)
-  // ==========================================
   const location = useLocation();
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
@@ -119,10 +116,6 @@ export default function MainApp() {
   const [panelHeight, setPanelHeight] = useState(450);
   const [isEditingCode, setIsEditingCode] = useState(false);
 
-  // ==========================================
-  // LOGIC & EFFECTS
-  // ==========================================
-
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
@@ -145,7 +138,9 @@ export default function MainApp() {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           setSyntaxError(null);
         } else {
-          setSyntaxError({ line: data.line, message: data.message });
+          // --- SYNTAX ERROR TRANSLATION ---
+          const hint = translatePythonError(data.message);
+          setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
       }
       else if (type === 'RUN_RESULT') {
@@ -203,7 +198,10 @@ export default function MainApp() {
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
-        setConsoleOutput(prev => prev + flushed + "\nRuntime Error: " + data);
+        // --- RUNTIME ERROR TRANSLATION ---
+        const hint = translatePythonError(data);
+        setConsoleOutput(prev => prev + flushed + "\n❌ Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+        
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -639,10 +637,10 @@ export default function MainApp() {
               <BlocklyWorkspace ref={workspaceRef} onChange={handleBlocklyChange} syntaxError={syntaxError} />
             </div>
 
-            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ flexDirection: 'column', background: '#1C1236' }}>
-              <div className="python-header" style={{ padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
-                <span className="python-sync-status" style={{ color: '#EBE4FF', fontSize: '0.85rem' }}>{isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
-                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`} style={{ padding: '5px 12px', borderRadius: '4px', cursor: isEditingCode ? 'pointer' : 'not-allowed', backgroundColor: isEditingCode ? '#6C5CE7' : '#444', color: 'white', border: 'none' }}> Sync to Blocks ↻ </button>
+            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ flexDirection: 'column' }}>
+              <div className="python-header">
+                <span className="python-sync-status">{isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
+                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks ↻ </button>
               </div>
 
               {/* --- MONACO VSCODE EDITOR INTEGRATION --- */}

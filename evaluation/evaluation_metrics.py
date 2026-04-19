@@ -5,7 +5,7 @@ import os
 
 # Add the analyzer_engine to the path so we can import it
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'analyzer_engine')))
-from analyzer import analyze_code # Ensure this matches your actual function name
+from api.analyzer import analyze_code # Ensure this matches your actual function name
 
 def calculate_accuracy():
     with open('evaluation/dataset/ground_truth.json', 'r') as f:
