@@ -1,9 +1,9 @@
 let pyodide = null;
 
-// ✅ NEW: async input control
+// ✅ async input control
 let inputResolve = null;
-let isWaitingForInput = false;   // ✅ NEW
-let executionTimeout = null;     // ✅ NEW
+let isWaitingForInput = false;
+let executionTimeout = null;
 
 async function initPyodide() {
   if (pyodide) return;
@@ -108,11 +108,10 @@ def do_analyze(code):
 self.onmessage = async (e) => {
   const { type, code, data } = e.data;
 
-  // ✅ HANDLE INPUT RESPONSE
   if (type === 'INPUT_RESPONSE') {
     if (inputResolve) {
-      clearTimeout(executionTimeout); // ✅ FIX: stop timeout
-      isWaitingForInput = false;      // ✅ FIX: resume state
+      clearTimeout(executionTimeout); 
+      isWaitingForInput = false;      
       inputResolve(data);
       inputResolve = null;
     }
@@ -144,7 +143,7 @@ self.onmessage = async (e) => {
     }
 
     // ======================
-    // RUN MODE (FIXED)
+    // RUN MODE (WITH INSTRUCTION FREQUENCY COUNTER)
     // ======================
     else if (type === 'RUN_CODE') {
 
@@ -156,35 +155,23 @@ self.onmessage = async (e) => {
         batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" })
       });
 
-      // ✅ SYNC fallback
       pyodide.globals.set("custom_input_sync", (prompt) => {
         const safePrompt = prompt === undefined ? "" : String(prompt);
-
-        if (safePrompt) {
-          self.postMessage({ type: 'OUTPUT', data: safePrompt });
-        }
-
+        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt });
         self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" } });
-
         const simulated = " [Simulated Input - Nested function limitation]";
         self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
-
         return simulated;
       });
 
-      // ✅ ASYNC real input
       pyodide.globals.set("custom_input_async", async (prompt) => {
         return new Promise((resolve) => {
-
           inputResolve = (value) => {
-            isWaitingForInput = false; // ✅ FIX
+            isWaitingForInput = false; 
             resolve(value);
           };
-
-          isWaitingForInput = true; // ✅ FIX
-
+          isWaitingForInput = true; 
           const safePrompt = prompt === undefined ? "" : String(prompt);
-
           self.postMessage({
             type: 'INPUT_REQUEST',
             data: { prompt: safePrompt }
@@ -194,7 +181,6 @@ self.onmessage = async (e) => {
 
       pyodide.globals.set("user_code", code);
 
-      // ✅ SMART TIMEOUT (ignores input waiting)
       executionTimeout = setTimeout(() => {
         if (!isWaitingForInput) {
           self.postMessage({
@@ -204,14 +190,28 @@ self.onmessage = async (e) => {
         }
       }, 3000);
 
+      // Injecting the trace hook into the run evaluation block
       await pyodide.runPythonAsync(`
 import builtins
 import sys
 import traceback
 import ast
+import json
 from pyodide.code import eval_code_async
 
 builtins.input = custom_input_sync
+
+__line_counts__ = {}
+counts_json = "{}"
+
+# 1. Hook to track how many times a specific line is hit in the system
+def trace_lines(frame, event, arg):
+    if frame.f_code.co_filename == "<string>":
+        if event == 'line':
+            lineno = frame.f_lineno
+            __line_counts__[lineno] = __line_counts__.get(lineno, 0) + 1
+        return trace_lines
+    return None
 
 class AsyncInputTransformer(ast.NodeTransformer):
     def visit_Call(self, node):
@@ -223,33 +223,50 @@ class AsyncInputTransformer(ast.NodeTransformer):
         return node
 
 try:
+    __line_counts__.clear()
     tree = ast.parse(user_code)
     transformed = AsyncInputTransformer().visit(tree)
     ast.fix_missing_locations(transformed)
 
-    code_str = ast.unparse(transformed)  # ✅ FIX
+    # 2. Compiling the AST directly to preserve EXACT line numbers for the UI
+    code_obj = compile(transformed, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
 
-    compile(code_str, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
-
-    await eval_code_async(code_str, globals())
+    # 3. Mount trace, execute, unmount
+    sys.settrace(trace_lines)
+    await eval_code_async(code_obj, globals())
 
 except SyntaxError:
     try:
-        exec(user_code)
+        sys.settrace(trace_lines)
+        code_obj = compile(user_code, "<string>", "exec")
+        exec(code_obj)
     except Exception:
         print(traceback.format_exc(), file=sys.stderr)
 
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
+
+finally:
+    sys.settrace(None)
+    # Expose the payload back to Javascript boundary
+    counts_json = json.dumps(__line_counts__)
       `);
 
-      clearTimeout(executionTimeout); // ✅ FIX
+      clearTimeout(executionTimeout); 
+      
+      // Pull the generated dictionary from Pyodide
+      let countsData = {};
+      try {
+        const countsJson = pyodide.globals.get("counts_json");
+        countsData = JSON.parse(countsJson || "{}");
+      } catch(e) {}
 
-      self.postMessage({ type: 'RUN_RESULT', data: "" });
+      // Blast to the UI thread
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts: countsData });
     }
 
   } catch (err) {
-    clearTimeout(executionTimeout); // ✅ ensure cleanup
+    clearTimeout(executionTimeout); 
 
     if (type === 'ANALYZE_CODE') {
       self.postMessage({

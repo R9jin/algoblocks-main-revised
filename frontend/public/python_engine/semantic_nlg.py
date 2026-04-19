@@ -15,6 +15,10 @@ class SemanticNLGEngine:
     step incurs a specific Time or Space cost based on mathematical scaling, 
     iteration boundaries, auxiliary data structure provisioning, and the 
     call stack implications of recursive recurrence relations.
+    
+    New Feature: Automatically intercepts T(n) Recurrence Relations and resolves 
+    them into their standard asymptotic Big O equivalents using the Master Theorem 
+    and recursive tree derivations.
     """
     
     def __init__(self, analyzer_context):
@@ -24,6 +28,44 @@ class SemanticNLGEngine:
         detected algorithmic patterns.
         """
         self.ctx = analyzer_context
+
+    # ==========================================
+    # RECURRENCE RELATION RESOLUTION ENGINE
+    # ==========================================
+    def _format_recurrence_relation(self, comp_str):
+        """
+        Intercepts raw T(n) complexity strings and parses them into educational 
+        equivalents. When an algorithm yields a recurrence, it is vital to show
+        the student both the structural recurrence (e.g., 2T(n/2) + O(n)) AND the
+        final resolved asymptotic Big O limit (e.g., O(n log n)).
+        """
+        if not comp_str or "T(" not in comp_str:
+            return comp_str
+            
+        # Strict mapping table derived from Master Theorem and standard tree analysis
+        lookup = {
+            "T(n) = n * T(n-1) + O(1)": "O(n!)",
+            "T(n) = n * T(n-1)": "O(n!)",
+            "T(n) = 2T(n/2) + O(n)": "O(n log n)",
+            "T(n) = 2T(n/2) + O(1)": "O(n)",
+            "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
+            "T(n) = T(n/2) + O(n)": "O(n)",
+            "T(n) = T(n/2) + O(1)": "O(log n)",
+            "T(n) = T(n-1) + O(n)": "O(n²)",
+            "T(n) = T(n-1) + O(log n)": "O(n log n)",
+            "T(n) = T(n-1) + O(1)": "O(n)",
+            "2T(n/2)": "O(n log n)",
+            "T(n-1) + T(n-2)": "O(2^n)",
+            "T(n/2) + O(1)": "O(log n)",
+            "T(n-1) + O(n)": "O(n²)"
+        }
+        
+        for rel, big_o in lookup.items():
+            if rel in comp_str:
+                # Appends the resolved notation cleanly to the T(n) string
+                return f"{comp_str} — which mathematically resolves to an equivalent Big O notation of {big_o}"
+        
+        return comp_str
 
     # ==========================================
     # AST INTROSPECTION & TRANSLATION HELPERS
@@ -200,8 +242,14 @@ class SemanticNLGEngine:
         if is_dead:
             return self._generate_dead_code_explanation(code_snippet)
 
-        time_desc = self._route_time_semantics(node, local_t, global_t, code_snippet)
+        # 1. Intercept and mathematically resolve any T(n) relations in the complexities
+        fmt_local_t = self._format_recurrence_relation(str(local_t))
+        fmt_global_t = self._format_recurrence_relation(str(global_t))
+
+        # 2. Route the formatted complexities to the semantic generators
+        time_desc = self._route_time_semantics(node, fmt_local_t, fmt_global_t, code_snippet)
         space_desc = self._route_space_semantics(node, local_s, global_s, code_snippet)
+        
         return time_desc, space_desc
 
     def _generate_dead_code_explanation(self, code_snippet):
@@ -440,8 +488,9 @@ class SemanticNLGEngine:
     def _time_for_calls(self, node, local_t, global_t):
         """
         Explains function calls.
-        Highly detailed for recursion, specifically mentioning the Master Theorem
-        for divide-and-conquer logic, and explaining the recurrence tree buildup.
+        Highly detailed for recursion. Note that `global_t` has already been passed 
+        through `_format_recurrence_relation`, meaning it explicitly states the Master 
+        Theorem evaluation natively inside the injected string.
         """
         f_name = self._extract_name(node.func).replace("()", "")
         
@@ -454,15 +503,15 @@ class SemanticNLGEngine:
 
         # Recursion Handling
         if f_name == getattr(self.ctx, 'current_function_name', None):
-            # Master Theorem / Divide and Conquer
+            # Master Theorem / Divide and Conquer (Logarithmic reductions)
             if getattr(self.ctx, 'has_division', False):
                 return random.choice([
-                    f"This is a recursive call to '{f_name}' that fractionally divides the input problem space (e.g., cutting the array in half). According to the Master Theorem, this 'divide-and-conquer' strategy drastically reduces the amount of required work, shaping the algorithm's highly efficient overarching {global_t} runtime.",
-                    f"By recursively invoking '{f_name}' on a divided, smaller subset of the data rather than the whole, the algorithm aggressively avoids doing extra work. This yields an optimized {global_t} recurrence relation."
+                    f"This is a recursive call to '{f_name}' that fractionally divides the input problem space (e.g., cutting the array in half). According to the Master Theorem, this 'divide-and-conquer' strategy drastically reduces the amount of required work, establishing the overarching recurrence relation of {global_t}.",
+                    f"By recursively invoking '{f_name}' on a divided, smaller subset of the data rather than the whole, the algorithm aggressively avoids doing extra work. This structural reduction yields an optimized recurrence relation of {global_t}."
                 ])
-            # Standard/Linear/Exponential Recursion
+            # Standard/Linear/Exponential Recursion (Addition/Subtraction steps)
             return random.choice([
-                f"This line invokes '{f_name}' recursively. Every single time it calls itself, it spawns a completely new branch in the execution tree. This continuous stacking is what ultimately pushes the global algorithm complexity to {global_t}.",
+                f"This line invokes '{f_name}' recursively. Every single time it calls itself, it spawns a completely new branch in the execution tree. This continuous stacking is what ultimately pushes the global algorithm complexity to build a recurrence relation of {global_t}.",
                 f"A recursive jump back into the '{f_name}' function. Without an optimization like Dynamic Programming (memoization) to cache previously calculated results, these overlapping functional calls build up the mathematical recurrence relation to {global_t}.",
                 f"Recursion dynamically triggers here! The function calls itself, adding a new execution step to the recurrence tree and driving the global system runtime scaling up to {global_t}."
             ])
@@ -476,7 +525,7 @@ class SemanticNLGEngine:
                 f"The built-in `{f_name}()` algorithmically {b_info['desc']}, inherently demanding {local_t} execution time proportional to the inputs provided."
             ])
             
-        # Standard Custom Call
+        # Standard Custom Call (local_t has also been formatted just in case it yields a T(n))
         return random.choice([
             f"Executing the external function '{f_name}()' completely pauses this local scope until the sub-function resolves. We estimate its internal encapsulated logic requires {local_t} time.",
             f"Execution control is passed over to '{f_name}()'. Based on its structural contents, the engine evaluates this specific function call to inherently cost {local_t} time.",

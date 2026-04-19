@@ -80,6 +80,10 @@ export default function MainApp() {
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
 
+  // --- Analysis Speed Timing ---
+  const [analysisTime, setAnalysisTime] = useState("0.0");
+  const analysisStartTimeRef = useRef(0);
+
   // --- Unified Template List State ---
   const [allTemplates, setAllTemplates] = useState([]);
   const [currentLoadedId, setCurrentLoadedId] = useState(null);
@@ -129,6 +133,9 @@ export default function MainApp() {
       const { type, data } = event.data;
 
       if (type === 'ANALYZE_RESULT') {
+        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
+        setAnalysisTime(duration);
+
         if (data.status === "success") {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           setSyntaxError(null);
@@ -288,6 +295,7 @@ export default function MainApp() {
   const executeLoad = async (item) => {
     try {
       setAnalysisResult({ lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false });
+      setAnalysisTime("...");
       let json;
       if (item.isSystem) {
         const response = await fetch(`/templates/${item.path}.json`);
@@ -324,6 +332,7 @@ export default function MainApp() {
     setBlocklyJson(json);
 
     if (workerRef.current && pythonCode.trim() !== "") {
+      analysisStartTimeRef.current = performance.now();
       workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: pythonCode });
     }
   };
@@ -331,6 +340,7 @@ export default function MainApp() {
   useEffect(() => {
     if (!isEditingCode || !workerRef.current) return;
     const timeoutId = setTimeout(() => {
+      analysisStartTimeRef.current = performance.now();
       workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
     }, 500);
     return () => clearTimeout(timeoutId);
@@ -354,6 +364,7 @@ export default function MainApp() {
           workspaceRef.current.clear();
           setGeneratedPython("# Drag blocks to generate Python code");
           setBlocklyJson(null); setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
+          setAnalysisTime("0.0");
           setBottomPanel(null); setExpandedLines({}); setSyntaxError(null);
           setCurrentLoadedId(null); setCurrentProjectTitle("Untitled Project");
           setCurrentSaveType("project");
@@ -738,6 +749,7 @@ export default function MainApp() {
                       <div className="total-badge-group">
                         <span className="total-badge"><span className="total-label">Total Time:</span> <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge" style={{ backgroundColor: 'rgba(0, 184, 163, 0.15)', color: '#00b8a3', border: '1px solid rgba(0, 184, 163, 0.3)' }}><span className="total-label" style={{ color: '#00b8a3' }}>Total Space:</span> <span style={{ fontSize: "20px", fontWeight: "bold" }}>{formatComplexity(analysisResult.space_total)}</span></span>
+                        <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold" }}>{analysisTime} ms</span></span>
                       </div>
                     </div>
                     <div className="complexity-table-wrapper">
