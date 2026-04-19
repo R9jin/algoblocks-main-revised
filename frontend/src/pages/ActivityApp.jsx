@@ -8,9 +8,8 @@ import ConfirmModal from "../components/ConfirmModal.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
-// --- IMPORT MONACO EDITOR & TRANSLATOR ---
+// --- IMPORT MONACO EDITOR ---
 import Editor from "@monaco-editor/react";
-import { translatePythonError } from "../utils/errorTranslator.js";
 
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
@@ -22,12 +21,12 @@ const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#1C1236', 
-      'editor.foreground': '#EBE4FF', 
-      'editorLineNumber.foreground': '#6C5CE7', 
-      'editor.lineHighlightBackground': '#2D234A', 
-      'editorCursor.foreground': '#FFFFFF', 
-      'editor.selectionBackground': '#6C5CE755', 
+      'editor.background': '#1C1236', // Match the app's deep purple background
+      'editor.foreground': '#EBE4FF', // Match the light purple text
+      'editorLineNumber.foreground': '#6C5CE7', // Accent purple for line numbers
+      'editor.lineHighlightBackground': '#2D234A', // Subtle highlight for current line
+      'editorCursor.foreground': '#FFFFFF', // Bright white cursor
+      'editor.selectionBackground': '#6C5CE755', // Purple selection highlighting
       'editor.inactiveSelectionBackground': '#6C5CE733'
     }
   });
@@ -402,9 +401,7 @@ const ActivityApp = () => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           setSyntaxError(null);
         } else {
-          // --- SYNTAX ERROR TRANSLATION ---
-          const hint = translatePythonError(data.message);
-          setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+          setSyntaxError({ line: data.line, message: data.message });
         }
       }
       else if (type === 'RUN_RESULT') {
@@ -462,10 +459,7 @@ const ActivityApp = () => {
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
-        // --- RUNTIME ERROR TRANSLATION ---
-        const hint = translatePythonError(data);
-        setConsoleOutput(prev => prev + flushed + "\nRuntime Error: " + data + (hint ? `\n${hint}\n` : ""));
-        
+        setConsoleOutput(prev => prev + flushed + "\nRuntime Error: " + data);
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -741,4 +735,460 @@ const ActivityApp = () => {
         if (!testPassed) { fullOutput += `   Expected: ${expected}\n   Actual: ${actualOutput}\n`; }
         fullOutput += `\n`;
 
-        setConsoleOutput(
+        setConsoleOutput(fullOutput);
+        setPassedTests(passed);
+
+        const lessonId = initialTemplate?.split("/").pop() || "unknown";
+        saveLessonProgress(lessonId, passed);
+
+        if (passed === total && total > 0) handleSuccess(passed, total);
+      } catch (err) {
+        fullOutput += `Test ${i + 1}: ERROR\n   Message: ${err.message}\n\n`;
+        setConsoleOutput(fullOutput);
+      }
+    }
+    setIsEvaluating(false);
+  };
+
+  const executeTestOffline = (codeToRun) => {
+    return new Promise((resolve, reject) => {
+      let outputAccumulator = "";
+      const timeout = setTimeout(() => {
+        workerRef.current.terminate();
+        workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); 
+        initWorker(); 
+        reject(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
+      }, 10000); 
+
+      workerRef.current.onmessage = (event) => {
+        const { type, data, counts } = event.data;
+        if (type === 'OUTPUT') {
+          outputAccumulator += data;
+        } else if (type === 'RUN_RESULT') {
+          clearTimeout(timeout);
+          outputAccumulator += (data !== undefined && data !== null) ? data : "";
+          if (counts) {
+              setLineExecutions(prev => {
+                  const next = { ...prev };
+                  for (const [key, val] of Object.entries(counts)) { next[key] = (next[key] || 0) + val; }
+                  return next;
+              });
+          }
+          initWorker(); 
+          resolve(outputAccumulator);
+        } else if (type === 'ERROR') {
+          clearTimeout(timeout);
+          initWorker(); 
+          reject(new Error(data));
+        }
+      };
+      workerRef.current.postMessage({ type: 'RUN_CODE', code: codeToRun });
+    });
+  };
+
+  const lines = analysisResult?.lines || [];
+  let maxWeight = 0;
+  let bottleneckIndices = [];
+
+  lines.forEach((line, index) => {
+    const timeToEvaluate = activeTab === 'local' ? line.local_time : line.global_time;
+    const weight = getComplexityWeight(timeToEvaluate);
+    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; } 
+    else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
+  });
+
+  const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
+  let searchStartIndex = 0;
+  const pythonLines = (generatedPython || "").split("\n");
+
+  return (
+    <div className="activity-app-container">
+      <header className="activity-topbar">
+        <div className="activity-back-btn" onClick={() => navigate('/learning-path')}>
+          <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
+        </div>
+
+        <div className="activity-toggle-group">
+          <button className={`activity-toggle-btn ${viewMode === 'workspace' ? 'active' : ''}`} onClick={() => setViewMode('workspace')}>Workspace</button>
+          <button className={`activity-toggle-btn ${viewMode === 'python' ? 'active' : ''}`} onClick={() => setViewMode('python')}>Python Code</button>
+        </div>
+
+        <div className="activity-actions" style={{ display: 'flex', gap: '10px' }}>
+          <button className="activity-action-btn" onClick={handleActivityRun} style={{ backgroundColor: '#2D234A', border: '1px solid #6C5CE7', color: '#EBE4FF', opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }} title="Run code in console without submitting to test cases">
+            {isEvaluating ? "..." : "▷ Run Code"}
+          </button>
+          <button className="activity-action-btn run-btn" onClick={runTestCases} style={{ opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }}>
+            {isEvaluating ? "..." : "▶ Run Tests"}
+          </button>
+        </div>
+      </header>
+
+      <Split className={`activity-main-layout ${!isLeftPanelVisible ? 'left-hidden' : ''}`} sizes={[25, 50, 25]} minSize={[isLeftPanelVisible ? 250 : 0, 400, 250]} gutterSize={8}>
+        <aside className="activity-left-panel">
+          <div className="activity-panel-header">
+            <h2><img src="/assets/console-icon.png" alt="Icon" style={{ width: '24px' }} /> Description</h2>
+          </div>
+
+          <div className="activity-panel-content">
+            <div className="activity-task-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', marginTop: '10px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#2b005c', fontWeight: 'bold' }}>{currentTask?.title || activityData.title || "Activity"}</h2>
+              <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: currentTask?.difficulty === 'Easy' ? 'rgba(0, 184, 163, 0.15)' : currentTask?.difficulty === 'Medium' ? 'rgba(255, 192, 30, 0.15)' : 'rgba(255, 55, 95, 0.15)', color: currentTask?.difficulty === 'Easy' ? '#00b8a3' : currentTask?.difficulty === 'Medium' ? '#ffc01e' : '#ff375f' }}>
+                {currentTask?.difficulty || "Easy"}
+              </span>
+            </div>
+
+            <div className="activity-card" style={{ lineHeight: '1.7', fontSize: '0.95rem', backgroundColor: 'transparent', border: 'none', padding: '0', color: '#2f2f2f' }}>
+              {renderFormattedTask(currentTask?.task || (typeof activityData.task === "string" ? activityData.task : "Complete the algorithm requested in the workspace."))}
+            </div>
+          </div>
+        </aside>
+
+        <main className="workspace-main activity-center-panel">
+          <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? 'closed' : ''}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}>
+            <span className="toggle-icon">{isLeftPanelVisible ? '❮' : '❯'}</span>
+          </button>
+
+          <div className="editor-container" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            <div className={viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'} style={{ display: viewMode === 'workspace' ? 'block' : 'none', height: '100%' }}>
+              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} templatePath={initialTemplate} syntaxError={syntaxError} />
+            </div>
+
+            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ display: viewMode === 'python' ? 'flex' : 'none', flexDirection: 'column', height: '100%', background: '#1C1236' }}>
+              <div className="python-header" style={{ padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
+                <span className="python-sync-status" style={{ color: '#EBE4FF', fontSize: '0.85rem' }}>{isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
+                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`} style={{ padding: '5px 12px', borderRadius: '4px', cursor: isEditingCode ? 'pointer' : 'not-allowed', backgroundColor: isEditingCode ? '#6C5CE7' : '#444', color: 'white', border: 'none' }}>
+                  Sync to Blocks ↻
+                </button>
+              </div>
+
+              {/* --- MONACO VSCODE EDITOR INTEGRATION --- */}
+              <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+                {syntaxError && (
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>⚠️ Syntax Error on line {syntaxError.line}: {syntaxError.message}</span>
+                    <button onClick={() => setSyntaxError(null)} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                  </div>
+                )}
+                
+                <Editor
+                  height="100%"
+                  language="python"
+                  theme="algoblocks-purple"
+                  beforeMount={handleEditorWillMount}
+                  value={generatedPython}
+                  onChange={(value) => {
+                    setGeneratedPython(value || "");
+                    setIsEditingCode(true);
+                    if (syntaxError) setSyntaxError(null);
+                  }}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 15,
+                    fontFamily: "'Fira Code', Consolas, Monaco, monospace",
+                    scrollBeyondLastLine: false,
+                    smoothScrolling: true,
+                    cursorBlinking: "smooth",
+                    formatOnPaste: true,
+                    suggestOnTriggerCharacters: true,
+                    wordWrap: "on",
+                    padding: { top: 16 }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {bottomPanel && (
+            <div className="bottom-hover-panel" style={{ height: `${panelHeight}px` }}>
+              <div className="panel-resizer" onMouseDown={handleDragStart}>
+                <div className="resizer-dash"></div>
+              </div>
+
+              <div className="panel-header">
+                <span className="panel-title">{bottomPanel === 'console' ? 'Console Output' : 'Complexity Analysis'}</span>
+                <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
+              </div>
+
+              <div className="panel-body">
+                {bottomPanel === 'console' ? (
+                  <div className="console-container">
+                    <pre className="console-output">{consoleOutput}</pre>
+                    {isWaitingForInput && (
+                      <div className="console-input-line">
+                        <span className="console-cursor">❯</span>
+                        <input
+                          autoFocus
+                          value={userInput}
+                          onChange={(e) => setUserInput(e.target.value)}
+                          onKeyDown={handleSendInput}
+                          className="console-input-field"
+                          placeholder="Type here and press Enter..."
+                        />
+                      </div>
+                    )}
+                    <div ref={consoleEndRef} />
+                  </div>
+                ) : (
+                  <div className="complexity-content">
+                    <div className="complexity-tabs">
+                      <div className="tab-btn-group">
+                        <button onClick={() => { setActiveTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>Local Complexity</button>
+                        <button onClick={() => { setActiveTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'global' ? 'active' : ''}`}>Global Complexity</button>
+                      </div>
+                      <div className="total-badge-group">
+                        <span className="total-badge"><span className="total-label">Total Time:</span> <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>{formatComplexity(analysisResult.total)}</span></span>
+                        <span className="total-badge" style={{ backgroundColor: 'rgba(0, 184, 163, 0.15)', color: '#00b8a3', border: '1px solid rgba(0, 184, 163, 0.3)' }}><span className="total-label" style={{ color: '#00b8a3' }}>Total Space:</span> <span style={{ fontSize: "20px", fontWeight: "bold" }}>{formatComplexity(analysisResult.space_total)}</span></span>
+                        <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold" }}>{analysisTime} ms</span></span>
+                      </div>
+                    </div>
+                    <div className="complexity-table-wrapper">
+                      <table className="complexity-table">
+                        <thead>
+                          <tr>
+                            <th>Line of Code</th>
+                            <th>Operation</th>
+                            <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
+                            <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analysisResult.lines.map((line, i) => {
+                            const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
+                            const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
+                            const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
+                            const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
+                            const timeColor = getComplexityColor(timeComplexity);
+                            const spaceColor = getComplexityColor(spaceComplexity);
+                            const isBottleneck = actualBottleneckIndices.includes(i);
+
+                            let execCount = 0;
+                            const lineTextStr = (line.lineOfCode || line.code || "").trim();
+                            let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
+                            if (matchedIdx !== -1) {
+                                execCount = lineExecutions[matchedIdx + 1] || 0;
+                                searchStartIndex = matchedIdx + 1; 
+                            } else {
+                                matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
+                                if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
+                            }
+
+                            return (
+                              <React.Fragment key={i}>
+                                <tr
+                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
+                                  onClick={() => toggleLine(i)}
+                                  style={{
+                                    cursor: 'pointer',
+                                    borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                    backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
+                                  }}
+                                  title="Click to view explanation"
+                                >
+                                  <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
+                                    {line.lineOfCode || line.code}
+
+                                    {execCount > 0 && (
+                                      <span style={{
+                                        marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
+                                        borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                        boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
+                                      }} title={`Executed ${execCount} times during the last run`}>
+                                        <span style={{fontSize: '0.75rem'}}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {line.operation || '-'}
+
+                                    {isBottleneck && (
+                                      <span style={{
+                                        backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
+                                        borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
+                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
+                                      }} title="Highest computational weight detected">
+                                        🔥 Bottleneck
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
+                                    {formatComplexity(timeComplexity)}
+                                  </td>
+                                  <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
+                                    {formatComplexity(spaceComplexity)}
+                                    <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                                      ▶
+                                    </span>
+                                  </td>
+                                </tr>
+
+                                {expandedLines[i] && (
+                                  <tr className="explanation-row">
+                                    <td colSpan="4" style={{ padding: 0, border: 'none' }}>
+                                      <div
+                                        className="explanation-content"
+                                        style={{
+                                          borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
+                                          margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
+                                        }}
+                                      >
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                            <div>
+                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
+                                            </div>
+                                          </div>
+                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                            <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                          </div>
+                                        </div>
+
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                            <div>
+                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
+                                            </div>
+                                          </div>
+                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                            <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                          </div>
+                                        </div>
+
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <footer className="workspace-footer">
+            <div className="footer-left">
+              <button
+                className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`}
+                onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}
+              >
+                <img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console
+              </button>
+              <button
+                className={`footer-tab ${bottomPanel === 'complexity' ? 'active' : ''}`}
+                onClick={() => setBottomPanel(bottomPanel === 'complexity' ? null : 'complexity')}
+              >
+                <img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity
+              </button>
+              <button
+                className="footer-tab big-o-btn"
+                onClick={() => setIsBigOModalOpen(true)}
+              >
+                <img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference
+              </button>
+            </div>
+
+            <div className="footer-right">
+              <button className="footer-action-icon" onClick={() => {
+                setModalConfig({
+                  isOpen: true,
+                  title: "Restart Activity?",
+                  message: "Are you sure you want to restart this activity? Your progress will be lost.",
+                  confirmText: "Restart",
+                  isDanger: true,
+                  onConfirmAction: () => {
+                    window.location.reload();
+                  }
+                });
+              }} title="Restart Activity">
+                <img src="/assets/recursive-icon.png" alt="Restart" />
+              </button>
+            </div>
+          </footer>
+        </main>
+
+        <aside className="activity-right-panel">
+          <div className="activity-panel-header">
+            <h3>Test Cases</h3>
+            <span className="test-cases-counter">{passedTests}/{totalTests} passed</span>
+          </div>
+
+          <div className="activity-panel-content">
+            {activityData.testCasesList?.map((tc, i) => {
+              const testIdentifier = `Test ${i + 1}`;
+              const isPassing = consoleOutput.includes(`${testIdentifier}: PASSED`);
+              const isFailing = consoleOutput.includes(`${testIdentifier}: FAILED`);
+              const isError = consoleOutput.includes(`${testIdentifier}: ERROR`);
+
+              const isExpanded = expandedTests[i];
+              const statusClass = isPassing ? 'passing' : (isFailing || isError) ? 'failing' : '';
+
+              return (
+                <div key={i} className={`test-case-card ${statusClass}`}>
+
+                  <div className="test-case-header" onClick={() => toggleTest(i)}>
+                    <div className="test-case-header-left">
+                      <div className={`test-case-indicator ${statusClass}`}></div>
+                      <strong className="test-case-title">Test {i + 1}</strong>
+                    </div>
+                    <span className={`test-case-chevron ${isExpanded ? 'open' : ''}`}>❯</span>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="test-case-details">
+                      <div className="test-case-row">
+                        <span className="test-case-label">Input:</span>
+                        <code className="test-case-code">{tc.call}</code>
+                      </div>
+                      <div className="test-case-row">
+                        <span className="test-case-label">Expected Output:</span>
+                        <code className="test-case-code">{tc.expected}</code>
+                      </div>
+
+                      {(isPassing || isFailing || isError) && (
+                        <div className="test-case-status-row">
+                          <span className="test-case-label">Result:</span>
+                          <span style={{ fontWeight: 'bold', color: isPassing ? '#27AE60' : '#e74c3c' }}>
+                            {isPassing ? 'Passed' : isFailing ? 'Failed (Incorrect Output)' : 'Failed (Syntax Error)'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+
+      </Split>
+
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        isDanger={modalConfig.isDanger}
+        onCancel={closeModal}
+        onConfirm={modalConfig.onConfirmAction}
+      />
+
+      <BigOModal
+        isOpen={isBigOModalOpen}
+        onClose={() => setIsBigOModalOpen(false)}
+      />
+
+    </div>
+  );
+};
+
+export default ActivityApp;
