@@ -19,5 +19,15 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py,json}']
       }
     })
-  ]
+  ],
+  // FIX: Route API requests from the frontend to the Python backend
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000', // Change to 5000 if using Flask
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 })
