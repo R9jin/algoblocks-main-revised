@@ -80,9 +80,10 @@ export default function MainApp() {
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
 
-  // --- Analysis Speed Timing ---
+  // --- Frequency & Speed Timing ---
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const analysisStartTimeRef = useRef(0);
+  const [lineExecutions, setLineExecutions] = useState({}); // Tracking runtime execution hits
 
   // --- Unified Template List State ---
   const [allTemplates, setAllTemplates] = useState([]);
@@ -130,7 +131,7 @@ export default function MainApp() {
     if (!workerRef.current) return;
 
     workerRef.current.onmessage = (event) => {
-      const { type, data } = event.data;
+      const { type, data, counts } = event.data;
 
       if (type === 'ANALYZE_RESULT') {
         const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
@@ -153,6 +154,9 @@ export default function MainApp() {
 
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
+        
+        // Save the Instruction Frequency trace
+        if (counts) setLineExecutions(counts);
 
         setIsEvaluating(false);
         setIsWaitingForInput(false);
@@ -212,7 +216,6 @@ export default function MainApp() {
     initWorker();
 
     return () => {
-      // DO NOT terminate the worker here, keep it alive for the rest of the app
       clearTimeout(runTimeoutRef.current);
       clearInterval(renderIntervalRef.current);
     };
@@ -296,6 +299,7 @@ export default function MainApp() {
     try {
       setAnalysisResult({ lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false });
       setAnalysisTime("...");
+      setLineExecutions({});
       let json;
       if (item.isSystem) {
         const response = await fetch(`/templates/${item.path}.json`);
@@ -330,6 +334,7 @@ export default function MainApp() {
   const handleBlocklyChange = (json, pythonCode) => {
     if (!isEditingCode) setGeneratedPython(pythonCode);
     setBlocklyJson(json);
+    setLineExecutions({}); // Reset execution counts on code mutation
 
     if (workerRef.current && pythonCode.trim() !== "") {
       analysisStartTimeRef.current = performance.now();
@@ -365,6 +370,7 @@ export default function MainApp() {
           setGeneratedPython("# Drag blocks to generate Python code");
           setBlocklyJson(null); setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
           setAnalysisTime("0.0");
+          setLineExecutions({});
           setBottomPanel(null); setExpandedLines({}); setSyntaxError(null);
           setCurrentLoadedId(null); setCurrentProjectTitle("Untitled Project");
           setCurrentSaveType("project");
@@ -485,6 +491,7 @@ export default function MainApp() {
     clearInterval(renderIntervalRef.current);
 
     setIsEvaluating(true);
+    setLineExecutions({}); // Reset hits tracker for new run
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
 
@@ -571,13 +578,12 @@ export default function MainApp() {
   const consoleEndRef = useRef(null);
   useEffect(() => { if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [consoleOutput, isWaitingForInput]);
 
-  // --- Identify Bottlenecks Dynamically Based on Active Tab ---
+  // --- Identify Bottlenecks & Execution Sliders ---
   const lines = analysisResult?.lines || [];
   let maxWeight = 0;
   let bottleneckIndices = [];
 
   lines.forEach((line, index) => {
-    // Bottleneck checks whether user is currently looking at Local or Global time
     const targetComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
     const weight = getComplexityWeight(targetComplexity);
     
@@ -589,8 +595,11 @@ export default function MainApp() {
     }
   });
 
-  // Only flag lines as bottlenecks if they are worse than O(1)
   const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
+  
+  // Prepare split mapping for execution counts
+  let searchStartIndex = 0;
+  const pythonLines = (generatedPython || "").split("\n");
 
   return (
     <div className="workspace-app-container">
@@ -765,28 +774,29 @@ export default function MainApp() {
                         </thead>
                         <tbody>
                           {analysisResult.lines.map((line, i) => {
-                            // Extract complexities for graphs and colors
-                            const timeComplexity = activeTab === 'local'
-                              ? (line.local_time || "O(1)")
-                              : (line.global_time || "O(1)");
-
-                            const spaceComplexity = activeTab === 'local'
-                              ? (line.local_space || "O(1)")
-                              : (line.global_space || "O(1)");
-
-                            // Extract explanations from the Semantic NLG output
+                            const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
+                            const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
                             const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
                             const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
-
                             const timeColor = getComplexityColor(timeComplexity);
                             const spaceColor = getComplexityColor(spaceComplexity);
-
-                            // CHECK IF CURRENT LINE IS THE BOTTLENECK
                             const isBottleneck = actualBottleneckIndices.includes(i);
+
+                            // Map actual line execution frequency 
+                            let execCount = 0;
+                            const lineTextStr = (line.lineOfCode || line.code || "").trim();
+                            let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
+                            if (matchedIdx !== -1) {
+                                execCount = lineExecutions[matchedIdx + 1] || 0;
+                                searchStartIndex = matchedIdx + 1; // Slide window forward to handle identical duplicate lines correctly
+                            } else {
+                                // Fallback lookup
+                                matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
+                                if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
+                            }
 
                             return (
                               <React.Fragment key={i}>
-                                {/* Main Clickable Row */}
                                 <tr
                                   className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
                                   onClick={() => toggleLine(i)}
@@ -799,6 +809,26 @@ export default function MainApp() {
                                 >
                                   <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
+                                    
+                                    {/* DYNAMIC EXECUTION FREQUENCY BADGE */}
+                                    {execCount > 0 && (
+                                      <span style={{
+                                        marginLeft: '12px',
+                                        backgroundColor: '#8e44ad',
+                                        color: '#fff',
+                                        fontSize: '0.65rem',
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        fontWeight: 'bold',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)',
+                                        verticalAlign: 'middle'
+                                      }} title={`Executed ${execCount} times during the last run`}>
+                                        <span style={{fontSize: '0.75rem'}}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {line.operation || '-'}
