@@ -13,20 +13,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from bson import ObjectId
 
-# Ensure the local directory is in the path to fix ModuleNotFoundError
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# ✅ KEEP but safer (ensures current dir is included)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # ✅ CHANGED
 
-# Robust imports to support running from root OR directly inside analyzer_engine
+# =========================
+# ✅ FIXED IMPORT HANDLING
+# =========================
 try:
-    from analyzer_engine.blockly_ast import BlocklyASTConverter
-    from analyzer_engine.database import projects_collection, users_collection, templates_collection
-    from analyzer_engine.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
-    from analyzer_engine.analyzer import ComplexityAnalyzer
+    # ✅ Case 1: running from project root
+    from api.blockly_ast import BlocklyASTConverter
+    from api.database import projects_collection, users_collection, templates_collection
+    from api.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
+    from api.analyzer import ComplexityAnalyzer
+
 except ModuleNotFoundError:
-    from blockly_ast import BlocklyASTConverter
-    from database import projects_collection, users_collection, templates_collection
-    from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
-    from analyzer import ComplexityAnalyzer
+    try:
+        # ✅ Case 2: running inside /api folder
+        from blockly_ast import BlocklyASTConverter  # ✅ FIXED
+        from database import projects_collection, users_collection, templates_collection  # ✅ FIXED
+        from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  # ✅ FIXED
+        from analyzer import ComplexityAnalyzer  # ✅ FIXED
+    except ModuleNotFoundError as e:
+        raise RuntimeError(f"Import failed: {e}")  # ✅ DEBUG FRIENDLY
 
 app = FastAPI()
 
@@ -77,10 +85,11 @@ def safe_exec(code: str, globals_dict: dict):
     safe_builtins = builtins.__dict__.copy()
     safe_builtins["print"] = print
     safe_builtins["input"] = globals_dict.get("input", input)
+
     exec(code, {
         "__builtins__": safe_builtins  
     })
-    
+
 @app.get("/")
 def health_check():
     return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
@@ -181,6 +190,8 @@ def update_template(template_id: str, payload: TemplateUpdate):
         raise HTTPException(404, "Template not found")
 
     return {"status": "success"}
+
+# (rest of your code unchanged — already correct)
 
 # =========================
 # CLOUD SYNC: AUTH & PROGRESS
