@@ -551,17 +551,20 @@
   justify-content: center;
   width: 100%;
   padding-bottom: 20px;
+  overflow-x: auto;
 }
 
 .complexity-table {
   width: 100%;
-  max-width: 750px;
+  min-width: 500px;
+  max-width: 1000px;
   border-collapse: collapse;
   font-size: 0.8rem;
   background: #e7e7e7;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-align: left;
 }
 
 .complexity-table th {

@@ -673,8 +673,8 @@
 
 .complexity-table {
   width: 100%;
-  min-width: 800px;
-  max-width: 750px;
+  min-width: 500px;
+  max-width: 1000px;
   border-collapse: collapse;
   font-size: 0.8rem;
   background: #e7e7e7;
