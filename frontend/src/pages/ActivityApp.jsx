@@ -8,6 +8,9 @@ import ConfirmModal from "../components/ConfirmModal.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
+// --- IMPORT MONACO EDITOR ---
+import Editor from "@monaco-editor/react";
+
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
@@ -296,19 +299,17 @@ const renderFormattedTask = (text) => {
   return <div dangerouslySetInnerHTML={{ __html: formattedHtml }} />;
 };
 
-// Helper function to color-code Big O notation
 const getComplexityColor = (complexity) => {
   const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#2ecc71"; // Green
-  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
-  if (comp.includes("n log n")) return "#e67e22"; // Orange
-  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
-  return "#95a5a6"; // Gray
+  if (comp.includes("o(1)")) return "#2ecc71"; 
+  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; 
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; 
+  if (comp.includes("n log n")) return "#e67e22"; 
+  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; 
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; 
+  return "#95a5a6"; 
 };
 
-// Helper function to rank computational weight for bottlenecks
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
   if (comp.includes("o(1)")) return 1;
@@ -325,16 +326,12 @@ const getComplexityWeight = (complexity) => {
 const ActivityApp = () => {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "";
 
-  // =========================================================
-  // 1. ROUTING + REFS
-  // =========================================================
   const location = useLocation();
   const navigate = useNavigate();
 
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
 
-  // Web Worker & Output Buffering Refs
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
   const outputCountRef = useRef(0);
@@ -345,17 +342,11 @@ const ActivityApp = () => {
   const hasLoadedRef = useRef(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
-  // =========================================================
-  // 2. DERIVED DATA
-  // =========================================================
   const activityData = location.state?.activityData || null;
   const initialTemplate = location.state?.templatePath || location.state?.activityData?.templatePath || "";
   const currentTask = ACTIVITY_TASKS.find((t) => t.templatePath === initialTemplate);
   const totalTests = activityData?.testCasesList?.length || 0;
 
-  // =========================================================
-  // 3. UI STATE
-  // =========================================================
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("");
   const [viewMode, setViewMode] = useState("workspace");
@@ -369,24 +360,13 @@ const ActivityApp = () => {
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
 
-  const [analysisResult, setAnalysisResult] = useState({
-    lines: [],
-    total: "O(1)",
-    space_total: "O(1)",
-    is_recursive: false,
-  });
+  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
 
-  const [analysisTime, setAnalysisTime] = useState("0.0"); // NEW
-  const analysisStartTimeRef = useRef(0); // NEW
+  const [analysisTime, setAnalysisTime] = useState("0.0"); 
+  const analysisStartTimeRef = useRef(0); 
+  const [lineExecutions, setLineExecutions] = useState({}); 
 
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    confirmText: "Confirm",
-    isDanger: false,
-    onConfirmAction: null,
-  });
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
 
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [syntaxError, setSyntaxError] = useState(null);
@@ -396,24 +376,18 @@ const ActivityApp = () => {
 
   const [panelHeight, setPanelHeight] = useState(300);
 
-  // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
     if (!workerRef.current) return;
 
     workerRef.current.onmessage = (event) => {
-      const { type, data } = event.data;
+      const { type, data, counts } = event.data;
 
       if (type === 'ANALYZE_RESULT') {
         const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
         setAnalysisTime(duration);
 
         if (data.status === "success") {
-          setAnalysisResult({
-            total: data.total,
-            space_total: data.space_total || "O(1)",
-            lines: data.lines || [],
-            is_recursive: data.is_recursive || false
-          });
+          setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           setSyntaxError(null);
         } else {
           setSyntaxError({ line: data.line, message: data.message });
@@ -421,14 +395,15 @@ const ActivityApp = () => {
       }
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current); // Stop buffer loop
+        clearInterval(renderIntervalRef.current); 
 
-        // Cache exactly what is in the buffer BEFORE React batches the update!
         const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = ""; // Reset buffer securely
+        pendingOutputRef.current = ""; 
 
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
+        
+        if (counts) setLineExecutions(counts);
 
         setIsEvaluating(false);
         setIsWaitingForInput(false);
@@ -437,7 +412,6 @@ const ActivityApp = () => {
         outputCountRef.current += 1;
         pendingOutputRef.current += data;
 
-        // 🚨 FLOOD GATE: Raised to 5000 to prevent false positives
         if (outputCountRef.current > 5000) {
           clearTimeout(runTimeoutRef.current);
           clearInterval(renderIntervalRef.current);
@@ -459,9 +433,8 @@ const ActivityApp = () => {
       }
       else if (type === 'INPUT_REQUEST') {
         clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current); // Pause rendering
+        clearInterval(renderIntervalRef.current); 
 
-        // Flush buffer + prompt to screen
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
@@ -483,28 +456,19 @@ const ActivityApp = () => {
   };
 
   useEffect(() => {
-    // Mount the pre-warmed shared worker
     workerRef.current = sharedAnalyzerWorker;
     initWorker();
-
     return () => {
       clearTimeout(runTimeoutRef.current);
       clearInterval(renderIntervalRef.current);
     };
   }, []);
 
-  // =========================================================
-  // 4. UI HELPERS
-  // =========================================================
   const toggleLine = (index) => {
-    setExpandedLines((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
+    setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
   };
 
-  const closeModal = () =>
-    setModalConfig({ ...modalConfig, isOpen: false });
+  const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
   const handleDragStart = (e) => {
     e.preventDefault();
@@ -512,10 +476,6 @@ const ActivityApp = () => {
     document.body.style.cursor = "ns-resize";
     document.body.style.userSelect = "none";
   };
-
-  // =========================================================
-  // 5. EFFECTS (LIFECYCLE)
-  // =========================================================
 
   useEffect(() => {
     if (!activityData) navigate("/learning-path");
@@ -535,24 +495,20 @@ const ActivityApp = () => {
         setPanelHeight(newHeight);
       }
     };
-
     const handleMouseUp = () => {
       if (!isDragging.current) return;
       isDragging.current = false;
       document.body.style.cursor = "default";
       document.body.style.userSelect = "auto";
     };
-
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
-
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
 
-  // analysis effect (Offline Worker Version)
   useEffect(() => {
     if (!isEditingCode || !workerRef.current) return;
     const timeoutId = setTimeout(() => {
@@ -574,23 +530,16 @@ const ActivityApp = () => {
     return () => clearTimeout(timer);
   }, [initialTemplate, activityData]);
 
-  // =========================================================
-  // 6. CORE FUNCTIONS
-  // =========================================================
-
   const saveLessonProgress = async (lessonId, score) => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return;
-
     const user = JSON.parse(storedUser);
 
-    // Update offline progress instantly
     if (!user.progress) user.progress = {};
     user.progress[lessonId] = Math.max(user.progress[lessonId] || 0, score);
     localStorage.setItem("user", JSON.stringify(user));
 
     try {
-      // Fire-and-forget sync to the cloud
       fetch(`${VERCEL_URL}/api/update-progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -603,29 +552,18 @@ const ActivityApp = () => {
 
   const handleSuccess = (passed, total) => {
     setModalConfig({
-      isOpen: true,
-      title: "Activity Completed! 🎉",
-      message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.`,
-      confirmText: "Return to Dashboard",
-      isDanger: false,
-      onConfirmAction: () => {
-        closeModal();
-        navigate("/learning-path");
-      },
+      isOpen: true, title: "Activity Completed! 🎉", message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.`, confirmText: "Return to Dashboard", isDanger: false,
+      onConfirmAction: () => { closeModal(); navigate("/learning-path"); },
     });
   };
 
   const loadActivityTemplate = async (path, dataFromState) => {
     try {
       let json = null;
-
       if (dataFromState && dataFromState.blocks) {
         json = dataFromState;
       } else if (path) {
-        const fetchUrl = path.startsWith("activities/")
-          ? `/${path}.json`
-          : `/templates/${path}.json`;
-
+        const fetchUrl = path.startsWith("activities/") ? `/${path}.json` : `/templates/${path}.json`;
         const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error(`404: ${fetchUrl}`);
         json = await response.json();
@@ -635,37 +573,23 @@ const ActivityApp = () => {
 
       const tryLoad = (retries = 15) => {
         if (!workspaceRef.current) {
-          if (retries > 0) {
-            setTimeout(() => tryLoad(retries - 1), 100);
-          } else {
-            console.error("❌ Workspace took too long to initialize.");
-          }
+          if (retries > 0) setTimeout(() => tryLoad(retries - 1), 100);
           return;
         }
-
         try {
           if (workspaceRef.current.clear) workspaceRef.current.clear();
-          const payload = json.data ? json.data : json;
-          workspaceRef.current.loadTemplate(payload);
-
+          workspaceRef.current.loadTemplate(json.data ? json.data : json);
           setViewMode("workspace");
           setIsEditingCode(false);
-        } catch (err) {
-          console.error("❌ Error applying template:", err);
-        }
+        } catch (err) {}
       };
-
       tryLoad();
-
-    } catch (error) {
-      console.error("Failed to load template:", error);
-    }
+    } catch (error) {}
   };
 
   const handleWorkspaceChange = async (json, pythonCode) => {
-    if (!isEditingCode) {
-      setGeneratedPython(pythonCode);
-    }
+    if (!isEditingCode) setGeneratedPython(pythonCode);
+    setLineExecutions({}); 
 
     if (workerRef.current && pythonCode.trim() !== "") {
       analysisStartTimeRef.current = performance.now();
@@ -680,20 +604,13 @@ const ActivityApp = () => {
         setIsEditingCode(false);
         setViewMode("workspace");
       } catch (e) {
-        setModalConfig({
-          isOpen: true,
-          title: "Sync Error",
-          message: "Cannot sync to blocks until syntax errors are fixed.",
-          confirmText: "Close",
-          isDanger: true,
-          onConfirmAction: closeModal,
-        });
+        setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
       }
     }
   };
 
   const handleActivityRun = () => {
-    if (isEvaluating) return; // Prevent concurrent evaluation triggers 
+    if (isEvaluating) return; 
 
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
@@ -701,11 +618,11 @@ const ActivityApp = () => {
       return;
     }
 
-    // Explicitly wipe existing intervals in case user spammed Run Code
     clearTimeout(runTimeoutRef.current);
     clearInterval(renderIntervalRef.current);
 
     setIsEvaluating(true);
+    setLineExecutions({}); 
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
 
@@ -714,7 +631,6 @@ const ActivityApp = () => {
 
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
-        // Securely capture and clear before rendering to prevent dropped letters
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed);
@@ -723,12 +639,10 @@ const ActivityApp = () => {
 
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
-    // Infinite Loop Safety Timeout (Extended to 10s to allow AST parsing to clear out of worker queue first)
     runTimeoutRef.current = setTimeout(() => {
       workerRef.current.terminate();
       clearInterval(renderIntervalRef.current);
 
-      // Recover with a new local engine so the app doesn't break
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
       workerRef.current.postMessage({ type: 'INIT_ENGINE' });
       initWorker();
@@ -752,7 +666,6 @@ const ActivityApp = () => {
       setUserInput("");
       setIsWaitingForInput(false);
 
-      // ⏱️ RESUME FLUSHER
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
           const flushed = pendingOutputRef.current;
@@ -761,12 +674,10 @@ const ActivityApp = () => {
         }
       }, 100);
 
-      // Resume infinite loop timeout after input is provided (Extended to 10s)
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
         clearInterval(renderIntervalRef.current);
 
-        // Recover with a new local engine
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' });
         initWorker();
@@ -781,21 +692,14 @@ const ActivityApp = () => {
     }
   };
 
-  const toggleTest = (index) => {
-    setExpandedTests((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
-  };
+  const toggleTest = (index) => { setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] })); };
 
   const runTestCases = async () => {
     if (isEvaluating) return;
 
     const testCases = currentTask?.testCasesList || activityData?.testCasesList;
-
     if (!testCases) return;
 
-    // --- PRE-FLIGHT CHECK ---
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
@@ -803,6 +707,7 @@ const ActivityApp = () => {
     }
 
     setIsEvaluating(true);
+    setLineExecutions({}); 
     setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
     setBottomPanel("console");
 
@@ -815,14 +720,12 @@ const ActivityApp = () => {
       return;
     }
 
-    // ------------------------
     setBottomPanel("console");
     setConsoleOutput("> Running Tests...\n");
     setPassedTests(0);
 
     let passed = 0;
     const total = testCases.length;
-
     let fullOutput = "> --- Running Test Cases ---\n";
 
     for (let i = 0; i < total; i++) {
@@ -833,9 +736,7 @@ const ActivityApp = () => {
       const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
 
       if (isFunctionCall && !isIntroLevel) {
-        codeToRun =
-          generatedPython +
-          `\n\ntry:\n    assert ${tc.call} == ${tc.expected}\n    print("TEST_PASSED_FLAG")\nexcept:\n    print("TEST_ERROR_FLAG")`;
+        codeToRun = generatedPython + `\n\ntry:\n    assert ${tc.call} == ${tc.expected}\n    print("TEST_PASSED_FLAG")\nexcept:\n    print("TEST_ERROR_FLAG")`;
       } else {
         codeToRun = `${generatedPython}\n${tc.call || ""}`;
       }
@@ -843,33 +744,17 @@ const ActivityApp = () => {
       try {
         const rawOutput = await executeTestOffline(codeToRun);
         const actualOutput = rawOutput.trim();
-
-        const expected = String(tc.expected)
-          .replace(/^['"]|['"]$/g, "")
-          .replace(/\\n/g, "\n")
-          .trim();
-
+        const expected = String(tc.expected).replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n").trim();
         let testPassed = false;
 
         if (isFunctionCall && !isIntroLevel) {
-          if (actualOutput.includes("TEST_PASSED_FLAG")) {
-            passed++;
-            testPassed = true;
-          }
+          if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; testPassed = true; }
         } else {
-          if (actualOutput.trim() === expected) {
-            passed++;
-            testPassed = true;
-          }
+          if (actualOutput.trim() === expected) { passed++; testPassed = true; }
         }
 
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
-
-        if (!testPassed) {
-          fullOutput += `   Expected: ${expected}\n`;
-          fullOutput += `   Actual: ${actualOutput}\n`;
-        }
-
+        if (!testPassed) { fullOutput += `   Expected: ${expected}\n   Actual: ${actualOutput}\n`; }
         fullOutput += `\n`;
 
         setConsoleOutput(fullOutput);
@@ -878,77 +763,66 @@ const ActivityApp = () => {
         const lessonId = initialTemplate?.split("/").pop() || "unknown";
         saveLessonProgress(lessonId, passed);
 
-        if (passed === total && total > 0) {
-          handleSuccess(passed, total);
-        }
-
+        if (passed === total && total > 0) handleSuccess(passed, total);
       } catch (err) {
-        fullOutput += `Test ${i + 1}: ERROR\n`;
-        fullOutput += `   Message: ${err.message}\n\n`;
-
+        fullOutput += `Test ${i + 1}: ERROR\n   Message: ${err.message}\n\n`;
         setConsoleOutput(fullOutput);
       }
     }
-
     setIsEvaluating(false);
   };
 
   const executeTestOffline = (codeToRun) => {
     return new Promise((resolve, reject) => {
       let outputAccumulator = "";
-
       const timeout = setTimeout(() => {
         workerRef.current.terminate();
-
-        // Recover with a new local engine 
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); // Pre-warm
-        initWorker(); // Restore standard component listener
-
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); 
+        initWorker(); 
         reject(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
-      }, 10000); // Increased to 10s
+      }, 10000); 
 
-      // Temporarily override the main worker listener for the duration of this specific execution
       workerRef.current.onmessage = (event) => {
-        const { type, data } = event.data;
+        const { type, data, counts } = event.data;
         if (type === 'OUTPUT') {
           outputAccumulator += data;
         } else if (type === 'RUN_RESULT') {
           clearTimeout(timeout);
           outputAccumulator += (data !== undefined && data !== null) ? data : "";
-          initWorker(); // Release control back to standard component listener
+          if (counts) {
+              setLineExecutions(prev => {
+                  const next = { ...prev };
+                  for (const [key, val] of Object.entries(counts)) { next[key] = (next[key] || 0) + val; }
+                  return next;
+              });
+          }
+          initWorker(); 
           resolve(outputAccumulator);
         } else if (type === 'ERROR') {
           clearTimeout(timeout);
-          initWorker(); // Release control back to standard component listener
+          initWorker(); 
           reject(new Error(data));
         }
       };
-
       workerRef.current.postMessage({ type: 'RUN_CODE', code: codeToRun });
     });
   };
 
-  // --- Identify Bottlenecks (Dynamic Based on activeTab) ---
   const lines = analysisResult?.lines || [];
   let maxWeight = 0;
   let bottleneckIndices = [];
 
   lines.forEach((line, index) => {
-    // Bottlenecks are determined dynamically based on the current active tab
     const timeToEvaluate = activeTab === 'local' ? line.local_time : line.global_time;
     const weight = getComplexityWeight(timeToEvaluate);
-    
-    if (weight > maxWeight) {
-      maxWeight = weight;
-      bottleneckIndices = [index];
-    } else if (weight === maxWeight && weight > 0) {
-      bottleneckIndices.push(index);
-    }
+    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; } 
+    else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
   });
 
-  // Only flag lines as bottlenecks if they are worse than O(1)
   const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
+  let searchStartIndex = 0;
+  const pythonLines = (generatedPython || "").split("\n");
 
   return (
     <div className="activity-app-container">
@@ -958,27 +832,12 @@ const ActivityApp = () => {
         </div>
 
         <div className="activity-toggle-group">
-          <button
-            className={`activity-toggle-btn ${viewMode === 'workspace' ? 'active' : ''}`}
-            onClick={() => setViewMode('workspace')}
-          >
-            Workspace
-          </button>
-          <button
-            className={`activity-toggle-btn ${viewMode === 'python' ? 'active' : ''}`}
-            onClick={() => setViewMode('python')}
-          >
-            Python Code
-          </button>
+          <button className={`activity-toggle-btn ${viewMode === 'workspace' ? 'active' : ''}`} onClick={() => setViewMode('workspace')}>Workspace</button>
+          <button className={`activity-toggle-btn ${viewMode === 'python' ? 'active' : ''}`} onClick={() => setViewMode('python')}>Python Code</button>
         </div>
 
         <div className="activity-actions" style={{ display: 'flex', gap: '10px' }}>
-          <button
-            className="activity-action-btn"
-            onClick={handleActivityRun}
-            style={{ backgroundColor: '#2D234A', border: '1px solid #6C5CE7', color: '#EBE4FF', opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }}
-            title="Run code in console without submitting to test cases"
-          >
+          <button className="activity-action-btn" onClick={handleActivityRun} style={{ backgroundColor: '#2D234A', border: '1px solid #6C5CE7', color: '#EBE4FF', opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }} title="Run code in console without submitting to test cases">
             {isEvaluating ? "..." : "▷ Run Code"}
           </button>
           <button className="activity-action-btn run-btn" onClick={runTestCases} style={{ opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }}>
@@ -987,138 +846,74 @@ const ActivityApp = () => {
         </div>
       </header>
 
-      <Split
-        className={`activity-main-layout ${!isLeftPanelVisible ? 'left-hidden' : ''}`}
-        sizes={[25, 50, 25]}
-        minSize={[isLeftPanelVisible ? 250 : 0, 400, 250]}
-        gutterSize={8}
-      >
+      <Split className={`activity-main-layout ${!isLeftPanelVisible ? 'left-hidden' : ''}`} sizes={[25, 50, 25]} minSize={[isLeftPanelVisible ? 250 : 0, 400, 250]} gutterSize={8}>
         <aside className="activity-left-panel">
           <div className="activity-panel-header">
-            <h2>
-              <img src="/assets/console-icon.png" alt="Icon" style={{ width: '24px' }} />
-              Description
-            </h2>
+            <h2><img src="/assets/console-icon.png" alt="Icon" style={{ width: '24px' }} /> Description</h2>
           </div>
 
           <div className="activity-panel-content">
             <div className="activity-task-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', marginTop: '10px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#2b005c', fontWeight: 'bold' }}>
-                {currentTask?.title || activityData.title || "Activity"}
-              </h2>
-              <span style={{
-                padding: '4px 10px',
-                borderRadius: '12px',
-                fontSize: '0.8rem',
-                fontWeight: 'bold',
-                backgroundColor: currentTask?.difficulty === 'Easy' ? 'rgba(0, 184, 163, 0.15)' : currentTask?.difficulty === 'Medium' ? 'rgba(255, 192, 30, 0.15)' : 'rgba(255, 55, 95, 0.15)',
-                color: currentTask?.difficulty === 'Easy' ? '#00b8a3' : currentTask?.difficulty === 'Medium' ? '#ffc01e' : '#ff375f'
-              }}>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#2b005c', fontWeight: 'bold' }}>{currentTask?.title || activityData.title || "Activity"}</h2>
+              <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: currentTask?.difficulty === 'Easy' ? 'rgba(0, 184, 163, 0.15)' : currentTask?.difficulty === 'Medium' ? 'rgba(255, 192, 30, 0.15)' : 'rgba(255, 55, 95, 0.15)', color: currentTask?.difficulty === 'Easy' ? '#00b8a3' : currentTask?.difficulty === 'Medium' ? '#ffc01e' : '#ff375f' }}>
                 {currentTask?.difficulty || "Easy"}
               </span>
             </div>
 
-            <div className="activity-card" style={{
-              lineHeight: '1.7',
-              fontSize: '0.95rem',
-              backgroundColor: 'transparent',
-              border: 'none',
-              padding: '0',
-              color: '#2f2f2f'
-            }}>
-              {renderFormattedTask(
-                currentTask?.task ||
-                (typeof activityData.task === "string" ? activityData.task : "Complete the algorithm requested in the workspace.")
-              )}
+            <div className="activity-card" style={{ lineHeight: '1.7', fontSize: '0.95rem', backgroundColor: 'transparent', border: 'none', padding: '0', color: '#2f2f2f' }}>
+              {renderFormattedTask(currentTask?.task || (typeof activityData.task === "string" ? activityData.task : "Complete the algorithm requested in the workspace."))}
             </div>
           </div>
         </aside>
 
         <main className="workspace-main activity-center-panel">
-          <button
-            className={`sidebar-toggle-btn ${!isLeftPanelVisible ? 'closed' : ''}`}
-            onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)}
-            title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}
-          >
+          <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? 'closed' : ''}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}>
             <span className="toggle-icon">{isLeftPanelVisible ? '❮' : '❯'}</span>
           </button>
 
           <div className="editor-container" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-            <div className={viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'}
-              style={{ display: viewMode === 'workspace' ? 'block' : 'none', height: '100%' }}>
-              <BlocklyWorkspace
-                ref={workspaceRef}
-                onChange={handleWorkspaceChange}
-                templatePath={initialTemplate}
-                syntaxError={syntaxError}
-              />
+            <div className={viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'} style={{ display: viewMode === 'workspace' ? 'block' : 'none', height: '100%' }}>
+              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} templatePath={initialTemplate} syntaxError={syntaxError} />
             </div>
 
-            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}
-              style={{ display: viewMode === 'python' ? 'flex' : 'none', flexDirection: 'column', height: '100%', background: '#1C1236' }}>
-
+            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ display: viewMode === 'python' ? 'flex' : 'none', flexDirection: 'column', height: '100%', background: '#1C1236' }}>
               <div className="python-header" style={{ padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
-                <span className="python-sync-status" style={{ color: '#EBE4FF', fontSize: '0.85rem' }}>
-                  {isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}
-                </span>
-                <button
-                  onClick={handleSyncToBlocks}
-                  disabled={!isEditingCode}
-                  className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: '4px',
-                    cursor: isEditingCode ? 'pointer' : 'not-allowed',
-                    backgroundColor: isEditingCode ? '#6C5CE7' : '#444',
-                    color: 'white',
-                    border: 'none'
-                  }}
-                >
+                <span className="python-sync-status" style={{ color: '#EBE4FF', fontSize: '0.85rem' }}>{isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
+                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`} style={{ padding: '5px 12px', borderRadius: '4px', cursor: isEditingCode ? 'pointer' : 'not-allowed', backgroundColor: isEditingCode ? '#6C5CE7' : '#444', color: 'white', border: 'none' }}>
                   Sync to Blocks ↻
                 </button>
               </div>
 
-              <div style={{ position: 'relative', flex: 1, overflowY: 'auto' }}>
+              {/* --- MONACO VSCODE EDITOR INTEGRATION --- */}
+              <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
                 {syntaxError && (
-                  <div style={{
-                    position: 'absolute',
-                    top: `${(syntaxError.line - 1) * 24 + 20}px`,
-                    left: 0, right: 0, height: '24px',
-                    backgroundColor: 'rgba(231, 76, 60, 0.15)',
-                    borderLeft: '4px solid #E74C3C',
-                    pointerEvents: 'none', zIndex: 1
-                  }}>
-                    <span style={{ color: '#E74C3C', position: 'absolute', right: '20px', fontSize: '0.8rem', fontStyle: 'italic', fontWeight: 'bold' }}>
-                      ⚠️ {syntaxError.message}
-                    </span>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>⚠️ Syntax Error on line {syntaxError.line}: {syntaxError.message}</span>
+                    <button onClick={() => setSyntaxError(null)} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
                   </div>
                 )}
-
-                <textarea
+                
+                <Editor
+                  height="100%"
+                  language="python"
+                  theme="vs-dark"
                   value={generatedPython}
-                  onChange={(e) => {
-                    setGeneratedPython(e.target.value);
+                  onChange={(value) => {
+                    setGeneratedPython(value || "");
                     setIsEditingCode(true);
                     if (syntaxError) setSyntaxError(null);
                   }}
-                  spellCheck={false}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    minHeight: '100%',
-                    margin: 0,
-                    padding: '20px',
-                    fontSize: '15px',
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 15,
                     fontFamily: "'Fira Code', Consolas, Monaco, monospace",
-                    background: 'transparent',
-                    color: '#EBE4FF',
-                    border: 'none',
-                    outline: 'none',
-                    resize: 'none',
-                    whiteSpace: 'pre',
-                    lineHeight: '24px',
-                    zIndex: 2,
-                    position: 'relative'
+                    scrollBeyondLastLine: false,
+                    smoothScrolling: true,
+                    cursorBlinking: "smooth",
+                    formatOnPaste: true,
+                    suggestOnTriggerCharacters: true,
+                    wordWrap: "on",
+                    padding: { top: 16 }
                   }}
                 />
               </div>
@@ -1127,15 +922,11 @@ const ActivityApp = () => {
 
           {bottomPanel && (
             <div className="bottom-hover-panel" style={{ height: `${panelHeight}px` }}>
-              <div className="panel-resizer" onMouseDown={handleDragStart}>
-                <div className="resizer-dash"></div>
-              </div>
-
+              <div className="panel-resizer" onMouseDown={handleDragStart}><div className="resizer-dash"></div></div>
               <div className="panel-header">
                 <span className="panel-title">{bottomPanel === 'console' ? 'Console Output' : 'Complexity Analysis'}</span>
                 <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
               </div>
-
               <div className="panel-body">
                 {bottomPanel === 'console' ? (
                   <div className="console-container">
@@ -1143,14 +934,7 @@ const ActivityApp = () => {
                     {isWaitingForInput && (
                       <div className="console-input-line">
                         <span className="console-cursor">❯</span>
-                        <input
-                          autoFocus
-                          value={userInput}
-                          onChange={(e) => setUserInput(e.target.value)}
-                          onKeyDown={handleSendInput}
-                          className="console-input-field"
-                          placeholder="Type here and press Enter..."
-                        />
+                        <input autoFocus value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={handleSendInput} className="console-input-field" placeholder="Type here and press Enter..." />
                       </div>
                     )}
                     <div ref={consoleEndRef} />
@@ -1182,15 +966,22 @@ const ActivityApp = () => {
                           {analysisResult.lines.map((line, i) => {
                             const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                             const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-
                             const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
                             const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
-
                             const timeColor = getComplexityColor(timeComplexity);
                             const spaceColor = getComplexityColor(spaceComplexity);
-
-                            // CHECK IF CURRENT LINE IS THE BOTTLENECK
                             const isBottleneck = actualBottleneckIndices.includes(i);
+
+                            let execCount = 0;
+                            const lineTextStr = (line.lineOfCode || line.code || "").trim();
+                            let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
+                            if (matchedIdx !== -1) {
+                                execCount = lineExecutions[matchedIdx + 1] || 0;
+                                searchStartIndex = matchedIdx + 1; 
+                            } else {
+                                matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
+                                if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
+                            }
 
                             return (
                               <React.Fragment key={i}>
@@ -1206,24 +997,26 @@ const ActivityApp = () => {
                                 >
                                   <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
+
+                                    {/* DYNAMIC EXECUTION FREQUENCY BADGE */}
+                                    {execCount > 0 && (
+                                      <span style={{
+                                        marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
+                                        borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                        boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
+                                      }} title={`Executed ${execCount} times during the last run`}>
+                                        <span style={{fontSize: '0.75rem'}}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {line.operation || '-'}
 
-                                    {/* RENDER HIGHLY VISIBLE BOTTLENECK BADGE */}
                                     {isBottleneck && (
                                       <span style={{
-                                        backgroundColor: '#ff375f',
-                                        color: 'white',
-                                        fontSize: '0.7rem',
-                                        fontWeight: 'bold',
-                                        padding: '3px 8px',
-                                        borderRadius: '12px',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px',
-                                        marginLeft: '10px',
-                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)',
-                                        animation: 'pulse 1.5s infinite'
+                                        backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
+                                        borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
+                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
                                       }} title="Highest computational weight detected">
                                         🔥 Bottleneck
                                       </span>
@@ -1234,15 +1027,7 @@ const ActivityApp = () => {
                                   </td>
                                   <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
                                     {formatComplexity(spaceComplexity)}
-                                    <span
-                                      className="dropdown-chevron"
-                                      style={{
-                                        display: 'inline-block',
-                                        marginLeft: '10px',
-                                        transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)',
-                                        transition: 'transform 0.2s ease'
-                                      }}
-                                    >
+                                    <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
                                       ▶
                                     </span>
                                   </td>
@@ -1254,26 +1039,16 @@ const ActivityApp = () => {
                                       <div
                                         className="explanation-content"
                                         style={{
-                                          borderLeftColor: timeColor,
-                                          display: 'flex',
-                                          gap: '20px',
-                                          padding: '16px',
-                                          background: 'rgba(255, 255, 255, 0.05)',
-                                          margin: '0 16px 12px 16px',
-                                          borderRadius: '8px',
-                                          animation: 'slideDown 0.3s ease forwards',
+                                          borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
+                                          margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
                                         }}
                                       >
                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                           <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                             <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
                                             <div>
-                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                Time Complexity
-                                              </strong>
-                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                                                {timeExp}
-                                              </p>
+                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
                                             </div>
                                           </div>
                                           <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
@@ -1285,12 +1060,8 @@ const ActivityApp = () => {
                                           <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                             <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
                                             <div>
-                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                Space Complexity
-                                              </strong>
-                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                                                {spaceExp}
-                                              </p>
+                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
                                             </div>
                                           </div>
                                           <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
@@ -1316,38 +1087,13 @@ const ActivityApp = () => {
 
           <footer className="workspace-footer">
             <div className="footer-left">
-              <button
-                className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`}
-                onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}
-              >
-                <img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console
-              </button>
-              <button
-                className={`footer-tab ${bottomPanel === 'complexity' ? 'active' : ''}`}
-                onClick={() => setBottomPanel(bottomPanel === 'complexity' ? null : 'complexity')}
-              >
-                <img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity
-              </button>
-              <button
-                className="footer-tab big-o-btn"
-                onClick={() => setIsBigOModalOpen(true)}
-              >
-                <img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference
-              </button>
+              <button className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button>
+              <button className={`footer-tab ${bottomPanel === 'complexity' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'complexity' ? null : 'complexity')}><img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity</button>
+              <button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button>
             </div>
-
             <div className="footer-right">
               <button className="footer-action-icon" onClick={() => {
-                setModalConfig({
-                  isOpen: true,
-                  title: "Restart Activity?",
-                  message: "Are you sure you want to restart this activity? Your progress will be lost.",
-                  confirmText: "Restart",
-                  isDanger: true,
-                  onConfirmAction: () => {
-                    window.location.reload();
-                  }
-                });
+                setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", isDanger: true, onConfirmAction: () => { window.location.reload(); } });
               }} title="Restart Activity">
                 <img src="/assets/recursive-icon.png" alt="Restart" />
               </button>
@@ -1412,21 +1158,8 @@ const ActivityApp = () => {
 
       </Split>
 
-      <ConfirmModal
-        isOpen={modalConfig.isOpen}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        confirmText={modalConfig.confirmText}
-        isDanger={modalConfig.isDanger}
-        onCancel={closeModal}
-        onConfirm={modalConfig.onConfirmAction}
-      />
-
-      <BigOModal
-        isOpen={isBigOModalOpen}
-        onClose={() => setIsBigOModalOpen(false)}
-      />
-
+      <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} isDanger={modalConfig.isDanger} onCancel={closeModal} onConfirm={modalConfig.onConfirmAction} />
+      <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
     </div>
   );
 };

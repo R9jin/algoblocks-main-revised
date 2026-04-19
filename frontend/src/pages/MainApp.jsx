@@ -10,6 +10,9 @@ import { projectsDB, syncQueueDB, templatesDB } from '../db.js';
 import "../styles/MainApp.css";
 import { formatComplexity } from "../utils/formatters";
 
+// --- IMPORT MONACO EDITOR ---
+import Editor from "@monaco-editor/react";
+
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
@@ -29,19 +32,17 @@ const SIDEBAR_TEMPLATES = [
   { name: "Tower of Hanoi (Recursive)", path: "recursive/recursive_tower_of_hanoi", desc: "Moves disks between rods following rules.", category: "Recursive" },
 ];
 
-// Helper function to color-code Big O notation
 const getComplexityColor = (complexity) => {
   const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#2ecc71"; // Green
-  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; // Blue
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; // Yellow
-  if (comp.includes("n log n")) return "#e67e22"; // Orange
-  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; // Red
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; // Purple
-  return "#95a5a6"; // Gray
+  if (comp.includes("o(1)")) return "#2ecc71"; 
+  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; 
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; 
+  if (comp.includes("n log n")) return "#e67e22"; 
+  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; 
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; 
+  return "#95a5a6"; 
 };
 
-// Helper function to rank computational weight for bottlenecks
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
   if (comp.includes("o(1)")) return 1;
@@ -62,11 +63,9 @@ export default function MainApp() {
   const location = useLocation();
   const workspaceRef = useRef(null);
 
-  // Web Worker & Execution Refs
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
 
-  // --- UI & Analysis States ---
   const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...");
@@ -80,27 +79,19 @@ export default function MainApp() {
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
 
-  // --- Analysis Speed Timing ---
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const analysisStartTimeRef = useRef(0);
+  const [lineExecutions, setLineExecutions] = useState({}); 
 
-  // --- Unified Template List State ---
   const [allTemplates, setAllTemplates] = useState([]);
   const [currentLoadedId, setCurrentLoadedId] = useState(null);
   const [currentProjectTitle, setCurrentProjectTitle] = useState("Untitled Project");
   const [currentSaveType, setCurrentSaveType] = useState("project");
 
-  // --- Modals & Notifications ---
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [saveModal, setSaveModal] = useState({
-    isOpen: false,
-    isEditMetadataOnly: false,
-    editingId: null,
-    editingData: null,
-    title: "",
-    description: "",
-    category: "Custom Templates",
-    saveType: "project"
+    isOpen: false, isEditMetadataOnly: false, editingId: null, editingData: null,
+    title: "", description: "", category: "Custom Templates", saveType: "project"
   });
 
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
@@ -109,10 +100,7 @@ export default function MainApp() {
   const [expandedLines, setExpandedLines] = useState({});
   
   const toggleLine = (index) => {
-    setExpandedLines((prev) => ({
-      ...prev,
-      [index]: !prev[index], // This toggles the specific line index
-    }));
+    setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
   };
 
   const [panelHeight, setPanelHeight] = useState(450);
@@ -125,12 +113,11 @@ export default function MainApp() {
   };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
-  // --- Initialize Pyodide Web Worker ---
   const initWorker = () => {
     if (!workerRef.current) return;
 
     workerRef.current.onmessage = (event) => {
-      const { type, data } = event.data;
+      const { type, data, counts } = event.data;
 
       if (type === 'ANALYZE_RESULT') {
         const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
@@ -145,14 +132,15 @@ export default function MainApp() {
       }
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current); // Stop buffer loop
+        clearInterval(renderIntervalRef.current); 
 
-        // Cache exactly what is in the buffer BEFORE React batches the update!
         const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = ""; // Reset buffer securely
+        pendingOutputRef.current = ""; 
 
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
+        
+        if (counts) setLineExecutions(counts);
 
         setIsEvaluating(false);
         setIsWaitingForInput(false);
@@ -161,7 +149,6 @@ export default function MainApp() {
         outputCountRef.current += 1;
         pendingOutputRef.current += data;
 
-        // 🚨 FLOOD GATE: Raised to 5000 to prevent false positives
         if (outputCountRef.current > 5000) {
           clearTimeout(runTimeoutRef.current);
           clearInterval(renderIntervalRef.current);
@@ -183,9 +170,8 @@ export default function MainApp() {
       }
       else if (type === 'INPUT_REQUEST') {
         clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current); // Pause rendering
+        clearInterval(renderIntervalRef.current); 
 
-        // Flush buffer + prompt to screen
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
@@ -207,18 +193,14 @@ export default function MainApp() {
   };
 
   useEffect(() => {
-    // Mount the pre-warmed shared worker
     workerRef.current = sharedAnalyzerWorker;
     initWorker();
-
     return () => {
-      // DO NOT terminate the worker here, keep it alive for the rest of the app
       clearTimeout(runTimeoutRef.current);
       clearInterval(renderIntervalRef.current);
     };
   }, []);
 
-  // --- Resizing Bottom Panel Logic ---
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
@@ -233,23 +215,17 @@ export default function MainApp() {
 
   const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
 
-  // --- Load Project from Dashboard ---
   useEffect(() => {
     if (location.state?.projectToLoad && workspaceRef.current) {
       const proj = location.state.projectToLoad;
       setCurrentLoadedId(proj._id);
       setCurrentProjectTitle(proj.title);
       setCurrentSaveType("project");
-
-      setTimeout(() => {
-        workspaceRef.current.loadTemplate(proj.data);
-      }, 500);
-
+      setTimeout(() => { workspaceRef.current.loadTemplate(proj.data); }, 500);
       window.history.replaceState({}, document.title)
     }
   }, [location.state]);
 
-  // --- Fetch Templates (Offline First: LocalForage ONLY) ---
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
@@ -259,33 +235,23 @@ export default function MainApp() {
       const user = JSON.parse(storedUser);
       let customItems = [];
 
-      // 1. Fetch Local IndexedDB Projects
       await projectsDB.iterate((value) => {
         if (value.owner_id === user.email) {
-          customItems.push({
-            _id: value._id, title: value.title, description: value.description || "Saved Project",
-            category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced
-          });
+          customItems.push({ _id: value._id, title: value.title, description: value.description || "Saved Project", category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced });
         }
       });
 
-      // 2. Fetch Local IndexedDB Templates
       await templatesDB.iterate((value) => {
         if (value.owner_id === user.email) {
-          customItems.push({
-            _id: value._id, title: value.title, description: value.description || "Custom template",
-            category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced
-          });
+          customItems.push({ _id: value._id, title: value.title, description: value.description || "Custom template", category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced });
         }
       });
 
-      // Deduplicate by ID
       const uniqueItemsMap = new Map();
       customItems.forEach(item => uniqueItemsMap.set(item._id, item));
 
       setAllTemplates([...baseTemplates, ...Array.from(uniqueItemsMap.values())]);
     } catch (e) {
-      console.error("Failed to load templates", e);
       setAllTemplates(baseTemplates);
     }
   };
@@ -296,6 +262,7 @@ export default function MainApp() {
     try {
       setAnalysisResult({ lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false });
       setAnalysisTime("...");
+      setLineExecutions({});
       let json;
       if (item.isSystem) {
         const response = await fetch(`/templates/${item.path}.json`);
@@ -320,16 +287,13 @@ export default function MainApp() {
   };
 
   const loadConfirm = (item) => {
-    setModalConfig({
-      isOpen: true, title: `Load ${item.title}?`, message: "This will overwrite your current workspace. Continue?", confirmText: "Load Template", isDanger: false,
-      onConfirmAction: () => { closeModal(); executeLoad(item); }
-    });
+    setModalConfig({ isOpen: true, title: `Load ${item.title}?`, message: "This will overwrite your current workspace. Continue?", confirmText: "Load Template", isDanger: false, onConfirmAction: () => { closeModal(); executeLoad(item); } });
   };
 
-  // --- Offline Pyodide Analysis ---
   const handleBlocklyChange = (json, pythonCode) => {
     if (!isEditingCode) setGeneratedPython(pythonCode);
     setBlocklyJson(json);
+    setLineExecutions({});
 
     if (workerRef.current && pythonCode.trim() !== "") {
       analysisStartTimeRef.current = performance.now();
@@ -365,6 +329,7 @@ export default function MainApp() {
           setGeneratedPython("# Drag blocks to generate Python code");
           setBlocklyJson(null); setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
           setAnalysisTime("0.0");
+          setLineExecutions({});
           setBottomPanel(null); setExpandedLines({}); setSyntaxError(null);
           setCurrentLoadedId(null); setCurrentProjectTitle("Untitled Project");
           setCurrentSaveType("project");
@@ -373,64 +338,34 @@ export default function MainApp() {
     });
   };
 
-  // --- Offline-First Dual Save Logic ---
   const openSaveModal = () => {
     if (!blocklyJson) { showToast("The workspace is empty. Nothing to save!", "error"); return; }
     setSaveModal({
-      isOpen: true,
-      isEditMetadataOnly: false,
-      editingId: currentLoadedId,
-      editingData: null,
-      title: currentProjectTitle !== "Untitled Project" ? currentProjectTitle : "",
-      description: "",
-      category: "Custom Templates",
-      saveType: currentSaveType
+      isOpen: true, isEditMetadataOnly: false, editingId: currentLoadedId, editingData: null,
+      title: currentProjectTitle !== "Untitled Project" ? currentProjectTitle : "", description: "", category: "Custom Templates", saveType: currentSaveType
     });
   };
 
   const handleEditItem = (e, item) => {
     e.stopPropagation();
     setSaveModal({
-      isOpen: true,
-      isEditMetadataOnly: true,
-      editingId: item._id,
-      editingData: item.data,
-      title: item.title,
-      description: item.description || "",
-      category: item.category || "Custom Templates",
-      saveType: item.saveType || "project"
+      isOpen: true, isEditMetadataOnly: true, editingId: item._id, editingData: item.data,
+      title: item.title, description: item.description || "", category: item.category || "Custom Templates", saveType: item.saveType || "project"
     });
   };
 
   const submitSave = async () => {
     const user = JSON.parse(localStorage.getItem("user"));
     const id = saveModal.editingId || `local_${Date.now()}`;
+    const payload = { _id: id, title: saveModal.title, description: saveModal.description, category: saveModal.saveType === 'template' ? saveModal.category : undefined, data: blocklyJson, owner_id: user.email, synced: false, updatedAt: Date.now() };
 
-    const payload = {
-      _id: id,
-      title: saveModal.title,
-      description: saveModal.description,
-      category: saveModal.saveType === 'template' ? saveModal.category : undefined,
-      data: blocklyJson,
-      owner_id: user.email,
-      synced: false,
-      updatedAt: Date.now(),
-    };
-
-    // 1. Save to IndexedDB (Immediate, local state)
     const db = saveModal.saveType === 'template' ? templatesDB : projectsDB;
     await db.setItem(id, payload);
-
-    // 2. Add to Sync Queue (Let background worker handle the cloud pushing)
-    await syncQueueDB.setItem(id, {
-      type: saveModal.saveType.toUpperCase(),
-      action: 'UPSERT',
-      data: payload
-    });
+    await syncQueueDB.setItem(id, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
 
     showToast("Saved locally. Background sync queued.");
     setSaveModal({ ...saveModal, isOpen: false });
-    fetchTemplates(); // Refresh UI list from IndexedDB instantly
+    fetchTemplates(); 
   };
 
   const handleDeleteItem = async (e, item) => {
@@ -438,25 +373,16 @@ export default function MainApp() {
     const itemLabel = item.saveType === 'template' ? 'Template' : 'Project';
     if (!window.confirm(`Are you sure you want to delete this ${itemLabel}?`)) return;
 
-    // Optimistic UI Update
     setAllTemplates(prev => prev.filter(t => t._id !== item._id));
 
     try {
-      // 1. Delete local
       if (item.saveType === 'template') await templatesDB.removeItem(item._id);
       else await projectsDB.removeItem(item._id);
 
-      // 2. Queue for Cloud Sync Deletion (Only if it's already on the cloud)
       if (item._id.startsWith('local_')) {
-        // Just remove its pending upload from the queue
         await syncQueueDB.removeItem(item._id);
       } else {
-        // Provide deletion task
-        await syncQueueDB.setItem(`delete_${item._id}`, {
-          type: item.saveType.toUpperCase(),
-          action: 'DELETE',
-          data: { _id: item._id }
-        });
+        await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
       }
 
       showToast(`${itemLabel} deleted locally!`, "success");
@@ -467,12 +393,12 @@ export default function MainApp() {
       }
     } catch (err) {
       showToast("Error deleting item.", "error");
-      fetchTemplates(); // Revert on fail
+      fetchTemplates(); 
     }
   };
 
   const handleRunCode = () => {
-    if (isEvaluating) return; // Prevent concurrent evaluation triggers
+    if (isEvaluating) return;
 
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
@@ -480,11 +406,11 @@ export default function MainApp() {
       return;
     }
 
-    // Explicitly wipe existing intervals
     clearTimeout(runTimeoutRef.current);
     clearInterval(renderIntervalRef.current);
 
     setIsEvaluating(true);
+    setLineExecutions({}); 
     setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
 
@@ -493,7 +419,6 @@ export default function MainApp() {
 
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
-        // Securely capture and clear before rendering to prevent dropped letters
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed);
@@ -502,7 +427,6 @@ export default function MainApp() {
 
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
 
-    // Infinite Loop Safety Timeout (Extended to 10s)
     runTimeoutRef.current = setTimeout(() => {
       workerRef.current.terminate();
       clearInterval(renderIntervalRef.current);
@@ -530,7 +454,6 @@ export default function MainApp() {
       setUserInput("");
       setIsWaitingForInput(false);
 
-      // ⏱️ RESUME FLUSHER
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
           const flushed = pendingOutputRef.current;
@@ -539,10 +462,9 @@ export default function MainApp() {
         }
       }, 100);
 
-      // Resume infinite loop timeout after input is provided (Extended to 10s)
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
-        clearInterval(renderIntervalRef.current); // 👈 Clear flusher
+        clearInterval(renderIntervalRef.current); 
 
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' });
@@ -558,9 +480,7 @@ export default function MainApp() {
     }
   };
 
-  // --- Search and Group Templates ---
   const filteredTemplates = allTemplates.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()));
-
   const groupedTemplates = filteredTemplates.reduce((acc, template) => {
     const category = template.category || "Uncategorized";
     if (!acc[category]) acc[category] = [];
@@ -571,13 +491,11 @@ export default function MainApp() {
   const consoleEndRef = useRef(null);
   useEffect(() => { if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [consoleOutput, isWaitingForInput]);
 
-  // --- Identify Bottlenecks Dynamically Based on Active Tab ---
   const lines = analysisResult?.lines || [];
   let maxWeight = 0;
   let bottleneckIndices = [];
 
   lines.forEach((line, index) => {
-    // Bottleneck checks whether user is currently looking at Local or Global time
     const targetComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
     const weight = getComplexityWeight(targetComplexity);
     
@@ -589,8 +507,9 @@ export default function MainApp() {
     }
   });
 
-  // Only flag lines as bottlenecks if they are worse than O(1)
   const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
+  let searchStartIndex = 0;
+  const pythonLines = (generatedPython || "").split("\n");
 
   return (
     <div className="workspace-app-container">
@@ -598,6 +517,7 @@ export default function MainApp() {
 
       {saveModal.isOpen && (
         <div className="modal-overlay">
+          {/* ... Save Modal HTML Remains Unchanged ... */}
           <div className="save-modal-content">
             <h2 className="save-modal-title">
               {saveModal.isEditMetadataOnly ? "Edit Details" : "Save Workspace"}
@@ -660,7 +580,6 @@ export default function MainApp() {
             <input type="text" placeholder="Search templates..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           <div className="sidebar-list">
-
             {Object.keys(groupedTemplates).map(category => (
               <div key={category} className="sidebar-category-group">
                 <h3 className="sidebar-category-header">{category}</h3>
@@ -688,7 +607,6 @@ export default function MainApp() {
                 ))}
               </div>
             ))}
-
             {filteredTemplates.length === 0 && <p className="no-results">No templates found.</p>}
           </div>
         </aside>
@@ -703,19 +621,43 @@ export default function MainApp() {
               <BlocklyWorkspace ref={workspaceRef} onChange={handleBlocklyChange} syntaxError={syntaxError} />
             </div>
 
-            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}>
+            <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ flexDirection: 'column' }}>
               <div className="python-header">
                 <span className="python-sync-status">{isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
                 <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks ↻ </button>
               </div>
 
-              <div style={{ position: 'relative', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+              {/* --- MONACO VSCODE EDITOR INTEGRATION --- */}
+              <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
                 {syntaxError && (
-                  <div style={{ position: 'absolute', top: `${(syntaxError.line - 1) * 24 + 20}px`, left: 0, right: 0, height: '24px', backgroundColor: 'rgba(231, 76, 60, 0.15)', borderLeft: '4px solid #E74C3C', pointerEvents: 'none', zIndex: 1, display: 'flex', alignItems: 'center', paddingLeft: '16px' }}>
-                    <span style={{ color: '#E74C3C', position: 'absolute', right: '20px', fontSize: '0.8rem', fontStyle: 'italic', fontWeight: 'bold' }}>⚠️ {syntaxError.message}</span>
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>⚠️ Syntax Error on line {syntaxError.line}: {syntaxError.message}</span>
+                    <button onClick={() => setSyntaxError(null)} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
                   </div>
                 )}
-                <textarea value={generatedPython} onChange={(e) => { setGeneratedPython(e.target.value); setIsEditingCode(true); if (syntaxError) setSyntaxError(null); }} spellCheck={false} style={{ display: 'block', width: '100%', minHeight: '100%', margin: 0, padding: '20px', fontSize: '15px', fontFamily: "'Fira Code', Consolas, Monaco, monospace", background: 'transparent', color: '#EBE4FF', border: 'none', outline: 'none', resize: 'none', whiteSpace: 'pre', lineHeight: '24px', zIndex: 2, position: 'relative' }} />
+                <Editor
+                  height="100%"
+                  language="python"
+                  theme="vs-dark"
+                  value={generatedPython}
+                  onChange={(value) => {
+                    setGeneratedPython(value || "");
+                    setIsEditingCode(true);
+                    if (syntaxError) setSyntaxError(null);
+                  }}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 15,
+                    fontFamily: "'Fira Code', Consolas, Monaco, monospace",
+                    scrollBeyondLastLine: false,
+                    smoothScrolling: true,
+                    cursorBlinking: "smooth",
+                    formatOnPaste: true,
+                    suggestOnTriggerCharacters: true,
+                    wordWrap: "on",
+                    padding: { top: 16 }
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -741,6 +683,7 @@ export default function MainApp() {
                   </div>
                 ) : (
                   <div className="complexity-content">
+                    {/* ... Complexity Table Remains Unchanged ... */}
                     <div className="complexity-tabs">
                       <div className="tab-btn-group">
                         <button onClick={() => { setActiveTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>Local Complexity</button>
@@ -753,7 +696,6 @@ export default function MainApp() {
                       </div>
                     </div>
                     <div className="complexity-table-wrapper">
-                      
                       <table className="complexity-table">
                         <thead>
                           <tr>
@@ -765,28 +707,27 @@ export default function MainApp() {
                         </thead>
                         <tbody>
                           {analysisResult.lines.map((line, i) => {
-                            // Extract complexities for graphs and colors
-                            const timeComplexity = activeTab === 'local'
-                              ? (line.local_time || "O(1)")
-                              : (line.global_time || "O(1)");
-
-                            const spaceComplexity = activeTab === 'local'
-                              ? (line.local_space || "O(1)")
-                              : (line.global_space || "O(1)");
-
-                            // Extract explanations from the Semantic NLG output
+                            const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
+                            const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
                             const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
                             const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
-
                             const timeColor = getComplexityColor(timeComplexity);
                             const spaceColor = getComplexityColor(spaceComplexity);
-
-                            // CHECK IF CURRENT LINE IS THE BOTTLENECK
                             const isBottleneck = actualBottleneckIndices.includes(i);
+
+                            let execCount = 0;
+                            const lineTextStr = (line.lineOfCode || line.code || "").trim();
+                            let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
+                            if (matchedIdx !== -1) {
+                                execCount = lineExecutions[matchedIdx + 1] || 0;
+                                searchStartIndex = matchedIdx + 1; 
+                            } else {
+                                matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
+                                if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
+                            }
 
                             return (
                               <React.Fragment key={i}>
-                                {/* Main Clickable Row */}
                                 <tr
                                   className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
                                   onClick={() => toggleLine(i)}
@@ -799,24 +740,25 @@ export default function MainApp() {
                                 >
                                   <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
+                                    
+                                    {execCount > 0 && (
+                                      <span style={{
+                                        marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
+                                        borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                        boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
+                                      }} title={`Executed ${execCount} times during the last run`}>
+                                        <span style={{fontSize: '0.75rem'}}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {line.operation || '-'}
 
-                                    {/* RENDER HIGHLY VISIBLE BOTTLENECK BADGE */}
                                     {isBottleneck && (
                                       <span style={{
-                                        backgroundColor: '#ff375f',
-                                        color: 'white',
-                                        fontSize: '0.7rem',
-                                        fontWeight: 'bold',
-                                        padding: '3px 8px',
-                                        borderRadius: '12px',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px',
-                                        marginLeft: '10px',
-                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)',
-                                        animation: 'pulse 1.5s infinite'
+                                        backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
+                                        borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
+                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
                                       }} title={`Highest ${activeTab} computational weight detected`}>
                                         Bottleneck
                                       </span>
@@ -827,49 +769,28 @@ export default function MainApp() {
                                   </td>
                                   <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
                                     {formatComplexity(spaceComplexity)}
-                                    <span
-                                      className="dropdown-chevron"
-                                      style={{
-                                        display: 'inline-block',
-                                        marginLeft: '10px',
-                                        transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)',
-                                        transition: 'transform 0.2s ease'
-                                      }}
-                                    >
+                                    <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
                                       ▶
                                     </span>
                                   </td>
                                 </tr>
 
-                                {/* Explanation Dropdown Row */}
                                 {expandedLines[i] && (
                                   <tr className="explanation-row">
                                     <td colSpan="4" style={{ padding: 0, border: 'none' }}>
                                       <div
                                         className="explanation-content"
                                         style={{
-                                          borderLeftColor: timeColor,
-                                          display: 'flex',
-                                          gap: '20px',
-                                          padding: '16px',
-                                          background: 'rgba(255, 255, 255, 0.05)',
-                                          margin: '0 16px 12px 16px',
-                                          borderRadius: '8px',
-                                          animation: 'slideDown 0.3s ease forwards',
+                                          borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
+                                          margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
                                         }}
                                       >
-
-                                        {/* Time Panel */}
                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                           <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                             <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
                                             <div>
-                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                Time Complexity
-                                              </strong>
-                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                                                {timeExp}
-                                              </p>
+                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
                                             </div>
                                           </div>
                                           <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
@@ -877,17 +798,12 @@ export default function MainApp() {
                                           </div>
                                         </div>
 
-                                        {/* Space Panel */}
                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                           <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                             <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
                                             <div>
-                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                Space Complexity
-                                              </strong>
-                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>
-                                                {spaceExp}
-                                              </p>
+                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
+                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
                                             </div>
                                           </div>
                                           <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
