@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from bson import ObjectId
 
 # ✅ KEEP but safer (ensures current dir is included)
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # ✅ CHANGED
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
 
 # =========================
 # ✅ FIXED IMPORT HANDLING
@@ -29,12 +29,12 @@ try:
 except ModuleNotFoundError:
     try:
         # ✅ Case 2: running inside /api folder
-        from blockly_ast import BlocklyASTConverter  # ✅ FIXED
-        from database import projects_collection, users_collection, templates_collection  # ✅ FIXED
-        from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  # ✅ FIXED
-        from analyzer import ComplexityAnalyzer  # ✅ FIXED
+        from blockly_ast import BlocklyASTConverter  
+        from database import projects_collection, users_collection, templates_collection  
+        from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  
+        from analyzer import ComplexityAnalyzer  
     except ModuleNotFoundError as e:
-        raise RuntimeError(f"Import failed: {e}")  # ✅ DEBUG FRIENDLY
+        raise RuntimeError(f"Import failed: {e}")  
 
 app = FastAPI()
 
@@ -191,8 +191,6 @@ def update_template(template_id: str, payload: TemplateUpdate):
 
     return {"status": "success"}
 
-# (rest of your code unchanged — already correct)
-
 # =========================
 # CLOUD SYNC: AUTH & PROGRESS
 # =========================
@@ -263,7 +261,6 @@ def google_auth(req: GoogleAuthRequest):
         user = {"name": data.get("name"), "email": email, "progress": {}}
         users_collection.insert_one(user)
     else:
-        # Convert ObjectId to string for JSON serialization
         user["_id"] = str(user["_id"])
 
     return {"status": "success", **user}
@@ -274,7 +271,6 @@ def google_auth(req: GoogleAuthRequest):
 @app.post("/api/ast-to-blocks")
 async def ast_to_blocks(request: AstRequest):
     try:
-        # Prevent empty code from crashing the converter
         if not request.code or not request.code.strip():
             return {"status": "success", "blocks": {"blocks": {"languageVersion": 0, "blocks": []}}}
             
@@ -288,7 +284,6 @@ async def ast_to_blocks(request: AstRequest):
             "message": getattr(e, 'msg', str(e))
         }
     except Exception as e:
-        # Return a safe JSON dictionary if the converter completely crashes
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": f"Internal Server Error: {str(e)}"}
@@ -338,8 +333,9 @@ def analyze_complexity(payload: CodePayload):
                 "indent": line.get("indent", 0),
                 "color": line.get("color"),
                 "weight": line.get("weight", 0),
-                "local_explanation": line.get("local_explanation", ""),
-                "global_explanation": line.get("global_explanation", "")
+                # ✅ FIXED: Correct dictionary keys matching analyzer.py outputs
+                "time_explanation": line.get("time_explanation", ""),
+                "space_explanation": line.get("space_explanation", "")
             })
 
         return {
