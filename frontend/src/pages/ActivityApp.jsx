@@ -10,7 +10,7 @@ import { formatComplexity } from "../utils/formatters";
 
 // --- IMPORT MONACO EDITOR & TRANSLATOR ---
 import Editor from "@monaco-editor/react";
-import { translatePythonError } from "../utils/errorTranslator.js"; // <-- NEW IMPORT
+import { translatePythonError } from "../utils/errorTranslator.js";
 
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
@@ -343,7 +343,7 @@ const getComplexityWeight = (complexity) => {
 };
 
 const ActivityApp = () => {
-  const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "";
+  const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -357,6 +357,9 @@ const ActivityApp = () => {
   const isDragging = useRef(false);
   const hasLoadedRef = useRef(false);
   const analysisStartTimeRef = useRef(0); 
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
   const [isEvaluating, setIsEvaluating] = useState(false);
   const activityData = location.state?.activityData || null;
@@ -388,6 +391,24 @@ const ActivityApp = () => {
   const [expandedLines, setExpandedLines] = useState({});
   const [panelHeight, setPanelHeight] = useState(300);
 
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
+  };
+
+  useEffect(() => {
+    const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Using online FastAPI backend.", "success"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Falling back to local Pyodide.", "error"); };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const initWorker = () => {
     if (!workerRef.current) return;
 
@@ -402,7 +423,6 @@ const ActivityApp = () => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           setSyntaxError(null);
         } else {
-          // --- SYNTAX ERROR TRANSLATION ---
           const hint = translatePythonError(data.message);
           setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
@@ -462,7 +482,6 @@ const ActivityApp = () => {
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
-        // --- RUNTIME ERROR TRANSLATION ---
         const hint = translatePythonError(data);
         setConsoleOutput(prev => prev + flushed + "\n❌ Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
         setIsEvaluating(false);
@@ -504,14 +523,50 @@ const ActivityApp = () => {
     return () => { document.removeEventListener("mousemove", handleMouseMove); document.removeEventListener("mouseup", handleMouseUp); };
   }, []);
 
+  const analyzeCode = async (code) => {
+    if (!code || code.trim() === "") return;
+    
+    analysisStartTimeRef.current = performance.now();
+
+    if (isOnline) {
+      try {
+        const response = await fetch(`${VERCEL_URL}/api/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code })
+        });
+
+        if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
+        
+        const data = await response.json();
+        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
+        setAnalysisTime(duration);
+
+        if (data.status === "success") {
+          setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+          setSyntaxError(null);
+        } else {
+          const hint = translatePythonError(data.message);
+          setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+        }
+        return; 
+      } catch (error) {
+        console.warn("Online analysis failed or unreachable, falling back to local worker.", error);
+      }
+    }
+
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
+    }
+  };
+
   useEffect(() => {
-    if (!isEditingCode || !workerRef.current) return;
+    if (!isEditingCode) return;
     const timeoutId = setTimeout(() => {
-      analysisStartTimeRef.current = performance.now();
-      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
+      analyzeCode(generatedPython);
     }, 500);
     return () => clearTimeout(timeoutId);
-  }, [generatedPython, isEditingCode]);
+  }, [generatedPython, isEditingCode, isOnline]);
 
   useEffect(() => {
     if (!initialTemplate || !activityData) return;
@@ -573,11 +628,7 @@ const ActivityApp = () => {
   const handleWorkspaceChange = async (json, pythonCode) => {
     if (!isEditingCode) setGeneratedPython(pythonCode);
     setLineExecutions({}); 
-
-    if (workerRef.current && pythonCode.trim() !== "") {
-      analysisStartTimeRef.current = performance.now();
-      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: pythonCode });
-    }
+    analyzeCode(pythonCode);
   };
 
   const handleSyncToBlocks = async () => {
@@ -592,7 +643,7 @@ const ActivityApp = () => {
     }
   };
 
-  const handleActivityRun = () => {
+  const handleActivityRun = async () => {
     if (isEvaluating) return; 
 
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
@@ -606,8 +657,33 @@ const ActivityApp = () => {
 
     setIsEvaluating(true);
     setLineExecutions({}); 
-    setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
+
+    if (isOnline) {
+      setConsoleOutput("> Running online via FastAPI...\n");
+      try {
+        const response = await fetch(`${VERCEL_URL}/api/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: generatedPython })
+        });
+        
+        if (!response.ok) throw new Error("FastAPI execution failed");
+        
+        const data = await response.json();
+        const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
+        setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
+        
+        if (data.counts) setLineExecutions(data.counts);
+        
+        setIsEvaluating(false);
+        return; 
+      } catch (error) {
+        setConsoleOutput(prev => prev + "❌ Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
+      }
+    }
+
+    setConsoleOutput(prev => prev + "> Running locally via Pyodide (WebAssembly)...\n");
 
     outputCountRef.current = 0;
     pendingOutputRef.current = "";
@@ -677,85 +753,37 @@ const ActivityApp = () => {
 
   const toggleTest = (index) => { setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] })); };
 
-  const runTestCases = async () => {
-    if (isEvaluating) return;
-
-    const testCases = currentTask?.testCasesList || activityData?.testCasesList;
-    if (!testCases) return;
-
-    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute.");
-      setBottomPanel("console");
-      return;
-    }
-
-    setIsEvaluating(true);
-    setLineExecutions({}); 
-    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
-    setBottomPanel("console");
-
-    try {
-      await executeTestOffline(generatedPython);
-    } catch (failure) {
-      setConsoleOutput(`Test Execution Prevented:\n\n${failure.error || failure.message}`);
-      setBottomPanel("console");
-      setIsEvaluating(false);
-      return;
-    }
-
-    setBottomPanel("console");
-    setConsoleOutput("> Running Tests...\n");
-    setPassedTests(0);
-
-    let passed = 0;
-    const total = testCases.length;
-    let fullOutput = "> --- Running Test Cases ---\n";
-
-    for (let i = 0; i < total; i++) {
-      const tc = testCases[i];
-      let codeToRun = "";
-      const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
-      const taskId = currentTask?.id || activityData?.id || "";
-      const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
-
-      if (isFunctionCall && !isIntroLevel) {
-        codeToRun = generatedPython + `\n\ntry:\n    assert ${tc.call} == ${tc.expected}\n    print("TEST_PASSED_FLAG")\nexcept:\n    print("TEST_ERROR_FLAG")`;
-      } else {
-        codeToRun = `${generatedPython}\n${tc.call || ""}`;
-      }
-
+  const executeTest = async (codeToRun) => {
+    if (isOnline) {
       try {
-        const rawOutput = await executeTestOffline(codeToRun);
-        const actualOutput = rawOutput.trim();
-        const expected = String(tc.expected).replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n").trim();
-        let testPassed = false;
-
-        if (isFunctionCall && !isIntroLevel) {
-          if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; testPassed = true; }
-        } else {
-          if (actualOutput.trim() === expected) { passed++; testPassed = true; }
+        const response = await fetch(`${VERCEL_URL}/api/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: codeToRun })
+        });
+        if (!response.ok) throw new Error("FastAPI execution failed");
+        
+        const data = await response.json();
+        
+        if (data.counts) {
+            setLineExecutions(prev => {
+                const next = { ...prev };
+                for (const [key, val] of Object.entries(data.counts)) { next[key] = (next[key] || 0) + val; }
+                return next;
+            });
         }
 
-        fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
-        if (!testPassed) { fullOutput += `   Expected: ${expected}\n   Actual: ${actualOutput}\n`; }
-        fullOutput += `\n`;
+        if (data.error) {
+          const hint = translatePythonError(data.error);
+          throw new Error(data.error + (hint ? `\n${hint}` : ""));
+        }
 
-        setConsoleOutput(fullOutput);
-        setPassedTests(passed);
-
-        const lessonId = initialTemplate?.split("/").pop() || "unknown";
-        saveLessonProgress(lessonId, passed);
-
-        if (passed === total && total > 0) handleSuccess(passed, total);
-      } catch (err) {
-        fullOutput += `Test ${i + 1}: ERROR\n   Message: ${err.message}\n\n`;
-        setConsoleOutput(fullOutput);
+        return (data.output !== undefined && data.output !== null) ? String(data.output) : "";
+      } catch (error) {
+         console.warn("Online test execution failed, falling back to local...", error);
       }
     }
-    setIsEvaluating(false);
-  };
 
-  const executeTestOffline = (codeToRun) => {
     return new Promise((resolve, reject) => {
       let outputAccumulator = "";
       const timeout = setTimeout(() => {
@@ -786,7 +814,6 @@ const ActivityApp = () => {
           clearTimeout(timeout);
           initWorker(); 
           
-          // --- TEST EXECUTION ERROR TRANSLATION ---
           const hint = translatePythonError(data);
           const errorMsg = data + (hint ? `\n${hint}` : "");
           reject(new Error(errorMsg));
@@ -794,6 +821,84 @@ const ActivityApp = () => {
       };
       workerRef.current.postMessage({ type: 'RUN_CODE', code: codeToRun });
     });
+  };
+
+  const runTestCases = async () => {
+    if (isEvaluating) return;
+
+    const testCases = currentTask?.testCasesList || activityData?.testCasesList;
+    if (!testCases) return;
+
+    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console");
+      return;
+    }
+
+    setIsEvaluating(true);
+    setLineExecutions({}); 
+    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
+    setBottomPanel("console");
+
+    try {
+      await executeTest(generatedPython);
+    } catch (failure) {
+      setConsoleOutput(`Test Execution Prevented:\n\n${failure.error || failure.message}`);
+      setBottomPanel("console");
+      setIsEvaluating(false);
+      return;
+    }
+
+    setBottomPanel("console");
+    setConsoleOutput("> Running Tests...\n");
+    setPassedTests(0);
+
+    let passed = 0;
+    const total = testCases.length;
+    let fullOutput = "> --- Running Test Cases ---\n";
+
+    for (let i = 0; i < total; i++) {
+      const tc = testCases[i];
+      let codeToRun = "";
+      const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
+      const taskId = currentTask?.id || activityData?.id || "";
+      const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
+
+      if (isFunctionCall && !isIntroLevel) {
+        codeToRun = generatedPython + `\n\ntry:\n    assert ${tc.call} == ${tc.expected}\n    print("TEST_PASSED_FLAG")\nexcept:\n    print("TEST_ERROR_FLAG")`;
+      } else {
+        codeToRun = `${generatedPython}\n${tc.call || ""}`;
+      }
+
+      try {
+        const rawOutput = await executeTest(codeToRun);
+        const actualOutput = rawOutput.trim();
+        const expected = String(tc.expected).replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n").trim();
+        let testPassed = false;
+
+        if (isFunctionCall && !isIntroLevel) {
+          if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; testPassed = true; }
+        } else {
+          if (actualOutput.trim() === expected) { passed++; testPassed = true; }
+        }
+
+        fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
+        if (!testPassed) { fullOutput += `   Expected: ${expected}\n   Actual: ${actualOutput}\n`; }
+        fullOutput += `\n`;
+
+        setConsoleOutput(fullOutput);
+        setPassedTests(passed);
+
+        const lessonId = initialTemplate?.split("/").pop() || "unknown";
+        saveLessonProgress(lessonId, passed);
+
+        if (passed === total && total > 0) handleSuccess(passed, total);
+      } catch (err) {
+        fullOutput += `Test ${i + 1}: ERROR\n   Message: ${err.message}\n\n`;
+        setConsoleOutput(fullOutput);
+      }
+    }
+    setIsEvaluating(false);
   };
 
   const lines = analysisResult?.lines || [];
@@ -813,6 +918,8 @@ const ActivityApp = () => {
 
   return (
     <div className="activity-app-container">
+      {toast.show && (<div className={`toast-notification ${toast.type === 'error' ? 'toast-error' : 'toast-success'}`} style={{ position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999 }}>{toast.message}</div>)}
+
       <header className="activity-topbar">
         <div className="activity-back-btn" onClick={() => navigate('/learning-path')}>
           <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard

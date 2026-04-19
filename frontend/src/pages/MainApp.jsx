@@ -12,7 +12,7 @@ import { formatComplexity } from "../utils/formatters";
 
 // --- IMPORT MONACO EDITOR & TRANSLATOR ---
 import Editor from "@monaco-editor/react";
-import { translatePythonError } from "../utils/errorTranslator.js"; // <-- NEW IMPORT
+import { translatePythonError } from "../utils/errorTranslator.js";
 
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
@@ -76,6 +76,8 @@ const getComplexityWeight = (complexity) => {
 
 export default function MainApp() {
   const location = useLocation();
+  const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
@@ -85,6 +87,9 @@ export default function MainApp() {
   const renderIntervalRef = useRef(null);
   const isDragging = useRef(false);
   const analysisStartTimeRef = useRef(0);
+
+  // Connection state
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
@@ -123,6 +128,20 @@ export default function MainApp() {
   
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
+
+  // Listen for connection changes
+  useEffect(() => {
+    const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Using online FastAPI backend.", "success"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Falling back to local Pyodide.", "error"); };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const initWorker = () => {
     if (!workerRef.current) return;
@@ -310,25 +329,58 @@ export default function MainApp() {
     setModalConfig({ isOpen: true, title: `Load ${item.title}?`, message: "This will overwrite your current workspace. Continue?", confirmText: "Load Template", isDanger: false, onConfirmAction: () => { closeModal(); executeLoad(item); } });
   };
 
+  const analyzeCode = async (code) => {
+    if (!code || code.trim() === "") return;
+    
+    analysisStartTimeRef.current = performance.now();
+
+    if (isOnline) {
+      try {
+        const response = await fetch(`${VERCEL_URL}/api/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code })
+        });
+
+        if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
+        
+        const data = await response.json();
+        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
+        setAnalysisTime(duration);
+
+        if (data.status === "success") {
+          setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+          setSyntaxError(null);
+        } else {
+          const hint = translatePythonError(data.message);
+          setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+        }
+        return; 
+      } catch (error) {
+        console.warn("Online analysis failed or unreachable, falling back to local worker.", error);
+      }
+    }
+
+    // Fallback to offline worker
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
+    }
+  };
+
   const handleBlocklyChange = (json, pythonCode) => {
     if (!isEditingCode) setGeneratedPython(pythonCode);
     setBlocklyJson(json);
     setLineExecutions({});
-
-    if (workerRef.current && pythonCode.trim() !== "") {
-      analysisStartTimeRef.current = performance.now();
-      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: pythonCode });
-    }
+    analyzeCode(pythonCode);
   };
 
   useEffect(() => {
-    if (!isEditingCode || !workerRef.current) return;
+    if (!isEditingCode) return;
     const timeoutId = setTimeout(() => {
-      analysisStartTimeRef.current = performance.now();
-      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
+      analyzeCode(generatedPython);
     }, 500);
     return () => clearTimeout(timeoutId);
-  }, [generatedPython, isEditingCode]);
+  }, [generatedPython, isEditingCode, isOnline]);
 
   const handleSyncToBlocks = async () => {
     if (workspaceRef.current && generatedPython) {
@@ -417,7 +469,7 @@ export default function MainApp() {
     }
   };
 
-  const handleRunCode = () => {
+  const handleRunCode = async () => {
     if (isEvaluating) return;
 
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
@@ -431,8 +483,34 @@ export default function MainApp() {
 
     setIsEvaluating(true);
     setLineExecutions({}); 
-    setConsoleOutput("> Running locally via Pyodide (WebAssembly)...\n");
     setBottomPanel("console");
+
+    if (isOnline) {
+      setConsoleOutput("> Running online via FastAPI...\n");
+      try {
+        const response = await fetch(`${VERCEL_URL}/api/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: generatedPython })
+        });
+        
+        if (!response.ok) throw new Error("FastAPI execution failed");
+        
+        const data = await response.json();
+        const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
+        setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
+        
+        if (data.counts) setLineExecutions(data.counts);
+        
+        setIsEvaluating(false);
+        return; 
+      } catch (error) {
+        setConsoleOutput(prev => prev + "❌ Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
+      }
+    }
+
+    // Pyodide Fallback Execution
+    setConsoleOutput(prev => prev + "> Running locally via Pyodide (WebAssembly)...\n");
 
     outputCountRef.current = 0;
     pendingOutputRef.current = "";

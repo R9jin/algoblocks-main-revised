@@ -274,13 +274,25 @@ def google_auth(req: GoogleAuthRequest):
 @app.post("/api/ast-to-blocks")
 async def ast_to_blocks(request: AstRequest):
     try:
+        # Prevent empty code from crashing the converter
+        if not request.code or not request.code.strip():
+            return {"status": "success", "blocks": {"blocks": {"languageVersion": 0, "blocks": []}}}
+            
         converter = BlocklyASTConverter()
         return converter.convert(request.code)
     except SyntaxError as e:
-        return {"status": "error", "error_type": "SyntaxError", "line": e.lineno, "message": e.msg}
+        return {
+            "status": "error", 
+            "error_type": "SyntaxError", 
+            "line": getattr(e, 'lineno', 1), 
+            "message": getattr(e, 'msg', str(e))
+        }
     except Exception as e:
-        return {"status": "error", "message": str(e)}
-
+        # Return a safe JSON dictionary if the converter completely crashes
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Internal Server Error: {str(e)}"}
+    
 # =========================
 # FALLBACK: COMPLEXITY ANALYSIS
 # =========================
