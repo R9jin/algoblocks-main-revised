@@ -8,8 +8,9 @@ import ConfirmModal from "../components/ConfirmModal.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
-// --- IMPORT MONACO EDITOR ---
+// --- IMPORT MONACO EDITOR & TRANSLATOR ---
 import Editor from "@monaco-editor/react";
+import { translatePythonError } from "../utils/errorTranslator.js"; // <-- NEW IMPORT
 
 // 1. Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
@@ -401,7 +402,9 @@ const ActivityApp = () => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           setSyntaxError(null);
         } else {
-          setSyntaxError({ line: data.line, message: data.message });
+          // --- SYNTAX ERROR TRANSLATION ---
+          const hint = translatePythonError(data.message);
+          setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
       }
       else if (type === 'RUN_RESULT') {
@@ -459,7 +462,9 @@ const ActivityApp = () => {
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
-        setConsoleOutput(prev => prev + flushed + "\nRuntime Error: " + data);
+        // --- RUNTIME ERROR TRANSLATION ---
+        const hint = translatePythonError(data);
+        setConsoleOutput(prev => prev + flushed + "\n❌ Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -780,7 +785,11 @@ const ActivityApp = () => {
         } else if (type === 'ERROR') {
           clearTimeout(timeout);
           initWorker(); 
-          reject(new Error(data));
+          
+          // --- TEST EXECUTION ERROR TRANSLATION ---
+          const hint = translatePythonError(data);
+          const errorMsg = data + (hint ? `\n${hint}` : "");
+          reject(new Error(errorMsg));
         }
       };
       workerRef.current.postMessage({ type: 'RUN_CODE', code: codeToRun });
