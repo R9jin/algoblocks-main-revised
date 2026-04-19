@@ -13,20 +13,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from bson import ObjectId
 
-# Ensure the local directory is in the path to fix ModuleNotFoundError
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# ✅ KEEP but safer (ensures current dir is included)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
 
-# Robust imports to support running from root OR directly inside analyzer_engine
+# =========================
+# ✅ FIXED IMPORT HANDLING
+# =========================
 try:
-    from analyzer_engine.blockly_ast import BlocklyASTConverter
-    from analyzer_engine.database import projects_collection, users_collection, templates_collection
-    from analyzer_engine.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
-    from analyzer_engine.analyzer import ComplexityAnalyzer
+    # ✅ Case 1: running from project root
+    from api.blockly_ast import BlocklyASTConverter
+    from api.database import projects_collection, users_collection, templates_collection
+    from api.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
+    from api.analyzer import ComplexityAnalyzer
+
 except ModuleNotFoundError:
-    from blockly_ast import BlocklyASTConverter
-    from database import projects_collection, users_collection, templates_collection
-    from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
-    from analyzer import ComplexityAnalyzer
+    try:
+        # ✅ Case 2: running inside /api folder
+        from blockly_ast import BlocklyASTConverter  
+        from database import projects_collection, users_collection, templates_collection  
+        from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  
+        from analyzer import ComplexityAnalyzer  
+    except ModuleNotFoundError as e:
+        raise RuntimeError(f"Import failed: {e}")  
 
 app = FastAPI()
 
@@ -77,10 +85,11 @@ def safe_exec(code: str, globals_dict: dict):
     safe_builtins = builtins.__dict__.copy()
     safe_builtins["print"] = print
     safe_builtins["input"] = globals_dict.get("input", input)
+
     exec(code, {
         "__builtins__": safe_builtins  
     })
-    
+
 @app.get("/")
 def health_check():
     return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
@@ -252,7 +261,6 @@ def google_auth(req: GoogleAuthRequest):
         user = {"name": data.get("name"), "email": email, "progress": {}}
         users_collection.insert_one(user)
     else:
-        # Convert ObjectId to string for JSON serialization
         user["_id"] = str(user["_id"])
 
     return {"status": "success", **user}
@@ -263,13 +271,23 @@ def google_auth(req: GoogleAuthRequest):
 @app.post("/api/ast-to-blocks")
 async def ast_to_blocks(request: AstRequest):
     try:
+        if not request.code or not request.code.strip():
+            return {"status": "success", "blocks": {"blocks": {"languageVersion": 0, "blocks": []}}}
+            
         converter = BlocklyASTConverter()
         return converter.convert(request.code)
     except SyntaxError as e:
-        return {"status": "error", "error_type": "SyntaxError", "line": e.lineno, "message": e.msg}
+        return {
+            "status": "error", 
+            "error_type": "SyntaxError", 
+            "line": getattr(e, 'lineno', 1), 
+            "message": getattr(e, 'msg', str(e))
+        }
     except Exception as e:
-        return {"status": "error", "message": str(e)}
-
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Internal Server Error: {str(e)}"}
+    
 # =========================
 # FALLBACK: COMPLEXITY ANALYSIS
 # =========================
@@ -315,8 +333,9 @@ def analyze_complexity(payload: CodePayload):
                 "indent": line.get("indent", 0),
                 "color": line.get("color"),
                 "weight": line.get("weight", 0),
-                "local_explanation": line.get("local_explanation", ""),
-                "global_explanation": line.get("global_explanation", "")
+                # ✅ FIXED: Correct dictionary keys matching analyzer.py outputs
+                "time_explanation": line.get("time_explanation", ""),
+                "space_explanation": line.get("space_explanation", "")
             })
 
         return {

@@ -469,7 +469,13 @@ class BlocklyASTConverter:
                     "fields": {"MODE": "GET", "WHERE": "FROM_START"}
                 }
                 self.add_input(block, "VALUE", self.serialize_expr(node.value))
-                self.add_input(block, "AT", self.serialize_expr_safe(node.slice, ["Number"]))
+                
+                # FIX: Safely extract the slice for both Python 3.8 and Python 3.9+
+                slice_node = node.slice
+                if hasattr(ast, 'Index') and isinstance(slice_node, getattr(ast, 'Index')):
+                    slice_node = slice_node.value
+                    
+                self.add_input(block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
                 return block
 
             # =========================

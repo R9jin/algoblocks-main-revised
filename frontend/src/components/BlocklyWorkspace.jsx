@@ -445,26 +445,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
 
   const API_URL = import.meta.env.VITE_BACKEND_URL || ""
 
-  // A lightweight heuristic to guess if the code is NOT Python
-  const detectForeignLanguage = (code) => {
-    // Check for Java signatures
-    if (/public\s+class|System\.out\.print|public\s+static\s+void\s+main/.test(code)) return "Java";
-
-    // Check for JavaScript / TypeScript signatures
-    if (/(?:const|let)\s+[a-zA-Z_]\w*\s*=|console\.log\(|document\.querySelector|=>/.test(code)) return "JavaScript";
-
-    // Check for C / C++ signatures
-    if (/#include\s*<.*>|int\s+main\s*\(|std::cout/.test(code)) return "C/C++";
-
-    // Check for C# signatures
-    if (/using\s+System;|namespace\s+[a-zA-Z_]|Console\.WriteLine/.test(code)) return "C#";
-
-    // Check for PHP signatures
-    if (/<\?php|echo\s+/.test(code)) return "PHP";
-
-    return null; // Null means we didn't detect a foreign language (likely Python or just pseudo-code)
-  };
-  
   useImperativeHandle(ref, () => ({
     clear: () => {
       if (workspace.current) {
@@ -504,21 +484,23 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     loadFromPython: async (pythonCode) => {
       if (!workspace.current) return;
 
-      // --- NEW: Check for foreign languages first ---
-      const foreignLang = detectForeignLanguage(pythonCode);
-      if (foreignLang) {
-        // Throw an error so MainApp.jsx's catch block can display it nicely
-        throw new Error(`It looks like you pasted ${foreignLang} code. AlgoBlocks currently only supports converting Python to blocks.`);
-      }
-      // ----------------------------------------------
-
       try {
         const response = await fetch(`${API_URL}/api/ast-to-blocks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: pythonCode })
         });
-        const data = await response.json();
+
+        // FIX: Read as raw text first to prevent 'Unexpected end of JSON input' crashes
+        const textData = await response.text();
+        let data;
+
+        try {
+          data = JSON.parse(textData);
+        } catch (e) {
+          console.error("Invalid JSON from server. Raw Response:", textData);
+          throw new Error("Server returned an empty or invalid response. The backend might have crashed.");
+        }
 
         if (data.status === "error") {
           throw new Error(data.message || "Failed to parse Python code.");
@@ -833,43 +815,37 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         }, 400);
       });
 
-      // Safe resize listener
-      const handleResize = () => {
-        if (workspace.current) {
-          Blockly.svgResize(workspace.current);
-        }
-      };
-
-      window.addEventListener('resize', handleResize);
-
-      // ✅ FIXED: SINGLE CLEANUP FUNCTION (merged both returns)
-      return () => {
-        // ✅ remove resize listener
-        window.removeEventListener('resize', handleResize);
-
-        // ✅ dispose plugins
-        try {
-          if (searchPlugin?.dispose) searchPlugin.dispose(); // ✅ added
-          if (minimapPlugin?.dispose) minimapPlugin.dispose(); // ✅ added
-          if (modalPlugin?.dispose) modalPlugin.dispose(); // ✅ added
-          if (backpackPlugin?.dispose) backpackPlugin.dispose(); // ✅ added
-          if (highlightPlugin?.dispose) highlightPlugin.dispose(); // ✅ added
-        } catch (e) {
-          console.warn("Plugin dispose skipped:", e.message);
-        }
-
-        // ✅ dispose workspace
-        if (workspace.current) {
-          workspace.current.dispose();
-          workspace.current = null;
-        }
-
-        // ✅ cleanup observer
-        if (blocklyDiv.current?.resizeObserver) {
-          blocklyDiv.current.resizeObserver.disconnect();
-        }
-      };
+      let resizeFrame;
+      const observer = new ResizeObserver(() => {
+        if (resizeFrame) cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => {
+          if (workspace.current) Blockly.svgResize(workspace.current);
+        });
+      });
+      observer.observe(blocklyDiv.current);
+      blocklyDiv.current.resizeObserver = observer;
     }
+
+    return () => {
+      try {
+        if (searchPlugin?.dispose) searchPlugin.dispose();
+        if (minimapPlugin?.dispose) minimapPlugin.dispose();
+        if (modalPlugin?.dispose) modalPlugin.dispose();
+        if (backpackPlugin?.dispose) backpackPlugin.dispose();
+        if (highlightPlugin?.dispose) highlightPlugin.dispose();
+      } catch (e) {
+        console.warn("Plugin dispose skipped:", e.message);
+      }
+
+      if (workspace.current) {
+        workspace.current.dispose();
+        workspace.current = null;
+      }
+
+      if (blocklyDiv.current?.resizeObserver) {
+        blocklyDiv.current.resizeObserver.disconnect();
+      }
+    };
   }, []);
 
   return (
@@ -894,7 +870,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
           zIndex: 1000,
           maxWidth: '300px'
         }}>
-          <div style={{ fontSize: '1.5rem' }}>❌</div>
+          <div style={{ fontSize: '1.5rem' }}></div>
           <div>
             <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#bc11ff' }}>Syntax Error (Line {syntaxError.line})</div>
             <div style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.9 }}>{syntaxError.message}</div>

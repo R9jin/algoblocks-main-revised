@@ -3,22 +3,46 @@ import { Line, LineChart, ResponsiveContainer, YAxis } from 'recharts';
 
 const generateSparklineData = (complexity) => {
   const data = [];
-  // 30 points for a high-definition smooth curve
-  for (let n = 1; n <= 20; n++) {
+  const N = 40; // Increased resolution for truer mathematical arcs
+
+  for (let n = 1; n <= N; n++) {
     let yValue = 0;
     
     // Ensure complexity is a string before calling toLowerCase
-    const safeComp = complexity ? String(complexity) : "";
-    const cleanComp = safeComp.toLowerCase();
+    const safeComp = complexity ? String(complexity).toLowerCase() : "";
 
-    if (cleanComp.includes("o(1)")) yValue = 10; 
-    else if (cleanComp.includes("log n")) yValue = Math.log2(n + 1) * 10;
-    // Added checks for the formatted unicode superscripts ² and ⁿ
-    else if (cleanComp.includes("n^2") || cleanComp.includes("n²")) yValue = Math.pow(n, 2);
-    else if (cleanComp.includes("n log n")) yValue = n * Math.log2(n + 1);
-    else if (cleanComp.includes("2^n") || cleanComp.includes("2ⁿ")) yValue = Math.pow(1.3, n) * 5;
-    else if (cleanComp.includes("n!")) yValue = n > 10 ? 1000 : [1,2,6,24,120,720,5040,40320,362880,3628800][n-1];
-    else yValue = n * 5; // O(n) default
+    // Strictly map to real mathematical functions for accurate graph shapes
+    if (safeComp.includes("o(1)")) {
+      yValue = 10; // Perfectly flat horizontal line
+    } 
+    else if (safeComp.includes("log n")) {
+      yValue = Math.log2(n + 1); // True logarithmic curve (rises fast, then flattens)
+    } 
+    else if (safeComp.includes("√n") || safeComp.includes("sqrt")) {
+      yValue = Math.sqrt(n); // Square root curve
+    } 
+    else if (safeComp.includes("n^2") || safeComp.includes("n²")) {
+      yValue = Math.pow(n, 2); // True parabolic curve
+    } 
+    else if (safeComp.includes("n^3") || safeComp.includes("n³")) {
+      yValue = Math.pow(n, 3); // Steeper cubic curve
+    } 
+    else if (safeComp.includes("n log n")) {
+      yValue = n * Math.log2(n + 1); // Linearithmic (slightly curved linear)
+    } 
+    else if (safeComp.includes("2^n") || safeComp.includes("2ⁿ")) {
+      // Scaled 'n' down slightly to prevent JavaScript number overflow on the Y-Axis,
+      // but preserves the brutal "hockey-stick" vertical shoot-up characteristic of O(2^n).
+      yValue = Math.pow(2, n / 4); 
+    } 
+    else if (safeComp.includes("n!") || safeComp.includes("t(n-1)")) {
+      // Gamma-like scaling for factorial. Shoots up even more violently than exponential.
+      yValue = Math.pow(n, n / 8); 
+    } 
+    else {
+      // Default O(n) or O(V + E)
+      yValue = n; // Perfectly straight diagonal line
+    }
     
     data.push({ operations: yValue });
   }
@@ -54,9 +78,10 @@ const ComplexityGraph = ({ complexity, color = "#e67e22", label = "" }) => {
       <div style={{ width: '100%', height: '80px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
+            {/* Auto-scaling Y-Axis allows the relative shape of the mathematical curve to dominate */}
             <YAxis hide={true} domain={['dataMin', 'dataMax']} />
             <Line 
-              type="basis" 
+              type="monotone" // Changed from 'basis' to 'monotone' to prevent artificial/wobbly curving
               dataKey="operations" 
               stroke={color} 
               strokeWidth={4} 
