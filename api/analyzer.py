@@ -6,7 +6,7 @@ from semantic_nlg import SemanticNLGEngine
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     """
-    A Context-Aware Rule-Based Traversal Algorithm.
+    A Context-Aware, Multi-Pass Rule-Based AST Traversal Algorithm.
     Evaluates time and space complexity line-by-line and includes a Logic Error 
     Correction Engine for common beginner mistakes.
     """
@@ -49,7 +49,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.first_rec_line = float('inf')
         self.conditional_partition_lines = []
 
-        # --- NEW: Logic Hints Dictionary ---
+        # Logic Hints Dictionary
         self.logic_hints = {} # Map lineno -> list of hints
 
         self.builtin_complexities = {
@@ -68,7 +68,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         # Initialize the Dynamic NLG Component
         self.nlg_engine = SemanticNLGEngine(self)
 
-    # --- NEW: Logic Hint Helper ---
+    # --- Logic Hint Helper ---
     def add_logic_hint(self, node, hint):
         lineno = getattr(node, 'lineno', -1)
         if lineno != -1:
@@ -131,7 +131,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     # --- COMPREHENSIVE REASONING ENGINE ---
     def _generate_explanation(self, node, local_t, global_t, is_dead):
-        # [Existing Explanation Generation logic remains untouched - removed for brevity but keep original implementation in your file]
         pass 
 
     # --- UTILITIES ---
@@ -167,14 +166,38 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     # --- HEURISTICS ---
     def _detect_graph_context(self, node):
-        graph_keywords = {'visited', 'graph', 'adj', 'adj_list', 'bfs', 'dfs', 'vertex', 'vertices', 'edges', 'queue', 'stack', 'neighbor'}
+        """
+        STRUCTURAL HEURISTIC: Detects graph algorithms without relying on variable names.
+        Looks for typical BFS/DFS structures:
+        1. BFS: A `while` loop that pops from a data structure, containing an inner `for` loop.
+        2. DFS: A `for` loop containing a recursive call to the enclosing function.
+        """
+        has_queue_while = False
+        has_neighbor_for = False
+        has_recursive_for = False
+
         if isinstance(node, ast.FunctionDef):
-            if any(k in node.name.lower() for k in graph_keywords):
-                return True
-        for child in ast.walk(node):
-            if isinstance(child, ast.Name) and child.id.lower() in graph_keywords:
-                return True
-        return False
+            for child in ast.walk(node):
+                # Check for BFS Structure (While -> Pop)
+                if isinstance(child, ast.While):
+                    for sub in ast.walk(child):
+                        if isinstance(sub, ast.Call) and isinstance(getattr(sub.func, 'attr', ''), str):
+                            if sub.func.attr in ['pop', 'popleft']:
+                                has_queue_while = True
+                
+                # Check for inner loops and DFS structures
+                if isinstance(child, ast.For):
+                    # Check for subscript iteration (e.g., for neighbor in graph[node])
+                    if isinstance(child.iter, ast.Subscript):
+                        has_neighbor_for = True
+                    
+                    # Check for recursive DFS structure
+                    for sub in ast.walk(child):
+                        if isinstance(sub, ast.Call) and isinstance(getattr(sub.func, 'id', ''), str):
+                            if getattr(sub.func, 'id', '') == node.name:
+                                has_recursive_for = True
+
+        return (has_queue_while and has_neighbor_for) or has_recursive_for
 
     def _is_graph_while_loop(self, node):
         if not getattr(self, 'in_graph_context', False): return False
@@ -303,10 +326,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             node, local_t, global_t, local_s, global_s, is_dead, line_text
         )
 
-        # --- NEW: INJECT LOGIC HINTS INTO EXPLANATION UI ---
         hints = self.logic_hints.get(getattr(node, 'lineno', -1), [])
         if hints:
-            # Appending dynamically makes it show up automatically in React
             time_exp += "\n\n" + "\n".join(hints)
 
         entry = {
@@ -348,7 +369,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     # --- NODE HANDLERS ---
     
-    # --- NEW: Catch Off-by-one errors and == True logic flaws ---
     def visit_Compare(self, node):
         if any(isinstance(op, ast.LtE) for op in node.ops):
             for comp in node.comparators:
@@ -468,7 +488,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_For(self, node):
-        # --- NEW: Logic Hints (Modifying array mid-iteration, Premature Return) ---
         if isinstance(node.iter, ast.Name):
             iter_var = node.iter.id
             for stmt in node.body:
@@ -491,7 +510,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not is_const: self.loop_depth -= 1
 
     def visit_While(self, node):
-        # --- NEW: Logic Hint (Infinite loop due to non-updated variables) ---
         test_vars = {n.id for n in ast.walk(node.test) if isinstance(n, ast.Name)}
         body_vars = set()
         for stmt in node.body:
@@ -571,12 +589,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         s_ov, t_ov = "O(1)", None
         
         if getattr(self, 'in_graph_context', False):
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    if any(k in target.id.lower() for k in ['queue', 'stack', 'visited', 'adj', 'path']):
-                        s_ov = "O(V)"
+            # STRUCTURAL HEURISTIC: Instead of checking if the variable is named "visited" or "queue",
+            # check if a structural collection type is being created/initialized (Set, List, Dict, Deque).
+            if isinstance(node.value, (ast.List, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp)):
+                s_ov = "O(V)"
+            elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str):
+                if getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque']:
+                    s_ov = "O(V)"
+            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult):
+                if isinstance(node.value.left, ast.List) or isinstance(node.value.right, ast.List):
+                    s_ov = "O(V)"
 
-        # --- NEW: Logic Hint (Accidental Overwrite with None) ---
         if isinstance(node.value, ast.Call) and isinstance(getattr(node.value, 'func', None), ast.Attribute):
             if node.value.func.attr in ['append', 'sort', 'reverse']:
                 self.add_logic_hint(node, f"⚠️ Logic Risk (NoneType Overwrite): '{node.value.func.attr}()' modifies the data structure in-place and inherently returns None. Assigning its result back to a variable will unexpectedly clear your data.")
@@ -624,7 +647,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def visit_Return(self, node): self.record_line(node); self.generic_visit(node)  
     def visit_Expr(self, node): self.record_line(node); self.generic_visit(node)      
 
-    # [Rank Eval Badges code left untouched below...]
     def get_final_badge(self):
         best_comp = "O(1)"
         best_rank = 1

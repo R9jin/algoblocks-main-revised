@@ -870,7 +870,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
           zIndex: 1000,
           maxWidth: '300px'
         }}>
-          <div style={{ fontSize: '1.5rem' }}>❌</div>
+          <div style={{ fontSize: '1.5rem' }}></div>
           <div>
             <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#bc11ff' }}>Syntax Error (Line {syntaxError.line})</div>
             <div style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.9 }}>{syntaxError.message}</div>

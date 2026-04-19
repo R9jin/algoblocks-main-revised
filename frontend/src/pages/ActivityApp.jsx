@@ -320,13 +320,13 @@ const renderFormattedTask = (text) => {
 
 const getComplexityColor = (complexity) => {
   const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#2ecc71"; 
-  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; 
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; 
-  if (comp.includes("n log n")) return "#e67e22"; 
-  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; 
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; 
-  return "#95a5a6"; 
+  if (comp.includes("o(1)")) return "#2ecc71";
+  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db";
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f";
+  if (comp.includes("n log n")) return "#e67e22";
+  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c";
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6";
+  return "#95a5a6";
 };
 
 const getComplexityWeight = (complexity) => {
@@ -339,7 +339,7 @@ const getComplexityWeight = (complexity) => {
   if (comp.includes("n^3") || comp.includes("n³")) return 6;
   if (comp.includes("2^n") || comp.includes("2ⁿ")) return 7;
   if (comp.includes("n!")) return 8;
-  return 0; 
+  return 0;
 };
 
 const ActivityApp = () => {
@@ -356,7 +356,7 @@ const ActivityApp = () => {
   const renderIntervalRef = useRef(null);
   const isDragging = useRef(false);
   const hasLoadedRef = useRef(false);
-  const analysisStartTimeRef = useRef(0); 
+  const analysisStartTimeRef = useRef(0);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -381,8 +381,8 @@ const ActivityApp = () => {
   const [userInput, setUserInput] = useState("");
 
   const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
-  const [analysisTime, setAnalysisTime] = useState("0.0"); 
-  const [lineExecutions, setLineExecutions] = useState({}); 
+  const [analysisTime, setAnalysisTime] = useState("0.0");
+  const [lineExecutions, setLineExecutions] = useState({});
 
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
   const [isEditingCode, setIsEditingCode] = useState(false);
@@ -429,14 +429,14 @@ const ActivityApp = () => {
       }
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current); 
+        clearInterval(renderIntervalRef.current);
 
         const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = ""; 
+        pendingOutputRef.current = "";
 
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
-        
+
         if (counts) setLineExecutions(counts);
 
         setIsEvaluating(false);
@@ -458,7 +458,7 @@ const ActivityApp = () => {
           const flushed = pendingOutputRef.current;
           pendingOutputRef.current = "";
 
-          setConsoleOutput(prev => prev + flushed + "\n\n❌ Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
           setIsEvaluating(false);
           setIsWaitingForInput(false);
           outputCountRef.current = 0;
@@ -467,7 +467,7 @@ const ActivityApp = () => {
       }
       else if (type === 'INPUT_REQUEST') {
         clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current); 
+        clearInterval(renderIntervalRef.current);
 
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
@@ -483,7 +483,7 @@ const ActivityApp = () => {
         pendingOutputRef.current = "";
 
         const hint = translatePythonError(data);
-        setConsoleOutput(prev => prev + flushed + "\n❌ Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+        setConsoleOutput(prev => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -525,7 +525,7 @@ const ActivityApp = () => {
 
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "") return;
-    
+
     analysisStartTimeRef.current = performance.now();
 
     if (isOnline) {
@@ -537,7 +537,7 @@ const ActivityApp = () => {
         });
 
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
-        
+
         const data = await response.json();
         const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
         setAnalysisTime(duration);
@@ -549,7 +549,7 @@ const ActivityApp = () => {
           const hint = translatePythonError(data.message);
           setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
-        return; 
+        return;
       } catch (error) {
         console.warn("Online analysis failed or unreachable, falling back to local worker.", error);
       }
@@ -588,7 +588,7 @@ const ActivityApp = () => {
 
     try {
       fetch(`${VERCEL_URL}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, lesson_id: lessonId, score }) });
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const handleSuccess = (passed, total) => {
@@ -619,15 +619,15 @@ const ActivityApp = () => {
           workspaceRef.current.loadTemplate(json.data ? json.data : json);
           setViewMode("workspace");
           setIsEditingCode(false);
-        } catch (err) {}
+        } catch (err) { }
       };
       tryLoad();
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const handleWorkspaceChange = async (json, pythonCode) => {
     if (!isEditingCode) setGeneratedPython(pythonCode);
-    setLineExecutions({}); 
+    setLineExecutions({});
     analyzeCode(pythonCode);
   };
 
@@ -644,7 +644,7 @@ const ActivityApp = () => {
   };
 
   const handleActivityRun = async () => {
-    if (isEvaluating) return; 
+    if (isEvaluating) return;
 
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
@@ -656,7 +656,7 @@ const ActivityApp = () => {
     clearInterval(renderIntervalRef.current);
 
     setIsEvaluating(true);
-    setLineExecutions({}); 
+    setLineExecutions({});
     setBottomPanel("console");
 
     if (isOnline) {
@@ -667,19 +667,19 @@ const ActivityApp = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: generatedPython })
         });
-        
+
         if (!response.ok) throw new Error("FastAPI execution failed");
-        
+
         const data = await response.json();
         const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
         setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
-        
+
         if (data.counts) setLineExecutions(data.counts);
-        
+
         setIsEvaluating(false);
-        return; 
+        return;
       } catch (error) {
-        setConsoleOutput(prev => prev + "❌ Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
+        setConsoleOutput(prev => prev + " Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
       }
     }
 
@@ -709,7 +709,7 @@ const ActivityApp = () => {
       const flushed = pendingOutputRef.current;
       pendingOutputRef.current = "";
 
-      setConsoleOutput(prev => prev + flushed + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+      setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
 
       setIsEvaluating(false);
       setIsWaitingForInput(false);
@@ -744,7 +744,7 @@ const ActivityApp = () => {
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
-        setConsoleOutput(prev => prev + flushed + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }, 10000);
@@ -762,15 +762,15 @@ const ActivityApp = () => {
           body: JSON.stringify({ code: codeToRun })
         });
         if (!response.ok) throw new Error("FastAPI execution failed");
-        
+
         const data = await response.json();
-        
+
         if (data.counts) {
-            setLineExecutions(prev => {
-                const next = { ...prev };
-                for (const [key, val] of Object.entries(data.counts)) { next[key] = (next[key] || 0) + val; }
-                return next;
-            });
+          setLineExecutions(prev => {
+            const next = { ...prev };
+            for (const [key, val] of Object.entries(data.counts)) { next[key] = (next[key] || 0) + val; }
+            return next;
+          });
         }
 
         if (data.error) {
@@ -780,7 +780,7 @@ const ActivityApp = () => {
 
         return (data.output !== undefined && data.output !== null) ? String(data.output) : "";
       } catch (error) {
-         console.warn("Online test execution failed, falling back to local...", error);
+        console.warn("Online test execution failed, falling back to local...", error);
       }
     }
 
@@ -789,10 +789,10 @@ const ActivityApp = () => {
       const timeout = setTimeout(() => {
         workerRef.current.terminate();
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); 
-        initWorker(); 
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+        initWorker();
         reject(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
-      }, 10000); 
+      }, 10000);
 
       workerRef.current.onmessage = (event) => {
         const { type, data, counts } = event.data;
@@ -802,18 +802,18 @@ const ActivityApp = () => {
           clearTimeout(timeout);
           outputAccumulator += (data !== undefined && data !== null) ? data : "";
           if (counts) {
-              setLineExecutions(prev => {
-                  const next = { ...prev };
-                  for (const [key, val] of Object.entries(counts)) { next[key] = (next[key] || 0) + val; }
-                  return next;
-              });
+            setLineExecutions(prev => {
+              const next = { ...prev };
+              for (const [key, val] of Object.entries(counts)) { next[key] = (next[key] || 0) + val; }
+              return next;
+            });
           }
-          initWorker(); 
+          initWorker();
           resolve(outputAccumulator);
         } else if (type === 'ERROR') {
           clearTimeout(timeout);
-          initWorker(); 
-          
+          initWorker();
+
           const hint = translatePythonError(data);
           const errorMsg = data + (hint ? `\n${hint}` : "");
           reject(new Error(errorMsg));
@@ -836,7 +836,7 @@ const ActivityApp = () => {
     }
 
     setIsEvaluating(true);
-    setLineExecutions({}); 
+    setLineExecutions({});
     setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
     setBottomPanel("console");
 
@@ -908,7 +908,7 @@ const ActivityApp = () => {
   lines.forEach((line, index) => {
     const timeToEvaluate = activeTab === 'local' ? line.local_time : line.global_time;
     const weight = getComplexityWeight(timeToEvaluate);
-    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; } 
+    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
     else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
   });
 
@@ -982,11 +982,11 @@ const ActivityApp = () => {
               <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
                 {syntaxError && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>⚠️ Syntax Error on line {syntaxError.line}: {syntaxError.message}</span>
+                    <span>Syntax Error on line {syntaxError.line}: {syntaxError.message}</span>
                     <button onClick={() => setSyntaxError(null)} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
                   </div>
                 )}
-                
+
                 <Editor
                   height="100%"
                   language="python"
@@ -1072,8 +1072,8 @@ const ActivityApp = () => {
                           {analysisResult.lines.map((line, i) => {
                             const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                             const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-                            const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
-                            const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
+                            const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
+                            const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available."; F
                             const timeColor = getComplexityColor(timeComplexity);
                             const spaceColor = getComplexityColor(spaceComplexity);
                             const isBottleneck = actualBottleneckIndices.includes(i);
@@ -1082,11 +1082,11 @@ const ActivityApp = () => {
                             const lineTextStr = (line.lineOfCode || line.code || "").trim();
                             let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
                             if (matchedIdx !== -1) {
-                                execCount = lineExecutions[matchedIdx + 1] || 0;
-                                searchStartIndex = matchedIdx + 1; 
+                              execCount = lineExecutions[matchedIdx + 1] || 0;
+                              searchStartIndex = matchedIdx + 1;
                             } else {
-                                matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
-                                if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
+                              matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
+                              if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
                             }
 
                             return (
@@ -1110,7 +1110,7 @@ const ActivityApp = () => {
                                         borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
                                         boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
                                       }} title={`Executed ${execCount} times during the last run`}>
-                                        <span style={{fontSize: '0.75rem'}}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                        <span style={{ fontSize: '0.75rem' }}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
                                       </span>
                                     )}
                                   </td>

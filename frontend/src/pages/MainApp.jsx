@@ -24,12 +24,12 @@ const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#1C1236', 
-      'editor.foreground': '#EBE4FF', 
-      'editorLineNumber.foreground': '#6C5CE7', 
-      'editor.lineHighlightBackground': '#2D234A', 
-      'editorCursor.foreground': '#FFFFFF', 
-      'editor.selectionBackground': '#6C5CE755', 
+      'editor.background': '#1C1236',
+      'editor.foreground': '#EBE4FF',
+      'editorLineNumber.foreground': '#6C5CE7',
+      'editor.lineHighlightBackground': '#2D234A',
+      'editorCursor.foreground': '#FFFFFF',
+      'editor.selectionBackground': '#6C5CE755',
       'editor.inactiveSelectionBackground': '#6C5CE733'
     }
   });
@@ -52,13 +52,13 @@ const SIDEBAR_TEMPLATES = [
 
 const getComplexityColor = (complexity) => {
   const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#2ecc71"; 
-  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db"; 
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f"; 
-  if (comp.includes("n log n")) return "#e67e22"; 
-  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c"; 
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6"; 
-  return "#95a5a6"; 
+  if (comp.includes("o(1)")) return "#2ecc71";
+  if (comp.includes("log n") && !comp.includes("n log")) return "#3498db";
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f";
+  if (comp.includes("n log n")) return "#e67e22";
+  if (comp.includes("n^2") || comp.includes("n²")) return "#e74c3c";
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#9b59b6";
+  return "#95a5a6";
 };
 
 const getComplexityWeight = (complexity) => {
@@ -71,7 +71,7 @@ const getComplexityWeight = (complexity) => {
   if (comp.includes("n^3") || comp.includes("n³")) return 6;
   if (comp.includes("2^n") || comp.includes("2ⁿ")) return 7;
   if (comp.includes("n!")) return 8;
-  return 0; 
+  return 0;
 };
 
 export default function MainApp() {
@@ -104,7 +104,7 @@ export default function MainApp() {
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [analysisTime, setAnalysisTime] = useState("0.0");
-  const [lineExecutions, setLineExecutions] = useState({}); 
+  const [lineExecutions, setLineExecutions] = useState({});
   const [allTemplates, setAllTemplates] = useState([]);
   const [currentLoadedId, setCurrentLoadedId] = useState(null);
   const [currentProjectTitle, setCurrentProjectTitle] = useState("Untitled Project");
@@ -125,7 +125,7 @@ export default function MainApp() {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
-  
+
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
@@ -164,14 +164,14 @@ export default function MainApp() {
       }
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current); 
+        clearInterval(renderIntervalRef.current);
 
         const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = ""; 
+        pendingOutputRef.current = "";
 
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
-        
+
         if (counts) setLineExecutions(counts);
 
         setIsEvaluating(false);
@@ -193,7 +193,7 @@ export default function MainApp() {
           const flushed = pendingOutputRef.current;
           pendingOutputRef.current = "";
 
-          setConsoleOutput(prev => prev + flushed + "\n\n❌ Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
           setIsEvaluating(false);
           setIsWaitingForInput(false);
           outputCountRef.current = 0;
@@ -202,7 +202,7 @@ export default function MainApp() {
       }
       else if (type === 'INPUT_REQUEST') {
         clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current); 
+        clearInterval(renderIntervalRef.current);
 
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
@@ -219,8 +219,8 @@ export default function MainApp() {
 
         // --- RUNTIME ERROR TRANSLATION ---
         const hint = translatePythonError(data);
-        setConsoleOutput(prev => prev + flushed + "\n❌ Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-        
+        setConsoleOutput(prev => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }
@@ -237,7 +237,7 @@ export default function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); 
+    if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [consoleOutput, isWaitingForInput]);
 
   useEffect(() => {
@@ -331,7 +331,7 @@ export default function MainApp() {
 
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "") return;
-    
+
     analysisStartTimeRef.current = performance.now();
 
     if (isOnline) {
@@ -343,7 +343,7 @@ export default function MainApp() {
         });
 
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
-        
+
         const data = await response.json();
         const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
         setAnalysisTime(duration);
@@ -355,7 +355,7 @@ export default function MainApp() {
           const hint = translatePythonError(data.message);
           setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
-        return; 
+        return;
       } catch (error) {
         console.warn("Online analysis failed or unreachable, falling back to local worker.", error);
       }
@@ -437,7 +437,7 @@ export default function MainApp() {
 
     showToast("Saved locally. Background sync queued.");
     setSaveModal({ ...saveModal, isOpen: false });
-    fetchTemplates(); 
+    fetchTemplates();
   };
 
   const handleDeleteItem = async (e, item) => {
@@ -465,7 +465,7 @@ export default function MainApp() {
       }
     } catch (err) {
       showToast("Error deleting item.", "error");
-      fetchTemplates(); 
+      fetchTemplates();
     }
   };
 
@@ -482,7 +482,7 @@ export default function MainApp() {
     clearInterval(renderIntervalRef.current);
 
     setIsEvaluating(true);
-    setLineExecutions({}); 
+    setLineExecutions({});
     setBottomPanel("console");
 
     if (isOnline) {
@@ -493,19 +493,19 @@ export default function MainApp() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: generatedPython })
         });
-        
+
         if (!response.ok) throw new Error("FastAPI execution failed");
-        
+
         const data = await response.json();
         const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
         setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
-        
+
         if (data.counts) setLineExecutions(data.counts);
-        
+
         setIsEvaluating(false);
-        return; 
+        return;
       } catch (error) {
-        setConsoleOutput(prev => prev + "❌ Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
+        setConsoleOutput(prev => prev + " Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
       }
     }
 
@@ -536,7 +536,7 @@ export default function MainApp() {
       const flushed = pendingOutputRef.current;
       pendingOutputRef.current = "";
 
-      setConsoleOutput(prev => prev + flushed + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
+      setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
 
       setIsEvaluating(false);
       setIsWaitingForInput(false);
@@ -562,7 +562,7 @@ export default function MainApp() {
 
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate();
-        clearInterval(renderIntervalRef.current); 
+        clearInterval(renderIntervalRef.current);
 
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' });
@@ -571,7 +571,7 @@ export default function MainApp() {
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
-        setConsoleOutput(prev => prev + flushed + "\n❌ Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       }, 10000);
@@ -593,7 +593,7 @@ export default function MainApp() {
   lines.forEach((line, index) => {
     const targetComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
     const weight = getComplexityWeight(targetComplexity);
-    
+
     if (weight > maxWeight) {
       maxWeight = weight;
       bottleneckIndices = [index];
@@ -725,7 +725,7 @@ export default function MainApp() {
               <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
                 {syntaxError && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>⚠️ Syntax Error on line {syntaxError.line}: {syntaxError.message}</span>
+                    <span>Syntax Error on line {syntaxError.line}: {syntaxError.message}</span>
                     <button onClick={() => setSyntaxError(null)} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
                   </div>
                 )}
@@ -803,8 +803,8 @@ export default function MainApp() {
                           {analysisResult.lines.map((line, i) => {
                             const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                             const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-                            const timeExp = line.time_explanation || line.local_explanation || "Time complexity analysis not available.";
-                            const spaceExp = line.space_explanation || line.global_explanation || "Space complexity analysis not available.";
+                            const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
+                            const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available."; 
                             const timeColor = getComplexityColor(timeComplexity);
                             const spaceColor = getComplexityColor(spaceComplexity);
                             const isBottleneck = actualBottleneckIndices.includes(i);
@@ -813,11 +813,11 @@ export default function MainApp() {
                             const lineTextStr = (line.lineOfCode || line.code || "").trim();
                             let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
                             if (matchedIdx !== -1) {
-                                execCount = lineExecutions[matchedIdx + 1] || 0;
-                                searchStartIndex = matchedIdx + 1; 
+                              execCount = lineExecutions[matchedIdx + 1] || 0;
+                              searchStartIndex = matchedIdx + 1;
                             } else {
-                                matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
-                                if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
+                              matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
+                              if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
                             }
 
                             return (
@@ -834,14 +834,14 @@ export default function MainApp() {
                                 >
                                   <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                     {line.lineOfCode || line.code}
-                                    
+
                                     {execCount > 0 && (
                                       <span style={{
                                         marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
                                         borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
                                         boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
                                       }} title={`Executed ${execCount} times during the last run`}>
-                                        <span style={{fontSize: '0.75rem'}}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                        <span style={{ fontSize: '0.75rem' }}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
                                       </span>
                                     )}
                                   </td>
