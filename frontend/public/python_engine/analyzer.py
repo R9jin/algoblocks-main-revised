@@ -316,7 +316,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         override_poly = override_log = override_sqrt = override_graph = 0
         is_recurrence = False
         
-        # 1. ADD THIS: Map the AST node type to a readable operation name
         node_type = type(node).__name__
         op_map = {
             "Assign": "Assignment",
@@ -356,8 +355,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif self._is_sqrt_loop(node): display_sqrt = 1
                 else: display_poly = 1
 
+        # CHANGED: Explicit O(1) fallback for standard Definitions instead of hyphens
         if time_override == "Definition":
-            local_t = global_t = local_s = global_s = "-"
+            local_t = global_t = local_s = global_s = "O(1)"
             t_w = 0
         elif is_dead:
             local_t = global_t = local_s = global_s = "Dead Code"
@@ -388,7 +388,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         entry = {
             "lineOfCode": line_text, 
-            "operation": operation_name,  # 2. ADD THIS KEY
+            "operation": operation_name,  
             "local_time": local_t, 
             "global_time": global_t,
             "local_space": local_s, 
@@ -742,7 +742,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return best_comp
 
     def get_final_space_badge(self):
-        # FIX: Elevated O(V + E) and O(V) to outrank standard O(n) explicitly
+        # Elevated O(V + E) and O(V) to outrank standard O(n) explicitly
         rankings = {
             "O(n!)": 7, 
             "O(2^n)": 6, 

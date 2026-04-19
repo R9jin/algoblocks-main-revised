@@ -806,7 +806,7 @@ export default function MainApp() {
                                         boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)',
                                         animation: 'pulse 1.5s infinite'
                                       }} title={`Highest ${activeTab} computational weight detected`}>
-                                        🔥 Bottleneck
+                                        Bottleneck
                                       </span>
                                     )}
                                   </td>
