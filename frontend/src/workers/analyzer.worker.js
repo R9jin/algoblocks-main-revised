@@ -1,9 +1,9 @@
 let pyodide = null;
 
-// ✅ NEW: async input control
+// async input control
 let inputResolve = null;
-let isWaitingForInput = false;   // ✅ NEW
-let executionTimeout = null;     // ✅ NEW
+let isWaitingForInput = false;
+let executionTimeout = null;
 
 async function initPyodide() {
   if (pyodide) return;
@@ -16,19 +16,23 @@ async function initPyodide() {
     const tempPyodide = await loadPyodide();
 
     const cacheBuster = "?t=" + Date.now();
-    const [analyzerCode, astCode, nlgCode] = await Promise.all([
+    
+    // ✅ FIX 1: Added profiler.py to the fetch list
+    const [analyzerCode, astCode, nlgCode, profilerCode] = await Promise.all([
       fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
       fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
-      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text())
+      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text()),
+      fetch("/python_engine/profiler.py" + cacheBuster).then(res => res.text())
     ]);
 
     if (nlgCode.includes("<!DOCTYPE html>")) {
-      throw new Error("Service Worker served index.html instead of semantic_nlg.py!");
+      throw new Error("Service Worker served index.html instead of python files!");
     }
 
     tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
     tempPyodide.FS.writeFile("blockly_ast.py", astCode);
     tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
+    tempPyodide.FS.writeFile("profiler.py", profilerCode); // ✅ FIX 1: Write to FS
 
     await tempPyodide.runPythonAsync(`
 import sys
@@ -38,11 +42,15 @@ import importlib
 
 import semantic_nlg
 import analyzer
+import profiler  # ✅ FIX 2: Import profiler
+
 importlib.reload(semantic_nlg)
 importlib.reload(analyzer)
+importlib.reload(profiler)
 
 def do_analyze(code):
     try:
+        # --- 1. Static Analysis ---
         tree = ast.parse(code)
         anal = analyzer.ComplexityAnalyzer(code)
         anal.bfs_first_pass(tree)
@@ -57,6 +65,11 @@ def do_analyze(code):
 
         anal.visit(tree)
 
+        # --- 2. Dynamic Execution Profiling ---
+        # Run the code to get exact line hit counts
+        dyn_profiler = profiler.LineExecutionProfiler()
+        hit_counts = dyn_profiler.run_code(code)
+
         def to_asymp(comp):
             if not comp: return "-"
             if "n * T(n-1)" in comp: return "O(n!)"
@@ -67,9 +80,15 @@ def do_analyze(code):
             if "T(n-1)" in comp: return "O(n)"
             return comp
 
+        # --- 3. Merge Data ---
         lines = []
         for line in anal.details:
+            lineno = line.get("lineno", -1)
+            # Default to 0 if the line wasn't executed dynamically
+            hits = hit_counts.get(lineno, 0) if lineno != -1 else 0
+
             lines.append({
+                "lineno": lineno,
                 "lineOfCode": line["lineOfCode"],
                 "operation": line.get("operation", "-"),
                 "local_time": to_asymp(line.get("local_time")),
@@ -80,7 +99,8 @@ def do_analyze(code):
                 "color": line.get("color"),
                 "weight": line.get("weight", 0),
                 "time_explanation": line.get("time_explanation", ""),
-                "space_explanation": line.get("space_explanation", "")
+                "space_explanation": line.get("space_explanation", ""),
+                "hits": hits # ✅ FIX 3: Inject hits into the JSON directly
             })
 
         return json.dumps({
@@ -105,63 +125,13 @@ def do_analyze(code):
   }
 }
 
-// Inside your Pyodide Web Worker (e.g., analyzer.worker.js)
-
-async function analyzeCode(userCode) {
-    // 1. Run your existing Static Analyzer (analyzer.py)
-    const staticResults = pyodide.runPython(`
-        analyzer = ComplexityAnalyzer('''${userCode}''')
-        analyzer.visit(ast.parse('''${userCode}'''))
-        analyzer.details # Assuming this returns your array of line details
-    `);
-    
-    // Convert static results to JS
-    let analysisData = staticResults.toJs();
-
-    // 2. Run the Dynamic Execution Profiler
-    // Assuming you loaded the profiler class into Pyodide already
-    pyodide.globals.set("user_source_code", userCode);
-    
-    const hitMapProxy = pyodide.runPython(`
-        profiler = LineExecutionProfiler()
-        profiler.run_code(user_source_code)
-    `);
-    
-    // Convert Python dictionary { lineno: hits } to JavaScript Map/Object
-    const hitCounts = hitMapProxy.toJs(); // e.g., Map { 2 => 1, 3 => 4, 4 => 4, 5 => 10 ... }
-
-    // 3. Merge the Hits into the Static Data
-    // We assume your userCode is split by newlines, so we can match line numbers (1-indexed)
-    const lines = userCode.split('\\n');
-    
-    const finalData = analysisData.map((detailRow) => {
-        // Find the line number of this specific snippet. 
-        // Note: Your analyzer.py should ideally output the 'lineno' directly to make this easier.
-        // If it doesn't, you can match it by string content (less reliable if there are duplicate lines).
-        const lineIndex = lines.findIndex(l => l.trim() === detailRow.lineOfCode.trim());
-        const actualLineNumber = lineIndex + 1; // 1-indexed
-
-        // Get the hit count from our dynamic run, default to 0
-        const executions = hitCounts.get(actualLineNumber) || 0;
-
-        return {
-            ...detailRow,
-            hits: executions,
-            // You can calculate frequency logic here if needed (e.g., hits / total ops)
-        };
-    });
-
-    return finalData;
-}
-
 self.onmessage = async (e) => {
   const { type, code, data } = e.data;
 
-  // ✅ HANDLE INPUT RESPONSE
   if (type === 'INPUT_RESPONSE') {
     if (inputResolve) {
-      clearTimeout(executionTimeout); // ✅ FIX: stop timeout
-      isWaitingForInput = false;      // ✅ FIX: resume state
+      clearTimeout(executionTimeout); 
+      isWaitingForInput = false;      
       inputResolve(data);
       inputResolve = null;
     }
@@ -185,6 +155,7 @@ self.onmessage = async (e) => {
     // ANALYZE MODE
     // ======================
     if (type === 'ANALYZE_CODE') {
+      // It now seamlessly does BOTH static and dynamic analysis internally!
       pyodide.globals.set("user_code", code);
       const resultJsonStr = await pyodide.runPythonAsync(`do_analyze(user_code)`);
       const resultData = JSON.parse(resultJsonStr);
@@ -193,7 +164,7 @@ self.onmessage = async (e) => {
     }
 
     // ======================
-    // RUN MODE (FIXED)
+    // RUN MODE
     // ======================
     else if (type === 'RUN_CODE') {
 
@@ -205,35 +176,23 @@ self.onmessage = async (e) => {
         batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" })
       });
 
-      // ✅ SYNC fallback
       pyodide.globals.set("custom_input_sync", (prompt) => {
         const safePrompt = prompt === undefined ? "" : String(prompt);
-
-        if (safePrompt) {
-          self.postMessage({ type: 'OUTPUT', data: safePrompt });
-        }
-
+        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt });
         self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" } });
-
         const simulated = " [Simulated Input - Nested function limitation]";
         self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
-
         return simulated;
       });
 
-      // ✅ ASYNC real input
       pyodide.globals.set("custom_input_async", async (prompt) => {
         return new Promise((resolve) => {
-
           inputResolve = (value) => {
-            isWaitingForInput = false; // ✅ FIX
+            isWaitingForInput = false; 
             resolve(value);
           };
-
-          isWaitingForInput = true; // ✅ FIX
-
+          isWaitingForInput = true; 
           const safePrompt = prompt === undefined ? "" : String(prompt);
-
           self.postMessage({
             type: 'INPUT_REQUEST',
             data: { prompt: safePrompt }
@@ -243,7 +202,6 @@ self.onmessage = async (e) => {
 
       pyodide.globals.set("user_code", code);
 
-      // ✅ SMART TIMEOUT (ignores input waiting)
       executionTimeout = setTimeout(() => {
         if (!isWaitingForInput) {
           self.postMessage({
@@ -276,7 +234,7 @@ try:
     transformed = AsyncInputTransformer().visit(tree)
     ast.fix_missing_locations(transformed)
 
-    code_str = ast.unparse(transformed)  # ✅ FIX
+    code_str = ast.unparse(transformed)
 
     compile(code_str, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
 
@@ -292,14 +250,12 @@ except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
 
-      clearTimeout(executionTimeout); // ✅ FIX
-
+      clearTimeout(executionTimeout); 
       self.postMessage({ type: 'RUN_RESULT', data: "" });
     }
 
   } catch (err) {
-    clearTimeout(executionTimeout); // ✅ ensure cleanup
-
+    clearTimeout(executionTimeout);
     if (type === 'ANALYZE_CODE') {
       self.postMessage({
         type: 'ANALYZE_RESULT',
