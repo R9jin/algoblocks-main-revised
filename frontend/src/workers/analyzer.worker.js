@@ -17,7 +17,6 @@ async function initPyodide() {
 
     const cacheBuster = "?t=" + Date.now();
 
-    // ✅ FIX 1: Added profiler.py to the fetch list
     const [analyzerCode, astCode, nlgCode, profilerCode] = await Promise.all([
       fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
       fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
@@ -32,71 +31,8 @@ async function initPyodide() {
     tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
     tempPyodide.FS.writeFile("blockly_ast.py", astCode);
     tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
-    tempPyodide.FS.writeFile("profiler.py", profilerCode); // ✅ FIX 1: Write to FS
+    tempPyodide.FS.writeFile("profiler.py", profilerCode);
 
-    // inside else if (type === 'RUN_CODE') { ...
-
-    await pyodide.runPythonAsync(`
-import builtins
-import sys
-import traceback
-import ast
-import json
-from pyodide.code import eval_code_async
-import profiler # ✅ 1. Import our dynamic profiler
-
-builtins.input = custom_input_sync
-
-class AsyncInputTransformer(ast.NodeTransformer):
-    def visit_Call(self, node):
-        self.generic_visit(node)
-        if isinstance(node.func, ast.Name) and node.func.id == 'input':
-            new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
-            new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
-            return ast.copy_location(ast.Await(value=new_call), node)
-        return node
-
-# ✅ 2. Setup profiler
-globals()['run_hits_json'] = "{}"
-dyn_profiler = profiler.LineExecutionProfiler()
-
-try:
-    tree = ast.parse(user_code)
-    transformed = AsyncInputTransformer().visit(tree)
-    ast.fix_missing_locations(transformed)
-
-    code_str = ast.unparse(transformed)
-    compiled_code = compile(code_str, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
-
-    # ✅ 3. Trace Async Execution
-    sys.settrace(dyn_profiler.trace_lines)
-    try:
-        await eval_code_async(compiled_code, globals())
-    finally:
-        sys.settrace(None)
-        globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
-
-except SyntaxError:
-    try:
-        sys.settrace(dyn_profiler.trace_lines)
-        try:
-            exec(user_code)
-        finally:
-            sys.settrace(None)
-            globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
-    except Exception:
-        print(traceback.format_exc(), file=sys.stderr)
-
-except Exception:
-    print(traceback.format_exc(), file=sys.stderr)
-      `);
-
-    // ✅ 4. Fetch the recorded hits and send them back to React!
-    const countsStr = pyodide.globals.get("run_hits_json");
-    const counts = countsStr ? JSON.parse(countsStr) : {};
-
-    clearTimeout(executionTimeout);
-    self.postMessage({ type: 'RUN_RESULT', data: "", counts });
     pyodide = tempPyodide;
 
   } catch (error) {
@@ -136,7 +72,6 @@ self.onmessage = async (e) => {
     // ANALYZE MODE
     // ======================
     if (type === 'ANALYZE_CODE') {
-      // It now seamlessly does BOTH static and dynamic analysis internally!
       pyodide.globals.set("user_code", code);
       const resultJsonStr = await pyodide.runPythonAsync(`do_analyze(user_code)`);
       const resultData = JSON.parse(resultJsonStr);
@@ -192,12 +127,15 @@ self.onmessage = async (e) => {
         }
       }, 3000);
 
+      // ✅ FIX: Moved the profiler logic here and changed how it compiles
       await pyodide.runPythonAsync(`
 import builtins
 import sys
 import traceback
 import ast
+import json
 from pyodide.code import eval_code_async
+import profiler
 
 builtins.input = custom_input_sync
 
@@ -210,20 +148,34 @@ class AsyncInputTransformer(ast.NodeTransformer):
             return ast.copy_location(ast.Await(value=new_call), node)
         return node
 
+globals()['run_hits_json'] = "{}"
+dyn_profiler = profiler.LineExecutionProfiler()
+
 try:
     tree = ast.parse(user_code)
     transformed = AsyncInputTransformer().visit(tree)
     ast.fix_missing_locations(transformed)
 
-    code_str = ast.unparse(transformed)
+    # ✅ FIX: Compile the AST tree directly. 
+    # Compiling the AST object preserves the original line numbers instead of losing them to ast.unparse()
+    compiled_code = compile(transformed, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
 
-    compile(code_str, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
-
-    await eval_code_async(code_str, globals())
+    # ✅ FIX: Enable trace before execution
+    sys.settrace(dyn_profiler.trace_lines)
+    try:
+        await eval_code_async(compiled_code, globals())
+    finally:
+        sys.settrace(None)
+        globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
 
 except SyntaxError:
     try:
-        exec(user_code)
+        sys.settrace(dyn_profiler.trace_lines)
+        try:
+            exec(user_code)
+        finally:
+            sys.settrace(None)
+            globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
     except Exception:
         print(traceback.format_exc(), file=sys.stderr)
 
@@ -231,8 +183,12 @@ except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
 
+      // ✅ FIX: Retrieve the execution hit counts and return them properly
+      const countsStr = pyodide.globals.get("run_hits_json");
+      const counts = countsStr ? JSON.parse(countsStr) : {};
+
       clearTimeout(executionTimeout);
-      self.postMessage({ type: 'RUN_RESULT', data: "" });
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts });
     }
 
   } catch (err) {
