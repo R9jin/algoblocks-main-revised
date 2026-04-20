@@ -71,7 +71,59 @@ self.onmessage = async (e) => {
     // ======================
     if (type === 'ANALYZE_CODE') {
       pyodide.globals.set("user_code", code);
-      const resultJsonStr = await pyodide.runPythonAsync(`do_analyze(user_code)`);
+      
+      // ✅ FIX: Properly import ComplexityAnalyzer, parse the AST, and return the JSON
+      const resultJsonStr = await pyodide.runPythonAsync(`
+import json
+import ast
+import traceback
+import sys
+
+# Ensure fresh imports if the worker reloaded the files from the network
+if 'analyzer' in sys.modules:
+    del sys.modules['analyzer']
+if 'semantic_nlg' in sys.modules:
+    del sys.modules['semantic_nlg']
+
+try:
+    from analyzer import ComplexityAnalyzer
+
+    def do_analyze(code_to_check):
+        try:
+            tree = ast.parse(code_to_check)
+            analyzer_inst = ComplexityAnalyzer(code_to_check)
+            analyzer_inst.bfs_first_pass(tree)
+            analyzer_inst.visit(tree)
+            
+            return json.dumps({
+                "status": "success",
+                "total": analyzer_inst.get_final_asymptotic_badge(),
+                "space_total": analyzer_inst.get_final_space_badge(),
+                "lines": analyzer_inst.details
+            })
+        except SyntaxError as e:
+            return json.dumps({
+                "status": "error",
+                "message": f"SyntaxError: {str(e)}",
+                "line": getattr(e, 'lineno', -1)
+            })
+        except Exception as e:
+            return json.dumps({
+                "status": "error",
+                "message": str(e),
+                "line": -1
+            })
+
+    output = do_analyze(user_code)
+except Exception as init_err:
+    output = json.dumps({
+        "status": "error",
+        "message": f"Analyzer Initialization Error: {str(init_err)}",
+        "line": -1
+    })
+
+output
+      `);
       const resultData = JSON.parse(resultJsonStr);
 
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
@@ -125,7 +177,6 @@ self.onmessage = async (e) => {
         }
       }, 3000);
 
-      // ✅ FIX: Compile the code explicitly as "<user_code>" to prevent collision with Pyodide internal scripts
       await pyodide.runPythonAsync(`
 import builtins
 import sys
@@ -143,7 +194,6 @@ class LineExecutionProfiler:
 
     def trace_lines(self, frame, event, arg):
         if event == 'line':
-            # Target exactly the code block we named "<user_code>"
             if frame.f_code.co_filename == "<user_code>":
                 self.hits[frame.f_lineno] += 1
         return self.trace_lines
