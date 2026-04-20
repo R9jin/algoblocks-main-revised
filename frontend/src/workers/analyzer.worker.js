@@ -105,6 +105,55 @@ def do_analyze(code):
   }
 }
 
+// Inside your Pyodide Web Worker (e.g., analyzer.worker.js)
+
+async function analyzeCode(userCode) {
+    // 1. Run your existing Static Analyzer (analyzer.py)
+    const staticResults = pyodide.runPython(`
+        analyzer = ComplexityAnalyzer('''${userCode}''')
+        analyzer.visit(ast.parse('''${userCode}'''))
+        analyzer.details # Assuming this returns your array of line details
+    `);
+    
+    // Convert static results to JS
+    let analysisData = staticResults.toJs();
+
+    // 2. Run the Dynamic Execution Profiler
+    // Assuming you loaded the profiler class into Pyodide already
+    pyodide.globals.set("user_source_code", userCode);
+    
+    const hitMapProxy = pyodide.runPython(`
+        profiler = LineExecutionProfiler()
+        profiler.run_code(user_source_code)
+    `);
+    
+    // Convert Python dictionary { lineno: hits } to JavaScript Map/Object
+    const hitCounts = hitMapProxy.toJs(); // e.g., Map { 2 => 1, 3 => 4, 4 => 4, 5 => 10 ... }
+
+    // 3. Merge the Hits into the Static Data
+    // We assume your userCode is split by newlines, so we can match line numbers (1-indexed)
+    const lines = userCode.split('\\n');
+    
+    const finalData = analysisData.map((detailRow) => {
+        // Find the line number of this specific snippet. 
+        // Note: Your analyzer.py should ideally output the 'lineno' directly to make this easier.
+        // If it doesn't, you can match it by string content (less reliable if there are duplicate lines).
+        const lineIndex = lines.findIndex(l => l.trim() === detailRow.lineOfCode.trim());
+        const actualLineNumber = lineIndex + 1; // 1-indexed
+
+        // Get the hit count from our dynamic run, default to 0
+        const executions = hitCounts.get(actualLineNumber) || 0;
+
+        return {
+            ...detailRow,
+            hits: executions,
+            // You can calculate frequency logic here if needed (e.g., hits / total ops)
+        };
+    });
+
+    return finalData;
+}
+
 self.onmessage = async (e) => {
   const { type, code, data } = e.data;
 

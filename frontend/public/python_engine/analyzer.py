@@ -260,6 +260,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     # --- RECORDING ENGINE ---
     def record_line(self, node, time_override=None, space_override=None):
         line_text = self.get_code_snippet(node)
+        line_num = getattr(node, 'lineno', -1) # <--- ADD THIS
         current_poly, current_log, current_sqrt, current_graph = self.loop_depth, self.log_loop_depth, getattr(self, 'sqrt_loop_depth', 0), getattr(self, 'graph_depth', 0)
         override_poly = override_log = override_sqrt = override_graph = 0
         is_recurrence = False
@@ -331,6 +332,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             time_exp += "\n\n" + "\n".join(hints)
 
         entry = {
+            "lineno": line_num,
             "lineOfCode": line_text, 
             "operation": operation_name,  
             "local_time": local_t, 
