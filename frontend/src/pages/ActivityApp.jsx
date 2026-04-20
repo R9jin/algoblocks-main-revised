@@ -421,6 +421,14 @@ const ActivityApp = () => {
 
         if (data.status === "success") {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+
+          // ✅ ADD THIS: Pull hits from analysis payload so the table populates instantly
+          const initialCounts = {};
+          (data.lines || []).forEach(l => {
+            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
+          });
+          setLineExecutions(initialCounts);
+
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);

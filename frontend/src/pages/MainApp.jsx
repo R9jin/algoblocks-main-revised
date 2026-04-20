@@ -111,7 +111,7 @@ export default function MainApp() {
   const [currentProjectTitle, setCurrentProjectTitle] = useState("Untitled Project");
   const [currentSaveType, setCurrentSaveType] = useState("project");
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
-  
+
   // NEW STATE: Console Sub-tabs
   const [consoleTab, setConsoleTab] = useState("output");
 
@@ -355,6 +355,14 @@ export default function MainApp() {
 
         if (data.status === "success") {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+
+          // ✅ ADD THIS HERE TOO
+          const initialCounts = {};
+          (data.lines || []).forEach(l => {
+            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
+          });
+          setLineExecutions(initialCounts);
+
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);
@@ -380,7 +388,7 @@ export default function MainApp() {
 
     if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
-      setLineExecutions({}); 
+      setLineExecutions({});
       analyzeCode(pythonCode);
     }
   };
@@ -496,7 +504,7 @@ export default function MainApp() {
     setIsEvaluating(true);
     setLineExecutions({});
     setBottomPanel("console");
-    setConsoleTab("output"); 
+    setConsoleTab("output");
 
     if (isOnline) {
       setConsoleOutput("> Running online via FastAPI...\n");
@@ -750,11 +758,11 @@ export default function MainApp() {
                 <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
               </div>
               <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                
+
                 {/* === CONSOLE PANEL === */}
                 {bottomPanel === 'console' ? (
                   <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
-                    
+
                     {/* Console Tab Group */}
                     <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px' }}>
                       <div className="tab-btn-group">
@@ -821,7 +829,7 @@ export default function MainApp() {
                     </div>
                   </div>
                 ) : (
-                  
+
                   /* === COMPLEXITY PANEL === */
                   <div className="complexity-content">
                     <div className="complexity-tabs">

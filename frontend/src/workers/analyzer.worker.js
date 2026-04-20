@@ -16,7 +16,7 @@ async function initPyodide() {
     const tempPyodide = await loadPyodide();
 
     const cacheBuster = "?t=" + Date.now();
-    
+
     // ✅ FIX 1: Added profiler.py to the fetch list
     const [analyzerCode, astCode, nlgCode, profilerCode] = await Promise.all([
       fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
@@ -34,88 +34,69 @@ async function initPyodide() {
     tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
     tempPyodide.FS.writeFile("profiler.py", profilerCode); // ✅ FIX 1: Write to FS
 
-    await tempPyodide.runPythonAsync(`
+    // inside else if (type === 'RUN_CODE') { ...
+
+    await pyodide.runPythonAsync(`
+import builtins
 import sys
-import json
+import traceback
 import ast
-import importlib
+import json
+from pyodide.code import eval_code_async
+import profiler # ✅ 1. Import our dynamic profiler
 
-import semantic_nlg
-import analyzer
-import profiler  # ✅ FIX 2: Import profiler
+builtins.input = custom_input_sync
 
-importlib.reload(semantic_nlg)
-importlib.reload(analyzer)
-importlib.reload(profiler)
+class AsyncInputTransformer(ast.NodeTransformer):
+    def visit_Call(self, node):
+        self.generic_visit(node)
+        if isinstance(node.func, ast.Name) and node.func.id == 'input':
+            new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
+            new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
+            return ast.copy_location(ast.Await(value=new_call), node)
+        return node
 
-def do_analyze(code):
+# ✅ 2. Setup profiler
+globals()['run_hits_json'] = "{}"
+dyn_profiler = profiler.LineExecutionProfiler()
+
+try:
+    tree = ast.parse(user_code)
+    transformed = AsyncInputTransformer().visit(tree)
+    ast.fix_missing_locations(transformed)
+
+    code_str = ast.unparse(transformed)
+    compiled_code = compile(code_str, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+
+    # ✅ 3. Trace Async Execution
+    sys.settrace(dyn_profiler.trace_lines)
     try:
-        # --- 1. Static Analysis ---
-        tree = ast.parse(code)
-        anal = analyzer.ComplexityAnalyzer(code)
-        anal.bfs_first_pass(tree)
-        for _, node in anal.symbol_table.items():
-            anal.visit(node)
+        await eval_code_async(compiled_code, globals())
+    finally:
+        sys.settrace(None)
+        globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
 
-        anal.details = []
-        anal.max_complexity = anal.max_space_weight = 0
-        anal.max_poly = anal.max_log = anal.max_sqrt = 0
-        anal.current_depth = anal.loop_depth = 0
-        anal.log_loop_depth = anal.sqrt_loop_depth = 0
+except SyntaxError:
+    try:
+        sys.settrace(dyn_profiler.trace_lines)
+        try:
+            exec(user_code)
+        finally:
+            sys.settrace(None)
+            globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
+    except Exception:
+        print(traceback.format_exc(), file=sys.stderr)
 
-        anal.visit(tree)
+except Exception:
+    print(traceback.format_exc(), file=sys.stderr)
+      `);
 
-        # --- 2. Dynamic Execution Profiling ---
-        # Run the code to get exact line hit counts
-        dyn_profiler = profiler.LineExecutionProfiler()
-        hit_counts = dyn_profiler.run_code(code)
+    // ✅ 4. Fetch the recorded hits and send them back to React!
+    const countsStr = pyodide.globals.get("run_hits_json");
+    const counts = countsStr ? JSON.parse(countsStr) : {};
 
-        def to_asymp(comp):
-            if not comp: return "-"
-            if "n * T(n-1)" in comp: return "O(n!)"
-            if "2T(n/2)" in comp: return "O(n log n)"
-            if "T(n-1) + T(n-2)" in comp: return "O(2^n)"
-            if "T(n/2)" in comp: return "O(log n)"
-            if "T(n-1) + O(n)" in comp: return "O(n^2)"
-            if "T(n-1)" in comp: return "O(n)"
-            return comp
-
-        # --- 3. Merge Data ---
-        lines = []
-        for line in anal.details:
-            lineno = line.get("lineno", -1)
-            # Default to 0 if the line wasn't executed dynamically
-            hits = hit_counts.get(lineno, 0) if lineno != -1 else 0
-
-            lines.append({
-                "lineno": lineno,
-                "lineOfCode": line["lineOfCode"],
-                "operation": line.get("operation", "-"),
-                "local_time": to_asymp(line.get("local_time")),
-                "global_time": to_asymp(line.get("global_time")),
-                "local_space": to_asymp(line.get("local_space")),
-                "global_space": to_asymp(line.get("global_space")),
-                "indent": line.get("indent", 0),
-                "color": line.get("color"),
-                "weight": line.get("weight", 0),
-                "time_explanation": line.get("time_explanation", ""),
-                "space_explanation": line.get("space_explanation", ""),
-                "hits": hits # ✅ FIX 3: Inject hits into the JSON directly
-            })
-
-        return json.dumps({
-            "status": "success",
-            "total": anal.get_final_asymptotic_badge(),
-            "space_total": anal.get_final_space_badge(),
-            "lines": lines,
-            "is_recursive": any("T(n)" in str(l.get("global_time", "")) for l in anal.details)
-        })
-    except SyntaxError as e:
-        return json.dumps({"status": "error", "line": e.lineno, "message": e.msg})
-    except Exception as e:
-        return json.dumps({"status": "error", "message": str(e)})
-    `);
-
+    clearTimeout(executionTimeout);
+    self.postMessage({ type: 'RUN_RESULT', data: "", counts });
     pyodide = tempPyodide;
 
   } catch (error) {
@@ -130,8 +111,8 @@ self.onmessage = async (e) => {
 
   if (type === 'INPUT_RESPONSE') {
     if (inputResolve) {
-      clearTimeout(executionTimeout); 
-      isWaitingForInput = false;      
+      clearTimeout(executionTimeout);
+      isWaitingForInput = false;
       inputResolve(data);
       inputResolve = null;
     }
@@ -188,10 +169,10 @@ self.onmessage = async (e) => {
       pyodide.globals.set("custom_input_async", async (prompt) => {
         return new Promise((resolve) => {
           inputResolve = (value) => {
-            isWaitingForInput = false; 
+            isWaitingForInput = false;
             resolve(value);
           };
-          isWaitingForInput = true; 
+          isWaitingForInput = true;
           const safePrompt = prompt === undefined ? "" : String(prompt);
           self.postMessage({
             type: 'INPUT_REQUEST',
@@ -250,7 +231,7 @@ except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
 
-      clearTimeout(executionTimeout); 
+      clearTimeout(executionTimeout);
       self.postMessage({ type: 'RUN_RESULT', data: "" });
     }
 
