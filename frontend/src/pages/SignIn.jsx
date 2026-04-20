@@ -95,6 +95,33 @@ export default function SignIn() {
     }
   };
 
+  // --- NEW: Guest Login Handler ---
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    try {
+      // 1. Wipe previous offline data to give the guest a clean slate
+      await Promise.all([
+        projectsDB.clear(), 
+        templatesDB.clear(), 
+        syncQueueDB.clear()
+      ]);
+
+      // 2. Set a mock guest user session locally
+      localStorage.setItem("user", JSON.stringify({
+          email: `guest_${Date.now()}@algoblocks.local`, // unique local email
+          name: "Guest User",
+          isGuest: true
+      }));
+
+      // 3. Proceed directly to dashboard
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Guest login failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -131,6 +158,21 @@ export default function SignIn() {
           <button type="submit" className="auth-button" disabled={isLoading}>
             {isLoading ? "Signing In..." : "Sign In"}
           </button>
+          
+          {/* --- NEW: Guest Login Button --- */}
+          <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "0.9rem" }}>
+            <span>— OR —</span>
+          </div>
+          <button 
+            type="button" 
+            className="auth-button" 
+            onClick={handleGuestLogin} 
+            disabled={isLoading}
+            style={{ backgroundColor: "#6c757d", border: "none" }} // Distinct color for guest
+          >
+            {isLoading ? "Preparing..." : "Continue as Guest"}
+          </button>
+
         </form>
 
         <div className="auth-links">
