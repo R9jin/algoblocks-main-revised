@@ -166,14 +166,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     # --- HEURISTICS ---
     def _detect_graph_context(self, node):
-        """
-        STRUCTURAL HEURISTIC: Detects graph algorithms without relying on variable names alone.
-        Looks for typical BFS/DFS structures:
-        1. BFS: A `while` loop that pops from a data structure, containing an inner `for` loop.
-        2. DFS: A `for` loop containing a recursive call to the enclosing function.
-        We also look for graph-specific iterations (e.g. over a neighbor array) or 'visited' sets
-        to prevent false positives on permutation/backtracking algorithms.
-        """
         has_queue_while = False
         has_neighbor_for = False
         has_recursive_for = False
@@ -184,16 +176,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 # Check for BFS Structure (While -> Pop)
                 if isinstance(child, ast.While):
                     for sub in ast.walk(child):
-                        if isinstance(sub, ast.Call) and isinstance(getattr(sub.func, 'attr', ''), str):
+                        # ✅ FIX: Safely check for Attribute before accessing .attr
+                        if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
                             if sub.func.attr in ['pop', 'popleft']:
                                 has_queue_while = True
                 
                 # Check for inner loops and DFS structures
                 if isinstance(child, ast.For):
-                    # Check for subscript iteration (e.g., for neighbor in graph[node])
+                    # Check for subscript iteration
                     if isinstance(child.iter, ast.Subscript):
                         has_neighbor_for = True
-                    # Check for iteration over variables explicitly named like adjacencies
+                    # Check for iteration over specific variable names
                     if isinstance(child.iter, ast.Name):
                         name_lower = child.iter.id.lower()
                         if any(kw in name_lower for kw in ['neighbor', 'adj', 'graph', 'child']):
@@ -206,12 +199,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                                 has_recursive_for = True
 
                 # Look for usage of visited state tracking sets/arrays
-                if isinstance(child, ast.Call) and isinstance(getattr(child.func, 'attr', ''), str):
+                # ✅ FIX: Safely check for Attribute before accessing .attr
+                if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
                     if child.func.attr in ['add', 'append'] and isinstance(getattr(child.func, 'value', None), ast.Name):
                         if 'visit' in child.func.value.id.lower():
                             has_visited_set = True
 
-        # True if we have the recursive/iterative structure AND explicit graph tracking mechanisms
         is_bfs = has_queue_while and (has_neighbor_for or has_visited_set)
         is_dfs = has_recursive_for and (has_neighbor_for or has_visited_set)
 
@@ -221,7 +214,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not getattr(self, 'in_graph_context', False): return False
         if not isinstance(node, ast.While): return False
         for child in ast.walk(node):
-            if isinstance(child, ast.Call) and isinstance(getattr(child.func, 'attr', ''), str):
+            # ✅ FIX: Safely check for Attribute before accessing .attr
+            if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
                 if child.func.attr in ['pop', 'popleft', 'append', 'add', 'remove', 'extend']:
                     return True
         return False
@@ -609,8 +603,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         s_ov, t_ov = "O(1)", None
         
         if getattr(self, 'in_graph_context', False):
-            # STRUCTURAL HEURISTIC: Instead of checking if the variable is named "visited" or "queue",
-            # check if a structural collection type is being created/initialized (Set, List, Dict, Deque).
             if isinstance(node.value, (ast.List, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp)):
                 s_ov = "O(V)"
             elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str):

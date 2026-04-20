@@ -6,6 +6,7 @@ import os
 import asyncio
 import ast
 import requests
+import traceback
 from io import StringIO
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
@@ -297,6 +298,18 @@ async def ast_to_blocks(request: AstRequest):
 def analyze_complexity(payload: CodePayload):
     try:
         sanitized_code = clean_python_code(payload.code)
+        
+        # Guard against completely empty code to bypass empty AST exceptions
+        if not sanitized_code or not sanitized_code.strip():
+            return {
+                "status": "success",
+                "total": "O(1)",
+                "total_recurrence": "O(1)",
+                "lines": [],
+                "space_total": "O(1)",
+                "is_recursive": False
+            }
+
         tree = ast.parse(sanitized_code)
         analyzer = ComplexityAnalyzer(sanitized_code)
 
@@ -304,11 +317,18 @@ def analyze_complexity(payload: CodePayload):
         for _, node in analyzer.symbol_table.items():
             analyzer.visit(node)
 
+        # ---------------------------------------------
+        # ✅ FIX: Fully reset ALL internal analyzer 
+        # tracking variables before global traversal pass
+        # ---------------------------------------------
         analyzer.details = []
         analyzer.max_complexity = analyzer.max_space_weight = 0
         analyzer.max_poly = analyzer.max_log = analyzer.max_sqrt = 0
+        analyzer.max_exp = analyzer.max_graph_ve = 0 
         analyzer.current_depth = analyzer.loop_depth = 0
         analyzer.log_loop_depth = analyzer.sqrt_loop_depth = 0
+        analyzer.in_dead_code = False
+        analyzer.in_graph_context = False
 
         analyzer.visit(tree)
 
@@ -334,7 +354,6 @@ def analyze_complexity(payload: CodePayload):
                 "indent": line.get("indent", 0),
                 "color": line.get("color"),
                 "weight": line.get("weight", 0),
-                # ✅ FIXED: Correct dictionary keys matching analyzer.py outputs
                 "time_explanation": line.get("time_explanation", ""),
                 "space_explanation": line.get("space_explanation", "")
             })
@@ -352,12 +371,22 @@ def analyze_complexity(payload: CodePayload):
         return {
             "status": "error",
             "error_type": "SyntaxError",
-            "line": e.lineno,
-            "message": e.msg,
+            "line": getattr(e, 'lineno', -1),
+            "message": getattr(e, 'msg', str(e)),
             "lines": []
         }
-    except Exception:
-        return {"status": "error", "lines": []}
+    except Exception as e:
+        # ✅ FIX: Extract the actual traceback and pass it explicitly so 
+        # React stops printing "undefined. undefined".
+        traceback.print_exc()
+        return {
+            "status": "error", 
+            "error_type": "Exception",
+            "line": "Runtime",
+            "message": str(e) or "An unexpected internal analysis error occurred.", 
+            "lines": []
+        }
+
 @app.post("/api/run")
 @app.post("/run")
 def run_code(payload: CodePayload):
