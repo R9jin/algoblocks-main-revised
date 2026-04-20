@@ -5,6 +5,7 @@ import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from '../components/ComplexityGraph.jsx';
 import ConfirmModal from "../components/ConfirmModal.jsx";
+import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
 import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
 import { projectsDB, syncQueueDB, templatesDB } from '../db.js';
 import "../styles/MainApp.css";
@@ -606,6 +607,9 @@ export default function MainApp() {
   let searchStartIndex = 0;
   const pythonLines = (generatedPython || "").split("\n");
 
+  // Calculate the maximum execution count to scale the heatmap
+  const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
+
   return (
     <div className="workspace-app-container">
       {toast.show && (<div className={`toast-notification ${toast.type === 'error' ? 'toast-error' : 'toast-success'}`}>{toast.message}</div>)}
@@ -782,6 +786,7 @@ export default function MainApp() {
                       <div className="tab-btn-group">
                         <button onClick={() => { setActiveTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>Local Complexity</button>
                         <button onClick={() => { setActiveTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'global' ? 'active' : ''}`}>Global Complexity</button>
+                        <button onClick={() => { setActiveTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'memory' ? 'active' : ''}`}>Memory Map</button>
                       </div>
                       <div className="total-badge-group">
                         <span className="total-badge"><span className="total-label">Total Time:</span> <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>{formatComplexity(analysisResult.total)}</span></span>
@@ -789,132 +794,165 @@ export default function MainApp() {
                         <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold" }}>{analysisTime} ms</span></span>
                       </div>
                     </div>
-                    <div className="complexity-table-wrapper">
-                      <table className="complexity-table">
-                        <thead>
-                          <tr>
-                            <th>Line of Code</th>
-                            <th>Operation</th>
-                            <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
-                            <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analysisResult.lines.map((line, i) => {
-                            const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
-                            const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-                            const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
-                            const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available."; 
-                            const timeColor = getComplexityColor(timeComplexity);
-                            const spaceColor = getComplexityColor(spaceComplexity);
-                            const isBottleneck = actualBottleneckIndices.includes(i);
+                    
+                    {activeTab === 'memory' ? (
+                      <div style={{ flex: 1, overflow: 'hidden', padding: '10px 15px' }}>
+                        <MemoryVisualizer 
+                          analysisData={analysisResult.lines} 
+                          currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0} 
+                        />
+                      </div>
+                    ) : (
+                      <div className="complexity-table-wrapper">
+                        <table className="complexity-table">
+                          <thead>
+                            <tr>
+                              <th>Line of Code</th>
+                              <th>Operation</th>
+                              <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
+                              <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analysisResult.lines.map((line, i) => {
+                              const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
+                              const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
+                              const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
+                              const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available."; 
+                              const timeColor = getComplexityColor(timeComplexity);
+                              const spaceColor = getComplexityColor(spaceComplexity);
+                              const isBottleneck = actualBottleneckIndices.includes(i);
 
-                            let execCount = 0;
-                            const lineTextStr = (line.lineOfCode || line.code || "").trim();
-                            let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
-                            if (matchedIdx !== -1) {
-                              execCount = lineExecutions[matchedIdx + 1] || 0;
-                              searchStartIndex = matchedIdx + 1;
-                            } else {
-                              matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
-                              if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
-                            }
+                              let execCount = 0;
+                              const lineTextStr = (line.lineOfCode || line.code || "").trim();
+                              let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
+                              if (matchedIdx !== -1) {
+                                execCount = lineExecutions[matchedIdx + 1] || 0;
+                                searchStartIndex = matchedIdx + 1;
+                              } else {
+                                matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
+                                if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
+                              }
 
-                            return (
-                              <React.Fragment key={i}>
-                                <tr
-                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
-                                  onClick={() => toggleLine(i)}
-                                  style={{
-                                    cursor: 'pointer',
-                                    borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
-                                    backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
-                                  }}
-                                  title="Click to view explanation"
-                                >
-                                  <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
-                                    {line.lineOfCode || line.code}
+                              return (
+                                <React.Fragment key={i}>
+                                  <tr
+                                    className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
+                                    onClick={() => toggleLine(i)}
+                                    style={{
+                                      cursor: 'pointer',
+                                      borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
+                                    }}
+                                    title="Click to view explanation"
+                                  >
+                                    {/* --- HEATMAP INTEGRATION HERE --- */}
+                                    <td className="code-cell" style={{ 
+                                      color: '#000000', 
+                                      paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px',
+                                      position: 'relative',
+                                      zIndex: 1,
+                                      overflow: 'hidden'
+                                    }}>
+                                      {/* Background Heatmap Bar */}
+                                      {execCount > 0 && maxExecutions > 0 && (
+                                        <div style={{
+                                          position: 'absolute',
+                                          left: 0,
+                                          top: 0,
+                                          bottom: 0,
+                                          width: `${(execCount / maxExecutions) * 100}%`,
+                                          backgroundColor: 'rgba(255, 55, 95, 0.15)',
+                                          borderRight: '2px solid rgba(255, 55, 95, 0.5)',
+                                          zIndex: -1,
+                                          transition: 'width 0.5s ease-out'
+                                        }} title={`${Math.round((execCount / maxExecutions) * 100)}% of max execution load`} />
+                                      )}
 
-                                    {execCount > 0 && (
-                                      <span style={{
-                                        marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
-                                        borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                        boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
-                                      }} title={`Executed ${execCount} times during the last run`}>
-                                        <span style={{ fontSize: '0.75rem' }}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                      {line.lineOfCode || line.code}
+
+                                      {/* Execution Count Badge */}
+                                      {execCount > 0 && (
+                                        <span style={{
+                                          marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
+                                          borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                          boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
+                                        }} title={`Executed ${execCount} times during the last run`}>
+                                          <span style={{ fontSize: '0.75rem' }}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      {line.operation || '-'}
+
+                                      {isBottleneck && (
+                                        <span style={{
+                                          backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
+                                          borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
+                                          boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
+                                        }} title={`Highest ${activeTab} computational weight detected`}>
+                                          Bottleneck
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
+                                      {formatComplexity(timeComplexity)}
+                                    </td>
+                                    <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
+                                      {formatComplexity(spaceComplexity)}
+                                      <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                                        ▶
                                       </span>
-                                    )}
-                                  </td>
-                                  <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {line.operation || '-'}
-
-                                    {isBottleneck && (
-                                      <span style={{
-                                        backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
-                                        borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
-                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
-                                      }} title={`Highest ${activeTab} computational weight detected`}>
-                                        Bottleneck
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
-                                    {formatComplexity(timeComplexity)}
-                                  </td>
-                                  <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
-                                    {formatComplexity(spaceComplexity)}
-                                    <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                                      ▶
-                                    </span>
-                                  </td>
-                                </tr>
-
-                                {expandedLines[i] && (
-                                  <tr className="explanation-row">
-                                    <td colSpan="4" style={{ padding: 0, border: 'none' }}>
-                                      <div
-                                        className="explanation-content"
-                                        style={{
-                                          borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
-                                          margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
-                                        }}
-                                      >
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                            <div>
-                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
-                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
-                                            </div>
-                                          </div>
-                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
-                                            <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
-                                          </div>
-                                        </div>
-
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
-                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                            <div>
-                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
-                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
-                                            </div>
-                                          </div>
-                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
-                                            <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
-                                          </div>
-                                        </div>
-
-                                      </div>
                                     </td>
                                   </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+
+                                  {expandedLines[i] && (
+                                    <tr className="explanation-row">
+                                      <td colSpan="4" style={{ padding: 0, border: 'none' }}>
+                                        <div
+                                          className="explanation-content"
+                                          style={{
+                                            borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
+                                            margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
+                                          }}
+                                        >
+                                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                              <div>
+                                                <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
+                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
+                                              </div>
+                                            </div>
+                                            <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                              <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                            </div>
+                                          </div>
+
+                                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                              <div>
+                                                <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
+                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
+                                              </div>
+                                            </div>
+                                            <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                              <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                            </div>
+                                          </div>
+
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
