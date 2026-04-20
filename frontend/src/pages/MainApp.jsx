@@ -369,10 +369,14 @@ export default function MainApp() {
   };
 
   const handleBlocklyChange = (json, pythonCode) => {
-    if (!isEditingCode) setGeneratedPython(pythonCode);
     setBlocklyJson(json);
-    setLineExecutions({});
-    analyzeCode(pythonCode);
+
+    // Only trigger a full update and wipe execution counts IF the code ACTUALLY changed
+    if (!isEditingCode && generatedPython !== pythonCode) {
+      setGeneratedPython(pythonCode);
+      setLineExecutions({}); // Clear old hits only when blocks are actually modified
+      analyzeCode(pythonCode);
+    }
   };
 
   useEffect(() => {
@@ -794,12 +798,12 @@ export default function MainApp() {
                         <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold" }}>{analysisTime} ms</span></span>
                       </div>
                     </div>
-                    
+
                     {activeTab === 'memory' ? (
                       <div style={{ flex: 1, overflow: 'hidden', padding: '10px 15px' }}>
-                        <MemoryVisualizer 
-                          analysisData={analysisResult.lines} 
-                          currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0} 
+                        <MemoryVisualizer
+                          analysisData={analysisResult.lines}
+                          currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0}
                         />
                       </div>
                     ) : (
@@ -818,7 +822,7 @@ export default function MainApp() {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
                               const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
-                              const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available."; 
+                              const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
                               const isBottleneck = actualBottleneckIndices.includes(i);
@@ -847,8 +851,8 @@ export default function MainApp() {
                                     title="Click to view explanation"
                                   >
                                     {/* --- HEATMAP INTEGRATION HERE --- */}
-                                    <td className="code-cell" style={{ 
-                                      color: '#000000', 
+                                    <td className="code-cell" style={{
+                                      color: '#000000',
                                       paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px',
                                       position: 'relative',
                                       zIndex: 1,
