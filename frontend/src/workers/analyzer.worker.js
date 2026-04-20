@@ -17,11 +17,10 @@ async function initPyodide() {
 
     const cacheBuster = "?t=" + Date.now();
 
-    const [analyzerCode, astCode, nlgCode, profilerCode] = await Promise.all([
+    const [analyzerCode, astCode, nlgCode] = await Promise.all([
       fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
       fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
-      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text()),
-      fetch("/python_engine/profiler.py" + cacheBuster).then(res => res.text())
+      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text())
     ]);
 
     if (nlgCode.includes("<!DOCTYPE html>")) {
@@ -31,7 +30,6 @@ async function initPyodide() {
     tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
     tempPyodide.FS.writeFile("blockly_ast.py", astCode);
     tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
-    tempPyodide.FS.writeFile("profiler.py", profilerCode);
 
     pyodide = tempPyodide;
 
@@ -127,52 +125,70 @@ self.onmessage = async (e) => {
         }
       }, 3000);
 
-      // ✅ FIX: Moved the profiler logic here and changed how it compiles
+      // ✅ FIX: Compile the code explicitly as "<user_code>" to prevent collision with Pyodide internal scripts
       await pyodide.runPythonAsync(`
 import builtins
 import sys
 import traceback
 import ast
 import json
+from collections import defaultdict
 from pyodide.code import eval_code_async
-import profiler
 
 builtins.input = custom_input_sync
 
+class LineExecutionProfiler:
+    def __init__(self):
+        self.hits = defaultdict(int)
+
+    def trace_lines(self, frame, event, arg):
+        if event == 'line':
+            # Target exactly the code block we named "<user_code>"
+            if frame.f_code.co_filename == "<user_code>":
+                self.hits[frame.f_lineno] += 1
+        return self.trace_lines
+
 class AsyncInputTransformer(ast.NodeTransformer):
+    def __init__(self):
+        self.has_input = False
+
     def visit_Call(self, node):
         self.generic_visit(node)
         if isinstance(node.func, ast.Name) and node.func.id == 'input':
+            self.has_input = True
             new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
             new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
             return ast.copy_location(ast.Await(value=new_call), node)
         return node
 
 globals()['run_hits_json'] = "{}"
-dyn_profiler = profiler.LineExecutionProfiler()
+dyn_profiler = LineExecutionProfiler()
 
 try:
     tree = ast.parse(user_code)
-    transformed = AsyncInputTransformer().visit(tree)
+    transformer = AsyncInputTransformer()
+    transformed = transformer.visit(tree)
     ast.fix_missing_locations(transformed)
 
-    # ✅ FIX: Compile the AST tree directly. 
-    # Compiling the AST object preserves the original line numbers instead of losing them to ast.unparse()
-    compiled_code = compile(transformed, "<string>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
-
-    # ✅ FIX: Enable trace before execution
-    sys.settrace(dyn_profiler.trace_lines)
     try:
-        await eval_code_async(compiled_code, globals())
+        if transformer.has_input:
+            compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+            sys.settrace(dyn_profiler.trace_lines)
+            await eval_code_async(compiled_code, globals())
+        else:
+            compiled_code = compile(transformed, "<user_code>", "exec")
+            sys.settrace(dyn_profiler.trace_lines)
+            exec(compiled_code, globals())
     finally:
         sys.settrace(None)
         globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
 
 except SyntaxError:
     try:
+        compiled_code = compile(user_code, "<user_code>", "exec")
         sys.settrace(dyn_profiler.trace_lines)
         try:
-            exec(user_code)
+            exec(compiled_code, globals())
         finally:
             sys.settrace(None)
             globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
@@ -183,7 +199,6 @@ except Exception:
     print(traceback.format_exc(), file=sys.stderr)
       `);
 
-      // ✅ FIX: Retrieve the execution hit counts and return them properly
       const countsStr = pyodide.globals.get("run_hits_json");
       const counts = countsStr ? JSON.parse(countsStr) : {};
 
