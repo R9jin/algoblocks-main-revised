@@ -1,27 +1,27 @@
 import { useState } from "react";
 import { FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
 
 export default function SignUp() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  // ADD THIS LINE
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     try {
-      // FIX THE FETCH URL
       const response = await fetch(`${API_BASE}/api/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        // Send the name, email, and password states collected from the form
         body: JSON.stringify({ name, email, password }),
       });
 
@@ -34,13 +34,41 @@ export default function SignUp() {
         // Navigate to /home instead of /dashboard for a consistent entry point
         navigate("/home");
       } else {
-        // Handle errors like "Email already registered"
         const errorData = await response.json();
         alert(errorData.detail || "Sign up failed. Please try again.");
       }
     } catch (error) {
       console.error("Error connecting to server:", error);
       alert("Failed to connect to the server.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // --- NEW: Guest Login Handler ---
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    try {
+      // 1. Wipe previous offline data to give the guest a clean slate
+      await Promise.all([
+        projectsDB.clear(), 
+        templatesDB.clear(), 
+        syncQueueDB.clear()
+      ]);
+
+      // 2. Set a mock guest user session locally
+      localStorage.setItem("user", JSON.stringify({
+          email: `guest_${Date.now()}@algoblocks.local`,
+          name: "Guest User",
+          isGuest: true
+      }));
+
+      // 3. Proceed directly to dashboard
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Guest login failed:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,6 +87,7 @@ export default function SignUp() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your full name"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -72,6 +101,7 @@ export default function SignUp() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -85,10 +115,28 @@ export default function SignUp() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
-          <button type="submit" className="auth-button">Sign Up</button>
+          <button type="submit" className="auth-button" disabled={isLoading}>
+            {isLoading ? "Signing Up..." : "Sign Up"}
+          </button>
+
+          {/* --- NEW: Guest Login Button --- */}
+          <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "0.9rem" }}>
+            <span>— OR —</span>
+          </div>
+          <button 
+            type="button" 
+            className="auth-button" 
+            onClick={handleGuestLogin} 
+            disabled={isLoading}
+            style={{ backgroundColor: "#6c757d", border: "none" }} // Distinct color for guest
+          >
+            {isLoading ? "Preparing..." : "Continue as Guest"}
+          </button>
+
         </form>
 
         <div className="auth-links">

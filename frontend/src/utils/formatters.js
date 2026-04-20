@@ -3,7 +3,7 @@ export function formatComplexity(str) {
   if (!str || typeof str !== 'string') {
     return str;
   }
-  
+
   const superscripts = {
     '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
     '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
@@ -24,5 +24,5 @@ export const getComplexityWeight = (complexity) => {
   if (comp.includes("n^3") || comp.includes("n³")) return 6;
   if (comp.includes("2^n") || comp.includes("2ⁿ")) return 7;
   if (comp.includes("n!")) return 8;
-  return 0; 
+  return 0;
 };
