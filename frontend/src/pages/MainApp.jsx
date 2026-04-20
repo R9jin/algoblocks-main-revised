@@ -111,6 +111,10 @@ export default function MainApp() {
   const [currentProjectTitle, setCurrentProjectTitle] = useState("Untitled Project");
   const [currentSaveType, setCurrentSaveType] = useState("project");
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  
+  // NEW STATE: Console Sub-tabs
+  const [consoleTab, setConsoleTab] = useState("output");
+
   const [saveModal, setSaveModal] = useState({
     isOpen: false, isEditMetadataOnly: false, editingId: null, editingData: null,
     title: "", description: "", category: "Custom Templates", saveType: "project"
@@ -158,7 +162,6 @@ export default function MainApp() {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           setSyntaxError(null);
         } else {
-          // --- SYNTAX ERROR TRANSLATION ---
           const hint = translatePythonError(data.message);
           setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
@@ -218,7 +221,6 @@ export default function MainApp() {
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
 
-        // --- RUNTIME ERROR TRANSLATION ---
         const hint = translatePythonError(data);
         setConsoleOutput(prev => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
 
@@ -238,8 +240,10 @@ export default function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (consoleEndRef.current) consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
-  }, [consoleOutput, isWaitingForInput]);
+    if (consoleEndRef.current && consoleTab === 'output') {
+      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [consoleOutput, isWaitingForInput, consoleTab]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -362,7 +366,6 @@ export default function MainApp() {
       }
     }
 
-    // Fallback to offline worker
     if (workerRef.current) {
       workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
     }
@@ -371,10 +374,13 @@ export default function MainApp() {
   const handleBlocklyChange = (json, pythonCode) => {
     setBlocklyJson(json);
 
-    // Only trigger a full update and wipe execution counts IF the code ACTUALLY changed
-    if (!isEditingCode && generatedPython !== pythonCode) {
+    // .trim() prevents invisible window resize updates from wiping hits
+    const oldCode = (generatedPython || "").trim();
+    const newCode = (pythonCode || "").trim();
+
+    if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
-      setLineExecutions({}); // Clear old hits only when blocks are actually modified
+      setLineExecutions({}); 
       analyzeCode(pythonCode);
     }
   };
@@ -480,6 +486,7 @@ export default function MainApp() {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
+      setConsoleTab("output"); // Default to terminal when running
       return;
     }
 
@@ -489,6 +496,7 @@ export default function MainApp() {
     setIsEvaluating(true);
     setLineExecutions({});
     setBottomPanel("console");
+    setConsoleTab("output"); 
 
     if (isOnline) {
       setConsoleOutput("> Running online via FastAPI...\n");
@@ -608,10 +616,9 @@ export default function MainApp() {
   });
 
   const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
-  let searchStartIndex = 0;
   const pythonLines = (generatedPython || "").split("\n");
 
-  // Calculate the maximum execution count to scale the heatmap
+  // Used for the new Executions Tab
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
   return (
@@ -621,10 +628,7 @@ export default function MainApp() {
       {saveModal.isOpen && (
         <div className="modal-overlay">
           <div className="save-modal-content">
-            <h2 className="save-modal-title">
-              {saveModal.isEditMetadataOnly ? "Edit Details" : "Save Workspace"}
-            </h2>
-
+            <h2 className="save-modal-title">{saveModal.isEditMetadataOnly ? "Edit Details" : "Save Workspace"}</h2>
             <div className="save-type-toggle" style={{ display: 'flex', gap: '20px', marginBottom: '20px', background: '#f1f5f9', padding: '10px', borderRadius: '8px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: saveModal.editingId ? 'not-allowed' : 'pointer', color: saveModal.editingId ? '#94a3b8' : 'black' }}>
                 <input type="radio" name="saveType" disabled={!!saveModal.editingId} checked={saveModal.saveType === 'project'} onChange={() => setSaveModal({ ...saveModal, saveType: 'project' })} />
@@ -635,20 +639,17 @@ export default function MainApp() {
                 Save as Template (Sidebar)
               </label>
             </div>
-
             <div className="save-modal-form">
               <div>
                 <label className="save-modal-label">Name</label>
                 <input type="text" value={saveModal.title} onChange={e => setSaveModal({ ...saveModal, title: e.target.value })} placeholder="e.g. Optimized Merge Sort" className="save-modal-input" />
               </div>
-
               {saveModal.saveType === 'template' && (
                 <div>
                   <label className="save-modal-label">Category</label>
                   <input type="text" value={saveModal.category} onChange={e => setSaveModal({ ...saveModal, category: e.target.value })} placeholder="e.g. Graph Algorithms" className="save-modal-input" />
                 </div>
               )}
-
               <div>
                 <label className="save-modal-label">Description</label>
                 <textarea value={saveModal.description} onChange={e => setSaveModal({ ...saveModal, description: e.target.value })} placeholder="What does this do?" className="save-modal-textarea" />
@@ -663,19 +664,13 @@ export default function MainApp() {
       )}
 
       <WorkspaceHeader
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        runCode={handleRunCode}
-        handleExport={openSaveModal}
-        handleSaveToDB={openSaveModal}
-        currentProjectId={currentLoadedId}
-        currentProjectTitle={currentProjectTitle}
-        handleUpdateDB={openSaveModal}
-        isEvaluating={isEvaluating}
+        viewMode={viewMode} setViewMode={setViewMode} runCode={handleRunCode}
+        handleExport={openSaveModal} handleSaveToDB={openSaveModal}
+        currentProjectId={currentLoadedId} currentProjectTitle={currentProjectTitle}
+        handleUpdateDB={openSaveModal} isEvaluating={isEvaluating}
       />
 
       <Split className={`workspace-split ${!isSidebarVisible ? 'sidebar-hidden' : ''}`} sizes={[20, 80]} minSize={[250, 400]} gutterSize={8}>
-
         <aside className="templates-sidebar">
           <div className="sidebar-search">
             <img src="/assets/search-icon.png" alt="Search" className="search-icon" />
@@ -685,7 +680,6 @@ export default function MainApp() {
             {Object.keys(groupedTemplates).map(category => (
               <div key={category} className="sidebar-category-group">
                 <h3 className="sidebar-category-header">{category}</h3>
-
                 {groupedTemplates[category].map((item) => (
                   <div key={item._id || item.title} className={`sidebar-card ${item.isSystem ? 'system-card' : 'custom-card'}`} onClick={() => loadConfirm(item)}>
                     <div className="sidebar-card-header">
@@ -693,7 +687,6 @@ export default function MainApp() {
                         <img src={item.isSystem ? "/assets/algoblocks_logo.png" : "/assets/user-icon.png"} alt="icon" className="card-type-icon" />
                         <h4>{item.title}</h4>
                       </div>
-
                       {item.isSystem ? (
                         <span className="badge-system-polished"><span className="dot"></span> System</span>
                       ) : (
@@ -729,7 +722,6 @@ export default function MainApp() {
                 <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks ↻ </button>
               </div>
 
-              {/* --- MONACO VSCODE EDITOR INTEGRATION --- */}
               <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
                 {syntaxError && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
@@ -743,23 +735,8 @@ export default function MainApp() {
                   theme="algoblocks-purple"
                   beforeMount={handleEditorWillMount}
                   value={generatedPython}
-                  onChange={(value) => {
-                    setGeneratedPython(value || "");
-                    setIsEditingCode(true);
-                    if (syntaxError) setSyntaxError(null);
-                  }}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 15,
-                    fontFamily: "'Fira Code', Consolas, Monaco, monospace",
-                    scrollBeyondLastLine: false,
-                    smoothScrolling: true,
-                    cursorBlinking: "smooth",
-                    formatOnPaste: true,
-                    suggestOnTriggerCharacters: true,
-                    wordWrap: "on",
-                    padding: { top: 16 }
-                  }}
+                  onChange={(value) => { setGeneratedPython(value || ""); setIsEditingCode(true); if (syntaxError) setSyntaxError(null); }}
+                  options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "'Fira Code', Consolas, Monaco, monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }}
                 />
               </div>
             </div>
@@ -769,22 +746,83 @@ export default function MainApp() {
             <div className="bottom-hover-panel" style={{ height: `${panelHeight}px` }}>
               <div className="panel-resizer" onMouseDown={handleDragStart}><div className="resizer-dash"></div></div>
               <div className="panel-header">
-                <span className="panel-title">{bottomPanel === 'console' ? 'Console Output' : 'Complexity Analysis'}</span>
+                <span className="panel-title">{bottomPanel === 'console' ? 'Console Panel' : 'Complexity Analysis'}</span>
                 <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
               </div>
-              <div className="panel-body">
+              <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                
+                {/* === CONSOLE PANEL === */}
                 {bottomPanel === 'console' ? (
-                  <div className="console-container">
-                    <pre className="console-output">{consoleOutput}</pre>
-                    {isWaitingForInput && (
-                      <div className="console-input-line">
-                        <span className="console-cursor">❯</span>
-                        <input autoFocus value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={handleSendInput} className="console-input-field" placeholder="Type here and press Enter..." />
+                  <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
+                    
+                    {/* Console Tab Group */}
+                    <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px' }}>
+                      <div className="tab-btn-group">
+                        <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
+                        <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
-                    )}
-                    <div ref={consoleEndRef} />
+                    </div>
+
+                    <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                      {consoleTab === 'output' ? (
+                        <div className="console-container" style={{ height: '100%' }}>
+                          <pre className="console-output">{consoleOutput}</pre>
+                          {isWaitingForInput && (
+                            <div className="console-input-line">
+                              <span className="console-cursor">❯</span>
+                              <input autoFocus value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={handleSendInput} className="console-input-field" placeholder="Type here and press Enter..." />
+                            </div>
+                          )}
+                          <div ref={consoleEndRef} />
+                        </div>
+                      ) : (
+                        <div className="complexity-table-wrapper" style={{ height: '100%', margin: 0, border: 'none' }}>
+                          <table className="complexity-table">
+                            <thead>
+                              <tr>
+                                <th style={{ width: '60px', textAlign: 'center' }}>Line</th>
+                                <th>Source Code</th>
+                                <th style={{ width: '100px', textAlign: 'center' }}>Hits</th>
+                                <th style={{ width: '30%' }}>Frequency</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pythonLines.map((lineText, idx) => {
+                                const lineNum = idx + 1;
+                                const hits = lineExecutions[lineNum] || 0;
+                                return (
+                                  <tr key={idx} style={{ backgroundColor: hits > 0 ? 'rgba(255, 255, 255, 0.03)' : 'transparent' }}>
+                                    <td style={{ color: '#888', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.05)' }}>{lineNum}</td>
+                                    <td style={{ fontFamily: "'Fira Code', monospace", whiteSpace: 'pre', color: '#000000', paddingLeft: '15px' }}>
+                                      {lineText || " "}
+                                    </td>
+                                    <td style={{ textAlign: 'center', fontWeight: 'bold', color: hits > 0 ? '#00b8a3' : '#555' }}>
+                                      {hits > 0 ? hits : '-'}
+                                    </td>
+                                    <td style={{ paddingRight: '20px' }}>
+                                      {hits > 0 && maxExecutions > 0 && (
+                                        <div style={{
+                                          height: '8px',
+                                          width: `${(hits / maxExecutions) * 100}%`,
+                                          backgroundColor: hits === maxExecutions ? '#ff375f' : '#00b8a3',
+                                          borderRadius: '4px',
+                                          transition: 'width 0.5s ease-out',
+                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(255, 55, 95, 0.5)' : 'none'
+                                        }} title={`${Math.round((hits / maxExecutions) * 100)}% of max execution load`} />
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
+                  
+                  /* === COMPLEXITY PANEL === */
                   <div className="complexity-content">
                     <div className="complexity-tabs">
                       <div className="tab-btn-group">
@@ -827,17 +865,6 @@ export default function MainApp() {
                               const spaceColor = getComplexityColor(spaceComplexity);
                               const isBottleneck = actualBottleneckIndices.includes(i);
 
-                              let execCount = 0;
-                              const lineTextStr = (line.lineOfCode || line.code || "").trim();
-                              let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
-                              if (matchedIdx !== -1) {
-                                execCount = lineExecutions[matchedIdx + 1] || 0;
-                                searchStartIndex = matchedIdx + 1;
-                              } else {
-                                matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
-                                if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
-                              }
-
                               return (
                                 <React.Fragment key={i}>
                                   <tr
@@ -850,76 +877,32 @@ export default function MainApp() {
                                     }}
                                     title="Click to view explanation"
                                   >
-                                    {/* --- HEATMAP INTEGRATION HERE --- */}
-                                    <td className="code-cell" style={{
-                                      color: '#000000',
-                                      paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px',
-                                      position: 'relative',
-                                      zIndex: 1,
-                                      overflow: 'hidden'
-                                    }}>
-                                      {/* Background Heatmap Bar */}
-                                      {execCount > 0 && maxExecutions > 0 && (
-                                        <div style={{
-                                          position: 'absolute',
-                                          left: 0,
-                                          top: 0,
-                                          bottom: 0,
-                                          width: `${(execCount / maxExecutions) * 100}%`,
-                                          backgroundColor: 'rgba(255, 55, 95, 0.15)',
-                                          borderRight: '2px solid rgba(255, 55, 95, 0.5)',
-                                          zIndex: -1,
-                                          transition: 'width 0.5s ease-out'
-                                        }} title={`${Math.round((execCount / maxExecutions) * 100)}% of max execution load`} />
-                                      )}
-
+                                    <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
                                       {line.lineOfCode || line.code}
-
-                                      {/* Execution Count Badge */}
-                                      {execCount > 0 && (
-                                        <span style={{
-                                          marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
-                                          borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                          boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
-                                        }} title={`Executed ${execCount} times during the last run`}>
-                                          <span style={{ fontSize: '0.75rem' }}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
-                                        </span>
-                                      )}
                                     </td>
                                     <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                       {line.operation || '-'}
-
                                       {isBottleneck && (
                                         <span style={{
                                           backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
                                           borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
                                           boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
-                                        }} title={`Highest ${activeTab} computational weight detected`}>
+                                        }}>
                                           Bottleneck
                                         </span>
                                       )}
                                     </td>
-                                    <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
-                                      {formatComplexity(timeComplexity)}
-                                    </td>
+                                    <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>{formatComplexity(timeComplexity)}</td>
                                     <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
                                       {formatComplexity(spaceComplexity)}
-                                      <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                                        ▶
-                                      </span>
+                                      <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>▶</span>
                                     </td>
                                   </tr>
 
                                   {expandedLines[i] && (
                                     <tr className="explanation-row">
                                       <td colSpan="4" style={{ padding: 0, border: 'none' }}>
-                                        <div
-                                          className="explanation-content"
-                                          style={{
-                                            borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
-                                            margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
-                                          }}
-                                        >
+                                        <div className="explanation-content" style={{ borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)', margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards' }}>
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                             <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                               <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
@@ -932,7 +915,6 @@ export default function MainApp() {
                                               <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
                                             </div>
                                           </div>
-
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                             <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                               <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
@@ -945,7 +927,6 @@ export default function MainApp() {
                                               <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
                                             </div>
                                           </div>
-
                                         </div>
                                       </td>
                                     </tr>
