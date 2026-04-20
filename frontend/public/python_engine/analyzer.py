@@ -167,14 +167,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     # --- HEURISTICS ---
     def _detect_graph_context(self, node):
         """
-        STRUCTURAL HEURISTIC: Detects graph algorithms without relying on variable names.
+        STRUCTURAL HEURISTIC: Detects graph algorithms without relying on variable names alone.
         Looks for typical BFS/DFS structures:
         1. BFS: A `while` loop that pops from a data structure, containing an inner `for` loop.
         2. DFS: A `for` loop containing a recursive call to the enclosing function.
+        We also look for graph-specific iterations (e.g. over a neighbor array) or 'visited' sets
+        to prevent false positives on permutation/backtracking algorithms.
         """
         has_queue_while = False
         has_neighbor_for = False
         has_recursive_for = False
+        has_visited_set = False
 
         if isinstance(node, ast.FunctionDef):
             for child in ast.walk(node):
@@ -190,14 +193,29 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     # Check for subscript iteration (e.g., for neighbor in graph[node])
                     if isinstance(child.iter, ast.Subscript):
                         has_neighbor_for = True
+                    # Check for iteration over variables explicitly named like adjacencies
+                    if isinstance(child.iter, ast.Name):
+                        name_lower = child.iter.id.lower()
+                        if any(kw in name_lower for kw in ['neighbor', 'adj', 'graph', 'child']):
+                            has_neighbor_for = True
                     
-                    # Check for recursive DFS structure
+                    # Check for recursive DFS/Backtracking structure
                     for sub in ast.walk(child):
                         if isinstance(sub, ast.Call) and isinstance(getattr(sub.func, 'id', ''), str):
                             if getattr(sub.func, 'id', '') == node.name:
                                 has_recursive_for = True
 
-        return (has_queue_while and has_neighbor_for) or has_recursive_for
+                # Look for usage of visited state tracking sets/arrays
+                if isinstance(child, ast.Call) and isinstance(getattr(child.func, 'attr', ''), str):
+                    if child.func.attr in ['add', 'append'] and isinstance(getattr(child.func, 'value', None), ast.Name):
+                        if 'visit' in child.func.value.id.lower():
+                            has_visited_set = True
+
+        # True if we have the recursive/iterative structure AND explicit graph tracking mechanisms
+        is_bfs = has_queue_while and (has_neighbor_for or has_visited_set)
+        is_dfs = has_recursive_for and (has_neighbor_for or has_visited_set)
+
+        return is_bfs or is_dfs
 
     def _is_graph_while_loop(self, node):
         if not getattr(self, 'in_graph_context', False): return False
@@ -260,7 +278,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     # --- RECORDING ENGINE ---
     def record_line(self, node, time_override=None, space_override=None):
         line_text = self.get_code_snippet(node)
-        line_num = getattr(node, 'lineno', -1) # <--- ADD THIS
+        line_num = getattr(node, 'lineno', -1) 
         current_poly, current_log, current_sqrt, current_graph = self.loop_depth, self.log_loop_depth, getattr(self, 'sqrt_loop_depth', 0), getattr(self, 'graph_depth', 0)
         override_poly = override_log = override_sqrt = override_graph = 0
         is_recurrence = False
