@@ -12,6 +12,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from bson import ObjectId
+from collections import defaultdict
 
 # ✅ KEEP but safer (ensures current dir is included)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
@@ -357,10 +358,6 @@ def analyze_complexity(payload: CodePayload):
         }
     except Exception:
         return {"status": "error", "lines": []}
-
-# =========================
-# FALLBACK: RUN CODE (SYNC)
-# =========================
 @app.post("/api/run")
 @app.post("/run")
 def run_code(payload: CodePayload):
@@ -371,16 +368,45 @@ def run_code(payload: CodePayload):
         print(prompt, end="")
         return "Simulated User Input"
 
+    counts = {}
+
     try:
         code = clean_python_code(payload.code)
-        safe_exec(code, {"input": simulated_input})
+        
+        # 1. Create an inline profiler
+        class BackendProfiler:
+            def __init__(self):
+                self.hits = defaultdict(int)
+            def trace_lines(self, frame, event, arg):
+                # Count lines only for the executed string block
+                if event == 'line' and frame.f_code.co_filename == '<string>':
+                    self.hits[frame.f_lineno] += 1
+                return self.trace_lines
+                
+        profiler = BackendProfiler()
+        compiled_code = compile(code, '<string>', 'exec')
+        
+        safe_builtins = builtins.__dict__.copy()
+        safe_builtins["print"] = print
+        safe_builtins["input"] = simulated_input
+
+        # 2. Attach the profiler before execution
+        sys.settrace(profiler.trace_lines)
+        try:
+            exec(compiled_code, {"__builtins__": safe_builtins})
+        finally:
+            # 3. Detach the profiler and extract hits
+            sys.settrace(None)
+            counts = dict(profiler.hits)
+
         output = redirected_output.getvalue() or "> Code ran successfully."
     except Exception as e:
         output = f"Runtime Error: {str(e)}"
     finally:
         sys.stdout = old_stdout
 
-    return {"status": "success", "output": output}
+    # 4. Make sure to return 'counts' so MainApp.jsx can read it
+    return {"status": "success", "output": output, "counts": counts}
 
 # =========================
 # FALLBACK: WEBSOCKET RUNNER
