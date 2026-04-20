@@ -5,6 +5,7 @@ import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from '../components/ComplexityGraph.jsx';
 import ConfirmModal from "../components/ConfirmModal.jsx";
+import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
@@ -375,6 +376,7 @@ const ActivityApp = () => {
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
   const [expandedTests, setExpandedTests] = useState({ 0: true });
   const [bottomPanel, setBottomPanel] = useState(null);
+  const [consoleTab, setConsoleTab] = useState("output"); // NEW: Console Sub-tabs
   const [activeTab, setActiveTab] = useState("local");
 
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
@@ -421,6 +423,13 @@ const ActivityApp = () => {
 
         if (data.status === "success") {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+
+          const initialCounts = {};
+          (data.lines || []).forEach(l => {
+            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
+          });
+          setLineExecutions(initialCounts);
+
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);
@@ -504,7 +513,12 @@ const ActivityApp = () => {
   const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
 
   useEffect(() => { if (!activityData) navigate("/learning-path"); }, [activityData, navigate]);
-  useEffect(() => { if (consoleEndRef.current) { consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); } }, [consoleOutput, isWaitingForInput]);
+  
+  useEffect(() => { 
+    if (consoleEndRef.current && consoleTab === 'output') { 
+      consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); 
+    } 
+  }, [consoleOutput, isWaitingForInput, consoleTab]);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -544,6 +558,13 @@ const ActivityApp = () => {
 
         if (data.status === "success") {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+          
+          const initialCounts = {};
+          (data.lines || []).forEach(l => {
+            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
+          });
+          setLineExecutions(initialCounts);
+
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);
@@ -626,9 +647,14 @@ const ActivityApp = () => {
   };
 
   const handleWorkspaceChange = async (json, pythonCode) => {
-    if (!isEditingCode) setGeneratedPython(pythonCode);
-    setLineExecutions({});
-    analyzeCode(pythonCode);
+    const oldCode = (generatedPython || "").trim();
+    const newCode = (pythonCode || "").trim();
+
+    if (!isEditingCode && oldCode !== newCode) {
+      setGeneratedPython(pythonCode);
+      setLineExecutions({});
+      analyzeCode(pythonCode);
+    }
   };
 
   const handleSyncToBlocks = async () => {
@@ -649,6 +675,7 @@ const ActivityApp = () => {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
+      setConsoleTab("output");
       return;
     }
 
@@ -658,6 +685,7 @@ const ActivityApp = () => {
     setIsEvaluating(true);
     setLineExecutions({});
     setBottomPanel("console");
+    setConsoleTab("output");
 
     if (isOnline) {
       setConsoleOutput("> Running online via FastAPI...\n");
@@ -832,6 +860,7 @@ const ActivityApp = () => {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
+      setConsoleTab("output");
       return;
     }
 
@@ -839,6 +868,7 @@ const ActivityApp = () => {
     setLineExecutions({});
     setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
     setBottomPanel("console");
+    setConsoleTab("output");
 
     try {
       await executeTest(generatedPython);
@@ -915,6 +945,7 @@ const ActivityApp = () => {
   const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
   let searchStartIndex = 0;
   const pythonLines = (generatedPython || "").split("\n");
+  const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
   return (
     <div className="activity-app-container">
@@ -1022,168 +1053,218 @@ const ActivityApp = () => {
               </div>
 
               <div className="panel-header">
-                <span className="panel-title">{bottomPanel === 'console' ? 'Console Output' : 'Complexity Analysis'}</span>
+                <span className="panel-title">{bottomPanel === 'console' ? 'Console Panel' : 'Complexity Analysis'}</span>
                 <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
               </div>
 
-              <div className="panel-body">
+              <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                
+                {/* === CONSOLE PANEL === */}
                 {bottomPanel === 'console' ? (
-                  <div className="console-container">
-                    <pre className="console-output">{consoleOutput}</pre>
-                    {isWaitingForInput && (
-                      <div className="console-input-line">
-                        <span className="console-cursor">❯</span>
-                        <input
-                          autoFocus
-                          value={userInput}
-                          onChange={(e) => setUserInput(e.target.value)}
-                          onKeyDown={handleSendInput}
-                          className="console-input-field"
-                          placeholder="Type here and press Enter..."
-                        />
+                  <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
+                    
+                    <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px' }}>
+                      <div className="tab-btn-group">
+                        <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
+                        <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
-                    )}
-                    <div ref={consoleEndRef} />
+                    </div>
+
+                    <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                      {consoleTab === 'output' ? (
+                        <div className="console-container" style={{ height: '100%' }}>
+                          <pre className="console-output">{consoleOutput}</pre>
+                          {isWaitingForInput && (
+                            <div className="console-input-line">
+                              <span className="console-cursor">❯</span>
+                              <input
+                                autoFocus
+                                value={userInput}
+                                onChange={(e) => setUserInput(e.target.value)}
+                                onKeyDown={handleSendInput}
+                                className="console-input-field"
+                                placeholder="Type here and press Enter..."
+                              />
+                            </div>
+                          )}
+                          <div ref={consoleEndRef} />
+                        </div>
+                      ) : (
+                        <div className="complexity-table-wrapper" style={{ height: '100%', margin: 0, border: 'none' }}>
+                          <table className="complexity-table">
+                            <thead>
+                              <tr>
+                                <th style={{ width: '60px', textAlign: 'center' }}>Line</th>
+                                <th>Source Code</th>
+                                <th style={{ width: '100px', textAlign: 'center' }}>Hits</th>
+                                <th style={{ width: '30%' }}>Frequency</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pythonLines.map((lineText, idx) => {
+                                const lineNum = idx + 1;
+                                const hits = lineExecutions[lineNum] || 0;
+                                return (
+                                  <tr key={idx} style={{ backgroundColor: hits > 0 ? 'rgba(255, 255, 255, 0.03)' : 'transparent' }}>
+                                    <td style={{ color: '#888', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.05)' }}>{lineNum}</td>
+                                    <td style={{ fontFamily: "'Fira Code', monospace", whiteSpace: 'pre', color: '#000000', paddingLeft: '15px' }}>
+                                      {lineText || " "}
+                                    </td>
+                                    <td style={{ textAlign: 'center', fontWeight: 'bold', color: hits > 0 ? '#00b8a3' : '#555' }}>
+                                      {hits > 0 ? hits : '-'}
+                                    </td>
+                                    <td style={{ paddingRight: '20px' }}>
+                                      {hits > 0 && maxExecutions > 0 && (
+                                        <div style={{
+                                          height: '8px',
+                                          width: `${(hits / maxExecutions) * 100}%`,
+                                          backgroundColor: hits === maxExecutions ? '#ff375f' : '#00b8a3',
+                                          borderRadius: '4px',
+                                          transition: 'width 0.5s ease-out',
+                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(255, 55, 95, 0.5)' : 'none'
+                                        }} title={`${Math.round((hits / maxExecutions) * 100)}% of max execution load`} />
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
+                  
+                  /* === COMPLEXITY PANEL === */
                   <div className="complexity-content">
                     <div className="complexity-tabs">
                       <div className="tab-btn-group">
                         <button onClick={() => { setActiveTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}>Local Complexity</button>
                         <button onClick={() => { setActiveTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'global' ? 'active' : ''}`}>Global Complexity</button>
+                        <button onClick={() => { setActiveTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeTab === 'memory' ? 'active' : ''}`}>Memory Map</button>
                       </div>
                       <div className="total-badge-group">
                         <span className="total-badge"><span className="total-label">Total Time:</span> <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge" style={{ backgroundColor: 'rgba(0, 184, 163, 0.15)', color: '#00b8a3', border: '1px solid rgba(0, 184, 163, 0.3)' }}><span className="total-label" style={{ color: '#00b8a3' }}>Total Space:</span> <span style={{ fontSize: "20px", fontWeight: "bold" }}>{formatComplexity(analysisResult.space_total)}</span></span>
-                        <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold" }}>{analysisTime} ms</span></span>
+                        <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#c275e0' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#db7fff"}}>{analysisTime} ms</span></span>
                       </div>
                     </div>
-                    <div className="complexity-table-wrapper">
-                      <table className="complexity-table">
-                        <thead>
-                          <tr>
-                            <th>Line of Code</th>
-                            <th>Operation</th>
-                            <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
-                            <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analysisResult.lines.map((line, i) => {
-                            const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
-                            const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-                            const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
-                            const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available."; F
-                            const timeColor = getComplexityColor(timeComplexity);
-                            const spaceColor = getComplexityColor(spaceComplexity);
-                            const isBottleneck = actualBottleneckIndices.includes(i);
+                    
+                    {activeTab === 'memory' ? (
+                      <div style={{ flex: 1, overflow: 'hidden', padding: '10px 15px' }}>
+                        <MemoryVisualizer
+                          analysisData={analysisResult.lines}
+                          currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0}
+                        />
+                      </div>
+                    ) : (
+                      <div className="complexity-table-wrapper">
+                        <table className="complexity-table">
+                          <thead>
+                            <tr>
+                              <th>Line of Code</th>
+                              <th>Operation</th>
+                              <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
+                              <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analysisResult.lines.map((line, i) => {
+                              const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
+                              const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
+                              const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
+                              const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
+                              const timeColor = getComplexityColor(timeComplexity);
+                              const spaceColor = getComplexityColor(spaceComplexity);
+                              const isBottleneck = actualBottleneckIndices.includes(i);
 
-                            let execCount = 0;
-                            const lineTextStr = (line.lineOfCode || line.code || "").trim();
-                            let matchedIdx = pythonLines.findIndex((pLine, idx) => idx >= searchStartIndex && pLine.trim() === lineTextStr);
-                            if (matchedIdx !== -1) {
-                              execCount = lineExecutions[matchedIdx + 1] || 0;
-                              searchStartIndex = matchedIdx + 1;
-                            } else {
-                              matchedIdx = pythonLines.findIndex(pLine => pLine.trim() === lineTextStr);
-                              if (matchedIdx !== -1) execCount = lineExecutions[matchedIdx + 1] || 0;
-                            }
+                              return (
+                                <React.Fragment key={i}>
+                                  <tr
+                                    className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
+                                    onClick={() => toggleLine(i)}
+                                    style={{
+                                      cursor: 'pointer',
+                                      borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
+                                    }}
+                                    title="Click to view explanation"
+                                  >
+                                    <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
+                                      {line.lineOfCode || line.code}
+                                    </td>
+                                    <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      {line.operation || '-'}
 
-                            return (
-                              <React.Fragment key={i}>
-                                <tr
-                                  className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
-                                  onClick={() => toggleLine(i)}
-                                  style={{
-                                    cursor: 'pointer',
-                                    borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
-                                    backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
-                                  }}
-                                  title="Click to view explanation"
-                                >
-                                  <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>
-                                    {line.lineOfCode || line.code}
-
-                                    {execCount > 0 && (
-                                      <span style={{
-                                        marginLeft: '12px', backgroundColor: '#8e44ad', color: '#fff', fontSize: '0.65rem', padding: '3px 8px',
-                                        borderRadius: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                        boxShadow: '0 2px 4px rgba(142, 68, 173, 0.3)', verticalAlign: 'middle'
-                                      }} title={`Executed ${execCount} times during the last run`}>
-                                        <span style={{ fontSize: '0.75rem' }}>⚡</span> {execCount} {execCount === 1 ? 'hit' : 'hits'}
+                                      {isBottleneck && (
+                                        <span style={{
+                                          backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
+                                          borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
+                                          boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
+                                        }} title="Highest computational weight detected">
+                                          🔥 Bottleneck
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
+                                      {formatComplexity(timeComplexity)}
+                                    </td>
+                                    <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
+                                      {formatComplexity(spaceComplexity)}
+                                      <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                                        ▶
                                       </span>
-                                    )}
-                                  </td>
-                                  <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {line.operation || '-'}
-
-                                    {isBottleneck && (
-                                      <span style={{
-                                        backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
-                                        borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
-                                        boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
-                                      }} title="Highest computational weight detected">
-                                        🔥 Bottleneck
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
-                                    {formatComplexity(timeComplexity)}
-                                  </td>
-                                  <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
-                                    {formatComplexity(spaceComplexity)}
-                                    <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                                      ▶
-                                    </span>
-                                  </td>
-                                </tr>
-
-                                {expandedLines[i] && (
-                                  <tr className="explanation-row">
-                                    <td colSpan="4" style={{ padding: 0, border: 'none' }}>
-                                      <div
-                                        className="explanation-content"
-                                        style={{
-                                          borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
-                                          margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
-                                        }}
-                                      >
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                            <div>
-                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
-                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
-                                            </div>
-                                          </div>
-                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
-                                            <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
-                                          </div>
-                                        </div>
-
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
-                                          <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                            <div>
-                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
-                                              <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
-                                            </div>
-                                          </div>
-                                          <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
-                                            <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
-                                          </div>
-                                        </div>
-
-                                      </div>
                                     </td>
                                   </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+
+                                  {expandedLines[i] && (
+                                    <tr className="explanation-row">
+                                      <td colSpan="4" style={{ padding: 0, border: 'none' }}>
+                                        <div
+                                          className="explanation-content"
+                                          style={{
+                                            borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
+                                            margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
+                                          }}
+                                        >
+                                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                              <div>
+                                                <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
+                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
+                                              </div>
+                                            </div>
+                                            <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                              <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                            </div>
+                                          </div>
+
+                                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                              <div>
+                                                <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
+                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
+                                              </div>
+                                            </div>
+                                            <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                              <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                            </div>
+                                          </div>
+
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
