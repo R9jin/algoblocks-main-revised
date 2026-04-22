@@ -616,6 +616,7 @@
 .tab-btn-group {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;     /* Allow buttons to wrap if the panel is narrow */
 }
 
 .tab-btn {
@@ -626,6 +627,8 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.75rem;
+  white-space: nowrap; /* Prevent text inside the button from wrapping/overlapping */
+  flex-shrink: 0;      /* Prevent the button from getting squished */
 }
 
 .tab-btn.active {

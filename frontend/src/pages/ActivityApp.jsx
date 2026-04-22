@@ -1033,22 +1033,20 @@ const ActivityApp = () => {
                 <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
               </div>
 
-              <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', padding: bottomPanel === 'console' ? '0' : '20px' }}>
                 
-                {/* === CONSOLE PANEL === */}
                 {bottomPanel === 'console' ? (
-                  <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
-                    
-                    <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px' }}>
+                  <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                    <div className="complexity-tabs" style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', margin: 0, flexShrink: 0 }}>
                       <div className="tab-btn-group">
                         <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
                         <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
                     </div>
 
-                    <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                       {consoleTab === 'output' ? (
-                        <div className="console-container" style={{ height: '100%' }}>
+                        <div className="console-container" style={{ flex: 1, height: 'auto', margin: 0 }}>
                           <pre className="console-output">{consoleOutput}</pre>
                           {isWaitingForInput && (
                             <div className="console-input-line">
@@ -1066,7 +1064,7 @@ const ActivityApp = () => {
                           <div ref={consoleEndRef} />
                         </div>
                       ) : (
-                        <div className="complexity-table-wrapper" style={{ height: '100%', margin: 0, border: 'none' }}>
+                        <div className="complexity-table-wrapper" style={{ flex: 1, height: 'auto', margin: 0, border: 'none', overflowY: 'auto' }}>
                           <table className="complexity-table">
                             <thead>
                               <tr>
