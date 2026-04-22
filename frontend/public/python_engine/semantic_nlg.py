@@ -9,41 +9,32 @@ class SemanticNLGEngine:
     Target Audience: 2nd to 4th-Year Computer Science Students, Algorithm Analysts.
     Purpose: To translate abstract AST nodes, Big O complexities, and raw 
     mathematical equations into highly varied, deeply educational explanations.
-    
-    This engine specifically avoids low-level system or CPython internals. 
-    Instead, it focuses strictly on Big O Theory, explaining *why* an algorithmic 
-    step incurs a specific Time or Space cost based on mathematical scaling, 
-    iteration boundaries, auxiliary data structure provisioning, and the 
-    call stack implications of recursive recurrence relations.
-    
-    New Feature: Automatically intercepts T(n) Recurrence Relations and resolves 
-    them into their standard asymptotic Big O equivalents using the Master Theorem.
-    New Feature: Highlights DOMINANT BOTTLENECKS if the node contributes the 
-    highest time or space complexity to the overall program.
     """
     
     def __init__(self, analyzer_context):
-        """
-        Initializes the NLG Engine with the current context of the AST analysis.
-        The context contains global and local complexities, loop depths, and
-        detected algorithmic patterns.
-        """
         self.ctx = analyzer_context
+
+    def get_time_bottleneck_warning(self):
+        return random.choice([
+            " \n\n⚠️ **CRITICAL TIME BOTTLENECK:** Out of all operations in the program, this step scales the worst. In rigorous asymptotic analysis, lower-order terms are dropped, meaning this dominant combined growth factor dictates the final Big O runtime of your entire algorithm.",
+            " \n\n⚠️ **DOMINANT TIME FACTOR:** This operation represents the primary computational bottleneck. Because it contributes the highest time complexity across the whole script, it is the defining factor that sets the final Big O limits of the program.",
+            " \n\n⚠️ **ALGORITHMIC BOTTLENECK:** This exact segment holds the highest runtime scaling in the script. Because asymptotic notation focuses on the fastest-growing term, this specific code block defines the total overall execution speed of your program."
+        ])
+
+    def get_space_bottleneck_warning(self):
+        return random.choice([
+            " \n\n⚠️ **PRIMARY MEMORY DRIVER:** This specific allocation represents the highest space complexity contribution in the program, acting as the absolute bottleneck for your overall memory footprint.",
+            " \n\n⚠️ **DOMINANT SPACE FACTOR:** Because this step consumes the most auxiliary memory out of the entire script, it defines the final Big O space complexity of the overall algorithm.",
+            " \n\n⚠️ **MEMORY BOTTLENECK:** Out of all the operations, this structural allocation (or call stack layering) scales the worst with data size, establishing the upper limit of your program's memory constraints."
+        ])
 
     # ==========================================
     # RECURRENCE RELATION RESOLUTION ENGINE
     # ==========================================
     def _format_recurrence_relation(self, comp_str):
-        """
-        Intercepts raw T(n) complexity strings and parses them into educational 
-        equivalents. When an algorithm yields a recurrence, it is vital to show
-        the student both the structural recurrence (e.g., 2T(n/2) + O(n)) AND the
-        final resolved asymptotic Big O limit (e.g., O(n log n)).
-        """
         if not comp_str or "T(" not in comp_str:
             return comp_str
             
-        # Strict mapping table derived from Master Theorem and standard tree analysis
         lookup = {
             "T(n) = n * T(n-1) + O(1)": "O(n!)",
             "T(n) = n * T(n-1)": "O(n!)",
@@ -71,28 +62,18 @@ class SemanticNLGEngine:
     # AST INTROSPECTION & TRANSLATION HELPERS
     # ==========================================
     def _extract_name(self, node):
-        if isinstance(node, ast.Name): 
-            return f"'{node.id}'"
+        if isinstance(node, ast.Name): return f"'{node.id}'"
         if isinstance(node, ast.Constant): 
             if isinstance(node.value, str): return f'"{node.value}"'
             return str(node.value)
-        if isinstance(node, ast.Attribute): 
-            return f"{self._extract_name(node.value)}.{node.attr}"
-        if isinstance(node, ast.Call): 
-            func_name = self._extract_name(node.func)
-            return f"{func_name}()"
-        if isinstance(node, ast.Subscript): 
-            return f"{self._extract_name(node.value)}[...]"
-        if isinstance(node, ast.List): 
-            return "a new dynamic array"
-        if isinstance(node, ast.Dict): 
-            return "a new hash map"
-        if isinstance(node, ast.Set): 
-            return "a new hash set"
-        if isinstance(node, ast.Tuple): 
-            return "a new immutable array"
-        if isinstance(node, ast.Starred): 
-            return f" unpacked elements of {self._extract_name(node.value)}"
+        if isinstance(node, ast.Attribute): return f"{self._extract_name(node.value)}.{node.attr}"
+        if isinstance(node, ast.Call): return f"{self._extract_name(node.func)}()"
+        if isinstance(node, ast.Subscript): return f"{self._extract_name(node.value)}[...]"
+        if isinstance(node, ast.List): return "a new dynamic array"
+        if isinstance(node, ast.Dict): return "a new hash map"
+        if isinstance(node, ast.Set): return "a new hash set"
+        if isinstance(node, ast.Tuple): return "a new immutable array"
+        if isinstance(node, ast.Starred): return f" unpacked elements of {self._extract_name(node.value)}"
         return "the target structure"
 
     def _get_op_name(self, op):
@@ -175,30 +156,19 @@ class SemanticNLGEngine:
     # ==========================================
     # MAIN GENERATION DELEGATOR
     # ==========================================
-    def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, is_bottleneck_time=False, is_bottleneck_space=False):
+    def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet):
         """
         Main entry point for the engine.
         Delegates AST nodes to specific linguistic generators based on their assigned complexities.
-        Automatically flags DOMINANT BOTTLENECKS for the highest programmatic scaling factors.
         """
         if is_dead:
             return self._generate_dead_code_explanation(code_snippet)
 
-        # Fallback to automatically detect bottlenecks if the context provides the overall programmatic limit
-        if not is_bottleneck_time and hasattr(self.ctx, 'overall_time_complexity'):
-            if global_t == self.ctx.overall_time_complexity and global_t not in ["O(1)", ""]:
-                is_bottleneck_time = True
-        
-        if not is_bottleneck_space and hasattr(self.ctx, 'overall_space_complexity'):
-            if global_s == self.ctx.overall_space_complexity and global_s not in ["O(1)", ""]:
-                is_bottleneck_space = True
-
-        # Intercept and mathematically resolve any T(n) relations
         fmt_local_t = self._format_recurrence_relation(str(local_t))
         fmt_global_t = self._format_recurrence_relation(str(global_t))
 
-        time_desc = self._route_time_semantics(node, fmt_local_t, fmt_global_t, code_snippet, is_bottleneck_time)
-        space_desc = self._route_space_semantics(node, local_s, global_s, code_snippet, is_bottleneck_space)
+        time_desc = self._route_time_semantics(node, fmt_local_t, fmt_global_t, code_snippet)
+        space_desc = self._route_space_semantics(node, local_s, global_s, code_snippet)
         
         return time_desc, space_desc
 
@@ -216,7 +186,7 @@ class SemanticNLGEngine:
     # ==========================================
     # TIME COMPLEXITY ROUTING & GENERATORS
     # ==========================================
-    def _route_time_semantics(self, node, local_t, global_t, code_snippet, is_bottleneck_time):
+    def _route_time_semantics(self, node, local_t, global_t, code_snippet):
         prefix = random.choice([
             f"Looking at the execution of `{code_snippet}`: ", f"Analyzing the instruction `{code_snippet}`: ",
             f"Focusing on `{code_snippet}`: ", f"For this step, ", f"In this exact line, ", ""
@@ -256,16 +226,7 @@ class SemanticNLGEngine:
         else:
             base_desc = f"This fundamental operation resolves in {local_t} time."
 
-        # DOMINANT BOTTLENECK INJECTION
-        bottleneck_warning = ""
-        if is_bottleneck_time:
-            bottleneck_warning = random.choice([
-                " \n\n⚠️ **CRITICAL TIME BOTTLENECK:** Out of all operations in the program, this step scales the worst. In rigorous asymptotic analysis, lower-order terms are dropped, meaning this dominant combined growth factor dictates the final Big O runtime of your entire algorithm.",
-                " \n\n⚠️ **DOMINANT TIME FACTOR:** This operation represents the primary computational bottleneck. Because it contributes the highest time complexity across the whole script, it is the defining factor that sets the final Big O limits of the program.",
-                " \n\n⚠️ **ALGORITHMIC BOTTLENECK:** This exact segment holds the highest runtime scaling in the script. Because asymptotic notation focuses on the fastest-growing term, this specific code block defines the total overall execution speed of your program."
-            ])
-
-        return prefix + base_desc + bottleneck_warning
+        return prefix + base_desc
 
     # --- SPECIFIC TIME GENERATORS ---
 
@@ -383,7 +344,7 @@ class SemanticNLGEngine:
     # ==========================================
     # SPACE COMPLEXITY ROUTING & GENERATORS
     # ==========================================
-    def _route_space_semantics(self, node, local_s, global_s, code_snippet, is_bottleneck_space):
+    def _route_space_semantics(self, node, local_s, global_s, code_snippet):
         prefix = random.choice([
             "Regarding memory allocation: ", "From a strict space perspective: ",
             "Looking deeply at RAM usage: ", "Memory-wise: ", ""
@@ -420,16 +381,7 @@ class SemanticNLGEngine:
                 f"This algorithmic logic executes strictly in-place. The space complexity overhead remains a flat, highly optimized {local_s}."
             ])
 
-        # DOMINANT BOTTLENECK INJECTION
-        bottleneck_warning = ""
-        if is_bottleneck_space:
-            bottleneck_warning = random.choice([
-                " \n\n⚠️ **PRIMARY MEMORY DRIVER:** This specific allocation represents the highest space complexity contribution in the program, acting as the absolute bottleneck for your overall memory footprint.",
-                " \n\n⚠️ **DOMINANT SPACE FACTOR:** Because this step consumes the most auxiliary memory out of the entire script, it defines the final Big O space complexity of the overall algorithm.",
-                " \n\n⚠️ **MEMORY BOTTLENECK:** Out of all the operations, this structural allocation (or call stack layering) scales the worst with data size, establishing the upper limit of your program's memory constraints."
-            ])
-
-        return prefix + base_desc + bottleneck_warning
+        return prefix + base_desc
 
     # --- SPECIFIC SPACE GENERATORS ---
 

@@ -1,4 +1,4 @@
-# api/analyzer.py
+# analyzer.py
 import ast
 import re
 from collections import deque
@@ -13,7 +13,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def __init__(self, source_code):
         self.source_lines = source_code.splitlines()
-        self.details = []                
+        self._details = []                
+        self._bottlenecks_applied = False
         
         # Structural trackers
         self.current_depth = 0           
@@ -67,6 +68,42 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         # Initialize the Dynamic NLG Component
         self.nlg_engine = SemanticNLGEngine(self)
+
+    @property
+    def details(self):
+        """Intercepts the external request for details to apply bottleneck warnings cleanly at the end."""
+        if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0:
+            self._apply_bottlenecks()
+            self._bottlenecks_applied = True
+        return self._details
+
+    @details.setter
+    def details(self, value):
+        self._details = value
+        self._bottlenecks_applied = False
+
+    def _apply_bottlenecks(self):
+        """Identifies the dominant lines and appends warnings after full AST traversal."""
+        final_time = self.get_final_asymptotic_badge()
+        final_space = self.get_final_space_badge()
+        
+        max_w = max([d.get('weight', -1) for d in self._details], default=-1)
+        
+        time_flagged = False
+        space_flagged = False
+        
+        for d in self._details:
+            if not time_flagged and d.get('weight', -1) == max_w and max_w > 0 and final_time not in ["O(1)", "-", ""]:
+                warning = self.nlg_engine.get_time_bottleneck_warning()
+                if warning not in d.get('time_explanation', ''):
+                    d['time_explanation'] = str(d.get('time_explanation', '')) + warning
+                time_flagged = True
+                
+            if not space_flagged and d.get('global_space', '') == final_space and final_space not in ["O(1)", "-", ""]:
+                warning = self.nlg_engine.get_space_bottleneck_warning()
+                if warning not in d.get('space_explanation', ''):
+                    d['space_explanation'] = str(d.get('space_explanation', '')) + warning
+                space_flagged = True
 
     # --- Logic Hint Helper ---
     def add_logic_hint(self, node, hint):
@@ -319,7 +356,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
             local_s = space_override if space_override else "O(1)"
             
-            # --- FIXED: SPACE COMPLEXITY WEIGHT TRACKING ---
             if "V" in local_s or total_graph > 0:
                 self.max_space_weight = max(getattr(self, 'max_space_weight', 0), 2)
             elif "n" in local_s or self.recursive_calls_count > 0:
@@ -355,9 +391,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "space_explanation": space_exp
         }
         
-        if self.details and self.details[-1]["lineOfCode"] == line_text:
-            if t_w > self.details[-1].get("weight", -1): self.details[-1].update(entry)
-        else: self.details.append(entry)
+        if self._details and self._details[-1]["lineOfCode"] == line_text:
+            if t_w > self._details[-1].get("weight", -1): self._details[-1].update(entry)
+        else: self._details.append(entry)
 
         if not is_dead and time_override != "Definition":
             if t_w > self.max_complexity:
@@ -393,7 +429,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
-        start_idx = len(self.details)
+        start_idx = len(self._details)
         prev_data = (self.max_complexity, getattr(self, 'max_space_weight', 0), self.max_poly, self.max_log, self.max_sqrt, self.max_exp, getattr(self, 'max_graph_ve', 0))
         self.max_complexity = self.max_space_weight = self.max_poly = self.max_log = self.max_sqrt = self.max_exp = self.max_graph_ve = 0
         self.current_function_name, self.recursive_calls_count = node.name, 0
@@ -450,11 +486,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
         self.custom_functions[node.name] = relation
         
-        for i in range(start_idx, len(self.details)):
-            if str(self.details[i]["local_time"]).startswith("T("):
-                self.details[i]["local_time"] = relation
-            if str(self.details[i]["global_time"]).startswith("T("):
-                self.details[i]["global_time"] = relation
+        for i in range(start_idx, len(self._details)):
+            if str(self._details[i]["local_time"]).startswith("T("):
+                self._details[i]["local_time"] = relation
+            if str(self._details[i]["global_time"]).startswith("T("):
+                self._details[i]["global_time"] = relation
 
         self.custom_space[node.name] = "O(V)" if self.max_graph_ve > 0 else ("O(log n)" if (self.recursive_calls_count == 1 and self.has_division) else ("O(n)" if (self.recursive_calls_count > 0 or self.max_space_weight > 0) else "O(1)"))
         
@@ -683,7 +719,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "O(1)": 1
         }
         
-        for line in self.details:
+        for line in self._details:
             comp = str(line.get('global_time', ''))
             for key, rank in rankings.items():
                 if key in comp and rank > best_rank:
@@ -708,7 +744,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         best_comp = "O(1)"
         best_rank = 1
         
-        for line in self.details:
+        for line in self._details:
             for c in [str(line.get('global_time', '')), str(line.get('local_time', ''))]:
                 for key, (mapped, rank) in lookup.items():
                     if key in c and rank > best_rank:
@@ -732,7 +768,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         best_space = "O(1)"
         best_rank = 1
         
-        for line in self.details:
+        for line in self._details:
             s = str(line.get('global_space', 'O(1)'))
             for key, rank in rankings.items():
                 if key in s and rank > best_rank:
