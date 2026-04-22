@@ -689,7 +689,7 @@ const ActivityApp = () => {
     setConsoleTab("output");
 
     if (isOnline) {
-      setConsoleOutput("> Running online via FastAPI...\n");
+      setConsoleOutput("\n> Running online via FastAPI...\n");
       try {
         const response = await fetch(`${VERCEL_URL}/api/run`, {
           method: "POST",
@@ -712,7 +712,7 @@ const ActivityApp = () => {
       }
     }
 
-    setConsoleOutput(prev => prev + "> Running locally via Pyodide (WebAssembly)...\n");
+    setConsoleOutput(prev => prev + "\n> Running locally via Pyodide (WebAssembly)...\n");
 
     outputCountRef.current = 0;
     pendingOutputRef.current = "";
@@ -881,12 +881,12 @@ const ActivityApp = () => {
     }
 
     setBottomPanel("console");
-    setConsoleOutput("> Running Tests...\n");
+    setConsoleOutput("\n> Running Tests...\n");
     setPassedTests(0);
 
     let passed = 0;
     const total = testCases.length;
-    let fullOutput = "> --- Running Test Cases ---\n";
+    let fullOutput = "\n> --- Running Test Cases ---\n";
 
     for (let i = 0; i < total; i++) {
       const tc = testCases[i];

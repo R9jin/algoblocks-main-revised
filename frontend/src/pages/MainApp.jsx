@@ -507,7 +507,7 @@ export default function MainApp() {
     setConsoleTab("output");
 
     // Pyodide Fallback Execution
-    setConsoleOutput(prev => prev + "> Running locally via Pyodide (WebAssembly)...\n");
+    setConsoleOutput(prev => prev + "\n> Running locally via Pyodide (WebAssembly)...\n");
 
     outputCountRef.current = 0;
     pendingOutputRef.current = "";

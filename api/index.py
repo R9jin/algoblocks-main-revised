@@ -428,7 +428,7 @@ def run_code(payload: CodePayload):
             sys.settrace(None)
             counts = dict(profiler.hits)
 
-        output = redirected_output.getvalue() or "> Code ran successfully."
+        output = redirected_output.getvalue() or "\n> Code ran successfully."
     except Exception as e:
         output = f"Runtime Error: {str(e)}"
     finally:

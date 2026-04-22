@@ -9,8 +9,8 @@ class SemanticNLGEngine:
     Target Audience: 2nd to 4th-Year Computer Science Students, Algorithm Analysts.
     Purpose: To translate abstract AST nodes, Big O complexities, and raw mathematical 
     equations into highly varied, deeply educational explanations. Now fully supports
-    advanced structural edge cases like Lambdas, Generators, Context Managers, and 
-    Multiple Dataset Dimensions (O(n * m)).
+    advanced structural edge cases like Lambdas, Generators, DP Memoization heuristics,
+    and Multiple Dataset Dimensions (O(n * m)).
     """
     
     def __init__(self, analyzer_context):
@@ -174,6 +174,11 @@ class SemanticNLGEngine:
 
     def _time_for_function_def(self, node, local_t):
         f_name = getattr(node, 'name', 'this function')
+        
+        # DP EXPLANATION FOR FUNCTION DEF
+        if f_name in getattr(self.ctx, 'memoized_funcs', set()):
+            return f"Defining `{f_name}` constructs the procedural pointer in O(1) time. Critically, the engine detects **Top-Down Dynamic Programming** (memoization/caching) applied to this function. This architectural decision fundamentally mathematically collapses the recursive tree, severely optimizing execution mapping down to a linear state space instead of expanding exponentially."
+
         return random.choice([
             f"Defining the function `{f_name}` structurally avoids executing its internal algorithmic logic immediately. The interpreter purely parses the syntax rules and maps the function pointer in highly optimized O(1) constant time. True algorithmic scaling remains strictly deferred until explicit invocation.",
             f"Notice that this is a function definition boundary (`def {f_name}`). The underlying computational routines inside are completely dormant right now. Binding this signature and reserving its namespace fundamentally evaluates in O(1) time."
@@ -189,7 +194,7 @@ class SemanticNLGEngine:
         return "Initiating a context manager (`with`) inherently schedules automated resource provisioning (__enter__) and strict eventual teardown (__exit__). Establishing these boundary protocols maps logically to O(1) constant time initialization, bypassing heavy iteration."
 
     def _time_for_exponential(self):
-        return "This logical structure inherently triggers a cascading O(2^n) exponential blowout. Every time you append one singular item to the underlying input constraint, the amount of required mathematical work violently doubles, indicating massive sub-problem recalculation overlap."
+        return "This logical structure inherently triggers a cascading O(2^n) exponential blowout. Every time you append one singular item to the underlying input constraint, the amount of required mathematical work violently doubles, indicating massive sub-problem recalculation overlap. (Applying DP / Memoization here could radically collapse this to linear time)."
 
     def _time_for_factorial(self):
         return "This is categorized mathematically as O(n!) factorial time. This is analytically the heaviest and most computationally expensive bound possible in basic algorithmics. Because operations explode proportionally by n * (n-1) * (n-2)..., executing this logic becomes strictly impossible for even moderately sized datasets."
@@ -250,6 +255,10 @@ class SemanticNLGEngine:
         if f_name in ["sort", "sorted"]: return f"Triggering the standard `{f_name}()` protocol systematically initiates Python's highly optimized Timsort. Sorting mathematically mandates a baseline O(n log n) execution cost as the engine partitions, heavily compares, and actively merges dynamic segments back together."
 
         if f_name == getattr(self.ctx, 'current_function_name', None):
+            # DP Explanation Trigger
+            if f_name in getattr(self.ctx, 'memoized_funcs', set()):
+                 return f"This explicit recursive loop targets `{f_name}()`. However, because Dynamic Programming (Memoization/Caching) actively traps repeated calculations, overlapping recursive sub-problems are intelligently bypassed. This successfully flattens an exponential collapse down securely to a {global_t} boundary!"
+
             if getattr(self.ctx, 'has_division', False): return f"This active recursive instruction deliberately fragments the data partition bounds in half (or dynamically smaller fractions). Following the Master Theorem's divide-and-conquer principles, this drastically eliminates broad sub-problem checks, strictly shaping an overarching recurrence string of {global_t}."
             return f"This explicit code recursively delegates control flow back into `{f_name}`. Each sequential call violently spawns an independent namespace and execution branch in the overarching recursion tree. This progressive stacking acts as the key multiplier driving the total recurrence model identically to {global_t}."
             
@@ -311,6 +320,9 @@ class SemanticNLGEngine:
 
     def _space_for_function_def(self, node, local_s):
         f_name = getattr(node, 'name', 'this block')
+        if f_name in getattr(self.ctx, 'memoized_funcs', set()):
+            return f"Defining `{f_name}` generally takes O(1) space. However, because DP Memoization is enabled, the system proactively maps an O(n) associative background cache (Hash Map) designed to rigorously warehouse evaluated state variables dynamically during execution."
+        
         return f"Declaring `{f_name}` initializes practically zero massive storage sequences. The Python interpreter allocates an incredibly tiny, static O(1) pointer slot purely for the active function object representation. Dense internal memory bounds remain deferred indefinitely until active runtime invocation."
 
     def _space_for_graphs(self):
@@ -335,4 +347,4 @@ class SemanticNLGEngine:
         return f"This active transformation explicitly avoids cloning giant arrays sequentially. By deliberately operating directly on active existing variable addresses mathematically, space limits are perfectly contained and optimized indefinitely down to {local_s}."
 
     def _space_for_generators(self):
-        return "Selecting to use a generator completely eliminates ballooning arrays, heavily optimizing Space Complexity directly to O(1). Instead of computing thousands of sequences and locking them inside massive contiguous RAM structures simultaneously, the state machine merely suspends securely, lazily yielding precisely one localized value at an instant."
+        return "Using a generator completely eliminates ballooning arrays, heavily optimizing Space Complexity directly to O(1). Instead of computing thousands of sequences and locking them inside massive contiguous RAM structures simultaneously, the state machine merely suspends securely, lazily yielding precisely one localized value at an instant."
