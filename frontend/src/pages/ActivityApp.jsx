@@ -1,3 +1,4 @@
+// frontend/src/pages/ActivityApp.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Split from "react-split";
@@ -369,7 +370,7 @@ const ActivityApp = () => {
   const totalTests = activityData?.testCasesList?.length || 0;
 
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
-  const [consoleOutput, setConsoleOutput] = useState("");
+  const [consoleOutput, setConsoleOutput] = useState("Ready to run...");
   const [viewMode, setViewMode] = useState("workspace");
   const [passedTests, setPassedTests] = useState(0);
 
@@ -687,6 +688,30 @@ const ActivityApp = () => {
     setBottomPanel("console");
     setConsoleTab("output");
 
+    if (isOnline) {
+      setConsoleOutput("> Running online via FastAPI...\n");
+      try {
+        const response = await fetch(`${VERCEL_URL}/api/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: generatedPython })
+        });
+
+        if (!response.ok) throw new Error("FastAPI execution failed");
+
+        const data = await response.json();
+        const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
+        setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
+
+        if (data.counts) setLineExecutions(data.counts);
+
+        setIsEvaluating(false);
+        return;
+      } catch (error) {
+        setConsoleOutput(prev => prev + " Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
+      }
+    }
+
     setConsoleOutput(prev => prev + "> Running locally via Pyodide (WebAssembly)...\n");
 
     outputCountRef.current = 0;
@@ -919,7 +944,6 @@ const ActivityApp = () => {
   });
 
   const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
-  let searchStartIndex = 0;
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
@@ -985,7 +1009,7 @@ const ActivityApp = () => {
                 </button>
               </div>
 
-              {/* --- MONACO VSCODE EDITOR INTEGRATION --- */}
+              {/* --- MONACTO VSCODE EDITOR INTEGRATION --- */}
               <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
                 {syntaxError && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
@@ -1033,20 +1057,22 @@ const ActivityApp = () => {
                 <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
               </div>
 
-              <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden', padding: bottomPanel === 'console' ? '0' : '20px' }}>
+              <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 
+                {/* === CONSOLE PANEL === */}
                 {bottomPanel === 'console' ? (
                   <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-                    <div className="complexity-tabs" style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.1)', margin: 0, flexShrink: 0 }}>
+                    
+                    <div className="complexity-tabs" style={{ padding: '0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '10px', flexShrink: 0 }}>
                       <div className="tab-btn-group">
                         <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
                         <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
                     </div>
 
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
                       {consoleTab === 'output' ? (
-                        <div className="console-container" style={{ flex: 1, height: 'auto', margin: 0 }}>
+                        <div className="console-container" style={{ height: '100%' }}>
                           <pre className="console-output">{consoleOutput}</pre>
                           {isWaitingForInput && (
                             <div className="console-input-line">
@@ -1064,7 +1090,7 @@ const ActivityApp = () => {
                           <div ref={consoleEndRef} />
                         </div>
                       ) : (
-                        <div className="complexity-table-wrapper" style={{ flex: 1, height: 'auto', margin: 0, border: 'none', overflowY: 'auto' }}>
+                        <div className="complexity-table-wrapper" style={{ height: '100%', margin: 0, border: 'none' }}>
                           <table className="complexity-table">
                             <thead>
                               <tr>

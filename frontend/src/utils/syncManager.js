@@ -15,7 +15,10 @@ export const startBackgroundSync = () => {
       try {
         const endpoint = task.type === 'TEMPLATE' ? '/api/templates' : '/api/projects';
         const method = task.action === 'DELETE' ? 'DELETE' : (task.data._id.startsWith('local_') ? 'POST' : 'PUT');
-        const url = method === 'POST' ? `${API_BASE}${endpoint}` : `${API_BASE}${endpoint}/${id}`;
+        
+        // FIX: Extract the actual _id from the task payload, not the IndexedDB key
+        const targetId = task.data._id;
+        const url = method === 'POST' ? `${API_BASE}${endpoint}` : `${API_BASE}${endpoint}/${targetId}`;
 
         const response = await fetch(url, {
           method,
