@@ -35,7 +35,7 @@ class BlocklyASTConverter:
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
             if node.func.id in ["len"]: return "Number"
             if node.func.id in ["abs", "round", "int", "float"]: return "Number"
-            if node.func.id in ["str", "input"]: return "String"  # Added "input" here
+            if node.func.id in ["str", "input"]: return "String"  
             if node.func.id in ["list"]: return "Array"
         return "Any"
 
@@ -109,7 +109,8 @@ class BlocklyASTConverter:
             y_offset = 20
 
             for node in tree.body:
-                block = self.serialize_node(node) or self.make_raw_statement(node)
+                # FIX: Explicitly mark nodes processed at the root of the file as top level
+                block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block:
                     continue
 
@@ -180,13 +181,11 @@ class BlocklyASTConverter:
         if not child_block:
             return
 
-        # FIX 1: normalize None children
         if child_block is None:
             return
 
-        # FIX 2: ensure every child has safe output
         if isinstance(child_block, dict):
-            child_block.setdefault("output", "Any")  # critical safety net
+            child_block.setdefault("output", "Any")
 
         block_dict.setdefault("inputs", {})
         block_dict["inputs"][input_name] = {"block": child_block}
@@ -199,7 +198,8 @@ class BlocklyASTConverter:
         prev = None
 
         for node in nodes:
-            block = self.serialize_node(node) or self.make_raw_statement(node)
+            # Nodes evaluated within a body block are naturally NOT top level
+            block = self.serialize_node(node, is_top_level=False) or self.make_raw_statement(node)
             if not block:
                 continue
 
@@ -242,9 +242,6 @@ class BlocklyASTConverter:
 
         try:
 
-            # =========================
-            # F-STRINGS
-            # =========================
             if isinstance(node, ast.JoinedStr):
                 parts = []
 
@@ -271,15 +268,9 @@ class BlocklyASTConverter:
 
                     return block
 
-            # =========================
-            # FORMATTED VALUES
-            # =========================
             if isinstance(node, ast.FormattedValue):
                 return self.serialize_expr(node.value)
 
-            # =========================
-            # TERNARY
-            # =========================
             if isinstance(node, ast.IfExp):
                 block = {"type": "logic_ternary", "id": gen_uid()}
                 self.add_input(block, "IF", self.serialize_expr_safe(node.test, ["Boolean"]))
@@ -287,9 +278,6 @@ class BlocklyASTConverter:
                 self.add_input(block, "ELSE", self.serialize_expr(node.orelse))
                 return block
 
-            # =========================
-            # UNARY OPS
-            # =========================
             if isinstance(node, ast.UnaryOp):
 
                 if isinstance(node.op, ast.Not):
@@ -314,9 +302,6 @@ class BlocklyASTConverter:
                 if isinstance(node.op, ast.UAdd):
                     return self.serialize_expr(node.operand)
 
-            # =========================
-            # CONSTANTS
-            # =========================
             if isinstance(node, ast.Constant):
                 if isinstance(node.value, bool):
                     return {
@@ -342,9 +327,6 @@ class BlocklyASTConverter:
                         "output": "String"
                     }
                     
-            # =========================
-            # VARIABLES
-            # =========================
             if isinstance(node, ast.Name):
                 self.variables.add(node.id)
                 return {
@@ -353,9 +335,6 @@ class BlocklyASTConverter:
                     "fields": {"VAR": {"id": node.id, "name": node.id}}
                 }
 
-            # =========================
-            # BINARY OPS (WITH SAFE TYPE WRAPPING)
-            # =========================
             if isinstance(node, ast.BinOp):
 
                 if isinstance(node.op, ast.Mod):
@@ -373,7 +352,6 @@ class BlocklyASTConverter:
                 }
 
                 if type(node.op) in arith:
-                    # FIX: Prevent Python arrays/strings from crashing math_arithmetic block
                     if self._infer_type(node.left) in ["Array", "String"] or self._infer_type(node.right) in ["Array", "String"]:
                         expr = self.make_raw_expr(node)
                         if expr and isinstance(expr, dict):
@@ -389,9 +367,6 @@ class BlocklyASTConverter:
                     self.add_input(block, "B", self.serialize_expr_safe(node.right, ["Number"]))
                     return block
 
-            # =========================
-            # COMPARISONS
-            # =========================
             if isinstance(node, ast.Compare) and len(node.ops) == 1:
                 op_map = {
                     ast.Eq: "EQ",
@@ -402,18 +377,19 @@ class BlocklyASTConverter:
                     ast.GtE: "GTE"
                 }
 
+                # FIX: If the operation is not handled (like 'in' / ast.In), gracefully fallback to a raw string block
+                if type(node.ops[0]) not in op_map:
+                    return self.make_raw_expr(node)
+
                 block = {
                     "type": "logic_compare",
                     "id": gen_uid(),
-                    "fields": {"OP": op_map.get(type(node.ops[0]), "EQ")}
+                    "fields": {"OP": op_map[type(node.ops[0])]}
                 }
                 self.add_input(block, "A", self.serialize_expr(node.left))
                 self.add_input(block, "B", self.serialize_expr(node.comparators[0]))
                 return block
 
-            # =========================
-            # BOOLEAN OPS
-            # =========================
             if isinstance(node, ast.BoolOp):
                 op_type = "AND" if isinstance(node.op, ast.And) else "OR"
                 block = {
@@ -425,9 +401,6 @@ class BlocklyASTConverter:
                 self.add_input(block, "B", self.serialize_expr_safe(node.values[1], ["Boolean"]))
                 return block
 
-            # =========================
-            # LISTS
-            # =========================
             if isinstance(node, ast.List):
                 block = {
                     "type": "lists_create_with",
@@ -459,9 +432,6 @@ class BlocklyASTConverter:
 
                 return block
 
-            # =========================
-            # INDEXING
-            # =========================
             if isinstance(node, ast.Subscript):
                 block = {
                     "type": "lists_getIndex",
@@ -470,7 +440,6 @@ class BlocklyASTConverter:
                 }
                 self.add_input(block, "VALUE", self.serialize_expr(node.value))
                 
-                # FIX: Safely extract the slice for both Python 3.8 and Python 3.9+
                 slice_node = node.slice
                 if hasattr(ast, 'Index') and isinstance(slice_node, getattr(ast, 'Index')):
                     slice_node = slice_node.value
@@ -478,17 +447,12 @@ class BlocklyASTConverter:
                 self.add_input(block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
                 return block
 
-            # =========================
-            # FUNCTION CALLS
-            # =========================
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 name = node.func.id
 
-                # NEW: Support for the custom human-readable Input block
                 if name == "input" and len(node.args) <= 1:
                     block = {"type": "python_input", "id": gen_uid()}
                     if node.args:
-                        # Map the first argument of input() to the PROMPT input of the block
                         self.add_input(block, "PROMPT", self.serialize_expr(node.args[0]))
                     return block
 
@@ -529,9 +493,6 @@ class BlocklyASTConverter:
         except Exception:
             pass
         
-        # =========================
-        # FINAL FALLBACK
-        # =========================
         expr = self.make_raw_expr(node)
 
         if expr and isinstance(expr, dict):
@@ -542,7 +503,8 @@ class BlocklyASTConverter:
     # =========================
     # STATEMENTS
     # =========================
-    def serialize_node(self, node):
+    # FIX: Inject is_top_level tracker to route nested functions into safe statement blocks
+    def serialize_node(self, node, is_top_level=False):
         try:
             if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
                 var = node.targets[0].id
@@ -569,7 +531,6 @@ class BlocklyASTConverter:
                     var = node.target.id
                     self.variables.add(var)
 
-                    # FIX: Prevent Python arrays/strings from crashing math_assignment block
                     if self._infer_type(node.value) in ["Array", "String"]:
                         return self.make_raw_statement(node)
 
@@ -586,6 +547,10 @@ class BlocklyASTConverter:
                     return block
 
             elif isinstance(node, ast.FunctionDef):
+                # FIX: If this is an inner/nested function, immediately return it as a raw statement
+                if not is_top_level:
+                    return self.make_raw_statement(node)
+
                 has_ret = any(isinstance(n, ast.Return) for n in ast.walk(node))
 
                 block = {

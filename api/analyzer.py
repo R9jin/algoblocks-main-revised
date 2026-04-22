@@ -173,33 +173,25 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if isinstance(node, ast.FunctionDef):
             for child in ast.walk(node):
-                # Check for BFS Structure (While -> Pop)
                 if isinstance(child, ast.While):
                     for sub in ast.walk(child):
-                        # ✅ FIX: Safely check for Attribute before accessing .attr
                         if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
                             if sub.func.attr in ['pop', 'popleft']:
                                 has_queue_while = True
                 
-                # Check for inner loops and DFS structures
                 if isinstance(child, ast.For):
-                    # Check for subscript iteration
                     if isinstance(child.iter, ast.Subscript):
                         has_neighbor_for = True
-                    # Check for iteration over specific variable names
                     if isinstance(child.iter, ast.Name):
                         name_lower = child.iter.id.lower()
                         if any(kw in name_lower for kw in ['neighbor', 'adj', 'graph', 'child']):
                             has_neighbor_for = True
                     
-                    # Check for recursive DFS/Backtracking structure
                     for sub in ast.walk(child):
                         if isinstance(sub, ast.Call) and isinstance(getattr(sub.func, 'id', ''), str):
                             if getattr(sub.func, 'id', '') == node.name:
                                 has_recursive_for = True
 
-                # Look for usage of visited state tracking sets/arrays
-                # ✅ FIX: Safely check for Attribute before accessing .attr
                 if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
                     if child.func.attr in ['add', 'append'] and isinstance(getattr(child.func, 'value', None), ast.Name):
                         if 'visit' in child.func.value.id.lower():
@@ -214,7 +206,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not getattr(self, 'in_graph_context', False): return False
         if not isinstance(node, ast.While): return False
         for child in ast.walk(node):
-            # ✅ FIX: Safely check for Attribute before accessing .attr
             if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
                 if child.func.attr in ['pop', 'popleft', 'append', 'add', 'remove', 'extend']:
                     return True
@@ -328,9 +319,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
             local_s = space_override if space_override else "O(1)"
             
-            if getattr(self, 'in_graph_context', False) or "V" in local_s or total_graph > 0:
+            # --- FIXED: SPACE COMPLEXITY WEIGHT TRACKING ---
+            if "V" in local_s or total_graph > 0:
+                self.max_space_weight = max(getattr(self, 'max_space_weight', 0), 2)
+            elif "n" in local_s or self.recursive_calls_count > 0:
+                self.max_space_weight = max(getattr(self, 'max_space_weight', 0), 1)
+                
+            if getattr(self, 'in_graph_context', False) or self.max_space_weight >= 2:
                 global_s = "O(V)"
-            elif "n" in local_s or self.recursive_calls_count > 0 or getattr(self, 'max_space_weight', 0) > 0:
+            elif self.max_space_weight >= 1:
                 global_s = "O(n)"
             else:
                 global_s = local_s
@@ -394,7 +391,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self.add_logic_hint(node, "💡 Logic Hint: Avoid comparing directly to True or False (e.g., '== True'). Python evaluates truthiness naturally using 'if condition:' or 'if not condition:'.")
 
         self.generic_visit(node)
-
 
     def visit_FunctionDef(self, node):
         start_idx = len(self.details)
@@ -611,6 +607,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult):
                 if isinstance(node.value.left, ast.List) or isinstance(node.value.right, ast.List):
                     s_ov = "O(V)"
+        else:
+            if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)):
+                s_ov = "O(n)"
+            elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str):
+                if getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque']:
+                    s_ov = "O(n)"
+            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult):
+                if isinstance(node.value.left, ast.List) or isinstance(node.value.right, ast.List):
+                    s_ov = "O(n)"
+            elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice):
+                s_ov = "O(n)"
 
         if isinstance(node.value, ast.Call) and isinstance(getattr(node.value, 'func', None), ast.Attribute):
             if node.value.func.attr in ['append', 'sort', 'reverse']:
