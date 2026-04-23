@@ -253,6 +253,7 @@ class SemanticNLGEngine:
     def _time_for_calls(self, node, local_t, global_t):
         f_name = self._extract_name(node.func).replace("()", "")
         if f_name in ["sort", "sorted"]: return f"Triggering the standard `{f_name}()` protocol systematically initiates Python's highly optimized Timsort. Sorting mathematically mandates a baseline O(n log n) execution cost as the engine partitions, heavily compares, and actively merges dynamic segments back together."
+        if f_name == "input": return f"Triggering the native `input()` function suspends execution to read standard I/O. Because the underlying engine must sequentially scan and read every single character typed by the user until a newline is detected, it strictly operates in {local_t} linear time, where 'n' is the length of the string."
 
         if f_name == getattr(self.ctx, 'current_function_name', None):
             # DP Explanation Trigger
@@ -305,6 +306,7 @@ class SemanticNLGEngine:
             if isinstance(node, ast.Call):
                 f_name = self._extract_name(node.func).replace("()", "")
                 if f_name == getattr(self.ctx, 'current_function_name', None): base_desc = self._space_for_linear_recursion(f_name)
+                elif f_name == "input": base_desc = f"The `input()` sequence dynamically generates a brand new string object containing the user's keystrokes. Reserving this contiguous text buffer in RAM structurally requires an {local_s} memory allocation directly proportional to the character count."
                 elif hasattr(self.ctx, 'builtin_complexities') and f_name in self.ctx.builtin_complexities: base_desc = f"Executing the built-in `{f_name}()` algorithm heavily provisions an extra boundary of {local_s} dynamic auxiliary memory, intelligently tracking elements simultaneously before eventually concluding."
                 else: base_desc = f"The underlying computational steps mathematically produce a newly allocated dataset. The active storage reserved dynamically scales entirely proportional to its content density, accurately settling at {local_s}."
             elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)): base_desc = self._space_for_allocations(node, local_s)
