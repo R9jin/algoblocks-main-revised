@@ -506,32 +506,8 @@ export default function MainApp() {
     setBottomPanel("console");
     setConsoleTab("output");
 
-    if (isOnline) {
-      setConsoleOutput("> Running online via FastAPI...\n");
-      try {
-        const response = await fetch(`${VERCEL_URL}/api/run`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: generatedPython })
-        });
-
-        if (!response.ok) throw new Error("FastAPI execution failed");
-
-        const data = await response.json();
-        const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
-        setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
-
-        if (data.counts) setLineExecutions(data.counts);
-
-        setIsEvaluating(false);
-        return;
-      } catch (error) {
-        setConsoleOutput(prev => prev + " Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
-      }
-    }
-
     // Pyodide Fallback Execution
-    setConsoleOutput(prev => prev + "> Running locally via Pyodide (WebAssembly)...\n");
+    setConsoleOutput(prev => prev + "\n> Running locally via Pyodide (WebAssembly)...\n");
 
     outputCountRef.current = 0;
     pendingOutputRef.current = "";

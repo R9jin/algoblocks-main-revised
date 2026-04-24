@@ -71,7 +71,7 @@ self.onmessage = async (e) => {
     // ======================
     if (type === 'ANALYZE_CODE') {
       pyodide.globals.set("user_code", code);
-      
+
       // ✅ FIX: Properly import ComplexityAnalyzer, parse the AST, and return the JSON
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
@@ -224,7 +224,12 @@ try:
         if transformer.has_input:
             compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
             sys.settrace(dyn_profiler.trace_lines)
-            await eval_code_async(compiled_code, globals())
+            
+            # ✅ FIX: evaluate the compiled code object manually to extract the coroutine
+            coro = eval(compiled_code, globals())
+            if coro is not None:
+                await coro
+                
         else:
             compiled_code = compile(transformed, "<user_code>", "exec")
             sys.settrace(dyn_profiler.trace_lines)
