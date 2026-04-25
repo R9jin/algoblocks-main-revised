@@ -7,8 +7,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     """
     A Context-Aware, Multi-Pass Rule-Based AST Traversal Algorithm.
     Evaluates time and space complexity line-by-line.
-    Upgraded to handle symbolic pseudo-math, DP Heuristics, Amortized Analysis,
-    Data-Dependent Traversal Edge Cases, and precise Recurrence Relations.
+    Upgraded to dynamically inject Recurrence Relations directly into the UI table.
     """
 
     def __init__(self, source_code):
@@ -208,15 +207,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return "Code Block"  
 
     def get_color(self, complexity_str):
-        if complexity_str == "-": return "#7f8c8d"  
-        if "Dead Code" in complexity_str: return "#7f8c8d"  
-        if "T(n) =" in complexity_str or "n!" in complexity_str: return "#8e44ad"  
-        if "2^n" in complexity_str or "2T(" in complexity_str: return "#9b59b6"  
-        if "^2" in complexity_str or "^3" in complexity_str or "* m" in complexity_str: return "#e74c3c"  
-        if "V + E" in complexity_str: return "#d35400"
+        # Updated to catch the T(placeholder) tag so Recurrence Relations remain purple.
+        if complexity_str == "-" or "Dead Code" in complexity_str: return "#7f8c8d"  
+        if "T(" in complexity_str or "n!" in complexity_str: return "#8e44ad"  
+        if "2^n" in complexity_str: return "#9b59b6"  
+        if "^2" in complexity_str or "^3" in complexity_str or "*" in complexity_str: return "#e74c3c"  
+        if "V + E" in complexity_str or "V" in complexity_str: return "#d35400"
         if "log" in complexity_str: return "#2980b9"  
-        if "√n" in complexity_str: return "#16a085"  
-        if "O(n)" in complexity_str or "+ m" in complexity_str or "n1" in complexity_str or "n2" in complexity_str: return "#e67e22"  
+        if "√" in complexity_str: return "#16a085"  
+        if complexity_str != "O(1)": return "#e67e22"  
+        
         return "#27ae60"
 
     def _detect_graph_context(self, node):
@@ -494,7 +494,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             self.custom_space[node.name] = "O(n)" 
         else:
             if is_indirect:
-                relation = "O(2^n)"
+                # Set specific Recurrence Relation for Indirect execution paths 
+                relation = "T(n) = T(n-1) + T(n-2) + O(1)" 
                 self.custom_space[node.name] = "O(n)"
             elif self.has_recursion_in_loop: 
                 relation = "O(V + E)" if self.in_graph_context else "T(n) = n * T(n-1) + O(1)" 
@@ -509,9 +510,21 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self.custom_space[node.name] = "O(V)" if self.max_graph_ve > 0 else ("O(log n)" if (self.recursive_calls_count == 1 and self.has_division) else ("O(n)" if (self.recursive_calls_count > 0 or self.max_space_weight > 0) else "O(1)"))
             
         self.custom_functions[node.name] = relation
+
+        # RECURSION BACKFILLER: Sweeps up through parsed lines and overwrites placeholders with exact relations
         for i in range(start_idx, len(self._details)):
-            if str(self._details[i]["local_time"]).startswith("T("): self._details[i]["local_time"] = relation
-            if str(self._details[i]["global_time"]).startswith("T("): self._details[i]["global_time"] = relation
+            is_placeholder = False
+            if str(self._details[i]["local_time"]).startswith("T("): 
+                self._details[i]["local_time"] = relation
+                is_placeholder = True
+            if str(self._details[i]["global_time"]).startswith("T("): 
+                self._details[i]["global_time"] = relation
+                is_placeholder = True
+                
+            # Safely replace the raw placeholder in the detailed NLG UI explanations
+            if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")):
+                formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
+                self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
         
         if not is_dead:
             self.max_exp, self.max_graph_ve = max(prev_data[5], self.max_exp), max(prev_data[6], self.max_graph_ve)
@@ -608,10 +621,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self.recursive_calls_count += 1
                 self.first_rec_line = min(self.first_rec_line, getattr(node, 'lineno', float('inf')))
                 if len(self.active_poly_dims) > 0 or self.log_loop_depth > 0: self.has_recursion_in_loop = True  
-                if getattr(self, 'in_graph_context', False): self.record_line(node, time_override="O(V + E)", space_override="O(V)")
+                if getattr(self, 'in_graph_context', False): 
+                    self.record_line(node, time_override="O(V + E)", space_override="O(V)", custom_op="Recursive Call")
                 else: 
-                    t_ov = "O(2^n)" if is_indirect_call and f_id != self.current_function_name else self.custom_functions.get(f_id, "T(n-1)")
-                    self.record_line(node, time_override=t_ov, space_override="O(n)")
+                    # Deploy T(placeholder) to immediately display "Recursive Call" in the UI.
+                    # It forces the Backfiller in visit_FunctionDef to swap this out with the real equation.
+                    self.record_line(node, time_override="T(placeholder)", space_override="O(n)", custom_op="Recursive Call")
             elif f_id in self.builtin_complexities:
                 b = self.builtin_complexities[f_id]; self.record_line(node, time_override=b['time'], space_override=b['space'])
             elif f_id in self.custom_functions:
@@ -700,7 +715,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5),
             "O(V + E)": ("O(V + E)", 4.5),
             "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4),
-            "O(n1)": ("O(n)", 4), "O(n2)": ("O(n)", 4), "O(m)": ("O(n)", 4),
+            "O(n1)": ("O(n)", 4), "O(n^2)": ("O(n)", 4), "O(m)": ("O(n)", 4),
             "O(√n)": ("O(√n)", 3),
             "T(n) = T(n/2) + O(1)": ("O(log n)", 2), "O(log n)": ("O(log n)", 2),
             "O(1)": ("O(1)", 1)
@@ -715,11 +730,27 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         best_rank = rank
                         best_comp = mapped
 
+                if c.startswith("O(") and c != "O(1)":
+                    if "*" in c and best_rank < 6:
+                        best_rank = 6
+                        best_comp = "O(n^2)"  
+                    elif best_rank < 4 and not any(char in c for char in ["^", "*", "!", "V", "log", "√"]):
+                        best_rank = 4
+                        best_comp = "O(n)"  
+        
         for key, (mapped, rank) in lookup.items():
             if key in self.max_poly_str and rank > best_rank:
                 best_rank = rank
                 best_comp = mapped
                 
+        if self.max_poly_str.startswith("O(") and self.max_poly_str != "O(1)":
+             if "*" in self.max_poly_str and best_rank < 6:
+                 best_rank = 6
+                 best_comp = "O(n^2)"
+             elif best_rank < 4 and not any(char in self.max_poly_str for char in ["^", "*", "!", "V", "log", "√"]):
+                 best_rank = 4
+                 best_comp = "O(n)"
+                 
         return best_comp
 
     def get_final_space_badge(self):
@@ -737,6 +768,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if key in s and rank > best_rank:
                     best_rank = rank
                     best_space = key
+
+            if best_rank < 3 and s.startswith("O(") and s != "O(1)":
+                if "*" in s and best_rank < 5:
+                    best_rank = 5
+                    best_space = "O(n^2)"
+                elif not any(char in s for char in ["^", "*", "!", "V", "log", "√"]):
+                    best_rank = 3
+                    best_space = "O(n)"
                     
         return best_space
         
