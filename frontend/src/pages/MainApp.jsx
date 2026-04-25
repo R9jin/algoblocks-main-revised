@@ -493,7 +493,7 @@ export default function MainApp() {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
-      setConsoleTab("output"); 
+      setConsoleTab("output");
       return;
     }
 
@@ -813,7 +813,7 @@ export default function MainApp() {
                       <div className="total-badge-group">
                         <span className="total-badge"><span className="total-label">Total Time:</span> <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge" style={{ backgroundColor: 'rgba(0, 184, 163, 0.15)', color: '#00b8a3', border: '1px solid rgba(0, 184, 163, 0.3)' }}><span className="total-label" style={{ color: '#00b8a3' }}>Total Space:</span> <span style={{ fontSize: "20px", fontWeight: "bold" }}>{formatComplexity(analysisResult.space_total)}</span></span>
-                        <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#db7fff"}}>{analysisTime} ms</span></span>
+                        <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#db7fff" }}>{analysisTime} ms</span></span>
                       </div>
                     </div>
 
@@ -839,10 +839,10 @@ export default function MainApp() {
                             {analysisResult.lines.map((line, i) => {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-                              
+
                               let timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
                               let spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
-                              
+
                               if (activeTab === 'local') {
                                 timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
                                 spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
@@ -852,15 +852,18 @@ export default function MainApp() {
                               const spaceColor = getComplexityColor(spaceComplexity);
                               const isBottleneck = actualBottleneckIndices.includes(i);
 
+                              // NEW: Identify if the line is highly efficient based on the complexity strings used by the SemanticNLGEngine
+                              const isEfficient = !isBottleneck && (timeComplexity.toLowerCase().includes("log n") || timeComplexity.toLowerCase().includes("√n"));
+
                               return (
                                 <React.Fragment key={i}>
                                   <tr
-                                    className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
+                                    className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''} ${isEfficient ? 'efficient-active' : ''}`}
                                     onClick={() => toggleLine(i)}
                                     style={{
                                       cursor: 'pointer',
-                                      borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
-                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
+                                      borderLeft: isBottleneck ? '4px solid #ff375f' : isEfficient ? '4px solid #2ecc71' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : isEfficient ? 'rgba(46, 204, 113, 0.12)' : 'transparent'
                                     }}
                                     title="Click to view explanation"
                                   >
@@ -876,6 +879,15 @@ export default function MainApp() {
                                           boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
                                         }}>
                                           Bottleneck
+                                        </span>
+                                      )}
+                                      {isEfficient && (
+                                        <span style={{
+                                          backgroundColor: '#2ecc71', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
+                                          borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
+                                          boxShadow: '0 0 8px rgba(46, 204, 113, 0.6)'
+                                        }}>
+                                          Efficient
                                         </span>
                                       )}
                                     </td>

@@ -1170,6 +1170,8 @@ const ActivityApp = () => {
                             </tr>
                           </thead>
                           <tbody>
+                            // ... existing imports and code up to the component's render function ...
+
                             {analysisResult.lines.map((line, i) => {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
@@ -1185,16 +1187,19 @@ const ActivityApp = () => {
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
                               const isBottleneck = actualBottleneckIndices.includes(i);
+                              
+                              // NEW: Identify if the line is highly efficient based on the complexity strings used by the SemanticNLGEngine
+                              const isEfficient = !isBottleneck && (timeComplexity.toLowerCase().includes("log n") || timeComplexity.toLowerCase().includes("√n"));
 
                               return (
                                 <React.Fragment key={i}>
                                   <tr
-                                    className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
+                                    className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''} ${isEfficient ? 'efficient-active' : ''}`}
                                     onClick={() => toggleLine(i)}
                                     style={{
                                       cursor: 'pointer',
-                                      borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
-                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
+                                      borderLeft: isBottleneck ? '4px solid #ff375f' : isEfficient ? '4px solid #2ecc71' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : isEfficient ? 'rgba(46, 204, 113, 0.12)' : 'transparent'
                                     }}
                                     title="Click to view explanation"
                                   >
@@ -1203,30 +1208,35 @@ const ActivityApp = () => {
                                     </td>
                                     <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                       {line.operation || '-'}
-
                                       {isBottleneck && (
                                         <span style={{
                                           backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
                                           borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
                                           boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
-                                        }} title="Highest computational weight detected">
-                                          🔥 Bottleneck
+                                        }}>
+                                          Bottleneck
+                                        </span>
+                                      )}
+                                      {isEfficient && (
+                                        <span style={{
+                                          backgroundColor: '#2ecc71', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
+                                          borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
+                                          boxShadow: '0 0 8px rgba(46, 204, 113, 0.6)'
+                                        }}>
+                                          Efficient
                                         </span>
                                       )}
                                     </td>
-                                    <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>
-                                      {formatComplexity(timeComplexity)}
-                                    </td>
+                                    <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>{formatComplexity(timeComplexity)}</td>
                                     <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>
                                       {formatComplexity(spaceComplexity)}
-                                      <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
-                                        ▶
-                                      </span>
+                                      <span className="dropdown-chevron" style={{ display: 'inline-block', marginLeft: '10px', transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>▶</span>
                                     </td>
                                   </tr>
 
                                   {expandedLines[i] && (
                                     <tr className="explanation-row">
+// ... rest of component code ...
                                       <td colSpan="4" style={{ padding: 0, border: 'none' }}>
                                         <div
                                           className="explanation-content"
