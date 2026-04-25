@@ -1,3 +1,4 @@
+// frontend/src/pages/MainApp.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Split from "react-split";
@@ -356,7 +357,6 @@ export default function MainApp() {
         if (data.status === "success") {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
-          // ✅ ADD THIS HERE TOO
           const initialCounts = {};
           (data.lines || []).forEach(l => {
             if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
@@ -382,7 +382,6 @@ export default function MainApp() {
   const handleBlocklyChange = (json, pythonCode) => {
     setBlocklyJson(json);
 
-    // .trim() prevents invisible window resize updates from wiping hits
     const oldCode = (generatedPython || "").trim();
     const newCode = (pythonCode || "").trim();
 
@@ -494,7 +493,7 @@ export default function MainApp() {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
-      setConsoleTab("output"); // Default to terminal when running
+      setConsoleTab("output"); 
       return;
     }
 
@@ -506,7 +505,6 @@ export default function MainApp() {
     setBottomPanel("console");
     setConsoleTab("output");
 
-    // Pyodide Fallback Execution
     setConsoleOutput(prev => prev + "\n> Running locally via Pyodide (WebAssembly)...\n");
 
     outputCountRef.current = 0;
@@ -601,8 +599,6 @@ export default function MainApp() {
 
   const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
-
-  // Used for the new Executions Tab
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
   return (
@@ -843,8 +839,15 @@ export default function MainApp() {
                             {analysisResult.lines.map((line, i) => {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-                              const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
-                              const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
+                              
+                              let timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
+                              let spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
+                              
+                              if (activeTab === 'local') {
+                                timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
+                                spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
+                              }
+
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
                               const isBottleneck = actualBottleneckIndices.includes(i);

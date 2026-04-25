@@ -1,4 +1,3 @@
-# analyzer.py
 import ast
 from collections import deque, Counter
 from semantic_nlg import SemanticNLGEngine  
@@ -7,8 +6,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     """
     A Context-Aware, Multi-Pass Rule-Based AST Traversal Algorithm.
     Evaluates time and space complexity line-by-line.
-    Upgraded to handle symbolic pseudo-math, DP Heuristics, Amortized Analysis,
-    and Data-Dependent Traversal Edge Cases.
+    Upgraded to dynamically inject Recurrence Relations directly into the UI table.
     """
 
     def __init__(self, source_code):
@@ -28,7 +26,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.var_dimensions = {} 
         self.available_dims = ['n', 'm', 'k', 'p', 'q']
         self.active_poly_dims = [] 
-        self.seen_top_level_dims = set() 
         
         # Peak complexity trackers
         self.max_complexity = 0          
@@ -46,7 +43,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.recursive_calls_count = 0   
         self.symbol_table = {}           
         self.reachable_funcs = set()     
-        self.memoized_funcs = set() # NEW: DP Detection Tracker
+        self.memoized_funcs = set() 
+        self.indirect_recursive_funcs = set() 
         
         self.in_dead_code = False
         self.in_graph_context = False        
@@ -58,7 +56,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.conditional_partition_lines = []
         self.logic_hints = {} 
 
-        # NEW: Added input() and 3rd-Party Lib Edge Cases (NumPy Matmul/Dot)
         self.builtin_complexities = {
             'sort': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'uses the Timsort algorithm which involves multiple passes and auxiliary storage'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'creates a completely new sorted list while iterating through the original input'},
@@ -113,9 +110,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def _get_iterable_name(self, node):
         if isinstance(node, ast.Name): return node.id
         if isinstance(node, ast.Call) and getattr(node.func, 'id', '') == 'range':
-            if len(node.args) > 0 and isinstance(node.args[0], ast.Call) and getattr(node.args[0].func, 'id', '') == 'len':
-                if len(node.args[0].args) > 0 and isinstance(node.args[0].args[0], ast.Name): return node.args[0].args[0].id
-            elif len(node.args) > 0 and isinstance(node.args[0], ast.Name): return node.args[0].id
+            if len(node.args) > 0:
+                arg = node.args[0]
+                if isinstance(arg, ast.Name): return arg.id
+                if isinstance(arg, ast.Call) and getattr(arg.func, 'id', '') == 'len' and len(arg.args) > 0 and isinstance(arg.args[0], ast.Name): return arg.args[0].id
         return None
 
     def _build_time_str(self, poly_dims, log, sqrt=0, exp=0, graph=0):
@@ -128,16 +126,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             counts = Counter(poly_dims)
             terms = []
             for dim, count in counts.items():
-                if count == 1: terms.append(dim)
-                else: terms.append(f"{dim}^{count}")
-            poly_str = " * ".join(terms)
-            
-            independent_dims = self.seen_top_level_dims - set(poly_dims)
-            if independent_dims and len(poly_dims) <= 1:
-                added_str = " + ".join(sorted(list(self.seen_top_level_dims)))
-                parts.append(f"({added_str})" if len(self.seen_top_level_dims)>1 and (log>0 or sqrt>0) else added_str)
-            else:
-                parts.append(poly_str)
+                display_dim = dim if len(dim) <= 2 and dim.isalpha() else 'n'
+                if count == 1: terms.append(display_dim)
+                else: terms.append(f"{display_dim}^{count}")
+            parts.append(" * ".join(terms))
                 
         if sqrt == 1: parts.append("√n")
         elif sqrt > 1: parts.append(f"(√n)^{sqrt}")  
@@ -193,17 +185,20 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.detect_indirect_recursion()
 
     def detect_indirect_recursion(self):
-        for func in self.call_graph:
+        # Build an abstract graph stripping direct self-loops to prevent false O(2^n) assignments
+        indirect_graph = {u: {v for v in neighbors if v != u} for u, neighbors in self.call_graph.items()}
+        for func in indirect_graph:
             visited, rec_stack = set(), set()
-            if self._has_cycle(func, visited, rec_stack):
+            if self._has_cycle(func, visited, rec_stack, indirect_graph):
                 self.custom_functions[func] = "O(2^n)"
+                self.indirect_recursive_funcs.add(func)
 
-    def _has_cycle(self, node, visited, rec_stack):
+    def _has_cycle(self, node, visited, rec_stack, graph):
         if node in rec_stack: return True
         if node in visited: return False
         visited.add(node); rec_stack.add(node)
-        for neighbor in self.call_graph.get(node, []):
-            if self._has_cycle(neighbor, visited, rec_stack): return True
+        for neighbor in graph.get(node, []):
+            if self._has_cycle(neighbor, visited, rec_stack, graph): return True
         rec_stack.remove(node); return False
 
     def get_code_snippet(self, node):
@@ -211,15 +206,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return "Code Block"  
 
     def get_color(self, complexity_str):
-        if complexity_str == "-": return "#7f8c8d"  
-        if "Dead Code" in complexity_str: return "#7f8c8d"  
-        if "T(n) =" in complexity_str or "n!" in complexity_str: return "#8e44ad"  
-        if "2^n" in complexity_str or "2T(" in complexity_str: return "#9b59b6"  
-        if "^2" in complexity_str or "^3" in complexity_str or "* m" in complexity_str: return "#e74c3c"  
-        if "V + E" in complexity_str: return "#d35400"
+        # Updated to catch the T(placeholder) tag so Recurrence Relations remain purple.
+        if complexity_str == "-" or "Dead Code" in complexity_str: return "#7f8c8d"  
+        if "T(" in complexity_str or "n!" in complexity_str: return "#8e44ad"  
+        if "2^n" in complexity_str: return "#9b59b6"  
+        if "^2" in complexity_str or "^3" in complexity_str or "*" in complexity_str: return "#e74c3c"  
+        if "V + E" in complexity_str or "V" in complexity_str: return "#d35400"
         if "log" in complexity_str: return "#2980b9"  
-        if "√n" in complexity_str: return "#16a085"  
-        if "O(n)" in complexity_str or "+ m" in complexity_str: return "#e67e22"  
+        if "√" in complexity_str: return "#16a085"  
+        if complexity_str != "O(1)": return "#e67e22"  
+        
         return "#27ae60"
 
     def _detect_graph_context(self, node):
@@ -329,13 +325,27 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(node, ast.For):
                 if not self._is_constant_loop(node):
                     iter_name = self._get_iterable_name(node.iter)
-                    dim = self.var_dimensions.get(iter_name, 'n') if iter_name else 'n'
+                    dim = iter_name if iter_name and len(iter_name) <= 2 and iter_name.isalpha() else 'n'
                     display_dims = [dim]
             elif isinstance(node, ast.While):
                 if getattr(self, 'in_graph_context', False) and self._is_graph_while_loop(node): display_graph = 1
                 elif self._is_log_loop(node): display_log = 1
                 elif self._is_sqrt_loop(node): display_sqrt = 1
-                elif not self._is_constant_loop(node): display_dims = ['n']
+                elif not self._is_constant_loop(node): 
+                    dim = 'n'
+                    if isinstance(node.test, ast.Compare):
+                        for comp in [node.test.left] + node.test.comparators:
+                            if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
+                                dim = comp.id
+                                break
+                    elif isinstance(node.test, ast.BoolOp):
+                        for val in node.test.values:
+                            if isinstance(val, ast.Compare):
+                                for comp in [val.left] + val.comparators:
+                                    if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
+                                        dim = comp.id
+                                        break
+                    display_dims = [dim]
 
         if time_override == "Definition":
             local_t = global_t = local_s = global_s = "O(1)"
@@ -435,7 +445,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
-        # NEW: Heuristics to detect Top-Down Dynamic Programming (Memoization)
         is_memoized = False
         for dec in getattr(node, 'decorator_list', []):
             if isinstance(dec, ast.Name) and dec.id in ['lru_cache', 'cache', 'memoize']: is_memoized = True
@@ -477,12 +486,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         elif isinstance(child, ast.Subscript) and isinstance(getattr(child, 'slice', None), ast.Slice): does_linear_work = True; break
                     if does_linear_work: break
 
-        # DP OVERRIDE: Collapse Recurrence Relation
-        if is_memoized and self.recursive_calls_count > 0:
-            relation = "O(n)" # Top-Down DP generally flattens to O(n) state space
-            self.custom_space[node.name] = "O(n)" # DP requires O(n) caching array/dict space
+        is_indirect = node.name in self.indirect_recursive_funcs
+
+        if is_memoized and (self.recursive_calls_count > 0 or is_indirect):
+            relation = "O(n)" 
+            self.custom_space[node.name] = "O(n)" 
         else:
-            if self.has_recursion_in_loop: 
+            if is_indirect:
+                # Set specific Recurrence Relation for Indirect execution paths 
+                relation = "T(n) = T(n-1) + T(n-2) + O(1)" 
+                self.custom_space[node.name] = "O(n)"
+            elif self.has_recursion_in_loop: 
                 relation = "O(V + E)" if self.in_graph_context else "T(n) = n * T(n-1) + O(1)" 
             elif self.recursive_calls_count >= 2: 
                 relation = "T(n) = 2T(n/2) + O(n)" if self.has_division and does_linear_work else ("T(n) = 2T(n/2) + O(1)" if self.has_division else ("T(n) = T(n-1) + O(n)" if does_linear_work else "T(n) = T(n-1) + T(n-2) + O(1)"))
@@ -491,12 +505,25 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else: 
                 relation = "O(2^n)" if self.max_exp > 0 else (self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve))
             
-            self.custom_space[node.name] = "O(V)" if self.max_graph_ve > 0 else ("O(log n)" if (self.recursive_calls_count == 1 and self.has_division) else ("O(n)" if (self.recursive_calls_count > 0 or self.max_space_weight > 0) else "O(1)"))
+            if not is_indirect:
+                self.custom_space[node.name] = "O(V)" if self.max_graph_ve > 0 else ("O(log n)" if (self.recursive_calls_count == 1 and self.has_division) else ("O(n)" if (self.recursive_calls_count > 0 or self.max_space_weight > 0) else "O(1)"))
             
         self.custom_functions[node.name] = relation
+
+        # RECURSION BACKFILLER: Sweeps up through parsed lines and overwrites placeholders with exact relations
         for i in range(start_idx, len(self._details)):
-            if str(self._details[i]["local_time"]).startswith("T("): self._details[i]["local_time"] = relation
-            if str(self._details[i]["global_time"]).startswith("T("): self._details[i]["global_time"] = relation
+            is_placeholder = False
+            if str(self._details[i]["local_time"]).startswith("T("): 
+                self._details[i]["local_time"] = relation
+                is_placeholder = True
+            if str(self._details[i]["global_time"]).startswith("T("): 
+                self._details[i]["global_time"] = relation
+                is_placeholder = True
+                
+            # Safely replace the raw placeholder in the detailed NLG UI explanations
+            if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")):
+                formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
+                self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
         
         if not is_dead:
             self.max_exp, self.max_graph_ve = max(prev_data[5], self.max_exp), max(prev_data[6], self.max_graph_ve)
@@ -530,9 +557,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         iter_name = self._get_iterable_name(node.iter)
         dim = 'n'
         if iter_name:
-            if iter_name not in self.var_dimensions:
-                self.var_dimensions[iter_name] = self.available_dims[min(len(self.var_dimensions), len(self.available_dims)-1)]
-            dim = self.var_dimensions[iter_name]
+            dim = iter_name
+            if dim.lower() in ['arr', 'array', 'list', 'nums', 'items', 'string', 's', 'left', 'right', 'mid'] or len(dim) > 2 or not dim.isalpha(): 
+                dim = 'n'
             
         if self._is_exponential_loop(node):
             self.max_exp = 1; self.record_line(node, time_override="O(2^n)")
@@ -542,7 +569,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_const = self._is_constant_loop(node)
         if not is_const: 
             self.active_poly_dims.append(dim)
-            if len(self.active_poly_dims) == 1: self.seen_top_level_dims.add(dim)
             
         self.record_line(node); self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1  
         
@@ -552,13 +578,26 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_log, is_sqrt, is_const = self._is_log_loop(node), self._is_sqrt_loop(node), self._is_constant_loop(node)
         is_graph = self._is_graph_while_loop(node)
         
+        dim = 'n'
+        if isinstance(node.test, ast.Compare):
+            for comp in [node.test.left] + node.test.comparators:
+                if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
+                    dim = comp.id
+                    break
+        elif isinstance(node.test, ast.BoolOp):
+            for val in node.test.values:
+                if isinstance(val, ast.Compare):
+                    for comp in [val.left] + val.comparators:
+                        if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
+                            dim = comp.id
+                            break
+
         if is_graph: self.graph_depth = getattr(self, 'graph_depth', 0) + 1
         elif not is_const:
             if is_log: self.log_loop_depth += 1
             elif is_sqrt: self.sqrt_loop_depth += 1
             else: 
-                self.active_poly_dims.append('n')
-                if len(self.active_poly_dims) == 1: self.seen_top_level_dims.add('n')
+                self.active_poly_dims.append(dim)
             
         self.record_line(node)
         self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1  
@@ -570,18 +609,23 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else: self.active_poly_dims.pop()
 
     def visit_Call(self, node):
-        # NEW: Amortized Analysis Logic Hint
         if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(node.func, 'id', '') == 'append':
             self.add_logic_hint(node, "💡 Logic Hint (Amortized Analysis): The `.append()` operation is generally O(1) constant time, but occasionally triggers an O(n) background array resize sequence when memory capacity is breached.")
 
         if isinstance(node.func, ast.Name):
             f_id = self.aliases.get(node.func.id, node.func.id)
-            if f_id == self.current_function_name:
+            is_indirect_call = f_id in self.indirect_recursive_funcs and self.current_function_name in self.indirect_recursive_funcs
+            
+            if f_id == self.current_function_name or is_indirect_call:
                 self.recursive_calls_count += 1
                 self.first_rec_line = min(self.first_rec_line, getattr(node, 'lineno', float('inf')))
                 if len(self.active_poly_dims) > 0 or self.log_loop_depth > 0: self.has_recursion_in_loop = True  
-                if getattr(self, 'in_graph_context', False): self.record_line(node, time_override="O(V + E)", space_override="O(V)")
-                else: self.record_line(node, time_override=self.custom_functions.get(f_id, "T(n-1)"), space_override="O(n)")
+                if getattr(self, 'in_graph_context', False): 
+                    self.record_line(node, time_override="O(V + E)", space_override="O(V)", custom_op="Recursive Call")
+                else: 
+                    # Deploy T(placeholder) to immediately display "Recursive Call" in the UI.
+                    # It forces the Backfiller in visit_FunctionDef to swap this out with the real equation.
+                    self.record_line(node, time_override="T(placeholder)", space_override="O(n)", custom_op="Recursive Call")
             elif f_id in self.builtin_complexities:
                 b = self.builtin_complexities[f_id]; self.record_line(node, time_override=b['time'], space_override=b['space'])
             elif f_id in self.custom_functions:
@@ -637,9 +681,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.record_line(node, time_override=t_ov, space_override=s_ov); self.generic_visit(node)
 
     def visit_AugAssign(self, node): 
-        # NEW: Data-Dependent Traversal Logic Hint
         if self.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):
-             self.add_logic_hint(node, "⚠️ Logic Risk (Data-Dependent Traversal): Your loop increment/step depends heavily on dynamic data values (e.g., array contents). Static analysis conservatively defaults to worst-case, but this runtime could radically fluctuate depending on the dataset state!")
+            self.add_logic_hint(node, "⚠️ Logic Risk (Data-Dependent Traversal): Your loop increment/step depends heavily on dynamic data values (e.g., array contents). Static analysis conservatively defaults to worst-case, but this runtime could radically fluctuate depending on the dataset state!")
 
         for child in ast.walk(node.value):
             if isinstance(child, ast.Call):
@@ -668,9 +711,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "T(n) = T(n-1) + T(n-2) + O(1)": ("O(2^n)", 8), "O(2^n)": ("O(2^n)", 8),
             "O(n^3)": ("O(n^3)", 7),
             "T(n) = T(n-1) + O(n)": ("O(n^2)", 6), "O(n^2)": ("O(n^2)", 6), "O(n * m)": ("O(n * m)", 6),
-            "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5),
+            "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5), "n * log n": ("O(n log n)", 5),
             "O(V + E)": ("O(V + E)", 4.5),
-            "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4),
+            "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4), "O(m)": ("O(n)", 4),
             "O(√n)": ("O(√n)", 3),
             "T(n) = T(n/2) + O(1)": ("O(log n)", 2), "O(log n)": ("O(log n)", 2),
             "O(1)": ("O(1)", 1)
@@ -685,10 +728,26 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         best_rank = rank
                         best_comp = mapped
 
+                if c.startswith("O(") and c != "O(1)":
+                    if "*" in c and "log" not in c and best_rank < 6:
+                        best_rank = 6
+                        best_comp = "O(n^2)"  
+                    elif best_rank < 4 and not any(char in c for char in ["^", "*", "!", "V", "log", "√"]):
+                        best_rank = 4
+                        best_comp = "O(n)"  
+        
         for key, (mapped, rank) in lookup.items():
             if key in self.max_poly_str and rank > best_rank:
                 best_rank = rank
                 best_comp = mapped
+                
+        if self.max_poly_str.startswith("O(") and self.max_poly_str != "O(1)":
+            if "*" in self.max_poly_str and "log" not in self.max_poly_str and best_rank < 6:
+                best_rank = 6
+                best_comp = "O(n^2)"
+            elif best_rank < 4 and not any(char in self.max_poly_str for char in ["^", "*", "!", "V", "log", "√"]):
+                best_rank = 4
+                best_comp = "O(n)"
                 
         return best_comp
 
@@ -707,6 +766,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if key in s and rank > best_rank:
                     best_rank = rank
                     best_space = key
+
+            if best_rank < 3 and s.startswith("O(") and s != "O(1)":
+                if "*" in s and best_rank < 5:
+                    best_rank = 5
+                    best_space = "O(n^2)"
+                elif not any(char in s for char in ["^", "*", "!", "V", "log", "√"]):
+                    best_rank = 3
+                    best_space = "O(n)"
                     
         return best_space
         
