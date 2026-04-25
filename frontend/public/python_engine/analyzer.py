@@ -1,4 +1,3 @@
-# analyzer.py
 import ast
 from collections import deque, Counter
 from semantic_nlg import SemanticNLGEngine  
@@ -559,7 +558,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         dim = 'n'
         if iter_name:
             dim = iter_name
-            if dim.lower() in ['arr', 'array', 'list', 'nums', 'items', 'string', 's', 'left', 'right', 'mid'] or len(dim) > 2: 
+            if dim.lower() in ['arr', 'array', 'list', 'nums', 'items', 'string', 's', 'left', 'right', 'mid'] or len(dim) > 2 or not dim.isalpha(): 
                 dim = 'n'
             
         if self._is_exponential_loop(node):
@@ -582,14 +581,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         dim = 'n'
         if isinstance(node.test, ast.Compare):
             for comp in [node.test.left] + node.test.comparators:
-                if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id not in ['i','j','k','x','y']:
+                if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
                     dim = comp.id
                     break
         elif isinstance(node.test, ast.BoolOp):
             for val in node.test.values:
                 if isinstance(val, ast.Compare):
                     for comp in [val.left] + val.comparators:
-                        if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id not in ['i','j','k','x','y']:
+                        if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
                             dim = comp.id
                             break
 
@@ -683,7 +682,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def visit_AugAssign(self, node): 
         if self.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):
-             self.add_logic_hint(node, "⚠️ Logic Risk (Data-Dependent Traversal): Your loop increment/step depends heavily on dynamic data values (e.g., array contents). Static analysis conservatively defaults to worst-case, but this runtime could radically fluctuate depending on the dataset state!")
+            self.add_logic_hint(node, "⚠️ Logic Risk (Data-Dependent Traversal): Your loop increment/step depends heavily on dynamic data values (e.g., array contents). Static analysis conservatively defaults to worst-case, but this runtime could radically fluctuate depending on the dataset state!")
 
         for child in ast.walk(node.value):
             if isinstance(child, ast.Call):
@@ -714,8 +713,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "T(n) = T(n-1) + O(n)": ("O(n^2)", 6), "O(n^2)": ("O(n^2)", 6), "O(n * m)": ("O(n * m)", 6),
             "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5), "n * log n": ("O(n log n)", 5),
             "O(V + E)": ("O(V + E)", 4.5),
-            "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4),
-            "O(n)": ("O(n)", 4), "O(n^2)": ("O(n)", 4), "O(m)": ("O(n)", 4),
+            "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4), "O(m)": ("O(n)", 4),
             "O(√n)": ("O(√n)", 3),
             "T(n) = T(n/2) + O(1)": ("O(log n)", 2), "O(log n)": ("O(log n)", 2),
             "O(1)": ("O(1)", 1)
@@ -731,7 +729,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         best_comp = mapped
 
                 if c.startswith("O(") and c != "O(1)":
-                    # FIX: Safely ignore asterisks if it is a log complexity
                     if "*" in c and "log" not in c and best_rank < 6:
                         best_rank = 6
                         best_comp = "O(n^2)"  
@@ -745,14 +742,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 best_comp = mapped
                 
         if self.max_poly_str.startswith("O(") and self.max_poly_str != "O(1)":
-             # FIX: Safely ignore asterisks for max poly combinations as well
-             if "*" in self.max_poly_str and "log" not in self.max_poly_str and best_rank < 6:
-                 best_rank = 6
-                 best_comp = "O(n^2)"
-             elif best_rank < 4 and not any(char in self.max_poly_str for char in ["^", "*", "!", "V", "log", "√"]):
-                 best_rank = 4
-                 best_comp = "O(n)"
-                 
+            if "*" in self.max_poly_str and "log" not in self.max_poly_str and best_rank < 6:
+                best_rank = 6
+                best_comp = "O(n^2)"
+            elif best_rank < 4 and not any(char in self.max_poly_str for char in ["^", "*", "!", "V", "log", "√"]):
+                best_rank = 4
+                best_comp = "O(n)"
+                
         return best_comp
 
     def get_final_space_badge(self):
