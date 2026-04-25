@@ -90,17 +90,32 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         final_space = self.get_final_space_badge()
         max_w = max([d.get('weight', -1) for d in self._details], default=-1)
         
+        # Exclude highly efficient, sub-linear runtimes from triggering bottleneck warnings
+        excluded_complexities = ["O(1)", "O(log n)", "O(√n)", "-", ""]
+        
+        # Specific complexities that deserve active praise
+        praise_complexities = ["O(log n)", "O(√n)"]
+        
         for d in self._details:
-            if d.get('weight', -1) == max_w and max_w > 0 and final_time not in ["O(1)", "-", ""]:
+            # 1. Check for Time Bottleneck (Punishment)
+            if d.get('weight', -1) == max_w and max_w > 0 and final_time not in excluded_complexities:
                 warning = self.nlg_engine.get_time_bottleneck_warning(d.get('operation', ''), final_time)
                 if warning not in d.get('time_explanation', ''):
                     d['time_explanation'] = str(d.get('time_explanation', '')) + warning
                 
-            if d.get('global_space', '') == final_space and final_space not in ["O(1)", "-", ""]:
+            # 2. Check for Space Bottleneck (Punishment)
+            if d.get('global_space', '') == final_space and final_space not in excluded_complexities:
                 warning = self.nlg_engine.get_space_bottleneck_warning(d.get('operation', ''), final_space)
                 if warning not in d.get('space_explanation', ''):
                     d['space_explanation'] = str(d.get('space_explanation', '')) + warning
 
+            # 3. Check for Algorithm Optimization (Reward)
+            if d.get('global_time', '') in praise_complexities:
+                praise = self.nlg_engine.get_time_optimization_praise(d.get('operation', ''), d.get('global_time', ''))
+                # Prevent duplicate tags if the loop hits it twice
+                if "🌟 **HIGHLY OPTIMIZED:**" not in d.get('time_explanation', '') and "🌟 **EFFICIENT SCALING:**" not in d.get('time_explanation', '') and "🌟 **ALGORITHM MASTERY:**" not in d.get('time_explanation', ''):
+                    d['time_explanation'] = str(d.get('time_explanation', '')) + praise
+                    
     def add_logic_hint(self, node, hint):
         lineno = getattr(node, 'lineno', -1)
         if lineno != -1:
