@@ -63,17 +63,21 @@ const getComplexityColor = (complexity) => {
   return "#95a5a6";
 };
 
+// UPDATED: More robust weight check to catch Python Recurrence Relations
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+  
+  if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("t(n-1)+t(n-2)")) return 8;
+  if (comp.includes("n^3") || comp.includes("n³")) return 7;
+  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("t(n-1)+o(n)")) return 6;
+  if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 5;
+  if (comp.includes("v+e")) return 4.5;
+  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;
+  if (comp.includes("√n") || comp.includes("sqrt")) return 3;
+  if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
   if (comp.includes("o(1)")) return 1;
-  if (comp.includes("logn") && !comp.includes("nlog")) return 2;
-  if (comp.includes("√n") || comp.includes("sqrt")) return 2.5; // <-- Add this
-  if (comp.includes("o(n)") && !comp.includes("log")) return 3;
-  if (comp.includes("nlogn")) return 4;
-  if (comp.includes("n^2") || comp.includes("n²")) return 5;
-  if (comp.includes("n^3") || comp.includes("n³")) return 6;
-  if (comp.includes("2^n") || comp.includes("2ⁿ")) return 7;
-  if (comp.includes("n!")) return 8;
+  
   return 0;
 };
 
@@ -114,7 +118,6 @@ export default function MainApp() {
   const [currentSaveType, setCurrentSaveType] = useState("project");
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
-  // NEW STATE: Console Sub-tabs
   const [consoleTab, setConsoleTab] = useState("output");
 
   const [saveModal, setSaveModal] = useState({
@@ -136,7 +139,6 @@ export default function MainApp() {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
-  // Listen for connection changes
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Using online FastAPI backend.", "success"); };
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Falling back to local Pyodide.", "error"); };
@@ -598,7 +600,8 @@ export default function MainApp() {
     }
   });
 
-  const actualBottleneckIndices = maxWeight >= 3 ? bottleneckIndices : [];
+  // UPDATED: Now requires weight 4 (O(n)) to be labeled a bottleneck.
+  const actualBottleneckIndices = maxWeight >= 4 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
@@ -785,10 +788,11 @@ export default function MainApp() {
                                         <div style={{
                                           height: '8px',
                                           width: `${(hits / maxExecutions) * 100}%`,
-                                          backgroundColor: hits === maxExecutions ? '#ff375f' : '#00b8a3',
+                                          /* UPDATED: We removed the aggressive danger red here to stop users confusing it for a bottleneck */
+                                          backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3',
                                           borderRadius: '4px',
                                           transition: 'width 0.5s ease-out',
-                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(255, 55, 95, 0.5)' : 'none'
+                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(243, 156, 18, 0.5)' : 'none'
                                         }} title={`${Math.round((hits / maxExecutions) * 100)}% of max execution load`} />
                                       )}
                                     </td>
@@ -844,16 +848,25 @@ export default function MainApp() {
                               let timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
                               let spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
 
-                              if (activeTab === 'local') {
+                              const isBottleneck = actualBottleneckIndices.includes(i);
+
+                              // UPDATED: We now aggressively delete the backend bottleneck warnings from the explanation UI if the frontend algorithm decides this line is highly efficient or immune!
+                              if (activeTab === 'local' || !isBottleneck) {
                                 timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
+                              }
+                              
+                              if (activeTab === 'local') {
                                 spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
                               }
 
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
+                              
+                              const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
+                              // UPDATED: Added missing check for the log n recurrence equation (T(n/2)) so recursive binary search also gets the EFFICIENT tag 
                               const isEfficient = !isBottleneck && 
-                                (timeComplexity.toLowerCase().includes("log n") || timeComplexity.toLowerCase().includes("√n")) && 
-                                !timeComplexity.toLowerCase().includes("n log");
+                                (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && 
+                                !compStripped.includes("nlogn");
                                 
                               return (
                                 <React.Fragment key={i}>
