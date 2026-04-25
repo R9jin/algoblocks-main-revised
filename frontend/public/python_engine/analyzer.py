@@ -127,7 +127,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             counts = Counter(poly_dims)
             terms = []
             for dim, count in counts.items():
-                display_dim = dim if len(dim) <= 2 else 'n'
+                display_dim = dim if len(dim) <= 2 and dim.isalpha() else 'n'
                 if count == 1: terms.append(display_dim)
                 else: terms.append(f"{display_dim}^{count}")
             parts.append(" * ".join(terms))
@@ -326,7 +326,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(node, ast.For):
                 if not self._is_constant_loop(node):
                     iter_name = self._get_iterable_name(node.iter)
-                    dim = iter_name if iter_name and len(iter_name) <= 2 else 'n'
+                    dim = iter_name if iter_name and len(iter_name) <= 2 and iter_name.isalpha() else 'n'
                     display_dims = [dim]
             elif isinstance(node, ast.While):
                 if getattr(self, 'in_graph_context', False) and self._is_graph_while_loop(node): display_graph = 1
@@ -336,14 +336,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     dim = 'n'
                     if isinstance(node.test, ast.Compare):
                         for comp in [node.test.left] + node.test.comparators:
-                            if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id not in ['i','j','k','x','y']:
+                            if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
                                 dim = comp.id
                                 break
                     elif isinstance(node.test, ast.BoolOp):
                         for val in node.test.values:
                             if isinstance(val, ast.Compare):
                                 for comp in [val.left] + val.comparators:
-                                    if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id not in ['i','j','k','x','y']:
+                                    if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
                                         dim = comp.id
                                         break
                     display_dims = [dim]
@@ -712,7 +712,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "T(n) = T(n-1) + T(n-2) + O(1)": ("O(2^n)", 8), "O(2^n)": ("O(2^n)", 8),
             "O(n^3)": ("O(n^3)", 7),
             "T(n) = T(n-1) + O(n)": ("O(n^2)", 6), "O(n^2)": ("O(n^2)", 6), "O(n * m)": ("O(n * m)", 6),
-            "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5),
+            "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5), "n * log n": ("O(n log n)", 5),
             "O(V + E)": ("O(V + E)", 4.5),
             "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4),
             "O(n)": ("O(n)", 4), "O(n^2)": ("O(n)", 4), "O(m)": ("O(n)", 4),
