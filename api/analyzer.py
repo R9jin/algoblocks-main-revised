@@ -731,7 +731,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         best_comp = mapped
 
                 if c.startswith("O(") and c != "O(1)":
-                    if "*" in c and best_rank < 6:
+                    # FIX: Safely ignore asterisks if it is a log complexity
+                    if "*" in c and "log" not in c and best_rank < 6:
                         best_rank = 6
                         best_comp = "O(n^2)"  
                     elif best_rank < 4 and not any(char in c for char in ["^", "*", "!", "V", "log", "√"]):
@@ -744,7 +745,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 best_comp = mapped
                 
         if self.max_poly_str.startswith("O(") and self.max_poly_str != "O(1)":
-             if "*" in self.max_poly_str and best_rank < 6:
+             # FIX: Safely ignore asterisks for max poly combinations as well
+             if "*" in self.max_poly_str and "log" not in self.max_poly_str and best_rank < 6:
                  best_rank = 6
                  best_comp = "O(n^2)"
              elif best_rank < 4 and not any(char in self.max_poly_str for char in ["^", "*", "!", "V", "log", "√"]):
