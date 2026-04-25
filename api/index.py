@@ -1,40 +1,23 @@
-import builtins
-import threading
-import queue
 import sys
 import os
-import asyncio
-import ast
-import requests
-import traceback
-from io import StringIO
-
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from bson import ObjectId
-from collections import defaultdict
 
-# ✅ KEEP but safer (ensures current dir is included)
+# Ensure current dir is included for Vercel
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
 
 # =========================
-# ✅ FIXED IMPORT HANDLING
+# ✅ CLEANED IMPORT HANDLING
 # =========================
 try:
-    # ✅ Case 1: running from project root
-    from api.blockly_ast import BlocklyASTConverter
     from api.database import projects_collection, users_collection, templates_collection
     from api.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
-    from api.analyzer import ComplexityAnalyzer
-
 except ModuleNotFoundError:
     try:
-        # ✅ Case 2: running inside /api folder
-        from blockly_ast import BlocklyASTConverter  
         from database import projects_collection, users_collection, templates_collection  
         from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  
-        from analyzer import ComplexityAnalyzer  
     except ModuleNotFoundError as e:
         raise RuntimeError(f"Import failed: {e}")  
 
@@ -54,9 +37,6 @@ app.add_middleware(
 # =========================
 # MODELS
 # =========================
-class CodePayload(BaseModel):
-    code: str
-
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -70,27 +50,6 @@ class ProgressRequest(BaseModel):
     email: str
     lesson_id: str
     score: int
-
-class GoogleAuthRequest(BaseModel):
-    access_token: str
-
-class AstRequest(BaseModel):
-    code: str
-
-# =========================
-# UTILITIES
-# =========================
-def clean_python_code(code: str) -> str:
-    return code.replace('\xa0', ' ').replace('\u200b', '').replace('\t', '    ')
-
-def safe_exec(code: str, globals_dict: dict):
-    safe_builtins = builtins.__dict__.copy()
-    safe_builtins["print"] = print
-    safe_builtins["input"] = globals_dict.get("input", input)
-
-    exec(code, {
-        "__builtins__": safe_builtins  
-    })
 
 @app.get("/")
 def health_check():
