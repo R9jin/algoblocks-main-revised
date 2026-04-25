@@ -8,9 +8,9 @@ class SemanticNLGEngine:
     
     Target Audience: 2nd to 4th-Year Computer Science Students, Algorithm Analysts.
     Purpose: To translate abstract AST nodes, Big O complexities, and raw mathematical 
-    equations into highly varied, deeply educational explanations. Now fully supports
-    advanced structural edge cases like Lambdas, Generators, DP Memoization heuristics,
-    and Multiple Dataset Dimensions (O(n * m)).
+    equations into highly varied, deeply educational explanations. Focuses purely on 
+    universal algorithmic theory and structural execution mechanics, completely decoupled 
+    from specific programming language implementations.
     """
     
     def __init__(self, analyzer_context):
@@ -31,7 +31,7 @@ class SemanticNLGEngine:
         return random.choice([
             f" \n\n⚠️ **PRIMARY MEMORY DRIVER:** This {op_str} represents the absolute highest space complexity contribution in the script. Yielding a strict {big_o} allocation footprint, it acts as the defining bottleneck for your overall memory consumption.",
             f" \n\n⚠️ **DOMINANT SPACE FACTOR:** Because this {op_str} consumes the most auxiliary memory (either via dynamic structures or active call stack frames), it mathematically defines the final {big_o} space complexity of the overall algorithm.",
-            f" \n\n⚠️ **MEMORY BOTTLENECK:** Out of all the active operations, this {op_str} scales the worst proportionally with dataset size, effectively establishing the {big_o} upper ceiling of your program's RAM constraints."
+            f" \n\n⚠️ **MEMORY BOTTLENECK:** Out of all the active operations, this {op_str} scales the worst proportionally with dataset size, effectively establishing the {big_o} upper ceiling of your program's active memory constraints."
         ])
 
     def _format_recurrence_relation(self, comp_str):
@@ -134,10 +134,10 @@ class SemanticNLGEngine:
 
     def _generate_dead_code_explanation(self, code_snippet):
         t_desc = random.choice([
-            f"The statement `{code_snippet}` is analytically flagged as Unreachable (Dead Code). Because it aggressively follows a flow interruption like a `return`, `break`, or `continue`, the execution environment physically skips it entirely. It inherently contributes an explicit 0-operation overhead, mapping to O(1).",
+            f"The statement `{code_snippet}` is analytically flagged as Unreachable (Dead Code). Because it aggressively follows a flow interruption like a return or break, the execution control flow physically skips it entirely. It inherently contributes an explicit 0-operation overhead, mapping strictly to O(1).",
             f"Notice how `{code_snippet}` is sequentially placed after a terminal execution statement? The control flow guarantees this path is completely un-navigable during runtime. Therefore, it mathematically costs 0 operations to evaluate."
         ])
-        s_desc = "Since this code block is completely circumvented by the interpreter, it physically cannot request memory allocation or arbitrarily provision any new structural data collections."
+        s_desc = "Since this structural block is completely circumvented by the execution engine, it physically cannot request memory allocation or arbitrarily provision any new structural data collections."
         return t_desc, s_desc
 
     def _route_time_semantics(self, node, local_t, global_t, code_snippet):
@@ -177,21 +177,25 @@ class SemanticNLGEngine:
         
         # DP EXPLANATION FOR FUNCTION DEF
         if f_name in getattr(self.ctx, 'memoized_funcs', set()):
-            return f"Defining `{f_name}` constructs the procedural pointer in O(1) time. Critically, the engine detects **Top-Down Dynamic Programming** (memoization/caching) applied to this function. This architectural decision fundamentally mathematically collapses the recursive tree, severely optimizing execution mapping down to a linear state space instead of expanding exponentially."
+            return f"Defining `{f_name}` constructs the procedural pointer in O(1) time. Critically, the engine detects **Top-Down Dynamic Programming** (memoization/caching) applied to this function. This architectural decision mathematically collapses the recursive tree, heavily optimizing execution scaling down to a linear state space instead of expanding exponentially."
+
+        # INDIRECT RECURSION EXPLANATION
+        if f_name in getattr(self.ctx, 'indirect_recursive_funcs', set()):
+            return f"Defining `{f_name}` reserves its namespace in O(1) constant time. ⚠️ **CRITICAL (Indirect Recursion Detected):** The analyzer identified that this function acts as a node in a cyclic, mutually recursive call graph. This hidden looping dependency forces the architectural execution tree to expand wildly, mapping worst-case behavior to an exponential curve."
 
         return random.choice([
-            f"Defining the function `{f_name}` structurally avoids executing its internal algorithmic logic immediately. The interpreter purely parses the syntax rules and maps the function pointer in highly optimized O(1) constant time. True algorithmic scaling remains strictly deferred until explicit invocation.",
-            f"Notice that this is a function definition boundary (`def {f_name}`). The underlying computational routines inside are completely dormant right now. Binding this signature and reserving its namespace fundamentally evaluates in O(1) time."
+            f"Defining the function structurally avoids executing its internal algorithmic logic immediately. The system purely parses the syntax rules and maps the function pointer in highly optimized O(1) constant time. True algorithmic scaling remains strictly deferred until explicit invocation.",
+            f"Notice that this is a function definition boundary. The underlying computational routines inside are completely dormant right now. Binding this signature and reserving its conceptual namespace fundamentally evaluates in O(1) time."
         ])
 
     def _time_for_lambda(self):
-        return "This constructs an anonymous lambda closure. Instead of evaluating the nested expression immediately, it simply compiles a callable function pointer in O(1) constant time. The inner execution cost is heavily deferred until this lambda is formally invoked."
+        return "This constructs an anonymous lambda closure. Instead of evaluating the nested expression immediately, it simply compiles a callable function pointer in O(1) constant time. The inner execution cost is mathematically deferred until this lambda is formally invoked."
 
     def _time_for_try_catch(self):
-        return "Setting up a `try` block dynamically attaches an exception handler to the current active call stack frame. In modern Python architectures, establishing this boundary is highly optimized and practically zero-cost during successful execution, securely evaluating in O(1) constant time."
+        return "Setting up an exception block dynamically attaches an error handler to the current active call stack frame. Establishing this boundary is highly optimized computationally and practically zero-cost during successful execution, securely evaluating in O(1) constant time."
 
     def _time_for_context_manager(self):
-        return "Initiating a context manager (`with`) inherently schedules automated resource provisioning (__enter__) and strict eventual teardown (__exit__). Establishing these boundary protocols maps logically to O(1) constant time initialization, bypassing heavy iteration."
+        return "Initiating a context manager inherently schedules automated resource provisioning and strict eventual teardown. Establishing these boundary protocols maps logically to O(1) constant time initialization, bypassing heavy iteration."
 
     def _time_for_exponential(self):
         return "This logical structure inherently triggers a cascading O(2^n) exponential blowout. Every time you append one singular item to the underlying input constraint, the amount of required mathematical work violently doubles, indicating massive sub-problem recalculation overlap. (Applying DP / Memoization here could radically collapse this to linear time)."
@@ -204,13 +208,13 @@ class SemanticNLGEngine:
 
     def _time_for_loops(self, node, local_t, global_t):
         is_for = isinstance(node, ast.For)
-        loop_type = "The `for` loop" if is_for else "The `while` loop"
+        loop_type = "The iterative loop" if is_for else "The conditional loop"
         base = ""
 
         if "O(1)" in local_t: base = f"{loop_type} establishes a structurally hardcoded, static iteration limit. Since its execution boundary is mathematically insulated from primary input expansions, it strictly guarantees an O(1) constant runtime overhead."
         elif "log n" in local_t: base = f"{loop_type} behaves mathematically like a binary search partition. By consistently fractioning the remaining operational workload heavily in half on every single cycle, its iteration count scales logarithmically, securing a tremendously efficient O(log n) barrier."
         elif "√n" in local_t: base = f"{loop_type} is constrained by a strict square root bound. By intelligently limiting traversals to the mathematical square root of the primary integer space, it intentionally circumvents massive amounts of redundant linear verification, finalizing at an optimal O(√n)."
-        else: base = f"We observe a direct proportional mapping here. As the underlying collection grows, the iteration counts directly mimic that expansion symmetrically, assigning {loop_type.lower()} a foundational O(n) linear complexity marker."
+        else: base = f"We observe a direct proportional mapping here. As the underlying collection grows, the iteration counts directly mimic that expansion symmetrically, assigning the looping structure a foundational O(n) linear complexity marker."
 
         if "* m" in global_t:
             return base + f" Critically, this structure indicates multidimensional traversal across totally independent collections. Instead of naively collapsing the combined growth into O(n²), rigorous asymptotic theory identifies the exact cross-product penalty as {global_t}, acknowledging the distinct N and M limits."
@@ -221,14 +225,12 @@ class SemanticNLGEngine:
         return base
 
     def _time_for_comprehensions(self, node, local_t, global_t):
-        comp_type = "list comprehension"
-        if isinstance(node, ast.DictComp): comp_type = "dictionary comprehension"
-        if isinstance(node, ast.SetComp): comp_type = "set comprehension"
+        comp_type = "collection comprehension"
         if isinstance(node, ast.GeneratorExp):
             comp_type = "generator expression"
-            base = f"A {comp_type} behaves similarly to a list comprehension, but heavily delays calculation. Constructing the initial generator simply spins up the internal state machine in O(1) time. However, eventually exhausting it still demands a linear {local_t} sequence."
+            base = f"A {comp_type} behaves similarly to a standard comprehension, but heavily delays calculation. Constructing the initial conceptual generator simply spins up the internal state machine in O(1) time. However, eventually exhausting it still demands a linear {local_t} sequence."
         else:
-            base = f"Analytically, a {comp_type} translates functionally to an optimized loop sequence. The engine physically iterates systematically across every item inside the iterable target to continuously append data, intrinsically bounding it to {local_t} time."
+            base = f"Analytically, a {comp_type} translates functionally to an optimized loop sequence. The execution sequence physically iterates systematically across every item inside the iterable target to continuously append data, intrinsically bounding it to {local_t} time."
             
         if len(getattr(self.ctx, 'active_poly_dims', [])) > 0:
             return base + f" Because this continuous sequence acts inside a broader, active iteration boundary, the linear scan dynamically multiplies out, driving your holistic runtime cost mathematically to {global_t}."
@@ -243,29 +245,34 @@ class SemanticNLGEngine:
         rhs = getattr(node, 'value', None)
         
         if isinstance(rhs, (ast.BinOp, ast.UnaryOp)): return f"The internal logic sequentially computes a formal mathematical expression: {self._build_math_sentence(rhs)}. Because intrinsic algebraic and boolean operators scale flawlessly regardless of large scalar weights, calculating the result and officially mapping it to {t_name} requires an optimal, flat O(1) runtime allocation."
-        if getattr(self.ctx, 'has_slicing', False): return f"Extracting a sub-array slice dynamically and assigning it directly to {t_name} carries an O(n) algorithmic penalty. Slicing physically iterates strictly through the array indices in C under the hood, duplicating contiguous sequence addresses into an independent structure."
+        if getattr(self.ctx, 'has_slicing', False): return f"Extracting a sub-array slice dynamically and assigning it directly to {t_name} carries an O(n) algorithmic penalty. Slicing physically iterates strictly through the array indices, duplicating contiguous sequence elements into an independent structure."
         if "O(n)" in local_t: return f"Mutating or creating {t_name} here forces a cascading linear O(n) transversal scan across the entire dynamic dataset before the pointer assignment can mathematically finalize. Execution scaling is tied securely 1:1 with data size."
-        if isinstance(rhs, ast.Subscript): return f"Direct index extraction via exact memory offsets structurally bypasses linear search overheads completely. Pulling that value instantly and binding it heavily to {t_name} consumes purely O(1) constant time."
-        if isinstance(rhs, ast.Call): return f"Once the isolated sub-routine completes execution, capturing its returned memory payload and mapping that reference to {t_name} demands an instant O(1) operational assignment."
+        if isinstance(rhs, ast.Subscript): return f"Direct index extraction via exact conceptual memory offsets structurally bypasses linear search overheads completely. Pulling that value instantly and binding it heavily to {t_name} consumes purely O(1) constant time."
+        if isinstance(rhs, ast.Call): return f"Once the isolated sub-routine completes execution, capturing its returned conceptual payload and mapping that reference to {t_name} demands an instant O(1) operational assignment."
             
         return f"Updating or officially generating the reference boundary {t_name} locally forces zero continuous looping or deep pointer chasing. It is parsed smoothly and successfully registered in O(1) time independently of input metrics."
 
     def _time_for_calls(self, node, local_t, global_t):
         f_name = self._extract_name(node.func).replace("()", "")
-        if f_name in ["sort", "sorted"]: return f"Triggering the standard `{f_name}()` protocol systematically initiates Python's highly optimized Timsort. Sorting mathematically mandates a baseline O(n log n) execution cost as the engine partitions, heavily compares, and actively merges dynamic segments back together."
-        if f_name == "input": return f"Triggering the native `input()` function suspends execution to read standard I/O. Because the underlying engine must sequentially scan and read every single character typed by the user until a newline is detected, it strictly operates in {local_t} linear time, where 'n' is the length of the string."
+        if f_name in ["sort", "sorted"]: return f"Triggering a standard sorting protocol systematically initiates a highly optimized sort algorithm. Sorting mathematically mandates a baseline O(n log n) execution cost as the engine partitions, heavily compares, and actively merges dynamic segments back together."
+        if f_name == "input": return f"Triggering a standard I/O reading function suspends execution to ingest sequence data. Because the underlying algorithm must sequentially scan and read every single character provided until a termination sequence is detected, it strictly operates in {local_t} linear time, where 'n' is the length of the string."
 
-        if f_name == getattr(self.ctx, 'current_function_name', None):
+        is_indirect = f_name in getattr(self.ctx, 'indirect_recursive_funcs', set()) and getattr(self.ctx, 'current_function_name', None) in getattr(self.ctx, 'indirect_recursive_funcs', set())
+        
+        if f_name == getattr(self.ctx, 'current_function_name', None) or is_indirect:
             # DP Explanation Trigger
             if f_name in getattr(self.ctx, 'memoized_funcs', set()):
-                 return f"This explicit recursive loop targets `{f_name}()`. However, because Dynamic Programming (Memoization/Caching) actively traps repeated calculations, overlapping recursive sub-problems are intelligently bypassed. This successfully flattens an exponential collapse down securely to a {global_t} boundary!"
+                 return f"This explicit recursive loop targets `{f_name}()`. However, because Dynamic Programming (Memoization/Caching) actively traps repeated calculations, overlapping recursive sub-problems are intelligently bypassed. This successfully flattens an exponential collapse down securely to a {global_t} boundary."
+
+            if is_indirect:
+                 return f"This explicit code actively redirects control flow into `{f_name}()`, triggering an **Indirect Recursion** cycle. Because these functions mutually invoke each other without a direct self-reference, they spawn a hidden, endlessly branching execution tree. This cascading overlap acts as the aggressive multiplier driving the final recurrence bound mathematically up to an exponential {global_t}."
 
             if getattr(self.ctx, 'has_division', False): return f"This active recursive instruction deliberately fragments the data partition bounds in half (or dynamically smaller fractions). Following the Master Theorem's divide-and-conquer principles, this drastically eliminates broad sub-problem checks, strictly shaping an overarching recurrence string of {global_t}."
-            return f"This explicit code recursively delegates control flow back into `{f_name}`. Each sequential call violently spawns an independent namespace and execution branch in the overarching recursion tree. This progressive stacking acts as the key multiplier driving the total recurrence model identically to {global_t}."
+            return f"This explicit code recursively delegates control flow back into `{f_name}`. Each sequential call violently spawns an independent conceptual namespace and execution branch in the overarching recursion tree. This progressive stacking acts as the key multiplier driving the total recurrence model identically to {global_t}."
             
         if hasattr(self.ctx, 'builtin_complexities') and f_name in self.ctx.builtin_complexities:
             b_info = self.ctx.builtin_complexities[f_name]
-            return f"This invocation actively redirects execution to a core, native `{f_name}()` method. Internally, this protocol inherently {b_info['desc']}. Analytically, invoking it incurs a firm baseline {local_t} sequence per iteration."
+            return f"This invocation actively redirects execution to a core, built-in `{f_name}()` algorithmic method. Internally, this protocol inherently {b_info['desc']}. Analytically, invoking it incurs a firm baseline {local_t} sequence per iteration."
             
         return f"Procedural routing is strictly forwarded to `{f_name}()`. Deriving from its previously evaluated structural AST, the engine concludes this specific independent call systematically consumes {local_t} baseline time."
 
@@ -273,17 +280,17 @@ class SemanticNLGEngine:
         if len(getattr(self.ctx, 'active_poly_dims', [])) > 0 and getattr(node, 'lineno', 0) in getattr(self.ctx, 'conditional_partition_lines', []):
             return f"This conditional acts mathematically as an embedded data-dependent partition inside an active looping cycle. The literal boolean constraint comparison resolves functionally in O(1), yet it completely dictates the routing of the subsequent heavy {global_t} procedural block."
         if hasattr(node, 'test'):
-            return f"The script triggers an analytical state verification: {self._build_boolean_sentence(node.test)}. Parsing this conditional constraint acts purely as a swift O(1) computational barrier, immediately determining the program's resulting branch trajectory without heavy traversal."
+            return f"The execution sequence triggers an analytical state verification: {self._build_boolean_sentence(node.test)}. Parsing this conditional constraint acts purely as a swift O(1) computational barrier, immediately determining the program's resulting branch trajectory without heavy traversal."
         return f"Assessing this fallback branch logic behaves effectively as a generic O(1) constant routing jump."
 
     def _time_for_returns(self, local_t):
-        return f"Executing a deliberate `return` securely resolves the function state instantly in {local_t} time, signaling the internal stack to purge cleanly and eagerly forward the calculated payload back to its parent caller scope."
+        return f"Executing a deliberate return securely resolves the function state instantly in {local_t} time, signaling the internal stack to purge cleanly and eagerly forward the calculated payload back to its parent caller scope."
 
     def _time_for_yields(self, local_t):
-        return f"Rather than aggressively generating the entire collection dataset simultaneously into heavy memory, `yield` intelligently emits purely the next required sequential value and deliberately suspends execution in strict {local_t} constant time. This defines a highly efficient, lazy-evaluation pipeline."
+        return f"Rather than aggressively generating the entire collection dataset simultaneously into heavy memory, generating intelligently emits purely the next required sequential value and deliberately suspends execution in strict {local_t} constant time. This defines a highly efficient, lazy-evaluation pipeline."
 
     def _time_for_standalone_expr(self, node, local_t, global_t):
-        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str): return "This is interpreted functionally as an independent string literal (or passive docstring). Because it commands zero explicit state mutation or assignments, it generates exactly 0 active overhead, evaluating to purely O(1)."
+        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str): return "This is interpreted functionally as an independent string literal. Because it commands zero explicit state mutation or assignments, it generates exactly 0 active overhead, evaluating to purely O(1)."
         if isinstance(node.value, ast.Call): return self._time_for_calls(node.value, local_t, global_t)
         return f"This standalone syntactic expression is strictly analyzed, temporarily computed, and immediately garbage-collected dynamically in steady {local_t} time."
 
@@ -293,7 +300,7 @@ class SemanticNLGEngine:
     def _route_space_semantics(self, node, local_s, global_s, code_snippet):
         prefix = random.choice([
             "Regarding physical memory allocation: ", "Viewing this purely through a strict space perspective: ",
-            "Looking deeply at the resulting heap footprint: ", "Evaluating RAM constraints here: ", ""
+            "Looking deeply at the resulting structural footprint: ", "Evaluating auxiliary constraints here: ", ""
         ])
 
         base_desc = ""
@@ -305,12 +312,14 @@ class SemanticNLGEngine:
         elif "n" in local_s:
             if isinstance(node, ast.Call):
                 f_name = self._extract_name(node.func).replace("()", "")
-                if f_name == getattr(self.ctx, 'current_function_name', None): base_desc = self._space_for_linear_recursion(f_name)
-                elif f_name == "input": base_desc = f"The `input()` sequence dynamically generates a brand new string object containing the user's keystrokes. Reserving this contiguous text buffer in RAM structurally requires an {local_s} memory allocation directly proportional to the character count."
+                is_indirect = f_name in getattr(self.ctx, 'indirect_recursive_funcs', set()) and getattr(self.ctx, 'current_function_name', None) in getattr(self.ctx, 'indirect_recursive_funcs', set())
+
+                if f_name == getattr(self.ctx, 'current_function_name', None) or is_indirect: base_desc = self._space_for_recursion(f_name, is_indirect)
+                elif f_name == "input": base_desc = f"Reading character sequences dynamically generates a brand new conceptual string object. Reserving this contiguous buffer structurally requires an {local_s} memory allocation directly proportional to the character count."
                 elif hasattr(self.ctx, 'builtin_complexities') and f_name in self.ctx.builtin_complexities: base_desc = f"Executing the built-in `{f_name}()` algorithm heavily provisions an extra boundary of {local_s} dynamic auxiliary memory, intelligently tracking elements simultaneously before eventually concluding."
                 else: base_desc = f"The underlying computational steps mathematically produce a newly allocated dataset. The active storage reserved dynamically scales entirely proportional to its content density, accurately settling at {local_s}."
             elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)): base_desc = self._space_for_allocations(node, local_s)
-            else: base_desc = f"We systematically observe an extensive {local_s} memory expansion spike here because the interpreter engine is actively reserving dynamic new sequence capacity across the heap bounds to securely harbor the ballooning collection structure."
+            else: base_desc = f"We systematically observe an extensive {local_s} memory expansion spike here because the execution engine is actively reserving dynamic new sequence capacity to securely harbor the ballooning collection structure."
         elif isinstance(node, (ast.Assign, ast.AugAssign)): base_desc = self._space_for_inplace(local_s)
         else:
             base_desc = random.choice([
@@ -323,9 +332,9 @@ class SemanticNLGEngine:
     def _space_for_function_def(self, node, local_s):
         f_name = getattr(node, 'name', 'this block')
         if f_name in getattr(self.ctx, 'memoized_funcs', set()):
-            return f"Defining `{f_name}` generally takes O(1) space. However, because DP Memoization is enabled, the system proactively maps an O(n) associative background cache (Hash Map) designed to rigorously warehouse evaluated state variables dynamically during execution."
+            return f"Defining `{f_name}` generally takes O(1) space. However, because DP Memoization is enabled, the system proactively maps an O(n) associative background cache designed to rigorously warehouse evaluated state variables dynamically during execution."
         
-        return f"Declaring `{f_name}` initializes practically zero massive storage sequences. The Python interpreter allocates an incredibly tiny, static O(1) pointer slot purely for the active function object representation. Dense internal memory bounds remain deferred indefinitely until active runtime invocation."
+        return f"Declaring `{f_name}` initializes practically zero massive storage sequences. The execution environment allocates an incredibly tiny, static O(1) pointer slot purely for the active function object representation. Dense internal memory bounds remain deferred indefinitely until active runtime invocation."
 
     def _space_for_graphs(self):
         return "This phase formally maps an explicit O(V) sector of auxiliary tracking memory. Heavy graph structures mathematically demand external associative state collections (like a localized Hash Set 'visited' log or a continuous queue sequence) to rigorously track distinct vertices properly without crashing into massive cyclic infinite loops."
@@ -333,20 +342,22 @@ class SemanticNLGEngine:
     def _space_for_log_recursion(self):
         return "Because this active recursive logic deliberately enforces an intelligent divide-and-conquer tree behavior, the structural depth limit of the call stack becomes enormously compressed. The active environment only needs to spin up O(log n) concurrent execution frames to simultaneously juggle the bifurcated operations."
 
-    def _space_for_linear_recursion(self, f_name):
-        return f"Each consecutive moment '{f_name}' delegates logic to itself, the underlying environment forcefully pushes a totally independent operational context frame cleanly onto the call stack. This dangerous straight-line linear framing relentlessly consumes heavy O(n) sequence space and risks triggering a severe Stack Overflow crash if 'n' dynamically inflates too widely."
+    def _space_for_recursion(self, f_name, is_indirect=False):
+        if is_indirect:
+            return f"Even though '{f_name}' isn't a direct self-call, jumping into this mutually recursive cycle forces the environment to push a completely independent operational context frame cleanly onto the call stack. This hidden cyclical tracking relentlessly consumes heavy O(n) sequence space and mathematically risks triggering a severe call-stack capacity crash."
+        return f"Each consecutive moment '{f_name}' delegates logic to itself, the underlying environment forcefully pushes a totally independent operational context frame cleanly onto the call stack. This dangerous straight-line linear framing relentlessly consumes heavy O(n) sequence space and mathematically risks triggering a severe call-stack capacity crash if 'n' dynamically inflates too widely."
 
     def _space_for_allocations(self, node, local_s):
         rhs = getattr(node, 'value', None)
-        if getattr(self.ctx, 'has_slicing', False): return "The array slice operator strictly bypasses passing purely shallow aliases. Instead, it literally provisions completely detached sequential array objects over in memory, physically cloning boundary values. Analytically, this forces a severe O(n) structural storage requirement."
-        if isinstance(rhs, (ast.ListComp, ast.List)): return "Organizing a fresh sequential list generates dynamically contiguous array buffers. Because the underlying C boundaries are repeatedly padded to perfectly secure 'n' elements concurrently, it incurs a substantial, scalable O(n) mathematical allocation footprint."
-        if isinstance(rhs, (ast.DictComp, ast.Dict)): return "Configuring this active dictionary rigorously assigns complex associative hashing buckets directly to the system heap. This dense hash map topology structurally requires scaling overhead exactly proportional to an O(n) density marker."
-        if isinstance(rhs, (ast.SetComp, ast.Set)): return "Hash Sets mathematically rely heavily on sparse array buckets directly mapping integer keys under the hood. Constructing this topology strictly demands reserving an active O(n) memory span to definitively preserve uncollided elements effectively."
+        if getattr(self.ctx, 'has_slicing', False): return "The array slice operator strictly bypasses passing purely shallow aliases. Instead, it literally provisions completely detached sequential array objects in memory, physically cloning boundary values. Analytically, this forces a severe O(n) structural storage requirement."
+        if isinstance(rhs, (ast.ListComp, ast.List)): return "Organizing a fresh sequential list generates dynamically contiguous array buffers. Because the underlying memory boundaries are repeatedly padded to perfectly secure 'n' elements concurrently, it incurs a substantial, scalable O(n) mathematical allocation footprint."
+        if isinstance(rhs, (ast.DictComp, ast.Dict)): return "Configuring this active dictionary rigorously assigns complex associative hashing buckets. This dense hash map topology structurally requires scaling overhead exactly proportional to an O(n) density marker."
+        if isinstance(rhs, (ast.SetComp, ast.Set)): return "Hash Sets mathematically rely heavily on sparse array buckets directly mapping element keys. Constructing this topology strictly demands reserving an active O(n) conceptual memory span to definitively preserve uncollided elements effectively."
 
-        return f"Binding and generating this newly defined variable state completely forces the interpreter to rigorously provision contiguous {local_s} physical memory spaces proportional systematically to the current input bounds."
+        return f"Binding and generating this newly defined variable state completely forces the environment to rigorously provision contiguous {local_s} physical memory spaces proportional systematically to the current input bounds."
 
     def _space_for_inplace(self, local_s):
         return f"This active transformation explicitly avoids cloning giant arrays sequentially. By deliberately operating directly on active existing variable addresses mathematically, space limits are perfectly contained and optimized indefinitely down to {local_s}."
 
     def _space_for_generators(self):
-        return "Using a generator completely eliminates ballooning arrays, heavily optimizing Space Complexity directly to O(1). Instead of computing thousands of sequences and locking them inside massive contiguous RAM structures simultaneously, the state machine merely suspends securely, lazily yielding precisely one localized value at an instant."
+        return "Using a generator completely eliminates ballooning arrays, heavily optimizing Space Complexity directly to O(1). Instead of computing thousands of sequences and locking them inside massive contiguous array structures simultaneously, the state machine merely suspends securely, lazily yielding precisely one localized value at an instant."
