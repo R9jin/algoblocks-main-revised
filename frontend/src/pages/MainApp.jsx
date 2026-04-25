@@ -67,6 +67,7 @@ const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
   if (comp.includes("o(1)")) return 1;
   if (comp.includes("logn") && !comp.includes("nlog")) return 2;
+  if (comp.includes("√n") || comp.includes("sqrt")) return 2.5; // <-- Add this
   if (comp.includes("o(n)") && !comp.includes("log")) return 3;
   if (comp.includes("nlogn")) return 4;
   if (comp.includes("n^2") || comp.includes("n²")) return 5;
@@ -597,7 +598,7 @@ export default function MainApp() {
     }
   });
 
-  const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
+  const actualBottleneckIndices = maxWeight >= 3 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
@@ -850,11 +851,10 @@ export default function MainApp() {
 
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
-                              const isBottleneck = actualBottleneckIndices.includes(i);
-
-                              // NEW: Identify if the line is highly efficient based on the complexity strings used by the SemanticNLGEngine
-                              const isEfficient = !isBottleneck && (timeComplexity.toLowerCase().includes("log n") || timeComplexity.toLowerCase().includes("√n"));
-
+                              const isEfficient = !isBottleneck && 
+                                (timeComplexity.toLowerCase().includes("log n") || timeComplexity.toLowerCase().includes("√n")) && 
+                                !timeComplexity.toLowerCase().includes("n log");
+                                
                               return (
                                 <React.Fragment key={i}>
                                   <tr
