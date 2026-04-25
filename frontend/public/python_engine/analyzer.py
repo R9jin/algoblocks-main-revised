@@ -715,7 +715,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5),
             "O(V + E)": ("O(V + E)", 4.5),
             "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4),
-            "O(n1)": ("O(n)", 4), "O(n^2)": ("O(n)", 4), "O(m)": ("O(n)", 4),
+            "O(n)": ("O(n)", 4), "O(n^2)": ("O(n)", 4), "O(m)": ("O(n)", 4),
             "O(√n)": ("O(√n)", 3),
             "T(n) = T(n/2) + O(1)": ("O(log n)", 2), "O(log n)": ("O(log n)", 2),
             "O(1)": ("O(1)", 1)
