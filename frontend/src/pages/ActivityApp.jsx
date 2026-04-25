@@ -1173,8 +1173,15 @@ const ActivityApp = () => {
                             {analysisResult.lines.map((line, i) => {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-                              const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
-                              const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
+                              
+                              let timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
+                              let spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
+                              
+                              if (activeTab === 'local') {
+                                timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
+                                spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
+                              }
+
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
                               const isBottleneck = actualBottleneckIndices.includes(i);
