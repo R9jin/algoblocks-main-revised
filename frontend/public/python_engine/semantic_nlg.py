@@ -32,6 +32,15 @@ class SemanticNLGEngine:
             f" \n\n⚠️ **DOMINANT SPACE FACTOR:** Because this {op_str} uses the most extra memory (like creating new lists or adding function calls to the stack), it defines the final {big_o} space complexity of the overall algorithm.",
             f" \n\n⚠️ **MEMORY BOTTLENECK:** Out of all the operations, the memory used by this {op_str} grows the fastest as the data size increases, effectively setting the {big_o} limit for your program's active memory."
         ])
+    
+    def get_time_optimization_praise(self, operation, big_o):
+        """Generates positive reinforcement for sub-linear algorithms."""
+        op_str = operation.lower() if operation else "step"
+        return random.choice([
+            f" \n\n🌟 **HIGHLY OPTIMIZED:** Excellent work! This {op_str} runs in a blazing fast {big_o} time. By actively skipping unnecessary data, this code will scale incredibly well even with massive datasets.",
+            f" \n\n🌟 **EFFICIENT SCALING:** This {op_str} hits an optimal {big_o} runtime. Algorithms that successfully divide the workload (like this one) are exactly what tech companies look for in high-performance software.",
+            f" \n\n🌟 **ALGORITHM MASTERY:** You achieved a {big_o} time complexity here! Instead of checking every single item, this {op_str} uses advanced logic to drastically reduce the amount of work the computer has to do."
+        ])
 
     def _format_recurrence_relation(self, comp_str):
         if not comp_str or "T(" not in comp_str: return comp_str

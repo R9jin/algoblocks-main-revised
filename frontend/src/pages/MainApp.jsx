@@ -63,16 +63,21 @@ const getComplexityColor = (complexity) => {
   return "#95a5a6";
 };
 
+// UPDATED: More robust weight check to catch Python Recurrence Relations
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+  
+  if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("t(n-1)+t(n-2)")) return 8;
+  if (comp.includes("n^3") || comp.includes("n³")) return 7;
+  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("t(n-1)+o(n)")) return 6;
+  if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 5;
+  if (comp.includes("v+e")) return 4.5;
+  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;
+  if (comp.includes("√n") || comp.includes("sqrt")) return 3;
+  if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
   if (comp.includes("o(1)")) return 1;
-  if (comp.includes("logn") && !comp.includes("nlog")) return 2;
-  if (comp.includes("o(n)") && !comp.includes("log")) return 3;
-  if (comp.includes("nlogn")) return 4;
-  if (comp.includes("n^2") || comp.includes("n²")) return 5;
-  if (comp.includes("n^3") || comp.includes("n³")) return 6;
-  if (comp.includes("2^n") || comp.includes("2ⁿ")) return 7;
-  if (comp.includes("n!")) return 8;
+  
   return 0;
 };
 
@@ -113,7 +118,6 @@ export default function MainApp() {
   const [currentSaveType, setCurrentSaveType] = useState("project");
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
-  // NEW STATE: Console Sub-tabs
   const [consoleTab, setConsoleTab] = useState("output");
 
   const [saveModal, setSaveModal] = useState({
@@ -135,7 +139,6 @@ export default function MainApp() {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
-  // Listen for connection changes
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Using online FastAPI backend.", "success"); };
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Falling back to local Pyodide.", "error"); };
@@ -493,7 +496,7 @@ export default function MainApp() {
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute.");
       setBottomPanel("console");
-      setConsoleTab("output"); 
+      setConsoleTab("output");
       return;
     }
 
@@ -597,7 +600,8 @@ export default function MainApp() {
     }
   });
 
-  const actualBottleneckIndices = maxWeight > 1 ? bottleneckIndices : [];
+  // UPDATED: Now requires weight 4 (O(n)) to be labeled a bottleneck.
+  const actualBottleneckIndices = maxWeight >= 4 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
@@ -784,10 +788,11 @@ export default function MainApp() {
                                         <div style={{
                                           height: '8px',
                                           width: `${(hits / maxExecutions) * 100}%`,
-                                          backgroundColor: hits === maxExecutions ? '#ff375f' : '#00b8a3',
+                                          /* UPDATED: We removed the aggressive danger red here to stop users confusing it for a bottleneck */
+                                          backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3',
                                           borderRadius: '4px',
                                           transition: 'width 0.5s ease-out',
-                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(255, 55, 95, 0.5)' : 'none'
+                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(243, 156, 18, 0.5)' : 'none'
                                         }} title={`${Math.round((hits / maxExecutions) * 100)}% of max execution load`} />
                                       )}
                                     </td>
@@ -813,7 +818,7 @@ export default function MainApp() {
                       <div className="total-badge-group">
                         <span className="total-badge"><span className="total-label">Total Time:</span> <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge" style={{ backgroundColor: 'rgba(0, 184, 163, 0.15)', color: '#00b8a3', border: '1px solid rgba(0, 184, 163, 0.3)' }}><span className="total-label" style={{ color: '#00b8a3' }}>Total Space:</span> <span style={{ fontSize: "20px", fontWeight: "bold" }}>{formatComplexity(analysisResult.space_total)}</span></span>
-                        <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#db7fff"}}>{analysisTime} ms</span></span>
+                        <span className="total-badge" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)', color: '#9b59b6', border: '1px solid rgba(155, 89, 182, 0.3)' }}><span className="total-label" style={{ color: '#9b59b6' }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#db7fff" }}>{analysisTime} ms</span></span>
                       </div>
                     </div>
 
@@ -839,28 +844,39 @@ export default function MainApp() {
                             {analysisResult.lines.map((line, i) => {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
-                              
+
                               let timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
                               let spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
+
+                              const isBottleneck = actualBottleneckIndices.includes(i);
+
+                              // UPDATED: We now aggressively delete the backend bottleneck warnings from the explanation UI if the frontend algorithm decides this line is highly efficient or immune!
+                              if (activeTab === 'local' || !isBottleneck) {
+                                timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
+                              }
                               
                               if (activeTab === 'local') {
-                                timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
                                 spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
                               }
 
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
-                              const isBottleneck = actualBottleneckIndices.includes(i);
-
+                              
+                              const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
+                              // UPDATED: Added missing check for the log n recurrence equation (T(n/2)) so recursive binary search also gets the EFFICIENT tag 
+                              const isEfficient = !isBottleneck && 
+                                (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && 
+                                !compStripped.includes("nlogn");
+                                
                               return (
                                 <React.Fragment key={i}>
                                   <tr
-                                    className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''}`}
+                                    className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''} ${isEfficient ? 'efficient-active' : ''}`}
                                     onClick={() => toggleLine(i)}
                                     style={{
                                       cursor: 'pointer',
-                                      borderLeft: isBottleneck ? '4px solid #ff375f' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
-                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : 'transparent'
+                                      borderLeft: isBottleneck ? '4px solid #ff375f' : isEfficient ? '4px solid #2ecc71' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : isEfficient ? 'rgba(46, 204, 113, 0.12)' : 'transparent'
                                     }}
                                     title="Click to view explanation"
                                   >
@@ -876,6 +892,15 @@ export default function MainApp() {
                                           boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)', animation: 'pulse 1.5s infinite'
                                         }}>
                                           Bottleneck
+                                        </span>
+                                      )}
+                                      {isEfficient && (
+                                        <span style={{
+                                          backgroundColor: '#2ecc71', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px',
+                                          borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', marginLeft: '10px',
+                                          boxShadow: '0 0 8px rgba(46, 204, 113, 0.6)'
+                                        }}>
+                                          Efficient
                                         </span>
                                       )}
                                     </td>
