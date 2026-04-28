@@ -6,26 +6,7 @@ from pydantic import BaseModel
 from bson import ObjectId
 
 # Ensure current dir is included for Vercel
-api_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, api_dir)  
-
-# =========================
-# ✅ FIX: IMPORT BLOCKLY AST CONVERTER
-# =========================
-# For local dev, try to find it in the frontend folder
-engine_path = os.path.join(api_dir, '..', 'frontend', 'public', 'python_engine')
-if os.path.exists(engine_path):
-    sys.path.insert(0, engine_path)
-
-# Try importing the converter (Will work on Vercel once copied to api/ folder)
-try:
-    from blockly_ast import BlocklyASTConverter
-    HAS_CONVERTER = True
-    CONVERTER_ERROR = ""
-except ModuleNotFoundError as e:
-    HAS_CONVERTER = False
-    CONVERTER_ERROR = str(e)
-    print(f"Warning: Could not import BlocklyASTConverter: {e}")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
 
 # =========================
 # ✅ CLEANED IMPORT HANDLING
@@ -38,7 +19,7 @@ except ModuleNotFoundError:
         from database import projects_collection, users_collection, templates_collection  
         from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  
     except ModuleNotFoundError as e:
-        raise RuntimeError(f"Database Import failed: {e}")  
+        raise RuntimeError(f"Import failed: {e}")  
 
 app = FastAPI()
 
@@ -70,35 +51,9 @@ class ProgressRequest(BaseModel):
     lesson_id: str
     score: int
 
-class ASTRequest(BaseModel):
-    code: str
-
 @app.get("/")
 def health_check():
     return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
-
-# =========================
-# PYTHON TO BLOCKS (ACTUAL FIX)
-# =========================
-@app.post("/api/ast-to-blocks")
-def ast_to_blocks(req: ASTRequest):
-    # Safety catch so the server doesn't crash if the file is missing on Vercel
-    if not HAS_CONVERTER:
-        return {
-            "status": "error", 
-            "message": f"Server Configuration Error: Vercel stripped blockly_ast.py. Please ensure you copied 'blockly_ast.py' directly into the 'api/' folder. (Details: {CONVERTER_ERROR})"
-        }
-
-    try:
-        # Instantiate your converter
-        converter = BlocklyASTConverter()
-        
-        # Run the Python code through your custom AST parser
-        result = converter.convert(req.code)
-        
-        return result
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
 
 # =========================
 # CLOUD SYNC: PROJECTS
