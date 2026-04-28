@@ -9,8 +9,17 @@ from bson import ObjectId
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
 
 # =========================
-# ✅ CLEANED IMPORT HANDLING
+# ✅ NEW: IMPORT BLOCKLY AST CONVERTER
 # =========================
+# Path to frontend/public/python_engine where blockly_ast.py lives
+engine_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'public', 'python_engine')
+sys.path.insert(0, engine_path)
+
+try:
+    from blockly_ast import BlocklyASTConverter
+except ModuleNotFoundError as e:
+    print(f"Warning: Could not import BlocklyASTConverter. Is the path correct? {e}")
+    
 try:
     from api.database import projects_collection, users_collection, templates_collection
     from api.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
@@ -65,17 +74,15 @@ def health_check():
 @app.post("/api/ast-to-blocks")
 def ast_to_blocks(req: ASTRequest):
     try:
-        # TODO: Import and use your actual Python-to-Blockly conversion logic here!
-        # For example: 
-        # from parser import python_to_blockly
-        # block_json = python_to_blockly(req.code)
-
-        # Temporary fallback to an empty workspace so the frontend stops crashing:
-        placeholder_blocks = {"blocks": {"languageVersion": 0, "blocks": []}}
-
-        return {"status": "success", "blocks": placeholder_blocks}
+        # Instantiate your converter
+        converter = BlocklyASTConverter()
+        
+        # Run the Python code through your custom AST parser
+        result = converter.convert(req.code)
+        
+        # Your convert() function natively returns {"status": "success", "blocks": {...}}
+        return result
     except Exception as e:
-        # Return the error in the exact format your frontend is expecting
         return {"status": "error", "message": str(e)}
 
 # =========================
