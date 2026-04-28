@@ -65,7 +65,7 @@ export default function DashboardHeader() {
             ALGOBLOCKS
           </h1>
         </div>
-        <Link to="/dashboard" className="back-home">
+        <Link to="/home" className="back-home">
           <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Home
         </Link>
       </div>

@@ -9,8 +9,17 @@ from bson import ObjectId
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
 
 # =========================
-# ✅ CLEANED IMPORT HANDLING
+# ✅ NEW: IMPORT BLOCKLY AST CONVERTER
 # =========================
+# Path to frontend/public/python_engine where blockly_ast.py lives
+engine_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'public', 'python_engine')
+sys.path.insert(0, engine_path)
+
+try:
+    from blockly_ast import BlocklyASTConverter
+except ModuleNotFoundError as e:
+    print(f"Warning: Could not import BlocklyASTConverter. Is the path correct? {e}")
+    
 try:
     from api.database import projects_collection, users_collection, templates_collection
     from api.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
@@ -51,9 +60,30 @@ class ProgressRequest(BaseModel):
     lesson_id: str
     score: int
 
+# NEW: Model for the AST converter request payload
+class ASTRequest(BaseModel):
+    code: str
+
 @app.get("/")
 def health_check():
     return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
+
+# =========================
+# PYTHON TO BLOCKS (NEW FIX)
+# =========================
+@app.post("/api/ast-to-blocks")
+def ast_to_blocks(req: ASTRequest):
+    try:
+        # Instantiate your converter
+        converter = BlocklyASTConverter()
+        
+        # Run the Python code through your custom AST parser
+        result = converter.convert(req.code)
+        
+        # Your convert() function natively returns {"status": "success", "blocks": {...}}
+        return result
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # =========================
 # CLOUD SYNC: PROJECTS
