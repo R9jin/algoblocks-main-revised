@@ -9,30 +9,29 @@ export const runCodeWithTimeout = (code, timeoutMs = 4000, onOutput, onError) =>
     return new Promise((resolve) => {
         let isFinished = false;
 
-        // 1. Set the timeout on the MAIN THREAD
         const timeoutId = setTimeout(() => {
             if (!isFinished) {
                 isFinished = true;
-                // 2. Kill the frozen worker
+                
+                // Remove listener and kill the frozen worker
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
                 sharedAnalyzerWorker.terminate(); 
                 
-                // 3. Send the error to the UI
                 onError("Execution Prevented:\nRoot Cause: Infinite Loop detected.\nSuggestion: Check your loop conditions.");
                 
-                // 4. Resurrect a fresh worker for the next run
+                // Resurrect a fresh worker for the next run
                 sharedAnalyzerWorker = new Worker(
                     new URL('./analyzer.worker.js', import.meta.url),
                     { type: 'module' }
                 );
                 
-                // Initialize the new worker quietly
                 sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
                 resolve();
             }
         }, timeoutMs);
 
-        // 5. Listen for messages from the worker
-        sharedAnalyzerWorker.onmessage = (e) => {
+        // FIX: Use addEventListener so we don't overwrite other active worker tasks
+        const messageHandler = (e) => {
             const { type, data } = e.data;
             
             if (type === 'OUTPUT') {
@@ -42,12 +41,29 @@ export const runCodeWithTimeout = (code, timeoutMs = 4000, onOutput, onError) =>
             } else if (type === 'RUN_RESULT') {
                 isFinished = true;
                 clearTimeout(timeoutId);
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
                 resolve();
             }
         };
 
-        // 6. Start the execution
+        sharedAnalyzerWorker.addEventListener('message', messageHandler);
         sharedAnalyzerWorker.postMessage({ type: 'RUN_CODE', code });
+    });
+};
+
+// NEW: Function to request AST parsing from the Web Worker
+export const convertPythonToBlocks = (code) => {
+    return new Promise((resolve) => {
+        const messageHandler = (e) => {
+            const { type, data } = e.data;
+            if (type === 'PYTHON_TO_BLOCKS_RESULT') {
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
+                resolve(data);
+            }
+        };
+        
+        sharedAnalyzerWorker.addEventListener('message', messageHandler);
+        sharedAnalyzerWorker.postMessage({ type: 'PYTHON_TO_BLOCKS', code });
     });
 };
 

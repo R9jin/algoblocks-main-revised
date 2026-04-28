@@ -13,6 +13,7 @@ import "@blockly/toolbox-search";
 import { Backpack } from "@blockly/workspace-backpack";
 import { ContentHighlight } from "@blockly/workspace-content-highlight";
 import { PositionedMinimap } from "@blockly/workspace-minimap";
+import { convertPythonToBlocks } from "../workers/analyzerInstance";
 
 registerFieldMultilineInput();
 Blockly.setLocale(En);
@@ -485,22 +486,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       if (!workspace.current) return;
 
       try {
-        const response = await fetch(`${API_URL}/api/ast-to-blocks`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: pythonCode })
-        });
-
-        // FIX: Read as raw text first to prevent 'Unexpected end of JSON input' crashes
-        const textData = await response.text();
-        let data;
-
-        try {
-          data = JSON.parse(textData);
-        } catch (e) {
-          console.error("Invalid JSON from server. Raw Response:", textData);
-          throw new Error("Server returned an empty or invalid response. The backend might have crashed.");
-        }
+        const data = await convertPythonToBlocks(pythonCode);
 
         if (data.status === "error") {
           throw new Error(data.message || "Failed to parse Python code.");

@@ -1,3 +1,5 @@
+// frontend/src/workers/analyzer.worker.js
+
 let pyodide = null;
 
 // async input control
@@ -72,7 +74,6 @@ self.onmessage = async (e) => {
     if (type === 'ANALYZE_CODE') {
       pyodide.globals.set("user_code", code);
 
-      // ✅ FIX: Properly import ComplexityAnalyzer, parse the AST, and return the JSON
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
 import ast
@@ -127,6 +128,34 @@ output
       const resultData = JSON.parse(resultJsonStr);
 
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
+    }
+    
+    // ======================
+    // PYTHON TO BLOCKS MODE
+    // ======================
+    else if (type === 'PYTHON_TO_BLOCKS') {
+      pyodide.globals.set("user_code", code);
+
+      const resultJsonStr = await pyodide.runPythonAsync(`
+import json
+import sys
+
+if 'blockly_ast' in sys.modules:
+    del sys.modules['blockly_ast']
+
+try:
+    from blockly_ast import BlocklyASTConverter
+    converter = BlocklyASTConverter()
+    result = converter.convert(user_code)
+    output = json.dumps(result)
+except Exception as e:
+    output = json.dumps({"status": "error", "message": str(e)})
+
+output
+      `);
+      
+      const resultData = JSON.parse(resultJsonStr);
+      self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
     }
 
     // ======================
@@ -225,7 +254,6 @@ try:
             compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
             sys.settrace(dyn_profiler.trace_lines)
             
-            # ✅ FIX: evaluate the compiled code object manually to extract the coroutine
             coro = eval(compiled_code, globals())
             if coro is not None:
                 await coro
