@@ -6,20 +6,30 @@ from pydantic import BaseModel
 from bson import ObjectId
 
 # Ensure current dir is included for Vercel
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
+api_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, api_dir)  
 
 # =========================
-# ✅ NEW: IMPORT BLOCKLY AST CONVERTER
+# ✅ FIX: IMPORT BLOCKLY AST CONVERTER
 # =========================
-# Path to frontend/public/python_engine where blockly_ast.py lives
-engine_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'public', 'python_engine')
-sys.path.insert(0, engine_path)
+# For local dev, try to find it in the frontend folder
+engine_path = os.path.join(api_dir, '..', 'frontend', 'public', 'python_engine')
+if os.path.exists(engine_path):
+    sys.path.insert(0, engine_path)
 
+# Try importing the converter (Will work on Vercel once copied to api/ folder)
 try:
     from blockly_ast import BlocklyASTConverter
+    HAS_CONVERTER = True
+    CONVERTER_ERROR = ""
 except ModuleNotFoundError as e:
-    print(f"Warning: Could not import BlocklyASTConverter. Is the path correct? {e}")
-    
+    HAS_CONVERTER = False
+    CONVERTER_ERROR = str(e)
+    print(f"Warning: Could not import BlocklyASTConverter: {e}")
+
+# =========================
+# ✅ CLEANED IMPORT HANDLING
+# =========================
 try:
     from api.database import projects_collection, users_collection, templates_collection
     from api.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
@@ -28,7 +38,7 @@ except ModuleNotFoundError:
         from database import projects_collection, users_collection, templates_collection  
         from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  
     except ModuleNotFoundError as e:
-        raise RuntimeError(f"Import failed: {e}")  
+        raise RuntimeError(f"Database Import failed: {e}")  
 
 app = FastAPI()
 
@@ -60,7 +70,6 @@ class ProgressRequest(BaseModel):
     lesson_id: str
     score: int
 
-# NEW: Model for the AST converter request payload
 class ASTRequest(BaseModel):
     code: str
 
@@ -69,10 +78,17 @@ def health_check():
     return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
 
 # =========================
-# PYTHON TO BLOCKS (NEW FIX)
+# PYTHON TO BLOCKS (ACTUAL FIX)
 # =========================
 @app.post("/api/ast-to-blocks")
 def ast_to_blocks(req: ASTRequest):
+    # Safety catch so the server doesn't crash if the file is missing on Vercel
+    if not HAS_CONVERTER:
+        return {
+            "status": "error", 
+            "message": f"Server Configuration Error: Vercel stripped blockly_ast.py. Please ensure you copied 'blockly_ast.py' directly into the 'api/' folder. (Details: {CONVERTER_ERROR})"
+        }
+
     try:
         # Instantiate your converter
         converter = BlocklyASTConverter()
@@ -80,7 +96,6 @@ def ast_to_blocks(req: ASTRequest):
         # Run the Python code through your custom AST parser
         result = converter.convert(req.code)
         
-        # Your convert() function natively returns {"status": "success", "blocks": {...}}
         return result
     except Exception as e:
         return {"status": "error", "message": str(e)}
