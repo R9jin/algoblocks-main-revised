@@ -51,9 +51,32 @@ class ProgressRequest(BaseModel):
     lesson_id: str
     score: int
 
+# NEW: Model for the AST converter request payload
+class ASTRequest(BaseModel):
+    code: str
+
 @app.get("/")
 def health_check():
     return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
+
+# =========================
+# PYTHON TO BLOCKS (NEW FIX)
+# =========================
+@app.post("/api/ast-to-blocks")
+def ast_to_blocks(req: ASTRequest):
+    try:
+        # TODO: Import and use your actual Python-to-Blockly conversion logic here!
+        # For example: 
+        # from parser import python_to_blockly
+        # block_json = python_to_blockly(req.code)
+
+        # Temporary fallback to an empty workspace so the frontend stops crashing:
+        placeholder_blocks = {"blocks": {"languageVersion": 0, "blocks": []}}
+
+        return {"status": "success", "blocks": placeholder_blocks}
+    except Exception as e:
+        # Return the error in the exact format your frontend is expecting
+        return {"status": "error", "message": str(e)}
 
 # =========================
 # CLOUD SYNC: PROJECTS
