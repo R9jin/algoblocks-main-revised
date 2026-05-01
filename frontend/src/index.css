@@ -216,6 +216,12 @@ td {
   pointer-events: none; /* Let users click through it */
 }
 
+.network-popup.faded {
+    opacity: 0.3; /* Drops the visibility so it's not distracting */
+    transform: scale(0.9) translateY(10px); /* Shrinks it slightly and pushes it down */
+    pointer-events: none; /* CRITICAL: Lets the user click right through it to the UI below */
+}
+
 /* Animation Classes controlled by React */
 .network-popup.show {
   transform: translateX(-50%) translateY(0);

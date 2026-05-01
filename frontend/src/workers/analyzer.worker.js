@@ -1,5 +1,3 @@
-// frontend/src/workers/analyzer.worker.js
-
 let pyodide = null;
 
 // async input control
@@ -76,8 +74,6 @@ self.onmessage = async (e) => {
 
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
-import ast
-import traceback
 import sys
 
 # Ensure fresh imports if the worker reloaded the files from the network
@@ -87,35 +83,12 @@ if 'semantic_nlg' in sys.modules:
     del sys.modules['semantic_nlg']
 
 try:
-    from analyzer import ComplexityAnalyzer
-
-    def do_analyze(code_to_check):
-        try:
-            tree = ast.parse(code_to_check)
-            analyzer_inst = ComplexityAnalyzer(code_to_check)
-            analyzer_inst.bfs_first_pass(tree)
-            analyzer_inst.visit(tree)
-            
-            return json.dumps({
-                "status": "success",
-                "total": analyzer_inst.get_final_asymptotic_badge(),
-                "space_total": analyzer_inst.get_final_space_badge(),
-                "lines": analyzer_inst.details
-            })
-        except SyntaxError as e:
-            return json.dumps({
-                "status": "error",
-                "message": f"SyntaxError: {str(e)}",
-                "line": getattr(e, 'lineno', -1)
-            })
-        except Exception as e:
-            return json.dumps({
-                "status": "error",
-                "message": str(e),
-                "line": -1
-            })
-
-    output = do_analyze(user_code)
+    from analyzer import analyze_source_code
+    
+    # Run the high-precision backend analyzer
+    output_dict = analyze_source_code(user_code)
+    output = json.dumps(output_dict)
+    
 except Exception as init_err:
     output = json.dumps({
         "status": "error",

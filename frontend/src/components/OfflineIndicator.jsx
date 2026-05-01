@@ -3,24 +3,28 @@ import { useEffect, useRef, useState } from 'react';
 export default function OfflineIndicator() {
     const [status, setStatus] = useState('online'); // 'online', 'offline', 'restored'
     const [isVisible, setIsVisible] = useState(false);
+    
+    // NEW: Track if the banner should be faded out
+    const [isFaded, setIsFaded] = useState(false); 
 
-    // We use a ref to track the current status inside the setInterval closure
     const statusRef = useRef('online');
 
     useEffect(() => {
         let hideTimeout;
+        let fadeTimeout; // NEW: Timeout for fading
 
-        // Helper: Safely transition to "Online/Restored"
         const triggerOnline = () => {
             if (statusRef.current === 'offline') {
                 statusRef.current = 'restored';
                 setStatus('restored');
                 setIsVisible(true);
+                setIsFaded(false); // Reset fade when coming back online
 
                 clearTimeout(hideTimeout);
+                clearTimeout(fadeTimeout);
+
                 hideTimeout = setTimeout(() => {
                     setIsVisible(false);
-                    // Wait for the CSS slide-out animation to finish before resetting
                     setTimeout(() => {
                         statusRef.current = 'online';
                         setStatus('online');
@@ -29,49 +33,44 @@ export default function OfflineIndicator() {
             }
         };
 
-        // Helper: Safely transition to "Offline"
         const triggerOffline = () => {
             if (statusRef.current !== 'offline') {
                 statusRef.current = 'offline';
                 setStatus('offline');
                 setIsVisible(true);
+                setIsFaded(false); // Start fully visible
+                
                 clearTimeout(hideTimeout);
+                clearTimeout(fadeTimeout);
+
+                // NEW: Fade the indicator out after 5 seconds
+                // (Change 5000 to 60000 if you really want 1 full minute)
+                fadeTimeout = setTimeout(() => {
+                    setIsFaded(true);
+                }, 5000);
             }
         };
 
-        // 1. Standard Browser Events (Fastest, but sometimes fooled by OS virtual adapters)
         window.addEventListener('online', triggerOnline);
         window.addEventListener('offline', triggerOffline);
 
-        // 2. Active Polling (The safety net for Laptops with VPNs / Virtual Adapters)
         const checkRealConnectivity = async () => {
-            // If the browser already admits it's offline, trust it immediately
             if (!navigator.onLine) {
                 triggerOffline();
                 return;
             }
-
             try {
-                // Ping an external resource the Service Worker won't cache
-                // mode: 'no-cors' prevents CORS errors.
-                // ?t=Date.now() prevents the browser from caching the response.
                 await fetch('https://www.google.com/favicon.ico?t=' + Date.now(), {
                     mode: 'no-cors',
                     cache: 'no-store',
                 });
-
-                // Fetch succeeded = real internet is active
                 triggerOnline();
             } catch (error) {
-                // Fetch failed = fake internet (Virtual Adapter/VPN is tricking the browser)
                 triggerOffline();
             }
         };
 
-        // Check the real connection every 5 seconds
         const pollingInterval = setInterval(checkRealConnectivity, 5000);
-
-        // Do an immediate check on mount
         checkRealConnectivity();
 
         return () => {
@@ -79,14 +78,15 @@ export default function OfflineIndicator() {
             window.removeEventListener('offline', triggerOffline);
             clearInterval(pollingInterval);
             clearTimeout(hideTimeout);
+            clearTimeout(fadeTimeout); // Cleanup
         };
     }, []);
 
-    // completely remove it from the DOM if we are safely online and not animating
     if (!isVisible && status === 'online') return null;
 
     return (
-        <div className={`network-popup ${status} ${isVisible ? 'show' : 'hide'}`}>
+        // NEW: Apply the 'faded' class dynamically
+        <div className={`network-popup ${status} ${isVisible ? 'show' : 'hide'} ${isFaded ? 'faded' : ''}`}>
             <div className="network-popup-content">
                 {status === 'offline' ? (
                     <>

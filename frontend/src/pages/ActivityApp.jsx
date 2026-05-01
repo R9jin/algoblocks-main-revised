@@ -422,10 +422,9 @@ const ActivityApp = () => {
       const { type, data, counts } = event.data;
 
       if (type === 'ANALYZE_RESULT') {
-        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
-        setAnalysisTime(duration);
-
         if (data.status === "success") {
+          // Read precise time directly from the Python backend
+          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
@@ -544,8 +543,6 @@ const ActivityApp = () => {
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "") return;
 
-    analysisStartTimeRef.current = performance.now();
-
     if (isOnline) {
       try {
         const response = await fetch(`${VERCEL_URL}/api/analyze`, {
@@ -557,10 +554,10 @@ const ActivityApp = () => {
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
 
         const data = await response.json();
-        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
-        setAnalysisTime(duration);
 
         if (data.status === "success") {
+          // Read precise time directly from the Python backend
+          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
