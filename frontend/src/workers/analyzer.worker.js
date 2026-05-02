@@ -1,3 +1,4 @@
+// frontend\src\workers\analyzer.worker.js
 let pyodide = null;
 
 // async input control

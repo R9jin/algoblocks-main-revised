@@ -1,34 +1,35 @@
+// frontend/src/components/OfflineIndicator.jsx
 import { useEffect, useRef, useState } from 'react';
 
 export default function OfflineIndicator() {
-    const [status, setStatus] = useState('online'); // 'online', 'offline', 'restored'
+    const [status, setStatus] = useState('online'); 
     const [isVisible, setIsVisible] = useState(false);
     
-    // NEW: Track if the banner should be faded out
-    const [isFaded, setIsFaded] = useState(false); 
-
+    // We no longer need the isFaded state since it's going to disappear completely
+    
     const statusRef = useRef('online');
+    
+    // Use refs for the timeouts so they persist across renders
+    const hideTimeoutRef = useRef(null);
 
     useEffect(() => {
-        let hideTimeout;
-        let fadeTimeout; // NEW: Timeout for fading
-
         const triggerOnline = () => {
             if (statusRef.current === 'offline') {
                 statusRef.current = 'restored';
                 setStatus('restored');
                 setIsVisible(true);
-                setIsFaded(false); // Reset fade when coming back online
 
-                clearTimeout(hideTimeout);
-                clearTimeout(fadeTimeout);
+                // Clear any existing timeout so it doesn't hide prematurely
+                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
 
-                hideTimeout = setTimeout(() => {
+                // Hide the "Back Online" banner after 3 seconds
+                hideTimeoutRef.current = setTimeout(() => {
                     setIsVisible(false);
+                    // Give the CSS slide-up animation time to finish (400ms) before resetting status
                     setTimeout(() => {
                         statusRef.current = 'online';
                         setStatus('online');
-                    }, 400);
+                    }, 400); 
                 }, 3000);
             }
         };
@@ -38,16 +39,14 @@ export default function OfflineIndicator() {
                 statusRef.current = 'offline';
                 setStatus('offline');
                 setIsVisible(true);
-                setIsFaded(false); // Start fully visible
                 
-                clearTimeout(hideTimeout);
-                clearTimeout(fadeTimeout);
+                // Clear any existing timeout
+                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
 
-                // NEW: Fade the indicator out after 5 seconds
-                // (Change 5000 to 60000 if you really want 1 full minute)
-                fadeTimeout = setTimeout(() => {
-                    setIsFaded(true);
-                }, 5000);
+                // Hide the "Connection Lost" banner completely after 10 seconds
+                hideTimeoutRef.current = setTimeout(() => {
+                    setIsVisible(false);
+                }, 10000); 
             }
         };
 
@@ -77,16 +76,16 @@ export default function OfflineIndicator() {
             window.removeEventListener('online', triggerOnline);
             window.removeEventListener('offline', triggerOffline);
             clearInterval(pollingInterval);
-            clearTimeout(hideTimeout);
-            clearTimeout(fadeTimeout); // Cleanup
+            if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
         };
     }, []);
 
-    if (!isVisible && status === 'online') return null;
+    // DO NOT ADD THE EARLY RETURN BACK IN!
+    // if (!isVisible && status === 'online') return null;
 
     return (
-        // NEW: Apply the 'faded' class dynamically
-        <div className={`network-popup ${status} ${isVisible ? 'show' : 'hide'} ${isFaded ? 'faded' : ''}`}>
+        // Removed the faded class logic
+        <div className={`network-popup ${status} ${isVisible ? 'show' : 'hide'}`}>
             <div className="network-popup-content">
                 {status === 'offline' ? (
                     <>

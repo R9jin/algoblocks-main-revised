@@ -1,3 +1,4 @@
+// frontend\src\components\MemoryVisualizer.jsx
 import '../styles/MemoryVisualizer.css';
 
 const MemoryVisualizer = ({ analysisData, currentStep }) => {

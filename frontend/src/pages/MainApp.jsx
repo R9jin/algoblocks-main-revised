@@ -744,11 +744,23 @@ export default function MainApp() {
                   <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
 
                     {/* Console Tab Group */}
-                    <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px' }}>
+                    <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="tab-btn-group">
                         <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
                         <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
+
+                      {/* NEW: Clear Console Button */}
+                      {consoleTab === 'output' && (
+                        <button
+                          onClick={() => setConsoleOutput("Ready to run...\n")}
+                          className="tab-btn"
+                          style={{ backgroundColor: 'rgba(231, 76, 60, 0.15)', color: '#e74c3c', border: '1px solid rgba(231, 76, 60, 0.3)' }}
+                          title="Clear Terminal Output"
+                        >
+                          ✕ Clear
+                        </button>
+                      )}
                     </div>
 
                     <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>

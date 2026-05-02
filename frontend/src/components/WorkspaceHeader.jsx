@@ -1,16 +1,4 @@
-/**
- * WorkspaceHeader Component
- *
- * This component renders the top header of the AlgoBlocks workspace page.
- * It provides navigation, view toggling between Workspace and Python code,
- * and action buttons for running and saving projects.
- *
- * Props:
- * - viewMode: string ('workspace' | 'python') representing the current view.
- * - setViewMode: function to switch between workspace and Python code views.
- * - runCode: function to execute the current workspace code.
- * - handleSaveToDB: function to save the current project to MongoDB.
- */
+// frontend\src\components\WorkspaceHeader.jsx
 
 import { useNavigate } from "react-router-dom";
 

@@ -1,13 +1,4 @@
-/**
- * Footer Component
- *
- * This component renders the footer section displayed at the bottom
- * of the application pages. The footer provides a simple branding
- * and copyright notice indicating ownership of the AlgoBlocks system.
- *
- * The year is generated dynamically to ensure that the displayed
- * copyright information remains accurate without requiring manual updates.
- */
+// frontend\src\components\Footer.jsx
 
 import "../styles/Footer.css";
 

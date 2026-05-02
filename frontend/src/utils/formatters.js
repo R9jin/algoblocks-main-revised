@@ -1,3 +1,4 @@
+// frontend\src\utils\formatters.js
 export function formatComplexity(str) {
   // BULLETPROOF CHECK: If it's missing or not a string, return it safely without crashing
   if (!str || typeof str !== 'string') {
