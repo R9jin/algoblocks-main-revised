@@ -34,3 +34,25 @@ export const getComplexityWeight = (complexity) => {
   if (comp.includes("o(n)") || comp === "n") return 3;
   return 0;
 };
+
+export function resolveRecurrenceToBigO(compStr) {
+  if (!compStr || typeof compStr !== 'string') return "O(1)";
+
+  // Normalize the string for easy matching
+  const comp = compStr.toLowerCase().replace(/\s+/g, '');
+
+  // If it's already a standard Big-O notation, return it as-is
+  if (comp.includes("o(") && !comp.includes("t(")) return compStr;
+
+  // Map Master Theorem / Recurrence Relations to closed-form Big-O
+  if (comp.includes("n*t(n-1)")) return "O(n!)";
+  if (comp.includes("t(n-1)+t(n-2)")) return "O(2^n)";
+  if (comp.includes("2t(n/2)+o(n)")) return "O(n log n)";
+  if (comp.includes("t(n-1)+o(n)")) return "O(n^2)";
+  if (comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)")) return "O(n)";
+  if (comp.includes("t(n/2)+o(1)")) return "O(log n)";
+  if (comp.includes("t(n-1)+o(1)")) return "O(n)";
+
+  // Fallback if unrecognized
+  return "O(1)";
+}

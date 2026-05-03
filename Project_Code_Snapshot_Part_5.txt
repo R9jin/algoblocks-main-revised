@@ -1,0 +1,4947 @@
+﻿--- PROJECT SNAPSHOT (PART 5 OF 5) ---
+
+--- TIMESTAMP: 2026-05-03 15:06:16 ---
+
+
+--- FILE: frontend/src/styles/ConfirmModal.css ---
+
+/*frontend\src\styles\ConfirmModal.css*/
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 5, 20, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  /* Smooth fade and blur for the overlay */
+  animation: fade-in-overlay 0.3s ease-out forwards;
+}
+
+.custom-modal-content {
+  background: #1C1236;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px 32px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  color: #EBE4FF;
+  /* Premium fluid pop curve */
+  animation: modal-smooth-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fade-in-overlay {
+  0% { opacity: 0; backdrop-filter: blur(0px); }
+  100% { opacity: 1; backdrop-filter: blur(5px); }
+}
+
+@keyframes modal-smooth-pop {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.custom-modal-header h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.3rem;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.custom-modal-body p {
+  margin: 0 0 24px 0;
+  font-size: 0.95rem;
+  color: #c5baff;
+  line-height: 1.5;
+}
+
+.custom-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-modal {
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-modal-cancel {
+  background: transparent;
+  color: #c5baff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.btn-modal-confirm {
+  background: #6C5CE7;
+  /* Default Primary Purple */
+  color: #fff;
+}
+
+.btn-modal-confirm:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+}
+
+.btn-modal-danger {
+  background: #e74c3c;
+  /* Red for destructive actions */
+}
+
+.btn-modal-danger:hover {
+  background: #c0392b;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
+--- FILE: frontend/src/styles/Dashboard.css ---
+
+/*frontend\src\styles\Dashboard.css*/
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #ffffff;
+  color: #3C2D76;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
+}
+
+.dashboard-header .header-left,
+.dashboard-header .header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.back-home {
+  text-decoration: none;
+  color: #5A1398;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Update the existing class to align the image and text */
+.btn-open-project {
+  background: transparent;
+  color: #5A1398;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Adds space between the icon and the text */
+}
+
+/* Add this new class to control the size of your icon */
+.btn-icon-open {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.btn-new-project {
+  background: #5A1398;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.user-profile-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  /* <-- Changed from '1px solid #5A1398' to 'none' */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  background-color: transparent;
+  /* Changed to transparent so there's no background box */
+}
+
+.user-profile-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dashboard-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.dashboard-main {
+  flex: 3;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.dashboard-sidebar {
+  flex: 1;
+  border-left: 1px solid #e0e0e0;
+  padding: 40px;
+  background-color: #fcfcff;
+}
+
+/* Learning Path Banner */
+.learning-path-banner {
+  display: flex;
+  align-items: center;
+  border: 1px solid #BCA1FC;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 40px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.learning-path-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(90, 19, 152, 0.1);
+}
+
+/* --- Update Banner Icon --- */
+.banner-icon {
+  background: #C994FF;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  margin-right: 20px;
+}
+
+/* Add this to constrain the banner image */
+.banner-icon img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  /* Prevents image stretching */
+}
+
+.banner-text h2 {
+  margin: 0 0 5px 0;
+  color: #1a1a1a;
+}
+
+.banner-text p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.banner-arrow {
+  margin-left: auto;
+  font-size: 1.5rem;
+  color: #5A1398;
+  font-weight: bold;
+}
+
+/* Templates Section */
+.section-title {
+  color: #3C2D76;
+  font-size: 2rem;
+  margin-bottom: 30px;
+}
+
+.category-label {
+  color: #6e6e8e;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+}
+
+/* ... keep your other existing dashboard CSS ... */
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+  align-items: start;
+  /* Prevents cards from stretching heights to match neighbors */
+}
+
+.template-card {
+  background-color: #EBE4FF;
+  border: 1px solid #BCA1FC;
+  border-radius: 10px;
+  padding: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.template-card:hover {
+  transform: translateY(-3px);
+  background-color: #e0d4ff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+  transition: margin-bottom 0.3s ease;
+}
+
+/* Header of the card */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Removed the hardcoded margin-bottom so the card is compact when collapsed */
+  margin-bottom: 0;
+  transition: margin-bottom 0.3s ease;
+}
+
+.card-header h4 {
+  margin: 0;
+  color: #1a1a1a;
+  font-size: 1.1rem;
+}
+
+.card-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* --- HOVER ANIMATION LOGIC --- */
+
+/* Base state: The container for both description and button is hidden */
+.card-hover-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+}
+
+/* Hover state: Expand the container to reveal both text and button */
+.template-card:hover .card-hover-content {
+  max-height: 250px;
+  /* Made slightly taller to ensure long descriptions + button fit */
+  opacity: 1;
+  margin-top: 12px;
+}
+
+/* Base text styling */
+.template-card-desc {
+  margin: 0;
+  color: #555;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin-bottom: 15px;
+  /* Adds space between the text and the button */
+}
+
+/* Test Template Button Styling */
+.try-template-btn {
+  background-color: #5A1398;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s, transform 0.2s;
+  box-shadow: 0 4px 10px rgba(90, 19, 152, 0.2);
+}
+
+.try-template-btn:hover {
+  background-color: #7F57F9;
+  transform: translateY(-1px);
+}
+
+/* ... keep sidebar and banner CSS ... */
+
+/* Sidebar */
+.sidebar-label {
+  color: #3C2D76;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.empty-projects-box {
+  background-color: #EBE4FF;
+  border: 1px solid #BCA1FC;
+  border-radius: 8px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a8a8a;
+  font-size: 0.9rem;
+}
+
+/* User Profile Menu & Button Resets */
+.user-menu {
+  margin-left: 15px;
+  position: relative; /* Keeps the dropdown anchored to the menu */
+}
+
+.user-menu-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* User Profile Image Styling */
+.user-profile-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%; /* Forces the square image into a circle */
+  object-fit: cover;  /* Prevents image distortion */
+  background-color: #EBE4FF; 
+  border: 2px solid #A594DC; 
+  transition: transform 0.2s ease;
+}
+
+.user-profile-img:hover {
+  transform: scale(1.05); /* Slight zoom effect on hover */
+}
+
+/* =========================================
+   USER PROFILE DROPDOWN MENU
+   ========================================= */
+
+/* =========================================
+   USER PROFILE DROPDOWN MENU (LIGHT MODE)
+   ========================================= */
+
+/* The floating menu container */
+.user-dropdown {
+  position: absolute;
+  top: 55px; 
+  right: 0;
+  background-color: #ffffff; /* Clean white background */
+  border: 1px solid #e2e8f0; /* Light gray border */
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* Soft, airy drop shadow */
+  width: 220px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* The header area inside the dropdown */
+.user-dropdown-head {
+  padding: 16px;
+  background-color: #f8fafc; /* Very soft gray background for the header */
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.dropdown-avatar-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  border: 2px solid #cbd5e1; /* Subtle outline for the image */
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.user-name {
+  color: #1e293b; /* Dark, high-contrast text */
+  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.user-email {
+  color: #64748b; /* Muted gray text for secondary info */
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+/* The clickable buttons inside the menu */
+.user-dd-item {
+  background: none;
+  border: none;
+  color: #334155; 
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  width: 100%;
+}
+
+.user-dd-item:hover {
+  background-color: #f1f5f9; /* Light gray hover state */
+}
+
+.user-dd-item svg {
+  color: #64748b; /* Muted icon color */
+}
+
+/* Specific styling for the Sign Out button */
+.user-dd-item.danger {
+  color: #ef4444; /* Clean, modern red */
+}
+
+.user-dd-item.danger svg {
+  color: #ef4444;
+}
+
+.user-dd-item.danger:hover {
+  background-color: #fef2f2; /* Very faint red hover background */
+}
+
+/* The line that separates the items */
+.user-dd-divider {
+  height: 1px;
+  background-color: #e2e8f0;
+  margin: 4px 0;
+}
+
+/* ========================= */
+/* Responsive Improvements */
+/* ========================= */
+
+/* Large Tablets */
+@media (max-width: 1024px) {
+
+  .dashboard-main,
+  .dashboard-sidebar {
+    padding: 25px;
+  }
+
+  .section-title {
+    font-size: 1.7rem;
+  }
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+
+  /* Stack sidebar below main content */
+  .dashboard-body {
+    flex-direction: column;
+  }
+
+  .dashboard-sidebar {
+    border-left: none;
+    border-top: 1px solid #e0e0e0;
+  }
+
+  /* Header wraps properly */
+  .dashboard-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+    padding: 15px 20px;
+  }
+
+  .dashboard-header .header-left,
+  .dashboard-header .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dashboard-main,
+  .dashboard-sidebar {
+    padding: 20px;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .learning-path-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .banner-arrow {
+    align-self: flex-end;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+
+  .dashboard-main,
+  .dashboard-sidebar {
+    padding: 15px;
+  }
+
+  .section-title {
+    font-size: 1.3rem;
+  }
+
+  /* Make buttons full width on small screens */
+  .btn-new-project,
+  .btn-open-project {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Smaller profile icon */
+  .user-profile-icon {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+
+  /* Grid becomes tighter */
+  .template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Banner icon smaller */
+  .banner-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .banner-icon img {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.algorithm-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* 3 columns for Sorting, Searching, Recursive */
+  gap: 40px;
+  /* space between columns */
+  margin-bottom: 50px;
+}
+
+.algorithm-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-title {
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  color: #6e6e8e;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+.algorithm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.algorithm-item:hover {
+  transform: translateX(5px);
+  color: #5A1398;
+}
+
+.algo-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+@media (max-width: 900px) {
+  .algorithm-library-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .algorithm-library-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.algorithm-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* 3 columns for Sorting / Searching / Recursive */
+  gap: 40px;
+  /* spacing between columns */
+  margin-bottom: 50px;
+}
+
+.algorithm-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-title {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  color: #6e6e8e;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+/* Reuse your old card styles */
+.algorithm-card {
+  background-color: #EBE4FF;
+  border: 1px solid #BCA1FC;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.algorithm-card:hover {
+  transform: translateY(-3px);
+  background-color: #e0d4ff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.card-header h4 {
+  margin: 0;
+  color: #1a1a1a;
+  font-size: 1.05rem;
+}
+
+.card-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Hover content */
+.card-hover-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+}
+
+.algorithm-card:hover .card-hover-content {
+  max-height: 250px;
+  /* enough space for desc + button */
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.template-card-desc {
+  margin: 0 0 10px 0;
+  color: #555;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.try-template-btn {
+  background-color: #5A1398;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.try-template-btn:hover {
+  background-color: #7F57F9;
+  transform: translateY(-1px);
+}
+
+.algorithm-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* 3 columns for Sorting / Searching / Recursive */
+  gap: 40px;
+  /* spacing between columns */
+  margin-bottom: 50px;
+}
+
+.algorithm-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-title {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  color: #6e6e8e;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+}
+
+/* Reuse your old card styles */
+.algorithm-card {
+  background-color: #EBE4FF;
+  border: 1px solid #BCA1FC;
+  border-radius: 10px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.algorithm-card:hover {
+  transform: translateY(-3px);
+  background-color: #e0d4ff;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.card-header h4 {
+  margin: 0;
+  color: #1a1a1a;
+  font-size: 1.05rem;
+}
+
+.card-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Hover content */
+.card-hover-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
+}
+
+.algorithm-card:hover .card-hover-content {
+  max-height: 250px;
+  /* enough space for desc + button */
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.template-card-desc {
+  margin: 0 0 10px 0;
+  color: #555;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.try-template-btn {
+  background-color: #5A1398;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.try-template-btn:hover {
+  background-color: #7F57F9;
+  transform: translateY(-1px);
+}
+
+.dashboard-body>* {
+  height: 100%;
+}
+
+.dashboard-body {
+  height: calc(100vh - 80px);
+  /* adjust if your header height is 80px */
+}
+
+.custom-template-card {
+  border-left: 4px solid #7F57F9; /* Add a purple accent to user templates */
+}
+
+/* Sidebar Project Item Adjustments */
+.recent-project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recent-project-item:hover {
+  border-color: #BCA1FC;
+  background-color: #f8fafc;
+  transform: translateX(4px);
+}
+
+.project-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-item-title {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.95rem;
+}
+
+.project-item-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.project-item-status {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.project-item-status.synced {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.project-item-status.local {
+  background-color: #fff7ed;
+  color: #d97706;
+}
+
+--- FILE: frontend/src/styles/Footer.css ---
+
+/*frontend\src\styles\Footer.css*/
+.landing-footer {
+  text-align: center;
+  background-color: #1F1443;
+  color: #C994FF;
+  border-top: 1px solid #4830A0;
+}
+
+--- FILE: frontend/src/styles/HomePage.css ---
+
+/*frontend\src\styles\HomePage.css*/
+.landing-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #1F1443 0%, #4A0784 100%);
+  color: #F5F5F5;
+}
+
+.landing-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.landing-container::-webkit-scrollbar {
+  display: none;
+}
+
+.landing-nav {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: rgba(31, 20, 67, 0.95);
+  color: #F5F5F5;
+  border-bottom: 1px solid #4830A0;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.logo-text {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.nav-btn.signin {
+  background-color: transparent;
+  color: #F5F5F5;
+  border: 1px solid #7F57F9;
+}
+
+.nav-btn.signin:hover {
+  background-color: #7F57F9;
+  color: #F5F5F5;
+  border-color: #7F57F9;
+}
+
+.nav-btn.signup {
+  background-color: #7F57F9;
+  color: #F5F5F5;
+  border: 1px solid #7F57F9;
+}
+
+.nav-btn.signup:hover {
+  background-color: #C994FF;
+  border-color: #C994FF;
+}
+
+.landing-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.landing-main::-webkit-scrollbar {
+  display: none;
+}
+
+.slogan-text {
+  color: white;
+  font-size: 4rem;
+  font-weight: bold;
+}
+
+.accent {
+  color: #B570FA;
+}
+
+.hero {
+  text-align: left;
+  margin-bottom: 10rem;
+  max-width: 800px;
+}
+
+.home-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2.5rem;
+  max-width: 1200px;
+}
+
+.home-hero-copy {
+  flex: 1;
+  min-width: 280px;
+  max-width: 650px;
+}
+
+.home-hero-media {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.home-hero-image {
+  width: min(560px, 100%);
+  height: auto;
+  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.32));
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: #ffffff;
+  margin: 0 0 2rem 0;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  color: #F5F5F5;
+  padding: 0.75rem 2rem;
+  border-radius: 40px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(90, 19, 152, 0.4);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(224, 88, 251, 0.5);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  color: #F5F5F5;
+  padding: 0.75rem 2rem;
+  border-radius: 40px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  border: 2px solid #7F57F9;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #7F57F9;
+  border-color: #7F57F9;
+}
+
+.btn-icon-inline {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.feature-cards {
+  margin-bottom: 4rem;
+  text-align: center;
+}
+
+.feature-cards h2 {
+  font-size: 2rem;
+  color: #F5F5F5;
+  margin-bottom: 0.5rem;
+}
+
+.section-subtitle {
+  color: #C994FF;
+  font-size: 1.1rem;
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.card {
+  background: #FFFFFF;
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid #4830A0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.card-icon {
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 8px #E058FB);
+}
+
+.card-icon-badge {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #E7D9FF;
+}
+
+.card h3 {
+  color: #5A1398;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+}
+
+.card p {
+  color: #4830A0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.features-list {
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+
+.features-content {
+  flex: 1;
+  min-width: 300px;
+}
+
+.features-content h2 {
+  font-size: 2rem;
+  color: #F5F5F5;
+  margin-bottom: 1.5rem;
+}
+
+.features-content ul {
+  list-style: none;
+  padding: 0;
+}
+
+.features-content li {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #C994FF;
+  font-size: 1.1rem;
+}
+
+.features-content li::before {
+  content: "âœ“";
+  color: #E058FB;
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+/* Responsive Enhancements */
+
+/* --- NEW IMAGE STYLES --- */
+.feature-image-container {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.feature-example-image {
+  width: 100%;
+  max-width: 550px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  object-fit: contain; /* prevents stretching */
+}
+
+.feature-example-image:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+/* Large tablets */
+@media (max-width: 1024px) {
+  .landing-main {
+    padding: 1.5rem;
+  }
+
+  .home-hero {
+    gap: 2rem;
+  }
+
+  .home-hero-image {
+    width: min(480px, 100%);
+  }
+
+  .slogan-text {
+    font-size: 3rem;
+  }
+
+  .features-list {
+    gap: 2rem;
+  }
+
+  .feature-example-image {
+    max-width: 450px;
+  }
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+
+  .landing-nav {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .home-hero {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .home-hero-copy {
+    max-width: 100%;
+  }
+
+  .home-hero-media {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .home-hero-image {
+    max-width: 420px;
+  }
+
+  .hero-buttons {
+    justify-content: center;
+  }
+
+  .slogan-text {
+    font-size: 2.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .features-list {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .feature-image-container {
+    width: 100%;
+    order: -1; /* moves image above text (optional, nicer UX) */
+  }
+
+  .feature-example-image {
+    max-width: 380px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+
+  .landing-main {
+    padding: 1rem;
+  }
+
+  .logo-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .logo-text {
+    font-size: 1.2rem;
+  }
+
+  .slogan-text {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  .home-hero-image {
+    max-width: 320px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    text-align: center;
+    font-size: 1rem;
+    padding: 0.7rem 1.2rem;
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  .feature-cards h2,
+  .features-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .features-content li {
+    font-size: 1rem;
+  }
+
+  .landing-footer {
+    font-size: 0.85rem;
+  }
+
+  .feature-example-image {
+    max-width: 280px;
+    border-radius: 10px;
+  }
+}
+
+--- FILE: frontend/src/styles/LearningPath.css ---
+
+/*frontend\src\styles\LearningPath.css*/
+.learning-path-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #ffffff;
+  color: #3C2D76;
+  font-family: 'Outfit', sans-serif;
+  overflow-y: auto;
+}
+
+/* HEADER */
+
+.lp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.lp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.lp-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-logo img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.lp-logo h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.lp-back-link {
+  text-decoration: none;
+  color: #5A1398;
+  font-weight: 600;
+  font-size: .9rem;
+}
+
+.lp-user-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #BCA1FC;
+  border-radius: 50%;
+  padding: 5px;
+}
+
+.lp-user-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* MAIN CONTENT */
+
+.lp-main {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* HERO */
+
+.lp-hero {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.lp-hero-icon {
+  background: #C994FF;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  margin-right: 20px;
+  box-shadow: 0 4px 10px rgba(201, 148, 255, .4);
+}
+
+.lp-hero-icon img {
+  width: 40px;
+  height: 40px;
+  filter: brightness(0) invert(1);
+}
+
+.lp-hero-text h2 {
+  font-size: 2rem;
+  margin: 0 0 5px;
+  color: #1a1a1a;
+}
+
+.lp-hero-text p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+/* INFO BOX */
+
+.lp-info-box {
+  background: #F5EFFF;
+  color: #5A1398;
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-size: .9rem;
+  margin-bottom: 40px;
+}
+
+/* LESSONS */
+
+.lp-lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.lp-lesson-card {
+  background: white;
+  border: 1px solid #E4DBFF;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .04);
+  transition: .2s;
+}
+
+.lp-lesson-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .08);
+}
+
+.lp-lesson-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.lp-book-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.lp-lesson-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-lesson-number {
+  color: #BCA1FC;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.lp-lesson-title {
+  margin: 2px 0 0;
+  font-size: 1.3rem;
+  color: #1a1a1a;
+}
+
+/* TOPICS */
+
+.lp-topic-container {
+  background: #FAF9FF;
+  border: 1px solid #E6DEFF;
+  border-radius: 10px;
+  margin-left: 43px;
+  overflow: hidden;
+  transition: .25s;
+}
+
+.lp-topic-container.expanded {
+  border-color: #C9B6FF;
+  box-shadow: 0 4px 12px rgba(127, 87, 249, .12);
+}
+
+.lp-topic-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.lp-topic-row:hover {
+  background: #F7F3FF;
+}
+
+.lp-topic-row-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* NEW STATUS BADGES SECTION */
+.lp-topic-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.score-badge {
+  font-size: .75rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Full score style */
+.score-badge.perfect {
+  background: #EAF8F1;
+  color: #27AE60;
+  border: 1px solid #C3E6D3;
+}
+
+/* Partially complete style */
+.score-badge.partial {
+  background: #FFF8E8;
+  color: #F5A623;
+  border: 1px solid #FFDDA6;
+}
+
+.pending-badge {
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: #F3F4F6;
+  color: #6B7280;
+  border: 1px solid #E5E7EB;
+}
+
+.lp-topic-arrow {
+  color: #BCA1FC;
+  font-weight: bold;
+  font-family: monospace;
+  font-size: 1.1rem;
+  width: 15px;
+}
+
+.lp-topic-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-topic-number {
+  color: #888;
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+.lp-topic-name {
+  margin: 2px 0 0;
+  color: #3C2D76;
+  font-size: .95rem;
+  font-weight: 600;
+}
+
+/* BADGES */
+
+.lp-topic-badge {
+  font-size: .65rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.lp-topic-badge.intermediate {
+  background: #FEF9C3;
+  color: #A16207;
+}
+
+.lp-topic-badge.advanced {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+/* EXPANDED CONTENT */
+
+.lp-topic-content {
+  padding: 25px 25px 25px 55px;
+  border-top: 1px solid #EEE8FF;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.lp-topic-desc {
+  font-size: .85rem;
+  color: #444;
+}
+
+/* TASK */
+
+.lp-topic-task {
+  background: #FFF8E8;
+  border: 1px solid #FFDDA6;
+  border-left: 5px solid #F5A623;
+  padding: 16px;
+  border-radius: 10px;
+}
+
+.lp-task-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: #4b2e00;
+  margin-bottom: 6px;
+}
+
+.lp-task-desc {
+  font-size: .88rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+/* TEACHING */
+
+.lp-teaching-section {
+  background: #F7F4FF;
+  border: 1px solid #E6DEFF;
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.lp-teaching-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #3C2D76;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.lp-topic-teaching {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: .9rem;
+  color: #1a1a1a;
+}
+
+/* ALGORITHM */
+
+.lp-algorithm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-steps-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #3C2D76;
+}
+
+/* CODE BLOCK */
+
+.lp-code-block {
+  background: #ffffff;
+  border: 1px solid #e7e7e7;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, .3);
+}
+
+.lp-code-block pre {
+  margin: 0;
+}
+
+.lp-code-block code {
+  font-family: "Fira Code", "Courier New", monospace;
+  font-size: .9rem;
+  color: #303030;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* REFERENCES */
+
+/* --- References Section --- */
+.lp-references-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f4f4f4;
+  border-radius: 6px;
+  border-width: 1px 1px 1px 4px;
+  border-style: solid;
+  border-color: #a78bfa;
+}
+
+.lp-references-title {
+  color: #a78bfa;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: block;
+}
+
+.lp-references-list {
+  margin: 10px 0 0 20px;
+  padding: 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+.lp-references-list li {
+  margin-bottom: 6px;
+}
+
+/* Make the link interactive and distinct */
+.lp-reference-link {
+  color: #000000;
+  text-decoration: underline;
+  text-decoration-color: #555;
+  transition: color 0.2s ease-in-out, text-decoration-color 0.2s ease-in-out;
+}
+
+.lp-reference-link:hover {
+  color: #a78bfa;
+  text-decoration-color: #a78bfa;
+}
+
+/* FOOTER */
+
+.lp-topic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+}
+
+.lp-test-cases {
+  font-size: .85rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lp-review-btn {
+  background: #EAF8F1;
+  border: 1px solid #27AE60;
+  padding: 10px 22px;
+  border-radius: 8px;
+  color: #27AE60;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.lp-review-btn:hover {
+  background: #D5EFE1;
+}
+
+.lp-start-btn {
+  background: linear-gradient(135deg, #7F57F9, #9F7AEA);
+  border: none;
+  padding: 10px 22px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.lp-start-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(127, 87, 249, .35);
+}
+
+/* BACK LINK */
+
+.lp-back-container {
+  margin-bottom: 25px;
+}
+
+.lp-back-icon {
+  margin-right: 6px;
+}
+
+--- FILE: frontend/src/styles/MainApp.css ---
+
+/*frontend\src\styles\MainApp.css*/
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap');
+
+.workspace-app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f4f4f4;
+  overflow: hidden;
+}
+
+.workspace-split {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  width: 100%;
+}
+
+.gutter {
+  background-color: #e0e0e0;
+  cursor: col-resize;
+  transition: 0.2s;
+}
+
+.gutter:hover {
+  background-color: #BCA1FC;
+}
+
+/* HEADER */
+.workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #3A2A6B;
+  height: 64px;
+  padding: 0 20px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.header-left,
+.header-center,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-center {
+  flex: 1;
+  justify-content: center;
+}
+
+.header-right {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.back-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.back-btn:hover {
+  color: #EBE4FF;
+}
+
+.project-name {
+  color: #BCA1FC;
+  font-size: 0.9rem;
+  margin-left: 20px;
+}
+
+/* Header Action Buttons */
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.action-btn:active {
+  transform: scale(0.97);
+}
+
+.btn-run {
+  background-color: white;
+  color: #27ae60;
+}
+
+.btn-analyze {
+  background-color: white;
+  color: #5A1398;
+}
+
+.btn-save {
+  background-color: white;
+  color: #5A1398;
+}
+
+/* View Toggle (Workspace vs Python) */
+.view-toggle {
+  display: flex;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 6px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: white;
+  color: #3A2A6B;
+}
+
+/* --- TOAST NOTIFICATIONS --- */
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-weight: bold;
+}
+
+.toast-error {
+  background: #E74C3C;
+}
+
+.toast-success {
+  background: #00b8a3;
+}
+
+/* --- SAVE MODAL --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.save-modal-content {
+  background: #2A1B54;
+  padding: 24px;
+  border-radius: 12px;
+  width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border: 1px solid #4a4a4a;
+  color: #EBE4FF;
+}
+
+.save-modal-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+}
+
+.save-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.save-modal-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  color: #B8A0D6;
+}
+
+.save-modal-input,
+.save-modal-select,
+.save-modal-textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #4a4a4a;
+  background: #1C1236;
+  color: white;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.save-modal-select {
+  cursor: pointer;
+}
+
+.save-modal-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.save-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.save-modal-cancel-btn {
+  padding: 8px 16px;
+  background: transparent;
+  color: #B8A0D6;
+  border: 1px solid #B8A0D6;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.save-modal-confirm-btn {
+  padding: 8px 16px;
+  background: #00b8a3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* --- SIDEBAR --- */
+.templates-sidebar {
+  background-color: #f4f4f4;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+    min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1),
+    opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.sidebar-search {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  background: white;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
+  opacity: 0.5;
+}
+
+.sidebar-search input {
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.sidebar-list {
+  padding: 15px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.sidebar-card {
+  background: white;
+  border: 1px solid #BCA1FC;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sidebar-card:hover {
+  background: #EBE4FF;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(90, 19, 152, 0.1);
+}
+
+.sidebar-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-card h4 {
+  margin: 0 0 5px 0;
+  color: #3A2A6B;
+  font-size: 0.9rem;
+}
+
+.sidebar-card p {
+  margin: 0;
+  color: #666;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.badge-system {
+  font-size: 0.7rem;
+  background: #4a4a4a;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.badge-custom-group {
+  display: flex;
+  gap: 5px;
+}
+
+.badge-custom {
+  font-size: 0.7rem;
+  background: #00b8a3;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.sidebar-delete-btn {
+  background: transparent;
+  border: none;
+  color: #ff4d4d;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0 2px;
+}
+
+.no-results {
+  text-align: center;
+  color: #888;
+  font-size: 0.85rem;
+  margin-top: 20px;
+}
+
+/* MAIN WORKSPACE */
+.workspace-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  background-color: white;
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.editor-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  /* ADD THESE THREE LINES: */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.workspace-view {
+  height: 100%;
+}
+
+.python-view {
+  flex-direction: column;
+  height: 100%;
+  background: #1C1236;
+}
+
+.python-header {
+  padding: 10px 20px;
+  background: #2A1B54;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.python-sync-status {
+  color: #EBE4FF;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.python-sync-btn {
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.python-sync-btn.active {
+  background: #00b8a3;
+  cursor: pointer;
+}
+
+.python-sync-btn.disabled {
+  background: #4a4a4a;
+  cursor: not-allowed;
+}
+
+.python-textarea {
+  flex: 1;
+  margin: 0;
+  padding: 20px;
+  font-size: 0.95rem;
+  font-family: 'Fira Code', Consolas, Monaco, monospace;
+  background: #1C1236;
+  color: #EBE4FF;
+  border: none;
+  outline: none;
+  resize: none;
+  white-space: pre;
+  line-height: 1.5;
+}
+
+/* DOCKED FOOTER */
+.workspace-footer {
+  height: 48px;
+  background-color: #3A2A6B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+  z-index: 2000;
+}
+
+.footer-left,
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-tab {
+  background: transparent;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.footer-tab.active {
+  background: white;
+  color: #3A2A6B;
+}
+
+.footer-tab.big-o-btn {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.tab-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+/* If inactive, make icon white via CSS filter */
+.footer-tab:not(.active) .tab-icon {
+  filter: brightness(0) invert(1);
+}
+
+.footer-action-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.footer-action-icon:hover {
+  opacity: 1;
+}
+
+.footer-action-icon img {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+/* --- HOVER PANEL & RESIZER --- */
+.bottom-hover-panel {
+  position: absolute;
+  bottom: 48px;
+  left: 0;
+  right: 0;
+  background: rgba(31, 20, 67, 0.95);
+  z-index: 1000;
+  color: white;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-resizer {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 1001;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.panel-resizer:hover,
+.panel-resizer:active {
+  background: #E058FB;
+}
+
+.resizer-dash {
+  width: 40px;
+  height: 2px;
+  background: rgba(2, 1, 1, 0.5);
+  border-radius: 2px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-top: 1px solid #4830A0;
+}
+
+.panel-title {
+  font-weight: bold;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.panel-close-btn {
+  background: none;
+  color: rgb(115, 115, 115);
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.console-output {
+  margin: 0;
+  color: #00ff00;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  font-family: monospace;
+}
+
+/* --- COMPLEXITY TABLE --- */
+.complexity-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+}
+
+.tab-btn-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;     /* Allow buttons to wrap if the panel is narrow */
+}
+
+.tab-btn {
+  padding: 6px 12px;
+  background: #34495e;
+  border: none;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  white-space: nowrap; /* Prevent text inside the button from wrapping/overlapping */
+  flex-shrink: 0;      /* Prevent the button from getting squished */
+}
+
+.tab-btn.active {
+  background: #7F57F9;
+}
+
+.total-badge-group {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.total-badge {
+  margin-left: auto;
+  color: #00ff00;
+  font-weight: bold;
+  font-size: 1.0rem;
+  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+}
+
+.total-badge.space {
+  background-color: rgba(0, 184, 163, 0.15);
+  border: 1px solid rgba(0, 184, 163, 0.3);
+  color: #00b8a3;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.total-label {
+  color: #a78bfa;
+  font-weight: 600;
+}
+
+.total-label.space {
+  color: #00b8a3;
+}
+
+.complexity-table-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding-bottom: 20px;
+  overflow-x: auto;
+}
+
+.complexity-table {
+  width: 100%;
+  min-width: 500px;
+  max-width: 1000px;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  background: #e7e7e7;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  text-align: left;
+}
+
+.complexity-table th {
+  padding: 10px 15px;
+  color: #EBE4FF;
+  background: #2D1F52;
+  text-align: left;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-size: 0.8rem;
+}
+
+.complexity-table th.right-align {
+  text-align: right;
+}
+
+.complexity-table thead tr {
+  border-bottom: 2px solid #7F57F9;
+}
+
+.complexity-table tbody tr {
+  border-bottom: 1px solid rgba(127, 87, 249, 0.15);
+  transition: background-color 0.15s ease;
+}
+
+.complexity-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.complexity-table tbody tr:hover {
+  background: rgba(127, 87, 249, 0.15);
+}
+
+.code-cell {
+  padding: 8px 15px;
+  font-family: 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.complexity-cell {
+  text-align: right;
+  padding: 8px 15px;
+  white-space: nowrap;
+  font-family: 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.operation-cell {
+  color: #000000;
+}
+
+/* --- Complexity Table Dropdown Styles --- */
+.complexity-row {
+  transition: background-color 0.2s ease;
+}
+
+.complexity-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.complexity-row.expanded {
+  background-color: rgba(188, 161, 252, 0.1);
+  border-left: 2px solid #BCA1FC;
+}
+
+.dropdown-chevron {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 0.8rem;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.complexity-row.expanded .dropdown-chevron {
+  transform: rotate(90deg);
+}
+
+.explanation-row td {
+  padding: 0 !important;
+  border: none;
+}
+
+.explanation-content {
+  background: rgba(255, 255, 255, 0.05);
+  margin: 0px 16px 12px 16px;
+  border-radius: 8px;
+  border-left: 3px solid #BCA1FC;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  overflow: hidden;
+  animation: slide-down-explanation 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top;
+}
+
+.explanation-text {
+  flex: 1;
+}
+
+.explanation-graph {
+  min-width: 200px;
+}
+
+.explanation-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #3912ff;
+  line-height: 1.5;
+  padding-right: 12px;
+}
+
+.explanation-icon {
+  font-size: 1.2rem;
+  margin-left: 12px;
+}
+
+@keyframes slide-down-explanation {
+  0% {
+    opacity: 0;
+    max-height: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    transform: scaleY(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    /* Increased from 200px to 500px to accommodate the graph and dual text */
+    max-height: 500px; 
+    padding-top: 16px;
+    padding-bottom: 16px;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================= */
+/* Responsive Enhancements */
+/* ========================= */
+@media (max-width: 1024px) {
+  .project-name {
+    display: none;
+  }
+
+  .complexity-table {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .workspace-split {
+    flex-direction: column;
+  }
+
+  .gutter {
+    display: none;
+  }
+
+  .templates-sidebar {
+    height: 250px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .workspace-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 15px;
+    gap: 10px;
+  }
+
+  .header-left,
+  .header-center,
+  .header-right {
+    flex: 100%;
+    justify-content: space-between;
+  }
+
+  .view-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .workspace-footer {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 15px;
+    gap: 10px;
+  }
+
+  .footer-left,
+  .footer-right {
+    flex: 100%;
+    justify-content: space-between;
+  }
+
+  .bottom-hover-panel {
+    max-height: 50%;
+  }
+}
+
+@media (max-width: 480px) {
+  .workspace-header {
+    padding: 8px 10px;
+  }
+
+  .action-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .toggle-btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+
+  .templates-sidebar {
+    height: 200px;
+  }
+
+  .sidebar-search {
+    padding: 10px;
+  }
+
+  .sidebar-list {
+    padding: 10px;
+  }
+
+  .workspace-footer {
+    padding: 8px 10px;
+  }
+
+  .footer-tab {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .complexity-table {
+    min-width: 500px;
+  }
+
+  .panel-body {
+    padding: 12px;
+  }
+
+  .console-output {
+    font-size: 0.75rem;
+  }
+
+  .python-code-pre {
+    font-size: 0.8rem;
+  }
+}
+
+/* ========================= */
+/* Sidebar Toggle & Hidden State */
+/* ========================= */
+
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  z-index: 1000;
+  background-color: #3A2A6B;
+  color: white;
+  border: none;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  width: 24px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: #7F57F9;
+}
+
+.workspace-split.sidebar-hidden .templates-sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  opacity: 0;
+  border: none;
+}
+
+.workspace-split.sidebar-hidden .gutter {
+  width: 0 !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.workspace-split.sidebar-hidden .workspace-main {
+  width: 100% !important;
+}
+
+/* Utility visibility classes */
+.d-none {
+  display: none !important;
+}
+
+.d-flex {
+  display: flex !important;
+}
+
+/* Add or update these classes in your CSS files */
+
+.console-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #0d0d0d; /* Deep black for terminal feel */
+  padding: 12px 16px;
+  font-family: 'Fira Code', 'Cascadia Code', 'Ubuntu Mono', monospace;
+  overflow-y: auto;
+  border-top: 1px solid #333;
+}
+
+.console-output {
+  margin: 0;
+  padding: 0;
+  white-space: pre-wrap;     /* Critical: Wraps long lines instead of horizontal scroll */
+  word-wrap: break-word;
+  color: #e0e0e0;            /* Soft white for readability */
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.console-input-line {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.console-cursor {
+  color: #c800ff;            /* Classic terminal green cursor */
+  margin-right: 8px;
+  font-weight: bold;
+  user-select: none;
+}
+
+.console-input-field {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f0bcff;            /* User input is green to distinguish it */
+  flex: 1;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 0;
+}
+
+/* Scrollbar styling for a cleaner look */
+.console-container::-webkit-scrollbar {
+  width: 8px;
+}
+.console-container::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+/* Sidebar Card Polishing */
+.sidebar-card {
+  transition: transform 0.2s, border-color 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.system-card {
+  border-left-color: #6c5ce7; /* Indigo for Official */
+  background: rgba(108, 92, 231, 0.03);
+}
+
+.custom-card {
+  border-left-color: #00b8a3; /* Teal for Personal */
+  background: rgba(0, 184, 163, 0.03);
+}
+
+.title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-type-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+
+/* Polished System Badge */
+.badge-system-polished {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(108, 92, 231, 0.15);
+  color: #a29bfe;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(108, 92, 231, 0.3);
+}
+
+.badge-system-polished .dot {
+  width: 6px;
+  height: 6px;
+  background: #6c5ce7;
+  border-radius: 50%;
+  box-shadow: 0 0 5px #6c5ce7;
+}
+
+/* Polished Custom Badge */
+.badge-custom-polished {
+  background: rgba(0, 184, 163, 0.15);
+  color: #00b8a3;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 184, 163, 0.3);
+}
+
+.badge-custom-group-polished {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- Enhanced Sidebar Delete Button --- */
+.sidebar-delete-btn-polished {
+  background: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.6; /* Subtle until card hover */
+}
+
+/* Make delete button more visible when the card is hovered */
+.sidebar-card:hover .sidebar-delete-btn-polished {
+  opacity: 1;
+}
+
+/* Tactile Feedback on Hover */
+.sidebar-delete-btn-polished:hover {
+  background: #e74c3c;
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+}
+
+/* "Pressed" effect for immediate responsiveness */
+.sidebar-delete-btn-polished:active {
+  transform: scale(0.9);
+  background: #c0392b;
+}
+
+/* Smooth fade-out for removed items */
+.sidebar-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
+}
+
+/* Visual cues for different item types */
+.badge-custom-polished {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.bottleneck-badge {
+  background-color: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: pulse 2s infinite;
+}
+
+.bottleneck-active:hover {
+  background-color: rgba(231, 76, 60, 0.1) !important;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+  70% { box-shadow: 0 0 0 4px rgba(231, 76, 60, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+}
+
+--- FILE: frontend/src/styles/MemoryVisualizer.css ---
+
+/*frontend\src\styles\MemoryVisualizer.css*/
+.memory-visualizer-container {
+  background-color: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 16px;
+  color: #EBE4FF;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.memory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 12px;
+}
+
+.memory-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.global-badge {
+  background-color: rgba(0, 184, 163, 0.15);
+  color: #00b8a3;
+  border: 1px solid rgba(0, 184, 163, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.memory-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 5px;
+}
+
+.memory-empty, .memory-safe {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+.memory-block {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid #00b8a3; 
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.memory-block-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.line-num {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.local-badge {
+  background-color: rgba(230, 126, 34, 0.2);
+  color: #e67e22;
+  border: 1px solid rgba(230, 126, 34, 0.4);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.code-snippet {
+  margin: 0 0 8px 0;
+}
+
+.code-snippet code {
+  font-family: 'Fira Code', Consolas, Monaco, monospace;
+  color: #EBE4FF;
+  background: #1C1236; 
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  display: inline-block;
+  border: 1px solid #2D234A;
+}
+
+.explanation {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.memory-bar-container {
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.memory-bar {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.memory-bar.linear {
+  background-color: #00b8a3; 
+  box-shadow: 0 0 8px rgba(0, 184, 163, 0.5);
+}
+
+.memory-bar.quadratic {
+  background-color: #ff375f; 
+  box-shadow: 0 0 8px rgba(255, 55, 95, 0.5);
+}
+
+--- FILE: frontend/src/styles/Projects.css ---
+
+/*frontend\src\styles\Projects.css*/
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f8fafc; /* Crisp, cool light gray */
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  padding: 2rem;
+}
+
+.page-main {
+  flex: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 40px 48px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+}
+
+.page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.section-title {
+  color: #0f172a; /* Slate 900 */
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  color: #64748b; /* Slate 500 */
+  margin: 8px 0 0 0;
+  font-size: 1.05rem;
+}
+
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+
+.btn-new-project-large {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #7F57F9;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(127, 87, 249, 0.2);
+}
+
+.btn-new-project-large:hover {
+  background: #6a48d7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(127, 87, 249, 0.3);
+}
+
+/* ==========================================================================
+   PROJECTS GRID & CARDS
+   ========================================================================== */
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.project-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.project-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  transform: translateY(-2px);
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.project-icon-wrapper {
+  background: #f3e8ff; /* Light purple tint */
+  color: #9333ea;      /* Solid purple icon */
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-details h3 {
+  margin: 0 0 6px 0;
+  color: #1e293b;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.project-details p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+/* Delete Button */
+.btn-delete {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-card:hover .btn-delete {
+  color: #94a3b8; /* Make icon slightly darker on card hover */
+}
+
+.btn-delete:hover {
+  background: #fee2e2 !important; /* Light red background */
+  color: #ef4444 !important; /* Red icon */
+}
+
+/* ==========================================================================
+   EMPTY STATE & LOADING
+   ========================================================================== */
+
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+}
+
+.empty-icon {
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 8px 0;
+}
+
+.empty-desc {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0 0 24px 0;
+  max-width: 450px;
+  line-height: 1.5;
+}
+
+--- FILE: frontend/src/styles/UserHomePage.css ---
+
+/*frontend\src\styles\UserHomePage.css*/
+.user-homepage.landing-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #1F1443 0%, #4A0784 100%);
+  color: #F5F5F5;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.user-homepage.landing-container::-webkit-scrollbar {
+  display: none;
+}
+
+.user-homepage .landing-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.user-homepage .landing-main::-webkit-scrollbar {
+  display: none;
+}
+
+/* ========================================================= */
+/* NAVBAR & USER DROPDOWN                                    */
+/* ========================================================= */
+
+.user-homepage .landing-nav {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: rgba(31, 20, 67, 0.95);
+  color: #F5F5F5;
+  border-bottom: 1px solid #4830A0;
+}
+
+.user-homepage .logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-homepage .logo-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.user-homepage .logo-text {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.user-homepage .user-menu {
+  position: relative;
+}
+
+.user-homepage .user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 260px;
+  background: #FFFFFF;
+  color: #24163F;
+  border: 1px solid #E3DAF8;
+  border-radius: 12px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.user-homepage .user-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.user-homepage .user-menu-btn:hover {
+  transform: scale(1.05);
+  border-color: #E058FB;
+}
+
+.user-homepage .user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  color: #F5F5F5;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.user-homepage .user-dropdown-head {
+  padding: 1.5rem 1rem 1.2rem;
+  background: #F6F1FF;
+  border-bottom: 1px solid #E3DAF8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.user-homepage .dropdown-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  color: #F5F5F5;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 4px 10px rgba(127, 87, 249, 0.3);
+}
+
+.user-homepage .user-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #3A2870;
+  margin-bottom: 0.2rem;
+}
+
+.user-homepage .user-email {
+  font-size: 0.85rem;
+  color: #6D5AA7;
+  word-break: break-word;
+}
+
+.user-homepage .user-dd-item {
+  width: 100%;
+  border: 0;
+  background: #FFFFFF;
+  color: #30205B;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.user-homepage .user-dd-item:hover {
+  background: #F7F2FF;
+}
+
+.user-homepage .user-dd-item.danger {
+  color: #A93A60;
+}
+
+.user-homepage .user-dd-divider {
+  border-top: 1px solid #E8E0FA;
+}
+
+/* ========================================================= */
+/* HERO SECTION                                              */
+/* ========================================================= */
+
+.user-homepage .home-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4rem;
+  max-width: 1350px;
+  margin: 4rem auto 8rem auto;
+  min-height: 60vh;
+}
+
+.user-homepage .home-hero-copy {
+  flex: 0 0 500px;
+}
+
+.user-homepage .welcome-text {
+  color: #C994FF;
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin: 0 0 0.5rem 0;
+}
+
+.user-homepage .slogan-text {
+  color: white;
+  font-size: 4.2rem;
+  font-weight: bold;
+  margin: 0 0 1.2rem 0;
+  line-height: 1.15;
+}
+
+.user-homepage .hero-subtitle {
+  font-size: 1.15rem;
+  color: #E8E0FA;
+  margin: 0 0 2.5rem 0;
+  line-height: 1.6;
+  max-width: 100%;
+}
+
+/* BUTTONS */
+.user-homepage .hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.user-homepage .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  color: #F5F5F5;
+  padding: 0.75rem 2rem;
+  border-radius: 40px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(90, 19, 152, 0.4);
+  border: none;
+  cursor: pointer;
+}
+
+.user-homepage .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(224, 88, 251, 0.5);
+}
+
+.user-homepage .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  color: #F5F5F5;
+  padding: 0.75rem 2rem;
+  border-radius: 40px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  border: 2px solid #7F57F9;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.user-homepage .btn-secondary:hover {
+  background-color: #7F57F9;
+  border-color: #7F57F9;
+}
+
+.user-homepage .btn-icon-inline {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* IMAGE CONTAINER */
+.user-homepage .home-hero-media {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-homepage .home-hero-image {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.32));
+}
+
+/* ========================================================= */
+/* FEATURE CARDS                                             */
+/* ========================================================= */
+
+.user-homepage .feature-cards {
+  margin-bottom: 4rem;
+  text-align: center;
+}
+
+.user-homepage .feature-cards h2 {
+  font-size: 2rem;
+  color: #F5F5F5;
+  margin-bottom: 0.5rem;
+}
+
+.user-homepage .section-subtitle {
+  color: #C994FF;
+  font-size: 1.1rem;
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
+
+.user-homepage .cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.user-homepage .card {
+  background: #FFFFFF;
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid #4830A0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  transition: transform 0.2s;
+}
+
+.user-homepage .card:hover {
+  transform: translateY(-5px);
+}
+
+.user-homepage .card-icon {
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 8px #E058FB);
+}
+
+.user-homepage .card-icon-badge {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #E7D9FF;
+}
+
+.user-homepage .card h3 {
+  color: #5A1398;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+}
+
+.user-homepage .card p {
+  color: #4830A0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* ========================================================= */
+/* FEATURES LIST & CODE SNIPPET                              */
+/* ========================================================= */
+
+.user-homepage .features-list {
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.user-homepage .features-content {
+  flex: 1;
+  min-width: 300px;
+}
+
+.user-homepage .features-content h2 {
+  font-size: 2rem;
+  color: #F5F5F5;
+  margin-bottom: 1.5rem;
+}
+
+.user-homepage .features-content ul {
+  list-style: none;
+  padding: 0;
+}
+
+.user-homepage .features-content li {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #C994FF;
+  font-size: 1.1rem;
+}
+
+.user-homepage .features-content li::before {
+  content: "âœ“";
+  color: #E058FB;
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+
+/* ========================================================= */
+/* LOGOUT POPUP MODAL                                        */
+/* ========================================================= */
+
+.user-homepage .logout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(22, 12, 51, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.user-homepage .logout-modal {
+  background: linear-gradient(135deg, #FDFBFF 0%, #DFCCFC 100%);
+  padding: 3.5rem 4rem;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  max-width: 500px;
+  width: 90%;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.user-homepage .feature-image-container {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.user-homepage .feature-example-image {
+  width: 100%;
+  max-width: 550px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  object-fit: contain; /* prevents stretching */
+}
+
+.user-homepage .feature-example-image:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.user-homepage .logout-modal h2 {
+  color: #4A3A69;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.user-homepage .logout-modal p {
+  color: #5A487A;
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+}
+
+.user-homepage .logout-modal-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.user-homepage .logout-btn {
+  padding: 0.8rem 2.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: #501F99;
+  color: white;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.user-homepage .logout-btn:hover {
+  background: #3A1570;
+  transform: scale(1.05);
+}
+
+/* ========================================================= */
+/* RESPONSIVE MEDIA QUERIES                                  */
+/* ========================================================= */
+
+@media (max-width: 1024px) {
+  .user-homepage .landing-main {
+    padding: 1.5rem;
+  }
+
+  .user-homepage .home-hero {
+    gap: 2rem;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .user-homepage .home-hero-copy {
+    flex: auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .user-homepage .home-hero-image {
+    width: min(480px, 100%);
+  }
+
+  .user-homepage .slogan-text {
+    font-size: 3rem;
+  }
+
+  .user-homepage .hero-buttons {
+    justify-content: center;
+  }
+
+  .user-homepage .features-list {
+    gap: 2rem;
+  }
+
+  .user-homepage .feature-example-image {
+    max-width: 450px;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-homepage .landing-nav {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .user-homepage .home-hero {
+    margin-bottom: 3rem;
+  }
+
+  .user-homepage .home-hero-media {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .user-homepage .home-hero-image {
+    max-width: 420px;
+  }
+
+  .user-homepage .slogan-text {
+    font-size: 2.5rem;
+  }
+
+  .user-homepage .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .user-homepage .features-list {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .user-homepage .feature-example-image {
+    max-width: 380px;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-homepage .landing-main {
+    padding: 1rem;
+  }
+
+  .user-homepage .logo-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-homepage .logo-text {
+    font-size: 1.2rem;
+  }
+
+  .user-homepage .slogan-text {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  .user-homepage .home-hero-image {
+    max-width: 320px;
+  }
+
+  .user-homepage .btn-primary,
+  .user-homepage .btn-secondary {
+    width: 100%;
+    text-align: center;
+    font-size: 1rem;
+    padding: 0.7rem 1.2rem;
+  }
+
+  .user-homepage .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .user-homepage .card {
+    padding: 1.5rem;
+  }
+
+  .user-homepage .feature-cards h2,
+  .user-homepage .features-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .user-homepage .features-content li {
+    font-size: 1rem;
+  }
+
+  .user-homepage .logout-modal {
+    padding: 2.5rem 2rem;
+  }
+
+  .user-homepage .feature-example-image {
+    max-width: 280px;
+    border-radius: 10px;
+  }
+}
+
+--- FILE: frontend/src/utils/errorTranslator.js ---
+
+// frontend/src/utils/errorTranslator.js
+export const translatePythonError = (rawErrorMessage) => {
+    if (!rawErrorMessage) return "";
+  
+    const msg = String(rawErrorMessage);
+    let hint = "";
+
+    if (msg.includes("EOL while scanning string literal") || msg.includes("unterminated string literal")) {
+      hint = "You forgot to close a quotation mark at the end of a string (e.g., missing a ' or \").";
+    } 
+    else if (msg.includes("unexpected EOF while parsing") || msg.includes("unexpected EOF")) {
+      hint = "The code ended unexpectedly. You are likely missing a closing parenthesis ')', bracket ']', or brace '}'.";
+    } 
+    else if (msg.includes("expected ':'") || msg.includes("expected a ':'")) {
+      hint = "You forgot a colon (:) at the end of your 'if', 'for', 'while', or 'def' statement.";
+    } 
+    else if (msg.includes("invalid syntax")) {
+      hint = "Check for missing colons (:), unclosed parentheses/quotes, or misspelled/misplaced keywords nearby.";
+    } 
+  
+    // ==========================================
+    // INDENTATION & WHITESPACE
+    // ==========================================
+    else if (msg.includes("TabError") || msg.includes("inconsistent use of tabs and spaces")) {
+      hint = "You mixed tabs and spaces for indentation. Python strictly requires using either all spaces or all tabs (spaces are highly recommended).";
+    }
+    else if (msg.includes("IndentationError") || msg.includes("expected an indented block")) {
+      hint = "Check your spacing! Code inside loops, conditionals, and functions must be indented consistently.";
+    } 
+    
+    // ==========================================
+    // VARIABLES, NAMES & SCOPE
+    // ==========================================
+    else if (msg.includes("NameError") || msg.includes("is not defined")) {
+      const match = msg.match(/name '([^']+)' is not defined/);
+      const varName = match ? match[1] : "a variable";
+      hint = `Python doesn't know what '${varName}' is. Did you forget to define it, spell it wrong, or forget quotation marks around a string?`;
+    } 
+    else if (msg.includes("UnboundLocalError")) {
+      const match = msg.match(/local variable '([^']+)' referenced before assignment/);
+      const varName = match ? match[1] : "a variable";
+      hint = `You are trying to use or modify the variable '${varName}' inside a function before giving it a value. If it's a global variable, you might need the 'global' keyword.`;
+    }
+    
+    // ==========================================
+    // TYPES & COMPATIBILITY
+    // ==========================================
+    else if (msg.includes("TypeError: unsupported operand")) {
+      hint = "You are trying to perform a math operation on incompatible data types (like adding text to a number).";
+    } 
+    else if (msg.includes("TypeError: can only concatenate str") || msg.includes("must be str, not int")) {
+      hint = "You cannot directly combine text and numbers. Try wrapping your number in str() first.";
+    } 
+    else if (msg.includes("TypeError") && msg.includes("object is not callable")) {
+      const match = msg.match(/'([^']+)' object is not callable/);
+      const objName = match ? match[1] : "An";
+      hint = `${objName} is not a function, but you are trying to call it like one by putting parentheses '()' after it.`;
+    }
+    else if (msg.includes("TypeError") && msg.includes("object is not iterable")) {
+      const match = msg.match(/'([^']+)' object is not iterable/);
+      const objName = match ? match[1] : "An";
+      hint = `You are trying to loop over or unpack a ${objName}, but it's a single value (like an integer), not a collection (like a list or string).`;
+    }
+    else if (msg.includes("TypeError") && msg.includes("does not support item assignment")) {
+      hint = "You are trying to change a specific item inside an immutable object (like a string or a tuple). You cannot modify strings directly; you must create a new one.";
+    }
+  
+    // ==========================================
+    // FUNCTIONS & ARGUMENTS
+    // ==========================================
+    else if (msg.includes("TypeError") && (msg.includes("positional arguments but") || msg.includes("missing") && msg.includes("required positional argument"))) {
+      hint = "You are passing the wrong number of arguments to a function. Double-check how many inputs the function expects versus how many you gave it.";
+    }
+  
+    // ==========================================
+    // ATTRIBUTES & METHODS
+    // ==========================================
+    else if (msg.includes("AttributeError")) {
+      const match = msg.match(/'([^']+)' object has no attribute '([^']+)'/);
+      if (match) {
+        hint = `A ${match[1]} doesn't have a method or property named '${match[2]}'. Check your spelling or ensure you are using the right method for this data type.`;
+      } else {
+        hint = "You are trying to use a method or property that doesn't exist for this specific type of object.";
+      }
+    }
+  
+    // ==========================================
+    // LISTS, DICTIONARIES & TUPLES
+    // ==========================================
+    else if (msg.includes("IndexError: list index out of range")) {
+      hint = "You are trying to access a position in a list that doesn't exist. Remember, list positions start counting at 0, not 1!";
+    } 
+    else if (msg.includes("KeyError")) {
+      const match = msg.match(/KeyError: (.*)/);
+      const keyName = match ? match[1] : "a key";
+      hint = `You tried to look up the key ${keyName} in a dictionary, but that key hasn't been added yet.`;
+    } 
+    else if (msg.includes("ValueError: too many values to unpack")) {
+      hint = "You are trying to assign multiple variables at once (unpacking), but there are more values on the right side than variables on the left.";
+    }
+    else if (msg.includes("ValueError: not enough values to unpack")) {
+      hint = "You are trying to assign multiple variables at once (unpacking), but there aren't enough values on the right side for all the variables on the left.";
+    }
+    
+    // ==========================================
+    // MATH & VALUES
+    // ==========================================
+    else if (msg.includes("ZeroDivisionError") || msg.includes("division by zero")) {
+      hint = "You are trying to divide a number by zero, which is mathematically impossible. Check the variable being used as the divisor.";
+    } 
+    else if (msg.includes("ValueError: invalid literal for int()")) {
+      const match = msg.match(/invalid literal for int\(\) with base \d+: '([^']+)'/);
+      const badVal = match ? match[1] : "the text";
+      hint = `You tried to convert '${badVal}' into an integer, but it isn't a valid whole number.`;
+    } 
+    
+    // ==========================================
+    // IMPORTS & MODULES
+    // ==========================================
+    else if (msg.includes("ModuleNotFoundError") || msg.includes("No module named")) {
+      const match = msg.match(/No module named '([^']+)'/);
+      const modName = match ? match[1] : "a module";
+      hint = `Python cannot find the library '${modName}'. Check your spelling, or ensure it is supported in this environment.`;
+    }
+    else if (msg.includes("ImportError")) {
+      hint = "You are trying to import a specific function or class from a library, but it doesn't exist in that library. Check your spelling.";
+    }
+  
+    // ==========================================
+    // ADVANCED: RECURSION & MEMORY
+    // ==========================================
+    else if (msg.includes("RecursionError") || msg.includes("maximum recursion depth exceeded")) {
+      hint = "Your function called itself too many times! Check your 'base case' to ensure the recursion eventually stops.";
+    }
+    else if (msg.includes("MemoryError")) {
+      hint = "Your program ran out of memory. This usually happens if you create an infinitely growing list or string.";
+    }
+  
+    // Fallback: If we couldn't match the error exactly, let the raw error show through but encourage debugging.
+    if (!hint) {
+       return ""; // Alternatively, return a generic: `ðŸ’¡ Hint: Try copying this error and checking lines nearby for typos.`
+    }
+  
+    return `ðŸ’¡ Hint: ${hint}`;
+  };
+
+--- FILE: frontend/src/utils/formatters.js ---
+
+// frontend\src\utils\formatters.js
+export function formatComplexity(str) {
+  // BULLETPROOF CHECK: If it's missing or not a string, return it safely without crashing
+  if (!str || typeof str !== 'string') {
+    return str;
+  }
+
+  // Pre-process unformatted output commonly generated from analyzers
+  let formatted = str
+    .replace(/n2/g, 'nÂ²')
+    .replace(/n3/g, 'nÂ³');
+
+  const superscripts = {
+    '0': 'â°', '1': 'Â¹', '2': 'Â²', '3': 'Â³', '4': 'â´',
+    '5': 'âµ', '6': 'â¶', '7': 'â·', '8': 'â¸', '9': 'â¹',
+    'n': 'â¿', 'x': 'Ë£', '+': 'âº', '-': 'â»'
+  };
+
+  return formatted.replace(/\^([0-9nx+-]+)/g, (match, p1) => {
+    return p1.split('').map(char => superscripts[char] || char).join('');
+  });
+}
+
+export const getComplexityWeight = (complexity) => {
+  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+  if (comp.includes("o(1)") || comp === "1") return 1;
+  // Check n^2 / n^3 before n to avoid "O(n2)" triggering "O(n)"
+  if (comp.includes("n^2") || comp.includes("nÂ²") || comp.includes("n2")) return 5;
+  if (comp.includes("n^3") || comp.includes("nÂ³") || comp.includes("n3")) return 6;
+  if (comp.includes("2^n") || comp.includes("2â¿") || comp.includes("2n")) return 7;
+  if (comp.includes("n!")) return 8;
+  if (comp.includes("nlogn")) return 4;
+  if (comp.includes("logn")) return 2;
+  if (comp.includes("o(n)") || comp === "n") return 3;
+  return 0;
+};
+
+--- FILE: frontend/src/utils/syncManager.js ---
+
+// frontend/src/utils/syncManager.js
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+export const startBackgroundSync = () => {
+  // Check every 30 seconds or when the browser comes back online
+  const sync = async () => {
+    if (!navigator.onLine) return;
+
+    await syncQueueDB.iterate(async (task, id) => {
+      try {
+        const endpoint = task.type === 'TEMPLATE' ? '/api/templates' : '/api/projects';
+        const method = task.action === 'DELETE' ? 'DELETE' : (task.data._id.startsWith('local_') ? 'POST' : 'PUT');
+        
+        // FIX: Extract the actual _id from the task payload, not the IndexedDB key
+        const targetId = task.data._id;
+        const url = method === 'POST' ? `${API_BASE}${endpoint}` : `${API_BASE}${endpoint}/${targetId}`;
+
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: method === 'DELETE' ? null : JSON.stringify(task.data),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          // If it was a new item, update the local ID from "local_..." to the MongoDB ObjectId
+          if (method === 'POST' && result.id) {
+            const db = task.type === 'TEMPLATE' ? templatesDB : projectsDB;
+            const item = await db.getItem(id);
+            await db.removeItem(id);
+            await db.setItem(result.id, { ...item, _id: result.id, synced: true });
+          }
+          // Remove from queue after successful sync
+          await syncQueueDB.removeItem(id);
+        }
+      } catch (err) {
+        console.warn("Background sync failed for item:", id, err);
+      }
+    });
+  };
+
+  window.addEventListener('online', sync);
+  setInterval(sync, 30000); // Poll every 30s
+  sync(); // Run immediately on start
+};
+
+--- FILE: frontend/src/workers/analyzer.worker.js ---
+
+// frontend\src\workers\analyzer.worker.js
+let pyodide = null;
+
+// async input control
+let inputResolve = null;
+let isWaitingForInput = false;
+let executionTimeout = null;
+
+async function initPyodide() {
+  if (pyodide) return;
+
+  try {
+    const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
+    const module = await import(/* @vite-ignore */ pyodideUrl);
+    const loadPyodide = module.loadPyodide;
+
+    const tempPyodide = await loadPyodide();
+
+    const cacheBuster = "?t=" + Date.now();
+
+    const [analyzerCode, astCode, nlgCode] = await Promise.all([
+      fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
+      fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
+      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text())
+    ]);
+
+    if (nlgCode.includes("<!DOCTYPE html>")) {
+      throw new Error("Service Worker served index.html instead of python files!");
+    }
+
+    tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
+    tempPyodide.FS.writeFile("blockly_ast.py", astCode);
+    tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
+
+    pyodide = tempPyodide;
+
+  } catch (error) {
+    console.error("Pyodide Engine Crash:", error);
+    pyodide = null;
+    throw error;
+  }
+}
+
+self.onmessage = async (e) => {
+  const { type, code, data } = e.data;
+
+  if (type === 'INPUT_RESPONSE') {
+    if (inputResolve) {
+      clearTimeout(executionTimeout);
+      isWaitingForInput = false;
+      inputResolve(data);
+      inputResolve = null;
+    }
+    return;
+  }
+
+  if (type === 'INIT_ENGINE') {
+    try {
+      await initPyodide();
+      self.postMessage({ type: 'ENGINE_READY' });
+    } catch (err) {
+      console.error(err);
+    }
+    return;
+  }
+
+  try {
+    await initPyodide();
+
+    // ======================
+    // ANALYZE MODE
+    // ======================
+    if (type === 'ANALYZE_CODE') {
+      pyodide.globals.set("user_code", code);
+
+      const resultJsonStr = await pyodide.runPythonAsync(`
+import json
+import sys
+
+# Ensure fresh imports if the worker reloaded the files from the network
+if 'analyzer' in sys.modules:
+    del sys.modules['analyzer']
+if 'semantic_nlg' in sys.modules:
+    del sys.modules['semantic_nlg']
+
+try:
+    from analyzer import analyze_source_code
+    
+    # Run the high-precision backend analyzer
+    output_dict = analyze_source_code(user_code)
+    output = json.dumps(output_dict)
+    
+except Exception as init_err:
+    output = json.dumps({
+        "status": "error",
+        "message": f"Analyzer Initialization Error: {str(init_err)}",
+        "line": -1
+    })
+
+output
+      `);
+      const resultData = JSON.parse(resultJsonStr);
+
+      self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
+    }
+
+    // ======================
+    // PYTHON TO BLOCKS MODE
+    // ======================
+    else if (type === 'PYTHON_TO_BLOCKS') {
+      pyodide.globals.set("user_code", code);
+
+      const resultJsonStr = await pyodide.runPythonAsync(`
+import json
+import sys
+
+if 'blockly_ast' in sys.modules:
+    del sys.modules['blockly_ast']
+
+try:
+    from blockly_ast import BlocklyASTConverter
+    converter = BlocklyASTConverter()
+    result = converter.convert(user_code)
+    output = json.dumps(result)
+except Exception as e:
+    output = json.dumps({"status": "error", "message": str(e)})
+
+output
+      `);
+
+      const resultData = JSON.parse(resultJsonStr);
+      self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
+    }
+
+    // ======================
+    // RUN MODE
+    // ======================
+    else if (type === 'RUN_CODE') {
+
+      pyodide.setStdout({
+        batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" })
+      });
+
+      pyodide.setStderr({
+        batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" })
+      });
+
+      pyodide.globals.set("custom_input_sync", (prompt) => {
+        const safePrompt = prompt === undefined ? "" : String(prompt);
+        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt });
+        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" } });
+        const simulated = " [Simulated Input - Nested function limitation]";
+        self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
+        return simulated;
+      });
+
+      pyodide.globals.set("custom_input_async", async (prompt) => {
+        return new Promise((resolve) => {
+          inputResolve = (value) => {
+            isWaitingForInput = false;
+            resolve(value);
+          };
+          isWaitingForInput = true;
+          const safePrompt = prompt === undefined ? "" : String(prompt);
+          self.postMessage({
+            type: 'INPUT_REQUEST',
+            data: { prompt: safePrompt }
+          });
+        });
+      });
+
+      pyodide.globals.set("user_code", code);
+
+      executionTimeout = setTimeout(() => {
+        if (!isWaitingForInput) {
+          self.postMessage({
+            type: 'ERROR',
+            data: "Execution Prevented:\nRoot Cause: Infinite Loop detected.\nSuggestion: Check your loop conditions."
+          });
+        }
+      }, 3000);
+
+      await pyodide.runPythonAsync(`
+import builtins
+import sys
+import traceback
+import ast
+import json
+from collections import defaultdict
+from pyodide.code import eval_code_async
+
+builtins.input = custom_input_sync
+
+class LineExecutionProfiler:
+    def __init__(self):
+        self.hits = defaultdict(int)
+
+    def trace_lines(self, frame, event, arg):
+        if event == 'line':
+            if frame.f_code.co_filename == "<user_code>":
+                self.hits[frame.f_lineno] += 1
+        return self.trace_lines
+
+class AsyncInputTransformer(ast.NodeTransformer):
+    def __init__(self):
+        self.has_input = False
+
+    def visit_Call(self, node):
+        self.generic_visit(node)
+        if isinstance(node.func, ast.Name) and node.func.id == 'input':
+            self.has_input = True
+            new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
+            new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
+            return ast.copy_location(ast.Await(value=new_call), node)
+        return node
+
+# ==========================================
+# NEW: AST INFINITE LOOP DETECTOR
+# ==========================================
+class InfiniteLoopDetector(ast.NodeVisitor):
+    def __init__(self):
+        self.warnings = []
+
+    def visit_While(self, node):
+        # Check 1: while True without a break/return
+        if isinstance(node.test, ast.Constant) and node.test.value is True:
+            has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
+            if not has_break:
+                self.warnings.append("Execution Prevented:\\nRoot Cause: 'while True' loop found with no 'break' or 'return'. This will run forever.")
+        
+        # Check 2: Unmodified condition variables
+        else:
+            condition_vars = {n.id for n in ast.walk(node.test) if isinstance(n, ast.Name)}
+            if condition_vars:
+                modified_vars = set()
+                for child in node.body:
+                    for n in ast.walk(child):
+                        if isinstance(n, ast.Assign):
+                            for target in n.targets:
+                                if isinstance(target, ast.Name): modified_vars.add(target.id)
+                        elif isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
+                             modified_vars.add(n.target.id)
+
+                if not condition_vars.intersection(modified_vars):
+                    has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
+                    if not has_break:
+                        self.warnings.append(f"Execution Prevented:\\nRoot Cause: Variables {list(condition_vars)} control the loop, but are never modified inside it. This will run forever.")
+
+        self.generic_visit(node)
+# ==========================================
+
+globals()['run_hits_json'] = "{}"
+dyn_profiler = LineExecutionProfiler()
+
+try:
+    tree = ast.parse(user_code)
+    
+    # --- RUN THE AST CHECK BEFORE EXECUTING ---
+    detector = InfiniteLoopDetector()
+    detector.visit(tree)
+    if detector.warnings:
+        # If an infinite loop is found, raise an exception to stop execution immediately
+        raise Exception("\\n\\n".join(detector.warnings))
+    # ------------------------------------------
+
+    transformer = AsyncInputTransformer()
+    transformed = transformer.visit(tree)
+    ast.fix_missing_locations(transformed)
+
+    try:
+        if transformer.has_input:
+            compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+            sys.settrace(dyn_profiler.trace_lines)
+            
+            coro = eval(compiled_code, globals())
+            if coro is not None:
+                await coro
+                
+        else:
+            compiled_code = compile(transformed, "<user_code>", "exec")
+            sys.settrace(dyn_profiler.trace_lines)
+            exec(compiled_code, globals())
+    finally:
+        sys.settrace(None)
+        globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
+
+except SyntaxError:
+    try:
+        compiled_code = compile(user_code, "<user_code>", "exec")
+        sys.settrace(dyn_profiler.trace_lines)
+        try:
+            exec(compiled_code, globals())
+        finally:
+            sys.settrace(None)
+            globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
+    except Exception:
+        print(traceback.format_exc(), file=sys.stderr)
+
+except Exception as e:
+    # If our AST checker raises an Exception, it gets caught here and printed to the console
+    if "Execution Prevented" in str(e):
+        print(str(e), file=sys.stderr)
+    else:
+        print(traceback.format_exc(), file=sys.stderr)
+      `);
+
+      const countsStr = pyodide.globals.get("run_hits_json");
+      const counts = countsStr ? JSON.parse(countsStr) : {};
+
+      clearTimeout(executionTimeout);
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts });
+    }
+
+  } catch (err) {
+    clearTimeout(executionTimeout);
+    if (type === 'ANALYZE_CODE') {
+      self.postMessage({
+        type: 'ANALYZE_RESULT',
+        data: { status: 'error', message: err.message }
+      });
+    } else {
+      self.postMessage({ type: 'ERROR', data: err.message });
+    }
+  }
+};
+
+--- FILE: frontend/src/workers/analyzerInstance.js ---
+
+// frontend/src/workers/analyzerInstance.js
+
+let sharedAnalyzerWorker = new Worker(
+    new URL('./analyzer.worker.js', import.meta.url),
+    { type: 'module' }
+);
+
+export const runCodeWithTimeout = (code, timeoutMs = 4000, onOutput, onError) => {
+    return new Promise((resolve) => {
+        let isFinished = false;
+
+        const timeoutId = setTimeout(() => {
+            if (!isFinished) {
+                isFinished = true;
+                
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
+                sharedAnalyzerWorker.terminate(); 
+                
+                onError("Execution Prevented:\nRoot Cause: Infinite Loop detected.\nSuggestion: Check your loop conditions.");
+                
+                // Resurrect a fresh worker for the next run
+                sharedAnalyzerWorker = new Worker(
+                    new URL('./analyzer.worker.js', import.meta.url),
+                    { type: 'module' }
+                );
+                
+                sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
+                resolve();
+            }
+        }, timeoutMs);
+
+        // FIX: Use addEventListener so we don't overwrite other active worker tasks
+        const messageHandler = (e) => {
+            const { type, data } = e.data;
+            
+            if (type === 'OUTPUT') {
+                onOutput(data);
+            } else if (type === 'ERROR') {
+                onError(data);
+            } else if (type === 'RUN_RESULT') {
+                isFinished = true;
+                clearTimeout(timeoutId);
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
+                resolve();
+            }
+        };
+
+        sharedAnalyzerWorker.addEventListener('message', messageHandler);
+        sharedAnalyzerWorker.postMessage({ type: 'RUN_CODE', code });
+    });
+};
+
+// NEW: Function to request AST parsing from the Web Worker
+export const convertPythonToBlocks = (code) => {
+    return new Promise((resolve) => {
+        const messageHandler = (e) => {
+            const { type, data } = e.data;
+            if (type === 'PYTHON_TO_BLOCKS_RESULT') {
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
+                resolve(data);
+            }
+        };
+        
+        sharedAnalyzerWorker.addEventListener('message', messageHandler);
+        sharedAnalyzerWorker.postMessage({ type: 'PYTHON_TO_BLOCKS', code });
+    });
+};
+
+export { sharedAnalyzerWorker };
+
+
+--- FILE: frontend/vite.config.js ---
+
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      // 1. Force workbox to grab your template and activity JSONs
+      includeAssets: [
+        'templates/**/*.json', 
+        'activities/**/*.json',
+        'assets/**/*'
+      ],
+      workbox: {
+        maximumFileSizeToCacheInBytes: 15000000, // 15MB limit for Pyodide
+        // 2. Ensure JSON is in the manifest
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py,json}']
+      }
+    })
+  ],
+  // FIX: Route API requests from the frontend to the Python backend
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000', // Change to 5000 if using Flask
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
+})
+
+--- FILE: package-lock.json ---
+
+{
+  "name": "algoblocks-main-revised",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "dependencies": {
+        "localforage": "^1.10.0",
+        "react-icons": "^5.6.0"
+      }
+    },
+    "node_modules/immediate": {
+      "version": "3.0.6",
+      "resolved": "https://registry.npmjs.org/immediate/-/immediate-3.0.6.tgz",
+      "integrity": "sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==",
+      "license": "MIT"
+    },
+    "node_modules/lie": {
+      "version": "3.1.1",
+      "resolved": "https://registry.npmjs.org/lie/-/lie-3.1.1.tgz",
+      "integrity": "sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==",
+      "license": "MIT",
+      "dependencies": {
+        "immediate": "~3.0.5"
+      }
+    },
+    "node_modules/localforage": {
+      "version": "1.10.0",
+      "resolved": "https://registry.npmjs.org/localforage/-/localforage-1.10.0.tgz",
+      "integrity": "sha512-14/H1aX7hzBBmmh7sGPd+AOMkkIrHM3Z1PAyGgZigA1H1p5O5ANnMyWzvpAETtG68/dC4pC0ncy3+PPGzXZHPg==",
+      "license": "Apache-2.0",
+      "dependencies": {
+        "lie": "3.1.1"
+      }
+    },
+    "node_modules/react": {
+      "version": "19.2.5",
+      "resolved": "https://registry.npmjs.org/react/-/react-19.2.5.tgz",
+      "integrity": "sha512-llUJLzz1zTUBrskt2pwZgLq59AemifIftw4aB7JxOqf1HY2FDaGDxgwpAPVzHU1kdWabH7FauP4i1oEeer2WCA==",
+      "license": "MIT",
+      "peer": true,
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/react-icons": {
+      "version": "5.6.0",
+      "resolved": "https://registry.npmjs.org/react-icons/-/react-icons-5.6.0.tgz",
+      "integrity": "sha512-RH93p5ki6LfOiIt0UtDyNg/cee+HLVR6cHHtW3wALfo+eOHTp8RnU2kRkI6E+H19zMIs03DyxUG/GfZMOGvmiA==",
+      "license": "MIT",
+      "peerDependencies": {
+        "react": "*"
+      }
+    }
+  }
+}
+
+--- FILE: package.json ---
+
+{
+  "dependencies": {
+    "localforage": "^1.10.0",
+    "react-icons": "^5.6.0"
+  }
+}
+
+--- FILE: vercel.json ---
+
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
+  ]
+}

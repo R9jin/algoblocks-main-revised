@@ -1,98 +1,110 @@
-/*frontend\src\components\ComplexityGraph.jsx*/
+// frontend/src/components/ComplexityGraph.jsx
 import { useMemo } from 'react';
-import { Line, LineChart, ResponsiveContainer, YAxis } from 'recharts';
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts';
+import { resolveRecurrenceToBigO } from '../utils/formatters';
 
-const generateSparklineData = (complexity) => {
-  const data = [];
-  const N = 40; // Increased resolution for truer mathematical arcs
+// Simple math helper for calculating O(n!)
+const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
 
-  for (let n = 1; n <= N; n++) {
-    let yValue = 0;
+const ComplexityGraph = ({ complexity, color, label }) => {
+  // 1. Resolve any T(n) recurrence relations into standard Big-O notation
+  const resolvedComplexity = resolveRecurrenceToBigO(complexity);
+
+  // 2. Generate curve data based on the mathematical shape of the resolved complexity
+  const data = useMemo(() => {
+    const dataPoints = [];
+    // Strip out spaces and lowercase for easier matching
+    const comp = resolvedComplexity.toLowerCase().replace(/\s+/g, '');
     
-    // Ensure complexity is a string before calling toLowerCase
-    const safeComp = complexity ? String(complexity).toLowerCase() : "";
+    // Generate 10 data points to form the curve (n = 1 through 10)
+    for (let i = 1; i <= 10; i++) {
+      let yVal = 0;
+      
+      if (comp.includes("o(1)")) {
+        yVal = 1; // Constant: flat line
+      } else if (comp.includes("logn")) {
+        yVal = Math.log2(i + 1); // Logarithmic: slow curve up
+      } else if (comp.includes("nlogn")) {
+        yVal = i * Math.log2(i + 1); // Linearithmic: slight bend
+      } else if (comp.includes("n^2") || comp.includes("n²")) {
+        yVal = Math.pow(i, 2); // Quadratic: steep curve
+      } else if (comp.includes("n^3") || comp.includes("n³")) {
+        yVal = Math.pow(i, 3); // Cubic: very steep curve
+      } else if (comp.includes("2^n") || comp.includes("2ⁿ")) {
+        yVal = Math.pow(2, i); // Exponential: rocket ship
+      } else if (comp.includes("n!")) {
+        yVal = factorial(i); // Factorial: near vertical wall
+      } else if (comp.includes("o(n)")) {
+        yVal = i; // Linear: straight diagonal line
+      } else {
+        yVal = i; // Default fallback to linear
+      }
 
-    // Strictly map to real mathematical functions for accurate graph shapes
-    if (safeComp.includes("o(1)")) {
-      yValue = 10; // Perfectly flat horizontal line
-    } 
-    else if (safeComp.includes("log n")) {
-      yValue = Math.log2(n + 1); // True logarithmic curve (rises fast, then flattens)
-    } 
-    else if (safeComp.includes("√n") || safeComp.includes("sqrt")) {
-      yValue = Math.sqrt(n); // Square root curve
-    } 
-    else if (safeComp.includes("n^2") || safeComp.includes("n²")) {
-      yValue = Math.pow(n, 2); // True parabolic curve
-    } 
-    else if (safeComp.includes("n^3") || safeComp.includes("n³")) {
-      yValue = Math.pow(n, 3); // Steeper cubic curve
-    } 
-    else if (safeComp.includes("n log n")) {
-      yValue = n * Math.log2(n + 1); // Linearithmic (slightly curved linear)
-    } 
-    else if (safeComp.includes("2^n") || safeComp.includes("2ⁿ")) {
-      // Scaled 'n' down slightly to prevent JavaScript number overflow on the Y-Axis,
-      // but preserves the brutal "hockey-stick" vertical shoot-up characteristic of O(2^n).
-      yValue = Math.pow(2, n / 4); 
-    } 
-    else if (safeComp.includes("n!") || safeComp.includes("t(n-1)")) {
-      // Gamma-like scaling for factorial. Shoots up even more violently than exponential.
-      yValue = Math.pow(n, n / 8); 
-    } 
-    else {
-      // Default O(n) or O(V + E)
-      yValue = n; // Perfectly straight diagonal line
+      dataPoints.push({
+        n: i,
+        operations: Number(yVal.toFixed(2))
+      });
     }
-    
-    data.push({ operations: yValue });
-  }
-  return data;
-};
-
-const ComplexityGraph = ({ complexity, color = "#e67e22", label = "" }) => {
-  const data = useMemo(() => generateSparklineData(complexity), [complexity]);
-
-  if (!complexity || complexity === "-" || complexity === "Definition" || complexity === "Analyzing...") return null;
+    return dataPoints;
+  }, [resolvedComplexity]);
 
   return (
-    <div style={{ 
-      flex: 1,
-      minWidth: '200px',
-      backgroundColor: 'rgba(255,255,255,0.05)', 
-      borderRadius: '12px',
-      padding: '15px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '10px',
-      border: `1px solid ${color}33` // Faint border matching complexity color
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#888', textTransform: 'uppercase' }}>
-          {label}
-        </span>
-        <span style={{ fontSize: '16px', fontWeight: 'bold', color: color }}>
-          {complexity}
-        </span>
-      </div>
-      
-      <div style={{ width: '100%', height: '80px' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            {/* Auto-scaling Y-Axis allows the relative shape of the mathematical curve to dominate */}
-            <YAxis hide={true} domain={['dataMin', 'dataMax']} />
-            <Line 
-              type="monotone" // Changed from 'basis' to 'monotone' to prevent artificial/wobbly curving
-              dataKey="operations" 
-              stroke={color} 
-              strokeWidth={4} 
-              dot={false}
-              isAnimationActive={true}
-              animationDuration={1500}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+    <div style={{ width: '100%', height: '100%', minHeight: '120px' }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          
+          <XAxis 
+            dataKey="n" 
+            stroke="#888" 
+            tickLine={false} 
+            axisLine={false} 
+            tick={false} // This hides the X-axis numbers completely
+          />
+          
+          <YAxis 
+            stroke="#888" 
+            tickLine={false} 
+            axisLine={false} 
+            tick={false} // This hides the Y-axis numbers completely
+          />
+          
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: '#1C1236', 
+              border: `1px solid ${color}`, 
+              borderRadius: '6px',
+              color: '#fff', 
+              fontSize: '0.8rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}
+            itemStyle={{ color: color, fontWeight: 'bold' }}
+            labelStyle={{ color: '#A096B9', marginBottom: '4px' }}
+            labelFormatter={(label) => `Input Size (n): ${label}`}
+            formatter={(value) => [value, label || 'Operations']}
+            animationDuration={200}
+          />
+          
+          <Line 
+            type="monotone" 
+            dataKey="operations" 
+            stroke={color} 
+            strokeWidth={3} 
+            dot={false} // Hiding dots makes the curve look much smoother and premium
+            activeDot={{ r: 5, fill: '#fff', stroke: color, strokeWidth: 2 }}
+            animationDuration={1200}
+            animationEasing="ease-out"
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 };

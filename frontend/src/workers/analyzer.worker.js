@@ -103,7 +103,7 @@ output
 
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
     }
-    
+
     // ======================
     // PYTHON TO BLOCKS MODE
     // ======================
@@ -127,7 +127,7 @@ except Exception as e:
 
 output
       `);
-      
+
       const resultData = JSON.parse(resultJsonStr);
       self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
     }
@@ -214,11 +214,55 @@ class AsyncInputTransformer(ast.NodeTransformer):
             return ast.copy_location(ast.Await(value=new_call), node)
         return node
 
+# ==========================================
+# NEW: AST INFINITE LOOP DETECTOR
+# ==========================================
+class InfiniteLoopDetector(ast.NodeVisitor):
+    def __init__(self):
+        self.warnings = []
+
+    def visit_While(self, node):
+        # Check 1: while True without a break/return
+        if isinstance(node.test, ast.Constant) and node.test.value is True:
+            has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
+            if not has_break:
+                self.warnings.append("Execution Prevented:\\nRoot Cause: 'while True' loop found with no 'break' or 'return'. This will run forever.")
+        
+        # Check 2: Unmodified condition variables
+        else:
+            condition_vars = {n.id for n in ast.walk(node.test) if isinstance(n, ast.Name)}
+            if condition_vars:
+                modified_vars = set()
+                for child in node.body:
+                    for n in ast.walk(child):
+                        if isinstance(n, ast.Assign):
+                            for target in n.targets:
+                                if isinstance(target, ast.Name): modified_vars.add(target.id)
+                        elif isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
+                             modified_vars.add(n.target.id)
+
+                if not condition_vars.intersection(modified_vars):
+                    has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
+                    if not has_break:
+                        self.warnings.append(f"Execution Prevented:\\nRoot Cause: Variables {list(condition_vars)} control the loop, but are never modified inside it. This will run forever.")
+
+        self.generic_visit(node)
+# ==========================================
+
 globals()['run_hits_json'] = "{}"
 dyn_profiler = LineExecutionProfiler()
 
 try:
     tree = ast.parse(user_code)
+    
+    # --- RUN THE AST CHECK BEFORE EXECUTING ---
+    detector = InfiniteLoopDetector()
+    detector.visit(tree)
+    if detector.warnings:
+        # If an infinite loop is found, raise an exception to stop execution immediately
+        raise Exception("\\n\\n".join(detector.warnings))
+    # ------------------------------------------
+
     transformer = AsyncInputTransformer()
     transformed = transformer.visit(tree)
     ast.fix_missing_locations(transformed)
@@ -252,8 +296,12 @@ except SyntaxError:
     except Exception:
         print(traceback.format_exc(), file=sys.stderr)
 
-except Exception:
-    print(traceback.format_exc(), file=sys.stderr)
+except Exception as e:
+    # If our AST checker raises an Exception, it gets caught here and printed to the console
+    if "Execution Prevented" in str(e):
+        print(str(e), file=sys.stderr)
+    else:
+        print(traceback.format_exc(), file=sys.stderr)
       `);
 
       const countsStr = pyodide.globals.get("run_hits_json");

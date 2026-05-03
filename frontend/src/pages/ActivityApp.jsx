@@ -1081,7 +1081,11 @@ const ActivityApp = () => {
                         <button
                           onClick={() => setConsoleOutput("Ready to run...\n")}
                           className="tab-btn"
-                          style={{ backgroundColor: 'rgba(231, 76, 60, 0.15)', color: '#e74c3c', border: '1px solid rgba(231, 76, 60, 0.3)' }}
+                          style={{ 
+                            backgroundColor: 'rgba(188, 161, 252, 0.1)', 
+                            color: '#BCA1FC', 
+                            border: '1px solid rgba(188, 161, 252, 0.3)' 
+                          }}
                           title="Clear Terminal Output"
                         >
                           ✕ Clear
