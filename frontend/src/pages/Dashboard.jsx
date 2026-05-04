@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { projectsDB, templatesDB } from "../db"; // ✅ Uses separate local stores
+import { projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
 const SYSTEM_TEMPLATES = {
@@ -143,7 +143,7 @@ export default function Dashboard() {
         if (!grouped[category]) grouped[category] = [];
         grouped[category].push({
             ...t,
-            name: t.title || t.name, // Normalize mapping
+            name: t.title || t.name, 
             desc: t.description || t.desc
         });
       });
@@ -153,7 +153,7 @@ export default function Dashboard() {
     };
 
     loadLocalData();
-  }, []); // Only run once on mount
+  }, []); 
 
   const handleItemClick = (item) => {
     const confirmMsg = item.isSystem
@@ -176,7 +176,6 @@ export default function Dashboard() {
       });
     }
   };
-
 
   return (
     <div className="dashboard-container">
@@ -266,14 +265,12 @@ export default function Dashboard() {
                   <div className="project-item-info">
                     <div className="project-item-title">{proj.title}</div>
                     <div className="project-item-meta">
-                      {/* Uses updatedAt mapping from MainApp.jsx */}
                       Last modified: {new Date(proj.updatedAt || Date.now()).toLocaleDateString()}
                     </div>
                   </div>
 
                   <div
-                    className={`project-item-status ${proj.synced ? "synced" : "local"
-                      }`}
+                    className={`project-item-status ${proj.synced ? "synced" : "local"}`}
                   >
                     {proj.synced ? "Cloud Synced" : "Local Only"}
                   </div>

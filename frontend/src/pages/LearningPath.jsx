@@ -1,6 +1,6 @@
-// frontend\src\pages\LearningPath.jsx
+// frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import "../styles/LearningPath.css";
 
@@ -340,16 +340,14 @@ export default function LearningPath() {
     });
   };
 
+  // --- NEW: Flatten topics to easily check previous topic completion ---
+  const allTopicsFlattened = LESSONS.flatMap((lesson) => lesson.topics);
+
   return (
     <div className="learning-path-page">
       <DashboardHeader />
 
       <main className="lp-main">
-        <div className="lp-back-container">
-          <Link to="/dashboard" className="lp-back-link">
-            Back to Dashboard
-          </Link>
-        </div>
 
         <div className="lp-hero">
           <div className="lp-hero-icon">
@@ -390,10 +388,23 @@ export default function LearningPath() {
                   const score = activityKey ? userProgress[activityKey] : undefined;
                   const isCompleted = score !== undefined;
 
-                  return (
-                    <div key={topic.id} className={`lp-topic-container ${isExpanded ? "expanded" : ""}`}>
+                  // --- NEW: Calculate Lock Status ---
+                  // Find where this topic is in the global sequence
+                  const flatIndex = allTopicsFlattened.findIndex((t) => t.id === topic.id);
+                  let isUnlocked = true; // First topic is always unlocked
 
-                      <div className="lp-topic-row" onClick={() => toggleTopic(topic.id)}>
+                  if (flatIndex > 0) {
+                    // Check if the immediately preceding topic has been completed
+                    const prevTopic = allTopicsFlattened[flatIndex - 1];
+                    const prevKey = prevTopic.templatePath?.split("/").pop();
+                    isUnlocked = prevKey && userProgress[prevKey] !== undefined;
+                  }
+
+                  return (
+                    <div key={topic.id} className={`lp-topic-container ${isExpanded ? "expanded" : ""} ${!isUnlocked ? "locked" : ""}`}>
+
+                      {/* Only allow toggling if it is unlocked */}
+                      <div className="lp-topic-row" onClick={() => isUnlocked && toggleTopic(topic.id)}>
 
                         <div className="lp-topic-row-left">
                           <div className="lp-topic-titles">
@@ -406,7 +417,12 @@ export default function LearningPath() {
                         <div className="lp-topic-right">
                           <div className="lp-topic-badge">{topic.level}</div>
 
-                          {isCompleted ? (
+                          {/* Display Lock, Pending, or Completed Badges */}
+                          {!isUnlocked ? (
+                            <span className="pending-badge" style={{ opacity: 0.8, cursor: 'not-allowed' }}>
+                              🔒 Locked
+                            </span>
+                          ) : isCompleted ? (
                             <span className={`score-badge ${score == topic.testCount ? 'perfect' : 'partial'}`}>
                               {score}/{topic.testCount} Tests Passed
                             </span>
