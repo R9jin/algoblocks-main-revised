@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 4 OF 5) ---
 
---- TIMESTAMP: 2026-05-04 15:06:07 ---
+--- TIMESTAMP: 2026-05-04 15:29:11 ---
 
 
 --- FILE: frontend/src/components/MemoryVisualizer.jsx ---
@@ -2245,7 +2245,7 @@ export default ActivityApp;
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { projectsDB, templatesDB } from "../db"; // âœ… Uses separate local stores
+import { projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
 const SYSTEM_TEMPLATES = {
@@ -2386,7 +2386,7 @@ export default function Dashboard() {
         if (!grouped[category]) grouped[category] = [];
         grouped[category].push({
             ...t,
-            name: t.title || t.name, // Normalize mapping
+            name: t.title || t.name, 
             desc: t.description || t.desc
         });
       });
@@ -2396,7 +2396,7 @@ export default function Dashboard() {
     };
 
     loadLocalData();
-  }, []); // Only run once on mount
+  }, []); 
 
   const handleItemClick = (item) => {
     const confirmMsg = item.isSystem
@@ -2419,7 +2419,6 @@ export default function Dashboard() {
       });
     }
   };
-
 
   return (
     <div className="dashboard-container">
@@ -2509,14 +2508,12 @@ export default function Dashboard() {
                   <div className="project-item-info">
                     <div className="project-item-title">{proj.title}</div>
                     <div className="project-item-meta">
-                      {/* Uses updatedAt mapping from MainApp.jsx */}
                       Last modified: {new Date(proj.updatedAt || Date.now()).toLocaleDateString()}
                     </div>
                   </div>
 
                   <div
-                    className={`project-item-status ${proj.synced ? "synced" : "local"
-                      }`}
+                    className={`project-item-status ${proj.synced ? "synced" : "local"}`}
                   >
                     {proj.synced ? "Cloud Synced" : "Local Only"}
                   </div>
@@ -2721,7 +2718,7 @@ export default function LandingPage() {
 
 // frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import "../styles/LearningPath.css";
 
@@ -3069,12 +3066,6 @@ export default function LearningPath() {
       <DashboardHeader />
 
       <main className="lp-main">
-        <div className="lp-back-container">
-          {/* Updated link destination and text */}
-          <Link to="/dashboard" className="lp-back-link">
-            Back to Home
-          </Link>
-        </div>
 
         <div className="lp-hero">
           <div className="lp-hero-icon">
