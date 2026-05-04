@@ -1,4 +1,5 @@
-# frontend\public\python_engine\models.py
+# api/models.py
+
 from pydantic import BaseModel
 from typing import Optional
 
@@ -7,19 +8,23 @@ class ProjectModel(BaseModel):
     description: Optional[str] = "" 
     data: dict
     owner_id: str
+    updatedAt: Optional[int] = None  # ADDED THIS
 
 class ProjectUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None 
     data: Optional[dict] = None
+    updatedAt: Optional[int] = None  # ADDED THIS
 
 class TemplateModel(BaseModel):
     title: str
     description: Optional[str] = ""
     data: dict
-    owner_id: str  # Ensures templates are saved specific to the user
+    owner_id: str 
+    updatedAt: Optional[int] = None  # ADDED THIS
 
 class TemplateUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     data: Optional[dict] = None
+    updatedAt: Optional[int] = None  # ADDED THIS
