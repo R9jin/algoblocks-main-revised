@@ -66,7 +66,7 @@ const getComplexityColor = (complexity) => {
 // UPDATED: More robust weight check to catch Python Recurrence Relations
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
-  
+
   if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
   if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("t(n-1)+t(n-2)")) return 8;
   if (comp.includes("n^3") || comp.includes("n³")) return 7;
@@ -77,7 +77,7 @@ const getComplexityWeight = (complexity) => {
   if (comp.includes("√n") || comp.includes("sqrt")) return 3;
   if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
   if (comp.includes("o(1)")) return 1;
-  
+
   return 0;
 };
 
@@ -159,11 +159,17 @@ export default function MainApp() {
       const { type, data, counts } = event.data;
 
       if (type === 'ANALYZE_RESULT') {
-        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
-        setAnalysisTime(duration);
-
         if (data.status === "success") {
+          // Read precise time directly from the Python backend
+          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+
+          const initialCounts = {};
+          (data.lines || []).forEach(l => {
+            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
+          });
+          setLineExecutions(initialCounts);
+
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);
@@ -341,8 +347,6 @@ export default function MainApp() {
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "") return;
 
-    analysisStartTimeRef.current = performance.now();
-
     if (isOnline) {
       try {
         const response = await fetch(`${VERCEL_URL}/api/analyze`, {
@@ -354,10 +358,10 @@ export default function MainApp() {
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
 
         const data = await response.json();
-        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
-        setAnalysisTime(duration);
 
         if (data.status === "success") {
+          // Read precise time directly from the Python backend
+          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
@@ -508,8 +512,7 @@ export default function MainApp() {
     setBottomPanel("console");
     setConsoleTab("output");
 
-    setConsoleOutput(prev => prev + "\n> Running locally via Pyodide (WebAssembly)...\n");
-
+    setConsoleOutput(prev => prev + "\n> Running the program...\n");
     outputCountRef.current = 0;
     pendingOutputRef.current = "";
 
@@ -740,11 +743,27 @@ export default function MainApp() {
                   <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', flex: 1 }}>
 
                     {/* Console Tab Group */}
-                    <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px' }}>
+                    <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="tab-btn-group">
                         <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
                         <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
+
+                      {/* NEW: Clear Console Button */}
+                      {consoleTab === 'output' && (
+                        <button
+                          onClick={() => setConsoleOutput("Ready to run...\n")}
+                          className="tab-btn"
+                          style={{
+                            backgroundColor: 'rgba(188, 161, 252, 0.1)',
+                            color: '#BCA1FC',
+                            border: '1px solid rgba(188, 161, 252, 0.3)'
+                          }}
+                          title="Clear Terminal Output"
+                        >
+                          ✕ Clear
+                        </button>
+                      )}
                     </div>
 
                     <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
@@ -854,20 +873,20 @@ export default function MainApp() {
                               if (activeTab === 'local' || !isBottleneck) {
                                 timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
                               }
-                              
+
                               if (activeTab === 'local') {
                                 spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
                               }
 
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
-                              
+
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
                               // UPDATED: Added missing check for the log n recurrence equation (T(n/2)) so recursive binary search also gets the EFFICIENT tag 
-                              const isEfficient = !isBottleneck && 
-                                (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && 
+                              const isEfficient = !isBottleneck &&
+                                (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) &&
                                 !compStripped.includes("nlogn");
-                                
+
                               return (
                                 <React.Fragment key={i}>
                                   <tr

@@ -1,18 +1,4 @@
-/**
- * UserHeader Component
- *
- * This component renders the navigation header used when a user is
- * authenticated inside the AlgoBlocks application. It provides branding
- * and a user account menu that allows quick access to dashboard navigation,
- * project management, and account sign-out functionality.
- *
- * Key Features:
- * - Displays application branding (logo and title).
- * - Shows a user avatar generated from the user's name initials.
- * - Provides a dropdown menu with account-related actions.
- * - Handles closing the menu when clicking outside or pressing Escape.
- */
-
+// frontend\src\components\UserHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuFolder, LuLayoutDashboard, LuLogOut } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";

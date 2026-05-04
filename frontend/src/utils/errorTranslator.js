@@ -1,14 +1,10 @@
 // frontend/src/utils/errorTranslator.js
-
 export const translatePythonError = (rawErrorMessage) => {
     if (!rawErrorMessage) return "";
   
     const msg = String(rawErrorMessage);
     let hint = "";
-  
-    // ==========================================
-    // SYNTAX & STRUCTURE ERRORS
-    // ==========================================
+
     if (msg.includes("EOL while scanning string literal") || msg.includes("unterminated string literal")) {
       hint = "You forgot to close a quotation mark at the end of a string (e.g., missing a ' or \").";
     } 

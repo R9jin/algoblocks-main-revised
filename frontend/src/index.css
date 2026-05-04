@@ -1,4 +1,4 @@
-/* ... (keep existing top section) ... */
+/*frontend\src\index.css*/
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600&display=swap');
 
 :root {
@@ -214,6 +214,12 @@ td {
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
   opacity: 0;
   pointer-events: none; /* Let users click through it */
+}
+
+.network-popup.faded {
+    opacity: 0.3; /* Drops the visibility so it's not distracting */
+    transform: scale(0.9) translateY(10px); /* Shrinks it slightly and pushes it down */
+    pointer-events: none; /* CRITICAL: Lets the user click right through it to the UI below */
 }
 
 /* Animation Classes controlled by React */

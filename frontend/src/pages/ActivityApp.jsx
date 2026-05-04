@@ -422,10 +422,9 @@ const ActivityApp = () => {
       const { type, data, counts } = event.data;
 
       if (type === 'ANALYZE_RESULT') {
-        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
-        setAnalysisTime(duration);
-
         if (data.status === "success") {
+          // Read precise time directly from the Python backend
+          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
@@ -544,8 +543,6 @@ const ActivityApp = () => {
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "") return;
 
-    analysisStartTimeRef.current = performance.now();
-
     if (isOnline) {
       try {
         const response = await fetch(`${VERCEL_URL}/api/analyze`, {
@@ -557,10 +554,10 @@ const ActivityApp = () => {
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
 
         const data = await response.json();
-        const duration = (performance.now() - analysisStartTimeRef.current).toFixed(1);
-        setAnalysisTime(duration);
 
         if (data.status === "success") {
+          // Read precise time directly from the Python backend
+          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
@@ -715,8 +712,7 @@ const ActivityApp = () => {
       }
     }
 
-    setConsoleOutput(prev => prev + "\n> Running locally via Pyodide (WebAssembly)...\n");
-
+    setConsoleOutput(prev => prev + "\n> Running the program...\n");
     outputCountRef.current = 0;
     pendingOutputRef.current = "";
 
@@ -1072,11 +1068,28 @@ const ActivityApp = () => {
                 {bottomPanel === 'console' ? (
                   <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
 
-                    <div className="complexity-tabs" style={{ padding: '0', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '10px', flexShrink: 0 }}>
+                    {/* Console Tab Group */}
+                    <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="tab-btn-group">
                         <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
                         <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
+
+                      {/* NEW: Clear Console Button */}
+                      {consoleTab === 'output' && (
+                        <button
+                          onClick={() => setConsoleOutput("Ready to run...\n")}
+                          className="tab-btn"
+                          style={{ 
+                            backgroundColor: 'rgba(188, 161, 252, 0.1)', 
+                            color: '#BCA1FC', 
+                            border: '1px solid rgba(188, 161, 252, 0.3)' 
+                          }}
+                          title="Clear Terminal Output"
+                        >
+                          ✕ Clear
+                        </button>
+                      )}
                     </div>
 
                     <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>

@@ -1,4 +1,6 @@
+# frontend\public\python_engine\analyzer.py
 import ast
+import time
 from collections import deque, Counter
 from semantic_nlg import SemanticNLGEngine  
 
@@ -90,29 +92,22 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         final_space = self.get_final_space_badge()
         max_w = max([d.get('weight', -1) for d in self._details], default=-1)
         
-        # Exclude highly efficient, sub-linear runtimes from triggering bottleneck warnings
         excluded_complexities = ["O(1)", "O(log n)", "O(√n)", "-", ""]
-        
-        # Specific complexities that deserve active praise
         praise_complexities = ["O(log n)", "O(√n)"]
         
         for d in self._details:
-            # 1. Check for Time Bottleneck (Punishment)
             if d.get('weight', -1) == max_w and max_w > 0 and final_time not in excluded_complexities:
                 warning = self.nlg_engine.get_time_bottleneck_warning(d.get('operation', ''), final_time)
                 if warning not in d.get('time_explanation', ''):
                     d['time_explanation'] = str(d.get('time_explanation', '')) + warning
                 
-            # 2. Check for Space Bottleneck (Punishment)
             if d.get('global_space', '') == final_space and final_space not in excluded_complexities:
                 warning = self.nlg_engine.get_space_bottleneck_warning(d.get('operation', ''), final_space)
                 if warning not in d.get('space_explanation', ''):
                     d['space_explanation'] = str(d.get('space_explanation', '')) + warning
 
-            # 3. Check for Algorithm Optimization (Reward)
             if d.get('global_time', '') in praise_complexities:
                 praise = self.nlg_engine.get_time_optimization_praise(d.get('operation', ''), d.get('global_time', ''))
-                # Prevent duplicate tags if the loop hits it twice
                 if "🌟 **HIGHLY OPTIMIZED:**" not in d.get('time_explanation', '') and "🌟 **EFFICIENT SCALING:**" not in d.get('time_explanation', '') and "🌟 **ALGORITHM MASTERY:**" not in d.get('time_explanation', ''):
                     d['time_explanation'] = str(d.get('time_explanation', '')) + praise
                     
@@ -200,7 +195,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.detect_indirect_recursion()
 
     def detect_indirect_recursion(self):
-        # Build an abstract graph stripping direct self-loops to prevent false O(2^n) assignments
         indirect_graph = {u: {v for v in neighbors if v != u} for u, neighbors in self.call_graph.items()}
         for func in indirect_graph:
             visited, rec_stack = set(), set()
@@ -221,7 +215,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return "Code Block"  
 
     def get_color(self, complexity_str):
-        # Updated to catch the T(placeholder) tag so Recurrence Relations remain purple.
         if complexity_str == "-" or "Dead Code" in complexity_str: return "#7f8c8d"  
         if "T(" in complexity_str or "n!" in complexity_str: return "#8e44ad"  
         if "2^n" in complexity_str: return "#9b59b6"  
@@ -230,7 +223,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if "log" in complexity_str: return "#2980b9"  
         if "√" in complexity_str: return "#16a085"  
         if complexity_str != "O(1)": return "#e67e22"  
-        
         return "#27ae60"
 
     def _detect_graph_context(self, node):
@@ -508,7 +500,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             self.custom_space[node.name] = "O(n)" 
         else:
             if is_indirect:
-                # Set specific Recurrence Relation for Indirect execution paths 
                 relation = "T(n) = T(n-1) + T(n-2) + O(1)" 
                 self.custom_space[node.name] = "O(n)"
             elif self.has_recursion_in_loop: 
@@ -525,7 +516,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
         self.custom_functions[node.name] = relation
 
-        # RECURSION BACKFILLER: Sweeps up through parsed lines and overwrites placeholders with exact relations
         for i in range(start_idx, len(self._details)):
             is_placeholder = False
             if str(self._details[i]["local_time"]).startswith("T("): 
@@ -535,7 +525,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self._details[i]["global_time"] = relation
                 is_placeholder = True
                 
-            # Safely replace the raw placeholder in the detailed NLG UI explanations
             if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")):
                 formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
                 self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
@@ -638,8 +627,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if getattr(self, 'in_graph_context', False): 
                     self.record_line(node, time_override="O(V + E)", space_override="O(V)", custom_op="Recursive Call")
                 else: 
-                    # Deploy T(placeholder) to immediately display "Recursive Call" in the UI.
-                    # It forces the Backfiller in visit_FunctionDef to swap this out with the real equation.
                     self.record_line(node, time_override="T(placeholder)", space_override="O(n)", custom_op="Recursive Call")
             elif f_id in self.builtin_complexities:
                 b = self.builtin_complexities[f_id]; self.record_line(node, time_override=b['time'], space_override=b['space'])
@@ -794,3 +781,47 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
     def get_final_badge(self):
         return self.get_final_asymptotic_badge()
+
+
+# --- TIMING WRAPPER MOVED TO BACKEND ---
+def analyze_source_code(source_code):
+    """
+    Wrapper to safely execute the ComplexityAnalyzer and measure execution time
+    using high-precision time.perf_counter().
+    """
+    start_time = time.perf_counter()
+    
+    try:
+        # Parse the source code into an Abstract Syntax Tree (AST)
+        tree = ast.parse(source_code)
+        
+        # Instantiate and run the multi-pass analyzer
+        analyzer = ComplexityAnalyzer(source_code)
+        analyzer.bfs_first_pass(tree)
+        analyzer.visit(tree)
+        
+        results = {
+            "status": "success",
+            "total": analyzer.get_final_asymptotic_badge(),
+            "space_total": analyzer.get_final_space_badge(),
+            "lines": analyzer.details,
+            "error": None
+        }
+    except SyntaxError as e:
+        results = {
+            "status": "error",
+            "message": f"SyntaxError: {str(e)}",
+            "line": getattr(e, 'lineno', -1)
+        }
+    except Exception as e:
+        results = {
+            "status": "error",
+            "message": str(e),
+            "line": -1
+        }
+        
+    # Capture final time and convert to milliseconds
+    end_time = time.perf_counter()
+    results["analysis_time_ms"] = (end_time - start_time) * 1000
+    
+    return results

@@ -1,3 +1,4 @@
+// frontend\src\pages\SignUp.jsx
 import { useState } from "react";
 import { FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";

@@ -1,3 +1,4 @@
+/* frontend\src\components\BigOModal.jsx */
 import { useState } from "react";
 import "../styles/BigOModal.css";
 import { formatComplexity } from "../utils/formatters";

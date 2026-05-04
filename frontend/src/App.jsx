@@ -1,11 +1,10 @@
-import { useEffect } from "react";
+// frontend\src\App.jsx
+import { lazy, useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
-import ActivityApp from "./pages/ActivityApp";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import LandingPage from "./pages/HomePage";
 import LearningPath from "./pages/LearningPath";
-import MainApp from "./pages/MainApp";
 import Projects from "./pages/Projects";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -16,6 +15,7 @@ import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
 // 1. Import the new indicator
 import OfflineIndicator from "./components/OfflineIndicator";
 
+
 function App() {
   useEffect(() => {
     // Start syncing data
@@ -25,6 +25,9 @@ function App() {
     sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
 
   }, []);
+
+  const MainApp = lazy(() => import("./pages/MainApp"));
+  const ActivityApp = lazy(() => import("./pages/ActivityApp"));
 
   return (
     <>

@@ -1,5 +1,4 @@
-// frontend/src/workers/analyzer.worker.js
-
+// frontend\src\workers\analyzer.worker.js
 let pyodide = null;
 
 // async input control
@@ -76,8 +75,6 @@ self.onmessage = async (e) => {
 
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
-import ast
-import traceback
 import sys
 
 # Ensure fresh imports if the worker reloaded the files from the network
@@ -87,35 +84,12 @@ if 'semantic_nlg' in sys.modules:
     del sys.modules['semantic_nlg']
 
 try:
-    from analyzer import ComplexityAnalyzer
-
-    def do_analyze(code_to_check):
-        try:
-            tree = ast.parse(code_to_check)
-            analyzer_inst = ComplexityAnalyzer(code_to_check)
-            analyzer_inst.bfs_first_pass(tree)
-            analyzer_inst.visit(tree)
-            
-            return json.dumps({
-                "status": "success",
-                "total": analyzer_inst.get_final_asymptotic_badge(),
-                "space_total": analyzer_inst.get_final_space_badge(),
-                "lines": analyzer_inst.details
-            })
-        except SyntaxError as e:
-            return json.dumps({
-                "status": "error",
-                "message": f"SyntaxError: {str(e)}",
-                "line": getattr(e, 'lineno', -1)
-            })
-        except Exception as e:
-            return json.dumps({
-                "status": "error",
-                "message": str(e),
-                "line": -1
-            })
-
-    output = do_analyze(user_code)
+    from analyzer import analyze_source_code
+    
+    # Run the high-precision backend analyzer
+    output_dict = analyze_source_code(user_code)
+    output = json.dumps(output_dict)
+    
 except Exception as init_err:
     output = json.dumps({
         "status": "error",
@@ -129,7 +103,7 @@ output
 
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
     }
-    
+
     // ======================
     // PYTHON TO BLOCKS MODE
     // ======================
@@ -153,7 +127,7 @@ except Exception as e:
 
 output
       `);
-      
+
       const resultData = JSON.parse(resultJsonStr);
       self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
     }
@@ -240,11 +214,55 @@ class AsyncInputTransformer(ast.NodeTransformer):
             return ast.copy_location(ast.Await(value=new_call), node)
         return node
 
+# ==========================================
+# NEW: AST INFINITE LOOP DETECTOR
+# ==========================================
+class InfiniteLoopDetector(ast.NodeVisitor):
+    def __init__(self):
+        self.warnings = []
+
+    def visit_While(self, node):
+        # Check 1: while True without a break/return
+        if isinstance(node.test, ast.Constant) and node.test.value is True:
+            has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
+            if not has_break:
+                self.warnings.append("Execution Prevented:\\nRoot Cause: 'while True' loop found with no 'break' or 'return'. This will run forever.")
+        
+        # Check 2: Unmodified condition variables
+        else:
+            condition_vars = {n.id for n in ast.walk(node.test) if isinstance(n, ast.Name)}
+            if condition_vars:
+                modified_vars = set()
+                for child in node.body:
+                    for n in ast.walk(child):
+                        if isinstance(n, ast.Assign):
+                            for target in n.targets:
+                                if isinstance(target, ast.Name): modified_vars.add(target.id)
+                        elif isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
+                             modified_vars.add(n.target.id)
+
+                if not condition_vars.intersection(modified_vars):
+                    has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
+                    if not has_break:
+                        self.warnings.append(f"Execution Prevented:\\nRoot Cause: Variables {list(condition_vars)} control the loop, but are never modified inside it. This will run forever.")
+
+        self.generic_visit(node)
+# ==========================================
+
 globals()['run_hits_json'] = "{}"
 dyn_profiler = LineExecutionProfiler()
 
 try:
     tree = ast.parse(user_code)
+    
+    # --- RUN THE AST CHECK BEFORE EXECUTING ---
+    detector = InfiniteLoopDetector()
+    detector.visit(tree)
+    if detector.warnings:
+        # If an infinite loop is found, raise an exception to stop execution immediately
+        raise Exception("\\n\\n".join(detector.warnings))
+    # ------------------------------------------
+
     transformer = AsyncInputTransformer()
     transformed = transformer.visit(tree)
     ast.fix_missing_locations(transformed)
@@ -278,8 +296,12 @@ except SyntaxError:
     except Exception:
         print(traceback.format_exc(), file=sys.stderr)
 
-except Exception:
-    print(traceback.format_exc(), file=sys.stderr)
+except Exception as e:
+    # If our AST checker raises an Exception, it gets caught here and printed to the console
+    if "Execution Prevented" in str(e):
+        print(str(e), file=sys.stderr)
+    else:
+        print(traceback.format_exc(), file=sys.stderr)
       `);
 
       const countsStr = pyodide.globals.get("run_hits_json");

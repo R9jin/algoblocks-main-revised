@@ -1,3 +1,4 @@
+// frontend\src\db.js
 import localforage from 'localforage';
 
 // Initialize offline databases

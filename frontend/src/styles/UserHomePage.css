@@ -1,7 +1,4 @@
-/* ========================================================= */
-/* BASE LAYOUT                       */
-/* ========================================================= */
-
+/*frontend\src\styles\UserHomePage.css*/
 .user-homepage.landing-container {
   display: flex;
   flex-direction: column;

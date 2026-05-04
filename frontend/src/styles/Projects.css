@@ -1,7 +1,4 @@
-/* ==========================================================================
-   PAGE LAYOUT & CONTAINERS
-   ========================================================================== */
-
+/*frontend\src\styles\Projects.css*/
 .page-container {
   display: flex;
   flex-direction: column;

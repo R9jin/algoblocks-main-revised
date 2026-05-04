@@ -13,7 +13,6 @@ export const runCodeWithTimeout = (code, timeoutMs = 4000, onOutput, onError) =>
             if (!isFinished) {
                 isFinished = true;
                 
-                // Remove listener and kill the frozen worker
                 sharedAnalyzerWorker.removeEventListener('message', messageHandler);
                 sharedAnalyzerWorker.terminate(); 
                 
@@ -68,3 +67,4 @@ export const convertPythonToBlocks = (code) => {
 };
 
 export { sharedAnalyzerWorker };
+

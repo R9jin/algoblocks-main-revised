@@ -3,9 +3,6 @@ import { projectsDB, syncQueueDB, templatesDB } from "../db";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-/**
- * Pushes pending changes from IndexedDB to MongoDB silently.
- */
 export const startBackgroundSync = () => {
   // Check every 30 seconds or when the browser comes back online
   const sync = async () => {

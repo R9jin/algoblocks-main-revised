@@ -1,4 +1,4 @@
-// frontend/src/components/ConfirmModal.jsx
+/*frontend\src\components\ConfirmModal.jsx*/
 import '../styles/ConfirmModal.css';
 
 const ConfirmModal = ({ 

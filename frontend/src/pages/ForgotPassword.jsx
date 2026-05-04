@@ -1,3 +1,4 @@
+// frontend\src\pages\ForgotPassword.jsx
 import { useState } from "react";
 import { FiCheckCircle, FiMail } from "react-icons/fi";
 import { Link } from "react-router-dom";

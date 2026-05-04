@@ -1,4 +1,6 @@
+// frontend/src/components/MemoryVisualizer.jsx
 import '../styles/MemoryVisualizer.css';
+import { formatComplexity } from '../utils/formatters';
 
 const MemoryVisualizer = ({ analysisData, currentStep }) => {
   if (!analysisData || analysisData.length === 0) {
@@ -12,7 +14,7 @@ const MemoryVisualizer = ({ analysisData, currentStep }) => {
   const allocations = executedLines
     .map((step, index) => ({ ...step, displayLine: index + 1 }))
     .filter(
-      (step) => step.local_space && step.local_space !== "O(1)" && step.space_explanation
+      (step) => step.local_space && step.local_space.toLowerCase() !== "o(1)"
     );
 
   // Get the peak memory usage up to this point
@@ -20,42 +22,63 @@ const MemoryVisualizer = ({ analysisData, currentStep }) => {
 
   return (
     <div className="memory-visualizer-container">
-      <div className="memory-header">
-        <h3>Memory Allocation Map</h3>
-        <span className="global-badge">Total Heap: {currentGlobalSpace}</span>
+      
+      {/* Top Dashboard Stats */}
+      <div className="memory-summary-dashboard">
+        <div className="mem-stat-box">
+          <span className="mem-stat-title">Peak Heap Usage</span>
+          <span className="mem-stat-value">{formatComplexity(currentGlobalSpace)}</span>
+        </div>
+        <div className="mem-stat-box">
+          <span className="mem-stat-title">Active Allocations</span>
+          <span className="mem-stat-value">{allocations.length}</span>
+        </div>
       </div>
 
-      <div className="memory-stack">
-        {allocations.length === 0 ? (
-          <div className="memory-safe">No major auxiliary memory allocated yet (O(1)).</div>
-        ) : (
-          allocations.map((alloc, index) => (
-            <div key={index} className="memory-block">
-              <div className="memory-block-header">
-                <span className="line-num">Line {alloc.displayLine}</span>
-                <span className="local-badge">{alloc.local_space}</span>
-              </div>
-              
-              <div className="memory-details">
-                {/* Updated to use lineOfCode matching the Python backend */}
-                <p className="code-snippet"><code>{alloc.lineOfCode || alloc.code}</code></p>
-                <p className="explanation">{alloc.space_explanation}</p>
-              </div>
-
-              {/* Visual representation of the memory size */}
-              <div className="memory-bar-container">
-                <div 
-                  className={`memory-bar ${alloc.local_space.includes('^2') ? 'quadratic' : 'linear'}`}
-                  style={{ 
-                    width: alloc.local_space.includes('^2') ? '100%' : 
-                           alloc.local_space.includes('n') || alloc.local_space.includes('V') ? '50%' : '10%' 
-                  }}
-                ></div>
-              </div>
+      {/* Hardware RAM Visualizer */}
+      <div className="ram-container">
+        <div className="ram-header">
+          <span className="ram-title">SYSTEM MEMORY (RAM)</span>
+          <span className="ram-slots">SLOT 1</span>
+        </div>
+        
+        <div className="ram-stick">
+          {allocations.length === 0 ? (
+            <div className="ram-safe-message">
+              <span className="safe-icon">✅</span>
+              O(1) - No dynamic heap allocations detected.
             </div>
-          ))
-        )}
+          ) : (
+            allocations.map((alloc, index) => {
+              const codeStr = alloc.lineOfCode || alloc.code;
+              
+              // Attempt to guess the variable name being allocated (e.g. 'arr = [0]*n' -> 'arr')
+              const varNameMatch = codeStr.match(/^\s*([a-zA-Z0-9_]+)\s*=/);
+              const varName = varNameMatch ? varNameMatch[1] : `Alloc #${index + 1}`;
+
+              // Determine block size visually based on complexity
+              const comp = alloc.local_space.toLowerCase();
+              let sizeClass = 'small';
+              if (comp.includes('^2') || comp.includes('²') || comp.includes('2^')) sizeClass = 'huge';
+              else if (comp.includes('n') || comp.includes('v')) sizeClass = 'medium';
+
+              return (
+                <div key={index} className={`ram-chunk ${sizeClass}`}>
+                  <div className="chunk-header">
+                    <span className="chunk-name">{varName}</span>
+                    <span className="chunk-size">{formatComplexity(alloc.local_space)}</span>
+                  </div>
+                  <div className="chunk-footer">
+                    <span className="chunk-line">Line {alloc.displayLine}</span>
+                    <span className="chunk-code">{codeStr}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
+      
     </div>
   );
 };

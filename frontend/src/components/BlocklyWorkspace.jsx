@@ -1,3 +1,4 @@
+/*frontend\src\components\BlocklyWorkspace.jsx*/
 import * as Blockly from "blockly";
 import "blockly/blocks";
 import * as En from "blockly/msg/en";
