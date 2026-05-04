@@ -198,6 +198,27 @@
   box-shadow: 0 4px 12px rgba(127, 87, 249, .12);
 }
 
+/* --- LOCKED TOPIC STYLES --- */
+.lp-topic-container.locked {
+  opacity: 0.6;
+  background-color: #f1f5f9; /* Muted gray background */
+  border-color: #e2e8f0;
+}
+
+.lp-topic-container.locked .lp-topic-row {
+  cursor: not-allowed;
+}
+
+.lp-topic-container.locked .lp-topic-row:hover {
+  background-color: transparent; /* Remove hover effect for locked items */
+}
+
+.lp-topic-container.locked .lp-topic-name,
+.lp-topic-container.locked .lp-topic-number {
+  color: #94a3b8; /* Mute the text colors */
+}
+/* --------------------------- */
+
 .lp-topic-row {
   display: flex;
   justify-content: space-between;
