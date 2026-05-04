@@ -512,8 +512,7 @@ export default function MainApp() {
     setBottomPanel("console");
     setConsoleTab("output");
 
-    setConsoleOutput(prev => prev + "\n> Running locally via Pyodide (WebAssembly)...\n");
-
+    setConsoleOutput(prev => prev + "\n> Running the program...\n");
     outputCountRef.current = 0;
     pendingOutputRef.current = "";
 
