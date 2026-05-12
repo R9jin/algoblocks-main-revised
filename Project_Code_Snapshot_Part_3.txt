@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 3 OF 5) ---
 
---- TIMESTAMP: 2026-05-04 15:06:07 ---
+--- TIMESTAMP: 2026-05-04 15:29:11 ---
 
 
 --- FILE: frontend/public/templates/recursive/recursive_fibonacci.json ---
@@ -11606,28 +11606,23 @@ export default ConfirmModal;
 
 --- FILE: frontend/src/components/DashboardHeader.jsx ---
 
-// frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LuFolder, LuLogOut } from "react-icons/lu";
+import { LuFolder, LuLayoutDashboard, LuLogOut } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
 
-export default function DashboardHeader() {
-  const navigate = useNavigate();
-
-  // State for user data and dropdown menu
+export default function DashboardHeader({ backTo = "/home", backText = "Back to Home" }) {
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
+  const navigate = useNavigate();
 
-  // Fetch the logged-in user from localStorage
+  // Load user data from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
-  // Generate initials for the avatar
+  // Generate initials for the avatar (e.g., "John Doe" -> "JD")
   const initials = useMemo(() => {
     const parts = (user?.name || "User").trim().split(/\s+/);
     const a = parts[0]?.[0] || "U";
@@ -11635,11 +11630,10 @@ export default function DashboardHeader() {
     return (a + b).toUpperCase();
   }, [user?.name]);
 
-  // Handle clicking outside to close the dropdown menu
+  // Handle clicking outside the dropdown to close it
   useEffect(() => {
     const onDocClick = (e) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
     };
     const onEsc = (e) => {
       if (e.key === "Escape") setOpen(false);
@@ -11647,13 +11641,14 @@ export default function DashboardHeader() {
 
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onEsc);
+
     return () => {
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onEsc);
     };
   }, []);
 
-  // Handle Sign Out
+  // Handle user logout
   const onSignOut = () => {
     setOpen(false);
     localStorage.removeItem("user");
@@ -11662,68 +11657,55 @@ export default function DashboardHeader() {
 
   return (
     <header className="dashboard-header">
+      
+      {/* LEFT SIDE: Back Link & Logo */}
       <div className="header-left">
-        <div className="logo-container">
-          <img
-            src="/assets/algoblocks_logo.png"
-            alt="Logo"
-            className="logo-img"
-          />
-          <h1 className="logo-text" style={{ color: "#3C2D76" }}>
-            ALGOBLOCKS
-          </h1>
-        </div>
-        <Link to="/home" className="back-home">
-          <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Home
+        {/* Dynamic Back Navigation */}
+        <Link to={backTo} className="back-home" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
+          {backText}
         </Link>
+
+        {/* AlgoBlocks Logo */}
+        <div className="logo-container" style={{ marginLeft: '20px' }}>
+          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+            <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" style={{ width: '30px', height: '30px' }} />
+            <h1 className="logo-text" style={{ color: '#3C2D76', fontSize: '1.2rem', margin: 0 }}>ALGOBLOCKS</h1>
+          </Link>
+        </div>
       </div>
 
+      {/* RIGHT SIDE: Action Buttons & User Menu */}
       <div className="header-right">
-        <button
-          className="btn-open-project"
-          onClick={() => navigate("/projects")}
-        >
-          <img
-            src="/assets/folder-icon.png"
-            alt="Open Project"
-            className="btn-icon-open"
-          />
-          Open Project
+        <button className="btn-open-project" onClick={() => navigate('/projects')}>
+          <LuFolder size={18} /> Projects
         </button>
 
-        <button
-          className="btn-new-project"
-          onClick={() => navigate("/app")}
-        >
-          + New Project
+        <button className="btn-new-project" onClick={() => navigate('/app')}>
+          + New Workspace
         </button>
 
-        {/* Dynamic User Profile Menu (Inline CSS Removed) */}
+        {/* User Dropdown Menu */}
         <div className="user-menu" ref={menuRef}>
           <button
             type="button"
-            className="user-menu-btn"
+            className="user-menu-btn user-profile-icon"
             onClick={() => setOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={open}
           >
-            <img
-              src="/assets/user-icon.png"
-              alt="User Profile"
-              className="user-profile-img"
-            />
+            <div className="user-profile-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#5A1398', fontSize: '0.9rem' }}>
+              {initials}
+            </div>
           </button>
 
           {open && (
             <div className="user-dropdown" role="menu">
-              {/* Inside frontend/src/components/DashboardHeader.jsx */}
+              
               <div className="user-dropdown-head">
-                {/* Replaced the initials with the image */}
-                <img
-                  src="/assets/user-icon.png"
-                  alt="Profile"
-                  className="dropdown-avatar-img"
-                />
+                <div className="dropdown-avatar-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#5A1398', fontSize: '1.2rem' }}>
+                  {initials}
+                </div>
                 <div className="user-name">{user?.name || "User"}</div>
                 <div className="user-email">{user?.email || ""}</div>
               </div>
@@ -11731,14 +11713,19 @@ export default function DashboardHeader() {
               <button
                 type="button"
                 className="user-dd-item"
-                onClick={() => {
-                  setOpen(false);
-                  navigate("/projects");
-                }}
+                onClick={() => { setOpen(false); navigate("/dashboard"); }}
                 role="menuitem"
               >
-                <LuFolder size={18} aria-hidden="true" />
-                Projects
+                <LuLayoutDashboard size={18} /> Go to Dashboard
+              </button>
+
+              <button
+                type="button"
+                className="user-dd-item"
+                onClick={() => { setOpen(false); navigate("/projects"); }}
+                role="menuitem"
+              >
+                <LuFolder size={18} /> Projects
               </button>
 
               <div className="user-dd-divider" />
@@ -11749,13 +11736,12 @@ export default function DashboardHeader() {
                 onClick={onSignOut}
                 role="menuitem"
               >
-                <LuLogOut size={18} aria-hidden="true" />
-                Sign Out
+                <LuLogOut size={18} /> Sign Out
               </button>
+              
             </div>
           )}
         </div>
-
       </div>
     </header>
   );

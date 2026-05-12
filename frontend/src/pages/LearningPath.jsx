@@ -345,7 +345,7 @@ export default function LearningPath() {
 
   return (
     <div className="learning-path-page">
-      <DashboardHeader />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
 
       <main className="lp-main">
 
