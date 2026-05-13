@@ -45,3 +45,36 @@ export const startBackgroundSync = () => {
   setInterval(sync, 30000); // Poll every 30s
   sync(); // Run immediately on start
 };
+
+export const fetchCloudData = async (userEmail) => {
+  if (!navigator.onLine) return;
+
+  try {
+    // 1. Fetch Projects from cloud
+    const projRes = await fetch(`${API_BASE}/api/projects`);
+    if (projRes.ok) {
+      const projects = await projRes.json();
+      // Populate local DB with cloud projects
+      for (const p of projects) {
+        // Assuming your backend returns owner_id. Filter by user.
+        if (p.owner_id === userEmail) { 
+          await projectsDB.setItem(p._id, { ...p, synced: true });
+        }
+      }
+    }
+
+    // 2. Fetch Templates from cloud
+    const tempRes = await fetch(`${API_BASE}/api/templates`);
+    if (tempRes.ok) {
+      const templates = await tempRes.json();
+      // Populate local DB with cloud templates
+      for (const t of templates) {
+        if (t.owner_id === userEmail) {
+          await templatesDB.setItem(t._id, { ...t, synced: true });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch cloud data:", error);
+  }
+};

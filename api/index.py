@@ -1,27 +1,24 @@
-# api\index.py
-
+# api/index.py
 import sys
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from bson import ObjectId
 
-# Ensure current dir is included for Vercel
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
+# ==========================================
+# ✅ FIX: GLOBAL PATH RESOLUTION
+# ==========================================
+current_dir = os.path.dirname(os.path.abspath(__file__)) # Gets the /api folder
+parent_dir = os.path.dirname(current_dir)                # Gets the root folder
 
-# =========================
-# ✅ CLEANED IMPORT HANDLING
-# =========================
-try:
-    from api.database import projects_collection, users_collection, templates_collection
-    from api.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
-except ModuleNotFoundError:
-    try:
-        from database import projects_collection, users_collection, templates_collection  
-        from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  
-    except ModuleNotFoundError as e:
-        raise RuntimeError(f"Import failed: {e}")  
+# Add both to sys.path so 'from api...' imports work everywhere without try/except
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
+
+# Import your cleanly separated routers
+from api.routers import project_router
+from api.routers import template_router
+from api.routers import auth_router
+from api.routers import analyze_router
 
 app = FastAPI()
 
@@ -37,168 +34,16 @@ app.add_middleware(
 )
 
 # =========================
-# MODELS
+# ROUTER REGISTRATION
 # =========================
-class LoginRequest(BaseModel):
-    email: str
-    password: str
+app.include_router(project_router.router)
+app.include_router(template_router.router)
+app.include_router(auth_router.router)
+app.include_router(analyze_router.router)
 
-class SignUpRequest(BaseModel):
-    name: str
-    email: str
-    password: str
-
-class ProgressRequest(BaseModel):
-    email: str
-    lesson_id: str
-    score: int
-
+# =========================
+# ROOT
+# =========================
 @app.get("/")
 def health_check():
     return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
-
-# =========================
-# CLOUD SYNC: PROJECTS
-# =========================
-@app.post("/api/projects")
-def save_project(project: ProjectModel):
-    if projects_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    result = projects_collection.insert_one(project.model_dump())
-    return {"status": "success", "id": str(result.inserted_id)}
-
-@app.get("/api/projects")
-def get_projects():
-    if projects_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    projects = list(projects_collection.find({}))
-    for p in projects:
-        p["_id"] = str(p["_id"])
-
-    return {"status": "success", "projects": projects}
-
-@app.delete("/api/projects/{project_id}")
-def delete_project(project_id: str):
-    if projects_collection is None:
-        raise HTTPException(500, "Database not connected")
-        
-    result = projects_collection.delete_one({"_id": ObjectId(project_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(404, "Project not found")
-    return {"status": "success"}
-
-@app.put("/api/projects/{project_id}")
-def update_project(project_id: str, payload: ProjectUpdate):
-    if projects_collection is None:
-        raise HTTPException(500, "Database not connected")
-        
-    update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
-
-    result = projects_collection.update_one(
-        {"_id": ObjectId(project_id)},
-        {"$set": update_data}
-    )
-
-    if result.matched_count == 0:
-        raise HTTPException(404, "Project not found")
-
-    return {"status": "success"}
-
-# =========================
-# CLOUD SYNC: TEMPLATES
-# =========================
-@app.post("/api/templates")
-def save_template(template: TemplateModel):
-    if templates_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    result = templates_collection.insert_one(template.model_dump())
-    return {"status": "success", "id": str(result.inserted_id)}
-
-@app.get("/api/templates")
-def get_templates():
-    if templates_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    templates = list(templates_collection.find({}))
-    for t in templates:
-        t["_id"] = str(t["_id"])
-    return {"status": "success", "templates": templates}
-
-@app.delete("/api/templates/{template_id}")
-def delete_template(template_id: str):
-    if templates_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    result = templates_collection.delete_one({"_id": ObjectId(template_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(404, "Template not found")
-    return {"status": "success"}
-
-@app.put("/api/templates/{template_id}")
-def update_template(template_id: str, payload: TemplateUpdate):
-    if templates_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
-
-    result = templates_collection.update_one(
-        {"_id": ObjectId(template_id)},
-        {"$set": update_data}
-    )
-
-    if result.matched_count == 0:
-        raise HTTPException(404, "Template not found")
-
-    return {"status": "success"}
-
-# =========================
-# CLOUD SYNC: AUTH & PROGRESS
-# =========================
-@app.post("/api/login")
-def login_user(req: LoginRequest):
-    if users_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    user = users_collection.find_one({"email": req.email})
-    if not user or user.get("password") != req.password:
-        raise HTTPException(401, "Invalid credentials")
-
-    return {
-        "status": "success",
-        "email": req.email,
-        "name": user.get("name"),
-        "progress": user.get("progress", {})
-    }
-
-@app.post("/api/signup")
-def signup_user(req: SignUpRequest):
-    if users_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    if users_collection.find_one({"email": req.email}):
-        raise HTTPException(400, "Email already registered")
-
-    users_collection.insert_one({
-        "name": req.name,
-        "email": req.email,
-        "password": req.password,
-        "progress": {}
-    })
-
-    return {"status": "success", "email": req.email, "name": req.name}
-
-@app.post("/api/update-progress")
-def update_progress(req: ProgressRequest):
-    if users_collection is None:
-        raise HTTPException(500, "Database not connected")
-        
-    users_collection.update_one(
-        {"email": req.email},
-        {"$set": {f"progress.{req.lesson_id}": req.score}}
-    )
-
-    user = users_collection.find_one({"email": req.email})
-    return {"status": "success", "progress": user.get("progress", {})}

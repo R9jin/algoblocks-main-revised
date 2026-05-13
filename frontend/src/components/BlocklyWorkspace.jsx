@@ -1,4 +1,3 @@
-/*frontend\src\components\BlocklyWorkspace.jsx*/
 import * as Blockly from "blockly";
 import "blockly/blocks";
 import * as En from "blockly/msg/en";
@@ -251,7 +250,7 @@ const customBlocks = [
   },
   {
     type: "python_input",
-    message0: "ask user for input with prompt %1", // More human-readable label
+    message0: "ask user for input with prompt %1", 
     args0: [
       { type: "input_value", name: "PROMPT", check: "String" }
     ],
@@ -373,7 +372,7 @@ const toolbox = {
             PROMPT: {
               shadow: {
                 type: "text",
-                fields: { TEXT: "Enter your name: " } // Example of a clear default
+                fields: { TEXT: "Enter your name: " }
               }
             }
           }
@@ -458,17 +457,14 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         }
       }
     },
-    // Inside BlocklyWorkspace.jsx
     loadTemplate: (json) => {
       if (workspace.current) {
-        // 1. Removed Blockly.Events.disable();
         try {
           workspace.current.clear();
           Blockly.serialization.workspaces.load(json, workspace.current);
         } catch (err) {
           console.error("Error loading workspace JSON:", err);
         }
-        // 2. Removed Blockly.Events.enable();
 
         setTimeout(() => {
           const code = pythonGenerator.workspaceToCode(workspace.current);
@@ -517,6 +513,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     if (workspace.current) return;
 
     let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
+    let minimapDelay; // Store timeout reference in outer scope
 
     if (blocklyDiv.current) {
       if (Blockly.ShortcutRegistry.registry.getRegistry()['startSearch']) {
@@ -536,8 +533,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       try {
         searchPlugin = new WorkspaceSearch(workspace.current);
         searchPlugin.init();
-        minimapPlugin = new PositionedMinimap(workspace.current);
-        minimapPlugin.init();
         modalPlugin = new Modal(workspace.current);
         modalPlugin.init();
         backpackPlugin = new Backpack(workspace.current);
@@ -548,6 +543,26 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       } catch (e) {
         console.warn("Plugin init skipped:", e.message);
       }
+
+      // ==========================================
+      // 🚀 THE FINAL FIX: Track the timeout so we can cancel it
+      // NOTE: Minimap is strictly created and initialized inside this block
+      // ==========================================
+      minimapDelay = setTimeout(() => {
+        // Double-check the workspace still exists and hasn't been unmounted
+        if (workspace.current && blocklyDiv.current) {
+          Blockly.svgResize(workspace.current);
+          
+          try {
+            // Create AND initialize safely after CSS is done
+            minimapPlugin = new PositionedMinimap(workspace.current);
+            minimapPlugin.init();
+          } catch (e) {
+            console.warn("Minimap instance skipped:", e.message);
+          }
+        }
+      }, 150);
+      // ==========================================
 
       if (!pythonGenerator.__originalInit) {
         pythonGenerator.__originalInit = pythonGenerator.init;
@@ -814,6 +829,11 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     }
 
     return () => {
+      // 🛑 Kills the timer immediately if the user leaves the page or React re-renders
+      if (minimapDelay) {
+        clearTimeout(minimapDelay);
+      }
+
       try {
         if (searchPlugin?.dispose) searchPlugin.dispose();
         if (minimapPlugin?.dispose) minimapPlugin.dispose();

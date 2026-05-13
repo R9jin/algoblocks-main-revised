@@ -24,12 +24,12 @@ const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#1C1236', // Match the app's deep purple background
-      'editor.foreground': '#EBE4FF', // Match the light purple text
-      'editorLineNumber.foreground': '#6C5CE7', // Accent purple for line numbers
-      'editor.lineHighlightBackground': '#2D234A', // Subtle highlight for current line
-      'editorCursor.foreground': '#FFFFFF', // Bright white cursor
-      'editor.selectionBackground': '#6C5CE755', // Purple selection highlighting
+      'editor.background': '#1C1236', 
+      'editor.foreground': '#EBE4FF', 
+      'editorLineNumber.foreground': '#6C5CE7', 
+      'editor.lineHighlightBackground': '#2D234A', 
+      'editorCursor.foreground': '#FFFFFF', 
+      'editor.selectionBackground': '#6C5CE755', 
       'editor.inactiveSelectionBackground': '#6C5CE733'
     }
   });
@@ -347,6 +347,80 @@ const getComplexityWeight = (complexity) => {
 
   return 0;
 };
+
+// --- EMOJI-FREE UI FORMATTER ---
+const formatExplanation = (text, isBottleneck, isLocalTab) => {
+  if (!text) return null;
+  const sections = text.split(/\n\n+/);
+  
+  return sections.map((sec, idx) => {
+    // Look for lines starting with bold titles (e.g. **Optimization Tip:**) 
+    const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)/s);
+    
+    if (match) {
+      const title = match[1].replace(/:$/, '').trim();
+      const content = match[2].replace(/^:/, '').trim();
+      const titleLower = title.toLowerCase();
+      
+      let type = null;
+
+      // Determine the type based on the text keywords
+      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) {
+        type = 'warning';
+      } else if (titleLower.includes('tip') || titleLower.includes('insight')) {
+        type = 'tip';
+      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) {
+        type = 'praise';
+      }
+
+      if (!type) {
+        return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
+      }
+
+      if (type === 'warning' && (isLocalTab || !isBottleneck)) {
+        return null;
+      }
+
+      let bgColor = 'rgba(0,0,0,0.05)';
+      let borderColor = '#888';
+      let titleColor = '#333';
+
+      if (type === 'warning') {
+        bgColor = 'rgba(255, 55, 95, 0.08)';
+        borderColor = '#ff375f';
+        titleColor = '#d63031';
+      } else if (type === 'tip') {
+        bgColor = 'rgba(52, 152, 219, 0.08)';
+        borderColor = '#3498db';
+        titleColor = '#2980b9';
+      } else if (type === 'praise') {
+        bgColor = 'rgba(46, 204, 113, 0.08)';
+        borderColor = '#2ecc71';
+        titleColor = '#27ae60';
+      }
+
+      return (
+        <div key={idx} style={{ 
+          marginTop: '12px', 
+          padding: '10px 14px', 
+          backgroundColor: bgColor, 
+          borderLeft: `4px solid ${borderColor}`,
+          borderRadius: '0 6px 6px 0'
+        }}>
+          <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+            {title}
+          </strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+            {content}
+          </p>
+        </div>
+      );
+    }
+
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}>{sec.trim()}</p>;
+  }).filter(Boolean);
+};
+
 const ActivityApp = () => {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
@@ -380,7 +454,7 @@ const ActivityApp = () => {
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
   const [expandedTests, setExpandedTests] = useState({ 0: true });
   const [bottomPanel, setBottomPanel] = useState(null);
-  const [consoleTab, setConsoleTab] = useState("output"); // NEW: Console Sub-tabs
+  const [consoleTab, setConsoleTab] = useState("output");
   const [activeTab, setActiveTab] = useState("local");
 
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
@@ -423,7 +497,6 @@ const ActivityApp = () => {
 
       if (type === 'ANALYZE_RESULT') {
         if (data.status === "success") {
-          // Read precise time directly from the Python backend
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
@@ -556,7 +629,6 @@ const ActivityApp = () => {
         const data = await response.json();
 
         if (data.status === "success") {
-          // Read precise time directly from the Python backend
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
@@ -590,14 +662,42 @@ const ActivityApp = () => {
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode, isOnline]);
 
+  // --- REFRESH SAFE LOADING LOGIC ---
   useEffect(() => {
-    if (!initialTemplate || !activityData) return;
-    if (hasLoadedRef.current) return;
+    if (!workspaceRef.current || hasLoadedRef.current) return;
+    if (!initialTemplate && !activityData) return;
 
     hasLoadedRef.current = true;
-    const timer = setTimeout(() => { loadActivityTemplate(initialTemplate, activityData); }, 300);
-    return () => clearTimeout(timer);
-  }, [initialTemplate, activityData]);
+
+    setTimeout(async () => {
+      try {
+        let json = null;
+        
+        if (activityData && activityData.blocks) {
+          json = activityData;
+        } else if (initialTemplate) {
+          const fetchUrl = initialTemplate.startsWith("activities/") 
+            ? `/${initialTemplate}.json` 
+            : `/templates/${initialTemplate}.json`;
+            
+          const response = await fetch(fetchUrl);
+          if (response.ok) {
+            json = await response.json();
+          }
+        }
+
+        if (json && workspaceRef.current) {
+          if (workspaceRef.current.clear) workspaceRef.current.clear();
+          workspaceRef.current.loadTemplate(json.data ? json.data : json);
+          setViewMode("workspace");
+          setIsEditingCode(false);
+        }
+      } catch (error) {
+        console.error("Failed to load activity template", error);
+      }
+    }, 500);
+
+  }, [initialTemplate, activityData, workspaceRef.current]);
 
   const saveLessonProgress = async (lessonId, score) => {
     const storedUser = localStorage.getItem("user");
@@ -615,36 +715,6 @@ const ActivityApp = () => {
 
   const handleSuccess = (passed, total) => {
     setModalConfig({ isOpen: true, title: "Activity Completed! 🎉", message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.`, confirmText: "Return to Dashboard", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); } });
-  };
-
-  const loadActivityTemplate = async (path, dataFromState) => {
-    try {
-      let json = null;
-      if (dataFromState && dataFromState.blocks) {
-        json = dataFromState;
-      } else if (path) {
-        const fetchUrl = path.startsWith("activities/") ? `/${path}.json` : `/templates/${path}.json`;
-        const response = await fetch(fetchUrl);
-        if (!response.ok) throw new Error(`404: ${fetchUrl}`);
-        json = await response.json();
-      }
-
-      if (!json) return;
-
-      const tryLoad = (retries = 15) => {
-        if (!workspaceRef.current) {
-          if (retries > 0) setTimeout(() => tryLoad(retries - 1), 100);
-          return;
-        }
-        try {
-          if (workspaceRef.current.clear) workspaceRef.current.clear();
-          workspaceRef.current.loadTemplate(json.data ? json.data : json);
-          setViewMode("workspace");
-          setIsEditingCode(false);
-        } catch (err) { }
-      };
-      tryLoad();
-    } catch (error) { }
   };
 
   const handleWorkspaceChange = async (json, pythonCode) => {
@@ -947,8 +1017,7 @@ const ActivityApp = () => {
     }
   });
 
-  // CHANGE THIS LINE to >= 4
-  const actualBottleneckIndices = maxWeight >= 4 ? bottleneckIndices : [];
+  const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
@@ -1075,19 +1144,31 @@ const ActivityApp = () => {
                         <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
 
-                      {/* NEW: Clear Console Button */}
                       {consoleTab === 'output' && (
                         <button
                           onClick={() => setConsoleOutput("Ready to run...\n")}
-                          className="tab-btn"
-                          style={{ 
-                            backgroundColor: 'rgba(188, 161, 252, 0.1)', 
-                            color: '#BCA1FC', 
-                            border: '1px solid rgba(188, 161, 252, 0.3)' 
+                          style={{
+                            backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            borderRadius: '6px',
+                            padding: '5px 14px',
+                            fontSize: '0.85rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginLeft: 'auto'
                           }}
                           title="Clear Terminal Output"
+                          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.25)' }}
+                          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)' }}
                         >
-                          ✕ Clear
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Clear Console
                         </button>
                       )}
                     </div>
@@ -1137,14 +1218,13 @@ const ActivityApp = () => {
                                     </td>
                                     <td style={{ paddingRight: '20px' }}>
                                       {hits > 0 && maxExecutions > 0 && (
-                                        // Find this div inside your console tab's line execution mapping:
                                         <div style={{
                                           height: '8px',
                                           width: `${(hits / maxExecutions) * 100}%`,
-                                          backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3', // <-- Changed this line from red to orange/green
+                                          backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3',
                                           borderRadius: '4px',
                                           transition: 'width 0.5s ease-out',
-                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(243, 156, 18, 0.5)' : 'none' // <-- Changed glow color
+                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(243, 156, 18, 0.5)' : 'none'
                                         }} title={`${Math.round((hits / maxExecutions) * 100)}% of max execution load`} />
                                       )}
                                     </td>
@@ -1202,12 +1282,12 @@ const ActivityApp = () => {
 
                               const isBottleneck = actualBottleneckIndices.includes(i);
 
-                              // WIPE OUT BACKEND WARNINGS IF EFFICIENT
+                              // WIPE OUT BACKEND WARNINGS IF EFFICIENT OR LOCAL TAB
                               if (activeTab === 'local' || !isBottleneck) {
-                                timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
+                                timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
                               }
                               if (activeTab === 'local') {
-                                spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
+                                spaceExp = spaceExp.replace(/(?:⚠️\s*)?\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/i, "");
                               }
 
                               const timeColor = getComplexityColor(timeComplexity);
@@ -1253,9 +1333,11 @@ const ActivityApp = () => {
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                             <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                               <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                              <div>
+                                              <div style={{ width: '100%' }}>
                                                 <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
-                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(timeExp, isBottleneck, activeTab === 'local')}
+                                                </div>
                                               </div>
                                             </div>
                                             <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
@@ -1266,9 +1348,11 @@ const ActivityApp = () => {
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                             <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                               <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                              <div>
+                                              <div style={{ width: '100%' }}>
                                                 <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
-                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(spaceExp, isBottleneck, activeTab === 'local')}
+                                                </div>
                                               </div>
                                             </div>
                                             <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>

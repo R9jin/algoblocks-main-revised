@@ -5,96 +5,26 @@ import DashboardHeader from "../components/DashboardHeader";
 import { projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const SYSTEM_TEMPLATES = {
   sorting: [
-    {
-      name: "Bubble Sort",
-      path: "sort/bubble_sort",
-      desc: "Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order.",
-      icon: "/assets/sort-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Selection Sort",
-      path: "sort/selection_sort",
-      desc: "Repeatedly selects the smallest element from the unsorted sublist and swaps it with the leftmost unsorted element.",
-      icon: "/assets/sort-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Insertion Sort",
-      path: "sort/insertion_sort",
-      desc: "Builds the final sorted array one item at a time by comparing the current element to the sorted portion.",
-      icon: "/assets/sort-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Merge Sort",
-      path: "sort/merge_sort",
-      desc: "A highly efficient divide-and-conquer algorithm that recursively splits and merges lists.",
-      icon: "/assets/sort-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Quick Sort",
-      path: "sort/quick_sort",
-      desc: "Uses a divide-and-conquer approach by partitioning elements around a pivot.",
-      icon: "/assets/sort-icon.png",
-      isSystem: true
-    }
+    { name: "Bubble Sort", path: "sort/bubble_sort", desc: "Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order.", icon: "/assets/sort-icon.png", isSystem: true },
+    { name: "Selection Sort", path: "sort/selection_sort", desc: "Repeatedly selects the smallest element from the unsorted sublist and swaps it with the leftmost unsorted element.", icon: "/assets/sort-icon.png", isSystem: true },
+    { name: "Insertion Sort", path: "sort/insertion_sort", desc: "Builds the final sorted array one item at a time by comparing the current element to the sorted portion.", icon: "/assets/sort-icon.png", isSystem: true },
+    { name: "Merge Sort", path: "sort/merge_sort", desc: "A highly efficient divide-and-conquer algorithm that recursively splits and merges lists.", icon: "/assets/sort-icon.png", isSystem: true },
+    { name: "Quick Sort", path: "sort/quick_sort", desc: "Uses a divide-and-conquer approach by partitioning elements around a pivot.", icon: "/assets/sort-icon.png", isSystem: true }
   ],
   searching: [
-    {
-      name: "Linear Search",
-      path: "search/linear_search",
-      desc: "Checks every element in the list sequentially until the desired element is found.",
-      icon: "/assets/search-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Binary Search",
-      path: "search/binary_search",
-      desc: "Finds the position of a target value within a sorted array by repeatedly dividing the search interval in half.",
-      icon: "/assets/search-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Exponential Search",
-      path: "search/exponential_search",
-      desc: "Locates a range by doubling the index, then performs a binary search within that range.",
-      icon: "/assets/search-icon.png",
-      isSystem: true
-    }
+    { name: "Linear Search", path: "search/linear_search", desc: "Checks every element in the list sequentially until the desired element is found.", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "Binary Search", path: "search/binary_search", desc: "Finds the position of a target value within a sorted array by repeatedly dividing the search interval in half.", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "Exponential Search", path: "search/exponential_search", desc: "Locates a range by doubling the index, then performs a binary search within that range.", icon: "/assets/search-icon.png", isSystem: true }
   ],
   recursive: [
-    {
-      name: "Factorial",
-      path: "recursive/recursive_factorial",
-      desc: "Calculates the factorial of a non-negative integer using a recursive function.",
-      icon: "/assets/recursive-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Fibonacci",
-      path: "recursive/recursive_fibonacci",
-      desc: "Generates the Fibonacci sequence where each number is the sum of the two preceding ones.",
-      icon: "/assets/recursive-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Permutation",
-      path: "recursive/recursive_permutation",
-      desc: "Generates all possible arrangements using recursive backtracking.",
-      icon: "/assets/recursive-icon.png",
-      isSystem: true
-    },
-    {
-      name: "Tower of Hanoi",
-      path: "recursive/recursive_tower_of_hanoi",
-      desc: "Moves disks between rods following specific recursive rules.",
-      icon: "/assets/recursive-icon.png",
-      isSystem: true
-    }
+    { name: "Factorial", path: "recursive/recursive_factorial", desc: "Calculates the factorial of a non-negative integer using a recursive function.", icon: "/assets/recursive-icon.png", isSystem: true },
+    { name: "Fibonacci", path: "recursive/recursive_fibonacci", desc: "Generates the Fibonacci sequence where each number is the sum of the two preceding ones.", icon: "/assets/recursive-icon.png", isSystem: true },
+    { name: "Permutation", path: "recursive/recursive_permutation", desc: "Generates all possible arrangements using recursive backtracking.", icon: "/assets/recursive-icon.png", isSystem: true },
+    { name: "Tower of Hanoi", path: "recursive/recursive_tower_of_hanoi", desc: "Moves disks between rods following specific recursive rules.", icon: "/assets/recursive-icon.png", isSystem: true }
   ]
 };
 
@@ -113,7 +43,50 @@ export default function Dashboard() {
       }
       const storedUser = JSON.parse(storedUserStr);
 
-      // 1. Fetch User Projects from Local IndexedDB
+      // --- 1. PULL CLOUD DATA FIRST ---
+      if (navigator.onLine) {
+        try {
+          // Sync Projects
+          const pRes = await fetch(`${API_BASE}/api/projects`);
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            
+            // ✅ FIX: Safely extract the array
+            let cloudProjects = [];
+            if (pData && Array.isArray(pData.projects)) cloudProjects = pData.projects;
+            else if (Array.isArray(pData)) cloudProjects = pData;
+
+            for (const cp of cloudProjects) {
+              if (cp.owner_id === storedUser.email) {
+                await projectsDB.setItem(cp._id, { ...cp, synced: true });
+              }
+            }
+          }
+
+          // Sync Templates
+          const tRes = await fetch(`${API_BASE}/api/templates`);
+          if (tRes.ok) {
+            const tData = await tRes.json();
+            
+            // ✅ FIX: Safely extract the array
+            let cloudTemplates = [];
+            if (tData && Array.isArray(tData.templates)) cloudTemplates = tData.templates;
+            else if (Array.isArray(tData)) cloudTemplates = tData;
+
+            for (const ct of cloudTemplates) {
+              if (ct.owner_id === storedUser.email) {
+                await templatesDB.setItem(ct._id, { ...ct, synced: true });
+              }
+            }
+          }
+        } catch (fetchErr) {
+          console.error("Failed to sync cloud data:", fetchErr);
+        }
+      }
+
+      // --- 2. FETCH FROM LOCAL DB ---
+      
+      // Fetch User Projects
       const userProjects = [];
       await projectsDB.iterate((value) => {
         if (value.owner_id === storedUser.email) {
@@ -128,7 +101,7 @@ export default function Dashboard() {
           .slice(0, 5)
       );
 
-      // 2. Fetch User Templates from Local IndexedDB
+      // Fetch User Templates
       const userTemplates = [];
       await templatesDB.iterate((value) => {
         if (value.owner_id === storedUser.email) {
@@ -249,7 +222,7 @@ export default function Dashboard() {
         <aside className="dashboard-sidebar">
           <h3 className="sidebar-label">RECENT PROJECTS</h3>
           {loading ? (
-            <div className="empty-projects-box">Loading local database...</div>
+            <div className="empty-projects-box">Loading database...</div>
           ) : recentProjects.length === 0 ? (
             <div className="empty-projects-box">No recent projects yet.</div>
           ) : (
