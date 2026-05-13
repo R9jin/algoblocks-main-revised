@@ -81,6 +81,65 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
+// --- NEW: UI Formatter for Explanation Insights ---
+const formatExplanation = (text, isBottleneck, isLocalTab) => {
+  if (!text) return null;
+  const sections = text.split(/\n\n+/);
+  
+  return sections.map((sec, idx) => {
+    // Look for lines starting with an emoji and a bold title (e.g. 💡 **Tip:**)
+    const match = sec.match(/^(⚠️|💡|🌟)\s*\*\*(.*?)\*\*(.*)/s);
+    if (match) {
+      const icon = match[1];
+      const title = match[2].replace(/:$/, '').trim();
+      const content = match[3].replace(/^:/, '').trim();
+      
+      // Filter out Bottleneck warnings if they don't apply to this view/line
+      if (icon === '⚠️' && (isLocalTab || !isBottleneck)) {
+        return null;
+      }
+
+      let bgColor = 'rgba(0,0,0,0.05)';
+      let borderColor = '#888';
+      let titleColor = '#333';
+
+      if (icon === '⚠️') {
+        bgColor = 'rgba(255, 55, 95, 0.08)';
+        borderColor = '#ff375f';
+        titleColor = '#d63031';
+      } else if (icon === '💡') {
+        bgColor = 'rgba(52, 152, 219, 0.08)';
+        borderColor = '#3498db';
+        titleColor = '#2980b9';
+      } else if (icon === '🌟') {
+        bgColor = 'rgba(46, 204, 113, 0.08)';
+        borderColor = '#2ecc71';
+        titleColor = '#27ae60';
+      }
+
+      return (
+        <div key={idx} style={{ 
+          marginTop: '12px', 
+          padding: '10px 14px', 
+          backgroundColor: bgColor, 
+          borderLeft: `4px solid ${borderColor}`,
+          borderRadius: '0 6px 6px 0'
+        }}>
+          <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '1rem' }}>{icon}</span> {title}
+          </strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+            {content}
+          </p>
+        </div>
+      );
+    }
+
+    // Standard explanation text
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}>{sec.trim()}</p>;
+  }).filter(Boolean); // Remove nulls
+};
+
 export default function MainApp() {
   const location = useLocation();
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
@@ -288,13 +347,12 @@ export default function MainApp() {
 
       const user = JSON.parse(storedUser);
 
-      // ✅ ADD THIS CLOUD FETCH BLOCK HERE
       if (navigator.onLine) {
         try {
           const pRes = await fetch(`${VERCEL_URL}/api/projects`);
           if (pRes.ok) {
             const data = await pRes.json();
-            const cloudProjects = data.projects || data; // Safely handle both array and object
+            const cloudProjects = data.projects || data; 
             for (const cp of cloudProjects) {
               if (cp.owner_id === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true });
             }
@@ -302,7 +360,7 @@ export default function MainApp() {
           const tRes = await fetch(`${VERCEL_URL}/api/templates`);
           if (tRes.ok) {
             const data = await tRes.json();
-            const cloudTemplates = data.templates || data; // Safely handle both array and object
+            const cloudTemplates = data.templates || data; 
             for (const ct of cloudTemplates) {
               if (ct.owner_id === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true });
             }
@@ -311,7 +369,6 @@ export default function MainApp() {
           console.error("MainApp cloud sync failed:", e);
         }
       }
-      // ✅ END OF ADDED BLOCK
 
       let customItems = [];
 
@@ -386,7 +443,6 @@ export default function MainApp() {
         const data = await response.json();
 
         if (data.status === "success") {
-          // Read precise time directly from the Python backend
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
@@ -629,7 +685,6 @@ export default function MainApp() {
     }
   });
 
-  // UPDATED: Now requires weight 4 (O(n)) to be labeled a bottleneck.
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
@@ -845,7 +900,6 @@ export default function MainApp() {
                                         <div style={{
                                           height: '8px',
                                           width: `${(hits / maxExecutions) * 100}%`,
-                                          /* UPDATED: We removed the aggressive danger red here to stop users confusing it for a bottleneck */
                                           backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3',
                                           borderRadius: '4px',
                                           transition: 'width 0.5s ease-out',
@@ -902,25 +956,14 @@ export default function MainApp() {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
 
-                              let timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
-                              let spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
+                              const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
+                              const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
 
                               const isBottleneck = actualBottleneckIndices.includes(i);
-
-                              // UPDATED: We now aggressively delete the backend bottleneck warnings from the explanation UI if the frontend algorithm decides this line is highly efficient or immune!
-                              if (activeTab === 'local' || !isBottleneck) {
-                                timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
-                              }
-
-                              if (activeTab === 'local') {
-                                spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
-                              }
-
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
 
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
-                              // UPDATED: Added missing check for the log n recurrence equation (T(n/2)) so recursive binary search also gets the EFFICIENT tag 
                               const isEfficient = !isBottleneck &&
                                 (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) &&
                                 !compStripped.includes("nlogn");
@@ -975,9 +1018,11 @@ export default function MainApp() {
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                             <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                               <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                              <div>
+                                              <div style={{ width: '100%' }}>
                                                 <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
-                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(timeExp, isBottleneck, activeTab === 'local')}
+                                                </div>
                                               </div>
                                             </div>
                                             <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
@@ -987,9 +1032,11 @@ export default function MainApp() {
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                             <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                               <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                              <div>
+                                              <div style={{ width: '100%' }}>
                                                 <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
-                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(spaceExp, isBottleneck, activeTab === 'local')}
+                                                </div>
                                               </div>
                                             </div>
                                             <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>

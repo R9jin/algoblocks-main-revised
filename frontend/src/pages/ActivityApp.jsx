@@ -347,6 +347,66 @@ const getComplexityWeight = (complexity) => {
 
   return 0;
 };
+
+// --- NEW: UI Formatter for Explanation Insights ---
+const formatExplanation = (text, isBottleneck, isLocalTab) => {
+  if (!text) return null;
+  const sections = text.split(/\n\n+/);
+  
+  return sections.map((sec, idx) => {
+    // Look for lines starting with an emoji and a bold title (e.g. 💡 **Tip:**)
+    const match = sec.match(/^(⚠️|💡|🌟)\s*\*\*(.*?)\*\*(.*)/s);
+    if (match) {
+      const icon = match[1];
+      const title = match[2].replace(/:$/, '').trim();
+      const content = match[3].replace(/^:/, '').trim();
+      
+      // Filter out Bottleneck warnings if they don't apply to this view/line
+      if (icon === '⚠️' && (isLocalTab || !isBottleneck)) {
+        return null;
+      }
+
+      let bgColor = 'rgba(0,0,0,0.05)';
+      let borderColor = '#888';
+      let titleColor = '#333';
+
+      if (icon === '⚠️') {
+        bgColor = 'rgba(255, 55, 95, 0.08)';
+        borderColor = '#ff375f';
+        titleColor = '#d63031';
+      } else if (icon === '💡') {
+        bgColor = 'rgba(52, 152, 219, 0.08)';
+        borderColor = '#3498db';
+        titleColor = '#2980b9';
+      } else if (icon === '🌟') {
+        bgColor = 'rgba(46, 204, 113, 0.08)';
+        borderColor = '#2ecc71';
+        titleColor = '#27ae60';
+      }
+
+      return (
+        <div key={idx} style={{ 
+          marginTop: '12px', 
+          padding: '10px 14px', 
+          backgroundColor: bgColor, 
+          borderLeft: `4px solid ${borderColor}`,
+          borderRadius: '0 6px 6px 0'
+        }}>
+          <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '1rem' }}>{icon}</span> {title}
+          </strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+            {content}
+          </p>
+        </div>
+      );
+    }
+
+    // Standard explanation text
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}>{sec.trim()}</p>;
+  }).filter(Boolean); // Remove nulls
+};
+
 const ActivityApp = () => {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
@@ -947,7 +1007,6 @@ const ActivityApp = () => {
     }
   });
 
-  // CHANGE THIS LINE to >= 4
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
@@ -1149,14 +1208,13 @@ const ActivityApp = () => {
                                     </td>
                                     <td style={{ paddingRight: '20px' }}>
                                       {hits > 0 && maxExecutions > 0 && (
-                                        // Find this div inside your console tab's line execution mapping:
                                         <div style={{
                                           height: '8px',
                                           width: `${(hits / maxExecutions) * 100}%`,
-                                          backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3', // <-- Changed this line from red to orange/green
+                                          backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3',
                                           borderRadius: '4px',
                                           transition: 'width 0.5s ease-out',
-                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(243, 156, 18, 0.5)' : 'none' // <-- Changed glow color
+                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(243, 156, 18, 0.5)' : 'none'
                                         }} title={`${Math.round((hits / maxExecutions) * 100)}% of max execution load`} />
                                       )}
                                     </td>
@@ -1214,12 +1272,12 @@ const ActivityApp = () => {
 
                               const isBottleneck = actualBottleneckIndices.includes(i);
 
-                              // WIPE OUT BACKEND WARNINGS IF EFFICIENT
+                              // WIPE OUT BACKEND WARNINGS IF EFFICIENT OR LOCAL TAB
                               if (activeTab === 'local' || !isBottleneck) {
-                                timeExp = timeExp.replace(/\s*⚠️ \*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
+                                timeExp = timeExp.replace(/\s*\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
                               }
                               if (activeTab === 'local') {
-                                spaceExp = spaceExp.replace(/\s*⚠️ \*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
+                                spaceExp = spaceExp.replace(/\s*\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
                               }
 
                               const timeColor = getComplexityColor(timeComplexity);
@@ -1265,9 +1323,11 @@ const ActivityApp = () => {
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                             <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                               <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                              <div>
+                                              <div style={{ width: '100%' }}>
                                                 <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
-                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{timeExp}</p>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(timeExp, isBottleneck, activeTab === 'local')}
+                                                </div>
                                               </div>
                                             </div>
                                             <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
@@ -1278,9 +1338,11 @@ const ActivityApp = () => {
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                             <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
                                               <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
-                                              <div>
+                                              <div style={{ width: '100%' }}>
                                                 <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
-                                                <p style={{ color: '#000000', marginTop: '6px', fontSize: '0.9rem', lineHeight: '1.5' }}>{spaceExp}</p>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(spaceExp, isBottleneck, activeTab === 'local')}
+                                                </div>
                                               </div>
                                             </div>
                                             <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
