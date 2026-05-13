@@ -1,10 +1,18 @@
+# api/index.py
 import sys
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Ensure current dir is included for Vercel
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
+# ==========================================
+# ✅ FIX: GLOBAL PATH RESOLUTION
+# ==========================================
+current_dir = os.path.dirname(os.path.abspath(__file__)) # Gets the /api folder
+parent_dir = os.path.dirname(current_dir)                # Gets the root folder
+
+# Add both to sys.path so 'from api...' imports work everywhere without try/except
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
 
 # Import your cleanly separated routers
 from api.routers import project_router

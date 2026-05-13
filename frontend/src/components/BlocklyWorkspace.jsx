@@ -1,4 +1,3 @@
-/*frontend\src\components\BlocklyWorkspace.jsx*/
 import * as Blockly from "blockly";
 import "blockly/blocks";
 import * as En from "blockly/msg/en";
@@ -251,7 +250,7 @@ const customBlocks = [
   },
   {
     type: "python_input",
-    message0: "ask user for input with prompt %1", // More human-readable label
+    message0: "ask user for input with prompt %1", 
     args0: [
       { type: "input_value", name: "PROMPT", check: "String" }
     ],
@@ -373,7 +372,7 @@ const toolbox = {
             PROMPT: {
               shadow: {
                 type: "text",
-                fields: { TEXT: "Enter your name: " } // Example of a clear default
+                fields: { TEXT: "Enter your name: " }
               }
             }
           }
@@ -458,17 +457,14 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         }
       }
     },
-    // Inside BlocklyWorkspace.jsx
     loadTemplate: (json) => {
       if (workspace.current) {
-        // 1. Removed Blockly.Events.disable();
         try {
           workspace.current.clear();
           Blockly.serialization.workspaces.load(json, workspace.current);
         } catch (err) {
           console.error("Error loading workspace JSON:", err);
         }
-        // 2. Removed Blockly.Events.enable();
 
         setTimeout(() => {
           const code = pythonGenerator.workspaceToCode(workspace.current);
@@ -548,6 +544,16 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       } catch (e) {
         console.warn("Plugin init skipped:", e.message);
       }
+
+      // ==========================================
+      // 🚀 BUG FIX: Delayed Resize for Minimap NaN Errors
+      // ==========================================
+      setTimeout(() => {
+        if (workspace.current) {
+          Blockly.svgResize(workspace.current);
+        }
+      }, 150);
+      // ==========================================
 
       if (!pythonGenerator.__originalInit) {
         pythonGenerator.__originalInit = pythonGenerator.init;
