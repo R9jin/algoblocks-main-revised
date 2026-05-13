@@ -5,10 +5,12 @@ from api.services.template_service import TemplateService
 router = APIRouter(prefix="/api/templates", tags=["Templates"])
 
 @router.post("")
+@router.post("/")
 def save_template(template: TemplateModel):
     return TemplateService.create_template(template)
 
 @router.get("")
+@router.get("/")
 def get_templates():
     return TemplateService.get_templates()
 

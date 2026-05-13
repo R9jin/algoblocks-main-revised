@@ -5,10 +5,12 @@ from api.services.project_service import ProjectService
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
 @router.post("")
+@router.post("/")
 def save_project(project: ProjectModel):
     return ProjectService.create_project(project)
 
 @router.get("")
+@router.get("/")
 def get_projects():
     return ProjectService.get_projects()
 
