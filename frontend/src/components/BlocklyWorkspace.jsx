@@ -513,6 +513,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     if (workspace.current) return;
 
     let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
+    let minimapDelay; // Store timeout reference in outer scope
 
     if (blocklyDiv.current) {
       if (Blockly.ShortcutRegistry.registry.getRegistry()['startSearch']) {
@@ -532,8 +533,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       try {
         searchPlugin = new WorkspaceSearch(workspace.current);
         searchPlugin.init();
-        minimapPlugin = new PositionedMinimap(workspace.current);
-        minimapPlugin.init();
         modalPlugin = new Modal(workspace.current);
         modalPlugin.init();
         backpackPlugin = new Backpack(workspace.current);
@@ -546,11 +545,21 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       }
 
       // ==========================================
-      // 🚀 BUG FIX: Delayed Resize for Minimap NaN Errors
+      // 🚀 THE FINAL FIX: Track the timeout so we can cancel it
+      // NOTE: Minimap is strictly created and initialized inside this block
       // ==========================================
-      setTimeout(() => {
-        if (workspace.current) {
+      minimapDelay = setTimeout(() => {
+        // Double-check the workspace still exists and hasn't been unmounted
+        if (workspace.current && blocklyDiv.current) {
           Blockly.svgResize(workspace.current);
+          
+          try {
+            // Create AND initialize safely after CSS is done
+            minimapPlugin = new PositionedMinimap(workspace.current);
+            minimapPlugin.init();
+          } catch (e) {
+            console.warn("Minimap instance skipped:", e.message);
+          }
         }
       }, 150);
       // ==========================================
@@ -820,6 +829,11 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     }
 
     return () => {
+      // 🛑 Kills the timer immediately if the user leaves the page or React re-renders
+      if (minimapDelay) {
+        clearTimeout(minimapDelay);
+      }
+
       try {
         if (searchPlugin?.dispose) searchPlugin.dispose();
         if (minimapPlugin?.dispose) minimapPlugin.dispose();

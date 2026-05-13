@@ -18,6 +18,7 @@ sys.path.insert(0, current_dir)
 from api.routers import project_router
 from api.routers import template_router
 from api.routers import auth_router
+from api.routers import analyze_router
 
 app = FastAPI()
 
@@ -38,6 +39,7 @@ app.add_middleware(
 app.include_router(project_router.router)
 app.include_router(template_router.router)
 app.include_router(auth_router.router)
+app.include_router(analyze_router.router)
 
 # =========================
 # ROOT
