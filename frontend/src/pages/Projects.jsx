@@ -1,10 +1,12 @@
-// frontend\src\pages\Projects.jsx
+// frontend/src/pages/Projects.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 // Ensure this import matches your localForage exports in db.js
 import { projectsDB, syncQueueDB } from "../db";
 import "../styles/Projects.css";
+
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // --- Minimal Inline SVG Icons ---
 const FolderIcon = () => (
@@ -49,8 +51,26 @@ export default function Projects() {
       }
       const user = JSON.parse(storedUser);
 
+      // --- 1. PULL CLOUD DATA FIRST ---
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`${API_BASE}/api/projects`);
+          if (res.ok) {
+            const cloudProjects = await res.json();
+            for (const cp of cloudProjects) {
+              // Only save projects belonging to this user
+              if (cp.owner_id === user.email) {
+                await projectsDB.setItem(cp._id, { ...cp, synced: true });
+              }
+            }
+          }
+        } catch (fetchErr) {
+          console.error("Failed to fetch cloud projects:", fetchErr);
+        }
+      }
+
+      // --- 2. LOAD FROM LOCAL DB ---
       const loadedProjects = [];
-      // Updated to use localForage iterate as per your db.js configuration
       await projectsDB.iterate((value) => {
         if (value.owner_id === user.email) {
           loadedProjects.push(value);
