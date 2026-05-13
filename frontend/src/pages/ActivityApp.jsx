@@ -948,7 +948,7 @@ const ActivityApp = () => {
   });
 
   // CHANGE THIS LINE to >= 4
-  const actualBottleneckIndices = maxWeight >= 4 ? bottleneckIndices : [];
+  const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
@@ -1075,19 +1075,31 @@ const ActivityApp = () => {
                         <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === 'executions' ? 'active' : ''}`}>Line Executions</button>
                       </div>
 
-                      {/* NEW: Clear Console Button */}
                       {consoleTab === 'output' && (
                         <button
                           onClick={() => setConsoleOutput("Ready to run...\n")}
-                          className="tab-btn"
-                          style={{ 
-                            backgroundColor: 'rgba(188, 161, 252, 0.1)', 
-                            color: '#BCA1FC', 
-                            border: '1px solid rgba(188, 161, 252, 0.3)' 
+                          style={{
+                            backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            borderRadius: '6px',
+                            padding: '5px 14px',
+                            fontSize: '0.85rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginLeft: 'auto'
                           }}
                           title="Clear Terminal Output"
+                          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.25)' }}
+                          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)' }}
                         >
-                          ✕ Clear
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Clear Console
                         </button>
                       )}
                     </div>

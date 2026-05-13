@@ -92,7 +92,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         final_space = self.get_final_space_badge()
         max_w = max([d.get('weight', -1) for d in self._details], default=-1)
         
-        excluded_complexities = ["O(1)", "O(log n)", "O(√n)", "-", ""]
+        excluded_complexities = ["O(1)", "O(log n)", "O(√n)", "O(n)", "O(n + m)", "O(m)", "-", ""]
         praise_complexities = ["O(log n)", "O(√n)"]
         
         for d in self._details:

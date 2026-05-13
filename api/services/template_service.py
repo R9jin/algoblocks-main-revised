@@ -22,8 +22,10 @@ def _cached_get_all_templates():
 class TemplateService:
     @staticmethod
     def get_templates():
-        # 🚀 CACHE HIT: This instantly returns the list from RAM without touching the database!
-        return _cached_get_all_templates()
+        templates = TemplateRepository.get_all()
+        for t in templates:
+            t["_id"] = str(t["_id"])
+        return templates  # ✅ Return the list directly
 
     @staticmethod
     def create_template(template: TemplateModel):

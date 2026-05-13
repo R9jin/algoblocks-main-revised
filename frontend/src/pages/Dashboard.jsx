@@ -49,7 +49,13 @@ export default function Dashboard() {
           // Sync Projects
           const pRes = await fetch(`${API_BASE}/api/projects`);
           if (pRes.ok) {
-            const cloudProjects = await pRes.json();
+            const pData = await pRes.json();
+            
+            // ✅ FIX: Safely extract the array
+            let cloudProjects = [];
+            if (pData && Array.isArray(pData.projects)) cloudProjects = pData.projects;
+            else if (Array.isArray(pData)) cloudProjects = pData;
+
             for (const cp of cloudProjects) {
               if (cp.owner_id === storedUser.email) {
                 await projectsDB.setItem(cp._id, { ...cp, synced: true });
@@ -60,7 +66,13 @@ export default function Dashboard() {
           // Sync Templates
           const tRes = await fetch(`${API_BASE}/api/templates`);
           if (tRes.ok) {
-            const cloudTemplates = await tRes.json();
+            const tData = await tRes.json();
+            
+            // ✅ FIX: Safely extract the array
+            let cloudTemplates = [];
+            if (tData && Array.isArray(tData.templates)) cloudTemplates = tData.templates;
+            else if (Array.isArray(tData)) cloudTemplates = tData;
+
             for (const ct of cloudTemplates) {
               if (ct.owner_id === storedUser.email) {
                 await templatesDB.setItem(ct._id, { ...ct, synced: true });
@@ -72,7 +84,7 @@ export default function Dashboard() {
         }
       }
 
-      // --- 2. FETCH FROM LOCAL DB (Now updated) ---
+      // --- 2. FETCH FROM LOCAL DB ---
       
       // Fetch User Projects
       const userProjects = [];
@@ -210,7 +222,7 @@ export default function Dashboard() {
         <aside className="dashboard-sidebar">
           <h3 className="sidebar-label">RECENT PROJECTS</h3>
           {loading ? (
-            <div className="empty-projects-box">Loading cloud database...</div>
+            <div className="empty-projects-box">Loading database...</div>
           ) : recentProjects.length === 0 ? (
             <div className="empty-projects-box">No recent projects yet.</div>
           ) : (

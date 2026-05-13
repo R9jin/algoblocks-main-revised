@@ -15,7 +15,7 @@ class ProjectService:
         projects = ProjectRepository.get_all()
         for p in projects:
             p["_id"] = str(p["_id"])
-        return {"status": "success", "projects": projects}
+        return projects  # ✅ Return the list directly
 
     @staticmethod
     def delete_project(project_id: str):

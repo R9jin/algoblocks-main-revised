@@ -56,7 +56,16 @@ export default function Projects() {
         try {
           const res = await fetch(`${API_BASE}/api/projects`);
           if (res.ok) {
-            const cloudProjects = await res.json();
+            const data = await res.json();
+            
+            // ✅ FIX: Safely extract the array whether backend returns [] or { projects: [] }
+            let cloudProjects = [];
+            if (data && Array.isArray(data.projects)) {
+                cloudProjects = data.projects;
+            } else if (Array.isArray(data)) {
+                cloudProjects = data;
+            }
+
             for (const cp of cloudProjects) {
               // Only save projects belonging to this user
               if (cp.owner_id === user.email) {
