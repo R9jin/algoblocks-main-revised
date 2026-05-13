@@ -24,12 +24,12 @@ const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#1C1236', // Match the app's deep purple background
-      'editor.foreground': '#EBE4FF', // Match the light purple text
-      'editorLineNumber.foreground': '#6C5CE7', // Accent purple for line numbers
-      'editor.lineHighlightBackground': '#2D234A', // Subtle highlight for current line
-      'editorCursor.foreground': '#FFFFFF', // Bright white cursor
-      'editor.selectionBackground': '#6C5CE755', // Purple selection highlighting
+      'editor.background': '#1C1236', 
+      'editor.foreground': '#EBE4FF', 
+      'editorLineNumber.foreground': '#6C5CE7', 
+      'editor.lineHighlightBackground': '#2D234A', 
+      'editorCursor.foreground': '#FFFFFF', 
+      'editor.selectionBackground': '#6C5CE755', 
       'editor.inactiveSelectionBackground': '#6C5CE733'
     }
   });
@@ -348,21 +348,36 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
-// --- NEW: UI Formatter for Explanation Insights ---
+// --- EMOJI-FREE UI FORMATTER ---
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
   
   return sections.map((sec, idx) => {
-    // Look for lines starting with an emoji and a bold title (e.g. 💡 **Tip:**)
-    const match = sec.match(/^(⚠️|💡|🌟)\s*\*\*(.*?)\*\*(.*)/s);
+    // Look for lines starting with bold titles (e.g. **Optimization Tip:**) 
+    const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)/s);
+    
     if (match) {
-      const icon = match[1];
-      const title = match[2].replace(/:$/, '').trim();
-      const content = match[3].replace(/^:/, '').trim();
+      const title = match[1].replace(/:$/, '').trim();
+      const content = match[2].replace(/^:/, '').trim();
+      const titleLower = title.toLowerCase();
       
-      // Filter out Bottleneck warnings if they don't apply to this view/line
-      if (icon === '⚠️' && (isLocalTab || !isBottleneck)) {
+      let type = null;
+
+      // Determine the type based on the text keywords
+      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) {
+        type = 'warning';
+      } else if (titleLower.includes('tip') || titleLower.includes('insight')) {
+        type = 'tip';
+      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) {
+        type = 'praise';
+      }
+
+      if (!type) {
+        return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
+      }
+
+      if (type === 'warning' && (isLocalTab || !isBottleneck)) {
         return null;
       }
 
@@ -370,15 +385,15 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       let borderColor = '#888';
       let titleColor = '#333';
 
-      if (icon === '⚠️') {
+      if (type === 'warning') {
         bgColor = 'rgba(255, 55, 95, 0.08)';
         borderColor = '#ff375f';
         titleColor = '#d63031';
-      } else if (icon === '💡') {
+      } else if (type === 'tip') {
         bgColor = 'rgba(52, 152, 219, 0.08)';
         borderColor = '#3498db';
         titleColor = '#2980b9';
-      } else if (icon === '🌟') {
+      } else if (type === 'praise') {
         bgColor = 'rgba(46, 204, 113, 0.08)';
         borderColor = '#2ecc71';
         titleColor = '#27ae60';
@@ -392,8 +407,8 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
           borderLeft: `4px solid ${borderColor}`,
           borderRadius: '0 6px 6px 0'
         }}>
-          <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '1rem' }}>{icon}</span> {title}
+          <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+            {title}
           </strong>
           <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
             {content}
@@ -402,9 +417,8 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       );
     }
 
-    // Standard explanation text
     return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}>{sec.trim()}</p>;
-  }).filter(Boolean); // Remove nulls
+  }).filter(Boolean);
 };
 
 const ActivityApp = () => {
@@ -440,7 +454,7 @@ const ActivityApp = () => {
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
   const [expandedTests, setExpandedTests] = useState({ 0: true });
   const [bottomPanel, setBottomPanel] = useState(null);
-  const [consoleTab, setConsoleTab] = useState("output"); // NEW: Console Sub-tabs
+  const [consoleTab, setConsoleTab] = useState("output");
   const [activeTab, setActiveTab] = useState("local");
 
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
@@ -483,7 +497,6 @@ const ActivityApp = () => {
 
       if (type === 'ANALYZE_RESULT') {
         if (data.status === "success") {
-          // Read precise time directly from the Python backend
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
@@ -616,7 +629,6 @@ const ActivityApp = () => {
         const data = await response.json();
 
         if (data.status === "success") {
-          // Read precise time directly from the Python backend
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
@@ -650,14 +662,42 @@ const ActivityApp = () => {
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode, isOnline]);
 
+  // --- REFRESH SAFE LOADING LOGIC ---
   useEffect(() => {
-    if (!initialTemplate || !activityData) return;
-    if (hasLoadedRef.current) return;
+    if (!workspaceRef.current || hasLoadedRef.current) return;
+    if (!initialTemplate && !activityData) return;
 
     hasLoadedRef.current = true;
-    const timer = setTimeout(() => { loadActivityTemplate(initialTemplate, activityData); }, 300);
-    return () => clearTimeout(timer);
-  }, [initialTemplate, activityData]);
+
+    setTimeout(async () => {
+      try {
+        let json = null;
+        
+        if (activityData && activityData.blocks) {
+          json = activityData;
+        } else if (initialTemplate) {
+          const fetchUrl = initialTemplate.startsWith("activities/") 
+            ? `/${initialTemplate}.json` 
+            : `/templates/${initialTemplate}.json`;
+            
+          const response = await fetch(fetchUrl);
+          if (response.ok) {
+            json = await response.json();
+          }
+        }
+
+        if (json && workspaceRef.current) {
+          if (workspaceRef.current.clear) workspaceRef.current.clear();
+          workspaceRef.current.loadTemplate(json.data ? json.data : json);
+          setViewMode("workspace");
+          setIsEditingCode(false);
+        }
+      } catch (error) {
+        console.error("Failed to load activity template", error);
+      }
+    }, 500);
+
+  }, [initialTemplate, activityData, workspaceRef.current]);
 
   const saveLessonProgress = async (lessonId, score) => {
     const storedUser = localStorage.getItem("user");
@@ -675,36 +715,6 @@ const ActivityApp = () => {
 
   const handleSuccess = (passed, total) => {
     setModalConfig({ isOpen: true, title: "Activity Completed! 🎉", message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.`, confirmText: "Return to Dashboard", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); } });
-  };
-
-  const loadActivityTemplate = async (path, dataFromState) => {
-    try {
-      let json = null;
-      if (dataFromState && dataFromState.blocks) {
-        json = dataFromState;
-      } else if (path) {
-        const fetchUrl = path.startsWith("activities/") ? `/${path}.json` : `/templates/${path}.json`;
-        const response = await fetch(fetchUrl);
-        if (!response.ok) throw new Error(`404: ${fetchUrl}`);
-        json = await response.json();
-      }
-
-      if (!json) return;
-
-      const tryLoad = (retries = 15) => {
-        if (!workspaceRef.current) {
-          if (retries > 0) setTimeout(() => tryLoad(retries - 1), 100);
-          return;
-        }
-        try {
-          if (workspaceRef.current.clear) workspaceRef.current.clear();
-          workspaceRef.current.loadTemplate(json.data ? json.data : json);
-          setViewMode("workspace");
-          setIsEditingCode(false);
-        } catch (err) { }
-      };
-      tryLoad();
-    } catch (error) { }
   };
 
   const handleWorkspaceChange = async (json, pythonCode) => {
@@ -1274,10 +1284,10 @@ const ActivityApp = () => {
 
                               // WIPE OUT BACKEND WARNINGS IF EFFICIENT OR LOCAL TAB
                               if (activeTab === 'local' || !isBottleneck) {
-                                timeExp = timeExp.replace(/\s*\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/, "");
+                                timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
                               }
                               if (activeTab === 'local') {
-                                spaceExp = spaceExp.replace(/\s*\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/, "");
+                                spaceExp = spaceExp.replace(/(?:⚠️\s*)?\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/i, "");
                               }
 
                               const timeColor = getComplexityColor(timeComplexity);

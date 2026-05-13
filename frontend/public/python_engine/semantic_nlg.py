@@ -22,17 +22,17 @@ class SemanticNLGEngine:
         # Targeted educational tips based on the specific complexity bottleneck
         tip = ""
         if any(x in big_o for x in ["2^n", "n!"]):
-            tip = "💡 **Optimization Tip:** Exponential and Factorial times are extremely slow. If this function repeats calculations, try using **Memoization** (saving past results in a dictionary) to magically drop this to O(n) linear time!"
+            tip = "**Optimization Tip:** Exponential and Factorial times are extremely slow. If this function repeats calculations, try using **Memoization** (saving past results in a dictionary) to magically drop this to O(n) linear time!"
         elif any(x in big_o for x in ["n^2", "n^3", "*"]):
-            tip = "💡 **Optimization Tip:** This usually happens because of nested loops (a loop inside a loop). Try to flatten them! Often, you can use a Hash Map (Dictionary) or a Set to look up items instantly in O(1) time instead of looping to find them."
+            tip = "**Optimization Tip:** This usually happens because of nested loops (a loop inside a loop). Try to flatten them! Often, you can use a Hash Map (Dictionary) or a Set to look up items instantly in O(1) time instead of looping to find them."
         elif "n log n" in big_o:
-            tip = "💡 **Optimization Tip:** O(n log n) is standard for efficient sorting. However, if you don't actually need the data fully sorted (e.g., you just want the maximum, minimum, or sum), you can do it in O(n) time with a single loop!"
+            tip = "**Optimization Tip:** O(n log n) is standard for efficient sorting. However, if you don't actually need the data fully sorted (e.g., you just want the maximum, minimum, or sum), you can do it in O(n) time with a single loop!"
         elif "n" in big_o and not any(x in big_o for x in ["log", "^", "*"]):
-            tip = "💡 **Optimization Tip:** Linear time is usually great! But, if you are searching for an item in a list that is *already sorted*, try using **Binary Search** to shrink this down to O(log n). If you just need fast lookups, use a Dictionary or Set (O(1))."
+            tip = "**Optimization Tip:** Linear time is usually great! But, if you are searching for an item in a list that is *already sorted*, try using **Binary Search** to shrink this down to O(log n). If you just need fast lookups, use a Dictionary or Set (O(1))."
 
         warnings = [
-            f" \n\n⚠️ **TIME BOTTLENECK:** Out of all the steps in this program, this {op_str} scales the worst. Because Big O focuses on the slowest part of the code, this {big_o} operation sets the overall speed of your entire algorithm.",
-            f" \n\n⚠️ **MAIN TIME FACTOR:** This {op_str} is the heaviest lifter in your code. It has the highest time complexity, meaning its {big_o} scaling determines how fast your program finishes when given huge amounts of data."
+            f" \n\n**TIME BOTTLENECK:** Out of all the steps in this program, this {op_str} scales the worst. Because Big O focuses on the slowest part of the code, this {big_o} operation sets the overall speed of your entire algorithm.",
+            f" \n\n**MAIN TIME FACTOR:** This {op_str} is the heaviest lifter in your code. It has the highest time complexity, meaning its {big_o} scaling determines how fast your program finishes when given huge amounts of data."
         ]
         
         return random.choice(warnings) + "\n\n" + tip if tip else random.choice(warnings)
@@ -43,15 +43,15 @@ class SemanticNLGEngine:
         
         tip = ""
         if any(x in big_o for x in ["n^2", "n^3", "*"]):
-            tip = "💡 **Memory Tip:** You are creating a massive 2D matrix or nested structure. Ask yourself: Do you really need to store *every* combination? Sometimes in algorithms, you only need to keep the previous row or column in memory to save space!"
+            tip = "**Memory Tip:** You are creating a massive 2D matrix or nested structure. Ask yourself: Do you really need to store *every* combination? Sometimes in algorithms, you only need to keep the previous row or column in memory to save space!"
         elif "V" in big_o or "E" in big_o:
-            tip = "💡 **Memory Tip:** Graph algorithms often need extra space to track 'visited' nodes so they don't get stuck in a loop. Ensure you are using a Set for this, as it is highly efficient."
+            tip = "**Memory Tip:** Graph algorithms often need extra space to track 'visited' nodes so they don't get stuck in a loop. Ensure you are using a Set for this, as it is highly efficient."
         elif "n" in big_o:
-            tip = "💡 **Memory Tip:** Are you copying a whole list, slicing arrays, or using deep recursion? Try to modify the data **'in-place'** (e.g., swapping array elements directly) to drop this to O(1) space. If it's recursion, rewriting it as an iterative loop uses zero call-stack memory!"
+            tip = "**Memory Tip:** Are you copying a whole list, slicing arrays, or using deep recursion? Try to modify the data **'in-place'** (e.g., swapping array elements directly) to drop this to O(1) space. If it's recursion, rewriting it as an iterative loop uses zero call-stack memory!"
 
         warnings = [
-            f" \n\n⚠️ **MEMORY BOTTLENECK:** This {op_str} takes up the most extra memory in your script. With a {big_o} space requirement, it acts as the defining limit for your program's overall RAM usage.",
-            f" \n\n⚠️ **DOMINANT SPACE FACTOR:** Because this {op_str} actively reserves the most memory (like creating new lists or deep recursive function calls), it sets the final {big_o} space complexity of the overall algorithm."
+            f" \n\n**MEMORY BOTTLENECK:** This {op_str} takes up the most extra memory in your script. With a {big_o} space requirement, it acts as the defining limit for your program's overall RAM usage.",
+            f" \n\n**DOMINANT SPACE FACTOR:** Because this {op_str} actively reserves the most memory (like creating new lists or deep recursive function calls), it sets the final {big_o} space complexity of the overall algorithm."
         ]
         
         return random.choice(warnings) + "\n\n" + tip if tip else random.choice(warnings)
@@ -60,9 +60,9 @@ class SemanticNLGEngine:
         """Generates positive reinforcement for optimized algorithms."""
         op_str = operation.lower() if operation else "step"
         return random.choice([
-            f" \n\n🌟 **HIGHLY OPTIMIZED:** Excellent work! This {op_str} runs in a blazing fast {big_o} time. By actively skipping unnecessary data, this code will scale incredibly well even with massive datasets.",
-            f" \n\n🌟 **EFFICIENT SCALING:** This {op_str} hits an optimal {big_o} runtime. Algorithms that successfully divide the workload (like this one) are exactly what tech companies look for in high-performance software.",
-            f" \n\n🌟 **ALGORITHM MASTERY:** You achieved a {big_o} time complexity here! Instead of checking every single item, this {op_str} uses advanced logic to drastically reduce the amount of work the computer has to do."
+            f" \n\n**HIGHLY OPTIMIZED:** Excellent work! This {op_str} runs in a blazing fast {big_o} time. By actively skipping unnecessary data, this code will scale incredibly well even with massive datasets.",
+            f" \n\n**EFFICIENT SCALING:** This {op_str} hits an optimal {big_o} runtime. Algorithms that successfully divide the workload (like this one) are exactly what tech companies look for in high-performance software.",
+            f" \n\n**ALGORITHM MASTERY:** You achieved a {big_o} time complexity here! Instead of checking every single item, this {op_str} uses advanced logic to drastically reduce the amount of work the computer has to do."
         ])
 
     def _format_recurrence_relation(self, comp_str):
@@ -158,44 +158,44 @@ class SemanticNLGEngine:
         try:
             # 1. Swap Operation Detection
             if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
-                return "\n\n💡 **Algorithm Insight:** This is a 'swap' operation! Swapping elements in-place is a classic technique used in sorting algorithms (like Bubble Sort or Quick Sort) to organize data without using extra memory."
+                return "\n\n**Algorithm Insight:** This is a 'swap' operation! Swapping elements in-place is a classic technique used in sorting algorithms (like Bubble Sort or Quick Sort) to organize data without using extra memory."
             
             # 2. Midpoint / Pivot / Division Selection
             if isinstance(node, ast.Assign):
                 for target in node.targets:
                     t_name = self._extract_name(target).lower()
                     if "mid" in t_name:
-                        return "\n\n💡 **Algorithm Insight:** Calculating a 'midpoint' is the core of 'Divide and Conquer' algorithms like Binary Search or Merge Sort. By splitting the work exactly in half, the algorithm becomes incredibly fast!"
+                        return "\n\n**Algorithm Insight:** Calculating a 'midpoint' is the core of 'Divide and Conquer' algorithms like Binary Search or Merge Sort. By splitting the work exactly in half, the algorithm becomes incredibly fast!"
                     if "pivot" in t_name:
-                        return "\n\n💡 **Algorithm Insight:** Choosing a 'pivot' is the main trick used in Quick Sort. The algorithm uses this reference point to rapidly divide the data into 'smaller' and 'larger' halves."
+                        return "\n\n**Algorithm Insight:** Choosing a 'pivot' is the main trick used in Quick Sort. The algorithm uses this reference point to rapidly divide the data into 'smaller' and 'larger' halves."
                 
                 # Check for explicit division by 2
                 if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.FloorDiv):
                     if isinstance(node.value.right, ast.Constant) and str(node.value.right.value) == "2":
-                        return "\n\n💡 **Algorithm Insight:** Dividing a dataset in half like this is the secret behind why algorithms like Binary Search scale so efficiently. It guarantees an optimal O(log n) speed."
+                        return "\n\n**Algorithm Insight:** Dividing a dataset in half like this is the secret behind why algorithms like Binary Search scale so efficiently. It guarantees an optimal O(log n) speed."
 
             # 3. Pointer Movement Detection (e.g., left += 1, right -= 1)
             if isinstance(node, ast.AugAssign) and isinstance(node.op, (ast.Add, ast.Sub)) and isinstance(node.value, ast.Constant) and str(node.value.value) == "1":
                 t_name = self._extract_name(node.target).lower()
                 if any(p in t_name for p in ["left", "right", "low", "high", "start", "end", "i", "j", "ptr"]):
                     direction = "forward" if isinstance(node.op, ast.Add) else "backward"
-                    return f"\n\n💡 **Algorithm Insight:** This step inches an index 'pointer' {direction}. This is the foundation of the 'Two Pointers' technique, commonly used to walk through arrays efficiently."
+                    return f"\n\n**Algorithm Insight:** This step inches an index 'pointer' {direction}. This is the foundation of the 'Two Pointers' technique, commonly used to walk through arrays efficiently."
 
             # 4. Appending to a Result/Merge Array
             if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Attribute) and node.value.func.attr == "append":
-                return "\n\n💡 **Algorithm Insight:** Appending to a list is a common way to build up a final 'merged' collection. You'll often see this in Merge Sort when combining sorted halves back together."
+                return "\n\n**Algorithm Insight:** Appending to a list is a common way to build up a final 'merged' collection. You'll often see this in Merge Sort when combining sorted halves back together."
 
             # 5. Two Pointer / Binary Search Loop Pattern
             if isinstance(node, ast.While) and isinstance(node.test, ast.Compare) and len(node.test.ops) > 0 and isinstance(node.test.ops[0], (ast.LtE, ast.Lt)):
                 left_str = self._build_math_sentence(node.test.left).lower()
                 right_str = self._build_math_sentence(node.test.comparators[0]).lower()
                 if any(k in left_str for k in ["left", "low", "start"]) or any(k in right_str for k in ["right", "high", "end"]):
-                    return "\n\n💡 **Algorithm Insight:** A loop checking if a 'left' boundary has crossed a 'right' boundary is the trademark of Binary Search. It systematically shrinks the active search window from both sides!"
+                    return "\n\n**Algorithm Insight:** A loop checking if a 'left' boundary has crossed a 'right' boundary is the trademark of Binary Search. It systematically shrinks the active search window from both sides!"
 
             # 6. Sorting Comparisons (e.g., if arr[i] > arr[i+1])
             if isinstance(node, ast.If) and hasattr(node, 'test') and isinstance(node.test, ast.Compare):
                 if isinstance(node.test.left, ast.Subscript) and isinstance(node.test.comparators[0], ast.Subscript):
-                    return "\n\n💡 **Algorithm Insight:** Directly comparing two specific items inside a list is how 'comparison-based sorting' works. The algorithm checks if elements are out of order so it can decide whether to swap them."
+                    return "\n\n**Algorithm Insight:** Directly comparing two specific items inside a list is how 'comparison-based sorting' works. The algorithm checks if elements are out of order so it can decide whether to swap them."
         
         except Exception:
             pass # Fail silently if AST is unparseable
@@ -265,7 +265,7 @@ class SemanticNLGEngine:
             return f"Defining `{f_name}` takes O(1) time. The system also detects **Dynamic Programming (Memoization/Caching)** applied here! This is a fantastic optimization. By saving previously computed results, it prevents the algorithm from recalculating the same branches over and over."
 
         if f_name in getattr(self.ctx, 'indirect_recursive_funcs', set()):
-            return f"Defining `{f_name}` takes O(1) time. ⚠️ **CRITICAL WARNING:** The analyzer noticed that this function is part of a mutually recursive loop (functions calling each other). This hidden loop causes the number of function calls to multiply uncontrollably, leading to an exponential worst-case runtime."
+            return f"Defining `{f_name}` takes O(1) time. **CRITICAL WARNING:** The analyzer noticed that this function is part of a mutually recursive loop (functions calling each other). This hidden loop causes the number of function calls to multiply uncontrollably, leading to an exponential worst-case runtime."
 
         return random.choice([
             f"Defining a function doesn't run the code inside it yet. The computer just reads the function name and saves it for later in O(1) constant time. The actual time complexity of the code inside won't matter until the function is called.",

@@ -81,21 +81,38 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
-// --- NEW: UI Formatter for Explanation Insights ---
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
-  
+
   return sections.map((sec, idx) => {
-    // Look for lines starting with an emoji and a bold title (e.g. 💡 **Tip:**)
-    const match = sec.match(/^(⚠️|💡|🌟)\s*\*\*(.*?)\*\*(.*)/s);
+    // Look for lines starting with bold titles (e.g. **Optimization Tip:**) 
+    // This regex works purely on the asterisks and ignores leading spaces.
+    const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)/s);
+
     if (match) {
-      const icon = match[1];
-      const title = match[2].replace(/:$/, '').trim();
-      const content = match[3].replace(/^:/, '').trim();
-      
+      const title = match[1].replace(/:$/, '').trim();
+      const content = match[2].replace(/^:/, '').trim();
+      const titleLower = title.toLowerCase();
+
+      let type = null;
+
+      // Determine the type based on the text keywords
+      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) {
+        type = 'warning';
+      } else if (titleLower.includes('tip') || titleLower.includes('insight')) {
+        type = 'tip';
+      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) {
+        type = 'praise';
+      }
+
+      // If no keywords matched, render as normal bold text
+      if (!type) {
+        return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
+      }
+
       // Filter out Bottleneck warnings if they don't apply to this view/line
-      if (icon === '⚠️' && (isLocalTab || !isBottleneck)) {
+      if (type === 'warning' && (isLocalTab || !isBottleneck)) {
         return null;
       }
 
@@ -103,30 +120,30 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       let borderColor = '#888';
       let titleColor = '#333';
 
-      if (icon === '⚠️') {
+      if (type === 'warning') {
         bgColor = 'rgba(255, 55, 95, 0.08)';
         borderColor = '#ff375f';
         titleColor = '#d63031';
-      } else if (icon === '💡') {
+      } else if (type === 'tip') {
         bgColor = 'rgba(52, 152, 219, 0.08)';
         borderColor = '#3498db';
         titleColor = '#2980b9';
-      } else if (icon === '🌟') {
+      } else if (type === 'praise') {
         bgColor = 'rgba(46, 204, 113, 0.08)';
         borderColor = '#2ecc71';
         titleColor = '#27ae60';
       }
 
       return (
-        <div key={idx} style={{ 
-          marginTop: '12px', 
-          padding: '10px 14px', 
-          backgroundColor: bgColor, 
+        <div key={idx} style={{
+          marginTop: '12px',
+          padding: '10px 14px',
+          backgroundColor: bgColor,
           borderLeft: `4px solid ${borderColor}`,
           borderRadius: '0 6px 6px 0'
         }}>
-          <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '1rem' }}>{icon}</span> {title}
+          <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+            {title}
           </strong>
           <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
             {content}
@@ -153,6 +170,7 @@ export default function MainApp() {
   const renderIntervalRef = useRef(null);
   const isDragging = useRef(false);
   const analysisStartTimeRef = useRef(0);
+  const hasLoadedInitRef = useRef(false);
 
   // Connection state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -328,16 +346,40 @@ export default function MainApp() {
 
   const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
 
+  // ✅ Replace the old location.state useEffect with this:
   useEffect(() => {
-    if (location.state?.projectToLoad && workspaceRef.current) {
+    // Prevent double-loading but allow it to run once the workspace is ready
+    if (!workspaceRef.current || hasLoadedInitRef.current) return;
+
+    // 1. Handle loading User Projects
+    if (location.state?.projectToLoad) {
+      hasLoadedInitRef.current = true;
       const proj = location.state.projectToLoad;
       setCurrentLoadedId(proj._id);
       setCurrentProjectTitle(proj.title);
       setCurrentSaveType("project");
       setTimeout(() => { workspaceRef.current.loadTemplate(proj.data); }, 500);
-      window.history.replaceState({}, document.title)
+      
+      // Notice we REMOVED the window.history.replaceState line so Chrome remembers!
+    } 
+    // 2. Handle loading System Templates from Dashboard
+    else if (location.state?.templatePath) {
+      hasLoadedInitRef.current = true;
+      setTimeout(async () => {
+        try {
+          const response = await fetch(`/templates/${location.state.templatePath}.json`);
+          if (response.ok) {
+            const json = await response.json();
+            workspaceRef.current.loadTemplate(json);
+            setCurrentLoadedId(null);
+            setCurrentSaveType("project");
+          }
+        } catch (e) {
+          console.error("Failed to load template from state", e);
+        }
+      }, 500);
     }
-  }, [location.state]);
+  }, [location.state, workspaceRef.current]);
 
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
@@ -352,7 +394,7 @@ export default function MainApp() {
           const pRes = await fetch(`${VERCEL_URL}/api/projects`);
           if (pRes.ok) {
             const data = await pRes.json();
-            const cloudProjects = data.projects || data; 
+            const cloudProjects = data.projects || data;
             for (const cp of cloudProjects) {
               if (cp.owner_id === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true });
             }
@@ -360,7 +402,7 @@ export default function MainApp() {
           const tRes = await fetch(`${VERCEL_URL}/api/templates`);
           if (tRes.ok) {
             const data = await tRes.json();
-            const cloudTemplates = data.templates || data; 
+            const cloudTemplates = data.templates || data;
             for (const ct of cloudTemplates) {
               if (ct.owner_id === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true });
             }
@@ -956,12 +998,20 @@ export default function MainApp() {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
 
-                              const timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
-                              const spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
+                              let timeExp = line.time_explanation ?? line.local_explanation ?? "Time complexity analysis not available.";
+                              let spaceExp = line.space_explanation ?? line.global_explanation ?? "Space complexity analysis not available.";
 
                               const isBottleneck = actualBottleneckIndices.includes(i);
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
+
+                              // WIPE OUT BACKEND WARNINGS IF EFFICIENT OR LOCAL TAB
+                              if (activeTab === 'local' || !isBottleneck) {
+                                timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
+                              }
+                              if (activeTab === 'local') {
+                                spaceExp = spaceExp.replace(/(?:⚠️\s*)?\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/i, "");
+                              }
 
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
                               const isEfficient = !isBottleneck &&
