@@ -1,25 +1,11 @@
 # api/index.py
 import sys
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-
-from api.limiter import limiter
-
-# ==========================================
-# RATE LIMITER CONFIGURATION (Vercel Aware)
-# ==========================================
-def get_real_client_ip(request: Request) -> str:
-    x_forwarded_for = request.headers.get("x-forwarded-for")
-    if x_forwarded_for:
-        return x_forwarded_for.split(",")[0].strip()
-    return request.client.host if request.client else "127.0.0.1"
-
-# Default limit across the entire app
-limiter = Limiter(key_func=get_real_client_ip, default_limits=["100/minute"])
 
 # ==========================================
 # ✅ FIX: GLOBAL PATH RESOLUTION
@@ -30,6 +16,9 @@ parent_dir = os.path.dirname(current_dir)                # Gets the root folder
 # Add both to sys.path so 'from api...' imports work everywhere without try/except
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, current_dir)
+
+# ✅ IMPORT LIMITER FROM THE NEW FILE
+from api.limiter import limiter
 
 # Import your cleanly separated routers
 from api.routers import project_router
@@ -46,7 +35,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # =========================
 # MIDDLEWARE
 # =========================
-app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(SlowAPIMiddleware) # Enforces the global rate limit
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -67,5 +56,5 @@ app.include_router(analyze_router.router)
 # ROOT
 # =========================
 @app.get("/")
-def health_check(request: Request):
-    return {"status": "online", "message": "API Cloud Sync is running."}
+def health_check():
+    return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}

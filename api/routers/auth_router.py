@@ -1,7 +1,8 @@
+# api/routers/auth_router.py
 from fastapi import APIRouter, Request
 from api.models import LoginRequest, SignUpRequest, ProgressRequest
 from api.services.auth_service import AuthService
-from api.limiter import limiter
+from api.limiter import limiter # ✅ Import from the new file
 
 router = APIRouter(prefix="/api", tags=["Auth & Progress"])
 

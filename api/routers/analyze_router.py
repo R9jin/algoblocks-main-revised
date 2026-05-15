@@ -3,7 +3,7 @@ import sys
 import os
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-from api.limiter import limiter
+from api.limiter import limiter # ✅ Import from the new file
 
 # Create the router
 router = APIRouter(prefix="/api/analyze", tags=["Analyzer"])
