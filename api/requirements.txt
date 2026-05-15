@@ -5,6 +5,7 @@ pydantic==2.13.0
 pymongo[srv]==4.7.2
 python-dotenv==1.0.1
 requests==2.32.3
+slowapi==0.1.9
 
 # optional but already in your freeze (safe to keep)
 anyio==4.13.0
