@@ -8,5 +8,5 @@ def get_real_client_ip(request: Request) -> str:
         return x_forwarded_for.split(",")[0].strip()
     return request.client.host if request.client else "127.0.0.1"
 
-# Define it here so it can be imported anywhere without circular loops
+# Define the limiter here so anyone can import it safely
 limiter = Limiter(key_func=get_real_client_ip, default_limits=["100/minute"])
