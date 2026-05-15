@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from api.models import LoginRequest, SignUpRequest, ProgressRequest
 from api.services.auth_service import AuthService
-from api.index import limiter
+from api.limiter import limiter
 
 router = APIRouter(prefix="/api", tags=["Auth & Progress"])
 
