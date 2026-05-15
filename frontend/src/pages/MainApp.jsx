@@ -346,7 +346,7 @@ export default function MainApp() {
 
   const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
 
-  // ✅ Replace the old location.state useEffect with this:
+
   useEffect(() => {
     // Prevent double-loading but allow it to run once the workspace is ready
     if (!workspaceRef.current || hasLoadedInitRef.current) return;

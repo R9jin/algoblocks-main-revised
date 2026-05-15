@@ -1,8 +1,9 @@
 # api/routers/analyze_router.py
 import sys
 import os
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+from api.limiter import limiter
 
 # Create the router
 router = APIRouter(prefix="/api/analyze", tags=["Analyzer"])
@@ -22,7 +23,8 @@ class CodePayload(BaseModel):
     code: str
 
 @router.post("")
-def analyze_python_code(payload: CodePayload):
+@limiter.limit("10/minute")
+def analyze_python_code(request: Request, payload: CodePayload):
     if analyze_source_code is None:
         raise HTTPException(500, "Analyzer engine not found on server")
 
