@@ -6,6 +6,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 // --- STABLE PLUGIN IMPORTS ---
 import { registerFieldMultilineInput } from '@blockly/field-multilineinput';
+import { CrossTabCopyPaste } from '@blockly/plugin-cross-tab-copy-paste';
 import { Modal } from "@blockly/plugin-modal";
 import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
 import { shadowBlockConversionChangeListener } from "@blockly/shadow-block-converter";
@@ -17,6 +18,9 @@ import { convertPythonToBlocks } from "../workers/analyzerInstance";
 
 registerFieldMultilineInput();
 Blockly.setLocale(En);
+
+// Track plugin globally so it's only attached to the Blockly registry once
+let crossTabPluginInitialized = false;
 
 const DarkTheme = Blockly.Themes.Dark;
 const ModernTheme = Blockly.Themes.Modern;
@@ -484,10 +488,11 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         throw error;
       }
     },
-    // 🚀 NEW: Expose a manual resize trigger for when a tab is un-hidden
     resize: () => {
       if (workspace.current) {
         Blockly.svgResize(workspace.current);
+        // 🚀 Mark explicitly focused when the tab becomes active to ensure keyboard shortcuts work
+        workspace.current.markFocused();
       }
     }
   }));
@@ -501,6 +506,18 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
 
     let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
     let minimapDelay;
+
+    // 🚀 Initialize Cross-Tab Copy Paste globally ONCE
+    if (!crossTabPluginInitialized) {
+      try {
+        const crossTabPlugin = new CrossTabCopyPaste();
+        // Enables both context menu (Right Click -> Copy/Paste) and shortcuts (Ctrl+C / Ctrl+V)
+        crossTabPlugin.init({contextMenu: true, shortcut: true});
+        crossTabPluginInitialized = true;
+      } catch (e) {
+        console.warn("CrossTabCopyPaste init skipped:", e.message);
+      }
+    }
 
     if (blocklyDiv.current) {
       if (Blockly.ShortcutRegistry.registry.getRegistry()['startSearch']) {
