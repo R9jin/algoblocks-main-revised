@@ -18,18 +18,20 @@ const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
 const ComplexityGraph = ({ complexity, color, label }) => {
   // 1. Resolve any T(n) recurrence relations into standard Big-O notation
   const resolvedComplexity = resolveRecurrenceToBigO(complexity);
+  
+  // Extract and evaluate the complexity string outside the useMemo so axes can read it
+  const comp = resolvedComplexity.toLowerCase().replace(/\s+/g, '');
+  const isConstant = comp.includes("o(1)");
 
   // 2. Generate curve data based on the mathematical shape of the resolved complexity
   const data = useMemo(() => {
     const dataPoints = [];
-    // Strip out spaces and lowercase for easier matching
-    const comp = resolvedComplexity.toLowerCase().replace(/\s+/g, '');
     
-    // Generate 10 data points to form the curve (n = 1 through 10)
-    for (let i = 1; i <= 10; i++) {
+    // Start at 0 to ensure the line touches the far left Y-axis
+    for (let i = 0; i <= 10; i++) {
       let yVal = 0;
       
-      if (comp.includes("o(1)")) {
+      if (isConstant) {
         yVal = 1; // Constant: flat line
       } else if (comp.includes("logn")) {
         yVal = Math.log2(i + 1); // Logarithmic: slow curve up
@@ -55,7 +57,7 @@ const ComplexityGraph = ({ complexity, color, label }) => {
       });
     }
     return dataPoints;
-  }, [resolvedComplexity]);
+  }, [comp, isConstant]);
 
   return (
     <div className="complexity-graph-container">
@@ -65,17 +67,21 @@ const ComplexityGraph = ({ complexity, color, label }) => {
           
           <XAxis 
             dataKey="n" 
+            type="number"           
+            domain={[0, 'dataMax']} 
             stroke="#888" 
             tickLine={false} 
-            axisLine={false} 
-            tick={false} // This hides the X-axis numbers completely
+            axisLine={{ stroke: '#A096B9', strokeWidth: 2 }} // Colored, visible X-axis
+            tick={false} 
           />
           
           <YAxis 
+            type="number"           
+            domain={[0, isConstant ? 10 : 'auto']} 
             stroke="#888" 
             tickLine={false} 
-            axisLine={false} 
-            tick={false} // This hides the Y-axis numbers completely
+            axisLine={{ stroke: '#A096B9', strokeWidth: 2 }} // Colored, visible Y-axis
+            tick={false} 
           />
           
           <Tooltip 
@@ -99,7 +105,7 @@ const ComplexityGraph = ({ complexity, color, label }) => {
             dataKey="operations" 
             stroke={color} 
             strokeWidth={3} 
-            dot={false} // Hiding dots makes the curve look much smoother and premium
+            dot={false} 
             activeDot={{ r: 5, fill: '#fff', stroke: color, strokeWidth: 2 }}
             animationDuration={1200}
             animationEasing="ease-out"
