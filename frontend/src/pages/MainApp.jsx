@@ -870,7 +870,52 @@ export default function MainApp() {
                                     <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>{formatComplexity(spaceComplexity)} <span className="dropdown-chevron" style={{ transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span></td>
                                   </tr>
                                   {expandedLines[i] && (
-                                    <tr className="explanation-row"><td colSpan="4"><div className="explanation-content" style={{ borderLeftColor: timeColor }}><div style={{ flex: 1 }}><strong style={{ color: timeColor }}>Time Complexity</strong><div>{formatExplanation(timeExp, isBottleneck, activeComplexityTab === 'local')}</div><ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" /></div><div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}><strong style={{ color: spaceColor }}>Space Complexity</strong><div>{formatExplanation(spaceExp, isBottleneck, activeComplexityTab === 'local')}</div><ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" /></div></div></td></tr>
+                                    <tr className="explanation-row">
+                                      <td colSpan="4" style={{ padding: 0, border: 'none' }}>
+                                        <div
+                                          className="explanation-content"
+                                          style={{
+                                            borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
+                                            margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
+                                          }}
+                                        >
+                                          {/* TIME COMPLEXITY COLUMN */}
+                                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
+                                              <div style={{ width: '100%' }}>
+                                                <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(timeExp, isBottleneck, activeComplexityTab === 'local')}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            {/* Explicit Height Wrapper for the Graph - Pushed to Bottom */}
+                                            <div className="explanation-graph" style={{ marginTop: 'auto', paddingTop: '15px', height: '150px', width: '100%', position: 'relative' }}>
+                                              <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                            </div>
+                                          </div>
+
+                                          {/* SPACE COMPLEXITY COLUMN */}
+                                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
+                                              <div style={{ width: '100%' }}>
+                                                <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(spaceExp, isBottleneck, activeComplexityTab === 'local')}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            {/* Explicit Height Wrapper for the Graph - Pushed to Bottom */}
+                                            <div className="explanation-graph" style={{ marginTop: 'auto', paddingTop: '15px', height: '150px', width: '100%', position: 'relative' }}>
+                                              <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                            </div>
+                                          </div>
+
+                                        </div>
+                                      </td>
+                                    </tr>
                                   )}
                                 </React.Fragment>
                               );
