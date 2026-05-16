@@ -10,11 +10,14 @@ import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
+// 1. Import the activities tasks JSON directly
+import ACTIVITY_TASKS from "../data/activities.json";
+
 // --- IMPORT MONACO EDITOR & TRANSLATOR ---
 import Editor from "@monaco-editor/react";
 import { translatePythonError } from "../utils/errorTranslator.js";
 
-// 1. Import the shared eager-loaded worker
+// Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
 // --- Custom Monaco Theme Injection ---
@@ -34,281 +37,6 @@ const handleEditorWillMount = (monaco) => {
     }
   });
 };
-
-const ACTIVITY_TASKS = [
-  {
-    id: "l1-t1",
-    templatePath: "activities/what_is_algo",
-    title: "1. Hello World",
-    difficulty: "Easy",
-    task: `Welcome to AlgoBlocks! Every great programmer starts their journey with a simple tradition: greeting the world. Your very first task is to write a program that prints a specific greeting message to the system console. 
-
-**Example 1:**
-Input: None
-Output: "Hello World"
-
-**Constraints:**
-• You must familiarize yourself with the visual block interface.
-• Connect a simple sequence of Output blocks to print exactly "Hello" and "World".
-• Pay attention to capitalization and spacing.`,
-    testCasesList: [
-      { call: "", expected: "Hello World" }
-    ]
-  },
-  {
-    id: "l1-t2",
-    templatePath: "activities/logic_flow_act",
-    title: "2. Logic & Flow",
-    difficulty: "Easy",
-    task: `In programming, computers make decisions using conditional statements. You are given a boolean variable \`condition\` which can either be \`true\` or \`false\`. 
-
-Your task is to evaluate this condition and **return** a specific string based on its truth value. If the condition evaluates to \`true\`, your program must return the string "Yes". If the condition evaluates to \`false\`, your program must return the string "No".
-
-**Example 1:**
-Input: condition = true
-Output: "Yes"
-
-**Example 2:**
-Input: condition = false
-Output: "No"
-
-**Constraints:**
-• You must use an If-Else conditional block to control the flow of execution.
-• The output must match the casing exactly.`,
-    testCasesList: [
-      { call: "condition_checker(True)", expected: "'Yes'" },
-      { call: "condition_checker(False)", expected: "'No'" }
-    ]
-  },
-  {
-    id: "l1-t3",
-    templatePath: "activities/big_o_act",
-    title: "3. Big O Notation",
-    difficulty: "Easy",
-    task: `Big O notation evaluates how the runtime or space requirements of an algorithm grow as the input size increases. It gives us a high-level understanding of an algorithm's efficiency.
-
-An algorithm with **O(1)** complexity takes the same amount of time regardless of the input size (Constant Time). An algorithm with **O(n)** complexity takes time directly proportional to the input size (Linear Time).
-
-Your task is to build a simple algorithm with **O(n)** time complexity. You are given a non-negative integer \`n\`. Construct a loop that outputs the string "Step" exactly \`n\` times.
-
-**Example 1:**
-Input: n = 3
-Output: 
-"Step"
-"Step"
-"Step"
-
-**Constraints:**
-• 0 <= n <= 10
-• You must use a Loop block that executes exactly \`n\` times, demonstrating linear growth.`,
-    testCasesList: [
-      { call: "print_steps(3)", expected: "Step\\nStep\\nStep" },
-      { call: "print_steps(1)", expected: "Step" },
-      { call: "print_steps(0)", expected: "" },
-      { call: "print_steps(5)", expected: "Step\\nStep\\nStep\\nStep\\nStep" }
-    ]
-  },
-  {
-    id: "l2-t1",
-    templatePath: "activities/linear_search_act",
-    title: "4. Linear Search",
-    difficulty: "Easy",
-    task: `You are given a 0-indexed array of integers \`arr\` and an integer \`target\`. Your objective is to find the exact position of the \`target\` within the array. 
-
-Write an algorithm that checks each element of the array sequentially from the beginning (index 0) to the end. If the \`target\` is found, return its index. If you reach the end of the array and the \`target\` does not exist in \`arr\`, return \`-1\`.
-
-**Example 1:**
-Input: arr = [4, 5, 6, 7, 0, 1, 2], target = 0
-Output: 4
-Explanation: The number 0 is located at index 4 in the array.
-
-**Example 2:**
-Input: arr = [4, 5, 6, 7, 0, 1, 2], target = 3
-Output: -1
-Explanation: The number 3 is not present in the array, so we return -1.
-
-**Constraints:**
-• 1 <= arr.length <= 10^4
-• -10^5 <= arr[i], target <= 10^5
-• You must build a Linear Search using blocks: Loop through the array, compare each element one by one, and return the index upon finding the match.`
-  },
-  {
-    id: "l2-t2",
-    templatePath: "activities/binary_search_act",
-    title: "5. Binary Search",
-    difficulty: "Easy",
-    task: `You are given an array of integers \`arr\` which is strictly sorted in ascending order, and an integer \`target\`. Write a function to search for the \`target\` in \`arr\`. If the \`target\` exists, then return its index. Otherwise, return \`-1\`. 
-
-Because the array is already sorted, you can optimize your search. Instead of checking every element sequentially, you should repeatedly divide the search interval in half.
-
-**Example 1:**
-Input: arr = [-1,0,3,5,9,12], target = 9
-Output: 4
-Explanation: 9 exists in nums and its index is 4.
-
-**Example 2:**
-Input: arr = [-1,0,3,5,9,12], target = 2
-Output: -1
-Explanation: 2 does not exist in nums so return -1.
-
-**Constraints:**
-• 1 <= arr.length <= 10^4
-• -10^4 < arr[i], target < 10^4
-• All the integers in \`arr\` are unique.
-• \`arr\` is sorted in ascending order.
-• You **must** write an algorithm with $O(\\log n)$ runtime complexity.`
-  },
-  {
-    id: "l3-t1",
-    templatePath: "activities/bubble_sort_act",
-    title: "6. Bubble Sort",
-    difficulty: "Easy",
-    task: `You are given an array of integers \`arr\`. Your task is to sort the array in ascending order and return it. You must solve the problem using the **Bubble Sort** algorithm. 
-
-Bubble Sort works by repeatedly swapping adjacent elements if they are in the wrong order. With each full pass through the array, the largest unsorted element "bubbles up" to its correct position at the end of the array. You must continue making passes until no more swaps are needed.
-
-**Example 1:**
-Input: arr = [5, 2, 3, 1]
-Output: [1, 2, 3, 5]
-Explanation: 
-Pass 1: [2, 5, 3, 1] -> [2, 3, 5, 1] -> [2, 3, 1, 5] (5 is sorted)
-Pass 2: [2, 3, 1, 5] -> [2, 1, 3, 5] (3 is sorted)
-Pass 3: [1, 2, 3, 5] (Array is fully sorted)
-
-**Constraints:**
-• 1 <= arr.length <= 1000
-• -5000 <= arr[i] <= 5000
-• Modify the array in-place without using extra memory for another array.`
-  },
-  {
-    id: "l3-t2",
-    templatePath: "activities/selection_sort_act",
-    title: "7. Selection Sort",
-    difficulty: "Easy",
-    task: `You are given an array of integers \`arr\`. Your task is to sort the array in ascending order and return it using the **Selection Sort** algorithm.
-
-Selection Sort divides the input array into two parts: a sorted sublist of items which is built up from left to right at the front (left) of the array, and a sublist of the remaining unsorted items that occupy the rest of the array. Initially, the sorted sublist is empty. The algorithm proceeds by finding the smallest element in the unsorted sublist, exchanging (swapping) it with the leftmost unsorted element, and moving the sublist boundaries one element to the right.
-
-**Example 1:**
-Input: arr = [64, 25, 12, 22, 11]
-Output: [11, 12, 22, 25, 64]
-
-**Constraints:**
-• 1 <= arr.length <= 1000
-• -10^4 <= arr[i] <= 10^4
-• Find the minimum element in the unsorted portion and swap it to the front.`
-  },
-  {
-    id: "l3-t3",
-    templatePath: "activities/insertion_sort_act",
-    title: "8. Insertion Sort",
-    difficulty: "Easy",
-    task: `You are given an array of integers \`arr\`. Sort the array in ascending order and return it using the **Insertion Sort** algorithm.
-
-Insertion Sort iterates, consuming one input element each repetition, and growing a sorted output list. At each iteration, it removes one element from the input data, finds the location it belongs within the sorted list, and inserts it there. It repeats until no input elements remain. This is similar to how you might sort playing cards in your hands.
-
-**Example 1:**
-Input: arr = [12, 11, 13, 5, 6]
-Output: [5, 6, 11, 12, 13]
-
-**Constraints:**
-• 1 <= arr.length <= 1000
-• -5000 <= arr[i] <= 5000
-• Shift larger elements to the right to insert the current element in its correct sequential order.`
-  },
-  {
-    id: "l3-t4",
-    templatePath: "activities/merge_sort_act",
-    title: "9. Merge Sort",
-    difficulty: "Medium",
-    task: `You are given an array of integers \`arr\`. Sort the array in ascending order and return it. You must solve the problem using the **Merge Sort** algorithm.
-
-Merge Sort is a divide-and-conquer algorithm. It works by recursively breaking down a problem into two or more sub-problems of the same or related type, until these become simple enough to be solved directly (arrays of size 1 are inherently sorted). The solutions to the sub-problems are then combined (merged) to give a solution to the original problem.
-
-**Example 1:**
-Input: arr = [12, 11, 13, 5, 6, 7]
-Output: [5, 6, 7, 11, 12, 13]
-
-**Constraints:**
-• 1 <= arr.length <= 5 * 10^4
-• -50000 <= arr[i] <= 50000
-• You must write an algorithm with $O(n \\log n)$ runtime complexity.`
-  },
-  {
-    id: "l4-t1",
-    templatePath: "activities/factorial_recursive_act",
-    title: "10. Factorial (Recursive)",
-    difficulty: "Easy",
-    task: `You are given a non-negative integer \`n\`. Your task is to compute and return the factorial of \`n\`, mathematically denoted as \`n!\`. 
-
-The factorial of a non-negative integer \`n\` is the product of all positive integers less than or equal to \`n\`. For example, \`4! = 4 * 3 * 2 * 1 = 24\`. By definition, the value of \`0!\` is \`1\`.
-
-**Example 1:**
-Input: n = 4
-Output: 24
-Explanation: 4 * 3 * 2 * 1 = 24
-
-**Example 2:**
-Input: n = 0
-Output: 1
-Explanation: The base case of 0! is defined as 1.
-
-**Constraints:**
-• 0 <= n <= 12
-• You **must** solve the problem using a recursive algorithm. Do not use iterative loops (\`for\` or \`while\`). Ensure you have a clear base case to prevent an infinite call stack.`
-  },
-  {
-    id: "l4-t2",
-    templatePath: "activities/fibonacci_recursive_act",
-    title: "10. Fibonacci Number",
-    difficulty: "Easy",
-    task: `The Fibonacci numbers, commonly denoted \`F(n)\`, form a sequence called the Fibonacci sequence, such that each number is the sum of the two preceding ones. The sequence starts from \`0\` and \`1\`. 
-
-The sequence is defined mathematically as:
-$F(0) = 0, F(1) = 1$
-$F(n) = F(n-1) + F(n-2)$, for $n > 1$.
-
-Given an integer \`n\`, calculate and return the \`n\`-th Fibonacci number \`F(n)\`.
-
-**Example 1:**
-Input: n = 2
-Output: 1
-Explanation: F(2) = F(1) + F(0) = 1 + 0 = 1.
-
-**Example 2:**
-Input: n = 4
-Output: 3
-Explanation: F(4) = F(3) + F(2) = 2 + 1 = 3.
-
-**Constraints:**
-• 0 <= n <= 30
-• You **must** solve the problem using a recursive algorithm.`
-  },
-  {
-    id: "l4-t3",
-    templatePath: "activities/permutation_recursive_act",
-    title: "11. Permutations",
-    difficulty: "Medium",
-    task: `You are given an array \`nums\` consisting of distinct integers. A permutation is a mathematical technique that determines the number of possible arrangements in a set when the order of the arrangements matters.
-
-Your task is to compute and return all the possible permutations of the elements in \`nums\`. You can return the final list of permutations in any order.
-
-**Example 1:**
-Input: nums = [1,2,3]
-Output: [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]
-Explanation: There are 3! (6) distinct ways to arrange the 3 unique numbers.
-
-**Example 2:**
-Input: nums = [0,1]
-Output: [[0,1],[1,0]]
-
-**Constraints:**
-• 1 <= nums.length <= 6
-• -10 <= nums[i] <= 10
-• All the integers of \`nums\` are guaranteed to be unique.
-• You must solve the problem using recursion (often referred to as backtracking in this context).`
-  }
-];
 
 const renderFormattedTask = (text) => {
   if (!text || typeof text !== "string") return null;
@@ -354,7 +82,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   const sections = text.split(/\n\n+/);
   
   return sections.map((sec, idx) => {
-    // Look for lines starting with bold titles (e.g. **Optimization Tip:**) 
     const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)/s);
     
     if (match) {
@@ -364,7 +91,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       
       let type = null;
 
-      // Determine the type based on the text keywords
       if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) {
         type = 'warning';
       } else if (titleLower.includes('tip') || titleLower.includes('insight')) {
@@ -426,16 +152,17 @@ const ActivityApp = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // --- REFS (Completely synchronized with MainApp) ---
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
+  const renderIntervalRef = useRef(null);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
-  const renderIntervalRef = useRef(null);
   const isDragging = useRef(false);
   const hasLoadedRef = useRef(false);
-  const analysisStartTimeRef = useRef(0);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -447,7 +174,7 @@ const ActivityApp = () => {
   const totalTests = activityData?.testCasesList?.length || 0;
 
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
-  const [consoleOutput, setConsoleOutput] = useState("Ready to run...");
+  const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [viewMode, setViewMode] = useState("workspace");
   const [passedTests, setPassedTests] = useState(0);
 
@@ -477,8 +204,8 @@ const ActivityApp = () => {
   };
 
   useEffect(() => {
-    const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Using online FastAPI backend.", "success"); };
-    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Falling back to local Pyodide.", "error"); };
+    const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -489,6 +216,7 @@ const ActivityApp = () => {
     };
   }, []);
 
+  // --- WORKER INITIALIZATION (Synchronized with MainApp Output Chunks & Flood Guard) ---
   const initWorker = () => {
     if (!workerRef.current) return;
 
@@ -501,11 +229,8 @@ const ActivityApp = () => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
-          (data.lines || []).forEach(l => {
-            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
-          });
+          (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts);
-
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);
@@ -515,62 +240,39 @@ const ActivityApp = () => {
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
         clearInterval(renderIntervalRef.current);
-
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
-
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
-        setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
-
+        setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
         if (counts) setLineExecutions(counts);
-
-        setIsEvaluating(false);
-        setIsWaitingForInput(false);
+        setIsEvaluating(false); setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
         outputCountRef.current += 1;
         pendingOutputRef.current += data;
-
         if (outputCountRef.current > 5000) {
-          clearTimeout(runTimeoutRef.current);
-          clearInterval(renderIntervalRef.current);
+          clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
           workerRef.current.terminate();
-
           workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
           workerRef.current.postMessage({ type: 'INIT_ENGINE' });
           initWorker();
-
-          const flushed = pendingOutputRef.current;
-          pendingOutputRef.current = "";
-
+          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
-          setIsEvaluating(false);
-          setIsWaitingForInput(false);
-          outputCountRef.current = 0;
-          return;
+          setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
         }
       }
       else if (type === 'INPUT_REQUEST') {
-        clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current);
-
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
-
+        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + data.prompt);
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
-        clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current);
-
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
-
+        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const hint = translatePythonError(data);
         setConsoleOutput(prev => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-        setIsEvaluating(false);
-        setIsWaitingForInput(false);
+        setIsEvaluating(false); setIsWaitingForInput(false);
       }
     };
   };
@@ -625,7 +327,6 @@ const ActivityApp = () => {
         });
 
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
-
         const data = await response.json();
 
         if (data.status === "success") {
@@ -633,11 +334,8 @@ const ActivityApp = () => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
-          (data.lines || []).forEach(l => {
-            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
-          });
+          (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts);
-
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);
@@ -645,7 +343,7 @@ const ActivityApp = () => {
         }
         return;
       } catch (error) {
-        console.warn("Online analysis failed or unreachable, falling back to local worker.", error);
+        console.warn("Online analysis failed, falling back to local worker.", error);
       }
     }
 
@@ -662,7 +360,6 @@ const ActivityApp = () => {
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode, isOnline]);
 
-  // --- REFRESH SAFE LOADING LOGIC ---
   useEffect(() => {
     if (!workspaceRef.current || hasLoadedRef.current) return;
     if (!initialTemplate && !activityData) return;
@@ -672,7 +369,6 @@ const ActivityApp = () => {
     setTimeout(async () => {
       try {
         let json = null;
-        
         if (activityData && activityData.blocks) {
           json = activityData;
         } else if (initialTemplate) {
@@ -696,7 +392,6 @@ const ActivityApp = () => {
         console.error("Failed to load activity template", error);
       }
     }, 500);
-
   }, [initialTemplate, activityData, workspaceRef.current]);
 
   const saveLessonProgress = async (lessonId, score) => {
@@ -740,111 +435,60 @@ const ActivityApp = () => {
     }
   };
 
+  // --- RUN METHOD (Synchronized directly with MainApp.jsx stream chunks) ---
   const handleActivityRun = async () => {
     if (isEvaluating) return;
-
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute.");
-      setBottomPanel("console");
-      setConsoleTab("output");
-      return;
+      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
     }
 
-    clearTimeout(runTimeoutRef.current);
-    clearInterval(renderIntervalRef.current);
-
+    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
     setIsEvaluating(true);
     setLineExecutions({});
-    setBottomPanel("console");
-    setConsoleTab("output");
-
-    if (isOnline) {
-      setConsoleOutput("\n> Running online via FastAPI...\n");
-      try {
-        const response = await fetch(`${VERCEL_URL}/api/run`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: generatedPython })
-        });
-
-        if (!response.ok) throw new Error("FastAPI execution failed");
-
-        const data = await response.json();
-        const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
-        setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
-
-        if (data.counts) setLineExecutions(data.counts);
-
-        setIsEvaluating(false);
-        return;
-      } catch (error) {
-        setConsoleOutput(prev => prev + " Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
-      }
-    }
-
+    setBottomPanel("console"); setConsoleTab("output");
     setConsoleOutput(prev => prev + "\n> Running the program...\n");
-    outputCountRef.current = 0;
-    pendingOutputRef.current = "";
 
+    outputCountRef.current = 0; pendingOutputRef.current = "";
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed);
       }
     }, 100);
 
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
-
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current.terminate();
-      clearInterval(renderIntervalRef.current);
-
+      workerRef.current.terminate(); clearInterval(renderIntervalRef.current);
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
       workerRef.current.postMessage({ type: 'INIT_ENGINE' });
       initWorker();
-
-      const flushed = pendingOutputRef.current;
-      pendingOutputRef.current = "";
-
-      setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
-
-      setIsEvaluating(false);
-      setIsWaitingForInput(false);
+      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+      setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+      setIsEvaluating(false); setIsWaitingForInput(false);
     }, 10000);
   };
 
+  // --- SEND INPUT METHOD (Synchronized directly with MainApp.jsx stream chunks) ---
   const handleSendInput = (e) => {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
-
-      outputCountRef.current = 0;
-      setUserInput("");
-      setIsWaitingForInput(false);
+      outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
 
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
-          const flushed = pendingOutputRef.current;
-          pendingOutputRef.current = "";
+          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           setConsoleOutput(prev => prev + flushed);
         }
       }, 100);
-
       runTimeoutRef.current = setTimeout(() => {
-        workerRef.current.terminate();
-        clearInterval(renderIntervalRef.current);
-
+        workerRef.current.terminate(); clearInterval(renderIntervalRef.current);
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' });
         initWorker();
-
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
-
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-        setIsEvaluating(false);
-        setIsWaitingForInput(false);
+        setIsEvaluating(false); setIsWaitingForInput(false);
       }, 10000);
     }
   };
@@ -1083,7 +727,6 @@ const ActivityApp = () => {
                 </button>
               </div>
 
-              {/* --- MONACTO VSCODE EDITOR INTEGRATION --- */}
               <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
                 {syntaxError && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
@@ -1132,12 +775,8 @@ const ActivityApp = () => {
               </div>
 
               <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-
-                {/* === CONSOLE PANEL === */}
                 {bottomPanel === 'console' ? (
                   <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-
-                    {/* Console Tab Group */}
                     <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="tab-btn-group">
                         <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
@@ -1238,8 +877,6 @@ const ActivityApp = () => {
                     </div>
                   </div>
                 ) : (
-
-                  /* === COMPLEXITY PANEL === */
                   <div className="complexity-content">
                     <div className="complexity-tabs">
                       <div className="tab-btn-group">
@@ -1282,7 +919,6 @@ const ActivityApp = () => {
 
                               const isBottleneck = actualBottleneckIndices.includes(i);
 
-                              // WIPE OUT BACKEND WARNINGS IF EFFICIENT OR LOCAL TAB
                               if (activeTab === 'local' || !isBottleneck) {
                                 timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
                               }
@@ -1293,7 +929,6 @@ const ActivityApp = () => {
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
 
-                              // CALCULATE EFFICIENT TAG
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
                               const isEfficient = !isBottleneck &&
                                 (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) &&
@@ -1359,7 +994,6 @@ const ActivityApp = () => {
                                               <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
                                             </div>
                                           </div>
-
                                         </div>
                                       </td>
                                     </tr>
@@ -1436,7 +1070,6 @@ const ActivityApp = () => {
 
               return (
                 <div key={i} className={`test-case-card ${statusClass}`}>
-
                   <div className="test-case-header" onClick={() => toggleTest(i)}>
                     <div className="test-case-header-left">
                       <div className={`test-case-indicator ${statusClass}`}></div>
@@ -1466,13 +1099,11 @@ const ActivityApp = () => {
                       )}
                     </div>
                   )}
-
                 </div>
               );
             })}
           </div>
         </aside>
-
       </Split>
 
       <ConfirmModal
@@ -1489,7 +1120,6 @@ const ActivityApp = () => {
         isOpen={isBigOModalOpen}
         onClose={() => setIsBigOModalOpen(false)}
       />
-
     </div>
   );
 };
