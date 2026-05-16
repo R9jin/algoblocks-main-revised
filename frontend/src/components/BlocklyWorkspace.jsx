@@ -6,6 +6,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 // --- STABLE PLUGIN IMPORTS ---
 import { registerFieldMultilineInput } from '@blockly/field-multilineinput';
+import { CrossTabCopyPaste } from '@blockly/plugin-cross-tab-copy-paste';
 import { Modal } from "@blockly/plugin-modal";
 import { WorkspaceSearch } from "@blockly/plugin-workspace-search";
 import { shadowBlockConversionChangeListener } from "@blockly/shadow-block-converter";
@@ -17,6 +18,9 @@ import { convertPythonToBlocks } from "../workers/analyzerInstance";
 
 registerFieldMultilineInput();
 Blockly.setLocale(En);
+
+// Track plugin globally so it's only attached to the Blockly registry once
+let crossTabPluginInitialized = false;
 
 const DarkTheme = Blockly.Themes.Dark;
 const ModernTheme = Blockly.Themes.Modern;
@@ -271,7 +275,6 @@ const toolbox = {
   kind: "categoryToolbox",
   contents: [
     { kind: "search", name: "Search", contents: [] },
-    // Logic
     {
       kind: "category",
       name: "Logic",
@@ -287,7 +290,6 @@ const toolbox = {
         { kind: "block", type: "procedure_return_value" }
       ]
     },
-    // Loops
     {
       kind: "category",
       name: "Loops",
@@ -306,7 +308,6 @@ const toolbox = {
         { kind: "block", type: "controls_flow_statements" }
       ]
     },
-    // Math
     {
       kind: "category",
       name: "Math",
@@ -345,7 +346,6 @@ const toolbox = {
         { kind: "block", type: "math_random_float" }
       ]
     },
-    // Text
     {
       kind: "category",
       name: "Text",
@@ -369,17 +369,11 @@ const toolbox = {
           kind: "block",
           type: "python_input",
           inputs: {
-            PROMPT: {
-              shadow: {
-                type: "text",
-                fields: { TEXT: "Enter your name: " }
-              }
-            }
+            PROMPT: { shadow: { type: "text", fields: { TEXT: "Enter your name: " } } }
           }
         }
       ]
     },
-    // Lists and Dictionaries
     {
       kind: "category",
       name: "Lists",
@@ -422,7 +416,6 @@ const toolbox = {
         }
       ]
     },
-    // Variables & Functions
     { kind: "category", name: "Variables", categorystyle: "variable_category", custom: "VARIABLE" },
     { kind: "category", name: "Functions", categorystyle: "procedure_category", custom: "PROCEDURE" },
     {
@@ -438,14 +431,12 @@ const toolbox = {
   ]
 };
 
-// Accept the syntaxError context prop here
 const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
   const blocklyDiv = useRef(null);
   const workspace = useRef(null);
   const onChangeRef = useRef(onChange);
 
-  const API_URL = import.meta.env.VITE_BACKEND_URL || ""
-
+  // Expose the resize function to the parent (MainApp)
   useImperativeHandle(ref, () => ({
     clear: () => {
       if (workspace.current) {
@@ -478,17 +469,11 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         workspace.current.setTheme(themeName === 'dark' ? DarkTheme : pastelTheme);
       }
     },
-
     loadFromPython: async (pythonCode) => {
       if (!workspace.current) return;
-
       try {
         const data = await convertPythonToBlocks(pythonCode);
-
-        if (data.status === "error") {
-          throw new Error(data.message || "Failed to parse Python code.");
-        }
-
+        if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
         Blockly.Events.disable();
         try {
           workspace.current.clear();
@@ -502,6 +487,13 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         console.error("AST Parsing failed:", error.message);
         throw error;
       }
+    },
+    resize: () => {
+      if (workspace.current) {
+        Blockly.svgResize(workspace.current);
+        // 🚀 Mark explicitly focused when the tab becomes active to ensure keyboard shortcuts work
+        workspace.current.markFocused();
+      }
     }
   }));
 
@@ -513,7 +505,19 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     if (workspace.current) return;
 
     let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
-    let minimapDelay; // Store timeout reference in outer scope
+    let minimapDelay;
+
+    // 🚀 Initialize Cross-Tab Copy Paste globally ONCE
+    if (!crossTabPluginInitialized) {
+      try {
+        const crossTabPlugin = new CrossTabCopyPaste();
+        // Enables both context menu (Right Click -> Copy/Paste) and shortcuts (Ctrl+C / Ctrl+V)
+        crossTabPlugin.init({contextMenu: true, shortcut: true});
+        crossTabPluginInitialized = true;
+      } catch (e) {
+        console.warn("CrossTabCopyPaste init skipped:", e.message);
+      }
+    }
 
     if (blocklyDiv.current) {
       if (Blockly.ShortcutRegistry.registry.getRegistry()['startSearch']) {
@@ -544,17 +548,10 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         console.warn("Plugin init skipped:", e.message);
       }
 
-      // ==========================================
-      // 🚀 THE FINAL FIX: Track the timeout so we can cancel it
-      // NOTE: Minimap is strictly created and initialized inside this block
-      // ==========================================
       minimapDelay = setTimeout(() => {
-        // Double-check the workspace still exists and hasn't been unmounted
         if (workspace.current && blocklyDiv.current) {
           Blockly.svgResize(workspace.current);
-          
           try {
-            // Create AND initialize safely after CSS is done
             minimapPlugin = new PositionedMinimap(workspace.current);
             minimapPlugin.init();
           } catch (e) {
@@ -562,15 +559,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
           }
         }
       }, 150);
-      // ==========================================
 
       if (!pythonGenerator.__originalInit) {
         pythonGenerator.__originalInit = pythonGenerator.init;
         pythonGenerator.init = function (workspace) {
           pythonGenerator.__originalInit.call(this, workspace);
-          if (this.definitions_['variables']) {
-            delete this.definitions_['variables'];
-          }
+          if (this.definitions_['variables']) delete this.definitions_['variables'];
         };
       }
 
@@ -585,6 +579,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         };
       }
 
+      // -- ALL CUSTOM GENERATOR DEFS --
       pythonGenerator.forBlock['math_assignment'] = function (block) {
         const variable = pythonGenerator.getVariableName(block.getFieldValue('VAR'));
         const operator = block.getFieldValue('OP');
@@ -602,11 +597,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         const to = pythonGenerator.valueToCode(block, 'TO', pythonGenerator.ORDER_NONE) || '0';
         const step = pythonGenerator.valueToCode(block, 'BY', pythonGenerator.ORDER_NONE) || '1';
         let rangeCode;
-        if (step.trim() === '1') {
-          rangeCode = from.trim() === '0' ? `range(${to})` : `range(${from}, ${to})`;
-        } else {
-          rangeCode = `range(${from}, ${to}, ${step})`;
-        }
+        if (step.trim() === '1') rangeCode = from.trim() === '0' ? `range(${to})` : `range(${from}, ${to})`;
+        else rangeCode = `range(${from}, ${to}, ${step})`;
         let branch = pythonGenerator.statementToCode(block, 'DO') || pythonGenerator.PASS;
         return `for ${variable} in ${rangeCode}:\n${branch}`;
       };
@@ -616,27 +608,21 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         const where = block.getFieldValue('WHERE') || 'FROM_START';
         const list = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_MEMBER) || '[]';
         let indexCode = '0';
-        if (where === 'FIRST') {
-          indexCode = '0';
-        } else if (where === 'LAST') {
-          indexCode = '-1';
-        } else if (where === 'FROM_START') {
-          indexCode = pythonGenerator.valueToCode(block, 'AT', pythonGenerator.ORDER_NONE) || '0';
-        } else if (where === 'FROM_END') {
+        if (where === 'FIRST') indexCode = '0';
+        else if (where === 'LAST') indexCode = '-1';
+        else if (where === 'FROM_START') indexCode = pythonGenerator.valueToCode(block, 'AT', pythonGenerator.ORDER_NONE) || '0';
+        else if (where === 'FROM_END') {
           const at = pythonGenerator.valueToCode(block, 'AT', pythonGenerator.ORDER_NONE) || '1';
           indexCode = '-' + at;
         }
-
         if (mode === 'GET_REMOVE') {
           if (where === 'LAST') return [`${list}.pop()`, pythonGenerator.ORDER_FUNCTION_CALL];
           return [`${list}.pop(${indexCode})`, pythonGenerator.ORDER_FUNCTION_CALL];
         }
-
         if (mode === 'REMOVE') {
           if (where === 'LAST') return `${list}.pop()\n`;
           return `${list}.pop(${indexCode})\n`;
         }
-
         return [`${list}[${indexCode}]`, pythonGenerator.ORDER_MEMBER];
       };
 
@@ -657,7 +643,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
             return `${list}.insert(-${at}, ${value})\n`;
           }
         }
-
         let indexCode = '0';
         if (where === 'FIRST') indexCode = '0';
         else if (where === 'LAST') indexCode = '-1';
@@ -666,7 +651,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
           const at = pythonGenerator.valueToCode(block, 'AT', pythonGenerator.ORDER_NONE) || '1';
           indexCode = '-' + at;
         }
-
         return `${list}[${indexCode}] = ${value}\n`;
       };
 
@@ -704,7 +688,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
           case 'BIT_AND': opSymbol = '&'; order = pythonGenerator.ORDER_BITWISE_AND; break;
           case 'BIT_OR': opSymbol = '|'; order = pythonGenerator.ORDER_BITWISE_OR; break;
         }
-
         const a = pythonGenerator.valueToCode(block, 'A', order) || '0';
         const b = pythonGenerator.valueToCode(block, 'B', order) || '0';
         return [`${a} ${opSymbol} ${b}`, order];
@@ -725,16 +708,11 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       pythonGenerator.forBlock['text_join'] = function (block) {
         const itemCount = block.itemCount_;
         let fStringContent = "";
-
         for (let i = 0; i < itemCount; i++) {
           let elementCode = pythonGenerator.valueToCode(block, 'ADD' + i, pythonGenerator.ORDER_NONE);
           if (!elementCode) continue;
-
-          if (elementCode.startsWith("'") && elementCode.endsWith("'")) {
-            fStringContent += elementCode.slice(1, -1);
-          } else {
-            fStringContent += `{${elementCode}}`;
-          }
+          if (elementCode.startsWith("'") && elementCode.endsWith("'")) fStringContent += elementCode.slice(1, -1);
+          else fStringContent += `{${elementCode}}`;
         }
         return [`f"${fStringContent}"`, pythonGenerator.ORDER_ATOMIC];
       };
@@ -769,33 +747,20 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
 
       pythonGenerator.forBlock['dict_from_pairs'] = function (block) {
         const listBlock = block.getInputTargetBlock('LIST');
-        if (!listBlock || listBlock.type !== 'lists_create_with') {
-          return ['{}', pythonGenerator.ORDER_ATOMIC];
-        }
-
+        if (!listBlock || listBlock.type !== 'lists_create_with') return ['{}', pythonGenerator.ORDER_ATOMIC];
         let pairs = [];
         for (let i = 0; i < listBlock.itemCount_; i++) {
           let pairCode = pythonGenerator.valueToCode(listBlock, 'ADD' + i, pythonGenerator.ORDER_NONE);
           if (pairCode) pairs.push(pairCode);
         }
-
         if (pairs.length === 0) return ['{}', pythonGenerator.ORDER_ATOMIC];
         const code = '{\n    ' + pairs.join(',\n    ') + '\n}';
         return [code, pythonGenerator.ORDER_ATOMIC];
       };
 
-      pythonGenerator.forBlock['raw_python_statement'] = function (block) {
-        return block.getFieldValue('CODE') + '\n';
-      };
-
-      pythonGenerator.forBlock['raw_python_expression'] = function (block) {
-        return [block.getFieldValue('CODE'), pythonGenerator.ORDER_ATOMIC];
-      };
-
-      pythonGenerator.forBlock['raw_python_multiline'] = function (block) {
-        return block.getFieldValue('CODE') + '\n';
-      };
-
+      pythonGenerator.forBlock['raw_python_statement'] = function (block) { return block.getFieldValue('CODE') + '\n'; };
+      pythonGenerator.forBlock['raw_python_expression'] = function (block) { return [block.getFieldValue('CODE'), pythonGenerator.ORDER_ATOMIC]; };
+      pythonGenerator.forBlock['raw_python_multiline'] = function (block) { return block.getFieldValue('CODE') + '\n'; };
       pythonGenerator.forBlock['python_input'] = function (block) {
         const promptMsg = pythonGenerator.valueToCode(block, 'PROMPT', pythonGenerator.ORDER_NONE) || "''";
         return [`input(${promptMsg})`, pythonGenerator.ORDER_FUNCTION_CALL];
@@ -829,11 +794,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     }
 
     return () => {
-      // 🛑 Kills the timer immediately if the user leaves the page or React re-renders
-      if (minimapDelay) {
-        clearTimeout(minimapDelay);
-      }
-
+      if (minimapDelay) clearTimeout(minimapDelay);
       try {
         if (searchPlugin?.dispose) searchPlugin.dispose();
         if (minimapPlugin?.dispose) minimapPlugin.dispose();
@@ -843,12 +804,10 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       } catch (e) {
         console.warn("Plugin dispose skipped:", e.message);
       }
-
       if (workspace.current) {
         workspace.current.dispose();
         workspace.current = null;
       }
-
       if (blocklyDiv.current?.resizeObserver) {
         blocklyDiv.current.resizeObserver.disconnect();
       }
@@ -858,26 +817,13 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={blocklyDiv} style={{ height: "100%", width: "100%" }} />
-
-      {/* VSCode-style Workspace Floating Syntax Error Indicator */}
       {syntaxError && (
         <div style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          backgroundColor: '#3A2A6B',
-          borderLeft: '4px solid #bc11ff',
-          color: '#EBE4FF',
-          padding: '12px 16px',
-          borderRadius: '0 8px 8px 0',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          zIndex: 1000,
-          maxWidth: '300px'
+          position: 'absolute', top: '20px', right: '20px', backgroundColor: '#3A2A6B',
+          borderLeft: '4px solid #bc11ff', color: '#EBE4FF', padding: '12px 16px',
+          borderRadius: '0 8px 8px 0', boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+          display: 'flex', alignItems: 'center', gap: '12px', zIndex: 1000, maxWidth: '300px'
         }}>
-          <div style={{ fontSize: '1.5rem' }}></div>
           <div>
             <div style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#bc11ff' }}>Syntax Error (Line {syntaxError.line})</div>
             <div style={{ fontSize: '0.8rem', marginTop: '4px', opacity: 0.9 }}>{syntaxError.message}</div>
