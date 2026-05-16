@@ -82,7 +82,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   const sections = text.split(/\n\n+/);
   
   return sections.map((sec, idx) => {
-    // Look for lines starting with bold titles (e.g. **Optimization Tip:**) 
     const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)/s);
     
     if (match) {
@@ -92,7 +91,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       
       let type = null;
 
-      // Determine the type based on the text keywords
       if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) {
         type = 'warning';
       } else if (titleLower.includes('tip') || titleLower.includes('insight')) {
@@ -154,16 +152,17 @@ const ActivityApp = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // --- REFS (Completely synchronized with MainApp) ---
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
   const runTimeoutRef = useRef(null);
+  const renderIntervalRef = useRef(null);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
-  const renderIntervalRef = useRef(null);
   const isDragging = useRef(false);
   const hasLoadedRef = useRef(false);
-  const analysisStartTimeRef = useRef(0);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -175,7 +174,7 @@ const ActivityApp = () => {
   const totalTests = activityData?.testCasesList?.length || 0;
 
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
-  const [consoleOutput, setConsoleOutput] = useState("Ready to run...");
+  const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [viewMode, setViewMode] = useState("workspace");
   const [passedTests, setPassedTests] = useState(0);
 
@@ -205,8 +204,8 @@ const ActivityApp = () => {
   };
 
   useEffect(() => {
-    const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Using online FastAPI backend.", "success"); };
-    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Falling back to local Pyodide.", "error"); };
+    const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -217,6 +216,7 @@ const ActivityApp = () => {
     };
   }, []);
 
+  // --- WORKER INITIALIZATION (Synchronized with MainApp Output Chunks & Flood Guard) ---
   const initWorker = () => {
     if (!workerRef.current) return;
 
@@ -229,11 +229,8 @@ const ActivityApp = () => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
-          (data.lines || []).forEach(l => {
-            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
-          });
+          (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts);
-
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);
@@ -243,62 +240,39 @@ const ActivityApp = () => {
       else if (type === 'RUN_RESULT') {
         clearTimeout(runTimeoutRef.current);
         clearInterval(renderIntervalRef.current);
-
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
-
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
-        setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.");
-
+        setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
         if (counts) setLineExecutions(counts);
-
-        setIsEvaluating(false);
-        setIsWaitingForInput(false);
+        setIsEvaluating(false); setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
         outputCountRef.current += 1;
         pendingOutputRef.current += data;
-
         if (outputCountRef.current > 5000) {
-          clearTimeout(runTimeoutRef.current);
-          clearInterval(renderIntervalRef.current);
+          clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
           workerRef.current.terminate();
-
           workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
           workerRef.current.postMessage({ type: 'INIT_ENGINE' });
           initWorker();
-
-          const flushed = pendingOutputRef.current;
-          pendingOutputRef.current = "";
-
+          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
-          setIsEvaluating(false);
-          setIsWaitingForInput(false);
-          outputCountRef.current = 0;
-          return;
+          setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
         }
       }
       else if (type === 'INPUT_REQUEST') {
-        clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current);
-
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
-
+        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + data.prompt);
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
-        clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current);
-
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
-
+        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const hint = translatePythonError(data);
         setConsoleOutput(prev => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-        setIsEvaluating(false);
-        setIsWaitingForInput(false);
+        setIsEvaluating(false); setIsWaitingForInput(false);
       }
     };
   };
@@ -353,7 +327,6 @@ const ActivityApp = () => {
         });
 
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
-
         const data = await response.json();
 
         if (data.status === "success") {
@@ -361,11 +334,8 @@ const ActivityApp = () => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
 
           const initialCounts = {};
-          (data.lines || []).forEach(l => {
-            if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits;
-          });
+          (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts);
-
           setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message);
@@ -373,7 +343,7 @@ const ActivityApp = () => {
         }
         return;
       } catch (error) {
-        console.warn("Online analysis failed or unreachable, falling back to local worker.", error);
+        console.warn("Online analysis failed, falling back to local worker.", error);
       }
     }
 
@@ -390,7 +360,6 @@ const ActivityApp = () => {
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode, isOnline]);
 
-  // --- REFRESH SAFE LOADING LOGIC ---
   useEffect(() => {
     if (!workspaceRef.current || hasLoadedRef.current) return;
     if (!initialTemplate && !activityData) return;
@@ -400,7 +369,6 @@ const ActivityApp = () => {
     setTimeout(async () => {
       try {
         let json = null;
-        
         if (activityData && activityData.blocks) {
           json = activityData;
         } else if (initialTemplate) {
@@ -424,7 +392,6 @@ const ActivityApp = () => {
         console.error("Failed to load activity template", error);
       }
     }, 500);
-
   }, [initialTemplate, activityData, workspaceRef.current]);
 
   const saveLessonProgress = async (lessonId, score) => {
@@ -468,111 +435,60 @@ const ActivityApp = () => {
     }
   };
 
+  // --- RUN METHOD (Synchronized directly with MainApp.jsx stream chunks) ---
   const handleActivityRun = async () => {
     if (isEvaluating) return;
-
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute.");
-      setBottomPanel("console");
-      setConsoleTab("output");
-      return;
+      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
     }
 
-    clearTimeout(runTimeoutRef.current);
-    clearInterval(renderIntervalRef.current);
-
+    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
     setIsEvaluating(true);
     setLineExecutions({});
-    setBottomPanel("console");
-    setConsoleTab("output");
-
-    if (isOnline) {
-      setConsoleOutput("\n> Running online via FastAPI...\n");
-      try {
-        const response = await fetch(`${VERCEL_URL}/api/run`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: generatedPython })
-        });
-
-        if (!response.ok) throw new Error("FastAPI execution failed");
-
-        const data = await response.json();
-        const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
-        setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
-
-        if (data.counts) setLineExecutions(data.counts);
-
-        setIsEvaluating(false);
-        return;
-      } catch (error) {
-        setConsoleOutput(prev => prev + " Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
-      }
-    }
-
+    setBottomPanel("console"); setConsoleTab("output");
     setConsoleOutput(prev => prev + "\n> Running the program...\n");
-    outputCountRef.current = 0;
-    pendingOutputRef.current = "";
 
+    outputCountRef.current = 0; pendingOutputRef.current = "";
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed);
       }
     }, 100);
 
     workerRef.current.postMessage({ type: 'RUN_CODE', code: generatedPython });
-
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current.terminate();
-      clearInterval(renderIntervalRef.current);
-
+      workerRef.current.terminate(); clearInterval(renderIntervalRef.current);
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
       workerRef.current.postMessage({ type: 'INIT_ENGINE' });
       initWorker();
-
-      const flushed = pendingOutputRef.current;
-      pendingOutputRef.current = "";
-
-      setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected. \nSuggestion: Check your loop conditions to ensure they eventually evaluate to False.\n");
-
-      setIsEvaluating(false);
-      setIsWaitingForInput(false);
+      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+      setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+      setIsEvaluating(false); setIsWaitingForInput(false);
     }, 10000);
   };
 
+  // --- SEND INPUT METHOD (Synchronized directly with MainApp.jsx stream chunks) ---
   const handleSendInput = (e) => {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
-
-      outputCountRef.current = 0;
-      setUserInput("");
-      setIsWaitingForInput(false);
+      outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
 
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
-          const flushed = pendingOutputRef.current;
-          pendingOutputRef.current = "";
+          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           setConsoleOutput(prev => prev + flushed);
         }
       }, 100);
-
       runTimeoutRef.current = setTimeout(() => {
-        workerRef.current.terminate();
-        clearInterval(renderIntervalRef.current);
-
+        workerRef.current.terminate(); clearInterval(renderIntervalRef.current);
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' });
         initWorker();
-
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
-
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-        setIsEvaluating(false);
-        setIsWaitingForInput(false);
+        setIsEvaluating(false); setIsWaitingForInput(false);
       }, 10000);
     }
   };
@@ -811,7 +727,6 @@ const ActivityApp = () => {
                 </button>
               </div>
 
-              {/* --- MONACTO VSCODE EDITOR INTEGRATION --- */}
               <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
                 {syntaxError && (
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
@@ -860,12 +775,8 @@ const ActivityApp = () => {
               </div>
 
               <div className="panel-body" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-
-                {/* === CONSOLE PANEL === */}
                 {bottomPanel === 'console' ? (
                   <div className="console-content-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-
-                    {/* Console Tab Group */}
                     <div className="complexity-tabs" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px', marginBottom: '0', paddingTop: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="tab-btn-group">
                         <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === 'output' ? 'active' : ''}`}>Terminal Output</button>
@@ -966,8 +877,6 @@ const ActivityApp = () => {
                     </div>
                   </div>
                 ) : (
-
-                  /* === COMPLEXITY PANEL === */
                   <div className="complexity-content">
                     <div className="complexity-tabs">
                       <div className="tab-btn-group">
@@ -1010,7 +919,6 @@ const ActivityApp = () => {
 
                               const isBottleneck = actualBottleneckIndices.includes(i);
 
-                              // WIPE OUT BACKEND WARNINGS IF EFFICIENT OR LOCAL TAB
                               if (activeTab === 'local' || !isBottleneck) {
                                 timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
                               }
@@ -1021,7 +929,6 @@ const ActivityApp = () => {
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
 
-                              // CALCULATE EFFICIENT TAG
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
                               const isEfficient = !isBottleneck &&
                                 (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) &&
@@ -1087,7 +994,6 @@ const ActivityApp = () => {
                                               <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
                                             </div>
                                           </div>
-
                                         </div>
                                       </td>
                                     </tr>
@@ -1164,7 +1070,6 @@ const ActivityApp = () => {
 
               return (
                 <div key={i} className={`test-case-card ${statusClass}`}>
-
                   <div className="test-case-header" onClick={() => toggleTest(i)}>
                     <div className="test-case-header-left">
                       <div className={`test-case-indicator ${statusClass}`}></div>
@@ -1194,13 +1099,11 @@ const ActivityApp = () => {
                       )}
                     </div>
                   )}
-
                 </div>
               );
             })}
           </div>
         </aside>
-
       </Split>
 
       <ConfirmModal
@@ -1217,7 +1120,6 @@ const ActivityApp = () => {
         isOpen={isBigOModalOpen}
         onClose={() => setIsBigOModalOpen(false)}
       />
-
     </div>
   );
 };
