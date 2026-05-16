@@ -1,4 +1,3 @@
-/* frontend\src\components\BigOModal.jsx */
 import { useState } from "react";
 import "../styles/BigOModal.css";
 import { formatComplexity } from "../utils/formatters";
@@ -86,8 +85,8 @@ export default function BigOModal({ isOpen, onClose }) {
             <img
               src="/assets/table-icon.png"
               alt="Reference"
-              className="tab-icon"
-              style={{filter: "brightness(0) invert(1)"}} /> Big O Complexity Reference
+              className="tab-icon inverted-header-icon" 
+            /> Big O Complexity Reference
           </h2>
           <button className="big-o-close-btn" onClick={onClose}>✕</button>
         </div>
@@ -113,8 +112,8 @@ export default function BigOModal({ isOpen, onClose }) {
                   <p><strong>Definition:</strong> {item.def}</p>
                   <p><strong>Analogy:</strong> {item.analogy}</p>
                   <p><strong>Examples:</strong> {item.example}</p>
-                  <p style={{ marginTop: '10px' }}>
-                    <strong>Verified Resource:</strong> <a href={item.link} target="_blank" rel="noopener noreferrer" style={{ color: '#6C5CE7', textDecoration: 'underline' }}>Explore {item.name} in-depth</a>
+                  <p className="verified-resource-container">
+                    <strong>Verified Resource:</strong> <a href={item.link} target="_blank" rel="noopener noreferrer" className="verified-resource-link">Explore {item.name} in-depth</a>
                   </p>
                 </div>
               )}

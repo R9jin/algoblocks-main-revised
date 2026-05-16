@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuFolder, LuLayoutDashboard, LuLogOut } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
+import "../styles/UserHeader.css";
 
 export default function UserHeader({
   /**
@@ -99,7 +100,8 @@ export default function UserHeader({
           alt="AlgoBlocks Logo"
           className="logo-img"
         />
-        <h1 className="logo-text">ALGOBLOCKS</h1>
+        {/* Added a specific class to target the white text for this header only */}
+        <h1 className="logo-text user-header-logo-text">ALGOBLOCKS</h1>
       </div>
 
 

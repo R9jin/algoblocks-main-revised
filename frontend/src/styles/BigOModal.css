@@ -42,6 +42,10 @@
     font-weight: 600;
 }
 
+.inverted-header-icon {
+    filter: brightness(0) invert(1);
+}
+
 .big-o-close-btn {
     background: transparent;
     border: none;
@@ -163,6 +167,15 @@
 
 .big-o-row-details p:last-child {
     margin: 0;
+}
+
+.verified-resource-container {
+    margin-top: 10px;
+}
+
+.verified-resource-link {
+    color: #6C5CE7;
+    text-decoration: underline;
 }
 
 /* Animations */

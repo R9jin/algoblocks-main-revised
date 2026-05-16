@@ -25,7 +25,7 @@ export default function UserHomePage() {
 
   const confirmLogout = () => {
     setShowLogoutModal(false);
-    navigate("/signin");
+    navigate("/home");
   };
 
   if (!user) return null;

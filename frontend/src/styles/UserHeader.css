@@ -1,0 +1,6 @@
+/* frontend/src/styles/UserHeader.css */
+
+/* Ensures the text is strictly white on the user landing/home page */
+.user-header-logo-text {
+    color: #FFFFFF !important;
+}
