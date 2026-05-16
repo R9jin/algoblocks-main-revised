@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuFolder, LuLayoutDashboard, LuLogOut } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
+import "../styles/DashboardHeader.css";
 
 export default function DashboardHeader({ backTo = "/home", backText = "Back to Home" }) {
   const [user, setUser] = useState(null);
@@ -53,16 +54,16 @@ export default function DashboardHeader({ backTo = "/home", backText = "Back to 
       {/* LEFT SIDE: Back Link & Logo */}
       <div className="header-left">
         {/* Dynamic Back Navigation */}
-        <Link to={backTo} className="back-home" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Link to={backTo} className="back-home">
           <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
           {backText}
         </Link>
 
         {/* AlgoBlocks Logo */}
-        <div className="logo-container" style={{ marginLeft: '20px' }}>
-          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-            <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" style={{ width: '30px', height: '30px' }} />
-            <h1 className="logo-text" style={{ color: '#3C2D76', fontSize: '1.2rem', margin: 0 }}>ALGOBLOCKS</h1>
+        <div className="logo-container">
+          <Link to="/dashboard" className="logo-link">
+            <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
+            <h1 className="logo-text">ALGOBLOCKS</h1>
           </Link>
         </div>
       </div>
@@ -86,7 +87,7 @@ export default function DashboardHeader({ backTo = "/home", backText = "Back to 
             aria-haspopup="menu"
             aria-expanded={open}
           >
-            <div className="user-profile-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#5A1398', fontSize: '0.9rem' }}>
+            <div className="user-profile-img">
               {initials}
             </div>
           </button>
@@ -95,7 +96,7 @@ export default function DashboardHeader({ backTo = "/home", backText = "Back to 
             <div className="user-dropdown" role="menu">
               
               <div className="user-dropdown-head">
-                <div className="dropdown-avatar-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#5A1398', fontSize: '1.2rem' }}>
+                <div className="dropdown-avatar-img">
                   {initials}
                 </div>
                 <div className="user-name">{user?.name || "User"}</div>

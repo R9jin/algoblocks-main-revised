@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import '../styles/ComplexityGraph.css';
 import { resolveRecurrenceToBigO } from '../utils/formatters';
 
 // Simple math helper for calculating O(n!)
@@ -57,7 +58,7 @@ const ComplexityGraph = ({ complexity, color, label }) => {
   }, [resolvedComplexity]);
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: '120px' }}>
+    <div className="complexity-graph-container">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />

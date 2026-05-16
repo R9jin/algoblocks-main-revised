@@ -1,0 +1,47 @@
+/* frontend/src/styles/DashboardHeader.css */
+
+.back-home {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-container {
+    margin-left: 20px;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.logo-img {
+    width: 30px;
+    height: 30px;
+}
+
+.logo-text {
+    color: #3C2D76;
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.user-profile-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #5A1398;
+    font-size: 0.9rem;
+}
+
+.dropdown-avatar-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #5A1398;
+    font-size: 1.2rem;
+}
