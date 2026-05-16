@@ -7,14 +7,14 @@ import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from '../components/ComplexityGraph.jsx';
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
-import TestCasePanel from "../components/TestCasePanel.jsx"; // NEW IMPORT
+import TestCasePanel from "../components/TestCasePanel.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
 import Editor from "@monaco-editor/react";
 import ACTIVITY_TASKS from "../data/activities.json";
 import { translatePythonError } from "../utils/errorTranslator.js";
-import { executeLocalTest } from "../utils/testEvaluator.js"; // NEW IMPORT
+import { executeLocalTest } from "../utils/testEvaluator.js";
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
 const handleEditorWillMount = (monaco) => {
@@ -23,9 +23,12 @@ const handleEditorWillMount = (monaco) => {
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#1C1236', 'editor.foreground': '#EBE4FF', 
-      'editorLineNumber.foreground': '#6C5CE7', 'editor.lineHighlightBackground': '#2D234A', 
-      'editorCursor.foreground': '#FFFFFF', 'editor.selectionBackground': '#6C5CE755', 
+      'editor.background': '#1C1236', 
+      'editor.foreground': '#EBE4FF', 
+      'editorLineNumber.foreground': '#6C5CE7', 
+      'editor.lineHighlightBackground': '#2D234A', 
+      'editorCursor.foreground': '#FFFFFF', 
+      'editor.selectionBackground': '#6C5CE755', 
       'editor.inactiveSelectionBackground': '#6C5CE733'
     }
   });
@@ -84,7 +87,7 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       if (!type) return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
       if (type === 'warning' && (isLocalTab || !isBottleneck)) return null;
 
-      let bgColor = 'rgba(0,0,0,0.05)', borderColor = '#888', titleColor = '#333';
+      let bgColor = 'rgba(0, 0, 0, 0.05)', borderColor = '#888', titleColor = '#333';
       if (type === 'warning') { bgColor = 'rgba(255, 55, 95, 0.08)'; borderColor = '#ff375f'; titleColor = '#d63031'; } 
       else if (type === 'tip') { bgColor = 'rgba(52, 152, 219, 0.08)'; borderColor = '#3498db'; titleColor = '#2980b9'; } 
       else if (type === 'praise') { bgColor = 'rgba(46, 204, 113, 0.08)'; borderColor = '#2ecc71'; titleColor = '#27ae60'; }
@@ -377,22 +380,7 @@ const ActivityApp = () => {
     setBottomPanel("console");
     setConsoleTab("output");
 
-    if (isOnline) {
-      setConsoleOutput("\n> Running online via FastAPI...\n");
-      try {
-        const response = await fetch(`${VERCEL_URL}/api/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: generatedPython }) });
-        if (!response.ok) throw new Error("FastAPI execution failed");
-        const data = await response.json();
-        const resultData = (data.output !== undefined && data.output !== null) ? `\n${String(data.output)}` : "";
-        setConsoleOutput(prev => prev + resultData + "\n> Program finished.");
-        if (data.counts) setLineExecutions(data.counts);
-        setIsEvaluating(false);
-        return;
-      } catch (error) {
-      }
-    }
-
-    setConsoleOutput(prev => prev + "\n> Running the program...\n");
+    setConsoleOutput("\n> Running the program...\n");
     outputCountRef.current = 0;
     pendingOutputRef.current = "";
 
@@ -450,23 +438,10 @@ const ActivityApp = () => {
     }
   };
 
-  // --- REWRITTEN SAFER TEST RUNNER ---
   const safelyExecuteTest = async (codeToRun) => {
-    if (isOnline) {
-      try {
-        const response = await fetch(`${VERCEL_URL}/api/run`, {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: codeToRun })
-        });
-        if (!response.ok) throw new Error("FastAPI execution failed");
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-        return { output: (data.output !== undefined && data.output !== null) ? String(data.output) : "", counts: data.counts || {} };
-      } catch (error) { console.warn("Online test execution failed, falling back to local..."); }
-    }
-
     try {
       const result = await executeLocalTest(codeToRun, workerRef.current);
-      initWorker(); // Restore global terminal handler safely
+      initWorker(); 
       return result;
     } catch (err) {
       if (err.message && err.message.includes("Timeout")) {
@@ -474,7 +449,7 @@ const ActivityApp = () => {
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' });
       }
-      initWorker(); // <--- FIXED: Restore global terminal handler safely even on failure/timeouts!
+      initWorker(); 
       throw err;
     }
   };
@@ -517,7 +492,6 @@ const ActivityApp = () => {
       let codeToRun = "";
       const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
       
-      // FIXING LEVEL 1 TASK IDENTIFICATION STRATEGY (Supports both string match variants)
       const taskId = currentTask?.id || "";
       const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3" || activityData?.id === "l1-t1" || activityData?.id === "l1-t3";
 
@@ -769,7 +743,6 @@ const ActivityApp = () => {
           </footer>
         </main>
 
-        {/* --- REFACTORED: ENTIRE RIGHT PANEL DELEGATED TO COMPONENT --- */}
         <TestCasePanel 
           testCases={activityData?.testCasesList || []} 
           consoleOutput={consoleOutput} 
