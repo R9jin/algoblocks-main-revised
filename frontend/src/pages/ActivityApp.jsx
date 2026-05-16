@@ -469,12 +469,12 @@ const ActivityApp = () => {
       initWorker(); // Restore global terminal handler safely
       return result;
     } catch (err) {
-      if (err.message.includes("Timeout")) {
+      if (err.message && err.message.includes("Timeout")) {
         workerRef.current.terminate();
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
         workerRef.current.postMessage({ type: 'INIT_ENGINE' });
       }
-      initWorker(); // Restore global terminal handler safely
+      initWorker(); // <--- FIXED: Restore global terminal handler safely even on failure/timeouts!
       throw err;
     }
   };
@@ -516,7 +516,10 @@ const ActivityApp = () => {
       const tc = testCases[i];
       let codeToRun = "";
       const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
-      const isIntroLevel = currentTask?.id === "l1-t1" || currentTask?.id === "l1-t3";
+      
+      // FIXING LEVEL 1 TASK IDENTIFICATION STRATEGY (Supports both string match variants)
+      const taskId = currentTask?.id || "";
+      const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3" || activityData?.id === "l1-t1" || activityData?.id === "l1-t3";
 
       if (isFunctionCall && !isIntroLevel) {
         codeToRun = `${generatedPython}\n\ntry:\n    assert ${tc.call} == ${tc.expected}\n    print("TEST_PASSED_FLAG")\nexcept:\n    print("TEST_ERROR_FLAG")`;
