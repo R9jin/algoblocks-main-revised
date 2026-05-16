@@ -389,7 +389,6 @@ const ActivityApp = () => {
         setIsEvaluating(false);
         return;
       } catch (error) {
-        setConsoleOutput(prev => prev + " Online execution failed or unreachable. Falling back to local Pyodide...\n\n");
       }
     }
 

@@ -21,7 +21,7 @@ export const executeLocalTest = (code, worker, timeoutMs = 10000) => {
 
       if (type === 'OUTPUT') {
         outputAccumulator += data;
-      } else if (type === 'EVAL_RESULT') { // FIXED: Changed from RUN_RESULT to EVAL_RESULT
+      } else if (type === 'RUN_RESULT') { // FIXED: Changed back to RUN_RESULT
         isDone = true;
         clearTimeout(timeoutId);
         outputAccumulator += (data !== undefined && data !== null) ? data : "";
