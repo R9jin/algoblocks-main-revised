@@ -78,23 +78,46 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
+// --- NEW: Bulletproof UI Formatter for Explanation Insights ---
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
+
   return sections.map((sec, idx) => {
-    const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)/s);
+    const trimmedSec = sec.trim();
+    if (!trimmedSec) return null;
+
+    // Look for lines starting with an optional emoji and a bold title
+    const match = trimmedSec.match(/^(?:(?:⚠️|💡|🌟)\s*)?\*\*(.*?)\*\*(.*)/s);
+
     if (match) {
       const title = match[1].replace(/:$/, '').trim();
       const content = match[2].replace(/^:/, '').trim();
       const titleLower = title.toLowerCase();
+
       let type = null;
+      let icon = '';
 
-      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) type = 'warning';
-      else if (titleLower.includes('tip') || titleLower.includes('insight')) type = 'tip';
-      else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) type = 'praise';
+      // Determine the type based on the text keywords
+      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) {
+        type = 'warning';
+        icon = '⚠️';
+      } else if (titleLower.includes('tip') || titleLower.includes('insight')) {
+        type = 'tip';
+        icon = '💡';
+      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) {
+        type = 'praise';
+        icon = '🌟';
+      }
 
-      if (!type) return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
-      if (type === 'warning' && (isLocalTab || !isBottleneck)) return null;
+      if (!type) {
+        return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
+      }
+
+      // Hide bottlenecks in local tab or if it's not actually the bottleneck
+      if (type === 'warning' && (isLocalTab || !isBottleneck)) {
+        return null;
+      }
 
       let bgColor = 'rgba(0,0,0,0.05)', borderColor = '#888', titleColor = '#333';
       if (type === 'warning') { bgColor = 'rgba(255, 55, 95, 0.08)'; borderColor = '#ff375f'; titleColor = '#d63031'; }
@@ -102,13 +125,24 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       else if (type === 'praise') { bgColor = 'rgba(46, 204, 113, 0.08)'; borderColor = '#2ecc71'; titleColor = '#27ae60'; }
 
       return (
-        <div key={idx} style={{ marginTop: '12px', padding: '10px 14px', backgroundColor: bgColor, borderLeft: `4px solid ${borderColor}`, borderRadius: '0 6px 6px 0' }}>
-          <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{title}</strong>
-          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>{content}</p>
+        <div key={idx} style={{
+          marginTop: '12px',
+          padding: '10px 14px',
+          backgroundColor: bgColor,
+          borderLeft: `4px solid ${borderColor}`,
+          borderRadius: '0 6px 6px 0'
+        }}>
+          <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '1rem' }}>{icon}</span> {title}
+          </strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+            {content}
+          </p>
         </div>
       );
     }
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}>{sec.trim()}</p>;
+
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}>{trimmedSec}</p>;
   }).filter(Boolean);
 };
 
@@ -820,9 +854,6 @@ export default function MainApp() {
                               const isBottleneck = actualBottleneckIndices.includes(i);
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
-
-                              if (activeComplexityTab === 'local' || !isBottleneck) timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
-                              if (activeComplexityTab === 'local') spaceExp = spaceExp.replace(/(?:⚠️\s*)?\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/i, "");
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
                               const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
 
