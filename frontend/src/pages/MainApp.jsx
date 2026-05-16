@@ -875,42 +875,49 @@ export default function MainApp() {
                                         <div
                                           className="explanation-content"
                                           style={{
-                                            borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
-                                            margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
+                                            borderLeftColor: timeColor,
+                                            padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
+                                            margin: '0 16px 12px 16px', borderRadius: '8px',
+                                            animation: 'slideDown 0.3s ease forwards',
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gridTemplateRows: 'auto 150px',
+                                            columnGap: '20px',
+                                            rowGap: '15px'
                                           }}
                                         >
-                                          {/* TIME COMPLEXITY COLUMN */}
-                                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
-                                              <div style={{ width: '100%' }}>
-                                                <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
-                                                <div style={{ marginTop: '6px' }}>
-                                                  {formatExplanation(timeExp, isBottleneck, activeComplexityTab === 'local')}
-                                                </div>
+                                          {/* === ROW 1: TEXT DESCRIPTIONS === */}
+                                          {/* TOP LEFT: TIME TEXT */}
+                                          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
+                                            <div style={{ width: '100%' }}>
+                                              <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
+                                              <div style={{ marginTop: '6px' }}>
+                                                {formatExplanation(timeExp, isBottleneck, activeComplexityTab === 'local')}
                                               </div>
-                                            </div>
-                                            {/* Explicit Height Wrapper for the Graph - Pushed to Bottom */}
-                                            <div className="explanation-graph" style={{ marginTop: 'auto', paddingTop: '15px', height: '150px', width: '100%', position: 'relative' }}>
-                                              <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
                                             </div>
                                           </div>
 
-                                          {/* SPACE COMPLEXITY COLUMN */}
-                                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
-                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
-                                              <div style={{ width: '100%' }}>
-                                                <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
-                                                <div style={{ marginTop: '6px' }}>
-                                                  {formatExplanation(spaceExp, isBottleneck, activeComplexityTab === 'local')}
-                                                </div>
+                                          {/* TOP RIGHT: SPACE TEXT */}
+                                          <div style={{ display: 'flex', alignItems: 'flex-start', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
+                                            <div style={{ width: '100%' }}>
+                                              <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
+                                              <div style={{ marginTop: '6px' }}>
+                                                {formatExplanation(spaceExp, isBottleneck, activeComplexityTab === 'local')}
                                               </div>
                                             </div>
-                                            {/* Explicit Height Wrapper for the Graph - Pushed to Bottom */}
-                                            <div className="explanation-graph" style={{ marginTop: 'auto', paddingTop: '15px', height: '150px', width: '100%', position: 'relative' }}>
-                                              <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
-                                            </div>
+                                          </div>
+
+                                          {/* === ROW 2: GRAPHS (LOCKED ALIGNMENT) === */}
+                                          {/* BOTTOM LEFT: TIME GRAPH */}
+                                          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                                            <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                          </div>
+
+                                          {/* BOTTOM RIGHT: SPACE GRAPH */}
+                                          <div style={{ position: 'relative', width: '100%', height: '100%', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
+                                            <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
                                           </div>
 
                                         </div>
