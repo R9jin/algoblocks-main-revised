@@ -169,9 +169,10 @@ const ActivityApp = () => {
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const activityData = location.state?.activityData || null;
-  const initialTemplate = location.state?.templatePath || location.state?.activityData?.templatePath || "";
-  const currentTask = ACTIVITY_TASKS.find((t) => t.templatePath === initialTemplate);
+  const { id } = useParams();
+  const currentTask = ACTIVITY_TASKS.find((t) => t.id === id) || location.state?.activityData || {};
+  const activityData = currentTask;
+  const initialTemplate = currentTask?.templatePath || "";
   const totalTests = activityData?.testCasesList?.length || 0;
 
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
