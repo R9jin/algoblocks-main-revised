@@ -1,6 +1,10 @@
 # api/models.py
 from pydantic import BaseModel
 from typing import Optional
+from pydantic import BaseModel
+
+class GoogleAuthRequest(BaseModel):
+    token: str
 
 class ProjectModel(BaseModel):
     title: str

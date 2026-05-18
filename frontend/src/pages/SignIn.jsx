@@ -12,14 +12,16 @@ export default function SignIn() {
   const navigate = useNavigate();
 
   const API_BASE = import.meta.env.VITE_API_URL || "";
+  // Fetch the Client ID securely from the environment
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   // Hydrate local IndexedDB from MongoDB Cloud after wiping
   const syncUserCloudData = async (userEmail) => {
     try {
       // 1. Wipe previous offline data to ensure a clean slate
       await Promise.all([
-        projectsDB.clear(), 
-        templatesDB.clear(), 
+        projectsDB.clear(),
+        templatesDB.clear(),
         syncQueueDB.clear()
       ]);
 
@@ -78,8 +80,8 @@ export default function SignIn() {
 
       // 1. Save user session locally
       localStorage.setItem("user", JSON.stringify({
-          email: data.email,
-          name: data.name,
+        email: data.email,
+        name: data.name,
       }));
 
       // 2. Hydrate local IndexedDB databases with Cloud state
@@ -101,16 +103,16 @@ export default function SignIn() {
     try {
       // 1. Wipe previous offline data to give the guest a clean slate
       await Promise.all([
-        projectsDB.clear(), 
-        templatesDB.clear(), 
+        projectsDB.clear(),
+        templatesDB.clear(),
         syncQueueDB.clear()
       ]);
 
       // 2. Set a mock guest user session locally
       localStorage.setItem("user", JSON.stringify({
-          email: `guest_${Date.now()}@algoblocks.local`, // unique local email
-          name: "Guest User",
-          isGuest: true
+        email: `guest_${Date.now()}@algoblocks.local`, // unique local email
+        name: "Guest User",
+        isGuest: true
       }));
 
       // 3. Proceed directly to dashboard
@@ -158,15 +160,15 @@ export default function SignIn() {
           <button type="submit" className="auth-button" disabled={isLoading}>
             {isLoading ? "Signing In..." : "Sign In"}
           </button>
-          
+
           {/* --- NEW: Guest Login Button --- */}
           <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "0.9rem" }}>
             <span>— OR —</span>
           </div>
-          <button 
-            type="button" 
-            className="auth-button" 
-            onClick={handleGuestLogin} 
+          <button
+            type="button"
+            className="auth-button"
+            onClick={handleGuestLogin}
             disabled={isLoading}
             style={{ backgroundColor: "#6c757d", border: "none" }} // Distinct color for guest
           >
