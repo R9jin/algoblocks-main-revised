@@ -1,6 +1,8 @@
-// frontend\src\App.jsx
+// frontend/src/App.jsx
 import { lazy, useEffect } from "react";
-import { Route, Routes } from "react-router-dom";
+// IMPORT Navigate alongside Route and Routes
+import { Navigate, Route, Routes } from "react-router-dom";
+import OfflineIndicator from "./components/OfflineIndicator";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import LandingPage from "./pages/HomePage";
@@ -12,18 +14,20 @@ import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
 
-// 1. Import the new indicator
-import OfflineIndicator from "./components/OfflineIndicator";
-
+// --- NEW: Create a ProtectedRoute component ---
+// This checks if the user is in localStorage. If not, it kicks them to /signin.
+const ProtectedRoute = ({ children }) => {
+  const user = localStorage.getItem("user");
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+  return children;
+};
 
 function App() {
   useEffect(() => {
-    // Start syncing data
     startBackgroundSync();
-
-    // Silently boot up Pyodide in the background immediately
     sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
-
   }, []);
 
   const MainApp = lazy(() => import("./pages/MainApp"));
@@ -31,20 +35,40 @@ function App() {
 
   return (
     <>
-      {/* 2. Place the indicator outside the Routes */}
       <OfflineIndicator />
 
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/learning-path" element={<LearningPath />} />
-        <Route path="/projects" element={<Projects />} />
-        <Route path="/app" element={<MainApp />} />
-        <Route path="/home" element={<UserHomePage />} />
-        <Route path="/activity" element={<ActivityApp />} />
+
+        {/* --- NEW: Wrap private routes with ProtectedRoute --- */}
+        <Route
+          path="/dashboard"
+          element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+        />
+        <Route
+          path="/learning-path"
+          element={<ProtectedRoute><LearningPath /></ProtectedRoute>}
+        />
+        <Route
+          path="/projects"
+          element={<ProtectedRoute><Projects /></ProtectedRoute>}
+        />
+        <Route
+          path="/app"
+          element={<ProtectedRoute><MainApp /></ProtectedRoute>}
+        />
+        <Route
+          path="/home"
+          element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
+        />
+        <Route
+          path="/activity"
+          element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
+        />
       </Routes>
     </>
   );
