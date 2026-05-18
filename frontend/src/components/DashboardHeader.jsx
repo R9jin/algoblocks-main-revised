@@ -1,21 +1,15 @@
+// frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LuFolder, LuLayoutDashboard, LuLogOut } from "react-icons/lu";
-import { Link, useNavigate } from "react-router-dom";
+import { FiLogOut } from "react-icons/fi";
+import { Link } from "react-router-dom";
 import "../styles/DashboardHeader.css";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 
-export default function DashboardHeader({ backTo = "/home", backText = "Back to Home" }) {
-  const [user, setUser] = useState(null);
-  const [open, setOpen] = useState(false);
+export default function DashboardHeader({ user, onLogoutClick }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
   const menuRef = useRef(null);
-  const navigate = useNavigate();
 
-  // Load user data from localStorage
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
-
-  // Generate initials for the avatar (e.g., "John Doe" -> "JD")
   const initials = useMemo(() => {
     const parts = (user?.name || "User").trim().split(/\s+/);
     const a = parts[0]?.[0] || "U";
@@ -23,119 +17,62 @@ export default function DashboardHeader({ backTo = "/home", backText = "Back to 
     return (a + b).toUpperCase();
   }, [user?.name]);
 
-  // Handle clicking outside the dropdown to close it
   useEffect(() => {
-    const onDocClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
     };
-    const onEsc = (e) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onEsc);
-
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onEsc);
-    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle user logout
-  const onSignOut = () => {
-    setOpen(false);
-    localStorage.removeItem("user");
-    navigate("/signin");
-  };
-
   return (
-    <header className="dashboard-header">
-      
-      {/* LEFT SIDE: Back Link & Logo */}
-      <div className="header-left">
-        {/* Dynamic Back Navigation */}
-        <Link to={backTo} className="back-home">
-          <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
-          {backText}
-        </Link>
-
-        {/* AlgoBlocks Logo */}
-        <div className="logo-container">
-          <Link to="/dashboard" className="logo-link">
-            <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
-            <h1 className="logo-text">ALGOBLOCKS</h1>
+    <>
+      <header className="dashboard-header">
+        <div className="header-left">
+          <Link to="/" className="brand-logo">
+            <img src="/assets/algoblocks_logo.png" alt="Logo" className="header-logo-img" />
+            <span>ALGOBLOCKS</span>
           </Link>
         </div>
-      </div>
 
-      {/* RIGHT SIDE: Action Buttons & User Menu */}
-      <div className="header-right">
-        <button className="btn-open-project" onClick={() => navigate('/projects')}>
-          <LuFolder size={18} /> Projects
-        </button>
-
-        <button className="btn-new-project" onClick={() => navigate('/app')}>
-          + New Workspace
-        </button>
-
-        {/* User Dropdown Menu */}
-        <div className="user-menu" ref={menuRef}>
-          <button
-            type="button"
-            className="user-menu-btn user-profile-icon"
-            onClick={() => setOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={open}
-          >
-            <div className="user-profile-img">
+        <div className="header-right">
+          <div className="user-profile" ref={menuRef}>
+            <button className="avatar-btn" onClick={() => setMenuOpen(!menuOpen)}>
               {initials}
-            </div>
-          </button>
+            </button>
 
-          {open && (
-            <div className="user-dropdown" role="menu">
-              
-              <div className="user-dropdown-head">
-                <div className="dropdown-avatar-img">
-                  {initials}
+            {menuOpen && (
+              <div className="profile-dropdown">
+                <div className="dropdown-header">
+                  <strong>{user?.name || "User"}</strong>
+                  <span className="user-email">{user?.email || ""}</span>
                 </div>
-                <div className="user-name">{user?.name || "User"}</div>
-                <div className="user-email">{user?.email || ""}</div>
+                <div className="dropdown-divider"></div>
+                <button
+                  className="dropdown-item logout-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    setShowLogout(true);
+                  }}
+                >
+                  <FiLogOut className="item-icon" />
+                  Sign Out
+                </button>
               </div>
-
-              <button
-                type="button"
-                className="user-dd-item"
-                onClick={() => { setOpen(false); navigate("/dashboard"); }}
-                role="menuitem"
-              >
-                <LuLayoutDashboard size={18} /> Go to Dashboard
-              </button>
-
-              <button
-                type="button"
-                className="user-dd-item"
-                onClick={() => { setOpen(false); navigate("/projects"); }}
-                role="menuitem"
-              >
-                <LuFolder size={18} /> Projects
-              </button>
-
-              <div className="user-dd-divider" />
-
-              <button
-                type="button"
-                className="user-dd-item danger"
-                onClick={onSignOut}
-                role="menuitem"
-              >
-                <LuLogOut size={18} /> Sign Out
-              </button>
-              
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Renders safely outside the header layout */}
+      <LogoutConfirmModal
+        isOpen={showLogout}
+        onClose={() => setShowLogout(false)}
+        onLogoutClick={onLogoutClick}
+      />
+    </>
   );
 }

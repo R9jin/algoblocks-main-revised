@@ -2,18 +2,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuFolder, LuLayoutDashboard, LuLogOut } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
-// 1. Import your ConfirmModal component
-import ConfirmModal from "./ConfirmModal";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 
-export default function UserHeader({
-  user = { name: "Test User", email: "test@example.com" },
-  onLogoutClick
-}) {
+export default function UserHeader({ user, onLogoutClick }) {
   const [open, setOpen] = useState(false);
-  
-  // 2. Add state for the logout confirmation modal
-  const [showLogoutModal, setShowLogoutModal] = useState(false); 
-  
+  const [showLogout, setShowLogout] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
@@ -43,34 +36,11 @@ export default function UserHeader({
     };
   }, []);
 
-  // 3. Trigger the modal instead of logging out immediately
-  const handleSignOutClick = () => {
-    setOpen(false); // Close the dropdown menu
-    setShowLogoutModal(true); // Open the popup
-  };
-
-  // 4. The actual function that runs when the user hits "Confirm"
-  const confirmSignOut = () => {
-    setShowLogoutModal(false);
-
-    if (onLogoutClick) {
-      onLogoutClick();
-    } else {
-      localStorage.removeItem("user");
-      // Replace history to prevent using the browser "back" button to re-enter
-      navigate("/signin", { replace: true });
-    }
-  };
-
   return (
     <>
       <nav className="landing-nav">
-        <div className="logo-container">
-          <img
-            src="/assets/algoblocks_logo.png"
-            alt="AlgoBlocks Logo"
-            className="logo-img"
-          />
+        <div className="logo-container" onClick={() => navigate("/")} style={{cursor: "pointer"}}>
+          <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
           <h1 className="logo-text">ALGOBLOCKS</h1>
         </div>
 
@@ -83,17 +53,13 @@ export default function UserHeader({
               aria-haspopup="menu"
               aria-expanded={open}
             >
-              <span className="user-avatar" aria-hidden="true">
-                {initials}
-              </span>
+              <span className="user-avatar" aria-hidden="true">{initials}</span>
             </button>
 
             {open && (
               <div className="user-dropdown" role="menu">
                 <div className="user-dropdown-head">
-                  <div className="dropdown-avatar" aria-hidden="true">
-                    {initials}
-                  </div>
+                  <div className="dropdown-avatar" aria-hidden="true">{initials}</div>
                   <div className="user-name">{user?.name || "User"}</div>
                   <div className="user-email">{user?.email || ""}</div>
                 </div>
@@ -101,40 +67,34 @@ export default function UserHeader({
                 <button
                   type="button"
                   className="user-dd-item"
-                  onClick={() => {
-                    setOpen(false);
-                    navigate("/dashboard");
-                  }}
+                  onClick={() => { setOpen(false); navigate("/dashboard"); }}
                   role="menuitem"
                 >
-                  <LuLayoutDashboard size={18} aria-hidden="true" />
-                  Go to Dashboard
+                  <LuLayoutDashboard size={18} aria-hidden="true" /> Go to Dashboard
                 </button>
 
                 <button
                   type="button"
                   className="user-dd-item"
-                  onClick={() => {
-                    setOpen(false);
-                    navigate("/projects");
-                  }}
+                  onClick={() => { setOpen(false); navigate("/projects"); }}
                   role="menuitem"
                 >
-                  <LuFolder size={18} aria-hidden="true" />
-                  Projects
+                  <LuFolder size={18} aria-hidden="true" /> Projects
                 </button>
 
                 <div className="user-dd-divider" />
 
-                {/* 5. Update this button to open the modal */}
                 <button
                   type="button"
                   className="user-dd-item danger"
-                  onClick={handleSignOutClick}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Stops the menu from auto-closing and breaking state
+                    setOpen(false);
+                    setShowLogout(true);
+                  }}
                   role="menuitem"
                 >
-                  <LuLogOut size={18} aria-hidden="true" />
-                  Sign Out
+                  <LuLogOut size={18} aria-hidden="true" /> Sign Out
                 </button>
               </div>
             )}
@@ -142,15 +102,12 @@ export default function UserHeader({
         </div>
       </nav>
 
-      {/* 6. Render the Confirm Modal conditionally */}
-      {showLogoutModal && (
-        <ConfirmModal
-          title="Sign Out"
-          message="Are you sure you want to sign out?"
-          onConfirm={confirmSignOut}
-          onCancel={() => setShowLogoutModal(false)}
-        />
-      )}
+      {/* Renders safely outside the nav layout */}
+      <LogoutConfirmModal
+        isOpen={showLogout}
+        onClose={() => setShowLogout(false)}
+        onLogoutClick={onLogoutClick}
+      />
     </>
   );
 }
