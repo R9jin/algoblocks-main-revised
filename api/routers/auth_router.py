@@ -21,6 +21,7 @@ def signup_user(request: Request, req: SignUpRequest):
 def update_progress(request: Request, req: ProgressRequest):
     return AuthService.update_progress(req)
 
+# ✅ Integrated Route for Verification Actions
 @router.post("/auth/google")
 @limiter.limit("5/minute")
 def google_auth(request: Request, req: GoogleAuthRequest):

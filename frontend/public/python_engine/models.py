@@ -1,30 +1,42 @@
 # api/models.py
-
 from pydantic import BaseModel
 from typing import Optional
 
+class GoogleAuthRequest(BaseModel):
+    token: str
+
 class ProjectModel(BaseModel):
     title: str
-    description: Optional[str] = "" 
+    description: Optional[str] = ""
     data: dict
     owner_id: str
-    updatedAt: Optional[int] = None  # ADDED THIS
 
 class ProjectUpdate(BaseModel):
     title: Optional[str] = None
-    description: Optional[str] = None 
+    description: Optional[str] = None
     data: Optional[dict] = None
-    updatedAt: Optional[int] = None  # ADDED THIS
 
 class TemplateModel(BaseModel):
     title: str
     description: Optional[str] = ""
     data: dict
-    owner_id: str 
-    updatedAt: Optional[int] = None  # ADDED THIS
+    owner_id: str
 
 class TemplateUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     data: Optional[dict] = None
-    updatedAt: Optional[int] = None  # ADDED THIS
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class SignUpRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+class ProgressRequest(BaseModel):
+    email: str
+    lesson_id: str
+    score: int
