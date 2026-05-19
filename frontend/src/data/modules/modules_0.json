@@ -1,0 +1,63 @@
+{
+  "id": "m0",
+  "number": "MODULE 0",
+  "title": "Welcome to AlgoBlocks",
+  "topics": [
+    {
+      "id": "m0-t1",
+      "number": "Lesson 0.1",
+      "title": "The AlgoBlocks Workspace",
+      "level": "beginner",
+      "task": "Welcome to AlgoBlocks! Your very first task is to write a program that prints a specific greeting message to the console. Output exactly: 'Hello, AlgoBlocks!'",
+      "templatePath": "activities/what_is_algo",
+      "testCases": [
+        {
+          "input": "",
+          "expectedOutput": "Hello, AlgoBlocks!",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "id": "m0-t2",
+      "number": "Lesson 0.2",
+      "title": "Core Blockly Components",
+      "level": "beginner",
+      "task": "Read a single integer N from the console. If the number is even, print 'Even'. If the number is odd, print 'Odd'.",
+      "templatePath": "activities/logic_flow_act",
+      "testCases": [
+        { "input": "4", "expectedOutput": "Even", "hidden": false },
+        { "input": "7", "expectedOutput": "Odd", "hidden": false },
+        { "input": "0", "expectedOutput": "Even", "hidden": true },
+        { "input": "15", "expectedOutput": "Odd", "hidden": true }
+      ]
+    },
+    {
+      "id": "m0-t3",
+      "number": "Lesson 0.3",
+      "title": "The Complexity Analyzer",
+      "level": "beginner",
+      "task": "Read a non-negative integer N from the console. Construct a loop that outputs the string 'Step' exactly N times on separate lines to demonstrate linear time execution.",
+      "templatePath": "activities/big_o_act",
+      "testCases": [
+        { "input": "3", "expectedOutput": "Step\nStep\nStep", "hidden": false },
+        { "input": "1", "expectedOutput": "Step", "hidden": false },
+        { "input": "5", "expectedOutput": "Step\nStep\nStep\nStep\nStep", "hidden": true },
+        { "input": "0", "expectedOutput": "", "hidden": true }
+      ]
+    },
+    {
+      "id": "m0-t4",
+      "number": "Lesson 0.4",
+      "title": "Memory Visualizer",
+      "level": "beginner",
+      "task": "Read two space-separated words from the console. Swap their values in memory using a temporary variable, and print them out in reverse order, separated by a space.",
+      "templatePath": "activities/memory_vis_act",
+      "testCases": [
+        { "input": "Apple Banana", "expectedOutput": "Banana Apple", "hidden": false },
+        { "input": "Left Right", "expectedOutput": "Right Left", "hidden": false },
+        { "input": "First Second", "expectedOutput": "Second First", "hidden": true }
+      ]
+    }
+  ]
+}

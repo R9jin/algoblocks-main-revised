@@ -251,14 +251,3 @@
   width: 100%;
   margin-bottom: 1rem;
 }
-
-/* Guest Button - overrides the primary auth-button gradient */
-.guest-button {
-  background: #6c757d; /* Standard muted gray */
-  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
-}
-
-.guest-button:hover {
-  background: #5a6268;
-  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.5);
-}
