@@ -1,0 +1,80 @@
+{
+  "lesson_1": [
+    {
+      "id": "m0_l1_a1",
+      "title": "Hello AlgoBlocks",
+      "task": "Scenario: You are configuring the AlgoTech console. Task: Write a Python function `hello()` that returns exactly 'Hello, AlgoBlocks!'.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l1_a3",
+      "title": "Basic Calculator",
+      "task": "Scenario: You need a tool to sum up inventory. Task: Write a function `add(a, b)` that returns the sum of a and b. Add a fallback to return 'Error' if inputs are not numbers.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "add(5, 10)", "expected": "15", "isHidden": false },
+        { "call": "add(-2, 8)", "expected": "6", "isHidden": false },
+        { "call": "add(0, 0)", "expected": "0", "isHidden": false }
+      ]
+    }
+  ],
+  "lesson_2": [
+    {
+      "id": "m0_l2_a1",
+      "title": "Odd or Even",
+      "task": "Scenario: Sorting users by ID. Task: Write `check_odd_even(n)` returning 'Odd' if odd, 'Even' if even. Return 'Invalid' if n is not an integer.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "check_odd_even(7)", "expected": "'Odd'", "isHidden": false },
+        { "call": "check_odd_even(10)", "expected": "'Even'", "isHidden": false },
+        { "call": "check_odd_even(-4)", "expected": "'Even'", "isHidden": false },
+        { "call": "check_odd_even(0)", "expected": "'Even'", "isHidden": true },
+        { "call": "check_odd_even('seven')", "expected": "'Invalid'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l2_a4",
+      "title": "Grade Evaluator",
+      "task": "Scenario: Automating student results. Task: Write `evaluate(grade)` returning 'Pass' if grade >= 75 else 'Fail'. Fallback: return 'Invalid' if grade < 0 or > 100.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "evaluate(75)", "expected": "'Pass'", "isHidden": false },
+        { "call": "evaluate(74)", "expected": "'Fail'", "isHidden": false },
+        { "call": "evaluate(99)", "expected": "'Pass'", "isHidden": false },
+        { "call": "evaluate(-5)", "expected": "'Invalid'", "isHidden": true },
+        { "call": "evaluate(105)", "expected": "'Invalid'", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_3": [
+    {
+      "id": "m0_l3_a1",
+      "title": "The Constant O(1) Test",
+      "task": "Scenario: Testing instant data access. Task: Write `get_first(arr)` returning the element at index 0. Return 'Empty' if the array has no elements.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "get_first([99, 2, 3])", "expected": "99", "isHidden": false },
+        { "call": "get_first(['A', 'B'])", "expected": "'A'", "isHidden": false },
+        { "call": "get_first([0])", "expected": "0", "isHidden": false },
+        { "call": "get_first([])", "expected": "'Empty'", "isHidden": true },
+        { "call": "get_first([None, 1])", "expected": "None", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_4": [
+    {
+      "id": "m0_l4_a1",
+      "title": "Swap Visualized",
+      "task": "Scenario: Correcting mislabeled boxes. Task: Write `swap(a, b)` returning a list [b, a].",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "swap(1, 2)", "expected": "[2, 1]", "isHidden": false },
+        { "call": "swap('X', 'Y')", "expected": "['Y', 'X']", "isHidden": false },
+        { "call": "swap(None, 'A')", "expected": "['A', None]", "isHidden": true }
+      ]
+    }
+  ]
+}

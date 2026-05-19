@@ -1,0 +1,47 @@
+{
+  "lesson_1": [
+    {
+      "id": "m1_l1_a1",
+      "title": "Best Case Search",
+      "task": "Scenario: Target is immediately found. Task: Write `find_best(arr, target)` returning 0 if the first element is the target, else -1. Handle empty arrays safely.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "find_best([5, 10, 15], 5)", "expected": "0", "isHidden": false },
+        { "call": "find_best([5, 10, 15], 10)", "expected": "-1", "isHidden": false },
+        { "call": "find_best(['A', 'B'], 'A')", "expected": "0", "isHidden": false },
+        { "call": "find_best([], 5)", "expected": "-1", "isHidden": true },
+        { "call": "find_best([None, 1], None)", "expected": "0", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_2": [
+    {
+      "id": "m1_l2_a3",
+      "title": "O(log n) Halving",
+      "task": "Scenario: Bacterial decay simulation. Task: Write `halve_count(n)` returning how many times n can be integer-divided by 2 until it reaches 1. Fallback: if n <= 0, return 0.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "halve_count(16)", "expected": "4", "isHidden": false },
+        { "call": "halve_count(32)", "expected": "5", "isHidden": false },
+        { "call": "halve_count(7)", "expected": "2", "isHidden": false },
+        { "call": "halve_count(1)", "expected": "0", "isHidden": true },
+        { "call": "halve_count(-10)", "expected": "0", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_3": [
+    {
+      "id": "m1_l3_a1",
+      "title": "Array vs. Variable",
+      "task": "Scenario: Saving memory space. Task: Write `running_total(arr)` returning the sum of the array using just one running total variable. Return 0 if empty.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "running_total([1, 2, 3, 4])", "expected": "10", "isHidden": false },
+        { "call": "running_total([100, 200])", "expected": "300", "isHidden": false },
+        { "call": "running_total([0, 0, 0])", "expected": "0", "isHidden": false },
+        { "call": "running_total([])", "expected": "0", "isHidden": true },
+        { "call": "running_total([-5, 5, -10, 10])", "expected": "0", "isHidden": true }
+      ]
+    }
+  ]
+}

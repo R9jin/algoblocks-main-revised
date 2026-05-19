@@ -1,0 +1,60 @@
+{
+  "lesson_1": [
+    {
+      "id": "m2_l1_a1",
+      "title": "Max Finder",
+      "task": "Scenario: Finding temperature extremes. Task: Write `find_max(arr)` returning the largest integer in an unsorted array. Return 'Error' if the array is empty.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "find_max([32, 45, 28, 47, 39])", "expected": "47", "isHidden": false },
+        { "call": "find_max([-10, -5, -20])", "expected": "-5", "isHidden": false },
+        { "call": "find_max([0, 0, 0])", "expected": "0", "isHidden": false },
+        { "call": "find_max([])", "expected": "'Error'", "isHidden": true },
+        { "call": "find_max([100])", "expected": "100", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m2_l1_a4",
+      "title": "Count Evens",
+      "task": "Scenario: Auditing specific metrics. Task: Write `count_evens(arr)` returning the total number of even integers found.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "count_evens([1, 2, 3, 4, 5, 6])", "expected": "3", "isHidden": false },
+        { "call": "count_evens([1, 3, 5])", "expected": "0", "isHidden": false },
+        { "call": "count_evens([-2, -4, 1])", "expected": "2", "isHidden": false },
+        { "call": "count_evens([])", "expected": "0", "isHidden": true },
+        { "call": "count_evens([0, 0, 0])", "expected": "3", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_2": [
+    {
+      "id": "m2_l2_a1",
+      "title": "Target Search",
+      "task": "Scenario: Locating a specific user ID. Task: Write `linear_search(arr, x)` returning the index of x, or -1 if missing.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "linear_search([10, 20, 30, 40], 30)", "expected": "2", "isHidden": false },
+        { "call": "linear_search([10, 20, 30, 40], 50)", "expected": "-1", "isHidden": false },
+        { "call": "linear_search([5, 5, 5], 5)", "expected": "0", "isHidden": false },
+        { "call": "linear_search([], 10)", "expected": "-1", "isHidden": true },
+        { "call": "linear_search([100], 100)", "expected": "0", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_3": [
+    {
+      "id": "m2_l3_a1",
+      "title": "Sort Grades (Bubble)",
+      "task": "Scenario: Organizing test scores. Task: Write `bubble_sort_asc(arr)` to sort the array from lowest to highest using Bubble Sort. Handle empty and single-item arrays.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "bubble_sort_asc([88, 92, 75, 100, 84])", "expected": "[75, 84, 88, 92, 100]", "isHidden": false },
+        { "call": "bubble_sort_asc([5, 1, 4, 2, 8])", "expected": "[1, 2, 4, 5, 8]", "isHidden": false },
+        { "call": "bubble_sort_asc([3, 3, 3])", "expected": "[3, 3, 3]", "isHidden": false },
+        { "call": "bubble_sort_asc([])", "expected": "[]", "isHidden": true },
+        { "call": "bubble_sort_asc([42])", "expected": "[42]", "isHidden": true }
+      ]
+    }
+  ]
+}

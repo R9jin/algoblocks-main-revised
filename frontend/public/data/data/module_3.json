@@ -1,0 +1,62 @@
+{
+  "lesson_1": [
+    {
+      "id": "m3_l1_a3",
+      "title": "Recursive Countdown",
+      "task": "Scenario: Space launch sequence. Task: Write a recursive function `countdown(n)` returning a list of numbers from n down to 1. If n <= 0, return ['Abort'].",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "countdown(3)", "expected": "[3, 2, 1]", "isHidden": false },
+        { "call": "countdown(5)", "expected": "[5, 4, 3, 2, 1]", "isHidden": false },
+        { "call": "countdown(1)", "expected": "[1]", "isHidden": false },
+        { "call": "countdown(0)", "expected": "['Abort']", "isHidden": true },
+        { "call": "countdown(-5)", "expected": "['Abort']", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_2": [
+    {
+      "id": "m3_l2_a1",
+      "title": "Implement Binary Search",
+      "task": "Scenario: Searching a sorted yard. Task: Write `binary_search(arr, x)` returning the index of x in a sorted array, or -1. Avoid infinite loops if array is empty.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "binary_search([10, 20, 30, 40, 50], 30)", "expected": "2", "isHidden": false },
+        { "call": "binary_search([100, 200, 300], 100)", "expected": "0", "isHidden": false },
+        { "call": "binary_search([10, 20, 30], 40)", "expected": "-1", "isHidden": false },
+        { "call": "binary_search([], 50)", "expected": "-1", "isHidden": true },
+        { "call": "binary_search([50], 50)", "expected": "0", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_3": [
+    {
+      "id": "m3_l3_a3",
+      "title": "Full Merge Sort Ascending",
+      "task": "Scenario: Stable sorting algorithm. Task: Write `merge_sort(arr)` recursively sorting lowest to highest. Must handle empty arrays safely.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "merge_sort([38, 27, 43, 3, 9, 82, 10])", "expected": "[3, 9, 10, 27, 38, 43, 82]", "isHidden": false },
+        { "call": "merge_sort([5, 1, 5, 2])", "expected": "[1, 2, 5, 5]", "isHidden": false },
+        { "call": "merge_sort([10, 9, 8])", "expected": "[8, 9, 10]", "isHidden": false },
+        { "call": "merge_sort([])", "expected": "[]", "isHidden": true },
+        { "call": "merge_sort([1])", "expected": "[1]", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_4": [
+    {
+      "id": "m3_l4_a3",
+      "title": "Full Quick Sort Ascending",
+      "task": "Scenario: Fast recursive sorting. Task: Write `quick_sort(arr)` implementing the full Quick Sort algorithm. Account for arrays that are already sorted.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "quick_sort([10, 7, 8, 9, 1, 5])", "expected": "[1, 5, 7, 8, 9, 10]", "isHidden": false },
+        { "call": "quick_sort([3, 2, 1])", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "quick_sort([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "quick_sort([5, 5, 5])", "expected": "[5, 5, 5]", "isHidden": true },
+        { "call": "quick_sort([])", "expected": "[]", "isHidden": true }
+      ]
+    }
+  ]
+}
