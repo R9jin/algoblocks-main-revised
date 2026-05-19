@@ -534,3 +534,50 @@
 .lp-back-icon {
   margin-right: 6px;
 }
+
+/* =========================================
+   ACTIVITIES
+========================================= */
+
+.lp-activities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lp-activity-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #faf9ff;
+  border: 1px solid #e6deff;
+  border-radius: 10px;
+  padding: 16px;
+  transition: 0.2s;
+}
+
+.lp-activity-card:hover {
+  border-color: #c9b6ff;
+  transform: translateY(-1px);
+}
+
+.lp-activity-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lp-activity-number {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lp-activity-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #3c2d76;
+}
