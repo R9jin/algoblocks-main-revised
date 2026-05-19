@@ -6,28 +6,29 @@
     {
       "id": "m3-t1",
       "number": "Lesson 3.1",
-      "title": "Divide & Conquer Paradigm",
-      "level": "intermediate",
-      "task": "Recursive Factorial: Read an integer N. Compute and print N! (N factorial) using recursion. (E.g., 4! = 24). Base case 0! = 1.",
-      "templatePath": "activities/factorial_recursive_act",
-      "testCases": [
-        { "input": "4", "expectedOutput": "24", "hidden": false },
-        { "input": "0", "expectedOutput": "1", "hidden": false },
-        { "input": "6", "expectedOutput": "720", "hidden": true },
-        { "input": "1", "expectedOutput": "1", "hidden": true }
+      "title": "Recursive Thinking",
+      "level": "advanced",
+      "content": "Breaking algorithmic problems down into base cases and recursive calls mapping a smaller problem space.",
+      "activities": [
+        { "id": "m3_l1_a1", "title": "Halving an Array" },
+        { "id": "m3_l1_a2", "title": "Find the Midpoint" },
+        { "id": "m3_l1_a3", "title": "Recursive Countdown" },
+        { "id": "m3_l1_a4", "title": "Recursive Factorial" },
+        { "id": "m3_l1_a5", "title": "Recursive Sum" }
       ]
     },
     {
       "id": "m3-t2",
       "number": "Lesson 3.2",
-      "title": "Binary Search",
-      "level": "intermediate",
-      "task": "Read N (array size), then N **sorted** space-separated integers, then a Target integer. Use Binary Search O(log n) to find and print the target's index, or -1 if not found.",
-      "templatePath": "activities/binary_search_act",
-      "testCases": [
-        { "input": "6\n-1 0 3 5 9 12\n9", "expectedOutput": "4", "hidden": false },
-        { "input": "6\n-1 0 3 5 9 12\n2", "expectedOutput": "-1", "hidden": false },
-        { "input": "5\n10 20 30 40 50\n50", "expectedOutput": "4", "hidden": true }
+      "title": "Divide and Search",
+      "level": "advanced",
+      "content": "Drastically cutting search spaces in half on sorted data using Binary Search.",
+      "activities": [
+        { "id": "m3_l2_a1", "title": "Implement Binary Search" },
+        { "id": "m3_l2_a2", "title": "Missing Target Binary" },
+        { "id": "m3_l2_a3", "title": "First Occurrence (Binary)" },
+        { "id": "m3_l2_a4", "title": "Last Occurrence (Binary)" },
+        { "id": "m3_l2_a5", "title": "Step Counter" }
       ]
     },
     {
@@ -35,12 +36,13 @@
       "number": "Lesson 3.3",
       "title": "Merge Sort",
       "level": "advanced",
-      "task": "Merge Sort: Read N (array size) and a line of N space-separated integers. Recursively sort the array in ascending order using Merge Sort and print the result.",
-      "templatePath": "activities/merge_sort_act",
-      "testCases": [
-        { "input": "6\n12 11 13 5 6 7", "expectedOutput": "5 6 7 11 12 13", "hidden": false },
-        { "input": "4\n4 3 2 1", "expectedOutput": "1 2 3 4", "hidden": false },
-        { "input": "5\n99 1 50 2 25", "expectedOutput": "1 2 25 50 99", "hidden": true }
+      "content": "Implementing the Divide, Conquer, and Combine methodology for stable O(n log n) sorting.",
+      "activities": [
+        { "id": "m3_l3_a1", "title": "The Merge Step" },
+        { "id": "m3_l3_a2", "title": "Array Splitter" },
+        { "id": "m3_l3_a3", "title": "Full Merge Sort Ascending" },
+        { "id": "m3_l3_a4", "title": "Merge Sort Descending" },
+        { "id": "m3_l3_a5", "title": "Merge Strings" }
       ]
     },
     {
@@ -48,12 +50,13 @@
       "number": "Lesson 3.4",
       "title": "Quick Sort",
       "level": "advanced",
-      "task": "Quick Sort: Read N (array size) and a line of N space-separated integers. Sort them using Quick Sort (Partitioning) and print the result space-separated.",
-      "templatePath": "activities/quick_sort_act",
-      "testCases": [
-        { "input": "5\n10 80 30 90 40", "expectedOutput": "10 30 40 80 90", "hidden": false },
-        { "input": "3\n5 5 5", "expectedOutput": "5 5 5", "hidden": false },
-        { "input": "7\n3 7 8 5 2 1 9", "expectedOutput": "1 2 3 5 7 8 9", "hidden": true }
+      "content": "Understanding pivot selection and in-place partitioning mechanics for fast O(n log n) sorting.",
+      "activities": [
+        { "id": "m3_l4_a1", "title": "The Partition Step" },
+        { "id": "m3_l4_a2", "title": "Choose First Pivot" },
+        { "id": "m3_l4_a3", "title": "Full Quick Sort Ascending" },
+        { "id": "m3_l4_a4", "title": "Quick Sort Descending" },
+        { "id": "m3_l4_a5", "title": "Pivot Tracker" }
       ]
     }
   ]

@@ -6,41 +6,43 @@
     {
       "id": "m4-t1",
       "number": "Lesson 4.1",
-      "title": "Greedy Strategy",
-      "level": "intermediate",
-      "task": "Largest Sum: Read N, then N space-separated numbers. Greedily pick the top 3 largest numbers and print their sum. (Assume N >= 3).",
-      "templatePath": "activities/greedy_sum",
-      "testCases": [
-        { "input": "5\n1 9 2 8 3", "expectedOutput": "20", "hidden": false },
-        { "input": "4\n10 10 10 10", "expectedOutput": "30", "hidden": false },
-        { "input": "3\n5 1 2", "expectedOutput": "8", "hidden": true }
+      "title": "Greedy Choice Property",
+      "level": "advanced",
+      "content": "Making the locally optimal choice at each stage with the hope of finding a global optimum.",
+      "activities": [
+        { "id": "m4_l1_a1", "title": "Largest First" },
+        { "id": "m4_l1_a2", "title": "Smallest First" },
+        { "id": "m4_l1_a3", "title": "Greedy Sum" },
+        { "id": "m4_l1_a4", "title": "Closest Number" },
+        { "id": "m4_l1_a5", "title": "Greedy Path" }
       ]
     },
     {
       "id": "m4-t2",
       "number": "Lesson 4.2",
-      "title": "Coin Change Problem",
-      "level": "intermediate",
-      "task": "Read an integer Amount. Using Philippine coins (20, 10, 5, 1), greedily find the minimum number of coins needed to make exact change. Print the total coin count.",
-      "templatePath": "activities/coin_change",
-      "testCases": [
-        { "input": "43", "expectedOutput": "5", "hidden": false },
-        { "input": "19", "expectedOutput": "6", "hidden": false },
-        { "input": "100", "expectedOutput": "5", "hidden": true },
-        { "input": "0", "expectedOutput": "0", "hidden": true }
+      "title": "The Coin Change Problem",
+      "level": "advanced",
+      "content": "Constructing exact change systems dynamically and understanding where greedy logic fails on unoptimized denominations.",
+      "activities": [
+        { "id": "m4_l2_a1", "title": "The Cashier" },
+        { "id": "m4_l2_a2", "title": "US Currency Cashier" },
+        { "id": "m4_l2_a3", "title": "Denomination Counts" },
+        { "id": "m4_l2_a4", "title": "Custom Coin System" },
+        { "id": "m4_l2_a5", "title": "Exact Change Validation" }
       ]
     },
     {
       "id": "m4-t3",
       "number": "Lesson 4.3",
-      "title": "Activity Selection",
-      "level": "intermediate",
-      "task": "Read N (number of events). Then read N start times on one line, and N end times on the next line. Print the maximum number of non-overlapping events you can schedule.",
-      "templatePath": "activities/activity_selection",
-      "testCases": [
-        { "input": "6\n1 3 0 5 8 5\n2 4 6 7 9 9", "expectedOutput": "4", "hidden": false },
-        { "input": "3\n10 12 20\n20 25 30", "expectedOutput": "2", "hidden": false },
-        { "input": "4\n1 2 3 4\n2 3 4 5", "expectedOutput": "4", "hidden": true }
+      "title": "Interval Scheduling",
+      "level": "advanced",
+      "content": "Sorting end-times greedily to maximize non-overlapping events and optimize room/resource utilization.",
+      "activities": [
+        { "id": "m4_l3_a1", "title": "Sort by End Time" },
+        { "id": "m4_l3_a2", "title": "Event Scheduler" },
+        { "id": "m4_l3_a3", "title": "Conflict Detector" },
+        { "id": "m4_l3_a4", "title": "Total Time Scheduled" },
+        { "id": "m4_l3_a5", "title": "Room Allocator" }
       ]
     }
   ]
