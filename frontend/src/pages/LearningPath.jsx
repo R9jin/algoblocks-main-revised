@@ -10,17 +10,19 @@ export default function LearningPath() {
   const [userProgress, setUserProgress] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch separate module JSONs
+  // Fetch separate module JSONs dynamically
   useEffect(() => {
     const fetchModules = async () => {
       try {
         const loadedModules = [];
-        // Loop through 0 to 6 based on the curriculum
+        // Loop through modules 0 to 6 based on the curriculum
         for (let i = 0; i <= 6; i++) {
           const response = await fetch(`/data/modules/module_${i}.json`);
           if (response.ok) {
             const data = await response.json();
             loadedModules.push(data);
+          } else {
+            console.warn(`Module ${i} not found or failed to load.`);
           }
         }
         setModules(loadedModules);
@@ -34,7 +36,7 @@ export default function LearningPath() {
     fetchModules();
   }, []);
 
-  // 2. Load User Progress
+  // Load User Progress from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -53,15 +55,16 @@ export default function LearningPath() {
     navigate("/activity", {
       state: {
         templatePath: topic.templatePath,
-        activityData: topic
+        activityData: topic // Passes the task and CodeChum testCases to the editor
       }
     });
   };
 
   if (loading) {
-    return <div className="loading-screen">Loading Curriculum...</div>;
+    return <div className="loading-screen">Loading Educational Modules...</div>;
   }
 
+  // Flatten topics to calculate strictly sequential unlocking
   const allTopicsFlattened = modules.flatMap((mod) => mod.topics);
 
   return (
@@ -74,8 +77,8 @@ export default function LearningPath() {
             <img src="/assets/learning-icon.png" alt="Learning" />
           </div>
           <div className="lp-hero-text">
-            <h2>Learning Path</h2>
-            <p>Master algorithms step-by-step</p>
+            <h2>AlgoBlocks Learning Path</h2>
+            <p>Master algorithms step-by-step through interactive block programming.</p>
           </div>
         </div>
 
@@ -98,21 +101,20 @@ export default function LearningPath() {
               <div className="lp-topics">
                 {mod.topics.map((topic) => {
                   const isExpanded = expandedTopic === topic.id;
-                  const activityKey = topic.templatePath
-                    ? topic.templatePath.split("/").pop()
-                    : null;
-
-                  const score = activityKey ? userProgress[activityKey] : undefined;
+                  
+                  // Use the unique topic ID to track progress
+                  const activityKey = topic.id; 
+                  const score = userProgress[activityKey];
                   const isCompleted = score !== undefined;
                   const testCount = topic.testCases ? topic.testCases.length : 0;
 
+                  // Lock mechanism: Topic is unlocked if it's the first one, or if the previous one is completed
                   const flatIndex = allTopicsFlattened.findIndex((t) => t.id === topic.id);
                   let isUnlocked = true;
 
                   if (flatIndex > 0) {
                     const prevTopic = allTopicsFlattened[flatIndex - 1];
-                    const prevKey = prevTopic.templatePath?.split("/").pop();
-                    isUnlocked = prevKey && userProgress[prevKey] !== undefined;
+                    isUnlocked = userProgress[prevTopic.id] !== undefined;
                   }
 
                   return (
@@ -145,7 +147,7 @@ export default function LearningPath() {
                       {isExpanded && (
                         <div className="lp-topic-content">
                           <div className="lp-topic-task">
-                            <strong className="lp-task-title">Module Overview:</strong>
+                            <strong className="lp-task-title">Module Task:</strong>
                             <p className="lp-task-desc">{topic.task}</p>
                           </div>
 
@@ -153,7 +155,7 @@ export default function LearningPath() {
                             <div className="lp-topic-footer">
                               {testCount > 0 && (
                                 <span className="lp-test-cases">
-                                  {testCount} CodeChum standard I/O test cases
+                                  {testCount} Standard I/O Test Cases
                                 </span>
                               )}
 
@@ -162,7 +164,7 @@ export default function LearningPath() {
                                   className="lp-review-btn"
                                   onClick={() => handleStartActivity(topic)}
                                 >
-                                  Review Activity
+                                  Review Code
                                 </button>
                               ) : (
                                 <button
