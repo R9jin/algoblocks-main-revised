@@ -2,15 +2,18 @@
 from pydantic import BaseModel
 from typing import Optional
 
+class GoogleAuthRequest(BaseModel):
+    token: str
+
 class ProjectModel(BaseModel):
     title: str
-    description: Optional[str] = "" 
+    description: Optional[str] = ""
     data: dict
     owner_id: str
 
 class ProjectUpdate(BaseModel):
     title: Optional[str] = None
-    description: Optional[str] = None 
+    description: Optional[str] = None
     data: Optional[dict] = None
 
 class TemplateModel(BaseModel):
@@ -24,7 +27,6 @@ class TemplateUpdate(BaseModel):
     description: Optional[str] = None
     data: Optional[dict] = None
 
-# --- ADDED FROM OLD INDEX.PY ---
 class LoginRequest(BaseModel):
     email: str
     password: str

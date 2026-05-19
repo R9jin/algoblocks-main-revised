@@ -1,0 +1,67 @@
+    /* frontend/src/styles/LogoutConfirmModal.css */
+    .logout-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999; /* Guarantees it floats over everything */
+    }
+
+    .logout-modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 10px;
+    width: 320px;
+    text-align: center;
+    font-family: inherit;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .logout-modal-title {
+    margin: 0 0 10px 0;
+    color: #333;
+    }
+
+    .logout-modal-text {
+    margin: 0 0 20px 0;
+    color: #666;
+    font-size: 15px;
+    }
+
+    .logout-modal-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    }
+
+    .logout-btn-cancel {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background: transparent;
+    color: #333;
+    cursor: pointer;
+    font-weight: 600;
+    }
+
+    .logout-btn-cancel:hover {
+    background: #f5f5f5;
+    }
+
+    .logout-btn-confirm {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    background: #e74c3c;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    }
+
+    .logout-btn-confirm:hover {
+    background: #c0392b;
+    }
