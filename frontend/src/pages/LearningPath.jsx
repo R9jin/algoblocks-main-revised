@@ -15,16 +15,25 @@ export default function LearningPath() {
     const fetchModules = async () => {
       try {
         const loadedModules = [];
+
         // Loop through modules 0 to 6 based on the curriculum
         for (let i = 0; i <= 6; i++) {
-          const response = await fetch(`/data/modules/module_${i}.json`);
-          if (response.ok) {
-            const data = await response.json();
-            loadedModules.push(data);
-          } else {
-            console.warn(`Module ${i} not found or failed to load.`);
+          try {
+            const response = await fetch(`/data/modules/module_${i}.json`);
+
+            // Check if the response is actually JSON, not an HTML fallback page
+            const contentType = response.headers.get("content-type");
+            if (response.ok && contentType && contentType.includes("application/json")) {
+              const data = await response.json();
+              loadedModules.push(data);
+            } else {
+              console.warn(`Module ${i} was not found or returned HTML instead of JSON. Ensure '/public/data/modules/module_${i}.json' exists.`);
+            }
+          } catch (fileError) {
+            console.warn(`Error fetching module ${i}:`, fileError);
           }
         }
+
         setModules(loadedModules);
       } catch (error) {
         console.error("Failed to load modules:", error);
@@ -101,9 +110,9 @@ export default function LearningPath() {
               <div className="lp-topics">
                 {mod.topics.map((topic) => {
                   const isExpanded = expandedTopic === topic.id;
-                  
+
                   // Use the unique topic ID to track progress
-                  const activityKey = topic.id; 
+                  const activityKey = topic.id;
                   const score = userProgress[activityKey];
                   const isCompleted = score !== undefined;
                   const testCount = topic.testCases ? topic.testCases.length : 0;

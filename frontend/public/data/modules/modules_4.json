@@ -1,0 +1,47 @@
+{
+  "id": "m4",
+  "number": "MODULE 4",
+  "title": "Greedy Algorithms",
+  "topics": [
+    {
+      "id": "m4-t1",
+      "number": "Lesson 4.1",
+      "title": "Greedy Strategy",
+      "level": "intermediate",
+      "task": "Largest Sum: Read N, then N space-separated numbers. Greedily pick the top 3 largest numbers and print their sum. (Assume N >= 3).",
+      "templatePath": "activities/greedy_sum",
+      "testCases": [
+        { "input": "5\n1 9 2 8 3", "expectedOutput": "20", "hidden": false },
+        { "input": "4\n10 10 10 10", "expectedOutput": "30", "hidden": false },
+        { "input": "3\n5 1 2", "expectedOutput": "8", "hidden": true }
+      ]
+    },
+    {
+      "id": "m4-t2",
+      "number": "Lesson 4.2",
+      "title": "Coin Change Problem",
+      "level": "intermediate",
+      "task": "Read an integer Amount. Using Philippine coins (20, 10, 5, 1), greedily find the minimum number of coins needed to make exact change. Print the total coin count.",
+      "templatePath": "activities/coin_change",
+      "testCases": [
+        { "input": "43", "expectedOutput": "5", "hidden": false },
+        { "input": "19", "expectedOutput": "6", "hidden": false },
+        { "input": "100", "expectedOutput": "5", "hidden": true },
+        { "input": "0", "expectedOutput": "0", "hidden": true }
+      ]
+    },
+    {
+      "id": "m4-t3",
+      "number": "Lesson 4.3",
+      "title": "Activity Selection",
+      "level": "intermediate",
+      "task": "Read N (number of events). Then read N start times on one line, and N end times on the next line. Print the maximum number of non-overlapping events you can schedule.",
+      "templatePath": "activities/activity_selection",
+      "testCases": [
+        { "input": "6\n1 3 0 5 8 5\n2 4 6 7 9 9", "expectedOutput": "4", "hidden": false },
+        { "input": "3\n10 12 20\n20 25 30", "expectedOutput": "2", "hidden": false },
+        { "input": "4\n1 2 3 4\n2 3 4 5", "expectedOutput": "4", "hidden": true }
+      ]
+    }
+  ]
+}

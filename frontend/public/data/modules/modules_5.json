@@ -1,0 +1,60 @@
+{
+  "id": "m5",
+  "number": "MODULE 5",
+  "title": "Dynamic Programming",
+  "topics": [
+    {
+      "id": "m5-t1",
+      "number": "Lesson 5.1",
+      "title": "DP Fundamentals",
+      "level": "advanced",
+      "task": "Caching: Read N. Create an array of size N+1 where arr[0]=0, arr[1]=1, and every other index is the sum of all previous indices. Print arr[N].",
+      "templatePath": "activities/dp_fundamentals",
+      "testCases": [
+        { "input": "3", "expectedOutput": "2", "hidden": false },
+        { "input": "4", "expectedOutput": "4", "hidden": false },
+        { "input": "5", "expectedOutput": "8", "hidden": true }
+      ]
+    },
+    {
+      "id": "m5-t2",
+      "number": "Lesson 5.2",
+      "title": "Fibonacci Optimization",
+      "level": "advanced",
+      "task": "Read integer N. Calculate the N-th Fibonacci number efficiently using DP (Memoization or Tabulation). F(0)=0, F(1)=1. Print the result.",
+      "templatePath": "activities/fibonacci_dp",
+      "testCases": [
+        { "input": "6", "expectedOutput": "8", "hidden": false },
+        { "input": "10", "expectedOutput": "55", "hidden": false },
+        { "input": "30", "expectedOutput": "832040", "hidden": true },
+        { "input": "0", "expectedOutput": "0", "hidden": true }
+      ]
+    },
+    {
+      "id": "m5-t3",
+      "number": "Lesson 5.3",
+      "title": "0/1 Knapsack Problem",
+      "level": "advanced",
+      "task": "Read N (items) and W (knapsack capacity). Read N weights on the next line. Read N values on the last line. Print the maximum value you can carry.",
+      "templatePath": "activities/knapsack",
+      "testCases": [
+        { "input": "3 50\n10 20 30\n60 100 120", "expectedOutput": "220", "hidden": false },
+        { "input": "4 5\n1 2 4 5\n5 4 8 6", "expectedOutput": "13", "hidden": false },
+        { "input": "2 10\n15 20\n100 200", "expectedOutput": "0", "hidden": true }
+      ]
+    },
+    {
+      "id": "m5-t4",
+      "number": "Lesson 5.4",
+      "title": "Longest Common Subsequence (LCS)",
+      "level": "advanced",
+      "task": "Read two string sequences, each on a new line. Compute and print the length of their Longest Common Subsequence using a DP matrix.",
+      "templatePath": "activities/lcs",
+      "testCases": [
+        { "input": "ABCDGH\nAEDFHR", "expectedOutput": "3", "hidden": false },
+        { "input": "AGGTAB\nGXTXAYB", "expectedOutput": "4", "hidden": false },
+        { "input": "ABC\nDEF", "expectedOutput": "0", "hidden": true }
+      ]
+    }
+  ]
+}
