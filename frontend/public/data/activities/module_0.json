@@ -3,7 +3,7 @@
     {
       "id": "m0_l1_a1",
       "title": "Hello AlgoBlocks",
-      "task": "Implement a function hello() that returns the exact string 'Hello, AlgoBlocks!' without any extra spaces, characters, or printing.",
+      "task": "You are initializing a basic system greeting function inside the AlgoBlocks runtime environment.\n\nYour system must confirm successful execution by returning a fixed string value.\n\nTask Requirement:\nCreate a function hello() that returns the exact string:\n\nHello, AlgoBlocks!\n\nRules:\n- Must not use print()\n- Must not modify spacing or characters\n- Must return the exact string\n\nSample Output:\nhello() → Hello, AlgoBlocks!",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
@@ -16,7 +16,7 @@
     {
       "id": "m0_l1_a2",
       "title": "ASCII Art Triangle",
-      "task": "Create a function triangle(n) that returns a string representing a left-aligned triangle made of '*' characters. Each row i (1 ≤ i ≤ n) contains i asterisks. Rows must be separated by newline characters (\\n). Return an empty string if n ≤ 0.",
+      "task": "A rendering engine is required to generate text-based visual patterns using characters.\n\nTask Requirement:\nCreate a function triangle(n) that returns a left-aligned triangle made of '*' characters.\n\nRules:\n- Each row i contains i asterisks\n- Rows must be separated using '\\n'\n- If n ≤ 0, return an empty string\n\nSample Output:\ntriangle(3) → \"*\\n**\\n***\"",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "triangle(3)", "expected": "\"*\\n**\\n***\"", "isHidden": false },
@@ -29,7 +29,7 @@
     {
       "id": "m0_l1_a3",
       "title": "Basic Calculator",
-      "task": "Implement add(a, b) that returns the sum of two numbers. If either input is not a valid integer or float, return the string 'Error' instead of performing the operation.",
+      "task": "A computation validation system is required to safely perform arithmetic operations only on valid numeric inputs.\n\nTask Requirement:\nCreate a function add(a, b) that returns the sum of two numbers.\n\nRules:\n- Inputs must be integers or floats\n- If any input is invalid, return 'Error'\n\nSample Output:\nadd(2,3) → 5",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "add(2,3)", "expected": "5", "isHidden": false },
@@ -42,7 +42,7 @@
     {
       "id": "m0_l1_a4",
       "title": "Name Greeter",
-      "task": "Create a function greet(name) that returns the string 'Welcome <name>!' where <name> is replaced with the input value exactly as given. The function must not modify or validate the input.",
+      "task": "A user interaction system generates personalized messages based on input values.\n\nTask Requirement:\nCreate a function greet(name) that returns a formatted greeting.\n\nRules:\n- Must not modify input\n- Must follow exact output format\n\nOutput Format:\nWelcome <name>!\n\nSample Output:\ngreet('Ana') → Welcome Ana!",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "greet('Ana')", "expected": "'Welcome Ana!'", "isHidden": false },
@@ -54,8 +54,8 @@
     },
     {
       "id": "m0_l1_a5",
-      "title": "Multi-Line Output",
-      "task": "Simulate execution of a program that performs 5 sequential steps. The function multi() must return the integer 5 representing the number of executed steps. Do not print intermediate values.",
+      "title": "Execution Step Counter",
+      "task": "A process simulation module tracks how many execution steps occur inside a controlled runtime environment.\n\nTask Requirement:\nCreate a function multi() that simulates execution of 5 internal steps.\n\nRules:\n- Must return total number of steps executed\n- Must not print intermediate values\n\nSample Output:\nmulti() → 5",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "multi()", "expected": "5", "isHidden": false },
@@ -70,8 +70,8 @@
   "lesson_2": [
     {
       "id": "m0_l2_a1",
-      "title": "Odd or Even",
-      "task": "Implement check_odd_even(n) that returns 'Odd' if n is an odd integer, 'Even' if n is an even integer, and 'Invalid' for any non-integer input type.",
+      "title": "Odd or Even Classifier",
+      "task": "A number classification system is required to evaluate whether a given input is odd or even.\n\nTask Requirement:\nCreate a function check_odd_even(n).\n\nRules:\n- If n is odd → return 'Odd'\n- If n is even → return 'Even'\n- If input is not an integer → return 'Invalid'\n\nSample Output:\ncheck_odd_even(7) → Odd",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "check_odd_even(7)", "expected": "'Odd'", "isHidden": false },
@@ -83,8 +83,8 @@
     },
     {
       "id": "m0_l2_a2",
-      "title": "Number Counter",
-      "task": "Create count(n) that returns a list of integers from 1 up to n inclusive. If n ≤ 0, return an empty list.",
+      "title": "Sequence Generator",
+      "task": "A sequence generation engine produces ordered numeric lists for computational pipelines.\n\nTask Requirement:\nCreate a function count(n) that generates numbers from 1 to n.\n\nRules:\n- Return list of integers\n- If n ≤ 0 → return empty list\n\nSample Output:\ncount(3) → [1,2,3]",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "count(3)", "expected": "[1,2,3]", "isHidden": false },
@@ -96,8 +96,8 @@
     },
     {
       "id": "m0_l2_a3",
-      "title": "Array Printer",
-      "task": "Implement double(arr) that returns a new list where each element in arr is multiplied by 2. If the input is not a list or is None, return 'Error'.",
+      "title": "Array Transformation Engine",
+      "task": "A data processing pipeline requires transformation of numerical arrays using scaling operations.\n\nTask Requirement:\nCreate a function double(arr).\n\nRules:\n- Multiply each element by 2\n- Input must be a valid list\n- Invalid input → return 'Error'\n\nSample Output:\ndouble([1,2,3]) → [2,4,6]",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "double([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
@@ -109,8 +109,8 @@
     },
     {
       "id": "m0_l2_a4",
-      "title": "Grade Evaluator",
-      "task": "Implement evaluate(score) that returns 'Pass' if score is between 75 and 100 inclusive, 'Fail' if below 75, and 'Invalid' if score is outside the range 0–100.",
+      "title": "Score Evaluation System",
+      "task": "A grading system evaluates numeric scores and assigns performance labels.\n\nTask Requirement:\nCreate a function evaluate(score).\n\nRules:\n- 75–100 → 'Pass'\n- 0–74 → 'Fail'\n- Outside 0–100 → 'Invalid'\n\nSample Output:\nevaluate(75) → Pass",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "evaluate(75)", "expected": "'Pass'", "isHidden": false },
@@ -122,8 +122,8 @@
     },
     {
       "id": "m0_l2_a5",
-      "title": "Sum of Range",
-      "task": "Create sum_range(n) that returns the sum of all integers from 1 to n inclusive using iteration. If n ≤ 0, return 0.",
+      "title": "Range Summation Engine",
+      "task": "A computation system calculates cumulative sums over a numeric range using iterative logic.\n\nTask Requirement:\nCreate a function sum_range(n).\n\nRules:\n- Sum all integers from 1 to n\n- If n ≤ 0 → return 0\n\nSample Output:\nsum_range(5) → 15",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "sum_range(5)", "expected": "15", "isHidden": false },
@@ -138,8 +138,8 @@
   "lesson_3": [
     {
       "id": "m0_l3_a1",
-      "title": "O(1) Access Test",
-      "task": "Implement get_first(arr) that returns the first element of the list. If the list is empty, return the string 'Empty'.",
+      "title": "Constant Time Access System",
+      "task": "A data retrieval engine requires efficient access to the first element of a dataset.\n\nTask Requirement:\nCreate a function get_first(arr).\n\nRules:\n- Return first element\n- If list is empty → return 'Empty'\n\nSample Output:\nget_first([1,2,3]) → 1",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "get_first([1,2,3])", "expected": "1", "isHidden": false },
@@ -151,8 +151,8 @@
     },
     {
       "id": "m0_l3_a2",
-      "title": "O(n) Linear Scan",
-      "task": "Simulate a loop that iterates from 1 to 100 inclusive. The function linear() must return the total number of iterations performed.",
+      "title": "Iteration Tracker",
+      "task": "A performance analysis system tracks loop execution counts for optimization evaluation.\n\nTask Requirement:\nCreate a function linear() that simulates iteration from 1 to 100.\n\nRules:\n- Count total iterations\n- Return final count\n\nSample Output:\nlinear() → 100",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "linear()", "expected": "100", "isHidden": false },
@@ -164,8 +164,8 @@
     },
     {
       "id": "m0_l3_a3",
-      "title": "O(n²) Nested Loop",
-      "task": "Generate a 5x5 grid using nested loops. The function grid() must return the total number of iterations executed (outer × inner loops).",
+      "title": "Grid Computation Engine",
+      "task": "A nested iteration system simulates grid-based computation workloads.\n\nTask Requirement:\nCreate a function grid() that simulates a 5x5 nested loop execution.\n\nRules:\n- Outer loop runs 5 times\n- Inner loop runs 5 times\n- Return total iterations\n\nSample Output:\ngrid() → 25",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "grid()", "expected": "25", "isHidden": false },
@@ -177,8 +177,8 @@
     },
     {
       "id": "m0_l3_a4",
-      "title": "Branch Cost",
-      "task": "Implement branch(x) that returns 'IF' if x is truthy (non-zero and non-null), otherwise return 'ELSE'.",
+      "title": "Branch Decision Engine",
+      "task": "A control flow system evaluates execution paths based on input truthiness.\n\nTask Requirement:\nCreate a function branch(x).\n\nRules:\n- Truthy input → 'IF'\n- Falsy input → 'ELSE'\n\nSample Output:\nbranch(1) → IF",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "branch(1)", "expected": "'IF'", "isHidden": false },
@@ -190,8 +190,8 @@
     },
     {
       "id": "m0_l3_a5",
-      "title": "Loop vs Math",
-      "task": "Implement compare() that simulates repeated addition vs multiplication for computing 5 × 5, and return the final computed value 25.",
+      "title": "Loop vs Arithmetic Engine",
+      "task": "A computation system compares iterative multiplication vs direct arithmetic computation.\n\nTask Requirement:\nCreate a function compare() that simulates 5 × 5 using repeated addition logic.\n\nReturn final computed result.\n\nSample Output:\ncompare() → 25",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "compare()", "expected": "25", "isHidden": false },
@@ -206,8 +206,8 @@
   "lesson_4": [
     {
       "id": "m0_l4_a1",
-      "title": "Swap Variables",
-      "task": "Implement swap(a, b) that returns a list containing the two values in reversed order. If inputs are missing, return 'Error'.",
+      "title": "Variable Swap System",
+      "task": "A memory manipulation system is required to swap stored values between variables.\n\nTask Requirement:\nCreate a function swap(a, b).\n\nRules:\n- Return values in reversed order\n- If inputs are missing → return 'Error'\n\nSample Output:\nswap(1,2) → [2,1]",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "swap(1,2)", "expected": "[2,1]", "isHidden": false },
@@ -219,8 +219,8 @@
     },
     {
       "id": "m0_l4_a2",
-      "title": "Array Fill Trace",
-      "task": "Create fill(n) that returns a list containing numbers from 1 to n using iteration. If n ≤ 0, return an empty list.",
+      "title": "Array Construction Module",
+      "task": "A sequential generator is required to build ordered numeric arrays for system initialization.\n\nTask Requirement:\nCreate a function fill(n).\n\nRules:\n- Return list from 1 to n\n- If n ≤ 0 → return empty list\n\nSample Output:\nfill(3) → [1,2,3]",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "fill(3)", "expected": "[1,2,3]", "isHidden": false },
@@ -232,8 +232,8 @@
     },
     {
       "id": "m0_l4_a3",
-      "title": "Counter Memory",
-      "task": "Implement counter(n) that returns the final value of a counter variable after incrementing from 0 up to n using a loop. If n ≤ 0, return 0.",
+      "title": "Counter Simulation System",
+      "task": "A runtime state tracker simulates incremental counting from zero to a target value.\n\nTask Requirement:\nCreate a function counter(n).\n\nRules:\n- Start from 0\n- Increment until n\n- Return final value\n\nSample Output:\ncounter(5) → 5",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "counter(5)", "expected": "5", "isHidden": false },
@@ -245,8 +245,8 @@
     },
     {
       "id": "m0_l4_a4",
-      "title": "Scope Lifetime",
-      "task": "Implement scope(x) that returns 'exists' if x is non-zero (truthy) and 'none' otherwise.",
+      "title": "Scope Resolution Checker",
+      "task": "A runtime environment requires validation of variable existence based on truthiness rules.\n\nTask Requirement:\nCreate a function scope(x).\n\nRules:\n- Truthy → 'exists'\n- Falsy → 'none'\n\nSample Output:\nscope(1) → exists",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "scope(1)", "expected": "'exists'", "isHidden": false },
@@ -258,8 +258,8 @@
     },
     {
       "id": "m0_l4_a5",
-      "title": "Pointer Movement",
-      "task": "Simulate pointer movement between indices in an array. The function pointer() must return the resulting position state after movement logic is applied.",
+      "title": "Pointer Navigation Simulator",
+      "task": "A memory pointer system simulates movement across indexed array positions.\n\nTask Requirement:\nCreate a function pointer() that simulates pointer movement logic across an array.\n\nRules:\n- Movement follows sequential index traversal\n- Return final state as list\n\nSample Output:\npointer() → [0,1]",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "pointer()", "expected": "[0,1]", "isHidden": false },

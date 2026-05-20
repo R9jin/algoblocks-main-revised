@@ -3,7 +3,8 @@
     {
       "id": "m3_l1_a1",
       "title": "Halving an Array",
-      "task": "Given an array, split it into two parts at the midpoint (floor of length/2). Return a 2D array in the format [leftHalf, rightHalf], preserving original order.",
+      "task": "A data segmentation engine is required to divide arrays into two equal execution partitions.\n\nTask Requirement:\nCreate a function halve_array(arr) that splits the input array into two parts at the midpoint using floor(len(arr)/2).\n\nRules:\n- Left half contains elements before midpoint\n- Right half contains remaining elements\n- Must preserve original order\n- Return format: [leftHalf, rightHalf]\n\nSample Output:\nhalve_array([1,2,3,4]) → [[1,2],[3,4]]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "halve_array([1,2,3,4])", "expected": "[[1,2],[3,4]]", "isHidden": false },
         { "call": "halve_array([10,20,30])", "expected": "[[10],[20,30]]", "isHidden": false },
@@ -15,7 +16,8 @@
     {
       "id": "m3_l1_a2",
       "title": "Find Midpoint",
-      "task": "Given two integers l and r, compute and return the midpoint index using floor((l + r) / 2).",
+      "task": "A computation system requires calculation of midpoint indices for range partitioning operations.\n\nTask Requirement:\nCreate a function midpoint(l, r) that returns the midpoint using floor((l + r) / 2).\n\nRules:\n- Input consists of two integers l and r\n- Output must be a single integer\n\nSample Output:\nmidpoint(0,9) → 4",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "midpoint(0,9)", "expected": "4", "isHidden": false },
         { "call": "midpoint(1,5)", "expected": "3", "isHidden": false },
@@ -27,7 +29,8 @@
     {
       "id": "m3_l1_a3",
       "title": "Recursive Countdown",
-      "task": "Given an integer n, recursively construct and return a list counting down from n to 1. If n is less than or equal to 0, return ['Abort'].",
+      "task": "A recursive execution engine simulates reverse sequential processing for system tasks.\n\nTask Requirement:\nCreate a function countdown(n) that returns a list counting down from n to 1.\n\nRules:\n- Must use recursive logic\n- If n ≤ 0 return ['Abort']\n\nSample Output:\ncountdown(3) → [3,2,1]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "countdown(3)", "expected": "[3,2,1]", "isHidden": false },
         { "call": "countdown(5)", "expected": "[5,4,3,2,1]", "isHidden": false },
@@ -39,7 +42,8 @@
     {
       "id": "m3_l1_a4",
       "title": "Recursive Factorial",
-      "task": "Given a non-negative integer n, return its factorial (n!) using recursion. The base case is n = 0 or n = 1, both returning 1.",
+      "task": "A mathematical computation module is required to compute factorial values using recursive function calls.\n\nTask Requirement:\nCreate a function factorial(n) that returns n! recursively.\n\nRules:\n- Base case: factorial(0) = 1, factorial(1) = 1\n- Must use recursion\n\nSample Output:\nfactorial(5) → 120",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "factorial(5)", "expected": "120", "isHidden": false },
         { "call": "factorial(4)", "expected": "24", "isHidden": false },
@@ -51,7 +55,8 @@
     {
       "id": "m3_l1_a5",
       "title": "Recursive Sum",
-      "task": "Given a non-negative integer n, return the sum of all integers from 1 to n using recursion. If n is less than or equal to 0, return 0.",
+      "task": "A numeric aggregation system computes cumulative sums using recursive evaluation.\n\nTask Requirement:\nCreate a function sum_recursive(n) that returns the sum from 1 to n.\n\nRules:\n- If n ≤ 0 return 0\n- Must use recursion\n\nSample Output:\nsum_recursive(5) → 15",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "sum_recursive(5)", "expected": "15", "isHidden": false },
         { "call": "sum_recursive(10)", "expected": "55", "isHidden": false },
@@ -61,11 +66,13 @@
       ]
     }
   ],
+
   "lesson_2": [
     {
       "id": "m3_l2_a1",
       "title": "Binary Search",
-      "task": "Perform binary search on a sorted array and return the index of the target value. If the target is not found, return -1.",
+      "task": "A search optimization system is required to locate values in sorted datasets using logarithmic search reduction.\n\nTask Requirement:\nCreate a function binary_search(arr, target) that performs binary search.\n\nRules:\n- Array is sorted in ascending order\n- Return index of target if found\n- Return -1 if not found\n\nSample Output:\nbinary_search([10,20,30],30) → 2",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "binary_search([10,20,30,40,50],30)", "expected": "2", "isHidden": false },
         { "call": "binary_search([1,2,3,4],1)", "expected": "0", "isHidden": false },
@@ -77,7 +84,8 @@
     {
       "id": "m3_l2_a2",
       "title": "Missing Target Binary",
-      "task": "Perform binary search on a sorted array and return the index of the target value. If the target does not exist in the array, return -1.",
+      "task": "A validation search system checks existence of elements inside sorted datasets.\n\nTask Requirement:\nCreate a function binary_missing(arr, target).\n\nRules:\n- Return index if found\n- Return -1 if not found\n\nSample Output:\nbinary_missing([1,2,3],4) → -1",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "binary_missing([1,2,3],4)", "expected": "-1", "isHidden": false },
         { "call": "binary_missing([10,20,30],15)", "expected": "-1", "isHidden": false },
@@ -89,7 +97,8 @@
     {
       "id": "m3_l2_a3",
       "title": "First Occurrence Binary",
-      "task": "Given a sorted array containing duplicates, return the first (smallest index) occurrence of the target value using binary search.",
+      "task": "A duplicate-aware search system identifies the first occurrence of target values in sorted datasets.\n\nTask Requirement:\nCreate a function binary_first(arr, target).\n\nRules:\n- Return smallest index of target\n- Must handle duplicates\n\nSample Output:\nbinary_first([1,2,2,2,3],2) → 1",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "binary_first([1,2,2,2,3],2)", "expected": "1", "isHidden": false },
         { "call": "binary_first([5,5,5,6],5)", "expected": "0", "isHidden": false },
@@ -101,7 +110,8 @@
     {
       "id": "m3_l2_a4",
       "title": "Last Occurrence Binary",
-      "task": "Given a sorted array containing duplicates, return the last (largest index) occurrence of the target value using binary search.",
+      "task": "A duplicate-aware search system identifies the last occurrence of target values in sorted datasets.\n\nTask Requirement:\nCreate a function binary_last(arr, target).\n\nRules:\n- Return largest index of target\n- Must handle duplicates\n\nSample Output:\nbinary_last([1,2,2,2,3],2) → 3",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "binary_last([1,2,2,2,3],2)", "expected": "3", "isHidden": false },
         { "call": "binary_last([5,5,5,6],5)", "expected": "2", "isHidden": false },
@@ -113,7 +123,8 @@
     {
       "id": "m3_l2_a5",
       "title": "Step Counter",
-      "task": "Simulate a binary search on a sorted array and return the number of iterations (halving steps) required until the target is found or the search space is exhausted.",
+      "task": "A performance tracking system simulates binary search execution and counts iteration steps until completion.\n\nTask Requirement:\nCreate a function binary_steps(arr, target).\n\nRules:\n- Count each search iteration\n- Return number of steps taken\n\nSample Output:\nbinary_steps([1,2,3],2) → 2",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "binary_steps([1,2,3,4,5],3)", "expected": "2", "isHidden": false },
         { "call": "binary_steps([10,20,30,40],20)", "expected": "2", "isHidden": false },
@@ -123,11 +134,13 @@
       ]
     }
   ],
+
   "lesson_3": [
     {
       "id": "m3_l3_a1",
       "title": "Merge Step",
-      "task": "Merge two sorted arrays into a single sorted array in non-decreasing (ascending) order.",
+      "task": "A sorting subsystem requires merging two pre-sorted arrays into a single ordered sequence.\n\nTask Requirement:\nCreate a function merge(arr1, arr2) that merges two sorted arrays in ascending order.\n\nRules:\n- Must preserve sorting order\n- Must not mutate original arrays\n\nSample Output:\nmerge([1,2],[3,4]) → [1,2,3,4]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "merge([1,5,9],[2,3,8])", "expected": "[1,2,3,5,8,9]", "isHidden": false },
         { "call": "merge([1,2],[3,4])", "expected": "[1,2,3,4]", "isHidden": false },
@@ -139,7 +152,8 @@
     {
       "id": "m3_l3_a2",
       "title": "Array Splitter",
-      "task": "Return the input array wrapped inside a single-element list without performing recursive splitting.",
+      "task": "A preprocessing system wraps datasets into controlled container structures for pipeline processing.\n\nTask Requirement:\nCreate a function split(arr) that returns the array wrapped inside another list.\n\nRules:\n- No modification of original array\n- Output format: [arr]\n\nSample Output:\nsplit([1,2]) → [[1,2]]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "split([1,2,3,4])", "expected": "[[1,2,3,4]]", "isHidden": false },
         { "call": "split([5,6,7])", "expected": "[[5,6,7]]", "isHidden": false },
@@ -151,7 +165,8 @@
     {
       "id": "m3_l3_a3",
       "title": "Merge Sort Ascending",
-      "task": "Sort the input array in ascending order using the merge sort algorithm.",
+      "task": "A divide-and-conquer sorting engine is required to recursively sort datasets in ascending order.\n\nTask Requirement:\nCreate a function merge_sort(arr).\n\nRules:\n- Must use merge sort algorithm\n- Must recursively split and merge\n\nSample Output:\nmerge_sort([3,2,1]) → [1,2,3]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "merge_sort([38,27,43,3,9,82,10])", "expected": "[3,9,10,27,38,43,82]", "isHidden": false },
         { "call": "merge_sort([5,1,5,2])", "expected": "[1,2,5,5]", "isHidden": false },
@@ -163,7 +178,8 @@
     {
       "id": "m3_l3_a4",
       "title": "Merge Sort Descending",
-      "task": "Sort the input array in descending order using the merge sort algorithm.",
+      "task": "A sorting subsystem is required to sort datasets in descending order using modified merge logic.\n\nTask Requirement:\nCreate a function merge_sort_desc(arr).\n\nRules:\n- Must use merge sort\n- Sort in descending order\n\nSample Output:\nmerge_sort_desc([1,2,3]) → [3,2,1]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "merge_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "merge_sort_desc([5,1,4])", "expected": "[5,4,1]", "isHidden": false },
@@ -175,7 +191,8 @@
     {
       "id": "m3_l3_a5",
       "title": "Merge Strings",
-      "task": "Return an array of strings sorted in lexicographical (alphabetical) ascending order.",
+      "task": "A lexical ordering engine is required to sort string datasets in alphabetical order.\n\nTask Requirement:\nCreate a function merge_strings(arr).\n\nRules:\n- Sort strings lexicographically\n- Maintain stable ordering\n\nSample Output:\nmerge_strings(['b','a']) → ['a','b']",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "merge_strings(['c','a','b'])", "expected": "['a','b','c']", "isHidden": false },
         { "call": "merge_strings(['z','x','y'])", "expected": "['x','y','z']", "isHidden": false },
@@ -185,11 +202,13 @@
       ]
     }
   ],
+
   "lesson_4": [
     {
       "id": "m3_l4_a1",
       "title": "Partition Step",
-      "task": "Given an array, partition it around the first element (pivot). Return a 3-part structure: elements less than pivot, the pivot itself, and elements greater than pivot.",
+      "task": "A quicksort preprocessing system partitions arrays around a pivot for recursive sorting.\n\nTask Requirement:\nCreate a function partition(arr) that uses the first element as pivot.\n\nRules:\n- Elements less than pivot go left\n- Elements greater go right\n- Pivot remains in middle\n\nSample Output:\npartition([3,2,1]) → [[2,1],3,[]]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "partition([3,2,1])", "expected": "[[2,1],3,[]]", "isHidden": false },
         { "call": "partition([5,1,4,2])", "expected": "[[1,4,2],5,[]]", "isHidden": false },
@@ -201,7 +220,8 @@
     {
       "id": "m3_l4_a2",
       "title": "Choose First Pivot",
-      "task": "Select the first element as pivot and return a two-element structure containing the pivot and the remaining elements after removing it.",
+      "task": "A pivot selection system extracts the first element as pivot for recursive sorting algorithms.\n\nTask Requirement:\nCreate a function pivot_first(arr).\n\nRules:\n- First element becomes pivot\n- Remaining elements returned as array\n\nSample Output:\npivot_first([3,2]) → [3,[2]]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "pivot_first([3,2,1])", "expected": "[3,[2,1]]", "isHidden": false },
         { "call": "pivot_first([5,1,4])", "expected": "[5,[1,4]]", "isHidden": false },
@@ -213,7 +233,8 @@
     {
       "id": "m3_l4_a3",
       "title": "Quick Sort Ascending",
-      "task": "Sort the input array in ascending order using the quick sort algorithm.",
+      "task": "A divide-and-conquer sorting engine sorts arrays using recursive pivot partitioning.\n\nTask Requirement:\nCreate a function quick_sort(arr).\n\nRules:\n- Must use quick sort algorithm\n- Sort in ascending order\n\nSample Output:\nquick_sort([3,2,1]) → [1,2,3]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "quick_sort([10,7,8,9,1,5])", "expected": "[1,5,7,8,9,10]", "isHidden": false },
         { "call": "quick_sort([3,2,1])", "expected": "[1,2,3]", "isHidden": false },
@@ -225,7 +246,8 @@
     {
       "id": "m3_l4_a4",
       "title": "Quick Sort Descending",
-      "task": "Sort the input array in descending order using the quick sort algorithm.",
+      "task": "A sorting engine is required to sort arrays in descending order using modified quicksort comparison logic.\n\nTask Requirement:\nCreate a function quick_sort_desc(arr).\n\nRules:\n- Must use quicksort\n- Reverse comparison order\n\nSample Output:\nquick_sort_desc([1,2,3]) → [3,2,1]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "quick_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "quick_sort_desc([5,1,4])", "expected": "[5,4,1]", "isHidden": false },
@@ -237,7 +259,8 @@
     {
       "id": "m3_l4_a5",
       "title": "Pivot Tracker",
-      "task": "Track and return the sequence of pivot values selected during a quick sort traversal (in the order they are processed recursively).",
+      "task": "A recursion tracing system records pivot selections during quicksort execution for analysis.\n\nTask Requirement:\nCreate a function pivot_track(arr) that records pivots in order of recursive selection.\n\nRules:\n- Track pivot at each recursion step\n- Return list of pivots in execution order\n\nSample Output:\npivot_track([3,2,1]) → [3,2,1]",
+      "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "pivot_track([3,2,1])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "pivot_track([5,1,4])", "expected": "[5,1,4]", "isHidden": false },

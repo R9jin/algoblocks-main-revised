@@ -3,7 +3,7 @@
     {
       "id": "m2_l1_a1",
       "title": "Max Finder",
-      "task": "Implement a function find_max(arr) that iterates through the array and returns the largest numeric value. If the array is empty, return 'Error'. You may assume all elements are comparable numbers.",
+      "task": "You are given an array of numbers. Your goal is to determine the highest value in the list by scanning each element one by one. Start by assuming the first element is the maximum, then compare it with every other element and update your maximum whenever you find a larger value. If the array is empty, immediately return 'Error' since there is nothing to evaluate. Ensure that all comparisons are done using a single pass through the array.",
       "testCasesPool": [
         { "call": "find_max([32,45,28,47,39])", "expected": "47", "isHidden": false },
         { "call": "find_max([-10,-5,-20])", "expected": "-5", "isHidden": false },
@@ -15,7 +15,7 @@
     {
       "id": "m2_l1_a2",
       "title": "Min Finder",
-      "task": "Implement a function find_min(arr) that scans the entire array and returns the smallest numeric value. If the array is empty, return 'Error'.",
+      "task": "You are tasked with finding the smallest number in an array by examining each element sequentially. Begin by treating the first element as the minimum value, then iterate through the rest of the array comparing each element to your current minimum and updating it whenever a smaller value is found. If the array has no elements, return 'Error' immediately since no comparison can be made.",
       "testCasesPool": [
         { "call": "find_min([3,1,9,2])", "expected": "1", "isHidden": false },
         { "call": "find_min([-5,-2,-10])", "expected": "-10", "isHidden": false },
@@ -27,7 +27,7 @@
     {
       "id": "m2_l1_a3",
       "title": "Sum Search",
-      "task": "Implement a function sum_all(arr) that returns the sum of all elements in the array by iterating through each value. If the array is empty, return 0.",
+      "task": "Given an array of integers, compute the total sum by iterating through each element one at a time and accumulating its value into a running total variable. Start the sum at zero and continuously add each element as you traverse the array. If the array is empty, simply return 0 since there are no values to add.",
       "testCasesPool": [
         { "call": "sum_all([1,2,3])", "expected": "6", "isHidden": false },
         { "call": "sum_all([10,20])", "expected": "30", "isHidden": false },
@@ -39,7 +39,7 @@
     {
       "id": "m2_l1_a4",
       "title": "Count Evens",
-      "task": "Implement a function count_evens(arr) that counts how many elements in the array are even numbers. Return 0 if no even numbers exist or if the array is empty.",
+      "task": "Scan through the array element by element and count how many numbers are even. A number is considered even if it is divisible by 2 without remainder. Maintain a counter that increases every time you encounter an even value. If no even numbers exist or the array is empty, return 0.",
       "testCasesPool": [
         { "call": "count_evens([1,2,3,4,5,6])", "expected": "3", "isHidden": false },
         { "call": "count_evens([2,4,6,8])", "expected": "4", "isHidden": false },
@@ -51,7 +51,7 @@
     {
       "id": "m2_l1_a5",
       "title": "First Negative Finder",
-      "task": "Implement a function first_negative(arr) that scans the array from left to right and returns the first negative number encountered. If no negative number exists or the array is empty, return -1.",
+      "task": "Traverse the array from left to right and identify the first element that is less than zero. As soon as you find a negative number, return it immediately without checking the rest of the array. If no negative numbers exist or the array is empty, return -1.",
       "testCasesPool": [
         { "call": "first_negative([3,2,-1,5])", "expected": "-1", "isHidden": false },
         { "call": "first_negative([-5,2,3])", "expected": "-5", "isHidden": false },
@@ -66,7 +66,7 @@
     {
       "id": "m2_l2_a1",
       "title": "Target Search",
-      "task": "Implement a function linear_search(arr, target) that scans the array sequentially and returns the index of the first occurrence of target. If the target is not found or the array is empty, return -1.",
+      "task": "Perform a sequential search through the array to locate the first occurrence of the target value. Compare each element one by one until you find a match, then return its index. If the target does not exist in the array or the array is empty, return -1.",
       "testCasesPool": [
         { "call": "linear_search([10,20,30,40],30)", "expected": "2", "isHidden": false },
         { "call": "linear_search([1,2,3],1)", "expected": "0", "isHidden": false },
@@ -78,7 +78,7 @@
     {
       "id": "m2_l2_a2",
       "title": "Count Occurrences",
-      "task": "Implement a function count_occurrences(arr, x) that iterates through the array and counts how many times x appears. Return 0 if x is not found or the array is empty.",
+      "task": "Iterate through the array and count how many times a given value appears. Each time you encounter the target value, increment a counter. After finishing the traversal, return the total count. If the value does not appear or the array is empty, return 0.",
       "testCasesPool": [
         { "call": "count_occurrences([1,2,2,3],2)", "expected": "2", "isHidden": false },
         { "call": "count_occurrences([5,5,5],5)", "expected": "3", "isHidden": false },
@@ -90,7 +90,7 @@
     {
       "id": "m2_l2_a3",
       "title": "Last Occurrence",
-      "task": "Implement a function last_occurrence(arr, x) that returns the index of the last occurrence of x in the array. If x is not found or the array is empty, return -1.",
+      "task": "Scan the entire array while tracking the most recent index where a given value appears. Each time the value is found, update a stored index. After completing the traversal, return the last recorded index. If the value is never found or the array is empty, return -1.",
       "testCasesPool": [
         { "call": "last_occurrence([1,2,2,3],2)", "expected": "2", "isHidden": false },
         { "call": "last_occurrence([5,1,5],5)", "expected": "2", "isHidden": false },
@@ -102,7 +102,7 @@
     {
       "id": "m2_l2_a4",
       "title": "Search in Range",
-      "task": "Implement a function search_range(arr, x, a, b) that searches for x only within the index range [a, b] inclusive. Return the first index where x is found in that range. If not found or range is invalid, return -1.",
+      "task": "Search for a value within a specific index range of the array. Only examine elements from index a to index b inclusive. Return the first index where the value is found within this range. If the value does not exist in the range or the range is invalid, return -1.",
       "testCasesPool": [
         { "call": "search_range([1,2,3,4],2,0,2)", "expected": "1", "isHidden": false },
         { "call": "search_range([10,20,30],30,1,2)", "expected": "2", "isHidden": false },
@@ -114,7 +114,7 @@
     {
       "id": "m2_l2_a5",
       "title": "Multi-Target Search",
-      "task": "Implement a function multi_search(arr, x, y) that returns True if both x and y exist anywhere in the array. Otherwise return False. If the array is empty, return False.",
+      "task": "Check whether two given values exist anywhere in the array. Traverse the array once while tracking whether each target has been found. Return True only if both values are found at least once; otherwise return False. If the array is empty, return False.",
       "testCasesPool": [
         { "call": "multi_search([1,2,3],1,3)", "expected": "True", "isHidden": false },
         { "call": "multi_search([5,6,7],5,7)", "expected": "True", "isHidden": false },
@@ -129,7 +129,7 @@
     {
       "id": "m2_l3_a1",
       "title": "Bubble Sort Ascending",
-      "task": "Implement a function bubble_sort_asc(arr) that sorts the array in ascending order using the Bubble Sort algorithm by repeatedly swapping adjacent elements if they are in the wrong order.",
+      "task": "Sort the array in ascending order using Bubble Sort. Repeatedly compare adjacent elements and swap them if they are in the wrong order. Continue passes through the array until it is fully sorted in increasing order.",
       "testCasesPool": [
         { "call": "bubble_sort_asc([88,92,75,100,84])", "expected": "[75,84,88,92,100]", "isHidden": false },
         { "call": "bubble_sort_asc([5,1,4,2,8])", "expected": "[1,2,4,5,8]", "isHidden": false },
@@ -141,7 +141,7 @@
     {
       "id": "m2_l3_a2",
       "title": "Selection Sort Ascending",
-      "task": "Implement a function selection_sort_asc(arr) that sorts the array in ascending order using Selection Sort by repeatedly selecting the smallest remaining element and placing it in its correct position.",
+      "task": "Sort the array in ascending order using Selection Sort. Repeatedly find the smallest element from the unsorted portion of the array and move it into its correct position in the sorted portion until the entire array is sorted.",
       "testCasesPool": [
         { "call": "selection_sort_asc([64,25,12,22,11])", "expected": "[11,12,22,25,64]", "isHidden": false },
         { "call": "selection_sort_asc([3,1,2])", "expected": "[1,2,3]", "isHidden": false },
@@ -153,7 +153,7 @@
     {
       "id": "m2_l3_a3",
       "title": "Bubble Sort Descending",
-      "task": "Implement a function bubble_sort_desc(arr) that sorts the array in descending order using Bubble Sort by swapping adjacent elements when the left element is smaller than the right element.",
+      "task": "Sort the array in descending order using Bubble Sort. Repeatedly compare adjacent elements and swap them whenever the left element is smaller than the right element. Continue passes until the array is sorted from largest to smallest.",
       "testCasesPool": [
         { "call": "bubble_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "bubble_sort_desc([5,1,4,2])", "expected": "[5,4,2,1]", "isHidden": false },
@@ -165,7 +165,7 @@
     {
       "id": "m2_l3_a4",
       "title": "Selection Sort Descending",
-      "task": "Implement a function selection_sort_desc(arr) that sorts the array in descending order using Selection Sort by repeatedly selecting the largest remaining element and placing it first.",
+      "task": "Sort the array in descending order using Selection Sort. Repeatedly select the largest remaining element from the unsorted portion and place it at the front of the sorted portion until the entire array is sorted in decreasing order.",
       "testCasesPool": [
         { "call": "selection_sort_desc([3,1,2])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "selection_sort_desc([10,20,30])", "expected": "[30,20,10]", "isHidden": false },
@@ -177,7 +177,7 @@
     {
       "id": "m2_l3_a5",
       "title": "Visual Sort Tracking",
-      "task": "Implement a function sort_passes(arr) that simulates Bubble Sort and returns the number of outer loop passes required to fully sort the array.",
+      "task": "Simulate Bubble Sort passes on the array and count how many full passes are required before the array becomes fully sorted in ascending order. Return the total number of passes performed until completion.",
       "testCasesPool": [
         { "call": "sort_passes([3,2,1])", "expected": "2", "isHidden": false },
         { "call": "sort_passes([5,1,4,2])", "expected": "3", "isHidden": false },
