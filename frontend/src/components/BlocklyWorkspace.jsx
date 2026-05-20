@@ -436,7 +436,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
   const workspace = useRef(null);
   const onChangeRef = useRef(onChange);
 
-  // Expose the resize function to the parent (MainApp)
   useImperativeHandle(ref, () => ({
     clear: () => {
       if (workspace.current) {
@@ -491,7 +490,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     resize: () => {
       if (workspace.current) {
         Blockly.svgResize(workspace.current);
-        // 🚀 Mark explicitly focused when the tab becomes active to ensure keyboard shortcuts work
         workspace.current.markFocused();
       }
     }
@@ -507,11 +505,10 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
     let minimapDelay;
 
-    // 🚀 Initialize Cross-Tab Copy Paste globally ONCE
+    // Initialize Cross-Tab Copy Paste globally ONCE
     if (!crossTabPluginInitialized) {
       try {
         const crossTabPlugin = new CrossTabCopyPaste();
-        // Enables both context menu (Right Click -> Copy/Paste) and shortcuts (Ctrl+C / Ctrl+V)
         crossTabPlugin.init({contextMenu: true, shortcut: true});
         crossTabPluginInitialized = true;
       } catch (e) {

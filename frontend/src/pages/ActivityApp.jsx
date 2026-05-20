@@ -7,12 +7,9 @@ import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from '../components/ComplexityGraph.jsx';
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
-import TestCaseTester from "../components/TestCaseTester.jsx"; // <-- 1. IMPORTED NEW TESTER
+import TestCaseTester from "../components/TestCaseTester.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
-
-// Import the activities tasks JSON directly as a fallback
-import ACTIVITY_TASKS from "../data/activities.json";
 
 // --- IMPORT MONACO EDITOR & TRANSLATOR ---
 import Editor from "@monaco-editor/react";
@@ -88,7 +85,7 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       let type = null;
 
       if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) type = 'warning';
-      else if (titleLower.includes('tip') || titleLower.includes('insight')) type = 'tip';
+      else if (titleLower.includes('tip') || titleLower.includes('insight')) type = 'praise';
       else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) type = 'praise';
 
       if (!type) return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
@@ -131,10 +128,10 @@ const ActivityApp = () => {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const activityData = location.state?.activityData || null;
   const initialTemplate = location.state?.templatePath || location.state?.activityData?.templatePath || "";
-  const currentTask = ACTIVITY_TASKS.find((t) => t.templatePath === initialTemplate);
+  const currentTask = ACTIVITY_TASKS.find((t) => t.templatePath === initialTemplate) || activityData;
   
-  // 2. FIXED PROPERTY EXTRACTION: Uses new 'testCases' array from module JSON
-  const testCasesArray = activityData?.testCases || currentTask?.testCasesList || []; 
+  // SUPPORT FOR NEW CODECHUM STYLE POOLS
+  const testCasesArray = activityData?.testCasesPool || activityData?.testCases || currentTask?.testCasesList || []; 
 
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
@@ -308,7 +305,11 @@ const ActivityApp = () => {
           const fetchUrl = initialTemplate.startsWith("activities/") ? `/${initialTemplate}.json` : `/templates/${initialTemplate}.json`;
           const response = await fetch(fetchUrl);
           if (response.ok) json = await response.json();
+        } else {
+           // Provide an empty starting point if no template is provided for a codechum style challenge
+           json = { blocks: { languageVersion: 0, blocks: [] } };
         }
+        
         if (json && workspaceRef.current) {
           if (workspaceRef.current.clear) workspaceRef.current.clear();
           workspaceRef.current.loadTemplate(json.data ? json.data : json);
@@ -319,7 +320,7 @@ const ActivityApp = () => {
         console.error("Failed to load activity template", error);
       }
     }, 500);
-  }, [initialTemplate, activityData, workspaceRef.current]);
+  }, [initialTemplate, activityData]);
 
   const saveLessonProgress = async (lessonId, score) => {
     const storedUser = localStorage.getItem("user");
@@ -403,7 +404,6 @@ const ActivityApp = () => {
     }
   };
 
-  // --- 3. NEW TEST HANDLER CALLBACK ---
   const handleTestComplete = (passedCount, totalCount) => {
     const lessonId = activityData?.id || initialTemplate?.split("/").pop() || "unknown";
     saveLessonProgress(lessonId, passedCount);
@@ -412,7 +412,7 @@ const ActivityApp = () => {
       setModalConfig({ 
         isOpen: true, 
         title: "Activity Completed! 🎉", 
-        message: `Excellent work! You successfully passed all ${passedCount} out of ${totalCount} standard I/O test cases.`, 
+        message: `Excellent work! You successfully passed all ${passedCount} out of ${totalCount} test cases.`, 
         confirmText: "Return to Dashboard", 
         isDanger: false, 
         onConfirmAction: () => { closeModal(); navigate("/learning-path"); } 
@@ -453,7 +453,6 @@ const ActivityApp = () => {
           <button className="activity-action-btn" onClick={handleActivityRun} style={{ backgroundColor: '#2D234A', border: '1px solid #6C5CE7', color: '#EBE4FF', opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }} title="Run code in console without submitting to test cases">
             {isEvaluating ? "..." : "▷ Run Code"}
           </button>
-          {/* Removed duplicate 'Run Tests' button here to avoid confusion. It exists inside TestCaseTester. */}
         </div>
       </header>
 
@@ -695,7 +694,6 @@ const ActivityApp = () => {
         </main>
 
         <aside className="activity-right-panel" style={{ padding: 0 }}>
-          {/* 4. PLUG IN THE NEW CODECHUM TESTER COMPONENT */}
           <TestCaseTester 
             pythonCode={generatedPython} 
             testCases={testCasesArray} 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import "../styles/TestCaseTester.css"; // Ensure you create standard styles for this
+import "../styles/TestCaseTester.css";
 
 export default function TestCaseTester({ pythonCode, testCases, onTestComplete }) {
   const [results, setResults] = useState([]);
@@ -41,10 +41,18 @@ export default function TestCaseTester({ pythonCode, testCases, onTestComplete }
     setError(null);
     setResults([]);
 
+    // Format the test cases ensuring the web worker knows it's a function call context
+    const formattedTestCases = testCases.map(tc => ({
+      ...tc,
+      input: tc.call || tc.input,
+      call: tc.call || tc.input 
+    }));
+
     // Send code and CodeChum formatted test cases to the worker
     workerRef.current.postMessage({
+      type: "RUN_TESTS", // Dispatch command
       code: pythonCode,
-      testCases: testCases
+      testCases: formattedTestCases
     });
   };
 
@@ -73,12 +81,12 @@ export default function TestCaseTester({ pythonCode, testCases, onTestComplete }
               </span>
             </div>
             
-            {/* Show details only if it's not a hidden test case, or if you want to allow them to see it anyway for learning */}
+            {/* Show details only if it's not a hidden test case */}
             {!res.isHidden && (
               <div className="test-details">
                 <div className="detail-row">
-                  <strong>Input:</strong>
-                  <pre>{res.input || "No Input"}</pre>
+                  <strong>Function Call / Input:</strong>
+                  <pre>{res.call || res.input || "No Input"}</pre>
                 </div>
                 <div className="detail-row">
                   <strong>Expected Output:</strong>
@@ -87,7 +95,7 @@ export default function TestCaseTester({ pythonCode, testCases, onTestComplete }
                 <div className="detail-row">
                   <strong>Your Output:</strong>
                   <pre className={res.error ? "error-text" : ""}>
-                    {res.error ? res.error : (res.actual || "No Output")}
+                    {res.error ? res.error : (res.actual !== undefined ? res.actual : "No Output")}
                   </pre>
                 </div>
               </div>
@@ -100,6 +108,12 @@ export default function TestCaseTester({ pythonCode, testCases, onTestComplete }
             )}
           </div>
         ))}
+        
+        {results.length === 0 && !isTesting && (
+          <div className="no-results-msg">
+            <p>Click "Run Tests" to evaluate your code against the required conditions.</p>
+          </div>
+        )}
       </div>
     </div>
   );
