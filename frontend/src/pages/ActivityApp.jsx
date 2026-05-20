@@ -508,6 +508,21 @@ const ActivityApp = () => {
           if (workspaceRef.current?.clear) workspaceRef.current.clear();
         }
 
+        // ------------------------------------------------------------
+        // --- ADD THIS: Load saved test results for the UI Panel ---
+        // ------------------------------------------------------------
+        const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
+        if (savedTests) {
+          try {
+            const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests);
+            if (savedOut) setConsoleOutput(savedOut);
+            if (savedPassed !== undefined) setPassedTests(savedPassed);
+          } catch (e) {
+            console.error("Failed to parse saved tests", e);
+          }
+        }
+        // ------------------------------------------------------------
+
         setViewMode("workspace");
         setIsEditingCode(false);
       } catch (e) {
@@ -860,9 +875,18 @@ const ActivityApp = () => {
     try {
       await executeTest(generatedPython);
     } catch (failure) {
-      setConsoleOutput(`Test Execution Prevented:\n\n${failure.error || failure.message}`);
+      const errorMsg = `Test Execution Prevented:\n\n${failure.error || failure.message}`;
+      setConsoleOutput(errorMsg);
       setBottomPanel("console");
       setIsEvaluating(false);
+      
+      // --- ADD THIS: Save the prevented error state ---
+      localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({
+        consoleOutput: errorMsg,
+        passedTests: 0
+      }));
+      // ----------------------------------------------
+      
       return;
     }
 
@@ -939,8 +963,17 @@ const ActivityApp = () => {
       }
     }
 
-    // --- NEW: Evaluate success ONLY AFTER the entire test loop finishes ---
+    // --- MODIFY THE END OF THE FUNCTION TO THIS: ---
+    
+    // Evaluate success ONLY AFTER the entire test loop finishes
     setIsEvaluating(false);
+    
+    // --- ADD THIS: Save the latest test state for persistence ---
+    localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({
+      consoleOutput: fullOutput,
+      passedTests: passed
+    }));
+    // ----------------------------------------------------------
     
     // Always save highest score, even if partial (e.g. 3/5)
     const lessonKey = `${moduleId}:${activityId}`;
@@ -1388,8 +1421,10 @@ const ActivityApp = () => {
                     cancelText: "Cancel",
                     isDanger: true,
                     onConfirmAction: () => {
-                      // --- NEW: Clear specific draft before refreshing ---
+                      // --- UPDATED: Clear both code draft AND test state ---
                       localStorage.removeItem(`activity_draft_${moduleId}_${activityId}`);
+                      localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
+                      // -----------------------------------------------------
                       window.location.reload();
                     },
                     onCancelAction: closeModal,
