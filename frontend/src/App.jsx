@@ -1,5 +1,5 @@
 // frontend/src/App.jsx
-import { lazy, useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 // IMPORT Navigate alongside Route and Routes
 import { Navigate, Route, Routes } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
@@ -37,39 +37,42 @@ function App() {
     <>
       <OfflineIndicator />
 
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+      {/* FIXED: Added Suspense boundary for lazy-loaded components */}
+      <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* --- NEW: Wrap private routes with ProtectedRoute --- */}
-        <Route
-          path="/dashboard"
-          element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
-        />
-        <Route
-          path="/learning-path"
-          element={<ProtectedRoute><LearningPath /></ProtectedRoute>}
-        />
-        <Route
-          path="/projects"
-          element={<ProtectedRoute><Projects /></ProtectedRoute>}
-        />
-        <Route
-          path="/app"
-          element={<ProtectedRoute><MainApp /></ProtectedRoute>}
-        />
-        <Route
-          path="/home"
-          element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
-        />
-        <Route
-          path="/activity/:moduleId/:activityId"
-          element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
-        />
-      </Routes>
+          {/* --- NEW: Wrap private routes with ProtectedRoute --- */}
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+          />
+          <Route
+            path="/learning-path"
+            element={<ProtectedRoute><LearningPath /></ProtectedRoute>}
+          />
+          <Route
+            path="/projects"
+            element={<ProtectedRoute><Projects /></ProtectedRoute>}
+          />
+          <Route
+            path="/app"
+            element={<ProtectedRoute><MainApp /></ProtectedRoute>}
+          />
+          <Route
+            path="/home"
+            element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
+          />
+          <Route
+            path="/activity/:moduleId/:activityId"
+            element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
+          />
+        </Routes>
+      </Suspense>
     </>
   );
 }

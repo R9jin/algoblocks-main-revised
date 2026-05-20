@@ -3,7 +3,7 @@
     {
       "id": "m3_l1_a1",
       "title": "Halving an Array",
-      "task": "Return two arrays: left half and right half.",
+      "task": "Given an array, split it into two parts at the midpoint (floor of length/2). Return a 2D array in the format [leftHalf, rightHalf], preserving original order.",
       "testCasesPool": [
         { "call": "halve_array([1,2,3,4])", "expected": "[[1,2],[3,4]]", "isHidden": false },
         { "call": "halve_array([10,20,30])", "expected": "[[10],[20,30]]", "isHidden": false },
@@ -12,11 +12,10 @@
         { "call": "halve_array([1,2,3,4,5])", "expected": "[[1,2],[3,4,5]]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l1_a2",
       "title": "Find Midpoint",
-      "task": "Return midpoint index using floor((l+r)/2).",
+      "task": "Given two integers l and r, compute and return the midpoint index using floor((l + r) / 2).",
       "testCasesPool": [
         { "call": "midpoint(0,9)", "expected": "4", "isHidden": false },
         { "call": "midpoint(1,5)", "expected": "3", "isHidden": false },
@@ -25,11 +24,10 @@
         { "call": "midpoint(3,10)", "expected": "6", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l1_a3",
       "title": "Recursive Countdown",
-      "task": "Return list counting down from n to 1, else ['Abort'] if n <= 0.",
+      "task": "Given an integer n, recursively construct and return a list counting down from n to 1. If n is less than or equal to 0, return ['Abort'].",
       "testCasesPool": [
         { "call": "countdown(3)", "expected": "[3,2,1]", "isHidden": false },
         { "call": "countdown(5)", "expected": "[5,4,3,2,1]", "isHidden": false },
@@ -38,11 +36,10 @@
         { "call": "countdown(-5)", "expected": "['Abort']", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l1_a4",
       "title": "Recursive Factorial",
-      "task": "Return factorial of n using recursion.",
+      "task": "Given a non-negative integer n, return its factorial (n!) using recursion. The base case is n = 0 or n = 1, both returning 1.",
       "testCasesPool": [
         { "call": "factorial(5)", "expected": "120", "isHidden": false },
         { "call": "factorial(4)", "expected": "24", "isHidden": false },
@@ -51,11 +48,10 @@
         { "call": "factorial(1)", "expected": "1", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l1_a5",
       "title": "Recursive Sum",
-      "task": "Return sum from 1 to n using recursion.",
+      "task": "Given a non-negative integer n, return the sum of all integers from 1 to n using recursion. If n is less than or equal to 0, return 0.",
       "testCasesPool": [
         { "call": "sum_recursive(5)", "expected": "15", "isHidden": false },
         { "call": "sum_recursive(10)", "expected": "55", "isHidden": false },
@@ -65,12 +61,11 @@
       ]
     }
   ],
-
   "lesson_2": [
     {
       "id": "m3_l2_a1",
       "title": "Binary Search",
-      "task": "Return index of x in sorted array using binary search.",
+      "task": "Perform binary search on a sorted array and return the index of the target value. If the target is not found, return -1.",
       "testCasesPool": [
         { "call": "binary_search([10,20,30,40,50],30)", "expected": "2", "isHidden": false },
         { "call": "binary_search([1,2,3,4],1)", "expected": "0", "isHidden": false },
@@ -79,11 +74,10 @@
         { "call": "binary_search([7],7)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l2_a2",
       "title": "Missing Target Binary",
-      "task": "Return -1 if target is not found.",
+      "task": "Perform binary search on a sorted array and return the index of the target value. If the target does not exist in the array, return -1.",
       "testCasesPool": [
         { "call": "binary_missing([1,2,3],4)", "expected": "-1", "isHidden": false },
         { "call": "binary_missing([10,20,30],15)", "expected": "-1", "isHidden": false },
@@ -92,11 +86,10 @@
         { "call": "binary_missing([9],9)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l2_a3",
       "title": "First Occurrence Binary",
-      "task": "Return first index of duplicate target using binary search.",
+      "task": "Given a sorted array containing duplicates, return the first (smallest index) occurrence of the target value using binary search.",
       "testCasesPool": [
         { "call": "binary_first([1,2,2,2,3],2)", "expected": "1", "isHidden": false },
         { "call": "binary_first([5,5,5,6],5)", "expected": "0", "isHidden": false },
@@ -105,11 +98,10 @@
         { "call": "binary_first([7,7],7)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l2_a4",
       "title": "Last Occurrence Binary",
-      "task": "Return last index of duplicate target using binary search.",
+      "task": "Given a sorted array containing duplicates, return the last (largest index) occurrence of the target value using binary search.",
       "testCasesPool": [
         { "call": "binary_last([1,2,2,2,3],2)", "expected": "3", "isHidden": false },
         { "call": "binary_last([5,5,5,6],5)", "expected": "2", "isHidden": false },
@@ -118,11 +110,10 @@
         { "call": "binary_last([7,7],7)", "expected": "1", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l2_a5",
       "title": "Step Counter",
-      "task": "Return number of halving steps in binary search.",
+      "task": "Simulate a binary search on a sorted array and return the number of iterations (halving steps) required until the target is found or the search space is exhausted.",
       "testCasesPool": [
         { "call": "binary_steps([1,2,3,4,5],3)", "expected": "2", "isHidden": false },
         { "call": "binary_steps([10,20,30,40],20)", "expected": "2", "isHidden": false },
@@ -132,12 +123,11 @@
       ]
     }
   ],
-
   "lesson_3": [
     {
       "id": "m3_l3_a1",
       "title": "Merge Step",
-      "task": "Merge two sorted arrays into one sorted array.",
+      "task": "Merge two sorted arrays into a single sorted array in non-decreasing (ascending) order.",
       "testCasesPool": [
         { "call": "merge([1,5,9],[2,3,8])", "expected": "[1,2,3,5,8,9]", "isHidden": false },
         { "call": "merge([1,2],[3,4])", "expected": "[1,2,3,4]", "isHidden": false },
@@ -146,11 +136,10 @@
         { "call": "merge([1],[1])", "expected": "[1,1]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l3_a2",
       "title": "Array Splitter",
-      "task": "Recursively split array until single elements.",
+      "task": "Return the input array wrapped inside a single-element list without performing recursive splitting.",
       "testCasesPool": [
         { "call": "split([1,2,3,4])", "expected": "[[1,2,3,4]]", "isHidden": false },
         { "call": "split([5,6,7])", "expected": "[[5,6,7]]", "isHidden": false },
@@ -159,11 +148,10 @@
         { "call": "split([1,2])", "expected": "[[1,2]]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l3_a3",
       "title": "Merge Sort Ascending",
-      "task": "Return sorted array using merge sort.",
+      "task": "Sort the input array in ascending order using the merge sort algorithm.",
       "testCasesPool": [
         { "call": "merge_sort([38,27,43,3,9,82,10])", "expected": "[3,9,10,27,38,43,82]", "isHidden": false },
         { "call": "merge_sort([5,1,5,2])", "expected": "[1,2,5,5]", "isHidden": false },
@@ -172,11 +160,10 @@
         { "call": "merge_sort([1])", "expected": "[1]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l3_a4",
       "title": "Merge Sort Descending",
-      "task": "Return sorted array in descending order using merge sort.",
+      "task": "Sort the input array in descending order using the merge sort algorithm.",
       "testCasesPool": [
         { "call": "merge_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "merge_sort_desc([5,1,4])", "expected": "[5,4,1]", "isHidden": false },
@@ -185,11 +172,10 @@
         { "call": "merge_sort_desc([9])", "expected": "[9]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l3_a5",
       "title": "Merge Strings",
-      "task": "Return alphabetically sorted array of strings.",
+      "task": "Return an array of strings sorted in lexicographical (alphabetical) ascending order.",
       "testCasesPool": [
         { "call": "merge_strings(['c','a','b'])", "expected": "['a','b','c']", "isHidden": false },
         { "call": "merge_strings(['z','x','y'])", "expected": "['x','y','z']", "isHidden": false },
@@ -199,12 +185,11 @@
       ]
     }
   ],
-
   "lesson_4": [
     {
       "id": "m3_l4_a1",
       "title": "Partition Step",
-      "task": "Return array partitioned around first element pivot.",
+      "task": "Given an array, partition it around the first element (pivot). Return a 3-part structure: elements less than pivot, the pivot itself, and elements greater than pivot.",
       "testCasesPool": [
         { "call": "partition([3,2,1])", "expected": "[[2,1],3,[]]", "isHidden": false },
         { "call": "partition([5,1,4,2])", "expected": "[[1,4,2],5,[]]", "isHidden": false },
@@ -213,11 +198,10 @@
         { "call": "partition([7])", "expected": "[[],7,[]]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l4_a2",
       "title": "Choose First Pivot",
-      "task": "Return pivot (first element) and partition result.",
+      "task": "Select the first element as pivot and return a two-element structure containing the pivot and the remaining elements after removing it.",
       "testCasesPool": [
         { "call": "pivot_first([3,2,1])", "expected": "[3,[2,1]]", "isHidden": false },
         { "call": "pivot_first([5,1,4])", "expected": "[5,[1,4]]", "isHidden": false },
@@ -226,11 +210,10 @@
         { "call": "pivot_first([7,7])", "expected": "[7,[7]]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l4_a3",
       "title": "Quick Sort Ascending",
-      "task": "Return sorted array using quick sort.",
+      "task": "Sort the input array in ascending order using the quick sort algorithm.",
       "testCasesPool": [
         { "call": "quick_sort([10,7,8,9,1,5])", "expected": "[1,5,7,8,9,10]", "isHidden": false },
         { "call": "quick_sort([3,2,1])", "expected": "[1,2,3]", "isHidden": false },
@@ -239,11 +222,10 @@
         { "call": "quick_sort([5,5,5])", "expected": "[5,5,5]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l4_a4",
       "title": "Quick Sort Descending",
-      "task": "Return sorted array in descending order using quick sort.",
+      "task": "Sort the input array in descending order using the quick sort algorithm.",
       "testCasesPool": [
         { "call": "quick_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "quick_sort_desc([5,1,4])", "expected": "[5,4,1]", "isHidden": false },
@@ -252,11 +234,10 @@
         { "call": "quick_sort_desc([9])", "expected": "[9]", "isHidden": true }
       ]
     },
-
     {
       "id": "m3_l4_a5",
       "title": "Pivot Tracker",
-      "task": "Return list of pivots used in recursive quick sort.",
+      "task": "Track and return the sequence of pivot values selected during a quick sort traversal (in the order they are processed recursively).",
       "testCasesPool": [
         { "call": "pivot_track([3,2,1])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "pivot_track([5,1,4])", "expected": "[5,1,4]", "isHidden": false },

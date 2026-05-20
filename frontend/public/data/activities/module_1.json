@@ -3,7 +3,7 @@
     {
       "id": "m1_l1_a1",
       "title": "Best Case Search",
-      "task": "Return index of target if found at first position, else -1.",
+      "task": "Implement a function find_best(arr, target) that returns the index of target only if it appears at index 0 (first element of the array). If the array is empty or the target is not at index 0, return -1. Do not perform full traversal; only evaluate the first element.",
       "testCasesPool": [
         { "call": "find_best([5,10,15],5)", "expected": "0", "isHidden": false },
         { "call": "find_best([1,2,3],1)", "expected": "0", "isHidden": false },
@@ -12,11 +12,10 @@
         { "call": "find_best([None,1],None)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l1_a2",
       "title": "Worst Case Search",
-      "task": "Return index if target is last element, else -1.",
+      "task": "Implement a function find_worst(arr, target) that returns the index of target only if it is located at the last index of the array. If the array is empty or the target is not at the last position, return -1. Do not search intermediate elements; only check the last element.",
       "testCasesPool": [
         { "call": "find_worst([1,2,3],3)", "expected": "2", "isHidden": false },
         { "call": "find_worst([4,5,6],6)", "expected": "2", "isHidden": false },
@@ -25,11 +24,10 @@
         { "call": "find_worst([],5)", "expected": "-1", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l1_a3",
       "title": "Constant Time Demo",
-      "task": "Always return first element regardless of array size.",
+      "task": "Implement a function constant(arr) that returns the first element of the array regardless of its size. If the array is empty, return 'Empty'. The operation must conceptually run in O(1) time by accessing index 0 directly.",
       "testCasesPool": [
         { "call": "constant([9,8,7])", "expected": "9", "isHidden": false },
         { "call": "constant([1,2,3,4])", "expected": "1", "isHidden": false },
@@ -38,11 +36,10 @@
         { "call": "constant([None,1])", "expected": "None", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l1_a4",
       "title": "Linear Growth Demo",
-      "task": "Return number of iterations equal to N.",
+      "task": "Implement a function linear_growth(n) that simulates a loop running exactly n times and returns the total number of iterations. If n is less than or equal to 0, return 0.",
       "testCasesPool": [
         { "call": "linear_growth(3)", "expected": "3", "isHidden": false },
         { "call": "linear_growth(5)", "expected": "5", "isHidden": false },
@@ -51,11 +48,10 @@
         { "call": "linear_growth(-2)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l1_a5",
       "title": "Quadratic Growth Demo",
-      "task": "Return N squared operations from nested loop simulation.",
+      "task": "Implement a function quadratic_growth(n) that simulates a nested loop structure where both loops run from 1 to n. Return the total number of operations, which should equal n * n. If n is less than or equal to 0, return 0.",
       "testCasesPool": [
         { "call": "quadratic_growth(2)", "expected": "4", "isHidden": false },
         { "call": "quadratic_growth(3)", "expected": "9", "isHidden": false },
@@ -70,7 +66,7 @@
     {
       "id": "m1_l2_a1",
       "title": "O(1) Lookup",
-      "task": "Return the 50th element of an array.",
+      "task": "Implement a function lookup(arr, index) that returns the element at the given index (assume 0-based indexing). If the array is empty, the index is out of bounds, or invalid, return 'Error'.",
       "testCasesPool": [
         { "call": "lookup([1]*100,50)", "expected": "1", "isHidden": false },
         { "call": "lookup([5]*100,50)", "expected": "5", "isHidden": false },
@@ -79,11 +75,10 @@
         { "call": "lookup([1,2,3],100)", "expected": "'Error'", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l2_a2",
       "title": "O(n) Traversal",
-      "task": "Return count of all elements in array.",
+      "task": "Implement a function traverse(arr) that returns the total number of elements in the array by iterating through it. If the array is empty or None, return 0.",
       "testCasesPool": [
         { "call": "traverse([1,2,3,4,5])", "expected": "5", "isHidden": false },
         { "call": "traverse([10,20])", "expected": "2", "isHidden": false },
@@ -92,11 +87,10 @@
         { "call": "traverse(None)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l2_a3",
       "title": "O(log n) Halving",
-      "task": "Count how many times n can be divided by 2 until 1.",
+      "task": "Implement a function halve_count(n) that repeatedly divides n by 2 until it becomes 1 or less. Return the number of valid divisions performed. If n is less than or equal to 0, return 0.",
       "testCasesPool": [
         { "call": "halve_count(16)", "expected": "4", "isHidden": false },
         { "call": "halve_count(8)", "expected": "3", "isHidden": false },
@@ -105,11 +99,10 @@
         { "call": "halve_count(-5)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l2_a4",
       "title": "O(n²) Pairing",
-      "task": "Return number of pairs in nested loop from 1 to N.",
+      "task": "Implement a function pairs(n) that simulates a nested loop where both loops run from 1 to n. Return the total number of iterations (n * n). If n is less than or equal to 0, return 0.",
       "testCasesPool": [
         { "call": "pairs(2)", "expected": "4", "isHidden": false },
         { "call": "pairs(3)", "expected": "9", "isHidden": false },
@@ -118,11 +111,10 @@
         { "call": "pairs(-1)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l2_a5",
       "title": "O(n+n) vs O(n)",
-      "task": "Run two loops sequentially and return total steps.",
+      "task": "Implement a function double_loop(n) that runs two separate loops sequentially from 1 to n. Return the total number of iterations across both loops. If n is less than or equal to 0, return 0.",
       "testCasesPool": [
         { "call": "double_loop(5)", "expected": "10", "isHidden": false },
         { "call": "double_loop(10)", "expected": "20", "isHidden": false },
@@ -137,7 +129,7 @@
     {
       "id": "m1_l3_a1",
       "title": "Array vs Variable",
-      "task": "Return sum using single accumulator variable.",
+      "task": "Implement a function running_total(arr) that iterates through the array and returns the sum of all numeric elements using a single accumulator variable. If the input is None or empty, return 0.",
       "testCasesPool": [
         { "call": "running_total([1,2,3])", "expected": "6", "isHidden": false },
         { "call": "running_total([10,20])", "expected": "30", "isHidden": false },
@@ -146,11 +138,10 @@
         { "call": "running_total(None)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l3_a2",
       "title": "String Builder Growth",
-      "task": "Return final string length after sequential concatenation.",
+      "task": "Implement a function build_string(arr) that concatenates all elements in the array sequentially and returns the final string length. If the array is empty or None, return 0.",
       "testCasesPool": [
         { "call": "build_string(['a','b','c'])", "expected": "3", "isHidden": false },
         { "call": "build_string(['x','y'])", "expected": "2", "isHidden": false },
@@ -159,11 +150,10 @@
         { "call": "build_string(None)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l3_a3",
       "title": "2D Array Allocation",
-      "task": "Return total elements in NxN matrix.",
+      "task": "Implement a function matrix_size(n) that returns the total number of elements in an NxN matrix. If n is less than or equal to 0, return 0.",
       "testCasesPool": [
         { "call": "matrix_size(2)", "expected": "4", "isHidden": false },
         { "call": "matrix_size(3)", "expected": "9", "isHidden": false },
@@ -172,11 +162,10 @@
         { "call": "matrix_size(-1)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l3_a4",
       "title": "In-Place Modification",
-      "task": "Modify array in-place by doubling values.",
+      "task": "Implement a function in_place(arr) that modifies the input array directly by doubling each element. Return the modified array. If input is None or empty, return an empty array.",
       "testCasesPool": [
         { "call": "in_place([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
         { "call": "in_place([5])", "expected": "[10]", "isHidden": false },
@@ -185,11 +174,10 @@
         { "call": "in_place(None)", "expected": "[]", "isHidden": true }
       ]
     },
-
     {
       "id": "m1_l3_a5",
       "title": "Out-of-Place Creation",
-      "task": "Return new array with doubled values.",
+      "task": "Implement a function out_place(arr) that creates and returns a new array where each element is doubled from the original array. The original array must not be modified. If input is None or empty, return an empty array.",
       "testCasesPool": [
         { "call": "out_place([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
         { "call": "out_place([10])", "expected": "[20]", "isHidden": false },

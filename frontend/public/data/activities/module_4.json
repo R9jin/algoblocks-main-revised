@@ -3,7 +3,7 @@
     {
       "id": "m4_l1_a1",
       "title": "Largest First",
-      "task": "Always pick the largest remaining number until empty. Return selected order.",
+      "task": "Repeatedly select the largest remaining number until the array is empty. Return the order of selections.",
       "testCasesPool": [
         { "call": "largest_first([3,1,4,2])", "expected": "[4,3,2,1]", "isHidden": false },
         { "call": "largest_first([10,5,20])", "expected": "[20,10,5]", "isHidden": false },
@@ -12,11 +12,10 @@
         { "call": "largest_first([5,5,1])", "expected": "[5,5,1]", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l1_a2",
       "title": "Smallest First",
-      "task": "Always pick smallest remaining number until empty.",
+      "task": "Repeatedly select the smallest remaining number until the array is empty.",
       "testCasesPool": [
         { "call": "smallest_first([3,1,4,2])", "expected": "[1,2,3,4]", "isHidden": false },
         { "call": "smallest_first([10,5,20])", "expected": "[5,10,20]", "isHidden": false },
@@ -25,11 +24,10 @@
         { "call": "smallest_first([2,2,1])", "expected": "[1,2,2]", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l1_a3",
       "title": "Greedy Sum",
-      "task": "Pick the 3 largest values and return their sum.",
+      "task": "Select the three largest values from the array and return their sum.",
       "testCasesPool": [
         { "call": "greedy_sum([10,50,20,100,5])", "expected": "170", "isHidden": false },
         { "call": "greedy_sum([15,25])", "expected": "40", "isHidden": false },
@@ -38,11 +36,10 @@
         { "call": "greedy_sum([-10,-50,-20])", "expected": "-80", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l1_a4",
       "title": "Closest Number",
-      "task": "Return number closest to target (tie → smaller value).",
+      "task": "Return the value closest to the target; if there is a tie, return the smaller value.",
       "testCasesPool": [
         { "call": "closest([1,5,9],6)", "expected": "5", "isHidden": false },
         { "call": "closest([10,20,30],25)", "expected": "20", "isHidden": false },
@@ -51,11 +48,10 @@
         { "call": "closest([2,4,6],5)", "expected": "4", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l1_a5",
       "title": "Greedy Path",
-      "task": "Move through grid choosing highest adjacent value at each step; return path sum.",
+      "task": "Move through the grid by always choosing the highest adjacent value at each step and return the total path sum.",
       "testCasesPool": [
         { "call": "greedy_path([[1,2],[3,4]])", "expected": "8", "isHidden": false },
         { "call": "greedy_path([[5,1],[2,3]])", "expected": "10", "isHidden": false },
@@ -65,12 +61,11 @@
       ]
     }
   ],
-
   "lesson_2": [
     {
       "id": "m4_l2_a1",
       "title": "Philippine Cashier",
-      "task": "Return coin breakdown for [20,10,5,1] using greedy method.",
+      "task": "Compute a greedy coin breakdown using denominations [20, 10, 5, 1].",
       "testCasesPool": [
         { "call": "change_ph(47)", "expected": "[2,0,1,2]", "isHidden": false },
         { "call": "change_ph(99)", "expected": "[4,1,1,4]", "isHidden": false },
@@ -79,11 +74,10 @@
         { "call": "change_ph(-5)", "expected": "'Invalid'", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l2_a2",
       "title": "US Cashier",
-      "task": "Return coin breakdown for [25,10,5,1].",
+      "task": "Compute a greedy coin breakdown using denominations [25, 10, 5, 1].",
       "testCasesPool": [
         { "call": "change_us(41)", "expected": "[1,1,1,1]", "isHidden": false },
         { "call": "change_us(99)", "expected": "[3,2,0,4]", "isHidden": false },
@@ -92,11 +86,10 @@
         { "call": "change_us(-1)", "expected": "'Invalid'", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l2_a3",
       "title": "Coin Breakdown Report",
-      "task": "Return total number of coins used.",
+      "task": "Return the total number of coins used in the greedy coin breakdown.",
       "testCasesPool": [
         { "call": "coin_count_ph(47)", "expected": "5", "isHidden": false },
         { "call": "coin_count_ph(99)", "expected": "10", "isHidden": false },
@@ -105,11 +98,10 @@
         { "call": "coin_count_ph(13)", "expected": "4", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l2_a4",
       "title": "Custom Coin System",
-      "task": "Coins = [1,3,4], return greedy breakdown.",
+      "task": "Compute a greedy coin breakdown using denominations [1, 3, 4].",
       "testCasesPool": [
         { "call": "custom_change(6)", "expected": "[1,0,1]", "isHidden": false },
         { "call": "custom_change(8)", "expected": "[0,0,2]", "isHidden": false },
@@ -118,11 +110,10 @@
         { "call": "custom_change(2)", "expected": "[2,0,0]", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l2_a5",
       "title": "Exact Change Validator",
-      "task": "Return True if exact change possible, else False.",
+      "task": "Return whether exact change can be formed using the given coin system. Return True or False.",
       "testCasesPool": [
         { "call": "can_change([20,10,5,1],47)", "expected": "True", "isHidden": false },
         { "call": "can_change([20,10,5,1],3)", "expected": "True", "isHidden": false },
@@ -132,12 +123,11 @@
       ]
     }
   ],
-
   "lesson_3": [
     {
       "id": "m4_l3_a1",
       "title": "Sort by End Time",
-      "task": "Return events sorted by end time.",
+      "task": "Return events sorted based on their end time.",
       "testCasesPool": [
         { "call": "sort_end([1,3,0],[2,4,6])", "expected": "[[1,3,0],[2,4,6]]", "isHidden": false },
         { "call": "sort_end([1,2],[2,3])", "expected": "[[1,2],[2,3]]", "isHidden": false },
@@ -146,11 +136,10 @@
         { "call": "sort_end([1],[2])", "expected": "[[1],[2]]", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l3_a2",
       "title": "Event Scheduler",
-      "task": "Return max number of non-overlapping events.",
+      "task": "Return the maximum number of non-overlapping events that can be scheduled.",
       "testCasesPool": [
         { "call": "schedule([1,3,0,5,8,5],[2,4,6,7,9,9])", "expected": "4", "isHidden": false },
         { "call": "schedule([10,12,20],[20,25,30])", "expected": "2", "isHidden": false },
@@ -159,11 +148,10 @@
         { "call": "schedule([1,1,1],[5,5,5])", "expected": "1", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l3_a3",
       "title": "Conflict Detector",
-      "task": "Return True if two events overlap.",
+      "task": "Return True if two events overlap; otherwise return False.",
       "testCasesPool": [
         { "call": "conflict(1,5,4,8)", "expected": "True", "isHidden": false },
         { "call": "conflict(1,3,3,5)", "expected": "False", "isHidden": false },
@@ -172,11 +160,10 @@
         { "call": "conflict(5,10,6,7)", "expected": "True", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l3_a4",
       "title": "Total Time Scheduled",
-      "task": "Return total duration of selected events.",
+      "task": "Return the total duration covered by the selected events.",
       "testCasesPool": [
         { "call": "total_time([[1,3],[3,5]])", "expected": "4", "isHidden": false },
         { "call": "total_time([[1,4],[5,6]])", "expected": "4", "isHidden": false },
@@ -185,11 +172,10 @@
         { "call": "total_time([[1,1]])", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m4_l3_a5",
       "title": "Room Allocator",
-      "task": "Assign events into 2 rooms greedily.",
+      "task": "Assign events into rooms using a greedy strategy with up to two rooms and return the number of rooms used.",
       "testCasesPool": [
         { "call": "rooms([[1,3],[2,4],[5,6]])", "expected": "2", "isHidden": false },
         { "call": "rooms([[1,2],[2,3],[3,4]])", "expected": "2", "isHidden": false },

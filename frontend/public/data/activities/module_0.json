@@ -3,20 +3,20 @@
     {
       "id": "m0_l1_a1",
       "title": "Hello AlgoBlocks",
-      "task": "Write a function hello() that returns 'Hello, AlgoBlocks!'.",
+      "task": "Implement a function hello() that returns the exact string 'Hello, AlgoBlocks!' without any extra spaces, characters, or printing.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
         { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
         { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
-        { "call": "hello()", "expected": "'Hello AlgoBlocks!'", "isHidden": true },
-        { "call": "hello()", "expected": "", "isHidden": true }
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": true },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": true }
       ]
     },
     {
       "id": "m0_l1_a2",
       "title": "ASCII Art Triangle",
-      "task": "Print a triangle using '*' characters over multiple lines.",
+      "task": "Create a function triangle(n) that returns a string representing a left-aligned triangle made of '*' characters. Each row i (1 ≤ i ≤ n) contains i asterisks. Rows must be separated by newline characters (\\n). Return an empty string if n ≤ 0.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "triangle(3)", "expected": "\"*\\n**\\n***\"", "isHidden": false },
@@ -29,7 +29,7 @@
     {
       "id": "m0_l1_a3",
       "title": "Basic Calculator",
-      "task": "Return sum of two numbers or 'Error' if invalid input.",
+      "task": "Implement add(a, b) that returns the sum of two numbers. If either input is not a valid integer or float, return the string 'Error' instead of performing the operation.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "add(2,3)", "expected": "5", "isHidden": false },
@@ -42,7 +42,7 @@
     {
       "id": "m0_l1_a4",
       "title": "Name Greeter",
-      "task": "Return welcome message using name variable.",
+      "task": "Create a function greet(name) that returns the string 'Welcome <name>!' where <name> is replaced with the input value exactly as given. The function must not modify or validate the input.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "greet('Ana')", "expected": "'Welcome Ana!'", "isHidden": false },
@@ -55,7 +55,7 @@
     {
       "id": "m0_l1_a5",
       "title": "Multi-Line Output",
-      "task": "Print 5 sequential statements in order.",
+      "task": "Simulate execution of a program that performs 5 sequential steps. The function multi() must return the integer 5 representing the number of executed steps. Do not print intermediate values.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "multi()", "expected": "5", "isHidden": false },
@@ -71,7 +71,7 @@
     {
       "id": "m0_l2_a1",
       "title": "Odd or Even",
-      "task": "Return 'Odd' or 'Even', else 'Invalid'.",
+      "task": "Implement check_odd_even(n) that returns 'Odd' if n is an odd integer, 'Even' if n is an even integer, and 'Invalid' for any non-integer input type.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "check_odd_even(7)", "expected": "'Odd'", "isHidden": false },
@@ -84,7 +84,7 @@
     {
       "id": "m0_l2_a2",
       "title": "Number Counter",
-      "task": "Print numbers from 1 to N using loop.",
+      "task": "Create count(n) that returns a list of integers from 1 up to n inclusive. If n ≤ 0, return an empty list.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "count(3)", "expected": "[1,2,3]", "isHidden": false },
@@ -97,7 +97,7 @@
     {
       "id": "m0_l2_a3",
       "title": "Array Printer",
-      "task": "Multiply each element by 2.",
+      "task": "Implement double(arr) that returns a new list where each element in arr is multiplied by 2. If the input is not a list or is None, return 'Error'.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "double([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
@@ -110,7 +110,7 @@
     {
       "id": "m0_l2_a4",
       "title": "Grade Evaluator",
-      "task": "Return Pass if >=75 else Fail.",
+      "task": "Implement evaluate(score) that returns 'Pass' if score is between 75 and 100 inclusive, 'Fail' if below 75, and 'Invalid' if score is outside the range 0–100.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "evaluate(75)", "expected": "'Pass'", "isHidden": false },
@@ -123,7 +123,7 @@
     {
       "id": "m0_l2_a5",
       "title": "Sum of Range",
-      "task": "Compute sum from 1 to N using loop.",
+      "task": "Create sum_range(n) that returns the sum of all integers from 1 to n inclusive using iteration. If n ≤ 0, return 0.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "sum_range(5)", "expected": "15", "isHidden": false },
@@ -139,7 +139,7 @@
     {
       "id": "m0_l3_a1",
       "title": "O(1) Access Test",
-      "task": "Return first element of array.",
+      "task": "Implement get_first(arr) that returns the first element of the list. If the list is empty, return the string 'Empty'.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "get_first([1,2,3])", "expected": "1", "isHidden": false },
@@ -152,7 +152,7 @@
     {
       "id": "m0_l3_a2",
       "title": "O(n) Linear Scan",
-      "task": "Loop through 1..100 and count operations.",
+      "task": "Simulate a loop that iterates from 1 to 100 inclusive. The function linear() must return the total number of iterations performed.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "linear()", "expected": "100", "isHidden": false },
@@ -165,7 +165,7 @@
     {
       "id": "m0_l3_a3",
       "title": "O(n²) Nested Loop",
-      "task": "Generate 5x5 grid using nested loops.",
+      "task": "Generate a 5x5 grid using nested loops. The function grid() must return the total number of iterations executed (outer × inner loops).",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "grid()", "expected": "25", "isHidden": false },
@@ -178,7 +178,7 @@
     {
       "id": "m0_l3_a4",
       "title": "Branch Cost",
-      "task": "Analyze IF/ELSE execution path.",
+      "task": "Implement branch(x) that returns 'IF' if x is truthy (non-zero and non-null), otherwise return 'ELSE'.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "branch(1)", "expected": "'IF'", "isHidden": false },
@@ -191,7 +191,7 @@
     {
       "id": "m0_l3_a5",
       "title": "Loop vs Math",
-      "task": "Compare multiplication vs repeated addition.",
+      "task": "Implement compare() that simulates repeated addition vs multiplication for computing 5 × 5, and return the final computed value 25.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "compare()", "expected": "25", "isHidden": false },
@@ -207,7 +207,7 @@
     {
       "id": "m0_l4_a1",
       "title": "Swap Variables",
-      "task": "Swap two values and return reversed array.",
+      "task": "Implement swap(a, b) that returns a list containing the two values in reversed order. If inputs are missing, return 'Error'.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "swap(1,2)", "expected": "[2,1]", "isHidden": false },
@@ -220,7 +220,7 @@
     {
       "id": "m0_l4_a2",
       "title": "Array Fill Trace",
-      "task": "Track array being filled step-by-step.",
+      "task": "Create fill(n) that returns a list containing numbers from 1 to n using iteration. If n ≤ 0, return an empty list.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "fill(3)", "expected": "[1,2,3]", "isHidden": false },
@@ -233,7 +233,7 @@
     {
       "id": "m0_l4_a3",
       "title": "Counter Memory",
-      "task": "Track variable increment over loop.",
+      "task": "Implement counter(n) that returns the final value of a counter variable after incrementing from 0 up to n using a loop. If n ≤ 0, return 0.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "counter(5)", "expected": "5", "isHidden": false },
@@ -246,7 +246,7 @@
     {
       "id": "m0_l4_a4",
       "title": "Scope Lifetime",
-      "task": "Check variable existence inside IF block.",
+      "task": "Implement scope(x) that returns 'exists' if x is non-zero (truthy) and 'none' otherwise.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "scope(1)", "expected": "'exists'", "isHidden": false },
@@ -259,7 +259,7 @@
     {
       "id": "m0_l4_a5",
       "title": "Pointer Movement",
-      "task": "Simulate left/right pointer movement.",
+      "task": "Simulate pointer movement between indices in an array. The function pointer() must return the resulting position state after movement logic is applied.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "pointer()", "expected": "[0,1]", "isHidden": false },

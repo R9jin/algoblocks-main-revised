@@ -195,10 +195,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     .filter(Boolean);
 };
 
-// ---------------------------
-// URL-driven offline-first loader
-// ---------------------------
-
 const ActivityApp = () => {
   const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
@@ -219,7 +215,6 @@ const ActivityApp = () => {
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const isDragging = useRef(false);
-  const hasLoadedRef = useRef(false);
 
   // UI state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -244,7 +239,7 @@ const ActivityApp = () => {
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const [lineExecutions, setLineExecutions] = useState({});
 
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [syntaxError, setSyntaxError] = useState(null);
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
@@ -253,18 +248,10 @@ const ActivityApp = () => {
 
   // Activity resolved data
   const [activityDataResolved, setActivityDataResolved] = useState(null);
-
-  // Lesson identity: module topic (lesson_X inside module activities json)
   const [topicIdResolved, setTopicIdResolved] = useState(null);
-
-  // Activities list (for UI selector)
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
 
-  const templatesDBDisabled = null; // kept for legacy; activity app resolves lesson identity without templates
-
-
   const totalTests = useMemo(() => activityDataResolved?.testCasesList?.length || 0, [activityDataResolved]);
-  const currentTask = activityDataResolved?.task ? activityDataResolved : null;
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -288,9 +275,7 @@ const ActivityApp = () => {
     };
   }, []);
 
-  // ---------------------------
   // Worker initialization
-  // ---------------------------
   const initWorker = () => {
     if (!workerRef.current) return;
 
@@ -409,77 +394,54 @@ const ActivityApp = () => {
     document.body.style.userSelect = "none";
   };
 
-  // ---------------------------
-  // Offline-first data fetching
-  // ---------------------------
-
+  // Network-First Cache Strategy
   const fetchJsonWithCache = async (cacheKey, url) => {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        try { await templatesDB.setItem(cacheKey, json); } catch (e) { /* ignore */ }
+        return json;
+      }
+    } catch (e) {
+      console.warn(`Network fetch failed for ${url}, falling back to cache.`);
+    }
+
     try {
       const cached = await templatesDB.getItem(cacheKey);
       if (cached) return cached;
-    } catch (e) {
-      // ignore cache read errors
-    }
+    } catch (e) { /* ignore */ }
 
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Fetch failed: ${url}`);
-    const json = await res.json();
-
-    try {
-      await templatesDB.setItem(cacheKey, json);
-    } catch (e) {
-      // ignore cache write errors
-    }
-
-    return json;
-  };
-
-  // Legacy fallback: we don’t know mapping at build-time.
-  // This will be attempted after module/activity lookup.
-  const legacyTemplateMapping = async () => {
-    // Best-effort compatibility: try to locate a matching template by scanning known template namespace if exists.
-    // This is intentionally weak: in older flows, ActivityApp used location.state.templatePath or ACTIVITY_TASKS.
-    // We cannot access those now.
-
-    // Compatibility layer: check if activityId is embedded in template JSON name.
-    // Known: templates appear under /public/templates/* where MainApp builds fixed system list.
-    // For activities, older version used `activities/...` prefixed paths.
-
-    const legacyCandidates = [
-      `activities/${activityId}`,
-      `${activityId}`,
-      `activity/${activityId}`,
-    ];
-
-    for (const p of legacyCandidates) {
-      // In both old naming styles, the file is likely `${p}.json`.
-      const url = p.startsWith("activities/") ? `/${p}.json` : `/templates/${p}.json`;
-      try {
-        const json = await fetchJsonWithCache(`template:${p}`, url);
-        return p;
-      } catch (e) {
-        // continue
-      }
-    }
-
-    return null;
+    throw new Error(`Fetch failed for ${url} and no cache available.`);
   };
 
   const resolveActivityFromModule = async () => {
-    // Fallback fetch source (URL-driven):
-    // - module data contains topics with activity IDs
-    // - activities data contains tasks + testCasesPool indexed by lesson_X
-    // We will try moduleId first as: /public/data/activities/module_{moduleId}.json
-
     const mid = String(moduleId).replace(/[^0-9]/g, "");
     if (!mid) throw new Error("Invalid moduleId");
 
-    // Try to fetch activity container for this module
+    const moduleUrl = `/data/modules/module_${mid}.json`;
+    const modulesJson = await fetchJsonWithCache(`modules:module_${mid}`, moduleUrl);
+
+    const topics = modulesJson?.topics || [];
+    let currentTopic = null;
+    let activitiesInTopic = [];
+
+    for (const t of topics) {
+      if (t?.activities?.some((a) => a?.id === activityId)) {
+        currentTopic = t;
+        activitiesInTopic = t.activities;
+        break;
+      }
+    }
+
+    if (!currentTopic) throw new Error("Activity not found in module topics");
+
+    setTopicIdResolved(currentTopic.id);
+    setLessonActivitiesResolved(activitiesInTopic);
+
     const activitiesUrl = `/data/activities/module_${mid}.json`;
     const activitiesJson = await fetchJsonWithCache(`activities:module_${mid}`, activitiesUrl);
 
-    // structure: { lesson_1: [ {id,title,task,randomizeTestCases,testCasesPool}... ], lesson_2: [...] }
-    // we must find activity object with id === activityId
     for (const [lessonKey, list] of Object.entries(activitiesJson || {})) {
       if (!Array.isArray(list)) continue;
       const found = list.find((x) => x && x.id === activityId);
@@ -496,8 +458,6 @@ const ActivityApp = () => {
           task: found.task,
           difficulty: found.difficulty || "Easy",
           testCasesList,
-          // template resolver may rely on lesson/ids; store extra metadata
-          _moduleLessonKey: lessonKey,
         };
       }
     }
@@ -513,7 +473,6 @@ const ActivityApp = () => {
     setIsEvaluating(false);
     setConsoleTab("output");
     setBottomPanel(null);
-    setConsoleOutput("Ready to run...\n");
     setExpandedTests({});
     setExpandedLines({});
     setSyntaxError(null);
@@ -523,47 +482,34 @@ const ActivityApp = () => {
     setIsEditingCode(false);
     pendingOutputRef.current = "";
     outputCountRef.current = 0;
-    hasLoadedRef.current = false;
   };
 
-  // Activity bootstrap: URL params -> activity JSON -> load Blockly (EMPTY workspace only)
   useEffect(() => {
     if (!moduleId || !activityId) return;
 
     resetActivitySessionState();
-
     let cancelled = false;
 
     const boot = async () => {
       try {
-        // 1) load only activity metadata (task + testcases) from module structure
         const resolvedActivity = await resolveActivityFromModule();
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
 
-        // 2) NEVER auto-load Blockly templates/blocks.
-        // Ensure workspace starts completely empty.
-        setTemplatePathResolved(null);
         if (workspaceRef.current?.clear) workspaceRef.current.clear();
-
         setViewMode("workspace");
         setIsEditingCode(false);
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
-        showToast("Failed to load activity.", "error");
+        showToast("Failed to load activity. Returning to path...", "error");
         if (!cancelled) navigate("/learning-path", { replace: true });
       }
     };
 
     boot();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [moduleId, activityId]);
 
-
-  // Analyze on code edits
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "") return;
 
@@ -597,7 +543,6 @@ const ActivityApp = () => {
         console.warn("Online analysis failed, falling back to local worker.", error);
       }
     }
-
     workerRef.current?.postMessage({ type: "ANALYZE_CODE", code });
   };
 
@@ -630,8 +575,10 @@ const ActivityApp = () => {
           title: "Sync Error",
           message: "Cannot sync to blocks until syntax errors are fixed.",
           confirmText: "Close",
+          cancelText: "Ok",
           isDanger: true,
           onConfirmAction: closeModal,
+          onCancelAction: closeModal,
         });
       }
     }
@@ -715,10 +662,9 @@ const ActivityApp = () => {
     }
   };
 
-  const saveLessonProgress = async (lessonId, score) => {
+  const savePartialProgress = async (lessonId, score) => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return;
-
     const user = JSON.parse(storedUser);
 
     if (!user.progress) user.progress = {};
@@ -731,13 +677,30 @@ const ActivityApp = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email, lesson_id: lessonId, score }),
       });
+    } catch (error) { /* ignore */ }
+  };
+
+  const completeFullTopic = async (topicId) => {
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return;
+    const user = JSON.parse(storedUser);
+
+    if (!user.progress) user.progress = {};
+    user.progress[topicId] = true;
+    localStorage.setItem("user", JSON.stringify(user));
+
+    try {
+      await fetch(`${VERCEL_URL}/api/update-progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, lesson_id: topicId, score: 100, completed: true }),
+      });
     } catch (error) {
-      // ignore
+      console.error("Failed to mark topic complete", error);
     }
   };
 
   const executeTest = async (codeToRun) => {
-    // run preflight either online (fast api) or local worker
     if (isOnline) {
       try {
         const response = await fetch(`${VERCEL_URL}/api/run`, {
@@ -807,76 +770,43 @@ const ActivityApp = () => {
     });
   };
 
-  const completeTopicAndAdvance = async (passed, total) => {
-    // Topic sequential progression: module -> topic -> activities[]
-    // If current activity is last, redirect to /learning-path (topic/module complete).
-    try {
-      const mid = String(moduleId).replace(/[^0-9]/g, "");
-      if (!mid) {
-        navigate("/learning-path", { replace: true });
-        return;
-      }
-
-      // Load full module JSON so we can locate current topic and its activities
-      const moduleUrl = `/data/modules/module_${mid}.json`;
-      const modulesJson = await fetchJsonWithCache(`modules:module_${mid}`, moduleUrl);
-
-      // Find topic containing current activityId
-      const topics = modulesJson?.topics || [];
-      let currentTopic = null;
-      for (const t of topics) {
-        const activities = t?.activities || [];
-        if (activities.some((a) => a?.id === activityId)) {
-          currentTopic = t;
-          break;
-        }
-      }
-
-      const activities = currentTopic?.activities || [];
-      const currentIndex = activities.findIndex((a) => a?.id === activityId);
-      const next = currentIndex >= 0 ? activities[currentIndex + 1] : null;
-
-      if (next?.id) {
-        // Deterministic navigation via URL only
-        // Fully reset state on activity switch
-        resetActivitySessionState();
-        setModalConfig((prev) => ({ ...prev, isOpen: false }));
-        navigate(`/activity/${mid}/${next.id}`, { replace: true });
-      } else {
-        // No next activity: mark topic/module complete via existing progress system
-        // UI uses userProgress[topic.id] === true for completion.
-        const topicId = currentTopic?.id;
-        if (topicId) {
-          const storedUser = localStorage.getItem("user");
-          if (storedUser) {
-            const user = JSON.parse(storedUser);
-            if (!user.progress) user.progress = {};
-            user.progress[topicId] = true;
-            localStorage.setItem("user", JSON.stringify(user));
-          }
-        }
-        closeModal();
-        navigate("/learning-path", { replace: true });
-      }
-    } catch (e) {
-      console.error("Failed to advance activity:", e);
-      closeModal();
-      navigate("/learning-path", { replace: true });
-    }
-  };
-
   const handleSuccess = (passed, total) => {
-    setModalConfig({
-      isOpen: true,
-      title: "Activity Completed! 🎉",
-      message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.`,
-      confirmText: "Continue",
-      isDanger: false,
-      onConfirmAction: () => {
-        closeModal();
-        completeTopicAndAdvance(passed, total);
-      },
-    });
+    const currentIndex = lessonActivitiesResolved.findIndex(a => a.id === activityId);
+    const isLast = currentIndex === lessonActivitiesResolved.length - 1;
+    const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
+
+    if (!isLast && nextActivity) {
+      setModalConfig({
+        isOpen: true,
+        title: "Activity Completed! 🎉",
+        message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.\n\nReady to solve the next activity?`,
+        confirmText: "Next Activity",
+        cancelText: "Stay Here",
+        isDanger: false,
+        onConfirmAction: () => {
+          closeModal();
+          navigate(`/activity/${moduleId}/${nextActivity.id}`);
+        },
+        onCancelAction: closeModal,
+      });
+    } else {
+      setModalConfig({
+        isOpen: true,
+        title: "Lesson Completed! 🏆",
+        message: `Incredible! You have finished all activities in this lesson.\n\nReturn to the learning path to unlock the next topic.`,
+        confirmText: "Finish Lesson",
+        cancelText: "Stay Here",
+        isDanger: false,
+        onConfirmAction: async () => {
+          closeModal();
+          if (topicIdResolved) {
+            await completeFullTopic(topicIdResolved);
+          }
+          navigate("/learning-path");
+        },
+        onCancelAction: closeModal,
+      });
+    }
   };
 
   const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
@@ -952,7 +882,12 @@ const ActivityApp = () => {
 
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
         if (!testPassed) {
-          fullOutput += `   Expected: ${expected}\n   Actual: ${actualOutput}\n`;
+          // FEATURE: Hide outputs for hidden test cases in the console
+          if (tc.isHidden) {
+            fullOutput += `   [Hidden Test Case] Expected values and inputs are omitted.\n`;
+          } else {
+            fullOutput += `   Expected: ${expected}\n   Actual: ${actualOutput}\n`;
+          }
         }
         fullOutput += "\n";
 
@@ -962,13 +897,8 @@ const ActivityApp = () => {
         if (passed === total && total > 0) {
           handleSuccess(passed, total);
         } else {
-          // Optional persistence for partial progress. Use deterministic identity based on moduleId+activityId.
-          const storedUser = localStorage.getItem("user");
-          if (storedUser) {
-            const user = JSON.parse(storedUser);
-            const lessonKey = `${moduleId}:${activityId}`;
-            await saveLessonProgress(lessonKey, passed);
-          }
+          const lessonKey = `${moduleId}:${activityId}`;
+          await savePartialProgress(lessonKey, passed);
         }
       } catch (err) {
         fullOutput += `Test ${i + 1}: ERROR\n   Message: ${err.message}\n\n`;
@@ -979,7 +909,6 @@ const ActivityApp = () => {
     setIsEvaluating(false);
   };
 
-  // Complexity UI calculations
   const lines = analysisResult?.lines || [];
   let maxWeight = 0;
   let bottleneckIndices = [];
@@ -1044,7 +973,28 @@ const ActivityApp = () => {
 
       <Split className={`activity-main-layout ${!isLeftPanelVisible ? "left-hidden" : ""}`} sizes={[25, 50, 25]} minSize={[isLeftPanelVisible ? 250 : 0, 400, 250]} gutterSize={8}>
         <aside className="activity-left-panel">
-          <div className="activity-panel-header">
+          
+          {lessonActivitiesResolved.length > 0 && (
+            <div className="activity-selector-container">
+              <label className="activity-selector-label">
+                <img src="/assets/learning-icon.png" alt="List" style={{ width: "16px", height: "16px" }} />
+                Lesson Outline
+              </label>
+              <select
+                className="activity-selector-dropdown"
+                value={activityId}
+                onChange={(e) => navigate(`/activity/${moduleId}/${e.target.value}`)}
+              >
+                {lessonActivitiesResolved.map((act, index) => (
+                  <option key={act.id} value={act.id}>
+                    {index + 1}. {act.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="activity-panel-header" style={{ paddingTop: "15px" }}>
             <h2>
               <img src="/assets/console-icon.png" alt="Icon" style={{ width: "24px" }} /> Description
             </h2>
@@ -1092,7 +1042,7 @@ const ActivityApp = () => {
 
           <div className="editor-container" style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
             <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ display: viewMode === "workspace" ? "block" : "none", height: "100%" }}>
-              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} templatePath={templatePathResolved} syntaxError={syntaxError} />
+              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={syntaxError} />
             </div>
 
             <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"} style={{ display: viewMode === "python" ? "flex" : "none", flexDirection: "column", height: "100%", background: "#1C1236" }}>
@@ -1392,8 +1342,10 @@ const ActivityApp = () => {
                     title: "Restart Activity?",
                     message: "Are you sure you want to restart this activity? Your progress will be lost.",
                     confirmText: "Restart",
+                    cancelText: "Cancel",
                     isDanger: true,
                     onConfirmAction: () => window.location.reload(),
+                    onCancelAction: closeModal,
                   })
                 }
                 title="Restart Activity"
@@ -1424,15 +1376,29 @@ const ActivityApp = () => {
 
               return (
                 <div key={i} className={`test-case-card ${statusClass}`}>
-                  <div className="test-case-header" onClick={() => toggleTest(i)}>
+                  {/* FEATURE: Block click handler if the test case is hidden */}
+                  <div 
+                    className="test-case-header" 
+                    onClick={() => !tc.isHidden && toggleTest(i)}
+                    style={{ cursor: tc.isHidden ? "default" : "pointer" }}
+                  >
                     <div className="test-case-header-left">
                       <div className={`test-case-indicator ${statusClass}`}></div>
-                      <strong className="test-case-title">Test {i + 1}</strong>
+                      <strong className="test-case-title">
+                        {/* Rename hidden test dynamically */}
+                        {tc.isHidden ? `Hidden Test ${i + 1}` : `Test ${i + 1}`}
+                      </strong>
                     </div>
-                    <span className={`test-case-chevron ${isExpanded ? "open" : ""}`}>❯</span>
+                    {/* FEATURE: Lock icon instead of chevron for hidden tests */}
+                    {tc.isHidden ? (
+                      <span style={{ fontSize: "0.85rem", opacity: 0.6 }}>🔒</span>
+                    ) : (
+                      <span className={`test-case-chevron ${isExpanded ? "open" : ""}`}>❯</span>
+                    )}
                   </div>
 
-                  {isExpanded && (
+                  {/* FEATURE: Prevent details div from ever rendering if hidden */}
+                  {isExpanded && !tc.isHidden && (
                     <div className="test-case-details">
                       <div className="test-case-row">
                         <span className="test-case-label">Input:</span>
@@ -1465,8 +1431,9 @@ const ActivityApp = () => {
         title={modalConfig.title}
         message={modalConfig.message}
         confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
         isDanger={modalConfig.isDanger}
-        onCancel={closeModal}
+        onCancel={modalConfig.onCancelAction || closeModal}
         onConfirm={modalConfig.onConfirmAction}
       />
 
@@ -1476,4 +1443,3 @@ const ActivityApp = () => {
 };
 
 export default ActivityApp;
-

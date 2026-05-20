@@ -12,7 +12,6 @@
         { "call": "cache_seq(-3)", "expected": "[]", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l1_a2",
       "title": "Cache Lookup",
@@ -25,7 +24,6 @@
         { "call": "cache_lookup([0],0)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l1_a3",
       "title": "Top-Down Blueprint",
@@ -38,7 +36,6 @@
         { "call": "top_down_fib(1)", "expected": "1", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l1_a4",
       "title": "Bottom-Up Build",
@@ -51,7 +48,6 @@
         { "call": "bottom_up_fib(1)", "expected": "[0,1]", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l1_a5",
       "title": "Execution Comparison",
@@ -79,7 +75,6 @@
         { "call": "fib_naive(1)", "expected": "1", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l2_a2",
       "title": "Memoized Fibonacci",
@@ -92,7 +87,6 @@
         { "call": "fib_memo(1)", "expected": "1", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l2_a3",
       "title": "Tabulated Fibonacci",
@@ -105,7 +99,6 @@
         { "call": "fib_table(1)", "expected": "[0,1]", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l2_a4",
       "title": "Space-Optimized Fibonacci",
@@ -118,7 +111,6 @@
         { "call": "fib_opt(1)", "expected": "1", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l2_a5",
       "title": "Sequence Generator",
@@ -146,7 +138,6 @@
         { "call": "knap_init(2,0)", "expected": "[[],[]]", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l3_a2",
       "title": "Include/Exclude Choice",
@@ -159,7 +150,6 @@
         { "call": "knap_choice([1],[10],0)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l3_a3",
       "title": "Knapsack Matrix",
@@ -172,7 +162,6 @@
         { "call": "knapsack([],[],10)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l3_a4",
       "title": "Traceback Items",
@@ -185,7 +174,6 @@
         { "call": "knap_trace([1],[10],0)", "expected": "[]", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l3_a5",
       "title": "Capacity Tracker",
@@ -213,7 +201,6 @@
         { "call": "lcs_init('XYZ','XYZ')", "expected": "4x4_matrix", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l4_a2",
       "title": "Character Match Logic",
@@ -226,7 +213,6 @@
         { "call": "lcs_match('','A')", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l4_a3",
       "title": "Full LCS Table",
@@ -239,7 +225,6 @@
         { "call": "lcs_length('XYZ','ABC')", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l4_a4",
       "title": "Reconstruct LCS String",
@@ -252,7 +237,6 @@
         { "call": "lcs_string('XYZ','ABC')", "expected": "", "isHidden": true }
       ]
     },
-
     {
       "id": "m5_l4_a5",
       "title": "Backtrack Steps",
