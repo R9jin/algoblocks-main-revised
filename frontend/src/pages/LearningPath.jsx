@@ -85,20 +85,25 @@ export default function LearningPath() {
   };
 
   // =========================================
-  // START LESSON
+  // START LESSON (Dynamic Routing)
   // =========================================
   const handleStartLesson = (topic) => {
-    // Deterministic activity selection: first activity in the topic.
-    const activityId = topic?.activities?.[0]?.id;
-
     // Determine moduleId by searching modules in current state.
     const moduleId = modules.find((m) => m?.topics?.some((t) => t?.id === topic?.id))?.id;
 
-    // Strict routing requirement: if missing anything, go back to learning path.
-    if (!moduleId || !activityId) {
+    if (!moduleId || !topic.activities || topic.activities.length === 0) {
       navigate("/learning-path", { replace: true });
       return;
     }
+
+    // Find the first activity that hasn't been passed yet (score < 1)
+    const firstUnpassedActivity = topic.activities.find((act) => {
+      const actKey = `${moduleId}:${act.id}`;
+      return (userProgress[actKey] || 0) < 1;
+    });
+
+    // If all are passed, fallback to the first activity for review
+    const activityId = firstUnpassedActivity ? firstUnpassedActivity.id : topic.activities[0].id;
 
     navigate(`/activity/${moduleId}/${activityId}`);
   };
@@ -114,9 +119,20 @@ export default function LearningPath() {
   // =========================================
   // FLATTEN TOPICS FOR SEQUENTIAL UNLOCKING
   // =========================================
-  const allTopicsFlattened = modules.flatMap(
-    (mod) => mod.topics
+  const allTopicsFlattened = modules.flatMap((mod) =>
+    mod.topics.map((topic) => ({ ...topic, moduleId: mod.id }))
   );
+
+  // Helper function to check if ALL activities in a topic have a passing score (>= 1)
+  const checkTopicCompleted = (topicObj) => {
+    if (userProgress[topicObj.id] === true) return true; // Legacy fallback
+    if (!topicObj.activities || topicObj.activities.length === 0) return false;
+
+    return topicObj.activities.every((act) => {
+      const actKey = `${topicObj.moduleId}:${act.id}`;
+      return (userProgress[actKey] || 0) >= 1;
+    });
+  };
 
   return (
     <div className="learning-path-page">
@@ -148,8 +164,7 @@ export default function LearningPath() {
 
         {/* INFO */}
         <div className="lp-info-box">
-          Complete lesson activities to unlock
-          the next lessons.
+          Complete all activities in a lesson to unlock the next one.
         </div>
 
         {/* MODULES */}
@@ -190,6 +205,8 @@ export default function LearningPath() {
 
                   const isExpanded =
                     expandedTopic === topic.id;
+                  
+                  const topicWithModule = { ...topic, moduleId: mod.id };
 
                   // =====================================
                   // UNLOCK LOGIC
@@ -205,18 +222,21 @@ export default function LearningPath() {
                     const prevTopic =
                       allTopicsFlattened[flatIndex - 1];
 
-                    isUnlocked =
-                      userProgress[prevTopic.id] === true;
+                    isUnlocked = checkTopicCompleted(prevTopic);
                   }
 
                   // =====================================
-                  // PROGRESS
+                  // PROGRESS TRACKING
                   // =====================================
-                  const completed =
-                    userProgress[topic.id] === true;
+                  const completed = checkTopicCompleted(topicWithModule);
 
                   const totalActivities =
                     topic.activities?.length || 0;
+                  
+                  const passedActivities = (topic.activities || []).filter((act) => {
+                    const actKey = `${mod.id}:${act.id}`;
+                    return (userProgress[actKey] || 0) >= 1;
+                  }).length;
 
                   return (
                     <div
@@ -268,7 +288,7 @@ export default function LearningPath() {
                             </span>
                           ) : (
                             <span className="pending-badge">
-                              {totalActivities} Activities
+                              {passedActivities}/{totalActivities} Passed
                             </span>
                           )}
 
@@ -294,7 +314,7 @@ export default function LearningPath() {
                           <div className="lp-topic-footer">
 
                             <span className="lp-test-cases">
-                              {totalActivities} Activities
+                              {passedActivities} of {totalActivities} Activities Passed
                             </span>
 
                             <button
@@ -309,7 +329,7 @@ export default function LearningPath() {
                             >
                               {completed
                                 ? "Review Lesson"
-                                : "Start Activity"}
+                                : passedActivities > 0 ? "Continue Activity" : "Start Activity"}
                             </button>
 
                           </div>

@@ -1,5 +1,4 @@
 import Editor from "@monaco-editor/react";
-import localforage from "localforage";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
@@ -14,14 +13,8 @@ import "../styles/ActivityApp.css";
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
-import { templatesDB } from "../db.js";
+import { submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
-
-// --- Setup IndexedDB for Activity Drafts ---
-const draftsDB = localforage.createInstance({
-  name: "AlgoBlocks",
-  storeName: "activity_drafts"
-});
 
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("algoblocks-purple", {
@@ -502,63 +495,48 @@ const ActivityApp = () => {
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
 
-        // --- DRAFT LOADING PIPELINE (MONGODB -> INDEXEDDB) ---
-        let loadedDraft = null;
+        // --- SUBMISSION LOADING PIPELINE (MONGODB -> INDEXEDDB) ---
+        const storedUser = localStorage.getItem("user");
+        let loadedSubmission = null;
 
-        if (navigator.onLine) {
-          const storedUser = localStorage.getItem("user");
-          if (storedUser) {
-            const user = JSON.parse(storedUser);
-            try {
-              const res = await fetch(`${VERCEL_URL}/api/get-activity-draft?email=${user.email}&lesson_id=${moduleId}:${activityId}`);
-              if (res.ok) {
-                const data = await res.json();
-                if (data && data.draft) {
-                  loadedDraft = {
-                    json: data.draft.json_data ? JSON.parse(data.draft.json_data) : null,
-                    pythonCode: data.draft.python_code
-                  };
-                  // Sync fetched cloud draft down to IndexedDB
-                  await draftsDB.setItem(`draft_${moduleId}_${activityId}`, loadedDraft);
+        if (storedUser) {
+           const user = JSON.parse(storedUser);
+           const submissionId = `${user.email}_${moduleId}_${activityId}`;
+           
+           try {
+             // Try fetching from local IndexedDB first
+             loadedSubmission = await submissionsDB.getItem(submissionId);
+             
+             // If not found locally, fetch from cloud
+             if (!loadedSubmission && navigator.onLine) {
+                const res = await fetch(`${VERCEL_URL}/api/get-submission?email=${user.email}&activityId=${activityId}`);
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data && data.submission) {
+                     loadedSubmission = data.submission;
+                     await submissionsDB.setItem(submissionId, loadedSubmission);
+                  }
                 }
-              }
-            } catch (e) {
-              console.warn("Failed to fetch cloud draft, falling back to IndexedDB.", e);
-            }
-          }
+             }
+           } catch (e) { console.error("Restoration error", e); }
         }
 
-        // Fallback to local IndexedDB draft if cloud fetch failed
-        if (!loadedDraft) {
+        // Apply Submission Restoration
+        if (loadedSubmission) {
           try {
-            loadedDraft = await draftsDB.getItem(`draft_${moduleId}_${activityId}`);
-          } catch(e) {
-            console.error("Failed to read from IndexedDB", e);
-          }
-        }
-
-        // Migrate Old localStorage implementation (if present)
-        if (!loadedDraft) {
-          const oldSavedDraft = localStorage.getItem(`activity_draft_${moduleId}_${activityId}`);
-          if (oldSavedDraft) {
-            try {
-              loadedDraft = JSON.parse(oldSavedDraft);
-              await draftsDB.setItem(`draft_${moduleId}_${activityId}`, loadedDraft);
-              localStorage.removeItem(`activity_draft_${moduleId}_${activityId}`);
-            } catch (e) { /* ignore parse errors */ }
-          }
-        }
-
-        // Apply whatever draft we found
-        if (loadedDraft) {
-          try {
-            const { json, pythonCode } = loadedDraft;
-            latestBlocksJsonRef.current = json; // Populate ref for pure code editing
+            const json = loadedSubmission.workspace?.blocklyJson;
+            const pythonCode = loadedSubmission.pythonCode;
+            latestBlocksJsonRef.current = json; 
             
             if (workspaceRef.current?.loadTemplate && json) {
               workspaceRef.current.loadTemplate(json);
             }
             if (pythonCode) setGeneratedPython(pythonCode);
+
+            // Restore Score UI
+            if (loadedSubmission.score !== undefined) {
+               setPassedTests(loadedSubmission.passedTests || 0);
+            }
           } catch (e) {
             if (workspaceRef.current?.clear) workspaceRef.current.clear();
           }
@@ -567,7 +545,7 @@ const ActivityApp = () => {
         }
         // -----------------------------------------------------
 
-        // Load saved test results for the UI Panel
+        // Load saved test results for the UI Panel (Terminal output history)
         const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
         if (savedTests) {
           try {
@@ -593,7 +571,53 @@ const ActivityApp = () => {
   }, [moduleId, activityId]);
 
   // --- AUTOMATIC SYNC TO INDEXEDDB + MONGODB ---
-  const saveDraft = (json, pythonCode) => {
+  const saveSubmission = async (json, pythonCode, score = 0, passed = 0, total = 0, testResults = []) => {
+    if (!moduleId || !activityId) return;
+    
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return;
+    const user = JSON.parse(storedUser);
+
+    const submissionId = `${user.email}_${moduleId}_${activityId}`;
+    const payload = {
+      userId: user.email,
+      moduleId,
+      activityId,
+      status: score >= 1 ? "passed" : "failed",
+      score,
+      maxScore: 5,
+      passedTestCases: passed,
+      totalTestCases: total,
+      testCases: testResults,
+      workspace: { blocklyJson: json },
+      pythonCode,
+      submittedAt: new Date().toISOString(),
+      isSynced: false
+    };
+
+    // 1. Save locally to IndexedDB immediately
+    await submissionsDB.setItem(submissionId, payload);
+
+    // 2. Sync / Queue
+    if (navigator.onLine) {
+      try {
+        await fetch(`${VERCEL_URL}/api/sync-submission`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        payload.isSynced = true;
+        await submissionsDB.setItem(submissionId, payload);
+      } catch (e) {
+        // Fallback to queue
+        await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+      }
+    } else {
+      await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+    }
+  };
+
+  const handleWorkspaceAutoSave = (json, pythonCode) => {
     if (!moduleId || !activityId) return;
 
     if (saveDraftTimeoutRef.current) {
@@ -601,37 +625,8 @@ const ActivityApp = () => {
     }
 
     saveDraftTimeoutRef.current = setTimeout(async () => {
-      const draftKey = `draft_${moduleId}_${activityId}`;
-      const payload = { json, pythonCode, updatedAt: new Date().toISOString() };
-
-      // 1. Save to Local IndexedDB
-      try {
-        await draftsDB.setItem(draftKey, payload);
-      } catch (e) {
-        console.error("IndexedDB Save Error:", e);
-      }
-
-      // 2. Sync to MongoDB (Cloud)
-      if (navigator.onLine) {
-        const storedUser = localStorage.getItem("user");
-        if (!storedUser) return;
-        const user = JSON.parse(storedUser);
-
-        try {
-          await fetch(`${VERCEL_URL}/api/save-activity-draft`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: user.email,
-              lesson_id: `${moduleId}:${activityId}`,
-              json_data: json ? JSON.stringify(json) : null,
-              python_code: pythonCode
-            }),
-          });
-        } catch (e) {
-          console.warn("MongoDB sync failed:", e);
-        }
-      }
+        // Just keep the local tracking updated as a 'failed' or 0 score state for auto-save
+        await saveSubmission(json, pythonCode, 0, 0, totalTests, []);
     }, 1000); // 1 Second Debounce
   };
 
@@ -678,13 +673,12 @@ const ActivityApp = () => {
   }, [generatedPython, isEditingCode, isOnline]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
-    latestBlocksJsonRef.current = json; // Keep ref updated for pure-python edge case
+    latestBlocksJsonRef.current = json; 
 
     const oldCode = (generatedPython || "").trim();
     const newCode = (pythonCode || "").trim();
 
-    // Trigger Unified Save System
-    saveDraft(json, pythonCode);
+    handleWorkspaceAutoSave(json, pythonCode);
 
     if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
@@ -900,16 +894,16 @@ const ActivityApp = () => {
     });
   };
 
-  const handleSuccess = (passed, total) => {
+  const handleSuccess = (score, maxScore) => {
     const currentIndex = lessonActivitiesResolved.findIndex(a => a.id === activityId);
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
 
     let promptMsg = "";
-    if (passed === total) {
-      promptMsg = `Excellent work! You successfully passed all ${total} test cases.\n\nReady to solve the next activity?`;
+    if (score === maxScore) {
+      promptMsg = `Perfect execution! You earned a maximum score of ${score}/${maxScore}.\n\nReady for the next challenge?`;
     } else {
-      promptMsg = `Good job! You passed the required visible tests.\n(Your overall score is ${passed}/${total} because of hidden tests).\n\nReady to solve the next activity?`;
+      promptMsg = `Good effort! You met the minimum passing requirements with a score of ${score}/${maxScore}.\n(Hidden test cases or slight inefficiencies reduced your score).\n\nReady to proceed?`;
     }
 
     if (!isLast && nextActivity) {
@@ -1055,16 +1049,31 @@ const ActivityApp = () => {
 
     setIsEvaluating(false);
     
+    // Dynamic Scoring Rule
+    const score = passed === 0 ? 0 : Math.max(1, Math.round((passed / total) * 5));
+
+    // Construct detailed test results for persistence
+    const testResults = testCases.map((tc, idx) => ({
+      id: `tc_${idx}`,
+      status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed"
+    }));
+
+    // Trigger Unified Submission Save
+    await saveSubmission(latestBlocksJsonRef.current, generatedPython, score, passed, total, testResults);
+    
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({
       consoleOutput: fullOutput,
-      passedTests: passed
+      passedTests: passed,
+      score: score
     }));
     
+    // Partial progress compile rule
     const lessonKey = `${moduleId}:${activityId}`;
-    await savePartialProgress(lessonKey, passed);
+    await savePartialProgress(lessonKey, score);
 
-    if (visiblePassed === visibleTotal && visibleTotal > 0) {
-      handleSuccess(passed, total);
+    // Progression Unlock Rule: Score >= 1
+    if (score >= 1) {
+      handleSuccess(score, 5);
     }
   };
 
@@ -1235,7 +1244,7 @@ const ActivityApp = () => {
                     if (syntaxError) setSyntaxError(null);
                     
                     // Unified save for pure python typers
-                    saveDraft(latestBlocksJsonRef.current, newCode);
+                    handleWorkspaceAutoSave(latestBlocksJsonRef.current, newCode);
                   }}
                   options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "'Fira Code', Consolas, Monaco, monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }}
                 />
@@ -1509,9 +1518,13 @@ const ActivityApp = () => {
                     isDanger: true,
                     onConfirmAction: () => {
                       // --- UPDATED: Clear DB, sync empty, and clear tests ---
-                      draftsDB.removeItem(`draft_${moduleId}_${activityId}`);
+                      const storedUser = localStorage.getItem("user");
+                      if (storedUser) {
+                        const user = JSON.parse(storedUser);
+                        submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`);
+                      }
                       localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
-                      saveDraft(null, "# Drag blocks to generate Python code"); // Overwrite on backend
+                      saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, []); 
                       
                       window.location.reload();
                     },
