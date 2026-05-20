@@ -7,26 +7,32 @@ import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from '../components/ComplexityGraph.jsx';
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
-import TestCaseTester from "../components/TestCaseTester.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
+// 1. Import the activities tasks JSON directly
+import ACTIVITY_TASKS from "../data/activities.json";
+
+// --- IMPORT MONACO EDITOR & TRANSLATOR ---
 import Editor from "@monaco-editor/react";
 import { translatePythonError } from "../utils/errorTranslator.js";
+
+// Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
+// --- Custom Monaco Theme Injection ---
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme('algoblocks-purple', {
     base: 'vs-dark',
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#1C1236',
-      'editor.foreground': '#EBE4FF',
-      'editorLineNumber.foreground': '#6C5CE7',
-      'editor.lineHighlightBackground': '#2D234A',
-      'editorCursor.foreground': '#FFFFFF',
-      'editor.selectionBackground': '#6C5CE755',
+      'editor.background': '#1C1236', 
+      'editor.foreground': '#EBE4FF', 
+      'editorLineNumber.foreground': '#6C5CE7', 
+      'editor.lineHighlightBackground': '#2D234A', 
+      'editorCursor.foreground': '#FFFFFF', 
+      'editor.selectionBackground': '#6C5CE755', 
       'editor.inactiveSelectionBackground': '#6C5CE733'
     }
   });
@@ -55,6 +61,7 @@ const getComplexityColor = (complexity) => {
 
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+
   if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
   if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("t(n-1)+t(n-2)")) return 8;
   if (comp.includes("n^3") || comp.includes("n³")) return 7;
@@ -65,38 +72,77 @@ const getComplexityWeight = (complexity) => {
   if (comp.includes("√n") || comp.includes("sqrt")) return 3;
   if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
   if (comp.includes("o(1)")) return 1;
+
   return 0;
 };
 
+// --- EMOJI-FREE UI FORMATTER ---
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
+  
   return sections.map((sec, idx) => {
     const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)/s);
+    
     if (match) {
       const title = match[1].replace(/:$/, '').trim();
       const content = match[2].replace(/^:/, '').trim();
       const titleLower = title.toLowerCase();
+      
       let type = null;
 
-      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) type = 'warning';
-      else if (titleLower.includes('tip') || titleLower.includes('insight')) type = 'praise';
-      else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) type = 'praise';
+      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) {
+        type = 'warning';
+      } else if (titleLower.includes('tip') || titleLower.includes('insight')) {
+        type = 'tip';
+      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) {
+        type = 'praise';
+      }
 
-      if (!type) return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
-      if (type === 'warning' && (isLocalTab || !isBottleneck)) return null;
+      if (!type) {
+        return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
+      }
 
-      let bgColor = type === 'warning' ? 'rgba(255, 55, 95, 0.08)' : type === 'tip' ? 'rgba(52, 152, 219, 0.08)' : 'rgba(46, 204, 113, 0.08)';
-      let borderColor = type === 'warning' ? '#ff375f' : type === 'tip' ? '#3498db' : '#2ecc71';
-      let titleColor = type === 'warning' ? '#d63031' : type === 'tip' ? '#2980b9' : '#27ae60';
+      if (type === 'warning' && (isLocalTab || !isBottleneck)) {
+        return null;
+      }
+
+      let bgColor = 'rgba(0,0,0,0.05)';
+      let borderColor = '#888';
+      let titleColor = '#333';
+
+      if (type === 'warning') {
+        bgColor = 'rgba(255, 55, 95, 0.08)';
+        borderColor = '#ff375f';
+        titleColor = '#d63031';
+      } else if (type === 'tip') {
+        bgColor = 'rgba(52, 152, 219, 0.08)';
+        borderColor = '#3498db';
+        titleColor = '#2980b9';
+      } else if (type === 'praise') {
+        bgColor = 'rgba(46, 204, 113, 0.08)';
+        borderColor = '#2ecc71';
+        titleColor = '#27ae60';
+      }
 
       return (
-        <div key={idx} style={{ marginTop: '12px', padding: '10px 14px', backgroundColor: bgColor, borderLeft: `4px solid ${borderColor}`, borderRadius: '0 6px 6px 0' }}>
-          <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{title}</strong>
-          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>{content}</p>
+        <div key={idx} style={{ 
+          marginTop: '12px', 
+          padding: '10px 14px', 
+          backgroundColor: bgColor, 
+          borderLeft: `4px solid ${borderColor}`,
+          borderRadius: '0 6px 6px 0'
+        }}>
+          <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+            {title}
+          </strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+            {content}
+          </p>
         </div>
       );
     }
+
     return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}>{sec.trim()}</p>;
   }).filter(Boolean);
 };
@@ -106,7 +152,8 @@ const ActivityApp = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-
+  
+  // --- REFS (Completely synchronized with MainApp) ---
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
@@ -115,42 +162,24 @@ const ActivityApp = () => {
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const isDragging = useRef(false);
+  const hasLoadedRef = useRef(false);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const activityData = location.state?.activityData || null;
+  const initialTemplate = location.state?.templatePath || location.state?.activityData?.templatePath || "";
+  const currentTask = ACTIVITY_TASKS.find((t) => t.templatePath === initialTemplate);
+  const totalTests = activityData?.testCasesList?.length || 0;
 
-  // --- FIX: Persist state to survive page refreshes ---
-  const activeState = location.state || JSON.parse(sessionStorage.getItem("activityState")) || {};
-
-  useEffect(() => {
-    if (location.state) {
-      sessionStorage.setItem("activityState", JSON.stringify(location.state));
-    }
-  }, [location.state]);
-
-  // ==========================================
-  // EXTRACT TOPIC / ACTIVITY DATA
-  // ==========================================
-  const topicData = activeState?.topicData || null;
-  const standaloneActivity = activeState?.activityData || null;
-  const isTopicMode = !!topicData;
-
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [passedActivities, setPassedActivities] = useState(new Set());
-
-  const activitiesList = standaloneActivity ? [standaloneActivity] : (topicData?.activities || []);
-
-  // Initialize with the base task to prevent premature redirects
-  const [currentTask, setCurrentTask] = useState(activitiesList[currentIndex] || null);
-  
-  const testCasesArray = currentTask?.testCasesPool || currentTask?.testCases || currentTask?.testCasesList || [];
-  
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [viewMode, setViewMode] = useState("workspace");
+  const [passedTests, setPassedTests] = useState(0);
 
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
+  const [expandedTests, setExpandedTests] = useState({ 0: true });
   const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleTab, setConsoleTab] = useState("output");
   const [activeTab, setActiveTab] = useState("local");
@@ -175,27 +204,30 @@ const ActivityApp = () => {
   };
 
   useEffect(() => {
-    if (!currentTask) {
-      navigate("/learning-path");
-    }
-  }, [currentTask, navigate]);
-
-  useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
+  // --- WORKER INITIALIZATION (Synchronized with MainApp Output Chunks & Flood Guard) ---
   const initWorker = () => {
     if (!workerRef.current) return;
+
     workerRef.current.onmessage = (event) => {
       const { type, data, counts } = event.data;
+
       if (type === 'ANALYZE_RESULT') {
         if (data.status === "success") {
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+
           const initialCounts = {};
           (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts);
@@ -206,22 +238,26 @@ const ActivityApp = () => {
         }
       }
       else if (type === 'RUN_RESULT') {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
         if (counts) setLineExecutions(counts);
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
-        outputCountRef.current += 1; pendingOutputRef.current += data;
+        outputCountRef.current += 1;
+        pendingOutputRef.current += data;
         if (outputCountRef.current > 5000) {
           clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
           workerRef.current.terminate();
           workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-          workerRef.current.postMessage({ type: 'INIT_ENGINE' }); initWorker();
+          workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+          initWorker();
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-          setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected.\nSuggestion: Check loop conditions.\n");
+          setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
           setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
         }
       }
@@ -244,12 +280,17 @@ const ActivityApp = () => {
   useEffect(() => {
     workerRef.current = sharedAnalyzerWorker;
     initWorker();
-    return () => { clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); };
+    return () => {
+      clearTimeout(runTimeoutRef.current);
+      clearInterval(renderIntervalRef.current);
+    };
   }, []);
 
   const toggleLine = (index) => { setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] })); };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
+
+  useEffect(() => { if (!activityData) navigate("/learning-path"); }, [activityData, navigate]);
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === 'output') {
@@ -266,22 +307,32 @@ const ActivityApp = () => {
     const handleMouseUp = () => {
       if (!isDragging.current) return;
       isDragging.current = false;
-      document.body.style.cursor = "default"; document.body.style.userSelect = "auto";
+      document.body.style.cursor = "default";
+      document.body.style.userSelect = "auto";
     };
-    document.addEventListener("mousemove", handleMouseMove); document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
     return () => { document.removeEventListener("mousemove", handleMouseMove); document.removeEventListener("mouseup", handleMouseUp); };
   }, []);
 
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "") return;
+
     if (isOnline) {
       try {
-        const response = await fetch(`${VERCEL_URL}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+        const response = await fetch(`${VERCEL_URL}/api/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code })
+        });
+
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
         const data = await response.json();
+
         if (data.status === "success") {
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+
           const initialCounts = {};
           (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts);
@@ -295,94 +346,44 @@ const ActivityApp = () => {
         console.warn("Online analysis failed, falling back to local worker.", error);
       }
     }
-    if (workerRef.current) workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
-  };
 
-  // Fetch full task details (description, test cases) when navigating activities
-  useEffect(() => {
-    const baseTask = activitiesList[currentIndex];
-    if (!baseTask) return;
-
-    // If the task already has the description loaded, use it directly
-    if (baseTask.task || baseTask.description) {
-      setCurrentTask(baseTask);
-      return;
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
     }
-
-    const fetchTaskDetails = async () => {
-      try {
-        // 1. Check if it follows the module naming convention (e.g., m0_l1_a1)
-        const match = baseTask.id.match(/^m(\d+)_/);
-        if (match) {
-          const modNum = match[1];
-          const res = await fetch(`/data/activities/module_${modNum}.json`);
-          if (res.ok) {
-            const data = await res.json();
-            for (const key in data) {
-              const found = data[key].find((a) => a.id === baseTask.id);
-              if (found) {
-                // Merge the base info with the fetched rich details
-                setCurrentTask({ ...baseTask, ...found });
-                return;
-              }
-            }
-          }
-        }
-
-        // 2. Fallback: check the general activities.json
-        const generalRes = await fetch('/data/activities.json');
-        if (generalRes.ok) {
-          const generalData = await generalRes.json();
-          const found = generalData.find((a) => a.id === baseTask.id);
-          if (found) {
-            setCurrentTask({ ...baseTask, ...found });
-            return;
-          }
-        }
-
-        // If not found in any file, just use the base info
-        setCurrentTask(baseTask);
-      } catch (err) {
-        console.error("Failed to load rich task details:", err);
-        setCurrentTask(baseTask);
-      }
-    };
-
-    fetchTaskDetails();
-  }, [currentIndex, activitiesList]);
+  };
 
   useEffect(() => {
     if (!isEditingCode) return;
-    const timeoutId = setTimeout(() => { analyzeCode(generatedPython); }, 500);
+    const timeoutId = setTimeout(() => {
+      analyzeCode(generatedPython);
+    }, 500);
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode, isOnline]);
 
-  // ==========================================
-  // DYNAMICALLY LOAD THE WORKSPACE PER TASK
-  // ==========================================
   useEffect(() => {
-    if (!workspaceRef.current || !currentTask) return;
+    if (!workspaceRef.current || hasLoadedRef.current) return;
+    if (!initialTemplate && !activityData) return;
 
-    // Clear out console and tracking whenever moving to new activity
-    setConsoleOutput("Ready to run...\n");
-    setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
-    setLineExecutions({});
-    setSyntaxError(null);
+    hasLoadedRef.current = true;
 
-    const timerId = setTimeout(async () => {
+    setTimeout(async () => {
       try {
-        let json = { blocks: { languageVersion: 0, blocks: [] } };
-
-        if (currentTask.blocks) {
-          json = currentTask;
-        } else if (currentTask.templatePath) {
-          const fetchUrl = currentTask.templatePath.startsWith("activities/") ? `/${currentTask.templatePath}.json` : `/templates/${currentTask.templatePath}.json`;
+        let json = null;
+        if (activityData && activityData.blocks) {
+          json = activityData;
+        } else if (initialTemplate) {
+          const fetchUrl = initialTemplate.startsWith("activities/") 
+            ? `/${initialTemplate}.json` 
+            : `/templates/${initialTemplate}.json`;
+            
           const response = await fetch(fetchUrl);
-          if (response.ok) json = await response.json();
+          if (response.ok) {
+            json = await response.json();
+          }
         }
 
-        if (workspaceRef.current) {
-          workspaceRef.current.clear();
+        if (json && workspaceRef.current) {
+          if (workspaceRef.current.clear) workspaceRef.current.clear();
           workspaceRef.current.loadTemplate(json.data ? json.data : json);
           setViewMode("workspace");
           setIsEditingCode(false);
@@ -390,31 +391,31 @@ const ActivityApp = () => {
       } catch (error) {
         console.error("Failed to load activity template", error);
       }
-    }, 100);
+    }, 500);
+  }, [initialTemplate, activityData, workspaceRef.current]);
 
-    return () => clearTimeout(timerId);
-  }, [currentIndex, currentTask]); // Trigger strictly when index changes
-
-  const saveLessonProgress = async (lessonId) => {
+  const saveLessonProgress = async (lessonId, score) => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return;
     const user = JSON.parse(storedUser);
+
     if (!user.progress) user.progress = {};
-    user.progress[lessonId] = true; // Flag LearningPath that this topic is done
+    user.progress[lessonId] = Math.max(user.progress[lessonId] || 0, score);
     localStorage.setItem("user", JSON.stringify(user));
 
     try {
-      fetch(`${VERCEL_URL}/api/update-progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email, lesson_id: lessonId, score: 100 })
-      });
+      fetch(`${VERCEL_URL}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, lesson_id: lessonId, score }) });
     } catch (error) { }
+  };
+
+  const handleSuccess = (passed, total) => {
+    setModalConfig({ isOpen: true, title: "Activity Completed! 🎉", message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.`, confirmText: "Return to Dashboard", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); } });
   };
 
   const handleWorkspaceChange = async (json, pythonCode) => {
     const oldCode = (generatedPython || "").trim();
     const newCode = (pythonCode || "").trim();
+
     if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
       setLineExecutions({});
@@ -426,21 +427,27 @@ const ActivityApp = () => {
     if (workspaceRef.current && generatedPython) {
       try {
         await workspaceRef.current.loadFromPython(generatedPython);
-        setIsEditingCode(false); setViewMode("workspace");
+        setIsEditingCode(false);
+        setViewMode("workspace");
       } catch (e) {
         setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
       }
     }
   };
 
+  // --- RUN METHOD (Synchronized directly with MainApp.jsx stream chunks) ---
   const handleActivityRun = async () => {
     if (isEvaluating) return;
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
     }
+
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-    setIsEvaluating(true); setLineExecutions({}); setBottomPanel("console"); setConsoleTab("output");
+    setIsEvaluating(true);
+    setLineExecutions({});
+    setBottomPanel("console"); setConsoleTab("output");
     setConsoleOutput(prev => prev + "\n> Running the program...\n");
+
     outputCountRef.current = 0; pendingOutputRef.current = "";
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
@@ -453,18 +460,21 @@ const ActivityApp = () => {
     runTimeoutRef.current = setTimeout(() => {
       workerRef.current.terminate(); clearInterval(renderIntervalRef.current);
       workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-      workerRef.current.postMessage({ type: 'INIT_ENGINE' }); initWorker();
+      workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+      initWorker();
       const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
       setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
       setIsEvaluating(false); setIsWaitingForInput(false);
     }, 10000);
   };
 
+  // --- SEND INPUT METHOD (Synchronized directly with MainApp.jsx stream chunks) ---
   const handleSendInput = (e) => {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
       outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
+
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
@@ -474,7 +484,8 @@ const ActivityApp = () => {
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current.terminate(); clearInterval(renderIntervalRef.current);
         workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-        workerRef.current.postMessage({ type: 'INIT_ENGINE' }); initWorker();
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+        initWorker();
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false); setIsWaitingForInput(false);
@@ -482,53 +493,156 @@ const ActivityApp = () => {
     }
   };
 
-  // ==========================================
-  // CODECHUM STYLE PROGRESS ADVANCEMENT
-  // ==========================================
-  const handleTestComplete = (passedCount, totalCount) => {
-    if (passedCount === totalCount && totalCount > 0) {
+  const toggleTest = (index) => { setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] })); };
 
-      setPassedActivities(prev => {
-        const newSet = new Set(prev);
-        newSet.add(currentIndex);
-        return newSet;
-      });
+  const executeTest = async (codeToRun) => {
+    if (isOnline) {
+      try {
+        const response = await fetch(`${VERCEL_URL}/api/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: codeToRun })
+        });
+        if (!response.ok) throw new Error("FastAPI execution failed");
 
-      const isLastActivity = currentIndex === activitiesList.length - 1;
-      const allPassed = passedActivities.size + 1 === activitiesList.length;
+        const data = await response.json();
 
-      if (isTopicMode && allPassed) {
-        saveLessonProgress(topicData.id);
-        setModalConfig({
-          isOpen: true,
-          title: "Topic Completed! 🎉",
-          message: `Excellent! You successfully passed all activities in this topic.`,
-          confirmText: "Return to Dashboard",
-          isDanger: false,
-          onConfirmAction: () => { closeModal(); navigate("/learning-path"); }
-        });
-      } else if (isTopicMode && !isLastActivity) {
-        setModalConfig({
-          isOpen: true,
-          title: "Activity Passed! 🚀",
-          message: `Great job! Ready for the next challenge?`,
-          confirmText: "Next Activity",
-          isDanger: false,
-          onConfirmAction: () => { closeModal(); setCurrentIndex(idx => idx + 1); }
-        });
-      } else {
-        // Fallback for isolated assignments not wrapped in a formal topic
-        saveLessonProgress(currentTask?.id || "unknown");
-        setModalConfig({
-          isOpen: true,
-          title: "Activity Completed! 🎉",
-          message: `Excellent work!`,
-          confirmText: "Return to Dashboard",
-          isDanger: false,
-          onConfirmAction: () => { closeModal(); navigate("/learning-path"); }
-        });
+        if (data.counts) {
+          setLineExecutions(prev => {
+            const next = { ...prev };
+            for (const [key, val] of Object.entries(data.counts)) { next[key] = (next[key] || 0) + val; }
+            return next;
+          });
+        }
+
+        if (data.error) {
+          const hint = translatePythonError(data.error);
+          throw new Error(data.error + (hint ? `\n${hint}` : ""));
+        }
+
+        return (data.output !== undefined && data.output !== null) ? String(data.output) : "";
+      } catch (error) {
+        console.warn("Online test execution failed, falling back to local...", error);
       }
     }
+
+    return new Promise((resolve, reject) => {
+      let outputAccumulator = "";
+      const timeout = setTimeout(() => {
+        workerRef.current.terminate();
+        workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
+        workerRef.current.postMessage({ type: 'INIT_ENGINE' });
+        initWorker();
+        reject(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
+      }, 10000);
+
+      workerRef.current.onmessage = (event) => {
+        const { type, data, counts } = event.data;
+        if (type === 'OUTPUT') {
+          outputAccumulator += data;
+        } else if (type === 'RUN_RESULT') {
+          clearTimeout(timeout);
+          outputAccumulator += (data !== undefined && data !== null) ? data : "";
+          if (counts) {
+            setLineExecutions(prev => {
+              const next = { ...prev };
+              for (const [key, val] of Object.entries(counts)) { next[key] = (next[key] || 0) + val; }
+              return next;
+            });
+          }
+          initWorker();
+          resolve(outputAccumulator);
+        } else if (type === 'ERROR') {
+          clearTimeout(timeout);
+          initWorker();
+
+          const hint = translatePythonError(data);
+          const errorMsg = data + (hint ? `\n${hint}` : "");
+          reject(new Error(errorMsg));
+        }
+      };
+      workerRef.current.postMessage({ type: 'RUN_CODE', code: codeToRun });
+    });
+  };
+
+  const runTestCases = async () => {
+    if (isEvaluating) return;
+
+    const testCases = currentTask?.testCasesList || activityData?.testCasesList;
+    if (!testCases) return;
+
+    if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console");
+      setConsoleTab("output");
+      return;
+    }
+
+    setIsEvaluating(true);
+    setLineExecutions({});
+    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
+    setBottomPanel("console");
+    setConsoleTab("output");
+
+    try {
+      await executeTest(generatedPython);
+    } catch (failure) {
+      setConsoleOutput(`Test Execution Prevented:\n\n${failure.error || failure.message}`);
+      setBottomPanel("console");
+      setIsEvaluating(false);
+      return;
+    }
+
+    setBottomPanel("console");
+    setConsoleOutput("\n> Running Tests...\n");
+    setPassedTests(0);
+
+    let passed = 0;
+    const total = testCases.length;
+    let fullOutput = "\n> --- Running Test Cases ---\n";
+
+    for (let i = 0; i < total; i++) {
+      const tc = testCases[i];
+      let codeToRun = "";
+      const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
+      const taskId = currentTask?.id || activityData?.id || "";
+      const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
+
+      if (isFunctionCall && !isIntroLevel) {
+        codeToRun = generatedPython + `\n\ntry:\n    assert ${tc.call} == ${tc.expected}\n    print("TEST_PASSED_FLAG")\nexcept:\n    print("TEST_ERROR_FLAG")`;
+      } else {
+        codeToRun = `${generatedPython}\n${tc.call || ""}`;
+      }
+
+      try {
+        const rawOutput = await executeTest(codeToRun);
+        const actualOutput = rawOutput.trim();
+        const expected = String(tc.expected).replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n").trim();
+        let testPassed = false;
+
+        if (isFunctionCall && !isIntroLevel) {
+          if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; testPassed = true; }
+        } else {
+          if (actualOutput.trim() === expected) { passed++; testPassed = true; }
+        }
+
+        fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
+        if (!testPassed) { fullOutput += `   Expected: ${expected}\n   Actual: ${actualOutput}\n`; }
+        fullOutput += `\n`;
+
+        setConsoleOutput(fullOutput);
+        setPassedTests(passed);
+
+        const lessonId = initialTemplate?.split("/").pop() || "unknown";
+        saveLessonProgress(lessonId, passed);
+
+        if (passed === total && total > 0) handleSuccess(passed, total);
+      } catch (err) {
+        fullOutput += `Test ${i + 1}: ERROR\n   Message: ${err.message}\n\n`;
+        setConsoleOutput(fullOutput);
+      }
+    }
+    setIsEvaluating(false);
   };
 
   const lines = analysisResult?.lines || [];
@@ -538,8 +652,13 @@ const ActivityApp = () => {
   lines.forEach((line, index) => {
     const targetComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
     const weight = getComplexityWeight(targetComplexity);
-    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
-    else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
+
+    if (weight > maxWeight) {
+      maxWeight = weight;
+      bottleneckIndices = [index];
+    } else if (weight === maxWeight && weight > 0) {
+      bottleneckIndices.push(index);
+    }
   });
 
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
@@ -555,37 +674,6 @@ const ActivityApp = () => {
           <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
         </div>
 
-        {/* CODECHUM STYLE NAVIGATION WIDGET */}
-        {activitiesList.length > 1 && (
-          <div className="activity-pagination" style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: '#2D234A', padding: '6px 12px', borderRadius: '20px' }}>
-            <span style={{ fontSize: '0.85rem', color: '#A38CC1', marginRight: '4px', fontWeight: 'bold' }}>Activity:</span>
-            {activitiesList.map((_, i) => {
-              const isPassed = passedActivities.has(i);
-              const isActive = currentIndex === i;
-
-              let bgColor = '#1C1236'; // Untouched
-              if (isActive) bgColor = '#6C5CE7'; // Active Blue/Purple
-              else if (isPassed) bgColor = '#00b8a3'; // Passed Green
-
-              return (
-                <button
-                  key={i}
-                  onClick={() => setCurrentIndex(i)}
-                  style={{
-                    width: '32px', height: '32px', borderRadius: '50%',
-                    backgroundColor: bgColor,
-                    color: '#FFF', border: isActive ? '2px solid #EBE4FF' : '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
-                    fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-                  }}
-                  title={`Go to Activity ${i + 1}`}
-                >
-                  {isPassed && !isActive ? '✓' : i + 1}
-                </button>
-              )
-            })}
-          </div>
-        )}
-
         <div className="activity-toggle-group">
           <button className={`activity-toggle-btn ${viewMode === 'workspace' ? 'active' : ''}`} onClick={() => setViewMode('workspace')}>Workspace</button>
           <button className={`activity-toggle-btn ${viewMode === 'python' ? 'active' : ''}`} onClick={() => setViewMode('python')}>Python Code</button>
@@ -594,6 +682,9 @@ const ActivityApp = () => {
         <div className="activity-actions" style={{ display: 'flex', gap: '10px' }}>
           <button className="activity-action-btn" onClick={handleActivityRun} style={{ backgroundColor: '#2D234A', border: '1px solid #6C5CE7', color: '#EBE4FF', opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }} title="Run code in console without submitting to test cases">
             {isEvaluating ? "..." : "▷ Run Code"}
+          </button>
+          <button className="activity-action-btn run-btn" onClick={runTestCases} style={{ opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? 'not-allowed' : 'pointer' }}>
+            {isEvaluating ? "..." : "▶ Run Tests"}
           </button>
         </div>
       </header>
@@ -606,19 +697,14 @@ const ActivityApp = () => {
 
           <div className="activity-panel-content">
             <div className="activity-task-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', marginTop: '10px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#2b005c', fontWeight: 'bold' }}>{currentTask?.title || "Activity"}</h2>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#2b005c', fontWeight: 'bold' }}>{currentTask?.title || activityData.title || "Activity"}</h2>
               <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: currentTask?.difficulty === 'Easy' ? 'rgba(0, 184, 163, 0.15)' : currentTask?.difficulty === 'Medium' ? 'rgba(255, 192, 30, 0.15)' : 'rgba(255, 55, 95, 0.15)', color: currentTask?.difficulty === 'Easy' ? '#00b8a3' : currentTask?.difficulty === 'Medium' ? '#ffc01e' : '#ff375f' }}>
                 {currentTask?.difficulty || "Easy"}
               </span>
             </div>
 
             <div className="activity-card" style={{ lineHeight: '1.7', fontSize: '0.95rem', backgroundColor: 'transparent', border: 'none', padding: '0', color: '#2f2f2f' }}>
-              {renderFormattedTask(
-                currentTask?.task ||
-                currentTask?.description ||
-                currentTask?.content ||
-                "Complete the algorithm requested in the workspace."
-              )}
+              {renderFormattedTask(currentTask?.task || (typeof activityData.task === "string" ? activityData.task : "Complete the algorithm requested in the workspace."))}
             </div>
           </div>
         </aside>
@@ -630,7 +716,7 @@ const ActivityApp = () => {
 
           <div className="editor-container" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             <div className={viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'} style={{ display: viewMode === 'workspace' ? 'block' : 'none', height: '100%' }}>
-              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} templatePath={currentTask?.templatePath || ""} syntaxError={syntaxError} />
+              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} templatePath={initialTemplate} syntaxError={syntaxError} />
             </div>
 
             <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ display: viewMode === 'python' ? 'flex' : 'none', flexDirection: 'column', height: '100%', background: '#1C1236' }}>
@@ -648,6 +734,7 @@ const ActivityApp = () => {
                     <button onClick={() => setSyntaxError(null)} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
                   </div>
                 )}
+
                 <Editor
                   height="100%"
                   language="python"
@@ -659,7 +746,18 @@ const ActivityApp = () => {
                     setIsEditingCode(true);
                     if (syntaxError) setSyntaxError(null);
                   }}
-                  options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "'Fira Code', Consolas, Monaco, monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 15,
+                    fontFamily: "'Fira Code', Consolas, Monaco, monospace",
+                    scrollBeyondLastLine: false,
+                    smoothScrolling: true,
+                    cursorBlinking: "smooth",
+                    formatOnPaste: true,
+                    suggestOnTriggerCharacters: true,
+                    wordWrap: "on",
+                    padding: { top: 16 }
+                  }}
                 />
               </div>
             </div>
@@ -688,9 +786,27 @@ const ActivityApp = () => {
                       {consoleTab === 'output' && (
                         <button
                           onClick={() => setConsoleOutput("Ready to run...\n")}
-                          style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: '6px', padding: '5px 14px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}
+                          style={{
+                            backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                            borderRadius: '6px',
+                            padding: '5px 14px',
+                            fontSize: '0.85rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginLeft: 'auto'
+                          }}
                           title="Clear Terminal Output"
+                          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.25)' }}
+                          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)' }}
                         >
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                           Clear Console
                         </button>
                       )}
@@ -703,7 +819,14 @@ const ActivityApp = () => {
                           {isWaitingForInput && (
                             <div className="console-input-line">
                               <span className="console-cursor">❯</span>
-                              <input autoFocus value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={handleSendInput} className="console-input-field" placeholder="Type here and press Enter..." />
+                              <input
+                                autoFocus
+                                value={userInput}
+                                onChange={(e) => setUserInput(e.target.value)}
+                                onKeyDown={handleSendInput}
+                                className="console-input-field"
+                                placeholder="Type here and press Enter..."
+                              />
                             </div>
                           )}
                           <div ref={consoleEndRef} />
@@ -711,7 +834,14 @@ const ActivityApp = () => {
                       ) : (
                         <div className="complexity-table-wrapper" style={{ height: '100%', margin: 0, border: 'none' }}>
                           <table className="complexity-table">
-                            <thead><tr><th style={{ width: '60px', textAlign: 'center' }}>Line</th><th>Source Code</th><th style={{ width: '100px', textAlign: 'center' }}>Hits</th><th style={{ width: '30%' }}>Frequency</th></tr></thead>
+                            <thead>
+                              <tr>
+                                <th style={{ width: '60px', textAlign: 'center' }}>Line</th>
+                                <th>Source Code</th>
+                                <th style={{ width: '100px', textAlign: 'center' }}>Hits</th>
+                                <th style={{ width: '30%' }}>Frequency</th>
+                              </tr>
+                            </thead>
                             <tbody>
                               {pythonLines.map((lineText, idx) => {
                                 const lineNum = idx + 1;
@@ -719,10 +849,23 @@ const ActivityApp = () => {
                                 return (
                                   <tr key={idx} style={{ backgroundColor: hits > 0 ? 'rgba(255, 255, 255, 0.03)' : 'transparent' }}>
                                     <td style={{ color: '#888', textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.05)' }}>{lineNum}</td>
-                                    <td style={{ fontFamily: "'Fira Code', monospace", whiteSpace: 'pre', color: '#000000', paddingLeft: '15px' }}>{lineText || " "}</td>
-                                    <td style={{ textAlign: 'center', fontWeight: 'bold', color: hits > 0 ? '#00b8a3' : '#555' }}>{hits > 0 ? hits : '-'}</td>
+                                    <td style={{ fontFamily: "'Fira Code', monospace", whiteSpace: 'pre', color: '#000000', paddingLeft: '15px' }}>
+                                      {lineText || " "}
+                                    </td>
+                                    <td style={{ textAlign: 'center', fontWeight: 'bold', color: hits > 0 ? '#00b8a3' : '#555' }}>
+                                      {hits > 0 ? hits : '-'}
+                                    </td>
                                     <td style={{ paddingRight: '20px' }}>
-                                      {hits > 0 && maxExecutions > 0 && (<div style={{ height: '8px', width: `${(hits / maxExecutions) * 100}%`, backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3', borderRadius: '4px' }} />)}
+                                      {hits > 0 && maxExecutions > 0 && (
+                                        <div style={{
+                                          height: '8px',
+                                          width: `${(hits / maxExecutions) * 100}%`,
+                                          backgroundColor: hits === maxExecutions ? '#f39c12' : '#00b8a3',
+                                          borderRadius: '4px',
+                                          transition: 'width 0.5s ease-out',
+                                          boxShadow: hits === maxExecutions ? '0 0 8px rgba(243, 156, 18, 0.5)' : 'none'
+                                        }} title={`${Math.round((hits / maxExecutions) * 100)}% of max execution load`} />
+                                      )}
                                     </td>
                                   </tr>
                                 )
@@ -750,58 +893,106 @@ const ActivityApp = () => {
 
                     {activeTab === 'memory' ? (
                       <div style={{ flex: 1, overflow: 'hidden', padding: '10px 15px' }}>
-                        <MemoryVisualizer analysisData={analysisResult.lines} currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0} />
+                        <MemoryVisualizer
+                          analysisData={analysisResult.lines}
+                          currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0}
+                        />
                       </div>
                     ) : (
                       <div className="complexity-table-wrapper">
                         <table className="complexity-table">
                           <thead>
-                            <tr><th>Line of Code</th><th>Operation</th><th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th><th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th></tr>
+                            <tr>
+                              <th>Line of Code</th>
+                              <th>Operation</th>
+                              <th className="right-align">{activeTab === 'local' ? 'Local Time' : 'Global Time'}</th>
+                              <th className="right-align">{activeTab === 'local' ? 'Local Space' : 'Global Space'}</th>
+                            </tr>
                           </thead>
                           <tbody>
                             {analysisResult.lines.map((line, i) => {
                               const timeComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
                               const spaceComplexity = activeTab === 'local' ? (line.local_space || "O(1)") : (line.global_space || "O(1)");
+
                               let timeExp = line.time_explanation ?? line.local_explanation ?? "Analysis not available.";
                               let spaceExp = line.space_explanation ?? line.global_explanation ?? "Analysis not available.";
+
                               const isBottleneck = actualBottleneckIndices.includes(i);
-                              if (activeTab === 'local' || !isBottleneck) timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
-                              if (activeTab === 'local') spaceExp = spaceExp.replace(/(?:⚠️\s*)?\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/i, "");
+
+                              if (activeTab === 'local' || !isBottleneck) {
+                                timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
+                              }
+                              if (activeTab === 'local') {
+                                spaceExp = spaceExp.replace(/(?:⚠️\s*)?\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/i, "");
+                              }
 
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
+
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, '');
-                              const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
+                              const isEfficient = !isBottleneck &&
+                                (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) &&
+                                !compStripped.includes("nlogn");
 
                               return (
                                 <React.Fragment key={i}>
                                   <tr
                                     className={`complexity-row ${expandedLines[i] ? 'expanded' : ''} ${isBottleneck ? 'bottleneck-active' : ''} ${isEfficient ? 'efficient-active' : ''}`}
                                     onClick={() => toggleLine(i)}
-                                    style={{ cursor: 'pointer', borderLeft: isBottleneck ? '4px solid #ff375f' : isEfficient ? '4px solid #2ecc71' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'), backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : isEfficient ? 'rgba(46, 204, 113, 0.12)' : 'transparent' }}
+                                    style={{
+                                      cursor: 'pointer',
+                                      borderLeft: isBottleneck ? '4px solid #ff375f' : isEfficient ? '4px solid #2ecc71' : (expandedLines[i] ? `3px solid ${timeColor}` : 'none'),
+                                      backgroundColor: isBottleneck ? 'rgba(255, 55, 95, 0.12)' : isEfficient ? 'rgba(46, 204, 113, 0.12)' : 'transparent'
+                                    }}
                                   >
                                     <td className="code-cell" style={{ color: '#000000', paddingLeft: line.indent ? `${(line.indent * 15) + 20}px` : '20px' }}>{line.lineOfCode || line.code}</td>
                                     <td className="operation-cell" style={{ color: '#000000', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                       {line.operation || '-'}
-                                      {isBottleneck && (<span style={{ backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', padding: '3px 8px', borderRadius: '12px' }}>Bottleneck</span>)}
-                                      {isEfficient && (<span style={{ backgroundColor: '#2ecc71', color: 'white', fontSize: '0.7rem', padding: '3px 8px', borderRadius: '12px' }}>Efficient</span>)}
+                                      {isBottleneck && (<span style={{ backgroundColor: '#ff375f', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px', borderRadius: '12px', textTransform: 'uppercase', marginLeft: '10px', boxShadow: '0 0 8px rgba(255, 55, 95, 0.6)' }}>Bottleneck</span>)}
+                                      {isEfficient && (<span style={{ backgroundColor: '#2ecc71', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px', borderRadius: '12px', textTransform: 'uppercase', marginLeft: '10px', boxShadow: '0 0 8px rgba(46, 204, 113, 0.6)' }}>Efficient</span>)}
                                     </td>
                                     <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>{formatComplexity(timeComplexity)}</td>
                                     <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>{formatComplexity(spaceComplexity)}</td>
                                   </tr>
+
                                   {expandedLines[i] && (
                                     <tr className="explanation-row">
                                       <td colSpan="4" style={{ padding: 0, border: 'none' }}>
-                                        <div className="explanation-content" style={{ borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)', margin: '0 16px 12px 16px', borderRadius: '8px' }}>
+                                        <div
+                                          className="explanation-content"
+                                          style={{
+                                            borderLeftColor: timeColor, display: 'flex', gap: '20px', padding: '16px', background: 'rgba(255, 255, 255, 0.05)',
+                                            margin: '0 16px 12px 16px', borderRadius: '8px', animation: 'slideDown 0.3s ease forwards',
+                                          }}
+                                        >
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                            <strong style={{ color: timeColor }}>Time Complexity</strong>
-                                            <div style={{ marginTop: '6px' }}>{formatExplanation(timeExp, isBottleneck, activeTab === 'local')}</div>
-                                            <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}><ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" /></div>
+                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                              <div style={{ width: '100%' }}>
+                                                <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(timeExp, isBottleneck, activeTab === 'local')}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                              <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                            </div>
                                           </div>
+
                                           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
-                                            <strong style={{ color: spaceColor }}>Space Complexity</strong>
-                                            <div style={{ marginTop: '6px' }}>{formatExplanation(spaceExp, isBottleneck, activeTab === 'local')}</div>
-                                            <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}><ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" /></div>
+                                            <div className="explanation-text" style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px' }} />
+                                              <div style={{ width: '100%' }}>
+                                                <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
+                                                <div style={{ marginTop: '6px' }}>
+                                                  {formatExplanation(spaceExp, isBottleneck, activeTab === 'local')}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            <div className="explanation-graph" style={{ marginTop: '15px', height: '120px' }}>
+                                              <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                            </div>
                                           </div>
                                         </div>
                                       </td>
@@ -822,35 +1013,113 @@ const ActivityApp = () => {
 
           <footer className="workspace-footer">
             <div className="footer-left">
-              <button className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}>
+              <button
+                className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`}
+                onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}
+              >
                 <img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console
               </button>
-              <button className={`footer-tab ${bottomPanel === 'complexity' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'complexity' ? null : 'complexity')}>
+              <button
+                className={`footer-tab ${bottomPanel === 'complexity' ? 'active' : ''}`}
+                onClick={() => setBottomPanel(bottomPanel === 'complexity' ? null : 'complexity')}
+              >
                 <img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity
               </button>
-              <button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}>
+              <button
+                className="footer-tab big-o-btn"
+                onClick={() => setIsBigOModalOpen(true)}
+              >
                 <img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference
               </button>
             </div>
+
             <div className="footer-right">
-              <button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to clear your current code?", confirmText: "Restart", isDanger: true, onConfirmAction: () => { setGeneratedPython(""); workspaceRef.current?.clear(); closeModal(); } })} title="Restart Activity">
+              <button className="footer-action-icon" onClick={() => {
+                setModalConfig({
+                  isOpen: true,
+                  title: "Restart Activity?",
+                  message: "Are you sure you want to restart this activity? Your progress will be lost.",
+                  confirmText: "Restart",
+                  isDanger: true,
+                  onConfirmAction: () => {
+                    window.location.reload();
+                  }
+                });
+              }} title="Restart Activity">
                 <img src="/assets/recursive-icon.png" alt="Restart" />
               </button>
             </div>
           </footer>
         </main>
 
-        <aside className="activity-right-panel" style={{ padding: 0 }}>
-          <TestCaseTester
-            pythonCode={generatedPython}
-            testCases={testCasesArray}
-            onTestComplete={handleTestComplete}
-          />
+        <aside className="activity-right-panel">
+          <div className="activity-panel-header">
+            <h3>Test Cases</h3>
+            <span className="test-cases-counter">{passedTests}/{totalTests} passed</span>
+          </div>
+
+          <div className="activity-panel-content">
+            {activityData.testCasesList?.map((tc, i) => {
+              const testIdentifier = `Test ${i + 1}`;
+              const isPassing = consoleOutput.includes(`${testIdentifier}: PASSED`);
+              const isFailing = consoleOutput.includes(`${testIdentifier}: FAILED`);
+              const isError = consoleOutput.includes(`${testIdentifier}: ERROR`);
+
+              const isExpanded = expandedTests[i];
+              const statusClass = isPassing ? 'passing' : (isFailing || isError) ? 'failing' : '';
+
+              return (
+                <div key={i} className={`test-case-card ${statusClass}`}>
+                  <div className="test-case-header" onClick={() => toggleTest(i)}>
+                    <div className="test-case-header-left">
+                      <div className={`test-case-indicator ${statusClass}`}></div>
+                      <strong className="test-case-title">Test {i + 1}</strong>
+                    </div>
+                    <span className={`test-case-chevron ${isExpanded ? 'open' : ''}`}>❯</span>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="test-case-details">
+                      <div className="test-case-row">
+                        <span className="test-case-label">Input:</span>
+                        <code className="test-case-code">{tc.call}</code>
+                      </div>
+                      <div className="test-case-row">
+                        <span className="test-case-label">Expected Output:</span>
+                        <code className="test-case-code">{tc.expected}</code>
+                      </div>
+
+                      {(isPassing || isFailing || isError) && (
+                        <div className="test-case-status-row">
+                          <span className="test-case-label">Result:</span>
+                          <span style={{ fontWeight: 'bold', color: isPassing ? '#27AE60' : '#e74c3c' }}>
+                            {isPassing ? 'Passed' : isFailing ? 'Failed (Incorrect Output)' : 'Failed (Syntax Error)'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </aside>
       </Split>
 
-      <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} isDanger={modalConfig.isDanger} onCancel={closeModal} onConfirm={modalConfig.onConfirmAction} />
-      <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        isDanger={modalConfig.isDanger}
+        onCancel={closeModal}
+        onConfirm={modalConfig.onConfirmAction}
+      />
+
+      <BigOModal
+        isOpen={isBigOModalOpen}
+        onClose={() => setIsBigOModalOpen(false)}
+      />
     </div>
   );
 };
