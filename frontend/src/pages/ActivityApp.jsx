@@ -1,4 +1,5 @@
 import Editor from "@monaco-editor/react";
+import localforage from "localforage";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
@@ -15,6 +16,12 @@ import { formatComplexity } from "../utils/formatters";
 
 import { templatesDB } from "../db.js";
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
+
+// --- Setup IndexedDB for Activity Drafts ---
+const draftsDB = localforage.createInstance({
+  name: "AlgoBlocks",
+  storeName: "activity_drafts"
+});
 
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("algoblocks-purple", {
@@ -215,6 +222,10 @@ const ActivityApp = () => {
   const pendingOutputRef = useRef("");
   const isDragging = useRef(false);
 
+  // Synchronize state trackers
+  const latestBlocksJsonRef = useRef(null);
+  const saveDraftTimeoutRef = useRef(null);
+
   // UI state
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -259,11 +270,11 @@ const ActivityApp = () => {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      showToast("Connection restored.", "success");
+      showToast("Connection restored. Syncing drafts...", "success");
     };
     const handleOffline = () => {
       setIsOnline(false);
-      showToast("Connection lost. Using local cache.", "error");
+      showToast("Connection lost. Using local IndexedDB cache.", "error");
     };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -491,11 +502,59 @@ const ActivityApp = () => {
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
 
-        // --- NEW: Load from Saved Workspace Drafts ---
-        const savedDraft = localStorage.getItem(`activity_draft_${moduleId}_${activityId}`);
-        if (savedDraft) {
+        // --- DRAFT LOADING PIPELINE (MONGODB -> INDEXEDDB) ---
+        let loadedDraft = null;
+
+        if (navigator.onLine) {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const user = JSON.parse(storedUser);
+            try {
+              const res = await fetch(`${VERCEL_URL}/api/get-activity-draft?email=${user.email}&lesson_id=${moduleId}:${activityId}`);
+              if (res.ok) {
+                const data = await res.json();
+                if (data && data.draft) {
+                  loadedDraft = {
+                    json: data.draft.json_data ? JSON.parse(data.draft.json_data) : null,
+                    pythonCode: data.draft.python_code
+                  };
+                  // Sync fetched cloud draft down to IndexedDB
+                  await draftsDB.setItem(`draft_${moduleId}_${activityId}`, loadedDraft);
+                }
+              }
+            } catch (e) {
+              console.warn("Failed to fetch cloud draft, falling back to IndexedDB.", e);
+            }
+          }
+        }
+
+        // Fallback to local IndexedDB draft if cloud fetch failed
+        if (!loadedDraft) {
           try {
-            const { json, pythonCode } = JSON.parse(savedDraft);
+            loadedDraft = await draftsDB.getItem(`draft_${moduleId}_${activityId}`);
+          } catch(e) {
+            console.error("Failed to read from IndexedDB", e);
+          }
+        }
+
+        // Migrate Old localStorage implementation (if present)
+        if (!loadedDraft) {
+          const oldSavedDraft = localStorage.getItem(`activity_draft_${moduleId}_${activityId}`);
+          if (oldSavedDraft) {
+            try {
+              loadedDraft = JSON.parse(oldSavedDraft);
+              await draftsDB.setItem(`draft_${moduleId}_${activityId}`, loadedDraft);
+              localStorage.removeItem(`activity_draft_${moduleId}_${activityId}`);
+            } catch (e) { /* ignore parse errors */ }
+          }
+        }
+
+        // Apply whatever draft we found
+        if (loadedDraft) {
+          try {
+            const { json, pythonCode } = loadedDraft;
+            latestBlocksJsonRef.current = json; // Populate ref for pure code editing
+            
             if (workspaceRef.current?.loadTemplate && json) {
               workspaceRef.current.loadTemplate(json);
             }
@@ -504,13 +563,11 @@ const ActivityApp = () => {
             if (workspaceRef.current?.clear) workspaceRef.current.clear();
           }
         } else {
-          // Empty start if no draft
           if (workspaceRef.current?.clear) workspaceRef.current.clear();
         }
+        // -----------------------------------------------------
 
-        // ------------------------------------------------------------
-        // --- ADD THIS: Load saved test results for the UI Panel ---
-        // ------------------------------------------------------------
+        // Load saved test results for the UI Panel
         const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
         if (savedTests) {
           try {
@@ -521,7 +578,6 @@ const ActivityApp = () => {
             console.error("Failed to parse saved tests", e);
           }
         }
-        // ------------------------------------------------------------
 
         setViewMode("workspace");
         setIsEditingCode(false);
@@ -535,6 +591,49 @@ const ActivityApp = () => {
     boot();
     return () => { cancelled = true; };
   }, [moduleId, activityId]);
+
+  // --- AUTOMATIC SYNC TO INDEXEDDB + MONGODB ---
+  const saveDraft = (json, pythonCode) => {
+    if (!moduleId || !activityId) return;
+
+    if (saveDraftTimeoutRef.current) {
+      clearTimeout(saveDraftTimeoutRef.current);
+    }
+
+    saveDraftTimeoutRef.current = setTimeout(async () => {
+      const draftKey = `draft_${moduleId}_${activityId}`;
+      const payload = { json, pythonCode, updatedAt: new Date().toISOString() };
+
+      // 1. Save to Local IndexedDB
+      try {
+        await draftsDB.setItem(draftKey, payload);
+      } catch (e) {
+        console.error("IndexedDB Save Error:", e);
+      }
+
+      // 2. Sync to MongoDB (Cloud)
+      if (navigator.onLine) {
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) return;
+        const user = JSON.parse(storedUser);
+
+        try {
+          await fetch(`${VERCEL_URL}/api/save-activity-draft`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: user.email,
+              lesson_id: `${moduleId}:${activityId}`,
+              json_data: json ? JSON.stringify(json) : null,
+              python_code: pythonCode
+            }),
+          });
+        } catch (e) {
+          console.warn("MongoDB sync failed:", e);
+        }
+      }
+    }, 1000); // 1 Second Debounce
+  };
 
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "") return;
@@ -579,16 +678,13 @@ const ActivityApp = () => {
   }, [generatedPython, isEditingCode, isOnline]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
+    latestBlocksJsonRef.current = json; // Keep ref updated for pure-python edge case
+
     const oldCode = (generatedPython || "").trim();
     const newCode = (pythonCode || "").trim();
 
-    // --- NEW: Save workspace automatically to localStorage ---
-    if (moduleId && activityId) {
-      localStorage.setItem(
-        `activity_draft_${moduleId}_${activityId}`,
-        JSON.stringify({ json, pythonCode })
-      );
-    }
+    // Trigger Unified Save System
+    saveDraft(json, pythonCode);
 
     if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
@@ -809,7 +905,6 @@ const ActivityApp = () => {
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
 
-    // Build the dynamic pass message for partial scores vs perfect scores
     let promptMsg = "";
     if (passed === total) {
       promptMsg = `Excellent work! You successfully passed all ${total} test cases.\n\nReady to solve the next activity?`;
@@ -880,13 +975,10 @@ const ActivityApp = () => {
       setBottomPanel("console");
       setIsEvaluating(false);
       
-      // --- ADD THIS: Save the prevented error state ---
       localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({
         consoleOutput: errorMsg,
         passedTests: 0
       }));
-      // ----------------------------------------------
-      
       return;
     }
 
@@ -899,7 +991,6 @@ const ActivityApp = () => {
     let visibleTotal = 0;
     const total = testCases.length;
 
-    // Calculate required visible total tests
     testCases.forEach(tc => {
       if (!tc.isHidden) visibleTotal++;
     });
@@ -939,7 +1030,6 @@ const ActivityApp = () => {
           }
         }
 
-        // --- NEW: Track visible test progression ---
         if (testPassed && !tc.isHidden) {
           visiblePassed++;
         }
@@ -963,23 +1053,16 @@ const ActivityApp = () => {
       }
     }
 
-    // --- MODIFY THE END OF THE FUNCTION TO THIS: ---
-    
-    // Evaluate success ONLY AFTER the entire test loop finishes
     setIsEvaluating(false);
     
-    // --- ADD THIS: Save the latest test state for persistence ---
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({
       consoleOutput: fullOutput,
       passedTests: passed
     }));
-    // ----------------------------------------------------------
     
-    // Always save highest score, even if partial (e.g. 3/5)
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, passed);
 
-    // Give them success dialog if ALL VISIBLE tests passed
     if (visiblePassed === visibleTotal && visibleTotal > 0) {
       handleSuccess(passed, total);
     }
@@ -1146,9 +1229,13 @@ const ActivityApp = () => {
                   beforeMount={handleEditorWillMount}
                   value={generatedPython}
                   onChange={(value) => {
-                    setGeneratedPython(value || "");
+                    const newCode = value || "";
+                    setGeneratedPython(newCode);
                     setIsEditingCode(true);
                     if (syntaxError) setSyntaxError(null);
+                    
+                    // Unified save for pure python typers
+                    saveDraft(latestBlocksJsonRef.current, newCode);
                   }}
                   options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "'Fira Code', Consolas, Monaco, monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }}
                 />
@@ -1421,10 +1508,11 @@ const ActivityApp = () => {
                     cancelText: "Cancel",
                     isDanger: true,
                     onConfirmAction: () => {
-                      // --- UPDATED: Clear both code draft AND test state ---
-                      localStorage.removeItem(`activity_draft_${moduleId}_${activityId}`);
+                      // --- UPDATED: Clear DB, sync empty, and clear tests ---
+                      draftsDB.removeItem(`draft_${moduleId}_${activityId}`);
                       localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
-                      // -----------------------------------------------------
+                      saveDraft(null, "# Drag blocks to generate Python code"); // Overwrite on backend
+                      
                       window.location.reload();
                     },
                     onCancelAction: closeModal,
