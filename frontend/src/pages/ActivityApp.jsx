@@ -1246,7 +1246,7 @@ const ActivityApp = () => {
                     // Unified save for pure python typers
                     handleWorkspaceAutoSave(latestBlocksJsonRef.current, newCode);
                   }}
-                  options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "'Fira Code', Consolas, Monaco, monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }}
+                  options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }}
                 />
               </div>
             </div>

@@ -762,7 +762,7 @@ export default function MainApp() {
                     height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount}
                     value={activeTab.pythonCode}
                     onChange={(value) => { updateTab(activeTabId, { pythonCode: value || "", isEditingCode: true, syntaxError: null }); }}
-                    options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "'Fira Code', monospace", scrollBeyondLastLine: false, wordWrap: "on", padding: { top: 16 } }}
+                    options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, wordWrap: "on", padding: { top: 16 } }}
                   />
                 </div>
               </div>
