@@ -11,26 +11,22 @@ import TestCaseTester from "../components/TestCaseTester.jsx";
 import "../styles/ActivityApp.css";
 import { formatComplexity } from "../utils/formatters";
 
-// --- IMPORT MONACO EDITOR & TRANSLATOR ---
 import Editor from "@monaco-editor/react";
 import { translatePythonError } from "../utils/errorTranslator.js";
-
-// Import the shared eager-loaded worker
 import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
-// --- Custom Monaco Theme Injection ---
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme('algoblocks-purple', {
     base: 'vs-dark',
     inherit: true,
     rules: [],
     colors: {
-      'editor.background': '#1C1236', 
-      'editor.foreground': '#EBE4FF', 
-      'editorLineNumber.foreground': '#6C5CE7', 
-      'editor.lineHighlightBackground': '#2D234A', 
-      'editorCursor.foreground': '#FFFFFF', 
-      'editor.selectionBackground': '#6C5CE755', 
+      'editor.background': '#1C1236',
+      'editor.foreground': '#EBE4FF',
+      'editorLineNumber.foreground': '#6C5CE7',
+      'editor.lineHighlightBackground': '#2D234A',
+      'editorCursor.foreground': '#FFFFFF',
+      'editor.selectionBackground': '#6C5CE755',
       'editor.inactiveSelectionBackground': '#6C5CE733'
     }
   });
@@ -75,7 +71,6 @@ const getComplexityWeight = (complexity) => {
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
-  
   return sections.map((sec, idx) => {
     const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)/s);
     if (match) {
@@ -111,7 +106,7 @@ const ActivityApp = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
@@ -120,34 +115,24 @@ const ActivityApp = () => {
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const isDragging = useRef(false);
-  const hasLoadedRef = useRef(false);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
-
   const [isEvaluating, setIsEvaluating] = useState(false);
-  
-  // Extract state passed securely via React Router
-  const activityData = location.state?.activityData || null;
-  const initialTemplate = location.state?.templatePath || activityData?.templatePath || "";
-  
-  const [currentTask, setCurrentTask] = useState(activityData);
 
-  // Dynamic public fallback fetch if page is reloaded and state is lost
-  useEffect(() => {
-    if (!currentTask && initialTemplate) {
-      fetch('/data/activities.json')
-        .then(res => res.json())
-        .then(data => {
-          const found = data.find(t => t.templatePath === initialTemplate);
-          if (found) setCurrentTask(found);
-        })
-        .catch(err => console.error("Error fetching activities from public directory:", err));
-    }
-  }, [currentTask, initialTemplate]);
+  // ==========================================
+  // EXTRACT TOPIC / ACTIVITY DATA
+  // ==========================================
+  const topicData = location.state?.topicData || null;
+  const standaloneActivity = location.state?.activityData || null;
+  const isTopicMode = !!topicData;
+  const activitiesList = isTopicMode ? (topicData.activities || []) : [standaloneActivity].filter(Boolean);
 
-  // Support for CodeChum style tests vs older JSON structure tests
-  const testCasesArray = currentTask?.testCasesPool || currentTask?.testCases || currentTask?.testCasesList || []; 
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [passedActivities, setPassedActivities] = useState(new Set());
+
+  const currentTask = activitiesList[currentIndex] || null;
+  const testCasesArray = currentTask?.testCasesPool || currentTask?.testCases || currentTask?.testCasesList || [];
 
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
@@ -178,6 +163,12 @@ const ActivityApp = () => {
   };
 
   useEffect(() => {
+    if (!currentTask) {
+      navigate("/learning-path");
+    }
+  }, [currentTask, navigate]);
+
+  useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
     window.addEventListener("online", handleOnline);
@@ -189,7 +180,6 @@ const ActivityApp = () => {
     if (!workerRef.current) return;
     workerRef.current.onmessage = (event) => {
       const { type, data, counts } = event.data;
-
       if (type === 'ANALYZE_RESULT') {
         if (data.status === "success") {
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
@@ -204,26 +194,22 @@ const ActivityApp = () => {
         }
       }
       else if (type === 'RUN_RESULT') {
-        clearTimeout(runTimeoutRef.current);
-        clearInterval(renderIntervalRef.current);
-        const flushed = pendingOutputRef.current;
-        pendingOutputRef.current = "";
+        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
         if (counts) setLineExecutions(counts);
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
-        outputCountRef.current += 1;
-        pendingOutputRef.current += data;
+        outputCountRef.current += 1; pendingOutputRef.current += data;
         if (outputCountRef.current > 5000) {
           clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
           workerRef.current.terminate();
           workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-          workerRef.current.postMessage({ type: 'INIT_ENGINE' });
-          initWorker();
+          workerRef.current.postMessage({ type: 'INIT_ENGINE' }); initWorker();
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-          setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected.\nSuggestion: Check loop conditions.\n");
           setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
         }
       }
@@ -252,13 +238,6 @@ const ActivityApp = () => {
   const toggleLine = (index) => { setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] })); };
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
-
-  // Safely bounce user out if navigating to activity URL directly without proper data
-  useEffect(() => { 
-    if (!currentTask && !initialTemplate) {
-      navigate("/learning-path"); 
-    }
-  }, [currentTask, initialTemplate, navigate]);
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === 'output') {
@@ -313,26 +292,32 @@ const ActivityApp = () => {
     return () => clearTimeout(timeoutId);
   }, [generatedPython, isEditingCode, isOnline]);
 
+  // ==========================================
+  // DYNAMICALLY LOAD THE WORKSPACE PER TASK
+  // ==========================================
   useEffect(() => {
-    if (!workspaceRef.current || hasLoadedRef.current) return;
-    if (!initialTemplate && !currentTask) return;
-    hasLoadedRef.current = true;
-    setTimeout(async () => {
+    if (!workspaceRef.current || !currentTask) return;
+
+    // Clear out console and tracking whenever moving to new activity
+    setConsoleOutput("Ready to run...\n");
+    setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
+    setLineExecutions({});
+    setSyntaxError(null);
+
+    const timerId = setTimeout(async () => {
       try {
-        let json = null;
-        if (currentTask && currentTask.blocks) {
+        let json = { blocks: { languageVersion: 0, blocks: [] } };
+
+        if (currentTask.blocks) {
           json = currentTask;
-        } else if (initialTemplate) {
-          const fetchUrl = initialTemplate.startsWith("activities/") ? `/${initialTemplate}.json` : `/templates/${initialTemplate}.json`;
+        } else if (currentTask.templatePath) {
+          const fetchUrl = currentTask.templatePath.startsWith("activities/") ? `/${currentTask.templatePath}.json` : `/templates/${currentTask.templatePath}.json`;
           const response = await fetch(fetchUrl);
           if (response.ok) json = await response.json();
-        } else {
-           // Provide an empty starting point if no template is provided for a codechum style challenge
-           json = { blocks: { languageVersion: 0, blocks: [] } };
         }
-        
-        if (json && workspaceRef.current) {
-          if (workspaceRef.current.clear) workspaceRef.current.clear();
+
+        if (workspaceRef.current) {
+          workspaceRef.current.clear();
           workspaceRef.current.loadTemplate(json.data ? json.data : json);
           setViewMode("workspace");
           setIsEditingCode(false);
@@ -340,18 +325,31 @@ const ActivityApp = () => {
       } catch (error) {
         console.error("Failed to load activity template", error);
       }
-    }, 500);
-  }, [initialTemplate, currentTask]);
+    }, 100);
 
-  const saveLessonProgress = async (lessonId, score) => {
+    return () => clearTimeout(timerId);
+  }, [currentIndex, currentTask]); // Trigger strictly when index changes
+
+  useEffect(() => {
+    if (activitiesList && activitiesList[currentIndex]) {
+      setCurrentTask(activitiesList[currentIndex]);
+    }
+  }, [currentIndex, activitiesList]);
+
+  const saveLessonProgress = async (lessonId) => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return;
     const user = JSON.parse(storedUser);
     if (!user.progress) user.progress = {};
-    user.progress[lessonId] = Math.max(user.progress[lessonId] || 0, score);
+    user.progress[lessonId] = true; // Flag LearningPath that this topic is done
     localStorage.setItem("user", JSON.stringify(user));
+
     try {
-      fetch(`${VERCEL_URL}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, lesson_id: lessonId, score }) });
+      fetch(`${VERCEL_URL}/api/update-progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, lesson_id: lessonId, score: 100 })
+      });
     } catch (error) { }
   };
 
@@ -425,19 +423,52 @@ const ActivityApp = () => {
     }
   };
 
+  // ==========================================
+  // CODECHUM STYLE PROGRESS ADVANCEMENT
+  // ==========================================
   const handleTestComplete = (passedCount, totalCount) => {
-    const lessonId = currentTask?.id || initialTemplate?.split("/").pop() || "unknown";
-    saveLessonProgress(lessonId, passedCount);
-
     if (passedCount === totalCount && totalCount > 0) {
-      setModalConfig({ 
-        isOpen: true, 
-        title: "Activity Completed! 🎉", 
-        message: `Excellent work! You successfully passed all ${passedCount} out of ${totalCount} test cases.`, 
-        confirmText: "Return to Dashboard", 
-        isDanger: false, 
-        onConfirmAction: () => { closeModal(); navigate("/learning-path"); } 
+
+      setPassedActivities(prev => {
+        const newSet = new Set(prev);
+        newSet.add(currentIndex);
+        return newSet;
       });
+
+      const isLastActivity = currentIndex === activitiesList.length - 1;
+      const allPassed = passedActivities.size + 1 === activitiesList.length;
+
+      if (isTopicMode && allPassed) {
+        saveLessonProgress(topicData.id);
+        setModalConfig({
+          isOpen: true,
+          title: "Topic Completed! 🎉",
+          message: `Excellent! You successfully passed all activities in this topic.`,
+          confirmText: "Return to Dashboard",
+          isDanger: false,
+          onConfirmAction: () => { closeModal(); navigate("/learning-path"); }
+        });
+      } else if (isTopicMode && !isLastActivity) {
+        setModalConfig({
+          isOpen: true,
+          title: "Activity Passed! 🚀",
+          message: `Great job! Ready for the next challenge?`,
+          confirmText: "Next Activity",
+          isDanger: false,
+          onConfirmAction: () => { closeModal(); setCurrentIndex(idx => idx + 1); }
+        });
+      } else {
+        // Fallback for isolated assignments not wrapped in a formal topic
+        saveLessonProgress(currentTask?.id || "unknown");
+        setModalConfig({
+          isOpen: true,
+          title: "Activity Completed! 🎉",
+          message: `Excellent work!`,
+          confirmText: "Return to Dashboard",
+          isDanger: false,
+          onConfirmAction: () => { closeModal(); navigate("/learning-path"); }
+        });
+      }
     }
   };
 
@@ -448,7 +479,7 @@ const ActivityApp = () => {
   lines.forEach((line, index) => {
     const targetComplexity = activeTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)");
     const weight = getComplexityWeight(targetComplexity);
-    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; } 
+    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
     else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
   });
 
@@ -464,6 +495,37 @@ const ActivityApp = () => {
         <div className="activity-back-btn" onClick={() => navigate('/learning-path')}>
           <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
         </div>
+
+        {/* CODECHUM STYLE NAVIGATION WIDGET */}
+        {activitiesList.length > 1 && (
+          <div className="activity-pagination" style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: '#2D234A', padding: '6px 12px', borderRadius: '20px' }}>
+            <span style={{ fontSize: '0.85rem', color: '#A38CC1', marginRight: '4px', fontWeight: 'bold' }}>Activity:</span>
+            {activitiesList.map((_, i) => {
+              const isPassed = passedActivities.has(i);
+              const isActive = currentIndex === i;
+
+              let bgColor = '#1C1236'; // Untouched
+              if (isActive) bgColor = '#6C5CE7'; // Active Blue/Purple
+              else if (isPassed) bgColor = '#00b8a3'; // Passed Green
+
+              return (
+                <button
+                  key={i}
+                  onClick={() => setCurrentIndex(i)}
+                  style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    backgroundColor: bgColor,
+                    color: '#FFF', border: isActive ? '2px solid #EBE4FF' : '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+                    fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                  }}
+                  title={`Go to Activity ${i + 1}`}
+                >
+                  {isPassed && !isActive ? '✓' : i + 1}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         <div className="activity-toggle-group">
           <button className={`activity-toggle-btn ${viewMode === 'workspace' ? 'active' : ''}`} onClick={() => setViewMode('workspace')}>Workspace</button>
@@ -492,7 +554,12 @@ const ActivityApp = () => {
             </div>
 
             <div className="activity-card" style={{ lineHeight: '1.7', fontSize: '0.95rem', backgroundColor: 'transparent', border: 'none', padding: '0', color: '#2f2f2f' }}>
-              {renderFormattedTask(currentTask?.task || "Complete the algorithm requested in the workspace.")}
+              {renderFormattedTask(
+                currentTask?.task ||
+                currentTask?.description ||
+                currentTask?.content ||
+                "Complete the algorithm requested in the workspace."
+              )}
             </div>
           </div>
         </aside>
@@ -504,7 +571,7 @@ const ActivityApp = () => {
 
           <div className="editor-container" style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             <div className={viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'} style={{ display: viewMode === 'workspace' ? 'block' : 'none', height: '100%' }}>
-              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} templatePath={initialTemplate} syntaxError={syntaxError} />
+              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} templatePath={currentTask?.templatePath || ""} syntaxError={syntaxError} />
             </div>
 
             <div className={viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'} style={{ display: viewMode === 'python' ? 'flex' : 'none', flexDirection: 'column', height: '100%', background: '#1C1236' }}>
@@ -707,7 +774,7 @@ const ActivityApp = () => {
               </button>
             </div>
             <div className="footer-right">
-              <button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", isDanger: true, onConfirmAction: () => window.location.reload() })} title="Restart Activity">
+              <button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to clear your current code?", confirmText: "Restart", isDanger: true, onConfirmAction: () => { setGeneratedPython(""); workspaceRef.current?.clear(); closeModal(); } })} title="Restart Activity">
                 <img src="/assets/recursive-icon.png" alt="Restart" />
               </button>
             </div>
@@ -715,10 +782,10 @@ const ActivityApp = () => {
         </main>
 
         <aside className="activity-right-panel" style={{ padding: 0 }}>
-          <TestCaseTester 
-            pythonCode={generatedPython} 
-            testCases={testCasesArray} 
-            onTestComplete={handleTestComplete} 
+          <TestCaseTester
+            pythonCode={generatedPython}
+            testCases={testCasesArray}
+            onTestComplete={handleTestComplete}
           />
         </aside>
       </Split>
