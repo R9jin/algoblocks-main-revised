@@ -201,7 +201,6 @@ const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
   const navigate = useNavigate();
 
-  // Guard routing
   useEffect(() => {
     if (!moduleId || !activityId) navigate("/learning-path", { replace: true });
   }, [moduleId, activityId, navigate]);
@@ -246,7 +245,6 @@ const ActivityApp = () => {
   const [expandedLines, setExpandedLines] = useState({});
   const [panelHeight, setPanelHeight] = useState(300);
 
-  // Activity resolved data
   const [activityDataResolved, setActivityDataResolved] = useState(null);
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
@@ -275,7 +273,6 @@ const ActivityApp = () => {
     };
   }, []);
 
-  // Worker initialization
   const initWorker = () => {
     if (!workerRef.current) return;
 
@@ -364,7 +361,6 @@ const ActivityApp = () => {
     }
   }, [consoleOutput, isWaitingForInput, consoleTab]);
 
-  // Panel resize
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
@@ -394,7 +390,6 @@ const ActivityApp = () => {
     document.body.style.userSelect = "none";
   };
 
-  // Network-First Cache Strategy
   const fetchJsonWithCache = async (cacheKey, url) => {
     try {
       const res = await fetch(url);
@@ -496,7 +491,23 @@ const ActivityApp = () => {
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
 
-        if (workspaceRef.current?.clear) workspaceRef.current.clear();
+        // --- NEW: Load from Saved Workspace Drafts ---
+        const savedDraft = localStorage.getItem(`activity_draft_${moduleId}_${activityId}`);
+        if (savedDraft) {
+          try {
+            const { json, pythonCode } = JSON.parse(savedDraft);
+            if (workspaceRef.current?.loadTemplate && json) {
+              workspaceRef.current.loadTemplate(json);
+            }
+            if (pythonCode) setGeneratedPython(pythonCode);
+          } catch (e) {
+            if (workspaceRef.current?.clear) workspaceRef.current.clear();
+          }
+        } else {
+          // Empty start if no draft
+          if (workspaceRef.current?.clear) workspaceRef.current.clear();
+        }
+
         setViewMode("workspace");
         setIsEditingCode(false);
       } catch (e) {
@@ -555,6 +566,14 @@ const ActivityApp = () => {
   const handleWorkspaceChange = async (json, pythonCode) => {
     const oldCode = (generatedPython || "").trim();
     const newCode = (pythonCode || "").trim();
+
+    // --- NEW: Save workspace automatically to localStorage ---
+    if (moduleId && activityId) {
+      localStorage.setItem(
+        `activity_draft_${moduleId}_${activityId}`,
+        JSON.stringify({ json, pythonCode })
+      );
+    }
 
     if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
@@ -775,11 +794,19 @@ const ActivityApp = () => {
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
 
+    // Build the dynamic pass message for partial scores vs perfect scores
+    let promptMsg = "";
+    if (passed === total) {
+      promptMsg = `Excellent work! You successfully passed all ${total} test cases.\n\nReady to solve the next activity?`;
+    } else {
+      promptMsg = `Good job! You passed the required visible tests.\n(Your overall score is ${passed}/${total} because of hidden tests).\n\nReady to solve the next activity?`;
+    }
+
     if (!isLast && nextActivity) {
       setModalConfig({
         isOpen: true,
         title: "Activity Completed! 🎉",
-        message: `Excellent work! You successfully passed all ${passed} out of ${total} test cases.\n\nReady to solve the next activity?`,
+        message: promptMsg,
         confirmText: "Next Activity",
         cancelText: "Stay Here",
         isDanger: false,
@@ -844,7 +871,15 @@ const ActivityApp = () => {
     setPassedTests(0);
 
     let passed = 0;
+    let visiblePassed = 0;
+    let visibleTotal = 0;
     const total = testCases.length;
+
+    // Calculate required visible total tests
+    testCases.forEach(tc => {
+      if (!tc.isHidden) visibleTotal++;
+    });
+
     let fullOutput = "\n> --- Running Test Cases ---\n";
 
     for (let i = 0; i < total; i++) {
@@ -880,9 +915,13 @@ const ActivityApp = () => {
           }
         }
 
+        // --- NEW: Track visible test progression ---
+        if (testPassed && !tc.isHidden) {
+          visiblePassed++;
+        }
+
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
         if (!testPassed) {
-          // FEATURE: Hide outputs for hidden test cases in the console
           if (tc.isHidden) {
             fullOutput += `   [Hidden Test Case] Expected values and inputs are omitted.\n`;
           } else {
@@ -894,19 +933,23 @@ const ActivityApp = () => {
         setConsoleOutput(fullOutput);
         setPassedTests(passed);
 
-        if (passed === total && total > 0) {
-          handleSuccess(passed, total);
-        } else {
-          const lessonKey = `${moduleId}:${activityId}`;
-          await savePartialProgress(lessonKey, passed);
-        }
       } catch (err) {
         fullOutput += `Test ${i + 1}: ERROR\n   Message: ${err.message}\n\n`;
         setConsoleOutput(fullOutput);
       }
     }
 
+    // --- NEW: Evaluate success ONLY AFTER the entire test loop finishes ---
     setIsEvaluating(false);
+    
+    // Always save highest score, even if partial (e.g. 3/5)
+    const lessonKey = `${moduleId}:${activityId}`;
+    await savePartialProgress(lessonKey, passed);
+
+    // Give them success dialog if ALL VISIBLE tests passed
+    if (visiblePassed === visibleTotal && visibleTotal > 0) {
+      handleSuccess(passed, total);
+    }
   };
 
   const lines = analysisResult?.lines || [];
@@ -1344,7 +1387,11 @@ const ActivityApp = () => {
                     confirmText: "Restart",
                     cancelText: "Cancel",
                     isDanger: true,
-                    onConfirmAction: () => window.location.reload(),
+                    onConfirmAction: () => {
+                      // --- NEW: Clear specific draft before refreshing ---
+                      localStorage.removeItem(`activity_draft_${moduleId}_${activityId}`);
+                      window.location.reload();
+                    },
                     onCancelAction: closeModal,
                   })
                 }
@@ -1376,7 +1423,6 @@ const ActivityApp = () => {
 
               return (
                 <div key={i} className={`test-case-card ${statusClass}`}>
-                  {/* FEATURE: Block click handler if the test case is hidden */}
                   <div 
                     className="test-case-header" 
                     onClick={() => !tc.isHidden && toggleTest(i)}
@@ -1385,11 +1431,9 @@ const ActivityApp = () => {
                     <div className="test-case-header-left">
                       <div className={`test-case-indicator ${statusClass}`}></div>
                       <strong className="test-case-title">
-                        {/* Rename hidden test dynamically */}
                         {tc.isHidden ? `Hidden Test ${i + 1}` : `Test ${i + 1}`}
                       </strong>
                     </div>
-                    {/* FEATURE: Lock icon instead of chevron for hidden tests */}
                     {tc.isHidden ? (
                       <span style={{ fontSize: "0.85rem", opacity: 0.6 }}>🔒</span>
                     ) : (
@@ -1397,7 +1441,6 @@ const ActivityApp = () => {
                     )}
                   </div>
 
-                  {/* FEATURE: Prevent details div from ever rendering if hidden */}
                   {isExpanded && !tc.isHidden && (
                     <div className="test-case-details">
                       <div className="test-case-row">
