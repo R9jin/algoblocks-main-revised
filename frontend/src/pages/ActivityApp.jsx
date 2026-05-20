@@ -120,18 +120,27 @@ const ActivityApp = () => {
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isEvaluating, setIsEvaluating] = useState(false);
 
+  // --- FIX: Persist state to survive page refreshes ---
+  const activeState = location.state || JSON.parse(sessionStorage.getItem("activityState")) || {};
+
+  useEffect(() => {
+    if (location.state) {
+      sessionStorage.setItem("activityState", JSON.stringify(location.state));
+    }
+  }, [location.state]);
+
   // ==========================================
   // EXTRACT TOPIC / ACTIVITY DATA
   // ==========================================
-  const topicData = location.state?.topicData || null;
-  const standaloneActivity = location.state?.activityData || null;
+  const topicData = activeState?.topicData || null;
+  const standaloneActivity = activeState?.activityData || null;
   const isTopicMode = !!topicData;
   const activitiesList = isTopicMode ? (topicData.activities || []) : [standaloneActivity].filter(Boolean);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [passedActivities, setPassedActivities] = useState(new Set());
 
-  const currentTask = activitiesList[currentIndex] || null;
+  const [currentTask, setCurrentTask] = useState(null);
   const testCasesArray = currentTask?.testCasesPool || currentTask?.testCases || currentTask?.testCasesList || [];
 
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
@@ -286,6 +295,59 @@ const ActivityApp = () => {
     if (workerRef.current) workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
   };
 
+  // Fetch full task details (description, test cases) when navigating activities
+  useEffect(() => {
+    const baseTask = activitiesList[currentIndex];
+    if (!baseTask) return;
+
+    // If the task already has the description loaded, use it directly
+    if (baseTask.task || baseTask.description) {
+      setCurrentTask(baseTask);
+      return;
+    }
+
+    const fetchTaskDetails = async () => {
+      try {
+        // 1. Check if it follows the module naming convention (e.g., m0_l1_a1)
+        const match = baseTask.id.match(/^m(\d+)_/);
+        if (match) {
+          const modNum = match[1];
+          const res = await fetch(`/data/activities/module_${modNum}.json`);
+          if (res.ok) {
+            const data = await res.json();
+            for (const key in data) {
+              const found = data[key].find((a) => a.id === baseTask.id);
+              if (found) {
+                // Merge the base info with the fetched rich details
+                setCurrentTask({ ...baseTask, ...found });
+                return;
+              }
+            }
+          }
+        }
+
+        // 2. Fallback: check the general activities.json
+        const generalRes = await fetch('/data/activities.json');
+        if (generalRes.ok) {
+          const generalData = await generalRes.json();
+          const found = generalData.find((a) => a.id === baseTask.id);
+          if (found) {
+            setCurrentTask({ ...baseTask, ...found });
+            return;
+          }
+        }
+
+        // If not found in any file, just use the base info
+        setCurrentTask(baseTask);
+      } catch (err) {
+        console.error("Failed to load rich task details:", err);
+        setCurrentTask(baseTask);
+      }
+    };
+
+    fetchTaskDetails();
+  }, [currentIndex, activitiesList]);
+
   useEffect(() => {
     if (!isEditingCode) return;
     const timeoutId = setTimeout(() => { analyzeCode(generatedPython); }, 500);
@@ -329,12 +391,6 @@ const ActivityApp = () => {
 
     return () => clearTimeout(timerId);
   }, [currentIndex, currentTask]); // Trigger strictly when index changes
-
-  useEffect(() => {
-    if (activitiesList && activitiesList[currentIndex]) {
-      setCurrentTask(activitiesList[currentIndex]);
-    }
-  }, [currentIndex, activitiesList]);
 
   const saveLessonProgress = async (lessonId) => {
     const storedUser = localStorage.getItem("user");
