@@ -126,12 +126,28 @@ const ActivityApp = () => {
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const activityData = location.state?.activityData || null;
-  const initialTemplate = location.state?.templatePath || location.state?.activityData?.templatePath || "";
-  const currentTask = ACTIVITY_TASKS.find((t) => t.templatePath === initialTemplate) || activityData;
   
-  // SUPPORT FOR NEW CODECHUM STYLE POOLS
-  const testCasesArray = activityData?.testCasesPool || activityData?.testCases || currentTask?.testCasesList || []; 
+  // Extract state passed securely via React Router
+  const activityData = location.state?.activityData || null;
+  const initialTemplate = location.state?.templatePath || activityData?.templatePath || "";
+  
+  const [currentTask, setCurrentTask] = useState(activityData);
+
+  // Dynamic public fallback fetch if page is reloaded and state is lost
+  useEffect(() => {
+    if (!currentTask && initialTemplate) {
+      fetch('/data/activities.json')
+        .then(res => res.json())
+        .then(data => {
+          const found = data.find(t => t.templatePath === initialTemplate);
+          if (found) setCurrentTask(found);
+        })
+        .catch(err => console.error("Error fetching activities from public directory:", err));
+    }
+  }, [currentTask, initialTemplate]);
+
+  // Support for CodeChum style tests vs older JSON structure tests
+  const testCasesArray = currentTask?.testCasesPool || currentTask?.testCases || currentTask?.testCasesList || []; 
 
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
@@ -237,7 +253,12 @@ const ActivityApp = () => {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
 
-  useEffect(() => { if (!activityData) navigate("/learning-path"); }, [activityData, navigate]);
+  // Safely bounce user out if navigating to activity URL directly without proper data
+  useEffect(() => { 
+    if (!currentTask && !initialTemplate) {
+      navigate("/learning-path"); 
+    }
+  }, [currentTask, initialTemplate, navigate]);
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === 'output') {
@@ -294,13 +315,13 @@ const ActivityApp = () => {
 
   useEffect(() => {
     if (!workspaceRef.current || hasLoadedRef.current) return;
-    if (!initialTemplate && !activityData) return;
+    if (!initialTemplate && !currentTask) return;
     hasLoadedRef.current = true;
     setTimeout(async () => {
       try {
         let json = null;
-        if (activityData && activityData.blocks) {
-          json = activityData;
+        if (currentTask && currentTask.blocks) {
+          json = currentTask;
         } else if (initialTemplate) {
           const fetchUrl = initialTemplate.startsWith("activities/") ? `/${initialTemplate}.json` : `/templates/${initialTemplate}.json`;
           const response = await fetch(fetchUrl);
@@ -320,7 +341,7 @@ const ActivityApp = () => {
         console.error("Failed to load activity template", error);
       }
     }, 500);
-  }, [initialTemplate, activityData]);
+  }, [initialTemplate, currentTask]);
 
   const saveLessonProgress = async (lessonId, score) => {
     const storedUser = localStorage.getItem("user");
@@ -405,7 +426,7 @@ const ActivityApp = () => {
   };
 
   const handleTestComplete = (passedCount, totalCount) => {
-    const lessonId = activityData?.id || initialTemplate?.split("/").pop() || "unknown";
+    const lessonId = currentTask?.id || initialTemplate?.split("/").pop() || "unknown";
     saveLessonProgress(lessonId, passedCount);
 
     if (passedCount === totalCount && totalCount > 0) {
@@ -464,14 +485,14 @@ const ActivityApp = () => {
 
           <div className="activity-panel-content">
             <div className="activity-task-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', marginTop: '10px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#2b005c', fontWeight: 'bold' }}>{currentTask?.title || activityData?.title || "Activity"}</h2>
+              <h2 style={{ margin: 0, fontSize: '1.4rem', color: '#2b005c', fontWeight: 'bold' }}>{currentTask?.title || "Activity"}</h2>
               <span style={{ padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: currentTask?.difficulty === 'Easy' ? 'rgba(0, 184, 163, 0.15)' : currentTask?.difficulty === 'Medium' ? 'rgba(255, 192, 30, 0.15)' : 'rgba(255, 55, 95, 0.15)', color: currentTask?.difficulty === 'Easy' ? '#00b8a3' : currentTask?.difficulty === 'Medium' ? '#ffc01e' : '#ff375f' }}>
                 {currentTask?.difficulty || "Easy"}
               </span>
             </div>
 
             <div className="activity-card" style={{ lineHeight: '1.7', fontSize: '0.95rem', backgroundColor: 'transparent', border: 'none', padding: '0', color: '#2f2f2f' }}>
-              {renderFormattedTask(currentTask?.task || (typeof activityData?.task === "string" ? activityData.task : "Complete the algorithm requested in the workspace."))}
+              {renderFormattedTask(currentTask?.task || "Complete the algorithm requested in the workspace.")}
             </div>
           </div>
         </aside>
