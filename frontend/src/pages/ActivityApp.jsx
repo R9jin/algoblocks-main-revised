@@ -135,14 +135,17 @@ const ActivityApp = () => {
   const topicData = activeState?.topicData || null;
   const standaloneActivity = activeState?.activityData || null;
   const isTopicMode = !!topicData;
-  const activitiesList = isTopicMode ? (topicData.activities || []) : [standaloneActivity].filter(Boolean);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [passedActivities, setPassedActivities] = useState(new Set());
 
-  const [currentTask, setCurrentTask] = useState(null);
-  const testCasesArray = currentTask?.testCasesPool || currentTask?.testCases || currentTask?.testCasesList || [];
+  const activitiesList = standaloneActivity ? [standaloneActivity] : (topicData?.activities || []);
 
+  // Initialize with the base task to prevent premature redirects
+  const [currentTask, setCurrentTask] = useState(activitiesList[currentIndex] || null);
+  
+  const testCasesArray = currentTask?.testCasesPool || currentTask?.testCases || currentTask?.testCasesList || [];
+  
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [viewMode, setViewMode] = useState("workspace");
