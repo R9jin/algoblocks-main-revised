@@ -52,11 +52,11 @@
       "level": "beginner",
       "content": "Understanding variable scope, pointer tracking, and memory layout using the visualizer.",
       "activities": [
-        { "id": "m0_l4_a1", "title": "Swap Visualized" },
-        { "id": "m0_l4_a2", "title": "Array Fill" },
-        { "id": "m0_l4_a3", "title": "Counter Tracker" },
-        { "id": "m0_l4_a4", "title": "Scope Test" },
-        { "id": "m0_l4_a5", "title": "Pointer Simulation" }
+        { "id": "m0_l4_a1", "title": "Swap Variables" },
+        { "id": "m0_l4_a2", "title": "Array Fill Trace" },
+        { "id": "m0_l4_a3", "title": "Counter Memory" },
+        { "id": "m0_l4_a4", "title": "Scope Lifetime" },
+        { "id": "m0_l4_a5", "title": "Pointer Movement" }
       ]
     }
   ]

@@ -1,61 +1,268 @@
 {
   "lesson_1": [
     {
+      "id": "m3_l1_a1",
+      "title": "Halving an Array",
+      "task": "Return two arrays: left half and right half.",
+      "testCasesPool": [
+        { "call": "halve_array([1,2,3,4])", "expected": "[[1,2],[3,4]]", "isHidden": false },
+        { "call": "halve_array([10,20,30])", "expected": "[[10],[20,30]]", "isHidden": false },
+        { "call": "halve_array([5])", "expected": "[[5],[]]", "isHidden": false },
+        { "call": "halve_array([])", "expected": "[[],[]]", "isHidden": true },
+        { "call": "halve_array([1,2,3,4,5])", "expected": "[[1,2],[3,4,5]]", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l1_a2",
+      "title": "Find Midpoint",
+      "task": "Return midpoint index using floor((l+r)/2).",
+      "testCasesPool": [
+        { "call": "midpoint(0,9)", "expected": "4", "isHidden": false },
+        { "call": "midpoint(1,5)", "expected": "3", "isHidden": false },
+        { "call": "midpoint(2,2)", "expected": "2", "isHidden": false },
+        { "call": "midpoint(0,0)", "expected": "0", "isHidden": true },
+        { "call": "midpoint(3,10)", "expected": "6", "isHidden": true }
+      ]
+    },
+
+    {
       "id": "m3_l1_a3",
       "title": "Recursive Countdown",
-      "task": "Scenario: Space launch sequence. Task: Write a recursive function `countdown(n)` returning a list of numbers from n down to 1. If n <= 0, return ['Abort'].",
-      "randomizeTestCases": true,
+      "task": "Return list counting down from n to 1, else ['Abort'] if n <= 0.",
       "testCasesPool": [
-        { "call": "countdown(3)", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "countdown(5)", "expected": "[5, 4, 3, 2, 1]", "isHidden": false },
+        { "call": "countdown(3)", "expected": "[3,2,1]", "isHidden": false },
+        { "call": "countdown(5)", "expected": "[5,4,3,2,1]", "isHidden": false },
         { "call": "countdown(1)", "expected": "[1]", "isHidden": false },
         { "call": "countdown(0)", "expected": "['Abort']", "isHidden": true },
         { "call": "countdown(-5)", "expected": "['Abort']", "isHidden": true }
       ]
+    },
+
+    {
+      "id": "m3_l1_a4",
+      "title": "Recursive Factorial",
+      "task": "Return factorial of n using recursion.",
+      "testCasesPool": [
+        { "call": "factorial(5)", "expected": "120", "isHidden": false },
+        { "call": "factorial(4)", "expected": "24", "isHidden": false },
+        { "call": "factorial(3)", "expected": "6", "isHidden": false },
+        { "call": "factorial(0)", "expected": "1", "isHidden": true },
+        { "call": "factorial(1)", "expected": "1", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l1_a5",
+      "title": "Recursive Sum",
+      "task": "Return sum from 1 to n using recursion.",
+      "testCasesPool": [
+        { "call": "sum_recursive(5)", "expected": "15", "isHidden": false },
+        { "call": "sum_recursive(10)", "expected": "55", "isHidden": false },
+        { "call": "sum_recursive(3)", "expected": "6", "isHidden": false },
+        { "call": "sum_recursive(0)", "expected": "0", "isHidden": true },
+        { "call": "sum_recursive(-2)", "expected": "0", "isHidden": true }
+      ]
     }
   ],
+
   "lesson_2": [
     {
       "id": "m3_l2_a1",
-      "title": "Implement Binary Search",
-      "task": "Scenario: Searching a sorted yard. Task: Write `binary_search(arr, x)` returning the index of x in a sorted array, or -1. Avoid infinite loops if array is empty.",
-      "randomizeTestCases": true,
+      "title": "Binary Search",
+      "task": "Return index of x in sorted array using binary search.",
       "testCasesPool": [
-        { "call": "binary_search([10, 20, 30, 40, 50], 30)", "expected": "2", "isHidden": false },
-        { "call": "binary_search([100, 200, 300], 100)", "expected": "0", "isHidden": false },
-        { "call": "binary_search([10, 20, 30], 40)", "expected": "-1", "isHidden": false },
-        { "call": "binary_search([], 50)", "expected": "-1", "isHidden": true },
-        { "call": "binary_search([50], 50)", "expected": "0", "isHidden": true }
+        { "call": "binary_search([10,20,30,40,50],30)", "expected": "2", "isHidden": false },
+        { "call": "binary_search([1,2,3,4],1)", "expected": "0", "isHidden": false },
+        { "call": "binary_search([5,10,15],15)", "expected": "2", "isHidden": false },
+        { "call": "binary_search([],5)", "expected": "-1", "isHidden": true },
+        { "call": "binary_search([7],7)", "expected": "0", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l2_a2",
+      "title": "Missing Target Binary",
+      "task": "Return -1 if target is not found.",
+      "testCasesPool": [
+        { "call": "binary_missing([1,2,3],4)", "expected": "-1", "isHidden": false },
+        { "call": "binary_missing([10,20,30],15)", "expected": "-1", "isHidden": false },
+        { "call": "binary_missing([5,6,7],7)", "expected": "2", "isHidden": false },
+        { "call": "binary_missing([],1)", "expected": "-1", "isHidden": true },
+        { "call": "binary_missing([9],9)", "expected": "0", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l2_a3",
+      "title": "First Occurrence Binary",
+      "task": "Return first index of duplicate target using binary search.",
+      "testCasesPool": [
+        { "call": "binary_first([1,2,2,2,3],2)", "expected": "1", "isHidden": false },
+        { "call": "binary_first([5,5,5,6],5)", "expected": "0", "isHidden": false },
+        { "call": "binary_first([1,2,3],3)", "expected": "2", "isHidden": false },
+        { "call": "binary_first([],1)", "expected": "-1", "isHidden": true },
+        { "call": "binary_first([7,7],7)", "expected": "0", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l2_a4",
+      "title": "Last Occurrence Binary",
+      "task": "Return last index of duplicate target using binary search.",
+      "testCasesPool": [
+        { "call": "binary_last([1,2,2,2,3],2)", "expected": "3", "isHidden": false },
+        { "call": "binary_last([5,5,5,6],5)", "expected": "2", "isHidden": false },
+        { "call": "binary_last([1,2,3],3)", "expected": "2", "isHidden": false },
+        { "call": "binary_last([],1)", "expected": "-1", "isHidden": true },
+        { "call": "binary_last([7,7],7)", "expected": "1", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l2_a5",
+      "title": "Step Counter",
+      "task": "Return number of halving steps in binary search.",
+      "testCasesPool": [
+        { "call": "binary_steps([1,2,3,4,5],3)", "expected": "2", "isHidden": false },
+        { "call": "binary_steps([10,20,30,40],20)", "expected": "2", "isHidden": false },
+        { "call": "binary_steps([5,6,7],7)", "expected": "2", "isHidden": false },
+        { "call": "binary_steps([],1)", "expected": "0", "isHidden": true },
+        { "call": "binary_steps([9],9)", "expected": "0", "isHidden": true }
       ]
     }
   ],
+
   "lesson_3": [
     {
-      "id": "m3_l3_a3",
-      "title": "Full Merge Sort Ascending",
-      "task": "Scenario: Stable sorting algorithm. Task: Write `merge_sort(arr)` recursively sorting lowest to highest. Must handle empty arrays safely.",
-      "randomizeTestCases": true,
+      "id": "m3_l3_a1",
+      "title": "Merge Step",
+      "task": "Merge two sorted arrays into one sorted array.",
       "testCasesPool": [
-        { "call": "merge_sort([38, 27, 43, 3, 9, 82, 10])", "expected": "[3, 9, 10, 27, 38, 43, 82]", "isHidden": false },
-        { "call": "merge_sort([5, 1, 5, 2])", "expected": "[1, 2, 5, 5]", "isHidden": false },
-        { "call": "merge_sort([10, 9, 8])", "expected": "[8, 9, 10]", "isHidden": false },
+        { "call": "merge([1,5,9],[2,3,8])", "expected": "[1,2,3,5,8,9]", "isHidden": false },
+        { "call": "merge([1,2],[3,4])", "expected": "[1,2,3,4]", "isHidden": false },
+        { "call": "merge([10],[1])", "expected": "[1,10]", "isHidden": false },
+        { "call": "merge([],[])", "expected": "[]", "isHidden": true },
+        { "call": "merge([1],[1])", "expected": "[1,1]", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l3_a2",
+      "title": "Array Splitter",
+      "task": "Recursively split array until single elements.",
+      "testCasesPool": [
+        { "call": "split([1,2,3,4])", "expected": "[[1,2,3,4]]", "isHidden": false },
+        { "call": "split([5,6,7])", "expected": "[[5,6,7]]", "isHidden": false },
+        { "call": "split([1])", "expected": "[[1]]", "isHidden": false },
+        { "call": "split([])", "expected": "[]", "isHidden": true },
+        { "call": "split([1,2])", "expected": "[[1,2]]", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l3_a3",
+      "title": "Merge Sort Ascending",
+      "task": "Return sorted array using merge sort.",
+      "testCasesPool": [
+        { "call": "merge_sort([38,27,43,3,9,82,10])", "expected": "[3,9,10,27,38,43,82]", "isHidden": false },
+        { "call": "merge_sort([5,1,5,2])", "expected": "[1,2,5,5]", "isHidden": false },
+        { "call": "merge_sort([10,9,8])", "expected": "[8,9,10]", "isHidden": false },
         { "call": "merge_sort([])", "expected": "[]", "isHidden": true },
         { "call": "merge_sort([1])", "expected": "[1]", "isHidden": true }
       ]
+    },
+
+    {
+      "id": "m3_l3_a4",
+      "title": "Merge Sort Descending",
+      "task": "Return sorted array in descending order using merge sort.",
+      "testCasesPool": [
+        { "call": "merge_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
+        { "call": "merge_sort_desc([5,1,4])", "expected": "[5,4,1]", "isHidden": false },
+        { "call": "merge_sort_desc([7,7,7])", "expected": "[7,7,7]", "isHidden": false },
+        { "call": "merge_sort_desc([])", "expected": "[]", "isHidden": true },
+        { "call": "merge_sort_desc([9])", "expected": "[9]", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l3_a5",
+      "title": "Merge Strings",
+      "task": "Return alphabetically sorted array of strings.",
+      "testCasesPool": [
+        { "call": "merge_strings(['c','a','b'])", "expected": "['a','b','c']", "isHidden": false },
+        { "call": "merge_strings(['z','x','y'])", "expected": "['x','y','z']", "isHidden": false },
+        { "call": "merge_strings(['apple','banana'])", "expected": "['apple','banana']", "isHidden": false },
+        { "call": "merge_strings([])", "expected": "[]", "isHidden": true },
+        { "call": "merge_strings(['a'])", "expected": "['a']", "isHidden": true }
+      ]
     }
   ],
+
   "lesson_4": [
     {
-      "id": "m3_l4_a3",
-      "title": "Full Quick Sort Ascending",
-      "task": "Scenario: Fast recursive sorting. Task: Write `quick_sort(arr)` implementing the full Quick Sort algorithm. Account for arrays that are already sorted.",
-      "randomizeTestCases": true,
+      "id": "m3_l4_a1",
+      "title": "Partition Step",
+      "task": "Return array partitioned around first element pivot.",
       "testCasesPool": [
-        { "call": "quick_sort([10, 7, 8, 9, 1, 5])", "expected": "[1, 5, 7, 8, 9, 10]", "isHidden": false },
-        { "call": "quick_sort([3, 2, 1])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "quick_sort([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "quick_sort([5, 5, 5])", "expected": "[5, 5, 5]", "isHidden": true },
-        { "call": "quick_sort([])", "expected": "[]", "isHidden": true }
+        { "call": "partition([3,2,1])", "expected": "[[2,1],3,[]]", "isHidden": false },
+        { "call": "partition([5,1,4,2])", "expected": "[[1,4,2],5,[]]", "isHidden": false },
+        { "call": "partition([10,20,5])", "expected": "[[5],10,[20]]", "isHidden": false },
+        { "call": "partition([])", "expected": "[]", "isHidden": true },
+        { "call": "partition([7])", "expected": "[[],7,[]]", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l4_a2",
+      "title": "Choose First Pivot",
+      "task": "Return pivot (first element) and partition result.",
+      "testCasesPool": [
+        { "call": "pivot_first([3,2,1])", "expected": "[3,[2,1]]", "isHidden": false },
+        { "call": "pivot_first([5,1,4])", "expected": "[5,[1,4]]", "isHidden": false },
+        { "call": "pivot_first([10])", "expected": "[10,[]]", "isHidden": false },
+        { "call": "pivot_first([])", "expected": "[]", "isHidden": true },
+        { "call": "pivot_first([7,7])", "expected": "[7,[7]]", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l4_a3",
+      "title": "Quick Sort Ascending",
+      "task": "Return sorted array using quick sort.",
+      "testCasesPool": [
+        { "call": "quick_sort([10,7,8,9,1,5])", "expected": "[1,5,7,8,9,10]", "isHidden": false },
+        { "call": "quick_sort([3,2,1])", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "quick_sort([1,2,3])", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "quick_sort([])", "expected": "[]", "isHidden": true },
+        { "call": "quick_sort([5,5,5])", "expected": "[5,5,5]", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l4_a4",
+      "title": "Quick Sort Descending",
+      "task": "Return sorted array in descending order using quick sort.",
+      "testCasesPool": [
+        { "call": "quick_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
+        { "call": "quick_sort_desc([5,1,4])", "expected": "[5,4,1]", "isHidden": false },
+        { "call": "quick_sort_desc([7,7,7])", "expected": "[7,7,7]", "isHidden": false },
+        { "call": "quick_sort_desc([])", "expected": "[]", "isHidden": true },
+        { "call": "quick_sort_desc([9])", "expected": "[9]", "isHidden": true }
+      ]
+    },
+
+    {
+      "id": "m3_l4_a5",
+      "title": "Pivot Tracker",
+      "task": "Return list of pivots used in recursive quick sort.",
+      "testCasesPool": [
+        { "call": "pivot_track([3,2,1])", "expected": "[3,2,1]", "isHidden": false },
+        { "call": "pivot_track([5,1,4])", "expected": "[5,1,4]", "isHidden": false },
+        { "call": "pivot_track([10,20,30])", "expected": "[10,20,30]", "isHidden": false },
+        { "call": "pivot_track([])", "expected": "[]", "isHidden": true },
+        { "call": "pivot_track([7])", "expected": "[7]", "isHidden": true }
       ]
     }
   ]

@@ -14,7 +14,7 @@
         { "id": "m2_l1_a2", "title": "Min Finder" },
         { "id": "m2_l1_a3", "title": "Sum Search" },
         { "id": "m2_l1_a4", "title": "Count Evens" },
-        { "id": "m2_l1_a5", "title": "Find First Negative" }
+        { "id": "m2_l1_a5", "title": "First Negative Finder" }
       ]
     },
     {
@@ -38,7 +38,7 @@
       "level": "intermediate",
       "content": "Understanding sorting passes, item swaps, and the O(n²) sorting family including Bubble and Selection sort.",
       "activities": [
-        { "id": "m2_l3_a1", "title": "Sort Grades (Bubble)" },
+        { "id": "m2_l3_a1", "title": "Bubble Sort Ascending" },
         { "id": "m2_l3_a2", "title": "Selection Sort Ascending" },
         { "id": "m2_l3_a3", "title": "Bubble Sort Descending" },
         { "id": "m2_l3_a4", "title": "Selection Sort Descending" },

@@ -66,7 +66,7 @@ function App() {
           element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
         />
         <Route
-          path="/activity"
+          path="/activity/:moduleId/:activityId"
           element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
         />
       </Routes>

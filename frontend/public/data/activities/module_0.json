@@ -3,77 +3,270 @@
     {
       "id": "m0_l1_a1",
       "title": "Hello AlgoBlocks",
-      "task": "Scenario: You are configuring the AlgoTech console. Task: Write a Python function `hello()` that returns exactly 'Hello, AlgoBlocks!'.",
+      "task": "Write a function hello() that returns 'Hello, AlgoBlocks!'.",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false }
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello AlgoBlocks!'", "isHidden": true },
+        { "call": "hello()", "expected": "", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l1_a2",
+      "title": "ASCII Art Triangle",
+      "task": "Print a triangle using '*' characters over multiple lines.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "triangle(3)", "expected": "\"*\\n**\\n***\"", "isHidden": false },
+        { "call": "triangle(2)", "expected": "\"*\\n**\"", "isHidden": false },
+        { "call": "triangle(1)", "expected": "\"*\"", "isHidden": false },
+        { "call": "triangle(0)", "expected": "\"\"", "isHidden": true },
+        { "call": "triangle(-1)", "expected": "\"\"", "isHidden": true }
       ]
     },
     {
       "id": "m0_l1_a3",
       "title": "Basic Calculator",
-      "task": "Scenario: You need a tool to sum up inventory. Task: Write a function `add(a, b)` that returns the sum of a and b. Add a fallback to return 'Error' if inputs are not numbers.",
+      "task": "Return sum of two numbers or 'Error' if invalid input.",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "add(5, 10)", "expected": "15", "isHidden": false },
-        { "call": "add(-2, 8)", "expected": "6", "isHidden": false },
-        { "call": "add(0, 0)", "expected": "0", "isHidden": false }
+        { "call": "add(2,3)", "expected": "5", "isHidden": false },
+        { "call": "add(10,10)", "expected": "20", "isHidden": false },
+        { "call": "add(0,5)", "expected": "5", "isHidden": false },
+        { "call": "add('a',3)", "expected": "'Error'", "isHidden": true },
+        { "call": "add(None,2)", "expected": "'Error'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l1_a4",
+      "title": "Name Greeter",
+      "task": "Return welcome message using name variable.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "greet('Ana')", "expected": "'Welcome Ana!'", "isHidden": false },
+        { "call": "greet('John')", "expected": "'Welcome John!'", "isHidden": false },
+        { "call": "greet('Lee')", "expected": "'Welcome Lee!'", "isHidden": false },
+        { "call": "greet('')", "expected": "'Welcome !'", "isHidden": true },
+        { "call": "greet(None)", "expected": "'Welcome None!'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l1_a5",
+      "title": "Multi-Line Output",
+      "task": "Print 5 sequential statements in order.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "4", "isHidden": true },
+        { "call": "multi()", "expected": "6", "isHidden": true }
       ]
     }
   ],
+
   "lesson_2": [
     {
       "id": "m0_l2_a1",
       "title": "Odd or Even",
-      "task": "Scenario: Sorting users by ID. Task: Write `check_odd_even(n)` returning 'Odd' if odd, 'Even' if even. Return 'Invalid' if n is not an integer.",
+      "task": "Return 'Odd' or 'Even', else 'Invalid'.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "check_odd_even(7)", "expected": "'Odd'", "isHidden": false },
         { "call": "check_odd_even(10)", "expected": "'Even'", "isHidden": false },
-        { "call": "check_odd_even(-4)", "expected": "'Even'", "isHidden": false },
-        { "call": "check_odd_even(0)", "expected": "'Even'", "isHidden": true },
-        { "call": "check_odd_even('seven')", "expected": "'Invalid'", "isHidden": true }
+        { "call": "check_odd_even(3)", "expected": "'Odd'", "isHidden": false },
+        { "call": "check_odd_even('7')", "expected": "'Invalid'", "isHidden": true },
+        { "call": "check_odd_even(None)", "expected": "'Invalid'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l2_a2",
+      "title": "Number Counter",
+      "task": "Print numbers from 1 to N using loop.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "count(3)", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "count(5)", "expected": "[1,2,3,4,5]", "isHidden": false },
+        { "call": "count(1)", "expected": "[1]", "isHidden": false },
+        { "call": "count(0)", "expected": "[]", "isHidden": true },
+        { "call": "count(-2)", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l2_a3",
+      "title": "Array Printer",
+      "task": "Multiply each element by 2.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "double([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
+        { "call": "double([10])", "expected": "[20]", "isHidden": false },
+        { "call": "double([0,0])", "expected": "[0,0]", "isHidden": false },
+        { "call": "double([])", "expected": "[]", "isHidden": true },
+        { "call": "double(None)", "expected": "'Error'", "isHidden": true }
       ]
     },
     {
       "id": "m0_l2_a4",
       "title": "Grade Evaluator",
-      "task": "Scenario: Automating student results. Task: Write `evaluate(grade)` returning 'Pass' if grade >= 75 else 'Fail'. Fallback: return 'Invalid' if grade < 0 or > 100.",
+      "task": "Return Pass if >=75 else Fail.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "evaluate(75)", "expected": "'Pass'", "isHidden": false },
         { "call": "evaluate(74)", "expected": "'Fail'", "isHidden": false },
-        { "call": "evaluate(99)", "expected": "'Pass'", "isHidden": false },
-        { "call": "evaluate(-5)", "expected": "'Invalid'", "isHidden": true },
-        { "call": "evaluate(105)", "expected": "'Invalid'", "isHidden": true }
+        { "call": "evaluate(90)", "expected": "'Pass'", "isHidden": false },
+        { "call": "evaluate(-1)", "expected": "'Invalid'", "isHidden": true },
+        { "call": "evaluate(101)", "expected": "'Invalid'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l2_a5",
+      "title": "Sum of Range",
+      "task": "Compute sum from 1 to N using loop.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "sum_range(5)", "expected": "15", "isHidden": false },
+        { "call": "sum_range(10)", "expected": "55", "isHidden": false },
+        { "call": "sum_range(3)", "expected": "6", "isHidden": false },
+        { "call": "sum_range(0)", "expected": "0", "isHidden": true },
+        { "call": "sum_range(-5)", "expected": "0", "isHidden": true }
       ]
     }
   ],
+
   "lesson_3": [
     {
       "id": "m0_l3_a1",
-      "title": "The Constant O(1) Test",
-      "task": "Scenario: Testing instant data access. Task: Write `get_first(arr)` returning the element at index 0. Return 'Empty' if the array has no elements.",
+      "title": "O(1) Access Test",
+      "task": "Return first element of array.",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "get_first([99, 2, 3])", "expected": "99", "isHidden": false },
-        { "call": "get_first(['A', 'B'])", "expected": "'A'", "isHidden": false },
-        { "call": "get_first([0])", "expected": "0", "isHidden": false },
+        { "call": "get_first([1,2,3])", "expected": "1", "isHidden": false },
+        { "call": "get_first([9,8,7])", "expected": "9", "isHidden": false },
+        { "call": "get_first(['A','B'])", "expected": "'A'", "isHidden": false },
         { "call": "get_first([])", "expected": "'Empty'", "isHidden": true },
-        { "call": "get_first([None, 1])", "expected": "None", "isHidden": true }
+        { "call": "get_first([None,1])", "expected": "None", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l3_a2",
+      "title": "O(n) Linear Scan",
+      "task": "Loop through 1..100 and count operations.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "99", "isHidden": true },
+        { "call": "linear()", "expected": "101", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l3_a3",
+      "title": "O(n²) Nested Loop",
+      "task": "Generate 5x5 grid using nested loops.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "20", "isHidden": true },
+        { "call": "grid()", "expected": "30", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l3_a4",
+      "title": "Branch Cost",
+      "task": "Analyze IF/ELSE execution path.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "branch(1)", "expected": "'IF'", "isHidden": false },
+        { "call": "branch(5)", "expected": "'IF'", "isHidden": false },
+        { "call": "branch(0)", "expected": "'ELSE'", "isHidden": false },
+        { "call": "branch(-1)", "expected": "'ELSE'", "isHidden": true },
+        { "call": "branch(None)", "expected": "'ELSE'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l3_a5",
+      "title": "Loop vs Math",
+      "task": "Compare multiplication vs repeated addition.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "24", "isHidden": true },
+        { "call": "compare()", "expected": "26", "isHidden": true }
       ]
     }
   ],
+
   "lesson_4": [
     {
       "id": "m0_l4_a1",
-      "title": "Swap Visualized",
-      "task": "Scenario: Correcting mislabeled boxes. Task: Write `swap(a, b)` returning a list [b, a].",
+      "title": "Swap Variables",
+      "task": "Swap two values and return reversed array.",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "swap(1, 2)", "expected": "[2, 1]", "isHidden": false },
-        { "call": "swap('X', 'Y')", "expected": "['Y', 'X']", "isHidden": false },
-        { "call": "swap(None, 'A')", "expected": "['A', None]", "isHidden": true }
+        { "call": "swap(1,2)", "expected": "[2,1]", "isHidden": false },
+        { "call": "swap('X','Y')", "expected": "['Y','X']", "isHidden": false },
+        { "call": "swap(None,'A')", "expected": "['A',None]", "isHidden": false },
+        { "call": "swap()", "expected": "'Error'", "isHidden": true },
+        { "call": "swap(1)", "expected": "'Error'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l4_a2",
+      "title": "Array Fill Trace",
+      "task": "Track array being filled step-by-step.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "fill(3)", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "fill(5)", "expected": "[1,2,3,4,5]", "isHidden": false },
+        { "call": "fill(1)", "expected": "[1]", "isHidden": false },
+        { "call": "fill(0)", "expected": "[]", "isHidden": true },
+        { "call": "fill(-1)", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l4_a3",
+      "title": "Counter Memory",
+      "task": "Track variable increment over loop.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "counter(5)", "expected": "5", "isHidden": false },
+        { "call": "counter(10)", "expected": "10", "isHidden": false },
+        { "call": "counter(1)", "expected": "1", "isHidden": false },
+        { "call": "counter(0)", "expected": "0", "isHidden": true },
+        { "call": "counter(-5)", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l4_a4",
+      "title": "Scope Lifetime",
+      "task": "Check variable existence inside IF block.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "scope(1)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(5)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(0)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(-1)", "expected": "'none'", "isHidden": true },
+        { "call": "scope(None)", "expected": "'none'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l4_a5",
+      "title": "Pointer Movement",
+      "task": "Simulate left/right pointer movement.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "pointer()", "expected": "[0,1]", "isHidden": false },
+        { "call": "pointer()", "expected": "[1,2]", "isHidden": false },
+        { "call": "pointer()", "expected": "[2,3]", "isHidden": false },
+        { "call": "pointer()", "expected": "[0,0]", "isHidden": true },
+        { "call": "pointer()", "expected": "[]", "isHidden": true }
       ]
     }
   ]

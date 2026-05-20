@@ -88,11 +88,19 @@ export default function LearningPath() {
   // START LESSON
   // =========================================
   const handleStartLesson = (topic) => {
-    navigate("/activity", {
-      state: {
-        topicData: topic
-      }
-    });
+    // Deterministic activity selection: first activity in the topic.
+    const activityId = topic?.activities?.[0]?.id;
+
+    // Determine moduleId by searching modules in current state.
+    const moduleId = modules.find((m) => m?.topics?.some((t) => t?.id === topic?.id))?.id;
+
+    // Strict routing requirement: if missing anything, go back to learning path.
+    if (!moduleId || !activityId) {
+      navigate("/learning-path", { replace: true });
+      return;
+    }
+
+    navigate(`/activity/${moduleId}/${activityId}`);
   };
 
   if (loading) {

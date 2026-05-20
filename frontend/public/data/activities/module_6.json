@@ -1,9 +1,48 @@
 {
   "lesson_1": [
     {
+      "id": "m6_l1_a1",
+      "title": "The Choose Step",
+      "task": "Build a path by adding elements one by one into an array and return the final path.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "choose([1,2,3])", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "choose([5])", "expected": "[5]", "isHidden": false },
+        { "call": "choose([])", "expected": "[]", "isHidden": false },
+        { "call": "choose([None])", "expected": "[None]", "isHidden": true },
+        { "call": "choose([1, None, 3])", "expected": "[1, None, 3]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l1_a2",
+      "title": "The Unchoose Step",
+      "task": "Remove the last element from a path to simulate backtracking.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "unchoose([1,2,3])", "expected": "[1, 2]", "isHidden": false },
+        { "call": "unchoose([5])", "expected": "[]", "isHidden": false },
+        { "call": "unchoose([])", "expected": "[]", "isHidden": false },
+        { "call": "unchoose([1, None])", "expected": "[1]", "isHidden": true },
+        { "call": "unchoose([None])", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l1_a3",
+      "title": "State Validation",
+      "task": "Return true only if a path meets a condition (no negative numbers allowed).",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "validate([1,2,3])", "expected": "true", "isHidden": false },
+        { "call": "validate([0,5])", "expected": "true", "isHidden": false },
+        { "call": "validate([-1,2])", "expected": "false", "isHidden": false },
+        { "call": "validate([])", "expected": "true", "isHidden": true },
+        { "call": "validate([1,-5,3])", "expected": "false", "isHidden": true }
+      ]
+    },
+    {
       "id": "m6_l1_a4",
       "title": "Recursive Exploration",
-      "task": "Scenario: Branching out possibilities. Task: Write `explore(n)` generating all binary strings of length n as a list of strings.",
+      "task": "Generate all binary strings of length n.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "explore(2)", "expected": "['00', '01', '10', '11']", "isHidden": false },
@@ -12,28 +51,147 @@
         { "call": "explore(0)", "expected": "['']", "isHidden": true },
         { "call": "explore(-1)", "expected": "[]", "isHidden": true }
       ]
-    }
-  ],
-  "lesson_2": [
+    },
     {
-      "id": "m6_l2_a3",
-      "title": "Subsets Generation",
-      "task": "Scenario: The Chef's Ingredients. Task: Write `subsets(arr)` using backtracking returning a list of all subsets including the empty set.",
+      "id": "m6_l1_a5",
+      "title": "Base Case Print",
+      "task": "Return current path when target depth is reached.",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "subsets(['A', 'B'])", "expected": "[[], ['A'], ['A', 'B'], ['B']]", "isHidden": false },
-        { "call": "subsets(['Salt'])", "expected": "[[], ['Salt']]", "isHidden": false },
-        { "call": "subsets([])", "expected": "[[]]", "isHidden": false },
-        { "call": "subsets([1, 2])", "expected": "[[], [1], [1, 2], [2]]", "isHidden": true },
-        { "call": "subsets([None])", "expected": "[[], [None]]", "isHidden": true }
+        { "call": "base_case([1,2], 2)", "expected": "[1, 2]", "isHidden": false },
+        { "call": "base_case([5], 1)", "expected": "[5]", "isHidden": false },
+        { "call": "base_case([], 0)", "expected": "[]", "isHidden": false },
+        { "call": "base_case([1], 2)", "expected": "[]", "isHidden": true },
+        { "call": "base_case([1,2,3], 2)", "expected": "[1, 2]", "isHidden": true }
       ]
     }
   ],
+
+  "lesson_2": [
+    {
+      "id": "m6_l2_a1",
+      "title": "Print Permutations",
+      "task": "Generate all permutations of [A, B, C].",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "permute(['A','B'])", "expected": "[['A','B'], ['B','A']]", "isHidden": false },
+        { "call": "permute(['A'])", "expected": "[['A']]", "isHidden": false },
+        { "call": "permute([])", "expected": "[[]]", "isHidden": false },
+        { "call": "permute(['A','B','C'])", "expected": "6", "isHidden": true },
+        { "call": "permute([1,2])", "expected": "[[1,2],[2,1]]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l2_a2",
+      "title": "Track Used Elements",
+      "task": "Track visited elements while building permutations.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "track([1,2,3])", "expected": "true", "isHidden": false },
+        { "call": "track([1])", "expected": "true", "isHidden": false },
+        { "call": "track([])", "expected": "true", "isHidden": false },
+        { "call": "track([None])", "expected": "true", "isHidden": true },
+        { "call": "track([1,1])", "expected": "true", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l2_a3",
+      "title": "Subsets Generation",
+      "task": "Generate all subsets including empty set.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "subsets(['A','B'])", "expected": "[[],['A'],['A','B'],['B']]", "isHidden": false },
+        { "call": "subsets(['A'])", "expected": "[[],['A']]", "isHidden": false },
+        { "call": "subsets([])", "expected": "[[]]", "isHidden": false },
+        { "call": "subsets([1,2])", "expected": "4", "isHidden": true },
+        { "call": "subsets([None])", "expected": "[[],[None]]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l2_a4",
+      "title": "Length-K Combinations",
+      "task": "Generate combinations of size k.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "combine([1,2,3],2)", "expected": "[[1,2],[1,3],[2,3]]", "isHidden": false },
+        { "call": "combine([A,B],1)", "expected": "[[A],[B]]", "isHidden": false },
+        { "call": "combine([],1)", "expected": "[]", "isHidden": false },
+        { "call": "combine([1,2,3],1)", "expected": "3", "isHidden": true },
+        { "call": "combine([1],2)", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l2_a5",
+      "title": "Keypad Letters",
+      "task": "Generate letter combinations for digits '23'.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "keypad('23')", "expected": "['ad','ae','af','bd','be','bf','cd','ce','cf']", "isHidden": false },
+        { "call": "keypad('2')", "expected": "['a','b','c']", "isHidden": false },
+        { "call": "keypad('')", "expected": "[]", "isHidden": false },
+        { "call": "keypad('0')", "expected": "[]", "isHidden": true },
+        { "call": "keypad('99')", "expected": "[]", "isHidden": true }
+      ]
+    }
+  ],
+
   "lesson_3": [
+    {
+      "id": "m6_l3_a1",
+      "title": "Is Safe Row/Column",
+      "task": "Check if a queen placement is safe in row/column.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "safe_rowcol([0,1],1)", "expected": "false", "isHidden": false },
+        { "call": "safe_rowcol([0,0],1)", "expected": "false", "isHidden": false },
+        { "call": "safe_rowcol([1,0],1)", "expected": "false", "isHidden": false },
+        { "call": "safe_rowcol([],0)", "expected": "true", "isHidden": true },
+        { "call": "safe_rowcol([0],0)", "expected": "true", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l3_a2",
+      "title": "Diagonal Safety Check",
+      "task": "Check diagonal conflicts for queens.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "safe_diag([[0,1],[1,0]])", "expected": "false", "isHidden": false },
+        { "call": "safe_diag([[0,0],[0,0]])", "expected": "true", "isHidden": false },
+        { "call": "safe_diag([[1,0],[0,1]])", "expected": "false", "isHidden": false },
+        { "call": "safe_diag([[0]])", "expected": "true", "isHidden": true },
+        { "call": "safe_diag([])", "expected": "true", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l3_a3",
+      "title": "Place and Remove",
+      "task": "Place queen, recurse, then remove (backtracking).",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "place_remove([0,0])", "expected": "[0,0]", "isHidden": false },
+        { "call": "place_remove([1,0])", "expected": "[1,0]", "isHidden": false },
+        { "call": "place_remove([0,1])", "expected": "[0,1]", "isHidden": false },
+        { "call": "place_remove([])", "expected": "[]", "isHidden": true },
+        { "call": "place_remove([1])", "expected": "[1]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l3_a4",
+      "title": "Board Initialization",
+      "task": "Initialize N x N chessboard.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "board(2)", "expected": "[[0,0],[0,0]]", "isHidden": false },
+        { "call": "board(1)", "expected": "[[0]]", "isHidden": false },
+        { "call": "board(3)", "expected": "3x3", "isHidden": false },
+        { "call": "board(0)", "expected": "[]", "isHidden": true },
+        { "call": "board(-1)", "expected": "[]", "isHidden": true }
+      ]
+    },
     {
       "id": "m6_l3_a5",
       "title": "Full N-Queens Solver",
-      "task": "Scenario: The Grandmaster's Challenge. Task: Write `n_queens(n)` returning the total number of distinct valid solutions. Fallback: return 0 if n < 1.",
+      "task": "Return number of valid queen placements.",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "n_queens(4)", "expected": "2", "isHidden": false },
@@ -44,18 +202,71 @@
       ]
     }
   ],
+
   "lesson_4": [
+    {
+      "id": "m6_l4_a1",
+      "title": "Move Directions",
+      "task": "Simulate movement in 4 directions.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "move('U')", "expected": "(0,-1)", "isHidden": false },
+        { "call": "move('D')", "expected": "(0,1)", "isHidden": false },
+        { "call": "move('L')", "expected": "(-1,0)", "isHidden": false },
+        { "call": "move('R')", "expected": "(1,0)", "isHidden": true },
+        { "call": "move('X')", "expected": "invalid", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l4_a2",
+      "title": "Boundary Check",
+      "task": "Prevent movement outside grid.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "boundary(0,0,5)", "expected": "false", "isHidden": false },
+        { "call": "boundary(2,2,5)", "expected": "true", "isHidden": false },
+        { "call": "boundary(-1,0,5)", "expected": "false", "isHidden": false },
+        { "call": "boundary(0,-1,5)", "expected": "false", "isHidden": true },
+        { "call": "boundary(6,6,5)", "expected": "false", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l4_a3",
+      "title": "Wall Check",
+      "task": "Detect obstacles in grid.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "wall(1)", "expected": "true", "isHidden": false },
+        { "call": "wall(0)", "expected": "false", "isHidden": false },
+        { "call": "wall(2)", "expected": "false", "isHidden": false },
+        { "call": "wall(-1)", "expected": "false", "isHidden": true },
+        { "call": "wall(None)", "expected": "false", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_l4_a4",
+      "title": "Path Tracking",
+      "task": "Mark visited nodes during recursion.",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "track_path([1,2,3])", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "track_path([1])", "expected": "[1]", "isHidden": false },
+        { "call": "track_path([])", "expected": "[]", "isHidden": false },
+        { "call": "track_path([1,None])", "expected": "[1,None]", "isHidden": true },
+        { "call": "track_path([None])", "expected": "[None]", "isHidden": true }
+      ]
+    },
     {
       "id": "m6_l4_a5",
       "title": "Subset Sum Solver",
-      "task": "Scenario: Exact value target backtracking. Task: Write `subset_sum(arr, target)` returning a single sub-array that adds up to target, or [] if none.",
+      "task": "Find subset that matches target sum.",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "subset_sum([3, 34, 4, 12, 5, 2], 9)", "expected": "[4, 5]", "isHidden": false },
-        { "call": "subset_sum([1, 2, 3], 10)", "expected": "[]", "isHidden": false },
-        { "call": "subset_sum([1, 2, 3], 3)", "expected": "[3]", "isHidden": false },
-        { "call": "subset_sum([10, 20, 30], 0)", "expected": "[]", "isHidden": true },
-        { "call": "subset_sum([], 5)", "expected": "[]", "isHidden": true }
+        { "call": "subset_sum([3,34,4,12,5,2],9)", "expected": "[4,5]", "isHidden": false },
+        { "call": "subset_sum([1,2,3],3)", "expected": "[3]", "isHidden": false },
+        { "call": "subset_sum([1,2,3],10)", "expected": "[]", "isHidden": false },
+        { "call": "subset_sum([],5)", "expected": "[]", "isHidden": true },
+        { "call": "subset_sum([10,20,30],0)", "expected": "[]", "isHidden": true }
       ]
     }
   ]

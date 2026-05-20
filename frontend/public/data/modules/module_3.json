@@ -10,11 +10,11 @@
       "level": "advanced",
       "content": "Breaking algorithmic problems down into base cases and recursive calls mapping a smaller problem space.",
       "activities": [
-        { "id": "m3_l1_a1", "title": "Halving an Array" },
-        { "id": "m3_l1_a2", "title": "Find the Midpoint" },
-        { "id": "m3_l1_a3", "title": "Recursive Countdown" },
-        { "id": "m3_l1_a4", "title": "Recursive Factorial" },
-        { "id": "m3_l1_a5", "title": "Recursive Sum" }
+        { "id": "m3_l1_a1", "title": "Largest First" },
+        { "id": "m3_l1_a2", "title": "Smallest First" },
+        { "id": "m3_l1_a3", "title": "Greedy Sum" },
+        { "id": "m3_l1_a4", "title": "Closest Number" },
+        { "id": "m3_l1_a5", "title": "Greedy Path" }
       ]
     },
     {
@@ -24,11 +24,11 @@
       "level": "advanced",
       "content": "Drastically cutting search spaces in half on sorted data using Binary Search.",
       "activities": [
-        { "id": "m3_l2_a1", "title": "Implement Binary Search" },
-        { "id": "m3_l2_a2", "title": "Missing Target Binary" },
-        { "id": "m3_l2_a3", "title": "First Occurrence (Binary)" },
-        { "id": "m3_l2_a4", "title": "Last Occurrence (Binary)" },
-        { "id": "m3_l2_a5", "title": "Step Counter" }
+        { "id": "m3_l2_a1", "title": "Philippine Cashier" },
+        { "id": "m3_l2_a2", "title": "US Cashier" },
+        { "id": "m3_l2_a3", "title": "Coin Breakdown Report" },
+        { "id": "m3_l2_a4", "title": "Custom Coin System" },
+        { "id": "m3_l2_a5", "title": "Exact Change Validator" }
       ]
     },
     {
@@ -38,11 +38,11 @@
       "level": "advanced",
       "content": "Implementing the Divide, Conquer, and Combine methodology for stable O(n log n) sorting.",
       "activities": [
-        { "id": "m3_l3_a1", "title": "The Merge Step" },
-        { "id": "m3_l3_a2", "title": "Array Splitter" },
-        { "id": "m3_l3_a3", "title": "Full Merge Sort Ascending" },
-        { "id": "m3_l3_a4", "title": "Merge Sort Descending" },
-        { "id": "m3_l3_a5", "title": "Merge Strings" }
+        { "id": "m3_l3_a1", "title": "Sort by End Time" },
+        { "id": "m3_l3_a2", "title": "Event Scheduler" },
+        { "id": "m3_l3_a3", "title": "Conflict Detector" },
+        { "id": "m3_l3_a4", "title": "Total Time Scheduled" },
+        { "id": "m3_l3_a5", "title": "Room Allocator" }
       ]
     },
     {

@@ -24,11 +24,11 @@
       "level": "advanced",
       "content": "Constructing exact change systems dynamically and understanding where greedy logic fails on unoptimized denominations.",
       "activities": [
-        { "id": "m4_l2_a1", "title": "The Cashier" },
-        { "id": "m4_l2_a2", "title": "US Currency Cashier" },
-        { "id": "m4_l2_a3", "title": "Denomination Counts" },
+        { "id": "m4_l2_a1", "title": "Philippine Cashier" },
+        { "id": "m4_l2_a2", "title": "US Cashier" },
+        { "id": "m4_l2_a3", "title": "Coin Breakdown Report" },
         { "id": "m4_l2_a4", "title": "Custom Coin System" },
-        { "id": "m4_l2_a5", "title": "Exact Change Validation" }
+        { "id": "m4_l2_a5", "title": "Exact Change Validator" }
       ]
     },
     {
