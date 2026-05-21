@@ -74,9 +74,11 @@ export default function SignIn() {
         return;
       }
 
+      // ✅ FIX: Added progress to localStorage so it persists across logins
       localStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
+        progress: data.progress || {}
       })); 
 
       await syncUserCloudData(data.email); 
@@ -102,7 +104,8 @@ export default function SignIn() {
       localStorage.setItem("user", JSON.stringify({
         email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
-        isGuest: true
+        isGuest: true,
+        progress: {}
       })); 
 
       navigate("/dashboard"); 
@@ -129,9 +132,11 @@ export default function SignIn() {
         return;
       }
 
+      // ✅ FIX: Added progress to localStorage for Google Logins as well
       localStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
+        progress: data.progress || {}
       }));
 
       await syncUserCloudData(data.email);
