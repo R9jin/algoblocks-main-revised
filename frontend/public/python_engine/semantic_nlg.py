@@ -358,7 +358,9 @@ class SemanticNLGEngine:
             cause = "there is no detected repetition from nesting/control-flow"
 
         # Growth family + always-on fallback
-        growth = self._growth_explanation(ginfo)
+        growth = self._growth_explanation(ginfo, audience)
+
+
 
         # Small pattern fragments (renderer decides wording)
         frags: List[str] = []
