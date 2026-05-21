@@ -13,6 +13,7 @@ import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
+import LessonViewer from "./pages/LessonViewer";
 
 // --- NEW: Create a ProtectedRoute component ---
 // This checks if the user is in localStorage. If not, it kicks them to /signin.
@@ -68,6 +69,10 @@ function App() {
         <Route
           path="/activity"
           element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
+        />
+        <Route
+          path="/learning-path/:moduleId/:lessonId"
+          element={<LessonViewer />}
         />
       </Routes>
     </>

@@ -1,0 +1,105 @@
+{
+  "lessonId": "lesson-4-2",
+
+  "moduleId": "module-4",
+
+  "title": "Coin Change Problem",
+
+  "description": "Understand how Greedy Algorithms solve the Coin Change Problem by selecting the largest denominations first.",
+
+  "difficulty": "Intermediate",
+
+  "estimatedTime": "30 min",
+
+  "prerequisites": "Greedy Strategy",
+
+  "tags": [
+    "coin change",
+    "greedy algorithms",
+    "optimization"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "The Coin Change Problem is one of the most common examples used to demonstrate greedy problem solving.\n\nThe objective is to determine the minimum number of coins needed to represent a target amount.\n\nGreedy strategies attempt to solve this efficiently by always selecting the largest possible coin denomination first."
+    },
+
+    {
+      "id": "problem-overview",
+
+      "type": "concept",
+
+      "title": "Understanding the Problem",
+
+      "content": "Suppose a system contains several coin denominations such as 1, 5, 10, and 25.\n\nThe algorithm must repeatedly choose coins until the target amount is reached.\n\nThe goal is to minimize the total number of coins used."
+    },
+
+    {
+      "id": "greedy-approach",
+
+      "type": "deep_dive",
+
+      "title": "The Greedy Solution",
+
+      "content": "The greedy strategy selects the largest denomination that does not exceed the remaining amount.\n\nAfter choosing a coin, the remaining value is reduced and the process repeats.\n\nFor many currency systems, this approach successfully produces an optimal solution quickly and efficiently."
+    },
+
+    {
+      "id": "limitations",
+
+      "type": "concept",
+
+      "title": "When Greedy Fails",
+
+      "content": "Although greedy solutions work well for many currency systems, they do not always guarantee optimal results.\n\nCertain coin combinations may produce better solutions that the greedy approach cannot discover because it focuses only on immediate choices.\n\nThis limitation demonstrates why some problems require Dynamic Programming instead."
+    },
+
+    {
+      "id": "real-world-example",
+
+      "type": "analogy",
+
+      "title": "Cashier Analogy",
+
+      "content": "Imagine a cashier returning change to a customer.\n\nTo minimize the number of coins or bills used, the cashier usually gives the largest denominations first.\n\nThis mirrors the greedy strategy used in the Coin Change Problem."
+    },
+
+    {
+      "id": "real-world-connection",
+
+      "type": "real_world_connection",
+
+      "title": "Greedy Optimization in Real Applications",
+
+      "content": "Greedy optimization strategies are used in financial systems, vending machines, and automated transaction systems.\n\nThese systems prioritize fast decision-making because efficiency is often more important than exploring every possible solution."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "The Coin Change Problem demonstrates how Greedy Algorithms make locally optimal decisions by repeatedly selecting the largest denomination available. While efficient, greedy solutions may not always produce globally optimal answers."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "GeeksforGeeks — Coin Change Problem",
+      "url": "https://www.geeksforgeeks.org/greedy-algorithm-to-find-minimum-number-of-coins/"
+    },
+
+    {
+      "title": "Programiz — Greedy Algorithms",
+      "url": "https://www.programiz.com/dsa/greedy-algorithm"
+    }
+  ]
+}
