@@ -84,65 +84,104 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   const sections = text.split(/\n\n+/);
 
   return sections.map((sec, idx) => {
-    const trimmedSec = sec.trim();
-    if (!trimmedSec) return null;
+    // Strip out asterisks and emojis from the raw text to ensure clean parsing
+    let cleanSec = sec.replace(/[*⚠️💡🌟]/g, "").trim();
+    if (!cleanSec) return null;
 
-    // Look for lines starting with an optional emoji and a bold title
-    const match = trimmedSec.match(/^(?:(?:⚠️|💡|🌟)\s*)?\*\*(.*?)\*\*(.*)/s);
+    // Match patterns like "TIME BOTTLENECK: explanation..."
+    const match = cleanSec.match(/^([A-Z\s]+):\s*(.*)/is);
 
     if (match) {
-      const title = match[1].replace(/:$/, '').trim();
-      const content = match[2].replace(/^:/, '').trim();
+      const title = match[1].trim();
+      const content = match[2].trim();
       const titleLower = title.toLowerCase();
 
       let type = null;
-      let icon = '';
 
-      // Determine the type based on the text keywords
-      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('memory user')) {
-        type = 'warning';
-        icon = '⚠️';
-      } else if (titleLower.includes('tip') || titleLower.includes('insight')) {
-        type = 'tip';
-        icon = '💡';
-      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('scaling')) {
-        type = 'praise';
-        icon = '🌟';
+      if (
+        titleLower.includes("bottleneck") ||
+        titleLower.includes("factor") ||
+        titleLower.includes("slowest") ||
+        titleLower.includes("memory user")
+      ) {
+        type = "warning";
+      } else if (titleLower.includes("tip") || titleLower.includes("insight")) {
+        type = "tip";
+      } else if (
+        titleLower.includes("optimized") ||
+        titleLower.includes("efficient") ||
+        titleLower.includes("mastery") ||
+        titleLower.includes("scaling")
+      ) {
+        type = "praise";
       }
 
       if (!type) {
-        return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}><strong>{title}:</strong> {content}</p>;
+        return (
+          <p key={idx} style={{ color: "#1e293b", margin: "0 0 8px 0", fontSize: "0.9rem", lineHeight: "1.6" }}>
+            <strong>{title}:</strong> {content}
+          </p>
+        );
       }
 
       // Hide bottlenecks in local tab or if it's not actually the bottleneck
-      if (type === 'warning' && (isLocalTab || !isBottleneck)) {
+      if (type === "warning" && (isLocalTab || !isBottleneck)) {
         return null;
       }
 
-      let bgColor = 'rgba(0,0,0,0.05)', borderColor = '#888', titleColor = '#333';
-      if (type === 'warning') { bgColor = 'rgba(255, 55, 95, 0.08)'; borderColor = '#ff375f'; titleColor = '#d63031'; }
-      else if (type === 'tip') { bgColor = 'rgba(52, 152, 219, 0.08)'; borderColor = '#3498db'; titleColor = '#2980b9'; }
-      else if (type === 'praise') { bgColor = 'rgba(46, 204, 113, 0.08)'; borderColor = '#2ecc71'; titleColor = '#27ae60'; }
+      let bgColor = "rgba(0,0,0,0.05)";
+      let borderColor = "#888";
+      let titleColor = "#333";
+
+      if (type === "warning") {
+        bgColor = "rgba(255, 55, 95, 0.08)";
+        borderColor = "#ff375f";
+        titleColor = "#d63031";
+      } else if (type === "tip") {
+        bgColor = "rgba(52, 152, 219, 0.08)";
+        borderColor = "#3498db";
+        titleColor = "#2980b9";
+      } else if (type === "praise") {
+        bgColor = "rgba(46, 204, 113, 0.08)";
+        borderColor = "#2ecc71";
+        titleColor = "#27ae60";
+      }
 
       return (
-        <div key={idx} style={{
-          marginTop: '12px',
-          padding: '10px 14px',
-          backgroundColor: bgColor,
-          borderLeft: `4px solid ${borderColor}`,
-          borderRadius: '0 6px 6px 0'
-        }}>
-          <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '1rem' }}>{icon}</span> {title}
+        <div
+          key={idx}
+          style={{
+            marginTop: "12px",
+            padding: "10px 14px",
+            backgroundColor: bgColor,
+            borderLeft: `4px solid ${borderColor}`,
+            borderRadius: "0 6px 6px 0",
+          }}
+        >
+          <strong
+            style={{
+              display: "block",
+              color: titleColor,
+              fontSize: "0.8rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              marginBottom: "6px",
+            }}
+          >
+            {title}
           </strong>
-          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+          <p style={{ margin: 0, color: "#1e293b", fontSize: "0.85rem", lineHeight: "1.5" }}>
             {content}
           </p>
         </div>
       );
     }
 
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 8px 0', fontSize: '0.9rem', lineHeight: '1.6' }}>{trimmedSec}</p>;
+    return (
+      <p key={idx} style={{ color: "#1e293b", margin: "0 0 8px 0", fontSize: "0.9rem", lineHeight: "1.6" }}>
+        {cleanSec}
+      </p>
+    );
   }).filter(Boolean);
 };
 
@@ -889,7 +928,6 @@ export default function MainApp() {
                                           {/* === ROW 1: TEXT DESCRIPTIONS === */}
                                           {/* TOP LEFT: TIME TEXT */}
                                           <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
                                             <div style={{ width: '100%' }}>
                                               <strong style={{ color: timeColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Time Complexity</strong>
                                               <div style={{ marginTop: '6px' }}>
@@ -900,7 +938,6 @@ export default function MainApp() {
 
                                           {/* TOP RIGHT: SPACE TEXT */}
                                           <div style={{ display: 'flex', alignItems: 'flex-start', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
-                                            <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
                                             <div style={{ width: '100%' }}>
                                               <strong style={{ color: spaceColor, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Space Complexity</strong>
                                               <div style={{ marginTop: '6px' }}>
