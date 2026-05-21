@@ -358,7 +358,8 @@ class SemanticNLGEngine:
             cause = "there is no detected repetition from nesting/control-flow"
 
         # Growth family + always-on fallback
-        growth = self._growth_explanation(ginfo)
+        audience = self._audience_mode()
+        growth = self._growth_explanation(ginfo, audience)
 
         # Small pattern fragments (renderer decides wording)
         frags: List[str] = []
@@ -414,7 +415,8 @@ class SemanticNLGEngine:
             growth = "so memory stays near constant or grows very slowly"
 
         # Always-on growth hint fallback
-        fallback = self._growth_explanation(gs) if gs.family == "unknown" else ""
+        audience = self._audience_mode()
+        fallback = self._growth_explanation(gs, audience) if gs.family == "unknown" else ""
 
         return (
             prefix
