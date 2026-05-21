@@ -95,56 +95,57 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
-// --- NEW: Bulletproof UI Formatter for Explanation Insights ---
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
 
-  return sections.map((sec, idx) => {
-    // Strip out asterisks and emojis from the raw text to ensure clean parsing
-    let cleanSec = sec.replace(/[*⚠️💡🌟]/g, "").trim();
-    if (!cleanSec) return null;
+  return sections
+    .map((sec, idx) => {
+      const match = sec.match(/^\s*\*\*(.*?)\*\*(.*)$/s);
+      if (!match) {
+        return (
+          <p
+            key={idx}
+            style={{ color: "#1e293b", margin: "0 0 8px 0", fontSize: "0.9rem", lineHeight: "1.6" }}
+          >
+            {sec.trim()}
+          </p>
+        );
+      }
 
-    // Match patterns like "TIME BOTTLENECK: explanation..."
-    const match = cleanSec.match(/^([A-Z\s]+):\s*(.*)/is);
-
-    if (match) {
-      const title = match[1].trim();
-      const content = match[2].trim();
+      const title = match[1].replace(/:$/, "").trim();
+      const content = match[2].replace(/^:/, "").trim();
       const titleLower = title.toLowerCase();
 
       let type = null;
-
       if (
         titleLower.includes("bottleneck") ||
         titleLower.includes("factor") ||
         titleLower.includes("slowest") ||
         titleLower.includes("memory user")
-      ) {
+      )
         type = "warning";
-      } else if (titleLower.includes("tip") || titleLower.includes("insight")) {
-        type = "tip";
-      } else if (
+      else if (titleLower.includes("tip") || titleLower.includes("insight")) type = "tip";
+      else if (
         titleLower.includes("optimized") ||
         titleLower.includes("efficient") ||
         titleLower.includes("mastery") ||
         titleLower.includes("scaling")
-      ) {
+      )
         type = "praise";
-      }
 
       if (!type) {
         return (
-          <p key={idx} style={{ color: "#1e293b", margin: "0 0 8px 0", fontSize: "0.9rem", lineHeight: "1.6" }}>
+          <p
+            key={idx}
+            style={{ color: "#1e293b", margin: "0 0 8px 0", fontSize: "0.9rem", lineHeight: "1.6" }}
+          >
             <strong>{title}:</strong> {content}
           </p>
         );
       }
 
-      // Hide bottlenecks in local tab or if it's not actually the bottleneck
-      if (type === "warning" && (isLocalTab || !isBottleneck)) {
-        return null;
-      }
+      if (type === "warning" && (isLocalTab || !isBottleneck)) return null;
 
       let bgColor = "rgba(0,0,0,0.05)";
       let borderColor = "#888";
@@ -187,19 +188,11 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
           >
             {title}
           </strong>
-          <p style={{ margin: 0, color: "#1e293b", fontSize: "0.85rem", lineHeight: "1.5" }}>
-            {content}
-          </p>
+          <p style={{ margin: 0, color: "#1e293b", fontSize: "0.85rem", lineHeight: "1.5" }}>{content}</p>
         </div>
       );
-    }
-
-    return (
-      <p key={idx} style={{ color: "#1e293b", margin: "0 0 8px 0", fontSize: "0.9rem", lineHeight: "1.6" }}>
-        {cleanSec}
-      </p>
-    );
-  }).filter(Boolean);
+    })
+    .filter(Boolean);
 };
 
 const ActivityApp = () => {
@@ -1402,6 +1395,13 @@ const ActivityApp = () => {
 
                               const isBottleneck = actualBottleneckIndices.includes(i);
 
+                              if (activeTab === "local" || !isBottleneck) {
+                                timeExp = timeExp.replace(/(?:⚠️\s*)?\*\*(TIME BOTTLENECK|MAIN TIME FACTOR|SLOWEST STEP)[\s\S]*/i, "");
+                              }
+                              if (activeTab === "local") {
+                                spaceExp = spaceExp.replace(/(?:⚠️\s*)?\*\*(MAIN MEMORY USER|DOMINANT SPACE FACTOR|MEMORY BOTTLENECK)[\s\S]*/i, "");
+                              }
+
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
 
@@ -1452,6 +1452,7 @@ const ActivityApp = () => {
                                         >
                                           <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                                             <div className="explanation-text" style={{ display: "flex", alignItems: "flex-start" }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: "10px", width: "18px" }} />
                                               <div style={{ width: "100%" }}>
                                                 <strong style={{ color: timeColor, fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>Time Complexity</strong>
                                                 <div style={{ marginTop: "6px" }}>{formatExplanation(timeExp, isBottleneck, activeTab === "local")}</div>
@@ -1464,6 +1465,7 @@ const ActivityApp = () => {
 
                                           <div style={{ flex: 1, display: "flex", flexDirection: "column", borderLeft: "1px solid rgba(255,255,255,0.1)", paddingLeft: "20px" }}>
                                             <div className="explanation-text" style={{ display: "flex", alignItems: "flex-start" }}>
+                                              <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: "10px", width: "18px" }} />
                                               <div style={{ width: "100%" }}>
                                                 <strong style={{ color: spaceColor, fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>Space Complexity</strong>
                                                 <div style={{ marginTop: "6px" }}>{formatExplanation(spaceExp, isBottleneck, activeTab === "local")}</div>
