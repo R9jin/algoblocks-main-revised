@@ -562,7 +562,7 @@ const ActivityApp = () => {
   };
 
   const analyzeCode = async (code) => {
-    if (!code || code.trim() === "") return;
+    if (!code || code.trim() === "" || code.trim() === "# Drag blocks to generate Python code") return;
     if (isOnline) {
       try {
         const response = await fetch(`${API_BASE}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
@@ -587,10 +587,9 @@ const ActivityApp = () => {
   };
 
   useEffect(() => {
-    if (!isEditingCode) return;
     const timeoutId = setTimeout(() => analyzeCode(generatedPython), 500);
     return () => clearTimeout(timeoutId);
-  }, [generatedPython, isEditingCode, isOnline]);
+  }, [generatedPython, isOnline]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
     latestBlocksJsonRef.current = json; 
@@ -602,7 +601,6 @@ const ActivityApp = () => {
     if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
       setLineExecutions({});
-      analyzeCode(pythonCode);
     }
   };
 

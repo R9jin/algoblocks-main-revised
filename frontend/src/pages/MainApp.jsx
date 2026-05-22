@@ -151,7 +151,7 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
 // ----------------------------------------------------
 export default function MainApp() {
   const location = useLocation();
-  const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+  const API_BASE = import.meta.env.VITE_API_URL || "";
 
   const createInitialTab = () => ({
     id: `tab-${Date.now()}`,
@@ -349,12 +349,12 @@ export default function MainApp() {
 
       if (navigator.onLine) {
         try {
-          const pRes = await fetch(`${VERCEL_URL}/api/projects`);
+          const pRes = await fetch(`${API_BASE}/api/projects`);
           if (pRes.ok) {
             const cloudProjects = (await pRes.json()).projects || [];
             for (const cp of cloudProjects) if (cp.owner_id === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true });
           }
-          const tRes = await fetch(`${VERCEL_URL}/api/templates`);
+          const tRes = await fetch(`${API_BASE}/api/templates`);
           if (tRes.ok) {
             const cloudTemplates = (await tRes.json()).templates || [];
             for (const ct of cloudTemplates) if (ct.owner_id === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true });
@@ -442,7 +442,7 @@ export default function MainApp() {
 
     if (isOnline) {
       try {
-        const response = await fetch(`${VERCEL_URL}/api/analyze`, {
+        const response = await fetch(`${API_BASE}/api/analyze`, {
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code })
         });
         if (!response.ok) throw new Error("FastAPI analyze failed");

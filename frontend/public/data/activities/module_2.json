@@ -3,7 +3,9 @@
     {
       "id": "m2_l1_a1",
       "title": "Max Finder",
-      "task": "You are given an array of numbers. Your goal is to determine the highest value in the list by scanning each element one by one. Start by assuming the first element is the maximum, then compare it with every other element and update your maximum whenever you find a larger value. If the array is empty, immediately return 'Error' since there is nothing to evaluate. Ensure that all comparisons are done using a single pass through the array.",
+      "task": "A data analysis system is required to determine the highest value stored inside a numeric dataset.\n\nTask Requirement:\nCreate a function find_max(arr).\n\nRules:\n- Traverse the array one element at a time\n- Assume the first element is the initial maximum value\n- Update the maximum whenever a larger value is found\n- Return the final maximum value\n- If the array is empty, return 'Error'\n- Use only a single pass through the array\n\nSample Output:\nfind_max([32,45,28,47,39]) → 47",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "find_max([32,45,28,47,39])", "expected": "47", "isHidden": false },
         { "call": "find_max([-10,-5,-20])", "expected": "-5", "isHidden": false },
@@ -15,7 +17,9 @@
     {
       "id": "m2_l1_a2",
       "title": "Min Finder",
-      "task": "You are tasked with finding the smallest number in an array by examining each element sequentially. Begin by treating the first element as the minimum value, then iterate through the rest of the array comparing each element to your current minimum and updating it whenever a smaller value is found. If the array has no elements, return 'Error' immediately since no comparison can be made.",
+      "task": "A monitoring system must identify the smallest value inside a collection of numeric records.\n\nTask Requirement:\nCreate a function find_min(arr).\n\nRules:\n- Traverse the array sequentially\n- Assume the first element is the initial minimum value\n- Update the minimum whenever a smaller value is found\n- Return the final minimum value\n- If the array is empty, return 'Error'\n\nSample Output:\nfind_min([3,1,9,2]) → 1",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "find_min([3,1,9,2])", "expected": "1", "isHidden": false },
         { "call": "find_min([-5,-2,-10])", "expected": "-10", "isHidden": false },
@@ -27,7 +31,9 @@
     {
       "id": "m2_l1_a3",
       "title": "Sum Search",
-      "task": "Given an array of integers, compute the total sum by iterating through each element one at a time and accumulating its value into a running total variable. Start the sum at zero and continuously add each element as you traverse the array. If the array is empty, simply return 0 since there are no values to add.",
+      "task": "A computation engine calculates the cumulative total of values stored inside an array.\n\nTask Requirement:\nCreate a function sum_all(arr).\n\nRules:\n- Start the running total at 0\n- Traverse the array one element at a time\n- Add each value into the running total\n- Return the final computed sum\n- If the array is empty, return 0\n\nSample Output:\nsum_all([1,2,3]) → 6",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "sum_all([1,2,3])", "expected": "6", "isHidden": false },
         { "call": "sum_all([10,20])", "expected": "30", "isHidden": false },
@@ -39,7 +45,9 @@
     {
       "id": "m2_l1_a4",
       "title": "Count Evens",
-      "task": "Scan through the array element by element and count how many numbers are even. A number is considered even if it is divisible by 2 without remainder. Maintain a counter that increases every time you encounter an even value. If no even numbers exist or the array is empty, return 0.",
+      "task": "A number classification system analyzes arrays to determine how many values are even.\n\nTask Requirement:\nCreate a function count_evens(arr).\n\nRules:\n- Traverse the array sequentially\n- Count values divisible by 2 without remainder\n- Increase the counter every time an even number is found\n- Return the final count\n- If the array is empty, return 0\n- If no even numbers exist, return 0\n\nSample Output:\ncount_evens([1,2,3,4,5,6]) → 3",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "count_evens([1,2,3,4,5,6])", "expected": "3", "isHidden": false },
         { "call": "count_evens([2,4,6,8])", "expected": "4", "isHidden": false },
@@ -51,7 +59,9 @@
     {
       "id": "m2_l1_a5",
       "title": "First Negative Finder",
-      "task": "Traverse the array from left to right and identify the first element that is less than zero. As soon as you find a negative number, return it immediately without checking the rest of the array. If no negative numbers exist or the array is empty, return -1.",
+      "task": "A validation system scans numeric arrays to detect the first negative value encountered during traversal.\n\nTask Requirement:\nCreate a function first_negative(arr).\n\nRules:\n- Traverse the array from left to right\n- Return the first value less than 0 immediately\n- Stop checking once a negative number is found\n- If no negative values exist, return -1\n- If the array is empty, return -1\n\nSample Output:\nfirst_negative([3,2,-1,5]) → -1",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "first_negative([3,2,-1,5])", "expected": "-1", "isHidden": false },
         { "call": "first_negative([-5,2,3])", "expected": "-5", "isHidden": false },
@@ -66,7 +76,9 @@
     {
       "id": "m2_l2_a1",
       "title": "Target Search",
-      "task": "Perform a sequential search through the array to locate the first occurrence of the target value. Compare each element one by one until you find a match, then return its index. If the target does not exist in the array or the array is empty, return -1.",
+      "task": "A sequential search engine is used to locate specific values inside an array.\n\nTask Requirement:\nCreate a function linear_search(arr, target).\n\nRules:\n- Traverse the array one element at a time\n- Compare each element with the target value\n- Return the index of the first matching value\n- Stop searching once a match is found\n- If the target does not exist, return -1\n- If the array is empty, return -1\n\nSample Output:\nlinear_search([10,20,30,40],30) → 2",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "linear_search([10,20,30,40],30)", "expected": "2", "isHidden": false },
         { "call": "linear_search([1,2,3],1)", "expected": "0", "isHidden": false },
@@ -78,7 +90,9 @@
     {
       "id": "m2_l2_a2",
       "title": "Count Occurrences",
-      "task": "Iterate through the array and count how many times a given value appears. Each time you encounter the target value, increment a counter. After finishing the traversal, return the total count. If the value does not appear or the array is empty, return 0.",
+      "task": "A frequency analysis system counts how many times a specific value appears inside an array.\n\nTask Requirement:\nCreate a function count_occurrences(arr, target).\n\nRules:\n- Traverse the array sequentially\n- Compare each element with the target value\n- Increase the counter whenever a match is found\n- Return the final occurrence count\n- If the target does not exist, return 0\n- If the array is empty, return 0\n\nSample Output:\ncount_occurrences([1,2,2,3],2) → 2",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "count_occurrences([1,2,2,3],2)", "expected": "2", "isHidden": false },
         { "call": "count_occurrences([5,5,5],5)", "expected": "3", "isHidden": false },
@@ -90,7 +104,9 @@
     {
       "id": "m2_l2_a3",
       "title": "Last Occurrence",
-      "task": "Scan the entire array while tracking the most recent index where a given value appears. Each time the value is found, update a stored index. After completing the traversal, return the last recorded index. If the value is never found or the array is empty, return -1.",
+      "task": "A tracking system monitors the latest position where a value appears inside an array.\n\nTask Requirement:\nCreate a function last_occurrence(arr, target).\n\nRules:\n- Traverse the entire array from left to right\n- Track the most recent index where the target appears\n- Update the stored index whenever another match is found\n- Return the final recorded index\n- If the target does not exist, return -1\n- If the array is empty, return -1\n\nSample Output:\nlast_occurrence([1,2,2,3],2) → 2",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "last_occurrence([1,2,2,3],2)", "expected": "2", "isHidden": false },
         { "call": "last_occurrence([5,1,5],5)", "expected": "2", "isHidden": false },
@@ -102,7 +118,9 @@
     {
       "id": "m2_l2_a4",
       "title": "Search in Range",
-      "task": "Search for a value within a specific index range of the array. Only examine elements from index a to index b inclusive. Return the first index where the value is found within this range. If the value does not exist in the range or the range is invalid, return -1.",
+      "task": "A restricted search engine performs lookup operations only within a specified section of an array.\n\nTask Requirement:\nCreate a function search_range(arr, target, a, b).\n\nRules:\n- Search only from index a to index b inclusive\n- Traverse elements sequentially within the given range\n- Return the first matching index found in the range\n- If the value does not exist in the range, return -1\n- If the range is invalid or the array is empty, return -1\n\nSample Output:\nsearch_range([1,2,3,4],2,0,2) → 1",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "search_range([1,2,3,4],2,0,2)", "expected": "1", "isHidden": false },
         { "call": "search_range([10,20,30],30,1,2)", "expected": "2", "isHidden": false },
@@ -114,7 +132,9 @@
     {
       "id": "m2_l2_a5",
       "title": "Multi-Target Search",
-      "task": "Check whether two given values exist anywhere in the array. Traverse the array once while tracking whether each target has been found. Return True only if both values are found at least once; otherwise return False. If the array is empty, return False.",
+      "task": "A validation engine checks whether multiple required values exist inside an array.\n\nTask Requirement:\nCreate a function multi_search(arr, a, b).\n\nRules:\n- Traverse the array once\n- Track whether target a exists\n- Track whether target b exists\n- Return True only if both values are found\n- Return False if one or both values are missing\n- If the array is empty, return False\n\nSample Output:\nmulti_search([1,2,3],1,3) → True",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "multi_search([1,2,3],1,3)", "expected": "True", "isHidden": false },
         { "call": "multi_search([5,6,7],5,7)", "expected": "True", "isHidden": false },
@@ -129,7 +149,9 @@
     {
       "id": "m2_l3_a1",
       "title": "Bubble Sort Ascending",
-      "task": "Sort the array in ascending order using Bubble Sort. Repeatedly compare adjacent elements and swap them if they are in the wrong order. Continue passes through the array until it is fully sorted in increasing order.",
+      "task": "A sorting engine organizes numeric values in increasing order using Bubble Sort operations.\n\nTask Requirement:\nCreate a function bubble_sort_asc(arr).\n\nRules:\n- Use Bubble Sort logic\n- Compare adjacent elements sequentially\n- Swap elements whenever the left value is greater than the right value\n- Continue passes until the array is fully sorted in ascending order\n- Return the sorted array\n- If the array is empty, return an empty array\n\nSample Output:\nbubble_sort_asc([5,1,4,2,8]) → [1,2,4,5,8]",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "bubble_sort_asc([88,92,75,100,84])", "expected": "[75,84,88,92,100]", "isHidden": false },
         { "call": "bubble_sort_asc([5,1,4,2,8])", "expected": "[1,2,4,5,8]", "isHidden": false },
@@ -141,7 +163,9 @@
     {
       "id": "m2_l3_a2",
       "title": "Selection Sort Ascending",
-      "task": "Sort the array in ascending order using Selection Sort. Repeatedly find the smallest element from the unsorted portion of the array and move it into its correct position in the sorted portion until the entire array is sorted.",
+      "task": "A sorting module arranges array values in ascending order using Selection Sort operations.\n\nTask Requirement:\nCreate a function selection_sort_asc(arr).\n\nRules:\n- Use Selection Sort logic\n- Find the smallest value from the unsorted portion\n- Move the smallest value into its correct position\n- Repeat until the entire array is sorted in ascending order\n- Return the sorted array\n- If the array is empty, return an empty array\n\nSample Output:\nselection_sort_asc([64,25,12,22,11]) → [11,12,22,25,64]",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "selection_sort_asc([64,25,12,22,11])", "expected": "[11,12,22,25,64]", "isHidden": false },
         { "call": "selection_sort_asc([3,1,2])", "expected": "[1,2,3]", "isHidden": false },
@@ -153,7 +177,9 @@
     {
       "id": "m2_l3_a3",
       "title": "Bubble Sort Descending",
-      "task": "Sort the array in descending order using Bubble Sort. Repeatedly compare adjacent elements and swap them whenever the left element is smaller than the right element. Continue passes until the array is sorted from largest to smallest.",
+      "task": "A sorting system organizes values from largest to smallest using Bubble Sort operations.\n\nTask Requirement:\nCreate a function bubble_sort_desc(arr).\n\nRules:\n- Use Bubble Sort logic\n- Compare adjacent elements sequentially\n- Swap elements whenever the left value is smaller than the right value\n- Continue passes until the array is fully sorted in descending order\n- Return the sorted array\n- If the array is empty, return an empty array\n\nSample Output:\nbubble_sort_desc([1,2,3]) → [3,2,1]",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "bubble_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "bubble_sort_desc([5,1,4,2])", "expected": "[5,4,2,1]", "isHidden": false },
@@ -165,7 +191,9 @@
     {
       "id": "m2_l3_a4",
       "title": "Selection Sort Descending",
-      "task": "Sort the array in descending order using Selection Sort. Repeatedly select the largest remaining element from the unsorted portion and place it at the front of the sorted portion until the entire array is sorted in decreasing order.",
+      "task": "A sorting engine arranges values in decreasing order using Selection Sort operations.\n\nTask Requirement:\nCreate a function selection_sort_desc(arr).\n\nRules:\n- Use Selection Sort logic\n- Find the largest value from the unsorted portion\n- Move the largest value into its correct position\n- Repeat until the array is fully sorted in descending order\n- Return the sorted array\n- If the array is empty, return an empty array\n\nSample Output:\nselection_sort_desc([10,20,30]) → [30,20,10]",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "selection_sort_desc([3,1,2])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "selection_sort_desc([10,20,30])", "expected": "[30,20,10]", "isHidden": false },
@@ -177,7 +205,9 @@
     {
       "id": "m2_l3_a5",
       "title": "Visual Sort Tracking",
-      "task": "Simulate Bubble Sort passes on the array and count how many full passes are required before the array becomes fully sorted in ascending order. Return the total number of passes performed until completion.",
+      "task": "A sorting visualization system tracks how many Bubble Sort passes are required before an array becomes fully ordered.\n\nTask Requirement:\nCreate a function sort_passes(arr).\n\nRules:\n- Simulate Bubble Sort passes in ascending order\n- Count every full pass performed through the array\n- Stop counting once the array becomes fully sorted\n- Return the total number of passes required\n- If the array is empty or contains one element, return 0\n\nSample Output:\nsort_passes([3,2,1]) → 2",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "sort_passes([3,2,1])", "expected": "2", "isHidden": false },
         { "call": "sort_passes([5,1,4,2])", "expected": "3", "isHidden": false },
