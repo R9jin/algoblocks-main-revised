@@ -236,7 +236,7 @@ globals()['run_hits_json'] = "{}"
 dyn_profiler = LineExecutionProfiler()
 
 try:
-    tree = ast.parse(user_code)
+    tree = ast.parse(user_code, filename="<user_code>")
     
     detector = InfiniteLoopDetector()
     detector.visit(tree)
@@ -348,8 +348,7 @@ class InfiniteLoopDetector(ast.NodeVisitor):
         self.generic_visit(node)
 
 try:
-    tree = ast.parse(user_code)
-    detector = InfiniteLoopDetector()
+    tree = ast.parse(user_code, filename="<user_code>")
     detector.visit(tree)
     if detector.warnings:
         raise Exception("\\n".join(detector.warnings))

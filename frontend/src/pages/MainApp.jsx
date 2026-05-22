@@ -253,7 +253,10 @@ export default function MainApp() {
         pendingOutputRef.current = "";
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
-        if (counts) updateTab(activeTabId, { lineExecutions: counts });
+        
+        // FIX: Change activeTabId to analyzingTabId.current
+        if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
+        
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
