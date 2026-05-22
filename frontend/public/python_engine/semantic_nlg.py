@@ -80,6 +80,11 @@ class PatternSignals:
     repeated_calls_in_loop: bool = False
     has_early_exits: bool = False  # break or return inside loops
 
+    # Expanded Block Handlers
+    inline_ternary: bool = False
+    string_interpolation: bool = False
+    variable_swapping: bool = False
+
     # Detailed subsystems
     memory_signals: MemorySignals = field(default_factory=MemorySignals)
     complexity_signals: ComplexitySignals = field(default_factory=ComplexitySignals)
@@ -219,6 +224,22 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         """Detect early function exits."""
         if self._in_loop:
             self.signals.has_early_exits = True
+        self.generic_visit(node)
+
+    def visit_IfExp(self, node: ast.IfExp):
+        """Detect inline ternary conditional logic."""
+        self.signals.inline_ternary = True
+        self.generic_visit(node)
+        
+    def visit_JoinedStr(self, node: ast.JoinedStr):
+        """Detect f-string interpolation."""
+        self.signals.string_interpolation = True
+        self.generic_visit(node)
+        
+    def visit_Assign(self, node: ast.Assign):
+        """Detect variable unpacking and swapping."""
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
+            self.signals.variable_swapping = True
         self.generic_visit(node)
 
     def _evaluate_recursion(self):
@@ -616,6 +637,14 @@ class SemanticNLGEngine:
             parts.append("Pattern Detected: Linear scanning via Membership Checking (consider using Sets for O(1) lookups).")
         if sig.memory_signals.performs_slicing:
             parts.append("Pattern Detected: Memory duplication via Array Slicing.")
+            
+        # Newly supported block AST patterns
+        if sig.inline_ternary:
+            parts.append("Pattern Detected: Inline conditional logic via Ternary Expression.")
+        if sig.string_interpolation:
+            parts.append("Pattern Detected: Dynamic text construction via String Interpolation (f-strings).")
+        if sig.variable_swapping:
+            parts.append("Pattern Detected: In-place Variable Swapping via Tuple Unpacking.")
 
         if parts:
             # We strictly avoid markdown bolding 'Pattern Detected' to adhere to negative constraints.
