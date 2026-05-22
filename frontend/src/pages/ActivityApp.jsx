@@ -251,7 +251,39 @@ const ActivityApp = () => {
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
 
-  const totalTests = useMemo(() => activityDataResolved?.testCasesList?.length || 0, [activityDataResolved]);
+  // DYNAMIC TEST CASES REWRITING (3 regular, 2 complexity, 2 hidden)
+  const processedTestCases = useMemo(() => {
+    if (!activityDataResolved) return [];
+    
+    const originalTests = activityDataResolved.testCasesList || [];
+    const visibleTests = originalTests.filter(tc => !tc.isHidden);
+    const hiddenTests = originalTests.filter(tc => tc.isHidden);
+
+    const timeTarget = activityDataResolved.targetTimeComplexity || "O(n)";
+    const spaceTarget = activityDataResolved.targetSpaceComplexity || "O(n)";
+
+    const timeTest = {
+      isComplexityTest: true,
+      title: "Time Complexity Check",
+      target: timeTarget,
+      call: "Static Code Analysis",
+      expected: `≤ ${timeTarget}`,
+      isHidden: false
+    };
+
+    const spaceTest = {
+      isComplexityTest: true,
+      title: "Space Complexity Check",
+      target: spaceTarget,
+      call: "Static Code Analysis",
+      expected: `≤ ${spaceTarget}`,
+      isHidden: false
+    };
+
+    return [...visibleTests, timeTest, spaceTest, ...hiddenTests];
+  }, [activityDataResolved]);
+
+  const totalTests = processedTestCases.length;
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -693,7 +725,6 @@ const ActivityApp = () => {
         body: JSON.stringify(payload) 
       });
     } catch (error) { 
-      // If offline or failed, add to sync queue so it gets synced later!
       await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { 
         type: 'PROGRESS', 
         action: 'UPSERT', 
@@ -720,7 +751,6 @@ const ActivityApp = () => {
         body: JSON.stringify(payload) 
       });
     } catch (error) { 
-      // Queue completion progress
       await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { 
         type: 'PROGRESS', 
         action: 'UPSERT', 
@@ -818,10 +848,10 @@ const ActivityApp = () => {
 
   const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
 
+  // NEW REWRITTEN RUN TESTS (7 cases integration)
   const runTestCases = async () => {
     if (isEvaluating) return;
-    const testCases = activityDataResolved?.testCasesList || [];
-    if (!testCases.length) return;
+    if (!processedTestCases.length) return;
 
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
       setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
@@ -838,14 +868,39 @@ const ActivityApp = () => {
       return;
     }
 
-    setBottomPanel("console"); setConsoleOutput("\n> Running Tests...\n"); setPassedTests(0);
+    setBottomPanel("console"); setConsoleOutput("\n> --- Running Test Cases ---\n\n"); setPassedTests(0);
 
-    let passed = 0; let visiblePassed = 0; let visibleTotal = 0; const total = testCases.length;
-    testCases.forEach(tc => { if (!tc.isHidden) visibleTotal++; });
+    let passed = 0; 
+    let functionalPassed = 0; 
+    let functionalTotal = 0; 
+    
     let fullOutput = "\n> --- Running Test Cases ---\n";
 
-    for (let i = 0; i < total; i++) {
-      const tc = testCases[i];
+    for (let i = 0; i < totalTests; i++) {
+      const tc = processedTestCases[i];
+
+      // Handle custom Complexity Check pseudo-tests
+      if (tc.isComplexityTest) {
+        const actualVal = tc.title.includes("Time") ? analysisResult.total : analysisResult.space_total;
+        const actualWeight = getComplexityWeight(actualVal);
+        const targetWeight = getComplexityWeight(tc.target);
+        
+        const testPassed = actualWeight > 0 && actualWeight <= targetWeight;
+
+        if (testPassed) passed++;
+
+        fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
+        fullOutput += `   Metric: ${tc.title}\n`;
+        fullOutput += `   Expected: ≤ ${formatComplexity(tc.target)}\n`;
+        fullOutput += `   Actual: ${formatComplexity(actualVal)}\n\n`;
+        
+        setConsoleOutput(fullOutput);
+        setPassedTests(passed);
+        continue;
+      }
+
+      // Handle standard functional tests
+      functionalTotal++;
       const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
       const taskId = activityDataResolved?.id || "";
       const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
@@ -864,12 +919,10 @@ const ActivityApp = () => {
 
         let testPassed = false;
         if (isFunctionCall && !isIntroLevel) {
-          if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; testPassed = true; }
+          if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; functionalPassed++; testPassed = true; }
         } else {
-          if (actualOutput.trim() === expected) { passed++; testPassed = true; }
+          if (actualOutput.trim() === expected) { passed++; functionalPassed++; testPassed = true; }
         }
-
-        if (testPassed && !tc.isHidden) visiblePassed++;
 
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
         if (!testPassed) {
@@ -885,14 +938,14 @@ const ActivityApp = () => {
 
     setIsEvaluating(false);
 
-    // --- Dynamic Scoring Rule with Medals ---
+    // Scoring logic (3 Base + 2 Complexity = 5 max points)
     let score = 0;
-    if (passed === 0) {
+    if (functionalPassed === 0) {
       score = 0;
-    } else if (passed < total) {
-      score = Math.max(1, Math.floor((passed / total) * 2)); // partial passing
-    } else if (passed === total) {
-      score = 3; // Base passing score
+    } else if (functionalPassed < functionalTotal) {
+      score = Math.max(1, Math.floor((functionalPassed / functionalTotal) * 2)); 
+    } else if (functionalPassed === functionalTotal) {
+      score = 3; 
       
       const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
       const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(n)");
@@ -900,19 +953,12 @@ const ActivityApp = () => {
       const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
       const actualSpaceWeight = getComplexityWeight(analysisResult.space_total || "O(n)");
 
-      // Time Mastery
-      if (actualTimeWeight > 0 && actualTimeWeight <= targetTimeWeight) {
-        score += 1;
-      }
-      
-      // Space Mastery
-      if (actualSpaceWeight > 0 && actualSpaceWeight <= targetSpaceWeight) {
-        score += 1;
-      }
+      if (actualTimeWeight > 0 && actualTimeWeight <= targetTimeWeight) score += 1;
+      if (actualSpaceWeight > 0 && actualSpaceWeight <= targetSpaceWeight) score += 1;
     }
 
-    const testResults = testCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
-    await saveSubmission(latestBlocksJsonRef.current, generatedPython, score, passed, total, testResults);
+    const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
+    await saveSubmission(latestBlocksJsonRef.current, generatedPython, score, passed, totalTests, testResults);
     
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
     
@@ -1156,25 +1202,29 @@ const ActivityApp = () => {
         <aside className="activity-right-panel">
           <div className="activity-panel-header"><h3>Test Cases</h3><span className="test-cases-counter">{passedTests}/{totalTests} passed</span></div>
           <div className="activity-panel-content">
-            {(activityDataResolved?.testCasesList || []).map((tc, i) => {
+            {processedTestCases.map((tc, i) => {
               const testIdentifier = `Test ${i + 1}`;
               const isPassing = consoleOutput.includes(`${testIdentifier}: PASSED`);
               const isFailing = consoleOutput.includes(`${testIdentifier}: FAILED`);
               const isError = consoleOutput.includes(`${testIdentifier}: ERROR`);
               const isExpanded = expandedTests[i];
               const statusClass = isPassing ? "passing" : isFailing || isError ? "failing" : "";
+              const displayTitle = tc.isComplexityTest ? tc.title : tc.isHidden ? `Hidden Test` : `Test ${i + 1}`;
 
               return (
                 <div key={i} className={`test-case-card ${statusClass}`}>
                   <div className="test-case-header" onClick={() => !tc.isHidden && toggleTest(i)} style={{ cursor: tc.isHidden ? "default" : "pointer" }}>
-                    <div className="test-case-header-left"><div className={`test-case-indicator ${statusClass}`}></div><strong className="test-case-title">{tc.isHidden ? `Hidden Test ${i + 1}` : `Test ${i + 1}`}</strong></div>
+                    <div className="test-case-header-left">
+                      <div className={`test-case-indicator ${statusClass}`}></div>
+                      <strong className="test-case-title">{displayTitle}</strong>
+                    </div>
                     {tc.isHidden ? (<span style={{ fontSize: "0.85rem", opacity: 0.6 }}>🔒</span>) : (<span className={`test-case-chevron ${isExpanded ? "open" : ""}`}>❯</span>)}
                   </div>
                   {isExpanded && !tc.isHidden && (
                     <div className="test-case-details">
-                      <div className="test-case-row"><span className="test-case-label">Input:</span><code className="test-case-code">{tc.call}</code></div>
-                      <div className="test-case-row"><span className="test-case-label">Expected Output:</span><code className="test-case-code">{tc.expected}</code></div>
-                      {(isPassing || isFailing || isError) && (<div className="test-case-status-row"><span className="test-case-label">Result:</span><span style={{ fontWeight: "bold", color: isPassing ? "#27AE60" : "#e74c3c" }}>{isPassing ? "Passed" : isFailing ? "Failed (Incorrect Output)" : "Failed (Syntax Error)"}</span></div>)}
+                      <div className="test-case-row"><span className="test-case-label">{tc.isComplexityTest ? "Metric Constraint:" : "Input:"}</span><code className="test-case-code">{tc.call}</code></div>
+                      <div className="test-case-row"><span className="test-case-label">{tc.isComplexityTest ? "Requirement:" : "Expected Output:"}</span><code className="test-case-code">{tc.expected}</code></div>
+                      {(isPassing || isFailing || isError) && (<div className="test-case-status-row"><span className="test-case-label">Result:</span><span style={{ fontWeight: "bold", color: isPassing ? "#27AE60" : "#e74c3c" }}>{isPassing ? "Passed" : isFailing ? "Failed (Incorrect)" : "Failed (Syntax Error)"}</span></div>)}
                     </div>
                   )}
                 </div>
