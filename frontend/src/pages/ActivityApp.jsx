@@ -201,7 +201,7 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
 };
 
 const ActivityApp = () => {
-  const VERCEL_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+  const API_BASE = import.meta.env.VITE_API_URL || "";
 
   const { moduleId, activityId } = useParams();
   const navigate = useNavigate();
@@ -478,7 +478,7 @@ const ActivityApp = () => {
            try {
              loadedSubmission = await submissionsDB.getItem(submissionId);
              if (!loadedSubmission && navigator.onLine) {
-                const res = await fetch(`${VERCEL_URL}/api/get-submission?email=${user.email}&activityId=${activityId}`);
+                const res = await fetch(`${API_BASE}/api/get-submission?email=${user.email}&activityId=${activityId}`);
                 if (res.ok) {
                   const data = await res.json();
                   if (data && data.submission) {
@@ -542,7 +542,7 @@ const ActivityApp = () => {
     await submissionsDB.setItem(submissionId, payload);
     if (navigator.onLine) {
       try {
-        await fetch(`${VERCEL_URL}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        await fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         payload.isSynced = true;
         await submissionsDB.setItem(submissionId, payload);
       } catch (e) {
@@ -565,7 +565,7 @@ const ActivityApp = () => {
     if (!code || code.trim() === "") return;
     if (isOnline) {
       try {
-        const response = await fetch(`${VERCEL_URL}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+        const response = await fetch(`${API_BASE}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
         const data = await response.json();
 
@@ -686,9 +686,22 @@ const ActivityApp = () => {
     user.progress[lessonId] = Math.max(user.progress[lessonId] || 0, score);
     localStorage.setItem("user", JSON.stringify(user));
 
+    const payload = { email: user.email, lesson_id: lessonId, score };
+
     try {
-      await fetch(`${VERCEL_URL}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, lesson_id: lessonId, score }) });
-    } catch (error) { /* ignore */ }
+      await fetch(`${API_BASE}/api/update-progress`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify(payload) 
+      });
+    } catch (error) { 
+      // If offline or failed, add to sync queue so it gets synced later!
+      await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { 
+        type: 'PROGRESS', 
+        action: 'UPSERT', 
+        data: payload 
+      });
+    }
   };
 
   const completeFullTopic = async (topicId) => {
@@ -700,15 +713,28 @@ const ActivityApp = () => {
     user.progress[topicId] = true;
     localStorage.setItem("user", JSON.stringify(user));
 
+    const payload = { email: user.email, lesson_id: topicId, score: 100, completed: true };
+
     try {
-      await fetch(`${VERCEL_URL}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: user.email, lesson_id: topicId, score: 100, completed: true }) });
-    } catch (error) { console.error("Failed to mark topic complete", error); }
+      await fetch(`${API_BASE}/api/update-progress`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify(payload) 
+      });
+    } catch (error) { 
+      // Queue completion progress
+      await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { 
+        type: 'PROGRESS', 
+        action: 'UPSERT', 
+        data: payload 
+      });
+    }
   };
 
   const executeTest = async (codeToRun) => {
     if (isOnline) {
       try {
-        const response = await fetch(`${VERCEL_URL}/api/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: codeToRun }) });
+        const response = await fetch(`${API_BASE}/api/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: codeToRun }) });
         if (!response.ok) throw new Error("FastAPI execution failed");
         const data = await response.json();
 

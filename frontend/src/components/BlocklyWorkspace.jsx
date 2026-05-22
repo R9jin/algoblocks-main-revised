@@ -261,6 +261,35 @@ const customBlocks = [
     output: "String",
     colour: "#d5a52a",
     tooltip: "Displays a message and waits for the user to type something in the console."
+  },
+  {
+    type: "python_type",
+    message0: "type of %1",
+    args0: [{ type: "input_value", name: "VALUE" }],
+    output: null,
+    colour: "#c1a0e8", // Matching Logic category color
+    tooltip: "Returns the type of the given value (e.g., type(x))"
+  },
+  {
+    type: "python_type_primitive",
+    message0: "type %1",
+    args0: [{
+      type: "field_dropdown",
+      name: "TYPE",
+      options: [
+        ["int", "int"],
+        ["float", "float"],
+        ["str", "str"],
+        ["list", "list"],
+        ["dict", "dict"],
+        ["bool", "bool"],
+        ["tuple", "tuple"],
+        ["set", "set"]
+      ]
+    }],
+    output: null,
+    colour: "#c1a0e8",
+    tooltip: "Python primitive types (e.g., int, float, str)"
   }
 ];
 
@@ -287,7 +316,9 @@ const toolbox = {
         { kind: "block", type: "logic_boolean" },
         { kind: "block", type: "logic_null" },
         { kind: "block", type: "logic_ternary" },
-        { kind: "block", type: "procedure_return_value" }
+        { kind: "block", type: "procedure_return_value" },
+        { kind: "block", type: "python_type" },           // <--- ADD THIS
+        { kind: "block", type: "python_type_primitive" }  // <--- ADD THIS
       ]
     },
     {
@@ -753,6 +784,16 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         if (pairs.length === 0) return ['{}', pythonGenerator.ORDER_ATOMIC];
         const code = '{\n    ' + pairs.join(',\n    ') + '\n}';
         return [code, pythonGenerator.ORDER_ATOMIC];
+      };
+
+      pythonGenerator.forBlock['python_type'] = function (block) {
+        const value = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_NONE) || 'None';
+        return [`type(${value})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['python_type_primitive'] = function (block) {
+        const typeVal = block.getFieldValue('TYPE');
+        return [typeVal, pythonGenerator.ORDER_ATOMIC];
       };
 
       pythonGenerator.forBlock['raw_python_statement'] = function (block) { return block.getFieldValue('CODE') + '\n'; };

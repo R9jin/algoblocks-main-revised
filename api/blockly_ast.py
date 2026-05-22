@@ -329,6 +329,15 @@ class BlocklyASTConverter:
                     }
                     
             if isinstance(node, ast.Name):
+                # Check if the name is actually a Python type primitive
+                if node.id in ["int", "float", "str", "list", "dict", "bool", "tuple", "set"]:
+                    return {
+                        "type": "python_type_primitive",
+                        "id": gen_uid(),
+                        "fields": {"TYPE": node.id}
+                    }
+                
+                # Otherwise, treat it as a standard variable
                 self.variables.add(node.id)
                 return {
                     "type": "variables_get",

@@ -450,6 +450,11 @@ class BlocklyASTConverter:
 
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 name = node.func.id
+                
+                if name == "type" and len(node.args) == 1:
+                    block = {"type": "python_type", "id": gen_uid()}
+                    self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
+                    return block
 
                 if name == "input" and len(node.args) <= 1:
                     block = {"type": "python_input", "id": gen_uid()}
