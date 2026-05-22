@@ -347,7 +347,7 @@ class SemanticNLGEngine:
         frag_text = (" " + " ".join(frags)) if frags else ""
         
         # INJECT DYNAMIC DATA
-        dynamic_note = f"\n\n**Dynamic Trace:** During execution, this line was hit exactly {hits} time(s)." if hits > 0 else ""
+        dynamic_note = f"\n\n**During execution, this line was hit exactly {hits} time(s)." if hits > 0 else ""
         
         return (
             prefix
@@ -392,7 +392,7 @@ class SemanticNLGEngine:
         if mem_state:
             largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
             if largest and largest[1]['size'] > 1:
-                dynamic_note = f"\n\n**Dynamic Trace:** Tracked variable `{largest[0]}` reached a peak size of {largest[1]['size']} elements in memory."
+                dynamic_note = f"\n\n**Tracked variable `{largest[0]}` reached a peak size of {largest[1]['size']} elements in memory."
 
         return (
             prefix

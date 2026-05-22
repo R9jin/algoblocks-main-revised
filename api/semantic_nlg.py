@@ -347,7 +347,7 @@ class SemanticNLGEngine:
         frag_text = (" " + " ".join(frags)) if frags else ""
         
         # INJECT DYNAMIC DATA
-        dynamic_note = f"\n\n**Dynamic Trace:** During execution, this line was hit exactly {hits} time(s)." if hits > 0 else ""
+        dynamic_note = f"\n\n**During execution, this line was hit exactly {hits} time(s)." if hits > 0 else ""
         
         return (
             prefix
@@ -486,17 +486,17 @@ class SemanticNLGEngine:
         time_lower = global_time.lower()
         if "log" in time_lower:
             templates = [
-                f"\n\n🌟 **ALGORITHM MASTERY:** Using a logarithmic approach here is fantastic. By discarding half the problem space, this {operation.lower()} stays extremely efficient at {global_time}.",
-                f"\n\n🌟 **HIGHLY OPTIMIZED:** Excellent! The divide-and-conquer strategy in this {operation.lower()} shrinks the workload rapidly, yielding a highly scalable {global_time} runtime.",
+                f"\n\n**ALGORITHM MASTERY:** Using a logarithmic approach here is fantastic. By discarding half the problem space, this {operation.lower()} stays extremely efficient at {global_time}.",
+                f"\n\n**HIGHLY OPTIMIZED:** Excellent! The divide-and-conquer strategy in this {operation.lower()} shrinks the workload rapidly, yielding a highly scalable {global_time} runtime.",
             ]
         elif "√" in time_lower or "sqrt" in time_lower:
             templates = [
-                f"\n\n🌟 **EFFICIENT SCALING:** Brilliant optimization. Capping the search at the square root allows this {operation.lower()} to run at a lightning-fast {global_time}.",
+                f"\n\n**EFFICIENT SCALING:** Brilliant optimization. Capping the search at the square root allows this {operation.lower()} to run at a lightning-fast {global_time}.",
             ]
         else:
             templates = [
-                f"\n\n🌟 **HIGHLY OPTIMIZED:** This {operation.lower()} scales wonderfully, maintaining an incredibly lean {global_time} execution time.",
-                f"\n\n🌟 **ALGORITHM MASTERY:** Excellent design choices! This {operation.lower()} completes its work quickly, cementing a highly optimized {global_time} complexity.",
+                f"\n\n**HIGHLY OPTIMIZED:** This {operation.lower()} scales wonderfully, maintaining an incredibly lean {global_time} execution time.",
+                f"\n\n**ALGORITHM MASTERY:** Excellent design choices! This {operation.lower()} completes its work quickly, cementing a highly optimized {global_time} complexity.",
             ]
         return random.choice(templates)
 
