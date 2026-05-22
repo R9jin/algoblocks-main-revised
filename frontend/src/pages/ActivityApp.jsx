@@ -100,103 +100,71 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   const sections = text.split(/\n\n+/);
 
   return sections.map((sec, idx) => {
-    let cleanSec = sec.replace(/[*⚠️💡🌟]/g, "").trim();
-    if (!cleanSec) return null;
+    const trimmedSec = sec.trim();
+    if (!trimmedSec) return null;
 
-    const match = cleanSec.match(/^([A-Za-z0-9\s_.-]+):\s*(.*)/is);
+    // The regex catches emojis sent by the backend and filters them out of the title match
+    const match = trimmedSec.match(/^(?:(?:⚠️|💡|🌟|🥇|🥈|🥉)\s*)?(?:\*\*)?([A-Za-z0-9\s_.-]+)(?:\*\*)?:\s*(.*)/is);
 
     if (match) {
       const title = match[1].trim();
-      const content = match[2].trim();
+      const content = match[2].replace(/\*\*/g, '').trim();
       const titleLower = title.toLowerCase();
 
       let type = null;
 
-      if (
-        titleLower.includes("bottleneck") ||
-        titleLower.includes("factor") ||
-        titleLower.includes("slowest") ||
-        titleLower.includes("memory user")
-      ) {
-        type = "warning";
-      } else if (
-        titleLower.includes("tip") || 
-        titleLower.includes("insight") ||
-        titleLower.includes("pattern")
-      ) {
-        type = "tip";
-      } else if (
-        titleLower.includes("optimized") ||
-        titleLower.includes("efficient") ||
-        titleLower.includes("mastery") ||
-        titleLower.includes("scaling")
-      ) {
-        type = "praise";
+      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('warning')) {
+        type = 'warning';
+      } else if (titleLower.includes('tip') || titleLower.includes('insight') || titleLower.includes('pattern') || titleLower.includes('note')) {
+        type = 'tip';
+      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('praise') || titleLower.includes('success')) {
+        type = 'praise';
       }
 
-      if (!type) {
+      if (type) {
+        let bgColor = 'rgba(0,0,0,0.05)', borderColor = '#888', titleColor = '#333';
+        if (type === 'warning') { bgColor = 'rgba(255, 55, 95, 0.08)'; borderColor = '#ff375f'; titleColor = '#d63031'; }
+        else if (type === 'tip') { bgColor = 'rgba(52, 152, 219, 0.08)'; borderColor = '#3498db'; titleColor = '#2980b9'; }
+        else if (type === 'praise') { bgColor = 'rgba(46, 204, 113, 0.08)'; borderColor = '#2ecc71'; titleColor = '#27ae60'; }
+
         return (
-          <p key={idx} style={{ color: "#1e293b", margin: "0 0 8px 0", fontSize: "0.9rem", lineHeight: "1.6" }}>
-            <strong>{title}:</strong> {content}
-          </p>
+          <div key={idx} style={{
+            marginTop: '12px', marginBottom: '12px', padding: '10px 14px',
+            backgroundColor: bgColor, borderLeft: `4px solid ${borderColor}`, borderRadius: '0 6px 6px 0'
+          }}>
+            <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+              {title}
+            </strong>
+            <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+              {content}
+            </p>
+          </div>
         );
       }
-
-      if (type === "warning" && isLocalTab) return null;
-
-      let bgColor = "rgba(0,0,0,0.05)";
-      let borderColor = "#888";
-      let titleColor = "#333";
-
-      if (type === "warning") {
-        bgColor = "rgba(255, 55, 95, 0.08)";
-        borderColor = "#ff375f";
-        titleColor = "#d63031";
-      } else if (type === "tip") {
-        bgColor = "rgba(52, 152, 219, 0.08)";
-        borderColor = "#3498db";
-        titleColor = "#2980b9";
-      } else if (type === "praise") {
-        bgColor = "rgba(46, 204, 113, 0.08)";
-        borderColor = "#2ecc71";
-        titleColor = "#27ae60";
-      }
-
-      return (
-        <div
-          key={idx}
-          style={{
-            marginTop: "12px",
-            padding: "10px 14px",
-            backgroundColor: bgColor,
-            borderLeft: `4px solid ${borderColor}`,
-            borderRadius: "0 6px 6px 0",
-          }}
-        >
-          <strong
-            style={{
-              display: "block",
-              color: titleColor,
-              fontSize: "0.8rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginBottom: "6px",
-            }}
-          >
-            {title}
-          </strong>
-          <p style={{ margin: 0, color: "#1e293b", fontSize: "0.85rem", lineHeight: "1.5" }}>
-            {content}
-          </p>
-        </div>
-      );
     }
 
-    return (
-      <p key={idx} style={{ color: "#1e293b", margin: "0 0 8px 0", fontSize: "0.9rem", lineHeight: "1.6" }}>
-        {cleanSec}
-      </p>
-    );
+    // Special check for dynamic execution counts / memory from semantic_nlg which start with **
+    const isExecutionNote = trimmedSec.startsWith("**During execution") || trimmedSec.startsWith("**Tracked variable");
+    if (isExecutionNote) {
+        const cleanText = trimmedSec.replace(/\*\*/g, '').trim();
+        return (
+          <div key={idx} style={{
+            marginTop: '12px', marginBottom: '12px', padding: '8px 12px',
+            backgroundColor: 'rgba(155, 89, 182, 0.08)', borderLeft: `4px solid #9b59b6`, borderRadius: '0 6px 6px 0'
+          }}>
+            <strong style={{ display: 'block', color: '#8e44ad', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+              Runtime Data
+            </strong>
+            <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+              {cleanText}
+            </p>
+          </div>
+        );
+    }
+
+    // Standard paragraph fallback
+    let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: parsedSec}}></p>;
   }).filter(Boolean);
 };
 
