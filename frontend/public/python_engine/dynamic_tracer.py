@@ -1,6 +1,7 @@
+# frontend/public/python_engine/dynamic_tracer.py
 import sys
-import copy
 from typing import Dict, Any, List
+from collections import Counter
 
 class ExecutionSnapshot:
     """Holds the state of memory at a specific line of code during execution."""
@@ -34,20 +35,32 @@ class ExecutionSnapshot:
 class AlgoBlocksTracer:
     """Executes code and captures line-by-line runtime telemetry."""
     
-    def __init__(self):
+    def __init__(self, max_steps=15000):
         self.history: List[ExecutionSnapshot] = []
+        self.line_hits = Counter()
+        self.max_steps = max_steps
+        self.step_count = 0
 
     def _trace_dispatch(self, frame, event, arg):
         # We only care about line execution events
         if event == 'line':
+            self.step_count += 1
+            if self.step_count > self.max_steps:
+                raise TimeoutError("Execution exceeded max steps (infinite loop protection).")
+                
+            lineno = frame.f_lineno
+            self.line_hits[lineno] += 1
+            
             # Snapshot the line number and the variables currently in memory
-            snapshot = ExecutionSnapshot(frame.f_lineno, frame.f_locals)
+            snapshot = ExecutionSnapshot(lineno, frame.f_locals)
             self.history.append(snapshot)
         return self._trace_dispatch
 
-    def execute_and_trace(self, code_string: str, input_globals: dict = None) -> List[ExecutionSnapshot]:
-        """Runs the student's code in a trace environment."""
+    def execute_and_trace(self, code_string: str, input_globals: dict = None) -> Dict[str, Any]:
+        """Runs the student's code in a trace environment and aggregates data."""
         self.history = []
+        self.line_hits = Counter()
+        self.step_count = 0
         safe_globals = input_globals if input_globals else {}
         
         # Turn on the dynamic tracer
@@ -56,9 +69,13 @@ class AlgoBlocksTracer:
             # Execute the code
             exec(code_string, safe_globals, safe_globals)
         except Exception as e:
-            print(f"Code execution halted: {e}")
+            # Catch timeouts and errors silently to allow partial traces
+            pass
         finally:
             # ALWAYS turn the tracer off immediately after
             sys.settrace(None)
             
-        return self.history
+        return {
+            "history": self.history,
+            "line_hits": dict(self.line_hits)
+        }

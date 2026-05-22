@@ -1,18 +1,20 @@
-# frontend\public\python_engine\analyzer.py
+# frontend/public/python_engine/analyzer.py
 import ast
 import time
 from collections import deque, Counter
-from semantic_nlg import SemanticNLGEngine  
+from semantic_nlg import SemanticNLGEngine
+from dynamic_tracer import AlgoBlocksTracer  
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     """
     A Context-Aware, Multi-Pass Rule-Based AST Traversal Algorithm.
     Evaluates time and space complexity line-by-line.
-    Upgraded to dynamically inject Recurrence Relations directly into the UI table.
+    Upgraded to ingest Dynamic Tracer telemetry to confirm real-time operations.
     """
 
-    def __init__(self, source_code):
+    def __init__(self, source_code, trace_data=None):
         self.source_lines = source_code.splitlines()
+        self.trace_data = trace_data or {"history": [], "line_hits": {}}
         self._details = []                
         self._bottlenecks_applied = False
         
@@ -379,8 +381,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif self.max_space_weight >= 1: global_s = "O(n)"
             else: global_s = local_s
 
+        # DYNAMIC TELEMETRY FETCH
+        hits = self.trace_data.get("line_hits", {}).get(line_num, 0)
+        mem_state = {}
+        for snap in self.trace_data.get("history", []):
+            if snap.line_no == line_num:
+                for var_name, var_data in snap.variables.items():
+                    if var_name not in mem_state or var_data["size"] > mem_state[var_name]["size"]:
+                        mem_state[var_name] = var_data
+
         time_exp, space_exp = self.nlg_engine.generate_explanations(
-            node, local_t, global_t, local_s, global_s, is_dead, line_text
+            node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
         )
 
         hints = self.logic_hints.get(getattr(node, 'lineno', -1), [])
@@ -390,7 +401,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "lineno": line_num, "lineOfCode": line_text, "operation": operation_name,  
             "local_time": local_t, "global_time": global_t, "local_space": local_s, "global_space": global_s, 
             "indent": self.current_depth, "color": self.get_color(global_t), "weight": t_w, 
-            "time_explanation": time_exp, "space_explanation": space_exp
+            "time_explanation": time_exp, "space_explanation": space_exp,
+            "hits": hits, "memory_state": mem_state
         }
         
         if self._details and self._details[-1]["lineOfCode"] == line_text:
@@ -783,11 +795,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return self.get_final_asymptotic_badge()
 
 
-# --- TIMING WRAPPER MOVED TO BACKEND ---
 def analyze_source_code(source_code):
     """
-    Wrapper to safely execute the ComplexityAnalyzer and measure execution time
-    using high-precision time.perf_counter().
+    Wrapper to safely execute the Dynamic Tracer first,
+    then feed the runtime telemetry directly into the static ComplexityAnalyzer.
     """
     start_time = time.perf_counter()
     
@@ -795,8 +806,12 @@ def analyze_source_code(source_code):
         # Parse the source code into an Abstract Syntax Tree (AST)
         tree = ast.parse(source_code)
         
-        # Instantiate and run the multi-pass analyzer
-        analyzer = ComplexityAnalyzer(source_code)
+        # 1. RUN DYNAMIC TRACER
+        tracer = AlgoBlocksTracer()
+        trace_data = tracer.execute_and_trace(source_code)
+        
+        # 2. RUN STATIC ANALYZER (WITH DYNAMIC CONTEXT INJECTED)
+        analyzer = ComplexityAnalyzer(source_code, trace_data)
         analyzer.bfs_first_pass(tree)
         analyzer.visit(tree)
         

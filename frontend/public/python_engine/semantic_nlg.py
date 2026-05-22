@@ -1,4 +1,4 @@
-# semantic_nlg.py
+# frontend/public/python_engine/semantic_nlg.py
 import ast
 import random
 import re
@@ -56,9 +56,6 @@ class PatternSignals:
 class SemanticNLGEngine:
     """
     Universal semantic NLG engine for complexity analysis explanations.
-
-    External API is unchanged:
-      generate_explanations(node, local_t, global_t, local_s, global_s, is_dead, code_snippet)
     """
 
     def __init__(self, analyzer_context):
@@ -83,7 +80,6 @@ class SemanticNLGEngine:
 
         # Normalize common symbols/variants
         s = s.replace("√", "sqrt")
-        # analyzer currently emits "log n", "log² n" occasionally; normalize lightly
         s = s.replace("log²", "log^2")
         return s
 
@@ -101,8 +97,6 @@ class SemanticNLGEngine:
 
         # recursion-style strings (T(n) = ...)
         if "t(" in lower or lower.startswith("t(") or "t(n)" in lower:
-            # Treat as unknown growth unless we can recognize a known pattern.
-            # We still never crash and always provide a growth description.
             return BigOInfo(raw=original, normalized=s, family="unknown", factors={"recurrence": True})
 
         # graph
@@ -119,7 +113,6 @@ class SemanticNLGEngine:
         if "2n" in lower or "exp" in lower and "n" in lower:
             return BigOInfo(raw=original, normalized=s, family="exponential", factors={})
         if re.search(r"[a-z]\s*\^\s*n", lower) or re.search(r"\w\^n", lower):
-            # k^n form
             if "o(" in lower or lower.startswith("o("):
                 return BigOInfo(raw=original, normalized=s, family="exponential", factors={})
 
@@ -166,7 +159,6 @@ class SemanticNLGEngine:
         return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
 
     def _growth_explanation(self, info: BigOInfo, audience: str = "beginner") -> str:
-        # Always beginner-friendly, but can include extra CS terms for students.
         if info.family == "constant":
             return "It stays basically the same even when the input gets bigger."
         if info.family == "linear":
@@ -200,12 +192,9 @@ class SemanticNLGEngine:
 
     def _detect_membership_in_loop(self, node: ast.AST) -> bool:
         try:
-            # Heuristic: compare with ast.In / ast.NotIn inside a compare
             for child in ast.walk(node):
                 if isinstance(child, ast.Compare):
                     if any(isinstance(op, ast.In) for op in child.ops) or any(isinstance(op, ast.NotIn) for op in child.ops):
-                        # If analyzer suggests we're in loop work, treat as membership-in-loop risk.
-                        # Even if local, it usually means scanning checks.
                         return True
         except Exception:
             pass
@@ -218,27 +207,16 @@ class SemanticNLGEngine:
         if getattr(self.ctx, "in_graph_context", False):
             return True
         try:
-            # Heuristic: look for queue/stack operations and visited tracking calls.
             has_pop_frontier = False
-            has_visit_like = False
             for child in ast.walk(node):
                 if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
                     if child.func.attr in {"popleft", "pop"}:
                         has_pop_frontier = True
-                    if child.func.attr in {"add", "append", "extend"}:
-                        # if extending/adding neighbors often appears alongside traversal
-                        pass
-                if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
-                    if child.func.attr in {"add", "append", "extend"}:
-                        # could be either visited or queue
-                        pass
-            # Keep it conservative
             return has_pop_frontier and (getattr(self.ctx, "has_graph_traversal", False) or True)
         except Exception:
             return False
 
     def _detect_recursion(self, node: ast.AST) -> bool:
-        # Use analyzer-provided info if available.
         try:
             current_fn = getattr(self.ctx, "current_function_name", None)
             indirect = getattr(self.ctx, "indirect_recursive_funcs", set())
@@ -253,7 +231,6 @@ class SemanticNLGEngine:
         return False
 
     def _detect_backtracking_risk(self, node: ast.AST) -> bool:
-        # Conservative heuristic: recursion + loops/conditionals indicates branching search/backtracking.
         try:
             has_branch = any(isinstance(c, ast.If) for c in ast.walk(node))
             has_loop = any(isinstance(c, (ast.For, ast.While)) for c in ast.walk(node))
@@ -262,7 +239,6 @@ class SemanticNLGEngine:
             return False
 
     def _detect_repeated_calls_in_loop(self, node: ast.AST) -> bool:
-        # Heuristic: any call in a loop scope.
         try:
             if self._extract_loop_depth() <= 0:
                 return False
@@ -295,7 +271,6 @@ class SemanticNLGEngine:
         graph = self._detect_graph_traversal(node)
 
         visited_tracking = bool(getattr(self.ctx, "in_graph_context", False))
-
         backtrack = self._detect_backtracking_risk(node)
         repeated_calls = self._detect_repeated_calls_in_loop(node)
 
@@ -317,14 +292,9 @@ class SemanticNLGEngine:
     # Renderers: time / space / pattern
     # =========================================================
     def _audience_mode(self) -> str:
-        # analyzer context doesn't carry audience; use beginner-safe phrasing.
         return "beginner"
 
-    def _time_renderer(self, node: ast.AST, local_t: str, global_t: str, code_snippet: str) -> str:
-        # Time explanation must always answer:
-        #   - what runs repeatedly
-        #   - what causes repetition
-        #   - what grows when input increases
+    def _time_renderer(self, node: ast.AST, local_t: str, global_t: str, code_snippet: str, hits: int) -> str:
         ginfo = self._classify_big_o(global_t)
         sig = self._get_pattern_signals(node, global_t)
 
@@ -357,11 +327,9 @@ class SemanticNLGEngine:
             repeat = "this step runs for the analyzed execution"
             cause = "there is no detected repetition from nesting/control-flow"
 
-        # Growth family + always-on fallback
         audience = self._audience_mode()
         growth = self._growth_explanation(ginfo, audience)
 
-        # Small pattern fragments (renderer decides wording)
         frags: List[str] = []
         if sig.nested_loops:
             frags.append("Nested loops are a classic route to O(n²)/O(n³) style growth.")
@@ -377,15 +345,20 @@ class SemanticNLGEngine:
             frags.append("Graph traversals depend on how many nodes/edges exist (and whether visits are tracked).")
 
         frag_text = (" " + " ".join(frags)) if frags else ""
+        
+        # INJECT DYNAMIC DATA
+        dynamic_note = f"\n\n**Dynamic Trace:** During execution, this line was hit exactly {hits} time(s)." if hits > 0 else ""
+        
         return (
             prefix
             + f"{repeat}, because {cause}. "
             + f"Overall it behaves like {ginfo.raw}. "
             + growth
             + frag_text
+            + dynamic_note
         )
 
-    def _space_renderer(self, node: ast.AST, local_s: str, global_s: str, code_snippet: str) -> str:
+    def _space_renderer(self, node: ast.AST, local_s: str, global_s: str, code_snippet: str, mem_state: dict) -> str:
         snippet = f"`{code_snippet}`" if code_snippet else "this line"
         prefix = random.choice([
             f"For memory, {snippet} uses extra space because ",
@@ -396,9 +369,6 @@ class SemanticNLGEngine:
         ls = self._classify_big_o(local_s)
         gs = self._classify_big_o(global_s)
 
-        # Required anchors:
-        #   - what is stored
-        #   - whether memory accumulates or is reused
         if "O(V" in global_s or "V" in global_s or gs.family == "graph":
             stored = "the algorithm stores which vertices it has visited (or a frontier of nodes)"
             growth = "so memory grows with graph size (V and sometimes E)."
@@ -414,9 +384,15 @@ class SemanticNLGEngine:
             stored = "mostly just a fixed amount of working space"
             growth = "so memory stays near constant or grows very slowly"
 
-        # Always-on growth hint fallback
         audience = self._audience_mode()
         fallback = self._growth_explanation(gs, audience) if gs.family == "unknown" else ""
+
+        # INJECT DYNAMIC DATA
+        dynamic_note = ""
+        if mem_state:
+            largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
+            if largest and largest[1]['size'] > 1:
+                dynamic_note = f"\n\n**Dynamic Trace:** Tracked variable `{largest[0]}` reached a peak size of {largest[1]['size']} elements in memory."
 
         return (
             prefix
@@ -424,6 +400,7 @@ class SemanticNLGEngine:
             + ". "
             + f"Local space is {local_s}, and overall extra space behaves like {global_s}. "
             + growth + (" " + fallback if fallback else "")
+            + dynamic_note
         )
 
     def _pattern_renderer(self, node: ast.AST, global_t: str) -> str:
@@ -445,44 +422,44 @@ class SemanticNLGEngine:
             parts.append("Pattern: repeated calls in a loop → total work multiplies." )
         return ("\n\n" + " ".join(parts)) if parts else ""
 
-    def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet):
-        # Keep analyzer.py compatibility: signature and return type.
-        if is_dead:
+    def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, hits=0, mem_state=None):
+        if is_dead and hits == 0:
             t_desc = f"The statement `{code_snippet}` is dead code (unreachable), so it contributes 0 operations (O(1) time)."
             s_desc = "Since it never runs, it also doesn't consume extra memory."
             return t_desc, s_desc
 
-        time_desc = self._time_renderer(node, str(local_t), str(global_t), code_snippet)
-        space_desc = self._space_renderer(node, str(local_s), str(global_s), code_snippet)
+        time_desc = self._time_renderer(node, str(local_t), str(global_t), code_snippet, hits)
+        space_desc = self._space_renderer(node, str(local_s), str(global_s), code_snippet, mem_state)
         pattern_desc = self._pattern_renderer(node, str(global_t))
+        
         if pattern_desc:
             time_desc = time_desc + pattern_desc
 
         return time_desc, space_desc
 
     # =========================================================
-    # UI Bottleneck and Optimization Hooks (Varied Responses)
+    # UI Bottleneck and Optimization Hooks
     # =========================================================
     def get_time_bottleneck_warning(self, operation: str, final_time: str) -> str:
         op_lower = operation.lower()
         if "loop" in op_lower:
             templates = [
-                f"\n\nTIME BOTTLENECK: The sheer number of iterations inside this {op_lower} is what drags the algorithm's performance down to {final_time}.",
-                f"\n\nTIME BOTTLENECK: Because of iteration overhead, this {op_lower} acts as an execution multiplier and bottlenecks the program at {final_time}.",
+                f"\n\n**TIME BOTTLENECK:** The sheer number of iterations inside this {op_lower} is what drags the algorithm's performance down to {final_time}.",
+                f"\n\n**TIME BOTTLENECK:** Because of iteration overhead, this {op_lower} acts as an execution multiplier and bottlenecks the program at {final_time}.",
             ]
         elif "recur" in op_lower:
             templates = [
-                f"\n\nTIME BOTTLENECK: The heavy branching from this {op_lower} dominates execution time, creating a {final_time} bottleneck.",
-                f"\n\nTIME BOTTLENECK: The deep call tree generated by this {op_lower} caps your algorithm's efficiency at {final_time}.",
+                f"\n\n**TIME BOTTLENECK:** The heavy branching from this {op_lower} dominates execution time, creating a {final_time} bottleneck.",
+                f"\n\n**TIME BOTTLENECK:** The deep call tree generated by this {op_lower} caps your algorithm's efficiency at {final_time}.",
             ]
         elif "comprehension" in op_lower:
             templates = [
-                f"\n\nTIME BOTTLENECK: Even though it's a single line, expanding this {op_lower} requires significant processing, capping speed at {final_time}."
+                f"\n\n**TIME BOTTLENECK:** Even though it's a single line, expanding this {op_lower} requires significant processing, capping speed at {final_time}."
             ]
         else:
             templates = [
-                f"\n\nTIME BOTTLENECK: The heavy lifting occurs during this {op_lower}, making it the primary driver of the {final_time} time complexity.",
-                f"\n\nTIME BOTTLENECK: This {op_lower} is the most expensive operation in the path, pushing the overall time complexity to {final_time}."
+                f"\n\n**TIME BOTTLENECK:** The heavy lifting occurs during this {op_lower}, making it the primary driver of the {final_time} time complexity.",
+                f"\n\n**TIME BOTTLENECK:** This {op_lower} is the most expensive operation in the path, pushing the overall time complexity to {final_time}."
             ]
         return random.choice(templates)
 
@@ -490,18 +467,18 @@ class SemanticNLGEngine:
         op_lower = operation.lower()
         if "recur" in op_lower:
             templates = [
-                f"\n\nSPACE BOTTLENECK: The call stack from this {op_lower} consumes significant memory, driving the space complexity up to {final_space}.",
-                f"\n\nSPACE BOTTLENECK: Building up stack frames during this {op_lower} is the main reason memory scales to {final_space}.",
+                f"\n\n**SPACE BOTTLENECK:** The call stack from this {op_lower} consumes significant memory, driving the space complexity up to {final_space}.",
+                f"\n\n**SPACE BOTTLENECK:** Building up stack frames during this {op_lower} is the main reason memory scales to {final_space}.",
             ]
         elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower:
             templates = [
-                f"\n\nSPACE BOTTLENECK: Allocating memory for collections during this {op_lower} is memory-intensive, resulting in a {final_space} space profile.",
-                f"\n\nSPACE BOTTLENECK: The new data structures created by this {op_lower} dominate memory usage, pushing it to {final_space}.",
+                f"\n\n**SPACE BOTTLENECK:** Allocating memory for collections during this {op_lower} is memory-intensive, resulting in a {final_space} space profile.",
+                f"\n\n**SPACE BOTTLENECK:** The new data structures created by this {op_lower} dominate memory usage, pushing it to {final_space}.",
             ]
         else:
             templates = [
-                f"\n\nSPACE BOTTLENECK: This {op_lower} requires significant extra memory, pushing the overall space complexity to {final_space}.",
-                f"\n\nSPACE BOTTLENECK: Data stored by this {op_lower} is the primary factor causing memory to scale at {final_space}."
+                f"\n\n**SPACE BOTTLENECK:** This {op_lower} requires significant extra memory, pushing the overall space complexity to {final_space}.",
+                f"\n\n**SPACE BOTTLENECK:** Data stored by this {op_lower} is the primary factor causing memory to scale at {final_space}."
             ]
         return random.choice(templates)
 
@@ -509,20 +486,19 @@ class SemanticNLGEngine:
         time_lower = global_time.lower()
         if "log" in time_lower:
             templates = [
-                f"\n\nALGORITHM MASTERY: Using a logarithmic approach here is fantastic. By discarding half the problem space, this {operation.lower()} stays extremely efficient at {global_time}.",
-                f"\n\nHIGHLY OPTIMIZED: Excellent! The divide-and-conquer strategy in this {operation.lower()} shrinks the workload rapidly, yielding a highly scalable {global_time} runtime.",
+                f"\n\n**ALGORITHM MASTERY:** Using a logarithmic approach here is fantastic. By discarding half the problem space, this {operation.lower()} stays extremely efficient at {global_time}.",
+                f"\n\n**HIGHLY OPTIMIZED:** Excellent! The divide-and-conquer strategy in this {operation.lower()} shrinks the workload rapidly, yielding a highly scalable {global_time} runtime.",
             ]
         elif "√" in time_lower or "sqrt" in time_lower:
             templates = [
-                f"\n\nEFFICIENT SCALING: Brilliant optimization. Capping the search at the square root allows this {operation.lower()} to run at a lightning-fast {global_time}.",
+                f"\n\n**EFFICIENT SCALING:** Brilliant optimization. Capping the search at the square root allows this {operation.lower()} to run at a lightning-fast {global_time}.",
             ]
         else:
             templates = [
-                f"\n\nHIGHLY OPTIMIZED: This {operation.lower()} scales wonderfully, maintaining an incredibly lean {global_time} execution time.",
-                f"\n\nALGORITHM MASTERY: Excellent design choices! This {operation.lower()} completes its work quickly, cementing a highly optimized {global_time} complexity.",
+                f"\n\n**HIGHLY OPTIMIZED:** This {operation.lower()} scales wonderfully, maintaining an incredibly lean {global_time} execution time.",
+                f"\n\n**ALGORITHM MASTERY:** Excellent design choices! This {operation.lower()} completes its work quickly, cementing a highly optimized {global_time} complexity.",
             ]
         return random.choice(templates)
 
     def _format_recurrence_relation(self, relation: str) -> str:
-        # Formats the raw T(n) string with markdown bolding for the UI
-        return f"{relation}"
+        return f"**{relation}**"
