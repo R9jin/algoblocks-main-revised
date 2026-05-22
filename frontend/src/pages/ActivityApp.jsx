@@ -95,6 +95,7 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
+// Updated formatter to handle new semantic_nlg.py output without emojis
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
@@ -103,66 +104,48 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     const trimmedSec = sec.trim();
     if (!trimmedSec) return null;
 
-    // The regex catches emojis sent by the backend and filters them out of the title match
-    const match = trimmedSec.match(/^(?:(?:⚠️|💡|🌟|🥇|🥈|🥉)\s*)?(?:\*\*)?([A-Za-z0-9\s_.-]+)(?:\*\*)?:\s*(.*)/is);
-
-    if (match) {
-      const title = match[1].trim();
-      const content = match[2].replace(/\*\*/g, '').trim();
-      const titleLower = title.toLowerCase();
-
-      let type = null;
-
-      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('warning')) {
-        type = 'warning';
-      } else if (titleLower.includes('tip') || titleLower.includes('insight') || titleLower.includes('pattern') || titleLower.includes('note')) {
-        type = 'tip';
-      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('praise') || titleLower.includes('success')) {
-        type = 'praise';
-      }
-
-      if (type) {
-        let bgColor = 'rgba(0,0,0,0.05)', borderColor = '#888', titleColor = '#333';
-        if (type === 'warning') { bgColor = 'rgba(255, 55, 95, 0.08)'; borderColor = '#ff375f'; titleColor = '#d63031'; }
-        else if (type === 'tip') { bgColor = 'rgba(52, 152, 219, 0.08)'; borderColor = '#3498db'; titleColor = '#2980b9'; }
-        else if (type === 'praise') { bgColor = 'rgba(46, 204, 113, 0.08)'; borderColor = '#2ecc71'; titleColor = '#27ae60'; }
-
-        return (
-          <div key={idx} style={{
-            marginTop: '12px', marginBottom: '12px', padding: '10px 14px',
-            backgroundColor: bgColor, borderLeft: `4px solid ${borderColor}`, borderRadius: '0 6px 6px 0'
-          }}>
-            <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-              {title}
-            </strong>
-            <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
-              {content}
-            </p>
-          </div>
-        );
-      }
+    if (trimmedSec.startsWith("Architectural Insights:")) {
+      const lines = trimmedSec.split("\n").slice(1);
+      return (
+        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '10px 14px', backgroundColor: 'rgba(52, 152, 219, 0.08)', borderLeft: '4px solid #3498db', borderRadius: '0 6px 6px 0' }}>
+          <strong style={{ display: 'block', color: '#2980b9', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Architectural Insights</strong>
+          <ul style={{ margin: 0, paddingLeft: '20px', color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+            {lines.map((l, i) => <li key={i}>{l.replace("- ", "")}</li>)}
+          </ul>
+        </div>
+      );
     }
 
-    // Special check for dynamic execution counts / memory from semantic_nlg which start with **
-    const isExecutionNote = trimmedSec.startsWith("**During execution") || trimmedSec.startsWith("**Tracked variable");
-    if (isExecutionNote) {
-        const cleanText = trimmedSec.replace(/\*\*/g, '').trim();
-        return (
-          <div key={idx} style={{
-            marginTop: '12px', marginBottom: '12px', padding: '8px 12px',
-            backgroundColor: 'rgba(155, 89, 182, 0.08)', borderLeft: `4px solid #9b59b6`, borderRadius: '0 6px 6px 0'
-          }}>
-            <strong style={{ display: 'block', color: '#8e44ad', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-              Runtime Data
-            </strong>
-            <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
-              {cleanText}
-            </p>
-          </div>
-        );
+    if (trimmedSec.includes("TIME BOTTLENECK:") || trimmedSec.includes("SPACE BOTTLENECK:")) {
+      const content = trimmedSec.replace(/TIME BOTTLENECK:|SPACE BOTTLENECK:/g, "").trim();
+      return (
+        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '10px 14px', backgroundColor: 'rgba(255, 55, 95, 0.08)', borderLeft: '4px solid #ff375f', borderRadius: '0 6px 6px 0' }}>
+          <strong style={{ display: 'block', color: '#d63031', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Performance Bottleneck</strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>{content}</p>
+        </div>
+      );
     }
 
-    // Standard paragraph fallback
+    if (trimmedSec.includes("ALGORITHM MASTERY:")) {
+      const content = trimmedSec.replace("ALGORITHM MASTERY:", "").trim();
+      return (
+        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '10px 14px', backgroundColor: 'rgba(46, 204, 113, 0.08)', borderLeft: '4px solid #2ecc71', borderRadius: '0 6px 6px 0' }}>
+          <strong style={{ display: 'block', color: '#27ae60', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Optimized Design</strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>{content}</p>
+        </div>
+      );
+    }
+
+    if (trimmedSec.startsWith("Runtime Observation:")) {
+      const content = trimmedSec.replace("Runtime Observation:", "").trim();
+      return (
+        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '8px 12px', backgroundColor: 'rgba(155, 89, 182, 0.08)', borderLeft: '4px solid #9b59b6', borderRadius: '0 6px 6px 0' }}>
+          <strong style={{ display: 'block', color: '#8e44ad', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Runtime Data</strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>{content}</p>
+        </div>
+      );
+    }
+
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: parsedSec}}></p>;
   }).filter(Boolean);
@@ -235,7 +218,7 @@ const ActivityApp = () => {
       title: "Time Complexity Check",
       target: timeTarget,
       call: "Static Code Analysis",
-      expected: `≤ ${timeTarget}`,
+      expected: `<= ${timeTarget}`,
       isHidden: false
     };
 
@@ -244,7 +227,7 @@ const ActivityApp = () => {
       title: "Space Complexity Check",
       target: spaceTarget,
       call: "Static Code Analysis",
-      expected: `≤ ${spaceTarget}`,
+      expected: `<= ${spaceTarget}`,
       isHidden: false
     };
 
@@ -792,23 +775,23 @@ const ActivityApp = () => {
 
     let promptMsg = "";
     if (score === 5) {
-      promptMsg = `Perfect execution! 🥇 You earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!\n\nReady for the next challenge?`;
+      promptMsg = `Perfect execution! You earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!\n\nReady for the next challenge?`;
     } else if (score === 4) {
-      promptMsg = `Great job! 🥈 You earned a Silver Medal (4/5).\n\nYou passed all tests and mastered either Time or Space complexity, but not both.\nCan you optimize it further to get the Gold?\n\nReady to proceed?`;
+      promptMsg = `Great job! You earned a Silver Medal (4/5).\n\nYou passed all tests and mastered either Time or Space complexity, but not both.\nCan you optimize it further to get the Gold?\n\nReady to proceed?`;
     } else if (score === 3) {
-      promptMsg = `Good effort! 🥉 You earned a Bronze Medal (3/5).\n\nYour code works and passed all tests! However, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster to get the Gold Medal?\n\nReady to proceed?`;
+      promptMsg = `Good effort! You earned a Bronze Medal (3/5).\n\nYour code works and passed all tests! However, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster to get the Gold Medal?\n\nReady to proceed?`;
     } else {
       promptMsg = `Keep trying! You met the minimum passing requirements with a score of ${score}/${maxScore}.\n(Hidden test cases or slight logic errors reduced your score).\n\nReady to proceed?`;
     }
 
     if (!isLast && nextActivity) {
       setModalConfig({
-        isOpen: true, title: "Activity Completed! 🎉", message: promptMsg, confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false,
+        isOpen: true, title: "Activity Completed!", message: promptMsg, confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false,
         onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal,
       });
     } else {
       setModalConfig({
-        isOpen: true, title: "Lesson Completed! 🏆", message: `${promptMsg}\n\nIncredible! You have finished all activities in this lesson.\nReturn to the learning path to unlock the next topic.`, confirmText: "Finish Lesson", cancelText: "Stay Here", isDanger: false,
+        isOpen: true, title: "Lesson Completed!", message: `${promptMsg}\n\nIncredible! You have finished all activities in this lesson.\nReturn to the learning path to unlock the next topic.`, confirmText: "Finish Lesson", cancelText: "Stay Here", isDanger: false,
         onConfirmAction: async () => { closeModal(); if (topicIdResolved) { await completeFullTopic(topicIdResolved); } navigate("/learning-path"); }, onCancelAction: closeModal,
       });
     }
@@ -859,7 +842,7 @@ const ActivityApp = () => {
 
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
         fullOutput += `   Metric: ${tc.title}\n`;
-        fullOutput += `   Expected: ≤ ${formatComplexity(tc.target)}\n`;
+        fullOutput += `   Expected: <= ${formatComplexity(tc.target)}\n`;
         fullOutput += `   Actual: ${formatComplexity(actualVal)}\n\n`;
         
         setConsoleOutput(fullOutput);
@@ -968,10 +951,10 @@ const ActivityApp = () => {
 
         <div className="activity-actions" style={{ display: "flex", gap: "10px" }}>
           <button className="activity-action-btn" onClick={handleActivityRun} style={{ backgroundColor: "#2D234A", border: "1px solid #6C5CE7", color: "#EBE4FF", opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? "not-allowed" : "pointer" }} title="Run code in console without submitting to test cases">
-            {isEvaluating ? "..." : "▷ Run Code"}
+            {isEvaluating ? "..." : "Run Code"}
           </button>
           <button className="activity-action-btn run-btn" onClick={runTestCases} style={{ opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? "not-allowed" : "pointer" }}>
-            {isEvaluating ? "..." : "▶ Run Tests"}
+            {isEvaluating ? "..." : "Run Tests"}
           </button>
         </div>
       </header>
@@ -1009,7 +992,7 @@ const ActivityApp = () => {
 
         <main className="workspace-main activity-center-panel">
           <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}>
-            <span className="toggle-icon">{isLeftPanelVisible ? "❮" : "❯"}</span>
+            <span className="toggle-icon">{isLeftPanelVisible ? "<" : ">"}</span>
           </button>
 
           <div className="editor-container" style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
@@ -1019,15 +1002,15 @@ const ActivityApp = () => {
 
             <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"} style={{ display: viewMode === "python" ? "flex" : "none", flexDirection: "column", height: "100%", background: "#1C1236" }}>
               <div className="python-header" style={{ padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)" }}>
-                <span className="python-sync-status" style={{ color: "#EBE4FF", fontSize: "0.85rem" }}>{isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
-                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? "active" : "disabled"}`} style={{ padding: "5px 12px", borderRadius: "4px", cursor: isEditingCode ? "pointer" : "not-allowed", backgroundColor: isEditingCode ? "#6C5CE7" : "#444", color: "white", border: "none" }}>Sync to Blocks ↻</button>
+                <span className="python-sync-status" style={{ color: "#EBE4FF", fontSize: "0.85rem" }}>{isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
+                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? "active" : "disabled"}`} style={{ padding: "5px 12px", borderRadius: "4px", cursor: isEditingCode ? "pointer" : "not-allowed", backgroundColor: isEditingCode ? "#6C5CE7" : "#444", color: "white", border: "none" }}>Sync to Blocks</button>
               </div>
 
               <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
                 {syntaxError && (
                   <div style={{ position: "absolute", top: 0, left: 0, right: 0, backgroundColor: "rgba(231, 76, 60, 0.9)", color: "white", padding: "6px 15px", zIndex: 10, fontSize: "0.85rem", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}>
                     <span>Syntax Error on line {syntaxError.line}: {syntaxError.message}</span>
-                    <button onClick={() => setSyntaxError(null)} style={{ background: "transparent", color: "white", border: "none", cursor: "pointer", fontWeight: "bold" }}>✕</button>
+                    <button onClick={() => setSyntaxError(null)} style={{ background: "transparent", color: "white", border: "none", cursor: "pointer", fontWeight: "bold" }}>X</button>
                   </div>
                 )}
                 <Editor height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount} value={generatedPython} onChange={(value) => { const newCode = value || ""; setGeneratedPython(newCode); setIsEditingCode(true); if (syntaxError) setSyntaxError(null); handleWorkspaceAutoSave(latestBlocksJsonRef.current, newCode); }} options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} />
@@ -1038,7 +1021,7 @@ const ActivityApp = () => {
           {bottomPanel && (
             <div className="bottom-hover-panel" style={{ height: `${panelHeight}px` }}>
               <div className="panel-resizer" onMouseDown={handleDragStart}><div className="resizer-dash"></div></div>
-              <div className="panel-header"><span className="panel-title">{bottomPanel === "console" ? "Console Panel" : "Complexity Analysis"}</span><button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button></div>
+              <div className="panel-header"><span className="panel-title">{bottomPanel === "console" ? "Console Panel" : "Complexity Analysis"}</span><button onClick={() => setBottomPanel(null)} className="panel-close-btn">X</button></div>
               <div className="panel-body" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
                 {bottomPanel === "console" ? (
                   <div className="console-content-wrapper" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
@@ -1186,7 +1169,7 @@ const ActivityApp = () => {
                       <div className={`test-case-indicator ${statusClass}`}></div>
                       <strong className="test-case-title">{displayTitle}</strong>
                     </div>
-                    {tc.isHidden ? (<span style={{ fontSize: "0.85rem", opacity: 0.6 }}>🔒</span>) : (<span className={`test-case-chevron ${isExpanded ? "open" : ""}`}>❯</span>)}
+                    {tc.isHidden ? (<span style={{ fontSize: "0.85rem", opacity: 0.6 }}>[Locked]</span>) : (<span className={`test-case-chevron ${isExpanded ? "open" : ""}`}>v</span>)}
                   </div>
                   {isExpanded && !tc.isHidden && (
                     <div className="test-case-details">

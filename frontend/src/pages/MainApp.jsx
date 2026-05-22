@@ -78,6 +78,7 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
+// Updated formatter to handle new semantic_nlg.py output without emojis
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
@@ -86,66 +87,48 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     const trimmedSec = sec.trim();
     if (!trimmedSec) return null;
 
-    // The regex catches emojis sent by the backend and filters them out of the title match
-    const match = trimmedSec.match(/^(?:(?:⚠️|💡|🌟|🥇|🥈|🥉)\s*)?(?:\*\*)?([A-Za-z0-9\s_.-]+)(?:\*\*)?:\s*(.*)/is);
-
-    if (match) {
-      const title = match[1].trim();
-      const content = match[2].replace(/\*\*/g, '').trim();
-      const titleLower = title.toLowerCase();
-
-      let type = null;
-
-      if (titleLower.includes('bottleneck') || titleLower.includes('factor') || titleLower.includes('slowest') || titleLower.includes('warning')) {
-        type = 'warning';
-      } else if (titleLower.includes('tip') || titleLower.includes('insight') || titleLower.includes('pattern') || titleLower.includes('note')) {
-        type = 'tip';
-      } else if (titleLower.includes('optimized') || titleLower.includes('efficient') || titleLower.includes('mastery') || titleLower.includes('praise') || titleLower.includes('success')) {
-        type = 'praise';
-      }
-
-      if (type) {
-        let bgColor = 'rgba(0,0,0,0.05)', borderColor = '#888', titleColor = '#333';
-        if (type === 'warning') { bgColor = 'rgba(255, 55, 95, 0.08)'; borderColor = '#ff375f'; titleColor = '#d63031'; }
-        else if (type === 'tip') { bgColor = 'rgba(52, 152, 219, 0.08)'; borderColor = '#3498db'; titleColor = '#2980b9'; }
-        else if (type === 'praise') { bgColor = 'rgba(46, 204, 113, 0.08)'; borderColor = '#2ecc71'; titleColor = '#27ae60'; }
-
-        return (
-          <div key={idx} style={{
-            marginTop: '12px', marginBottom: '12px', padding: '10px 14px',
-            backgroundColor: bgColor, borderLeft: `4px solid ${borderColor}`, borderRadius: '0 6px 6px 0'
-          }}>
-            <strong style={{ display: 'block', color: titleColor, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-              {title}
-            </strong>
-            <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
-              {content}
-            </p>
-          </div>
-        );
-      }
+    if (trimmedSec.startsWith("Architectural Insights:")) {
+      const lines = trimmedSec.split("\n").slice(1);
+      return (
+        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '10px 14px', backgroundColor: 'rgba(52, 152, 219, 0.08)', borderLeft: '4px solid #3498db', borderRadius: '0 6px 6px 0' }}>
+          <strong style={{ display: 'block', color: '#2980b9', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Architectural Insights</strong>
+          <ul style={{ margin: 0, paddingLeft: '20px', color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+            {lines.map((l, i) => <li key={i}>{l.replace("- ", "")}</li>)}
+          </ul>
+        </div>
+      );
     }
 
-    // Special check for dynamic execution counts / memory from semantic_nlg which start with **
-    const isExecutionNote = trimmedSec.startsWith("**During execution") || trimmedSec.startsWith("**Tracked variable");
-    if (isExecutionNote) {
-        const cleanText = trimmedSec.replace(/\*\*/g, '').trim();
-        return (
-          <div key={idx} style={{
-            marginTop: '12px', marginBottom: '12px', padding: '8px 12px',
-            backgroundColor: 'rgba(155, 89, 182, 0.08)', borderLeft: `4px solid #9b59b6`, borderRadius: '0 6px 6px 0'
-          }}>
-            <strong style={{ display: 'block', color: '#8e44ad', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-              Runtime Data
-            </strong>
-            <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
-              {cleanText}
-            </p>
-          </div>
-        );
+    if (trimmedSec.includes("TIME BOTTLENECK:") || trimmedSec.includes("SPACE BOTTLENECK:")) {
+      const content = trimmedSec.replace(/TIME BOTTLENECK:|SPACE BOTTLENECK:/g, "").trim();
+      return (
+        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '10px 14px', backgroundColor: 'rgba(255, 55, 95, 0.08)', borderLeft: '4px solid #ff375f', borderRadius: '0 6px 6px 0' }}>
+          <strong style={{ display: 'block', color: '#d63031', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Performance Bottleneck</strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>{content}</p>
+        </div>
+      );
     }
 
-    // Standard paragraph fallback
+    if (trimmedSec.includes("ALGORITHM MASTERY:")) {
+      const content = trimmedSec.replace("ALGORITHM MASTERY:", "").trim();
+      return (
+        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '10px 14px', backgroundColor: 'rgba(46, 204, 113, 0.08)', borderLeft: '4px solid #2ecc71', borderRadius: '0 6px 6px 0' }}>
+          <strong style={{ display: 'block', color: '#27ae60', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Optimized Design</strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>{content}</p>
+        </div>
+      );
+    }
+
+    if (trimmedSec.startsWith("Runtime Observation:")) {
+      const content = trimmedSec.replace("Runtime Observation:", "").trim();
+      return (
+        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '8px 12px', backgroundColor: 'rgba(155, 89, 182, 0.08)', borderLeft: '4px solid #9b59b6', borderRadius: '0 6px 6px 0' }}>
+          <strong style={{ display: 'block', color: '#8e44ad', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Runtime Data</strong>
+          <p style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>{content}</p>
+        </div>
+      );
+    }
+
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: parsedSec}}></p>;
   }).filter(Boolean);
@@ -259,7 +242,6 @@ export default function MainApp() {
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
         
-        // FIX: Change activeTabId to analyzingTabId.current
         if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
         
         setIsEvaluating(false); setIsWaitingForInput(false);
@@ -706,8 +688,8 @@ export default function MainApp() {
                       {item.isSystem ? (<span className="badge-system-polished"><span className="dot"></span> System</span>) : (
                         <div className="badge-custom-group-polished">
                           <span className="badge-custom-polished">{item.saveType === 'project' ? 'Project' : 'Custom'}</span>
-                          <button onClick={(e) => handleEditItem(e, item)} className="sidebar-edit-btn-polished" title="Edit" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>✎</button>
-                          <button onClick={(e) => handleDeleteItem(e, item)} className="sidebar-delete-btn-polished" title="Delete">✕</button>
+                          <button onClick={(e) => handleEditItem(e, item)} className="sidebar-edit-btn-polished" title="Edit" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>Edit</button>
+                          <button onClick={(e) => handleDeleteItem(e, item)} className="sidebar-delete-btn-polished" title="Delete">X</button>
                         </div>
                       )}
                     </div>
@@ -737,7 +719,7 @@ export default function MainApp() {
                   />
                 </span>
                 <span className="tab-title">{tab.title} {tab.isEditingCode && '*'}</span>
-                <button className="tab-close-btn" onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}>✕</button>
+                <button className="tab-close-btn" onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}>X</button>
               </div>
             ))}
             <button className="new-tab-btn" onClick={createNewTab}>+</button>
@@ -756,14 +738,14 @@ export default function MainApp() {
               {/* Single Monaco Editor tied to Active Tab */}
               <div className={activeTab.viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}>
                 <div className="python-header">
-                  <span className="python-sync-status">{activeTab.isEditingCode ? "✏️ Unsaved code changes..." : "Code is synced with blocks."}</span>
-                  <button onClick={handleSyncToBlocks} disabled={!activeTab.isEditingCode} className={`python-sync-btn ${activeTab.isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks ↻ </button>
+                  <span className="python-sync-status">{activeTab.isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
+                  <button onClick={handleSyncToBlocks} disabled={!activeTab.isEditingCode} className={`python-sync-btn ${activeTab.isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks </button>
                 </div>
                 <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
                   {activeTab.syntaxError && (
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
                       <span>Syntax Error on line {activeTab.syntaxError.line}: {activeTab.syntaxError.message}</span>
-                      <button onClick={() => updateTab(activeTabId, { syntaxError: null })} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                      <button onClick={() => updateTab(activeTabId, { syntaxError: null })} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
                     </div>
                   )}
                   <Editor
@@ -780,7 +762,7 @@ export default function MainApp() {
             <div className="bottom-docked-panel" style={{ display: bottomPanel ? 'flex' : 'none' }}>
               <div className="panel-header">
                 <span className="panel-title">{bottomPanel === 'console' ? 'Console Panel' : 'Complexity Analysis'}</span>
-                <button onClick={() => setBottomPanel(null)} className="panel-close-btn">✕</button>
+                <button onClick={() => setBottomPanel(null)} className="panel-close-btn">X</button>
               </div>
 
               <div className="panel-body">
@@ -875,7 +857,7 @@ export default function MainApp() {
                                       {isEfficient && <span style={{ backgroundColor: '#2ecc71', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 8px', borderRadius: '12px', textTransform: 'uppercase' }}>Efficient</span>}
                                     </td>
                                     <td className="complexity-cell" style={{ color: timeColor, fontWeight: 'bold' }}>{formatComplexity(timeComplexity)}</td>
-                                    <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>{formatComplexity(spaceComplexity)} <span className="dropdown-chevron" style={{ transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span></td>
+                                    <td className="complexity-cell" style={{ color: spaceColor, fontWeight: 'bold' }}>{formatComplexity(spaceComplexity)} <span className="dropdown-chevron" style={{ transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)' }}>v</span></td>
                                   </tr>
                                   {expandedLines[i] && (
                                     <tr className="explanation-row">
