@@ -392,7 +392,7 @@ class SemanticNLGEngine:
         if mem_state:
             largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
             if largest and largest[1]['size'] > 1:
-                dynamic_note = f"\n\n**Dynamic Trace:** Tracked variable `{largest[0]}` reached a peak size of {largest[1]['size']} elements in memory."
+                dynamic_note = f"\n\nTracked variable `{largest[0]}` reached a peak size of {largest[1]['size']} elements in memory."
 
         return (
             prefix

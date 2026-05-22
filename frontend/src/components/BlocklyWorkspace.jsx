@@ -267,7 +267,7 @@ const customBlocks = [
     message0: "type of %1",
     args0: [{ type: "input_value", name: "VALUE" }],
     output: null,
-    colour: "#c1a0e8", // Matching Logic category color
+    colour: "#c1a0e8",
     tooltip: "Returns the type of the given value (e.g., type(x))"
   },
   {
@@ -290,6 +290,63 @@ const customBlocks = [
     output: null,
     colour: "#c1a0e8",
     tooltip: "Python primitive types (e.g., int, float, str)"
+  },
+  // --- NEW BLOCKS ADDED BELOW ---
+  {
+    type: "python_isinstance",
+    message0: "is %1 a %2?",
+    args0: [
+      { type: "input_value", name: "VALUE" },
+      { type: "input_value", name: "TYPE" }
+    ],
+    inputsInline: true,
+    output: "Boolean",
+    colour: "#c1a0e8",
+    tooltip: "Checks if a value is of a specific type (e.g., isinstance(x, int))"
+  },
+  {
+    type: "text_multiply",
+    message0: "repeat text %1 %2 times",
+    args0: [
+      { type: "input_value", name: "TEXT", check: "String" },
+      { type: "input_value", name: "MULTIPLIER", check: "Number" }
+    ],
+    inputsInline: true,
+    output: "String",
+    colour: "#d5a52a",
+    tooltip: "Repeats a string a given number of times (e.g., '*' * 5)"
+  },
+  {
+    type: "text_newline",
+    message0: "Line Break",
+    output: "String",
+    colour: "#d5a52a",
+    tooltip: "Returns a newline character"
+  },
+  {
+    type: "list_append",
+    message0: "append %1 to list %2",
+    args0: [
+      { type: "input_value", name: "ITEM" },
+      { type: "input_value", name: "LIST", check: "Array" }
+    ],
+    inputsInline: true,
+    previousStatement: null,
+    nextStatement: null,
+    style: "list_blocks",
+    tooltip: "Appends an item to the end of a list"
+  },
+  {
+    type: "list_range",
+    message0: "create list from %1 to %2 (exclusive)",
+    args0: [
+      { type: "input_value", name: "START", check: "Number" },
+      { type: "input_value", name: "END", check: "Number" }
+    ],
+    inputsInline: true,
+    output: "Array",
+    style: "list_blocks",
+    tooltip: "Creates a list of numbers from start to end, e.g. list(range(1, 5))"
   }
 ];
 
@@ -317,8 +374,9 @@ const toolbox = {
         { kind: "block", type: "logic_null" },
         { kind: "block", type: "logic_ternary" },
         { kind: "block", type: "procedure_return_value" },
-        { kind: "block", type: "python_type" },           // <--- ADD THIS
-        { kind: "block", type: "python_type_primitive" }  // <--- ADD THIS
+        { kind: "block", type: "python_type" },
+        { kind: "block", type: "python_type_primitive" },
+        { kind: "block", type: "python_isinstance" } // NEW
       ]
     },
     {
@@ -385,6 +443,8 @@ const toolbox = {
         { kind: "block", type: "comment_block" },
         { kind: "block", type: "multi_line_comment" },
         { kind: "block", type: "text" },
+        { kind: "block", type: "text_newline" }, // NEW
+        { kind: "block", type: "text_multiply", inputs: { MULTIPLIER: { shadow: { type: "math_number", fields: { NUM: 2 } } } } }, // NEW
         { kind: "block", type: "custom_string_join" },
         { kind: "block", type: "text_join" },
         { kind: "block", type: "text_append" },
@@ -413,6 +473,11 @@ const toolbox = {
         { kind: "block", type: "string_to_list" },
         { kind: "block", type: "lists_create_with", extraState: { itemCount: 0 } },
         { kind: "block", type: "lists_create_with" },
+        { kind: "block", type: "list_append" }, // NEW
+        { kind: "block", type: "list_range", inputs: {
+            START: { shadow: { type: "math_number", fields: { NUM: 1 } } },
+            END: { shadow: { type: "math_number", fields: { NUM: 10 } } }
+        }}, // NEW
         { kind: "block", type: "lists_repeat", inputs: { NUM: { shadow: { type: "math_number", fields: { NUM: 5 } } } } },
         { kind: "block", type: "lists_length" },
         { kind: "block", type: "lists_isEmpty" },
@@ -794,6 +859,35 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       pythonGenerator.forBlock['python_type_primitive'] = function (block) {
         const typeVal = block.getFieldValue('TYPE');
         return [typeVal, pythonGenerator.ORDER_ATOMIC];
+      };
+      
+      // --- NEW GENERATORS INTEGRATED ---
+      pythonGenerator.forBlock['python_isinstance'] = function (block) {
+        const value = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_NONE) || 'None';
+        const typeVal = pythonGenerator.valueToCode(block, 'TYPE', pythonGenerator.ORDER_NONE) || 'type(None)';
+        return [`isinstance(${value}, ${typeVal})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['text_multiply'] = function (block) {
+        const text = pythonGenerator.valueToCode(block, 'TEXT', pythonGenerator.ORDER_MULTIPLICATIVE) || "''";
+        const multiplier = pythonGenerator.valueToCode(block, 'MULTIPLIER', pythonGenerator.ORDER_MULTIPLICATIVE) || '0';
+        return [`${text} * ${multiplier}`, pythonGenerator.ORDER_MULTIPLICATIVE];
+      };
+
+      pythonGenerator.forBlock['text_newline'] = function (block) {
+        return ["'\\n'", pythonGenerator.ORDER_ATOMIC];
+      };
+
+      pythonGenerator.forBlock['list_append'] = function (block) {
+        const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+        const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
+        return `${list}.append(${item})\n`;
+      };
+
+      pythonGenerator.forBlock['list_range'] = function (block) {
+        const start = pythonGenerator.valueToCode(block, 'START', pythonGenerator.ORDER_NONE) || '0';
+        const end = pythonGenerator.valueToCode(block, 'END', pythonGenerator.ORDER_NONE) || '0';
+        return [`list(range(${start}, ${end}))`, pythonGenerator.ORDER_FUNCTION_CALL];
       };
 
       pythonGenerator.forBlock['raw_python_statement'] = function (block) { return block.getFieldValue('CODE') + '\n'; };
