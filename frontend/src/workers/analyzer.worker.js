@@ -18,19 +18,23 @@ async function initPyodide() {
 
     const cacheBuster = "?t=" + Date.now();
 
-    const [analyzerCode, astCode, nlgCode] = await Promise.all([
+    // FETCH THE NEW DYNAMIC TRACER
+    const [analyzerCode, astCode, nlgCode, tracerCode] = await Promise.all([
       fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
       fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
-      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text())
+      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text()),
+      fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
     ]);
 
     if (nlgCode.includes("<!DOCTYPE html>")) {
       throw new Error("Service Worker served index.html instead of python files!");
     }
 
+    // WRITE ALL FILES TO VIRTUAL FILE SYSTEM
     tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
     tempPyodide.FS.writeFile("blockly_ast.py", astCode);
     tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
+    tempPyodide.FS.writeFile("dynamic_tracer.py", tracerCode);
 
     pyodide = tempPyodide;
 
@@ -78,10 +82,13 @@ self.onmessage = async (e) => {
 import json
 import sys
 
+# CLEAR CACHE FOR HOT RELOADING
 if 'analyzer' in sys.modules:
     del sys.modules['analyzer']
 if 'semantic_nlg' in sys.modules:
     del sys.modules['semantic_nlg']
+if 'dynamic_tracer' in sys.modules:
+    del sys.modules['dynamic_tracer']
 
 try:
     from analyzer import analyze_source_code
