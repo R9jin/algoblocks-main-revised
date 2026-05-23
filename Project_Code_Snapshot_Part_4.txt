@@ -1368,7 +1368,7 @@ const ActivityApp = () => {
   }, []);
 
   const analyzeCode = async (code) => {
-    if (!code || code.trim() === "") return;
+    if (!code || code.trim() === "" || code.trim() === "# Drag blocks to generate Python code") return;
 
     if (isOnline) {
       try {
@@ -1481,7 +1481,6 @@ const ActivityApp = () => {
     if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
       setLineExecutions({});
-      analyzeCode(pythonCode);
     }
   };
 
@@ -3580,7 +3579,7 @@ export default function MainApp() {
   };
 
   const analyzeCode = async (code) => {
-    if (!code || code.trim() === "") return;
+    if (!code || code.trim() === "" || code.trim() === "# Drag blocks to generate Python code") return;
 
     if (isOnline) {
       try {
@@ -3630,7 +3629,6 @@ export default function MainApp() {
     if (!isEditingCode && oldCode !== newCode) {
       setGeneratedPython(pythonCode);
       setLineExecutions({});
-      analyzeCode(pythonCode);
     }
   };
 

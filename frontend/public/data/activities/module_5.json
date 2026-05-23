@@ -1,0 +1,293 @@
+{
+  "lesson_1": [
+    {
+      "id": "m5_l1_a1",
+      "title": "Array Caching",
+      "task": "A dynamic programming cache system is generating sequence values using a Fibonacci-like recurrence.\n\nSystem Requirement:\nConstruct an array where each index i follows:\narr[i] = arr[i-1] + arr[i-2]\nstarting from base values [0,1].\n\nBehavior Rules:\n- Initialize sequence with [0,1]\n- Continue building until n-th index\n- Maintain full sequence order\n\nOutput Requirement:\nReturn the complete generated array.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "cache_seq(4)", "expected": "[0,1,1,2,3]", "isHidden": false },
+        { "call": "cache_seq(6)", "expected": "[0,1,1,2,3,5,8]", "isHidden": false },
+        { "call": "cache_seq(0)", "expected": "[0]", "isHidden": false },
+        { "call": "cache_seq(1)", "expected": "[0,1]", "isHidden": true },
+        { "call": "cache_seq(-3)", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l1_a2",
+      "title": "Cache Lookup",
+      "task": "A memoization retrieval engine is querying precomputed sequence values.\n\nSystem Requirement:\nGiven a cached sequence and an index, retrieve the stored value if it exists.\n\nBehavior Rules:\n- If index exists in cache, return value at that index\n- If cache is empty or index is invalid, return -1\n\nOutput Requirement:\nReturn integer value from cache or error indicator.",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "cache_lookup([0,1,1,2,3],3)", "expected": "2", "isHidden": false },
+        { "call": "cache_lookup([0,1,1,2,3],4)", "expected": "3", "isHidden": false },
+        { "call": "cache_lookup([0,1],1)", "expected": "1", "isHidden": false },
+        { "call": "cache_lookup([],2)", "expected": "-1", "isHidden": true },
+        { "call": "cache_lookup([0],0)", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l1_a3",
+      "title": "Top-Down Blueprint",
+      "task": "A recursive computation engine is executing Fibonacci using memoization (top-down DP).\n\nSystem Requirement:\nCompute Fibonacci numbers using recursion with cached subproblem results.\n\nBehavior Rules:\n- Use recursive decomposition\n- Store computed values in cache\n- Avoid recomputation of states\n\nOutput Requirement:\nReturn Fibonacci(n).",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "top_down_fib(5)", "expected": "5", "isHidden": false },
+        { "call": "top_down_fib(8)", "expected": "21", "isHidden": false },
+        { "call": "top_down_fib(10)", "expected": "55", "isHidden": false },
+        { "call": "top_down_fib(0)", "expected": "0", "isHidden": true },
+        { "call": "top_down_fib(1)", "expected": "1", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l1_a4",
+      "title": "Bottom-Up Build",
+      "task": "A tabulation engine is constructing Fibonacci values iteratively.\n\nSystem Requirement:\nBuild a DP array from base cases upward until n is reached.\n\nBehavior Rules:\n- Start from known base values\n- Iteratively compute next states\n- Store all intermediate values\n\nOutput Requirement:\nReturn full DP array.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "bottom_up_fib(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
+        { "call": "bottom_up_fib(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
+        { "call": "bottom_up_fib(3)", "expected": "[0,1,1,2]", "isHidden": false },
+        { "call": "bottom_up_fib(0)", "expected": "[0]", "isHidden": true },
+        { "call": "bottom_up_fib(1)", "expected": "[0,1]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l1_a5",
+      "title": "Execution Comparison",
+      "task": "A performance analyzer compares naive recursion vs memoized recursion execution cost.\n\nSystem Requirement:\nCompare computational efficiency between naive and cached Fibonacci implementations.\n\nBehavior Rules:\n- Evaluate execution complexity difference\n- Determine which method is more efficient\n\nOutput Requirement:\nReturn qualitative comparison result.",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "compare_fib(5)", "expected": "difference_positive", "isHidden": false },
+        { "call": "compare_fib(6)", "expected": "difference_positive", "isHidden": false },
+        { "call": "compare_fib(7)", "expected": "difference_positive", "isHidden": false },
+        { "call": "compare_fib(2)", "expected": "equal", "isHidden": true },
+        { "call": "compare_fib(0)", "expected": "equal", "isHidden": true }
+      ]
+    }
+  ],
+
+  "lesson_2": [
+    {
+      "id": "m5_l2_a1",
+      "title": "Naive Fibonacci",
+      "task": "A recursive computation system is executing Fibonacci without optimization.\n\nSystem Requirement:\nCompute Fibonacci using pure recursion without caching.\n\nBehavior Rules:\n- No memoization allowed\n- Direct recursive breakdown only\n\nOutput Requirement:\nReturn Fibonacci(n).",
+      "targetTime": "O(2^n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "fib_naive(5)", "expected": "5", "isHidden": false },
+        { "call": "fib_naive(8)", "expected": "21", "isHidden": false },
+        { "call": "fib_naive(10)", "expected": "55", "isHidden": false },
+        { "call": "fib_naive(0)", "expected": "0", "isHidden": true },
+        { "call": "fib_naive(1)", "expected": "1", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l2_a2",
+      "title": "Memoized Fibonacci",
+      "task": "A dynamic programming optimizer is reducing redundant recursive calls.\n\nSystem Requirement:\nCompute Fibonacci using memoization to store intermediate results.\n\nBehavior Rules:\n- Store computed states in cache\n- Reuse stored results instead of recomputation\n\nOutput Requirement:\nReturn Fibonacci(n).",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "fib_memo(5)", "expected": "5", "isHidden": false },
+        { "call": "fib_memo(8)", "expected": "21", "isHidden": false },
+        { "call": "fib_memo(10)", "expected": "55", "isHidden": false },
+        { "call": "fib_memo(0)", "expected": "0", "isHidden": true },
+        { "call": "fib_memo(1)", "expected": "1", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l2_a3",
+      "title": "Tabulated Fibonacci",
+      "task": "A bottom-up dynamic programming system is constructing Fibonacci sequences iteratively.\n\nSystem Requirement:\nBuild Fibonacci sequence using tabulation (iterative DP array).\n\nBehavior Rules:\n- Initialize base values\n- Iteratively fill DP table\n\nOutput Requirement:\nReturn full Fibonacci array.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "fib_table(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
+        { "call": "fib_table(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
+        { "call": "fib_table(3)", "expected": "[0,1,1,2]", "isHidden": false },
+        { "call": "fib_table(0)", "expected": "[0]", "isHidden": true },
+        { "call": "fib_table(1)", "expected": "[0,1]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l2_a4",
+      "title": "Space-Optimized Fibonacci",
+      "task": "A memory-efficient system is computing Fibonacci using constant space optimization.\n\nSystem Requirement:\nCompute Fibonacci using only two tracking variables.\n\nBehavior Rules:\n- Maintain only last two states\n- Do not store full sequence\n\nOutput Requirement:\nReturn Fibonacci(n).",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "fib_opt(5)", "expected": "5", "isHidden": false },
+        { "call": "fib_opt(8)", "expected": "21", "isHidden": false },
+        { "call": "fib_opt(10)", "expected": "55", "isHidden": false },
+        { "call": "fib_opt(0)", "expected": "0", "isHidden": true },
+        { "call": "fib_opt(1)", "expected": "1", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l2_a5",
+      "title": "Sequence Generator",
+      "task": "A sequence generation engine is producing Fibonacci series outputs.\n\nSystem Requirement:\nGenerate full Fibonacci sequence up to index n.\n\nBehavior Rules:\n- Start from [0,1]\n- Extend sequence iteratively\n\nOutput Requirement:\nReturn full sequence array.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "fib_seq(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
+        { "call": "fib_seq(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
+        { "call": "fib_seq(3)", "expected": "[0,1,1,2]", "isHidden": false },
+        { "call": "fib_seq(0)", "expected": "[0]", "isHidden": true },
+        { "call": "fib_seq(1)", "expected": "[0,1]", "isHidden": true }
+      ]
+    }
+  ],
+
+  "lesson_3": [
+    {
+      "id": "m5_l3_a1",
+      "title": "Knapsack Grid Init",
+      "task": "A dynamic programming grid is being initialized for knapsack computation.\n\nSystem Requirement:\nCreate a 2D DP table initialized with zeros for given dimensions.\n\nBehavior Rules:\n- Create matrix of size n x m\n- Fill all cells with 0\n\nOutput Requirement:\nReturn initialized matrix.",
+      "targetTime": "O(n*m)",
+      "targetSpace": "O(n*m)",
+      "testCasesPool": [
+        { "call": "knap_init(2,3)", "expected": "[[0,0,0],[0,0,0]]", "isHidden": false },
+        { "call": "knap_init(1,5)", "expected": "[[0,0,0,0,0]]", "isHidden": false },
+        { "call": "knap_init(3,2)", "expected": "[[0,0],[0,0],[0,0]]", "isHidden": false },
+        { "call": "knap_init(0,5)", "expected": "[]", "isHidden": true },
+        { "call": "knap_init(2,0)", "expected": "[[],[]]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l3_a2",
+      "title": "Include/Exclude Choice",
+      "task": "A decision optimization engine evaluates knapsack choices using include/exclude logic.\n\nSystem Requirement:\nCompute maximum value using binary decision (take or skip item).\n\nBehavior Rules:\n- Each item can be included or excluded\n- Maximize total value under constraints\n\nOutput Requirement:\nReturn maximum achievable value.",
+      "targetTime": "O(n*W)",
+      "targetSpace": "O(n*W)",
+      "testCasesPool": [
+        { "call": "knap_choice([1,2],[10,20],2)", "expected": "20", "isHidden": false },
+        { "call": "knap_choice([1,2,3],[10,15,40],5)", "expected": "65", "isHidden": false },
+        { "call": "knap_choice([5],[100],4)", "expected": "0", "isHidden": false },
+        { "call": "knap_choice([],[],10)", "expected": "0", "isHidden": true },
+        { "call": "knap_choice([1],[10],0)", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l3_a3",
+      "title": "Knapsack Matrix",
+      "task": "A full dynamic programming knapsack solver is computing optimal item selection.\n\nSystem Requirement:\nBuild DP table to compute maximum value under weight constraint.\n\nBehavior Rules:\n- Use bottom-up DP table\n- Evaluate include/exclude transitions\n\nOutput Requirement:\nReturn maximum knapsack value.",
+      "targetTime": "O(n*W)",
+      "targetSpace": "O(n*W)",
+      "testCasesPool": [
+        { "call": "knapsack([1,2,3],[10,15,40],5)", "expected": "55", "isHidden": false },
+        { "call": "knapsack([2,3,4,5],[3,4,5,6],5)", "expected": "7", "isHidden": false },
+        { "call": "knapsack([10,20],[100,200],5)", "expected": "0", "isHidden": false },
+        { "call": "knapsack([1,1],[10,20],0)", "expected": "0", "isHidden": true },
+        { "call": "knapsack([],[],10)", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l3_a4",
+      "title": "Traceback Items",
+      "task": "A DP reconstruction engine is identifying selected items from knapsack computation.\n\nSystem Requirement:\nBacktrack through DP decisions to determine chosen item indices.\n\nBehavior Rules:\n- Trace selected decisions from DP table\n- Collect item indices in order of selection\n\nOutput Requirement:\nReturn list of selected indices.",
+      "targetTime": "O(n*W)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "knap_trace([1,2,3],[10,15,40],5)", "expected": "[1,2]", "isHidden": false },
+        { "call": "knap_trace([2,3,4],[3,4,5],5)", "expected": "[1]", "isHidden": false },
+        { "call": "knap_trace([5],[10],5)", "expected": "[0]", "isHidden": false },
+        { "call": "knap_trace([],[],5)", "expected": "[]", "isHidden": true },
+        { "call": "knap_trace([1],[10],0)", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l3_a5",
+      "title": "Capacity Tracker",
+      "task": "A DP monitoring system tracks remaining capacity across computation stages.\n\nSystem Requirement:\nTrack remaining capacity after each decision stage in DP computation.\n\nBehavior Rules:\n- Update capacity per iteration step\n- Store all intermediate states\n\nOutput Requirement:\nReturn array of capacity values per step.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "capacity_track([1,2,3],5)", "expected": "[5,4,2,0]", "isHidden": false },
+        { "call": "capacity_track([2,2],4)", "expected": "[4,2,0]", "isHidden": false },
+        { "call": "capacity_track([5],5)", "expected": "[5,0]", "isHidden": false },
+        { "call": "capacity_track([],5)", "expected": "[5]", "isHidden": true },
+        { "call": "capacity_track([1],0)", "expected": "[0]", "isHidden": true }
+      ]
+    }
+  ],
+
+  "lesson_4": [
+    {
+      "id": "m5_l4_a1",
+      "title": "LCS Grid Init",
+      "task": "A dynamic programming system is initializing a Longest Common Subsequence matrix.\n\nSystem Requirement:\nCreate a 2D matrix for LCS computation initialized with base values.\n\nBehavior Rules:\n- Matrix dimensions depend on string lengths\n- Initialize all cells to 0\n\nOutput Requirement:\nReturn initialized LCS matrix.",
+      "targetTime": "O(n*m)",
+      "targetSpace": "O(n*m)",
+      "testCasesPool": [
+        { "call": "lcs_init('A','B')", "expected": "[[0,0],[0,0]]", "isHidden": false },
+        { "call": "lcs_init('ABC','AB')", "expected": "5x4_matrix", "isHidden": false },
+        { "call": "lcs_init('A','')", "expected": "[[0]]", "isHidden": false },
+        { "call": "lcs_init('','')", "expected": "[[0]]", "isHidden": true },
+        { "call": "lcs_init('XYZ','XYZ')", "expected": "4x4_matrix", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l4_a2",
+      "title": "Character Match Logic",
+      "task": "A DP transition system evaluates character matches for LCS computation.\n\nSystem Requirement:\nCompare two characters and compute DP transition value.\n\nBehavior Rules:\n- If characters match, return 1\n- Otherwise return max(left, top) state\n\nOutput Requirement:\nReturn computed DP cell value.",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "lcs_match('A','A')", "expected": "1", "isHidden": false },
+        { "call": "lcs_match('A','B')", "expected": "0", "isHidden": false },
+        { "call": "lcs_match('C','C')", "expected": "1", "isHidden": false },
+        { "call": "lcs_match('A','')", "expected": "0", "isHidden": true },
+        { "call": "lcs_match('','A')", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l4_a3",
+      "title": "Full LCS Table",
+      "task": "A DP system computes the length of the Longest Common Subsequence using a full matrix approach.\n\nSystem Requirement:\nBuild LCS DP table and compute final LCS length.\n\nBehavior Rules:\n- Fill DP table bottom-up\n- Use standard LCS recurrence relation\n\nOutput Requirement:\nReturn LCS length.",
+      "targetTime": "O(n*m)",
+      "targetSpace": "O(n*m)",
+      "testCasesPool": [
+        { "call": "lcs_length('ABCBDAB','BDCAB')", "expected": "4", "isHidden": false },
+        { "call": "lcs_length('AGGTAB','GXTXAYB')", "expected": "4", "isHidden": false },
+        { "call": "lcs_length('AAAA','AA')", "expected": "2", "isHidden": false },
+        { "call": "lcs_length('','ABC')", "expected": "0", "isHidden": true },
+        { "call": "lcs_length('XYZ','ABC')", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l4_a4",
+      "title": "Reconstruct LCS String",
+      "task": "A reconstruction engine is rebuilding the actual Longest Common Subsequence from a computed DP table.\n\nSystem Requirement:\nBacktrack through DP matrix to construct LCS string.\n\nBehavior Rules:\n- Follow DP backtracking rules\n- Build sequence in correct order\n\nOutput Requirement:\nReturn reconstructed LCS string.",
+      "targetTime": "O(n*m)",
+      "targetSpace": "O(n*m)",
+      "testCasesPool": [
+        { "call": "lcs_string('ABCBDAB','BDCAB')", "expected": "BCAB", "isHidden": false },
+        { "call": "lcs_string('AGGTAB','GXTXAYB')", "expected": "GTAB", "isHidden": false },
+        { "call": "lcs_string('AAAA','AA')", "expected": "AA", "isHidden": false },
+        { "call": "lcs_string('','ABC')", "expected": "", "isHidden": true },
+        { "call": "lcs_string('XYZ','ABC')", "expected": "", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l4_a5",
+      "title": "Backtrack Steps",
+      "task": "A DP analyzer is measuring the number of steps taken during LCS backtracking.\n\nSystem Requirement:\nSimulate backtracking process and count total traversal steps.\n\nBehavior Rules:\n- Count every move during reconstruction\n- Include diagonal, up, and left transitions\n\nOutput Requirement:\nReturn total step count.",
+      "targetTime": "O(n*m)",
+      "targetSpace": "O(n*m)",
+      "testCasesPool": [
+        { "call": "lcs_backtrack('ABC','AC')", "expected": "3", "isHidden": false },
+        { "call": "lcs_backtrack('A','A')", "expected": "1", "isHidden": false },
+        { "call": "lcs_backtrack('ABCDE','ACE')", "expected": "5", "isHidden": false },
+        { "call": "lcs_backtrack('','')", "expected": "0", "isHidden": true },
+        { "call": "lcs_backtrack('ABC','XYZ')", "expected": "3", "isHidden": true }
+      ]
+    }
+  ]
+}

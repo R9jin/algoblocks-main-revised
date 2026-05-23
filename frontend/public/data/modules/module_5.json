@@ -1,0 +1,63 @@
+{
+  "id": "m5",
+  "number": "MODULE 5",
+  "title": "Dynamic Programming",
+  "topics": [
+    {
+      "id": "m5-t1",
+      "number": "Lesson 5.1",
+      "title": "Overlapping Subproblems",
+      "level": "expert",
+      "content": "Identifying redundant calculations in recursion trees and introducing Memoization (top-down) vs Tabulation (bottom-up).",
+      "activities": [
+        { "id": "m5_l1_a1", "title": "Array Caching" },
+        { "id": "m5_l1_a2", "title": "Cache Lookup" },
+        { "id": "m5_l1_a3", "title": "Top-Down Blueprint" },
+        { "id": "m5_l1_a4", "title": "Bottom-Up Build" },
+        { "id": "m5_l1_a5", "title": "Execution Comparison" }
+      ]
+    },
+    {
+      "id": "m5-t2",
+      "number": "Lesson 5.2",
+      "title": "Optimizing Fibonacci",
+      "level": "expert",
+      "content": "Transitioning Fibonacci calculations from O(2^n) recursion down to O(n) table caches, and finally to O(1) space constraints.",
+      "activities": [
+        { "id": "m5_l2_a1", "title": "Naive Fibonacci" },
+        { "id": "m5_l2_a2", "title": "Memoized Fibonacci" },
+        { "id": "m5_l2_a3", "title": "Tabulated Fibonacci" },
+        { "id": "m5_l2_a4", "title": "Space-Optimized Fibonacci" },
+        { "id": "m5_l2_a5", "title": "Sequence Generator" }
+      ]
+    },
+    {
+      "id": "m5-t3",
+      "number": "Lesson 5.3",
+      "title": "The Knapsack Problem",
+      "level": "expert",
+      "content": "Calculating maximum value outputs against capacity bounding limits using a 2D DP matrix to track includes/excludes.",
+      "activities": [
+        { "id": "m5_l3_a1", "title": "Knapsack Grid Init" },
+        { "id": "m5_l3_a2", "title": "Include/Exclude Choice" },
+        { "id": "m5_l3_a3", "title": "Knapsack Matrix" },
+        { "id": "m5_l3_a4", "title": "Traceback Items" },
+        { "id": "m5_l3_a5", "title": "Capacity Tracker" }
+      ]
+    },
+    {
+      "id": "m5-t4",
+      "number": "Lesson 5.4",
+      "title": "Longest Common Subsequence",
+      "level": "expert",
+      "content": "Comparing and tracing array strings to find the longest overlapping sequence bounds dynamically.",
+      "activities": [
+        { "id": "m5_l4_a1", "title": "LCS Grid Init" },
+        { "id": "m5_l4_a2", "title": "Character Match Logic" },
+        { "id": "m5_l4_a3", "title": "Full LCS Table" },
+        { "id": "m5_l4_a4", "title": "Reconstruct LCS String" },
+        { "id": "m5_l4_a5", "title": "Backtrack Steps" }
+      ]
+    }
+  ]
+}

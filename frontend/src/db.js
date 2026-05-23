@@ -1,7 +1,6 @@
-// frontend\src\db.js
+// frontend/src/db.js
 import localforage from 'localforage';
 
-// Initialize offline databases
 export const projectsDB = localforage.createInstance({
     name: "AlgoBlocks",
     storeName: "projects"
@@ -17,14 +16,23 @@ export const syncQueueDB = localforage.createInstance({
     storeName: "sync_queue"
 });
 
+// NEW: Activity Submissions and Progress DBs
+export const submissionsDB = localforage.createInstance({
+    name: "AlgoBlocks",
+    storeName: "submissions"
+});
+
+export const progressDB = localforage.createInstance({
+    name: "AlgoBlocks",
+    storeName: "progress"
+});
+
 // Helper functions for React components to use
 export const saveProjectOffline = async (projectData) => {
     const id = projectData._id || `local_${Date.now()}`;
     const project = { ...projectData, _id: id, synced: false, updatedAt: Date.now() };
     
     await projectsDB.setItem(id, project);
-    
-    // Add to sync queue so we know to push it to MongoDB later
     await syncQueueDB.setItem(id, { type: 'PROJECT', action: 'UPSERT', data: project });
     return id;
 };

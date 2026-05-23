@@ -1,6 +1,5 @@
 // frontend/src/App.jsx
-import { lazy, useEffect } from "react";
-// IMPORT Navigate alongside Route and Routes
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import Dashboard from "./pages/Dashboard";
@@ -13,9 +12,7 @@ import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
-import LessonViewer from "./pages/LessonViewer";
 
-// --- NEW: Create a ProtectedRoute component ---
 // This checks if the user is in localStorage. If not, it kicks them to /signin.
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user");
@@ -38,43 +35,43 @@ function App() {
     <>
       <OfflineIndicator />
 
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* --- NEW: Wrap private routes with ProtectedRoute --- */}
-        <Route
-          path="/dashboard"
-          element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
-        />
-        <Route
-          path="/learning-path"
-          element={<ProtectedRoute><LearningPath /></ProtectedRoute>}
-        />
-        <Route
-          path="/projects"
-          element={<ProtectedRoute><Projects /></ProtectedRoute>}
-        />
-        <Route
-          path="/app"
-          element={<ProtectedRoute><MainApp /></ProtectedRoute>}
-        />
-        <Route
-          path="/home"
-          element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
-        />
-        <Route
-          path="/activity"
-          element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
-        />
-        <Route
-          path="/learning-path/:moduleId/:lessonId"
-          element={<LessonViewer />}
-        />
-      </Routes>
+          {/* Protected Routes */}
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+          />
+          <Route
+            path="/learning-path"
+            element={<ProtectedRoute><LearningPath /></ProtectedRoute>}
+          />
+          <Route
+            path="/projects"
+            element={<ProtectedRoute><Projects /></ProtectedRoute>}
+          />
+          <Route
+            path="/app"
+            element={<ProtectedRoute><MainApp /></ProtectedRoute>}
+          />
+          <Route
+            path="/home"
+            element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
+          />
+          
+          {/* Integration Route from Learning Path to the Activity App */}
+          <Route
+            path="/activity/:moduleId/:activityId"
+            element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
+          />
+        </Routes>
+      </Suspense>
     </>
   );
 }

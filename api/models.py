@@ -40,3 +40,9 @@ class ProgressRequest(BaseModel):
     email: str
     lesson_id: str
     score: int
+    
+class ActivityDraftSchema(BaseModel):
+    email: str
+    lesson_id: str
+    json_data: Optional[str] = None
+    python_code: Optional[str] = None
