@@ -173,7 +173,6 @@ class BlocklyASTConverter:
     def serialize_expr(self, node):
         if node is None: return None
         try:
-            # list(range(start, end)) -> list_range block
             if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "list":
                 if len(node.args) == 1 and isinstance(node.args[0], ast.Call) and getattr(node.args[0].func, "id", "") == "range":
                     range_args = node.args[0].args
@@ -188,7 +187,6 @@ class BlocklyASTConverter:
                     self.add_input(block, "END", self.serialize_expr_safe(end, ["Number"]))
                     return block
 
-            # isinstance(x, type)
             if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "isinstance":
                 if len(node.args) == 2:
                     block = {"type": "python_isinstance", "id": gen_uid()}
@@ -386,7 +384,6 @@ class BlocklyASTConverter:
                         self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
                         return block
                     
-                    # --- NEW BUILT-IN BLOCKS ---
                     if name == "int" and len(node.args) == 1:
                         block = {"type": "type_cast_int", "id": gen_uid()}
                         self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
@@ -407,7 +404,6 @@ class BlocklyASTConverter:
                         block = {"type": "list_sorted", "id": gen_uid(), "fields": {"REVERSE": reverse_val}}
                         self.add_input(block, "LIST", self.serialize_expr(node.args[0]))
                         return block
-                    # ---------------------------
 
                     if name in ["max", "min"] and len(node.args) == 2:
                         block = {"type": "math_min_max", "id": gen_uid(), "fields": {"OP": "MAX" if name == "max" else "MIN"}}
@@ -424,7 +420,6 @@ class BlocklyASTConverter:
                     method = node.func.attr
                     obj = node.func.value
                     
-                    # --- NEW BUILT-IN BLOCKS ---
                     if method in ["upper", "lower", "title", "capitalize"] and len(node.args) == 0:
                         block = {"type": "string_case_formatting", "id": gen_uid(), "fields": {"CASE": method}}
                         self.add_input(block, "STRING", self.serialize_expr(obj))
@@ -438,7 +433,6 @@ class BlocklyASTConverter:
                         else:
                             self.add_input(block, "DELIMITER", {"type": "text", "id": gen_uid(), "fields": {"TEXT": " "}})
                         return block
-                    # ---------------------------
 
                     if method in ["keys", "values", "items"] and len(node.args) == 0:
                         block = {"type": "dict_keys_values", "id": gen_uid(), "fields": {"OP": method}}
@@ -566,7 +560,6 @@ class BlocklyASTConverter:
                 return block
 
             elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-                
                 if isinstance(node.value.func, ast.Name):
                     name = node.value.func.id
                     if name == "print":
@@ -584,7 +577,6 @@ class BlocklyASTConverter:
                     method = node.value.func.attr
                     obj = node.value.func.value
                     
-                    # --- NEW BUILT-IN BLOCKS ---
                     if method == "sort" and len(node.value.args) == 0:
                         reverse_val = "FALSE"
                         for kw in node.value.keywords:
@@ -600,7 +592,6 @@ class BlocklyASTConverter:
                         self.add_input(block, "INDEX", self.serialize_expr(node.value.args[0]))
                         self.add_input(block, "ITEM", self.serialize_expr(node.value.args[1]))
                         return block
-                    # ---------------------------
 
                     if method == "append" and len(node.value.args) == 1:
                         block = {"type": "list_append", "id": gen_uid()}
