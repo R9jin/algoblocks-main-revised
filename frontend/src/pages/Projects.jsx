@@ -133,7 +133,7 @@ export default function Projects() {
               <h1 className="section-title">My Projects</h1>
               <p className="page-subtitle">Manage and load your saved algorithm workspaces.</p>
             </div>
-            <button className="btn-new-project-large" onClick={() => navigate('/app')}>
+            <button className="btn-new-project-large" onClick={() => navigate('/workspace')}>
               <PlusIcon /> Blank Workspace
             </button>
           </div>
@@ -145,14 +145,14 @@ export default function Projects() {
               <div className="empty-icon"><DocumentIcon /></div>
               <h3 className="empty-title">No projects found</h3>
               <p className="empty-desc">You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!</p>
-              <button className="btn-new-project-large" onClick={() => navigate('/app')}>
+              <button className="btn-new-project-large" onClick={() => navigate('/workspace')}>
                 <PlusIcon /> Create First Project
               </button>
             </div>
           ) : (
             <div className="projects-grid">
               {projects.map(proj => (
-                <div key={proj._id} className="project-card" onClick={() => navigate("/app", { state: { projectToLoad: proj } })}>
+                <div key={proj._id} className="project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                   <div className="project-card-header">
                     <div className="project-icon-wrapper">
                       <FolderIcon />

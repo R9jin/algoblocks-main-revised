@@ -117,7 +117,7 @@ export default function UserHomePage() {
 
             <div
               className="card"
-              onClick={() => navigate('/app')} // Routes directly to workspace now
+              onClick={() => navigate('/workspace')} // Routes directly to workspace now
               style={{ cursor: "pointer" }}
             >
               <div className="card-icon">

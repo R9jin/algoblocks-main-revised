@@ -1,0 +1,313 @@
+{
+  "lesson_1": [
+    {
+      "id": "m0_l1_a1",
+      "title": "Hello AlgoBlocks",
+      "task": "You are initializing a basic system greeting function inside the AlgoBlocks runtime environment.\n\nYour system must confirm successful execution by returning a fixed string value.\n\nTask Requirement:\nCreate a function hello() that returns the exact string:\n\nHello, AlgoBlocks!\n\nRules:\n- Must not use print()\n- Must not modify spacing or characters\n- Must return the exact string\n\nSample Output:\nhello() → Hello, AlgoBlocks!",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l1_a2",
+      "title": "ASCII Art Triangle",
+      "task": "A rendering engine is required to generate text-based visual patterns using characters.\n\nTask Requirement:\nCreate a function triangle(n) that returns a left-aligned triangle made of '*' characters.\n\nRules:\n- Each row i contains i asterisks\n- Rows must be separated using '\\n'\n- If n ≤ 0, return an empty string\n\nSample Output:\ntriangle(3) → \"*\\n**\\n***\"",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "triangle(3)", "expected": "\"*\\n**\\n***\"", "isHidden": false },
+        { "call": "triangle(2)", "expected": "\"*\\n**\"", "isHidden": false },
+        { "call": "triangle(1)", "expected": "\"*\"", "isHidden": false },
+        { "call": "triangle(0)", "expected": "\"\"", "isHidden": false },
+        { "call": "triangle(-1)", "expected": "\"\"", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l1_a3",
+      "title": "Basic Calculator",
+      "task": "A computation validation system is required to safely perform arithmetic operations only on valid numeric inputs.\n\nTask Requirement:\nCreate a function add(a, b) that returns the sum of two numbers.\n\nRules:\n- Inputs must be integers or floats\n- If any input is invalid, return 'Error'\n\nSample Output:\nadd(2,3) → 5",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "add(2,3)", "expected": "5", "isHidden": false },
+        { "call": "add(10,10)", "expected": "20", "isHidden": false },
+        { "call": "add(0,5)", "expected": "5", "isHidden": false },
+        { "call": "add('a',3)", "expected": "'Error'", "isHidden": false },
+        { "call": "add(None,2)", "expected": "'Error'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l1_a4",
+      "title": "Name Greeter",
+      "task": "A user interaction system generates personalized messages based on input values.\n\nTask Requirement:\nCreate a function greet(name) that returns a formatted greeting.\n\nRules:\n- Must not modify input\n- Must follow exact output format\n\nOutput Format:\nWelcome <name>!\n\nSample Output:\ngreet('Ana') → Welcome Ana!",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "greet('Ana')", "expected": "'Welcome Ana!'", "isHidden": false },
+        { "call": "greet('John')", "expected": "'Welcome John!'", "isHidden": false },
+        { "call": "greet('Lee')", "expected": "'Welcome Lee!'", "isHidden": false },
+        { "call": "greet('')", "expected": "'Welcome !'", "isHidden": false },
+        { "call": "greet(None)", "expected": "'Welcome None!'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l1_a5",
+      "title": "Execution Step Counter",
+      "task": "A process simulation module tracks how many execution steps occur inside a controlled runtime environment.\n\nTask Requirement:\nCreate a function multi() that simulates execution of 5 internal steps.\n\nRules:\n- Must return total number of steps executed\n- Must not print intermediate values\n\nSample Output:\nmulti() → 5",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "4", "isHidden": false },
+        { "call": "multi()", "expected": "6", "isHidden": false }
+      ]
+    }
+  ],
+
+  "lesson_2": [
+    {
+      "id": "m0_l2_a1",
+      "title": "Odd or Even Classifier",
+      "task": "A number classification system is required to evaluate whether a given input is odd or even.\n\nTask Requirement:\nCreate a function check_odd_even(n).\n\nRules:\n- If n is odd → return 'Odd'\n- If n is even → return 'Even'\n- If input is not an integer → return 'Invalid'\n\nSample Output:\ncheck_odd_even(7) → Odd",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "check_odd_even(7)", "expected": "'Odd'", "isHidden": false },
+        { "call": "check_odd_even(10)", "expected": "'Even'", "isHidden": false },
+        { "call": "check_odd_even(3)", "expected": "'Odd'", "isHidden": false },
+        { "call": "check_odd_even('7')", "expected": "'Invalid'", "isHidden": false },
+        { "call": "check_odd_even(None)", "expected": "'Invalid'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l2_a2",
+      "title": "Sequence Generator",
+      "task": "A sequence generation engine produces ordered numeric lists for computational pipelines.\n\nTask Requirement:\nCreate a function count(n) that generates numbers from 1 to n.\n\nRules:\n- Return list of integers\n- If n ≤ 0 → return empty list\n\nSample Output:\ncount(3) → [1,2,3]",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "count(3)", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "count(5)", "expected": "[1,2,3,4,5]", "isHidden": false },
+        { "call": "count(1)", "expected": "[1]", "isHidden": false },
+        { "call": "count(0)", "expected": "[]", "isHidden": false },
+        { "call": "count(-2)", "expected": "[]", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l2_a3",
+      "title": "Array Transformation Engine",
+      "task": "A data processing pipeline requires transformation of numerical arrays using scaling operations.\n\nTask Requirement:\nCreate a function double(arr).\n\nRules:\n- Multiply each element by 2\n- Input must be a valid list\n- Invalid input → return 'Error'\n\nSample Output:\ndouble([1,2,3]) → [2,4,6]",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "double([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
+        { "call": "double([10])", "expected": "[20]", "isHidden": false },
+        { "call": "double([0,0])", "expected": "[0,0]", "isHidden": false },
+        { "call": "double([])", "expected": "[]", "isHidden": false },
+        { "call": "double(None)", "expected": "'Error'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l2_a4",
+      "title": "Score Evaluation System",
+      "task": "A grading system evaluates numeric scores and assigns performance labels.\n\nTask Requirement:\nCreate a function evaluate(score).\n\nRules:\n- 75–100 → 'Pass'\n- 0–74 → 'Fail'\n- Outside 0–100 → 'Invalid'\n\nSample Output:\nevaluate(75) → Pass",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "evaluate(75)", "expected": "'Pass'", "isHidden": false },
+        { "call": "evaluate(74)", "expected": "'Fail'", "isHidden": false },
+        { "call": "evaluate(90)", "expected": "'Pass'", "isHidden": false },
+        { "call": "evaluate(-1)", "expected": "'Invalid'", "isHidden": false },
+        { "call": "evaluate(101)", "expected": "'Invalid'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l2_a5",
+      "title": "Range Summation Engine",
+      "task": "A computation system calculates cumulative sums over a numeric range using iterative logic.\n\nTask Requirement:\nCreate a function sum_range(n).\n\nRules:\n- Sum all integers from 1 to n\n- If n ≤ 0 → return 0\n\nSample Output:\nsum_range(5) → 15",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "sum_range(5)", "expected": "15", "isHidden": false },
+        { "call": "sum_range(10)", "expected": "55", "isHidden": false },
+        { "call": "sum_range(3)", "expected": "6", "isHidden": false },
+        { "call": "sum_range(0)", "expected": "0", "isHidden": false },
+        { "call": "sum_range(-5)", "expected": "0", "isHidden": false }
+      ]
+    }
+  ],
+
+  "lesson_3": [
+    {
+      "id": "m0_l3_a1",
+      "title": "Constant Time Access System",
+      "task": "A data retrieval engine requires efficient access to the first element of a dataset.\n\nTask Requirement:\nCreate a function get_first(arr).\n\nRules:\n- Return first element\n- If list is empty → return 'Empty'\n\nSample Output:\nget_first([1,2,3]) → 1",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "get_first([1,2,3])", "expected": "1", "isHidden": false },
+        { "call": "get_first([9,8,7])", "expected": "9", "isHidden": false },
+        { "call": "get_first(['A','B'])", "expected": "'A'", "isHidden": false },
+        { "call": "get_first([])", "expected": "'Empty'", "isHidden": false },
+        { "call": "get_first([None,1])", "expected": "None", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l3_a2",
+      "title": "Iteration Tracker",
+      "task": "A performance analysis system tracks loop execution counts for optimization evaluation.\n\nTask Requirement:\nCreate a function linear() that simulates iteration from 1 to 100.\n\nRules:\n- Count total iterations\n- Return final count\n\nSample Output:\nlinear() → 100",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "99", "isHidden": false },
+        { "call": "linear()", "expected": "101", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l3_a3",
+      "title": "Grid Computation Engine",
+      "task": "A nested iteration system simulates grid-based computation workloads.\n\nTask Requirement:\nCreate a function grid() that simulates a 5x5 nested loop execution.\n\nRules:\n- Outer loop runs 5 times\n- Inner loop runs 5 times\n- Return total iterations\n\nSample Output:\ngrid() → 25",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "20", "isHidden": false },
+        { "call": "grid()", "expected": "30", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l3_a4",
+      "title": "Branch Decision Engine",
+      "task": "A control flow system evaluates execution paths based on input truthiness.\n\nTask Requirement:\nCreate a function branch(x).\n\nRules:\n- Truthy input → 'IF'\n- Falsy input → 'ELSE'\n\nSample Output:\nbranch(1) → IF",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "branch(1)", "expected": "'IF'", "isHidden": false },
+        { "call": "branch(5)", "expected": "'IF'", "isHidden": false },
+        { "call": "branch(0)", "expected": "'ELSE'", "isHidden": false },
+        { "call": "branch(-1)", "expected": "'ELSE'", "isHidden": false },
+        { "call": "branch(None)", "expected": "'ELSE'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l3_a5",
+      "title": "Loop vs Arithmetic Engine",
+      "task": "A computation system compares iterative multiplication vs direct arithmetic computation.\n\nTask Requirement:\nCreate a function compare() that simulates 5 × 5 using repeated addition logic.\n\nReturn final computed result.\n\nSample Output:\ncompare() → 25",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "24", "isHidden": false },
+        { "call": "compare()", "expected": "26", "isHidden": false }
+      ]
+    }
+  ],
+
+  "lesson_4": [
+    {
+      "id": "m0_l4_a1",
+      "title": "Variable Swap System",
+      "task": "A memory manipulation system is required to swap stored values between variables.\n\nTask Requirement:\nCreate a function swap(a, b).\n\nRules:\n- Return values in reversed order\n- If inputs are missing → return 'Error'\n\nSample Output:\nswap(1,2) → [2,1]",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "swap(1,2)", "expected": "[2,1]", "isHidden": false },
+        { "call": "swap('X','Y')", "expected": "['Y','X']", "isHidden": false },
+        { "call": "swap(None,'A')", "expected": "['A',None]", "isHidden": false },
+        { "call": "swap()", "expected": "'Error'", "isHidden": false },
+        { "call": "swap(1)", "expected": "'Error'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l4_a2",
+      "title": "Array Construction Module",
+      "task": "A sequential generator is required to build ordered numeric arrays for system initialization.\n\nTask Requirement:\nCreate a function fill(n).\n\nRules:\n- Return list from 1 to n\n- If n ≤ 0 → return empty list\n\nSample Output:\nfill(3) → [1,2,3]",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "fill(3)", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "fill(5)", "expected": "[1,2,3,4,5]", "isHidden": false },
+        { "call": "fill(1)", "expected": "[1]", "isHidden": false },
+        { "call": "fill(0)", "expected": "[]", "isHidden": false },
+        { "call": "fill(-1)", "expected": "[]", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l4_a3",
+      "title": "Counter Simulation System",
+      "task": "A runtime state tracker simulates incremental counting from zero to a target value.\n\nTask Requirement:\nCreate a function counter(n).\n\nRules:\n- Start from 0\n- Increment until n\n- Return final value\n\nSample Output:\ncounter(5) → 5",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "counter(5)", "expected": "5", "isHidden": false },
+        { "call": "counter(10)", "expected": "10", "isHidden": false },
+        { "call": "counter(1)", "expected": "1", "isHidden": false },
+        { "call": "counter(0)", "expected": "0", "isHidden": false },
+        { "call": "counter(-5)", "expected": "0", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l4_a4",
+      "title": "Scope Resolution Checker",
+      "task": "A runtime environment requires validation of variable existence based on truthiness rules.\n\nTask Requirement:\nCreate a function scope(x).\n\nRules:\n- Truthy → 'exists'\n- Falsy → 'none'\n\nSample Output:\nscope(1) → exists",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "scope(1)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(5)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(0)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(-1)", "expected": "'none'", "isHidden": false },
+        { "call": "scope(None)", "expected": "'none'", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m0_l4_a5",
+      "title": "Pointer Navigation Simulator",
+      "task": "A memory pointer system simulates movement across indexed array positions.\n\nTask Requirement:\nCreate a function pointer() that simulates pointer movement logic across an array.\n\nRules:\n- Movement follows sequential index traversal\n- Return final state as list\n\nSample Output:\npointer() → [0,1]",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "pointer()", "expected": "[0,1]", "isHidden": false },
+        { "call": "pointer()", "expected": "[1,2]", "isHidden": false },
+        { "call": "pointer()", "expected": "[2,3]", "isHidden": false },
+        { "call": "pointer()", "expected": "[0,0]", "isHidden": false },
+        { "call": "pointer()", "expected": "[]", "isHidden": false }
+      ]
+    }
+  ]
+}

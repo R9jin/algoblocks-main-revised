@@ -1,0 +1,67 @@
+{
+  "lessonId": "lesson-6-3",
+  "moduleId": "module-6",
+  "title": "N-Queens Problem",
+  "description": "Learn how Backtracking solves constraint-based placement problems using systematic search and pruning.",
+  "difficulty": "Advanced",
+  "estimatedTime": "45 min",
+  "prerequisites": "Permutations and Combinations",
+  "tags": ["n-queens", "backtracking", "constraints", "search"],
+  "activities": [
+    { "id": "m6_l3_a1", "title": "Is Safe Row/Column" },
+    { "id": "m6_l3_a2", "title": "Diagonal Safety Check" },
+    { "id": "m6_l3_a3", "title": "Place and Remove" },
+    { "id": "m6_l3_a4", "title": "Initialize Chessboard" },
+    { "id": "m6_l3_a5", "title": "Full N-Queens Solver" }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "The N-Queens Problem is one of the most famous Backtracking problems in computer science.\n\nThe objective is to place queens on a chessboard so that no queen attacks another.\n\nThis problem demonstrates how Backtracking systematically explores valid placements while rejecting impossible configurations early."
+    },
+    {
+      "id": "problem-overview",
+      "type": "concept",
+      "title": "Understanding the N-Queens Problem",
+      "content": "Queens in chess can attack horizontally, vertically, and diagonally.\n\nThe challenge is to place N queens on an N × N chessboard while ensuring that no two queens threaten each other.\n\nAs board size increases, the number of possible arrangements grows rapidly."
+    },
+    {
+      "id": "constraint-checking",
+      "type": "deep_dive",
+      "title": "Constraint Validation",
+      "content": "During exploration, the algorithm checks whether a queen placement violates any constraints.\n\nIf two queens attack each other, the current arrangement becomes invalid.\n\nThe algorithm immediately abandons invalid configurations and backtracks to try different placements."
+    },
+    {
+      "id": "systematic-search",
+      "type": "deep_dive",
+      "title": "Systematic Recursive Exploration",
+      "content": "The algorithm places queens row-by-row.\n\nFor each row, it attempts every valid column position.\n\nIf no valid placement exists, the algorithm removes previously placed queens and revisits earlier decisions until a valid arrangement is discovered."
+    },
+    {
+      "id": "why-backtracking-works",
+      "type": "concept",
+      "title": "Why Backtracking is Effective",
+      "content": "Backtracking reduces unnecessary exploration by rejecting invalid states immediately.\n\nInstead of evaluating every possible chessboard arrangement completely, the algorithm prunes impossible branches early.\n\nThis significantly improves efficiency compared to brute force enumeration."
+    },
+    {
+      "id": "real-world-connection",
+      "type": "real_world_connection",
+      "title": "Constraint Problems in Real Systems",
+      "content": "Constraint satisfaction problems appear in scheduling systems, resource allocation, robotics, artificial intelligence, and network configuration.\n\nMany optimization systems rely on Backtracking to search for valid configurations efficiently."
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "The N-Queens Problem demonstrates how Backtracking solves constraint-based placement challenges efficiently through recursive exploration, rollback, and pruning of invalid configurations."
+    }
+  ],
+  "references": [
+    {
+      "title": "GeeksforGeeks — N Queen Problem",
+      "url": "https://www.geeksforgeeks.org/n-queen-problem-backtracking-3/"
+    }
+  ]
+}

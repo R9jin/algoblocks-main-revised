@@ -1,0 +1,91 @@
+{
+  "lessonId": "lesson-5-2",
+  "moduleId": "module-5",
+  "title": "Fibonacci Optimization",
+  "description": "Understand how Dynamic Programming optimizes recursive Fibonacci computation by eliminating redundant calculations.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "35 min",
+  "prerequisites": "Dynamic Programming Fundamentals",
+  "tags": [
+    "fibonacci",
+    "dynamic programming",
+    "optimization",
+    "recursion"
+  ],
+  "activities": [
+    {
+      "id": "m5_l2_a1",
+      "title": "Naive Fibonacci"
+    },
+    {
+      "id": "m5_l2_a2",
+      "title": "Memoized Fibonacci"
+    },
+    {
+      "id": "m5_l2_a3",
+      "title": "Tabulated Fibonacci"
+    },
+    {
+      "id": "m5_l2_a4",
+      "title": "Space-Optimized Fibonacci"
+    },
+    {
+      "id": "m5_l2_a5",
+      "title": "Sequence Generator"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "The Fibonacci sequence is one of the most common examples used to demonstrate Dynamic Programming.\n\nAlthough the recursive Fibonacci solution is simple to understand, it performs many repeated calculations unnecessarily.\n\nDynamic Programming transforms this inefficient recursive process into a much faster solution."
+    },
+    {
+      "id": "recursive-fibonacci",
+      "type": "concept",
+      "title": "The Recursive Fibonacci Approach",
+      "content": "The Fibonacci sequence defines each value as the sum of the two previous values.\n\nA recursive solution repeatedly calls smaller Fibonacci computations until reaching the base cases.\n\nHowever, many identical subproblems appear repeatedly during execution."
+    },
+    {
+      "id": "redundant-computation",
+      "type": "deep_dive",
+      "title": "Understanding Redundant Computation",
+      "content": "Recursive Fibonacci algorithms repeatedly calculate the same values many times.\n\nFor example, Fibonacci(5) may require multiple separate calculations of Fibonacci(3) and Fibonacci(2).\n\nAs the sequence grows larger, the number of repeated computations increases rapidly, causing exponential time complexity."
+    },
+    {
+      "id": "dynamic-programming-solution",
+      "type": "concept",
+      "title": "Optimizing with Dynamic Programming",
+      "content": "Dynamic Programming stores previously computed Fibonacci values inside memory.\n\nOnce a Fibonacci value has been calculated, it can be reused immediately whenever needed again.\n\nThis optimization reduces the algorithm from exponential complexity to linear complexity."
+    },
+    {
+      "id": "memoization-tabulation",
+      "type": "deep_dive",
+      "title": "Memoization and Tabulation Approaches",
+      "content": "Memoization improves recursive execution by caching results during function calls.\n\nTabulation builds the Fibonacci sequence iteratively from the smallest values upward.\n\nBoth approaches eliminate redundant calculations and significantly improve efficiency."
+    },
+    {
+      "id": "real-world-connection",
+      "type": "real_world_connection",
+      "title": "Optimization in Real Systems",
+      "content": "Many optimization systems in finance, robotics, networking, and machine learning rely on Dynamic Programming techniques similar to Fibonacci optimization.\n\nReducing redundant computation improves performance, lowers energy consumption, and increases scalability."
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "Dynamic Programming optimizes Fibonacci computation by storing previously computed values. This eliminates redundant recursion and reduces exponential performance growth into efficient linear execution."
+    }
+  ],
+  "references": [
+    {
+      "title": "Programiz — Fibonacci Series",
+      "url": "https://www.programiz.com/dsa/fibonacci-series"
+    },
+    {
+      "title": "GeeksforGeeks — Fibonacci Using Dynamic Programming",
+      "url": "https://www.geeksforgeeks.org/program-for-nth-fibonacci-number/"
+    }
+  ]
+}

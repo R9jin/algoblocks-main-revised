@@ -1,0 +1,90 @@
+{
+  "lessonId": "lesson-4-1",
+  "moduleId": "module-4",
+  "title": "Greedy Strategy",
+  "description": "Learn how Greedy Algorithms solve problems by making the best immediate decision at every step.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "30 min",
+  "prerequisites": "Quick Sort",
+  "tags": [
+    "greedy algorithms",
+    "optimization",
+    "decision making"
+  ],
+  "activities": [
+    {
+      "id": "m4_l1_a1",
+      "title": "Largest First"
+    },
+    {
+      "id": "m4_l1_a2",
+      "title": "Smallest First"
+    },
+    {
+      "id": "m4_l1_a3",
+      "title": "Greedy Sum"
+    },
+    {
+      "id": "m4_l1_a4",
+      "title": "Closest Number"
+    },
+    {
+      "id": "m4_l1_a5",
+      "title": "Greedy Path"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "Many real-world problems require selecting the best possible option from several choices.\n\nGreedy Algorithms solve these problems by repeatedly choosing the locally optimal decision at every step.\n\nInstead of exploring every possible solution path, greedy methods focus on making the best immediate choice in hopes of reaching an optimal final solution."
+    },
+    {
+      "id": "core-idea",
+      "type": "concept",
+      "title": "The Greedy Choice Principle",
+      "content": "Greedy Algorithms follow a simple principle: always select the option that appears best at the current moment.\n\nOnce a choice is made, the algorithm does not usually reconsider previous decisions.\n\nThis makes greedy solutions efficient because they avoid unnecessary backtracking or exhaustive searching."
+    },
+    {
+      "id": "local-vs-global",
+      "type": "deep_dive",
+      "title": "Local Optimization vs Global Optimization",
+      "content": "A locally optimal choice is the best immediate decision available at a specific step.\n\nA globally optimal solution is the best overall solution after all decisions are completed.\n\nGreedy Algorithms assume that repeatedly making locally optimal choices will eventually lead to a globally optimal result.\n\nHowever, this assumption only works correctly for certain problem types."
+    },
+    {
+      "id": "advantages-limitations",
+      "type": "concept",
+      "title": "Advantages and Limitations",
+      "content": "Greedy Algorithms are often simple, fast, and memory efficient.\n\nBecause they avoid exploring all possibilities, they usually perform significantly faster than brute force approaches.\n\nHowever, greedy strategies do not always guarantee the best possible solution. Some problems require more advanced techniques such as Dynamic Programming."
+    },
+    {
+      "id": "real-world-example",
+      "type": "analogy",
+      "title": "Travel Route Analogy",
+      "content": "Imagine driving toward a destination and always choosing the road that appears fastest at the moment.\n\nAlthough each decision may seem optimal immediately, the overall route may not always be the shortest possible path.\n\nThis reflects how greedy algorithms operate when making local optimization decisions."
+    },
+    {
+      "id": "real-world-connection",
+      "type": "real_world_connection",
+      "title": "Greedy Algorithms in Real Systems",
+      "content": "Greedy methods are widely used in scheduling systems, network routing, resource allocation, and compression algorithms.\n\nMany real-world systems rely on greedy decision-making because it produces efficient solutions quickly without excessive computation."
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "Greedy Algorithms solve problems by repeatedly making the best immediate decision available. They are efficient and simple but only guarantee optimal solutions for specific problem types."
+    }
+  ],
+  "references": [
+    {
+      "title": "Programiz — Greedy Algorithm",
+      "url": "https://www.programiz.com/dsa/greedy-algorithm"
+    },
+    {
+      "title": "GeeksforGeeks — Greedy Algorithms",
+      "url": "https://www.geeksforgeeks.org/greedy-algorithms/"
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+/* frontend/src/styles/TestCaseTester.css */
+
+.test-case-tester {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #1C1236; /* AlgoBlocks base dark purple */
+  color: #EBE4FF;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+.tester-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tester-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.run-tests-btn {
+  background-color: #6C5CE7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(108, 92, 231, 0.2);
+}
+
+.run-tests-btn:hover:not(:disabled) {
+  background-color: #5a4bcf;
+  transform: translateY(-1px);
+}
+
+.run-tests-btn:disabled {
+  background-color: #444;
+  color: #888;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.tester-error {
+  margin: 15px 20px 0;
+  padding: 12px 16px;
+  background-color: rgba(231, 76, 60, 0.15);
+  border-left: 4px solid #e74c3c;
+  color: #ff7675;
+  font-family: 'Fira Code', Consolas, monospace;
+  font-size: 0.85rem;
+  border-radius: 0 6px 6px 0;
+  white-space: pre-wrap;
+}
+
+.results-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Custom Scrollbar for results */
+.results-container::-webkit-scrollbar {
+  width: 8px;
+}
+.results-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+.results-container::-webkit-scrollbar-thumb {
+  background: rgba(108, 92, 231, 0.5);
+  border-radius: 4px;
+}
+
+.no-results-msg {
+  text-align: center;
+  color: #888;
+  margin-top: 40px;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+/* Test Card Styling */
+.test-result-card {
+  background-color: #2D234A; /* Lighter purple highlight bg */
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.test-result-card.passed {
+  border-left: 4px solid #00b8a3; /* AlgoBlocks Green */
+}
+
+.test-result-card.failed {
+  border-left: 4px solid #ff375f; /* AlgoBlocks Red */
+}
+
+.test-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.test-card-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #FFFFFF;
+}
+
+/* Badges */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.passed {
+  background-color: rgba(0, 184, 163, 0.15);
+  color: #00b8a3;
+  border: 1px solid rgba(0, 184, 163, 0.3);
+}
+
+.status-badge.failed {
+  background-color: rgba(255, 55, 95, 0.15);
+  color: #ff375f;
+  border: 1px solid rgba(255, 55, 95, 0.3);
+}
+
+/* Details Section */
+.test-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-row strong {
+  font-size: 0.8rem;
+  color: #A38CC1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-row pre {
+  margin: 0;
+  padding: 8px 12px;
+  background-color: #0D0814; /* Very dark background for code */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-family: 'Fira Code', Consolas, Monaco, monospace;
+  font-size: 0.85rem;
+  color: #EBE4FF;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.detail-row pre.error-text {
+  color: #ff7675;
+  background-color: rgba(231, 76, 60, 0.05);
+  border-color: rgba(231, 76, 60, 0.2);
+}
+
+.hidden-fail-msg {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #ffc01e; /* Warning yellow */
+  font-style: italic;
+  text-align: center;
+  padding: 10px;
+}

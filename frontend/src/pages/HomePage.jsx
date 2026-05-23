@@ -1,5 +1,5 @@
-// frontend\src\pages\HomePage.jsx
-import { useEffect, useState } from "react"; // Added missing import
+// frontend/src/pages/HomePage.jsx
+import { useEffect, useState } from "react";
 import { FaPython } from "react-icons/fa";
 import { IoArrowForward } from "react-icons/io5";
 import { LuChartBar, LuCirclePlay, LuPuzzle } from "react-icons/lu";
@@ -100,18 +100,12 @@ export default function LandingPage() {
               <li>Save and manage your projects</li>
             </ul>
           </div>
-          <div className="code-snippet">
-            <pre>
-              <code>
-                {`def bubble_sort(arr):
-    n = len(arr)
-    for i in range(n):
-        for j in range(0, n-i-1):
-            if arr[j] > arr[j+1]: # O(1) compare
-                arr[j], arr[j+1] = arr[j+1], arr[j]
-    return arr # Overall: O(n²)`}
-              </code>
-            </pre>
+          <div className="feature-image-container">
+            <img
+              src="/assets/example.png"
+              alt="AlgoBlocks Interface Example"
+              className="feature-example-image"
+            />
           </div>
         </section>
       </main>

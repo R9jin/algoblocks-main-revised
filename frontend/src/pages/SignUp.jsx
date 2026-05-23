@@ -61,7 +61,8 @@ export default function SignUp() {
       localStorage.setItem("user", JSON.stringify({
           email: `guest_${Date.now()}@algoblocks.local`,
           name: "Guest User",
-          isGuest: true
+          isGuest: true,
+          progress: data.progress || {}
       }));
 
       // 3. Proceed directly to dashboard

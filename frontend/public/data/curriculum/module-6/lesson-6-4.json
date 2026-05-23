@@ -1,0 +1,71 @@
+{
+  "lessonId": "lesson-6-4",
+  "moduleId": "module-6",
+  "title": "Maze and Subset Problems",
+  "description": "Explore how Backtracking solves pathfinding and subset exploration problems through recursive search.",
+  "difficulty": "Advanced",
+  "estimatedTime": "45 min",
+  "prerequisites": "N-Queens Problem",
+  "tags": ["maze solving", "subset problems", "backtracking", "pathfinding"],
+  "activities": [
+    { "id": "m6_l4_a1", "title": "Move Directions" },
+    { "id": "m6_l4_a2", "title": "Boundary Check" },
+    { "id": "m6_l4_a3", "title": "Wall Check" },
+    { "id": "m6_l4_a4", "title": "Path Tracking" },
+    { "id": "m6_l4_a5", "title": "Subset Sum Solver" }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "Backtracking is highly effective for pathfinding and subset exploration problems.\n\nMaze solving and subset generation demonstrate how recursive exploration can systematically examine possible paths while avoiding invalid decisions."
+    },
+    {
+      "id": "maze-solving",
+      "type": "concept",
+      "title": "Maze Solving with Backtracking",
+      "content": "Maze-solving algorithms attempt to find a valid path from a starting point to a destination.\n\nThe algorithm explores possible directions recursively while tracking visited locations.\n\nIf a path reaches a dead end, the algorithm backtracks and explores alternative routes."
+    },
+    {
+      "id": "path-exploration",
+      "type": "deep_dive",
+      "title": "Recursive Path Exploration",
+      "content": "At every step, the algorithm evaluates possible movements such as moving up, down, left, or right.\n\nValid paths are explored recursively, while blocked or previously visited cells are rejected.\n\nThis systematic exploration eventually discovers valid paths if they exist."
+    },
+    {
+      "id": "subset-generation",
+      "type": "concept",
+      "title": "Subset Problems",
+      "content": "Subset problems involve generating all possible subsets from a collection of elements.\n\nFor every element, the algorithm decides whether to include or exclude it.\n\nThis repeated branching process produces all possible combinations systematically."
+    },
+    {
+      "id": "decision-tree",
+      "type": "deep_dive",
+      "title": "The Decision Tree Structure",
+      "content": "Subset generation can be visualized as a decision tree.\n\nEvery branch represents a choice to include or exclude an element.\n\nBacktracking explores each branch recursively until all possible subsets have been generated."
+    },
+    {
+      "id": "real-world-connection",
+      "type": "real_world_connection",
+      "title": "Pathfinding and Subset Problems in Real Applications",
+      "content": "Pathfinding algorithms are used in robotics, navigation systems, video games, and autonomous vehicles.\n\nSubset exploration appears in recommendation systems, optimization problems, financial analysis, and machine learning."
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "Backtracking efficiently solves maze and subset problems through recursive exploration, rollback, and systematic decision-making. These techniques form the foundation of many pathfinding and optimization systems."
+    }
+  ],
+  "references": [
+    {
+      "title": "GeeksforGeeks — Rat in a Maze",
+      "url": "https://www.geeksforgeeks.org/rat-in-a-maze-backtracking-2/"
+    },
+    {
+      "title": "GeeksforGeeks — Subset Problems",
+      "url": "https://www.geeksforgeeks.org/backtracking-to-find-all-subsets/"
+    }
+  ]
+}

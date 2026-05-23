@@ -1,0 +1,90 @@
+{
+  "lessonId": "lesson-3-1",
+  "moduleId": "module-3",
+  "title": "Divide and Conquer Paradigm",
+  "description": "Learn how Divide and Conquer solves complex problems by breaking them into smaller manageable subproblems.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "30 min",
+  "prerequisites": "Simple Sorting",
+  "tags": [
+    "divide and conquer",
+    "recursion",
+    "problem solving"
+  ],
+  "activities": [
+    {
+      "id": "m3_l1_a1",
+      "title": "Largest First"
+    },
+    {
+      "id": "m3_l1_a2",
+      "title": "Smallest First"
+    },
+    {
+      "id": "m3_l1_a3",
+      "title": "Greedy Sum"
+    },
+    {
+      "id": "m3_l1_a4",
+      "title": "Closest Number"
+    },
+    {
+      "id": "m3_l1_a5",
+      "title": "Greedy Path"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "Some problems become easier to solve when they are divided into smaller parts.\n\nInstead of attempting to solve a large complex problem directly, programmers can repeatedly break it down into smaller subproblems until each part becomes simple enough to handle.\n\nThis strategy is known as Divide and Conquer and is one of the most important paradigms in algorithm design."
+    },
+    {
+      "id": "core-idea",
+      "type": "concept",
+      "title": "The Core Idea",
+      "content": "Divide and Conquer algorithms generally follow three major steps.\n\nFirst, the original problem is divided into smaller subproblems. Second, each subproblem is solved independently, often using recursion. Finally, the solutions are combined together to form the final answer.\n\nThis strategy allows algorithms to handle large datasets more efficiently than brute force methods."
+    },
+    {
+      "id": "recursive-thinking",
+      "type": "deep_dive",
+      "title": "Recursive Problem Solving",
+      "content": "Many Divide and Conquer algorithms rely heavily on recursion.\n\nA recursive algorithm repeatedly solves smaller versions of the same problem until it reaches a simple base case.\n\nThis repeated reduction allows complex tasks to become manageable because each recursive call focuses only on a smaller portion of the original problem."
+    },
+    {
+      "id": "efficiency-benefits",
+      "type": "concept",
+      "title": "Why Divide and Conquer is Efficient",
+      "content": "Breaking problems into smaller pieces often reduces unnecessary work.\n\nInstead of repeatedly processing the entire dataset, Divide and Conquer algorithms focus only on relevant portions of the problem space.\n\nThis can significantly improve performance compared to algorithms that examine every possibility directly."
+    },
+    {
+      "id": "real-world-example",
+      "type": "analogy",
+      "title": "Puzzle Solving Analogy",
+      "content": "Imagine solving a massive puzzle.\n\nInstead of randomly examining every piece at once, you may first separate edge pieces, group colors together, and solve smaller sections individually.\n\nEventually, the smaller completed sections combine to form the final image.\n\nThis reflects how Divide and Conquer algorithms operate."
+    },
+    {
+      "id": "real-world-connection",
+      "type": "real_world_connection",
+      "title": "Divide and Conquer in Modern Systems",
+      "content": "Modern computing systems frequently use Divide and Conquer strategies.\n\nSearch engines, parallel computing systems, and large-scale data processing frameworks divide tasks into smaller units to improve efficiency and scalability.\n\nThis paradigm is especially important when processing massive datasets or performing distributed computations."
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "Divide and Conquer solves problems by dividing them into smaller subproblems, solving each part independently, and combining the results. This strategy improves efficiency and forms the foundation of many advanced algorithms."
+    }
+  ],
+  "references": [
+    {
+      "title": "Programiz — Divide and Conquer Algorithm",
+      "url": "https://www.programiz.com/dsa/divide-and-conquer"
+    },
+    {
+      "title": "GeeksforGeeks — Divide and Conquer",
+      "url": "https://www.geeksforgeeks.org/introduction-to-divide-and-conquer-algorithm/"
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "lessonId": "lesson-1-3",
+  "moduleId": "module-1",
+  "title": "Space Complexity",
+  "description": "Understand how algorithms consume memory and learn how programmers analyze memory efficiency.",
+  "difficulty": "Beginner",
+  "estimatedTime": "25 min",
+  "prerequisites": "Time Complexity Classes",
+  "tags": [
+    "space complexity",
+    "memory",
+    "algorithm analysis"
+  ],
+  "activities": [
+    {
+      "id": "m1_l3_a1",
+      "title": "Array vs. Variable"
+    },
+    {
+      "id": "m1_l3_a2",
+      "title": "String Builder"
+    },
+    {
+      "id": "m1_l3_a3",
+      "title": "2D Array Allocation"
+    },
+    {
+      "id": "m1_l3_a4",
+      "title": "In-Place Modification"
+    },
+    {
+      "id": "m1_l3_a5",
+      "title": "Out-of-Place Creation"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "Efficient algorithms must manage both execution time and memory usage.\n\nSome algorithms execute quickly but consume large amounts of memory, while others use minimal memory but perform slower computations.\n\nSpace complexity helps programmers analyze how much memory an algorithm requires during execution."
+    },
+    {
+      "id": "what-is-space-complexity",
+      "type": "concept",
+      "title": "What is Space Complexity?",
+      "content": "Space complexity measures how much memory an algorithm consumes as the input size grows.\n\nThis includes variables, arrays, temporary data structures, and function call memory.\n\nUnderstanding memory consumption is important because computer systems have limited resources."
+    },
+    {
+      "id": "arrays-and-memory",
+      "type": "concept",
+      "title": "Arrays and Memory Usage",
+      "content": "Arrays consume memory based on the number of elements they store.\n\nAs arrays grow larger, they require more memory space.\n\nAlgorithms that create multiple large arrays may increase memory usage significantly during execution."
+    },
+    {
+      "id": "recursion-stack",
+      "type": "deep_dive",
+      "title": "Recursion and the Call Stack",
+      "content": "Recursive algorithms use additional memory through the call stack.\n\nEvery function call stores information such as variables, parameters, and return locations.\n\nDeep recursion can consume large amounts of memory and may eventually cause stack overflow problems if not managed carefully."
+    },
+    {
+      "id": "tradeoffs",
+      "type": "real_world_connection",
+      "title": "Memory Usage Trade-offs",
+      "content": "Programmers often balance speed and memory usage while designing algorithms.\n\nSome solutions intentionally use more memory to achieve faster execution time.\n\nModern systems such as mobile applications, embedded systems, and large-scale servers constantly optimize memory efficiency to improve performance."
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "Space complexity describes how much memory an algorithm consumes during execution. Arrays, variables, recursion, and temporary data structures all contribute to memory usage. Understanding space complexity helps programmers design efficient and scalable systems."
+    }
+  ],
+  "references": [
+    {
+      "title": "GeeksforGeeks — Space Complexity",
+      "url": "https://www.geeksforgeeks.org/g-fact-86/"
+    },
+    {
+      "title": "Programiz — Recursion",
+      "url": "https://www.programiz.com/javascript/recursion"
+    }
+  ]
+}
