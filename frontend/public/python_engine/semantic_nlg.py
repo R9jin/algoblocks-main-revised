@@ -21,7 +21,7 @@ class BigOInfo:
     """
     raw: str
     normalized: str
-    family: str  # e.g., linear, logarithmic, polynomial, exponential, factorial, graph, root, constant
+    family: str  # e.g., linear, logarithmic, polynomial, exponential, factorial, graph, root, constant, combinatorial
     factors: Dict[str, Any]
 
 
@@ -246,15 +246,13 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         """Post-process recursion branching risk."""
         if self.signals.has_recursion:
             # Check for multiple recursive calls in the same expression tree
-            # This is a heuristic approximation.
             if len([f for f in self._function_calls if f == getattr(self.ctx, "current_function_name", None)]) > 1:
                 self.signals.recursion_branching = "multi"
             else:
                 self.signals.recursion_branching = "linear_or_unknown"
                 
             # Backtracking risk usually requires recursion + branching (If) + loops
-            # Here we simplify the heuristic
-            if self.signals.has_recursion and self.signals.loop_depth > 0:
+            if getattr(self.ctx, "has_recursion_in_loop", False) or self.signals.loop_depth > 0:
                 self.signals.has_backtracking_risk = True
 
     def _evaluate_graph_context(self):
@@ -340,6 +338,12 @@ class EducationalInsightGenerator:
                 "It represents generating every possible permutation or combination of the input. "
                 "An algorithm with factorial growth will quickly bring any modern computer to a halt even with "
                 "inputs as small as 15 or 20 items."
+            )
+        elif family == "combinatorial":
+            return (
+                "This operation runs in Combinatorial Time. It represents generating specific groups "
+                "or combinations of the input. As the size of the selection grows, the total number "
+                "of possibilities explodes computationally, making this highly demanding for larger datasets."
             )
         elif family == "graph":
             return (
@@ -469,6 +473,10 @@ class SemanticNLGEngine:
         # factorial
         if "n!" in lower or "n^!" in lower or "factorial" in lower:
             return BigOInfo(raw=original, normalized=s, family="factorial", factors={})
+            
+        # combinatorial
+        if "c(" in lower or "combination" in lower or "choose" in lower:
+            return BigOInfo(raw=original, normalized=s, family="combinatorial", factors={})
 
         # exponential
         if "2^n" in lower or ("2^" in lower and "n" in lower) or "2n" in lower:
@@ -645,9 +653,12 @@ class SemanticNLGEngine:
             parts.append("Pattern Detected: Dynamic text construction via String Interpolation (f-strings).")
         if sig.variable_swapping:
             parts.append("Pattern Detected: In-place Variable Swapping via Tuple Unpacking.")
+            
+        # Combinatorial & Permutation integration from analyzer context
+        if getattr(self.ctx, "is_factorial", False) or getattr(self.ctx, "is_combination", False):
+            parts.append("Pattern Detected: Combinatorial explosion via Permutations or Combinations.")
 
         if parts:
-            # We strictly avoid markdown bolding 'Pattern Detected' to adhere to negative constraints.
             return "\n\nArchitectural Insights:\n" + "\n".join(f"- {p}" for p in parts)
         return ""
 
@@ -690,7 +701,7 @@ class SemanticNLGEngine:
     def get_time_bottleneck_warning(self, operation: str, final_time: str) -> str:
         """Generates dynamic, highly varied warnings regarding structural time flaws."""
         op_lower = operation.lower()
-        prefix = "TIME BOTTLENECK:"  # Removed markdown asterisks for compliance
+        prefix = "TIME BOTTLENECK:"
         
         if "loop" in op_lower:
             templates = [
@@ -725,7 +736,7 @@ class SemanticNLGEngine:
     def get_space_bottleneck_warning(self, operation: str, final_space: str) -> str:
         """Generates dynamic, highly varied warnings regarding structural memory flaws."""
         op_lower = operation.lower()
-        prefix = "SPACE BOTTLENECK:" # Removed markdown asterisks for compliance
+        prefix = "SPACE BOTTLENECK:"
         
         if "recur" in op_lower:
             templates = [
@@ -754,7 +765,7 @@ class SemanticNLGEngine:
     def get_time_optimization_praise(self, operation: str, global_time: str) -> str:
         """Generates dynamic, educational praise for well-optimized architectures."""
         time_lower = global_time.lower()
-        prefix = "ALGORITHM MASTERY:" # Removed markdown asterisks for compliance
+        prefix = "ALGORITHM MASTERY:"
         
         if "log" in time_lower:
             templates = [
@@ -783,6 +794,5 @@ class SemanticNLGEngine:
     def _format_recurrence_relation(self, relation: str) -> str:
         """
         Formats mathematical recurrence relations safely. 
-        Removed markdown decorations in strict compliance with negative constraints.
         """
         return relation.upper()

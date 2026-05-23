@@ -3,9 +3,9 @@
 --- TIMESTAMP: 2026-05-23 19:37:11 ---
 
 
---- FILE: frontend/src/App.backup-learning-path-merge.jsx ---
+--- FILE: frontend/src/workspace.backup-learning-path-merge.jsx ---
 
-// frontend/src/App.jsx
+// frontend/src/workspace.jsx
 import { lazy, useEffect } from "react";
 // IMPORT Navigate alongside Route and Routes
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -66,7 +66,7 @@ function App() {
           element={<ProtectedRoute><Projects /></ProtectedRoute>}
         />
         <Route
-          path="/app"
+          path="/workspace"
           element={<ProtectedRoute><MainApp /></ProtectedRoute>}
         />
         <Route
@@ -88,7 +88,7 @@ function App() {
 
 export default App;
 
---- FILE: frontend/src/App.css ---
+--- FILE: frontend/src/workspace.css ---
 
 /*frontend\src\App.css*/
 .counter {
@@ -340,7 +340,7 @@ export default App;
   font-size: 1.8rem;
 }
 
---- FILE: frontend/src/App.jsx ---
+--- FILE: frontend/src/workspace.jsx ---
 
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -2212,7 +2212,7 @@ export default function DashboardHeader({
           {/* NEW WORKSPACE BUTTON */}
           <button
             className="btn-new-project"
-            onClick={() => navigate("/app")}
+            onClick={() => navigate("/workspace")}
           >
             + New Workspace
           </button>
@@ -3719,7 +3719,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
-import App from './App.jsx';
+import App from './workspace.jsx';
 import './index.css';
 
 // Start the Service Worker to cache files offline
@@ -5070,9 +5070,9 @@ export default function Dashboard() {
     if (!window.confirm(confirmMsg)) return;
 
     if (item.isSystem) {
-      navigate("/app", { state: { templatePath: item.path } });
+      navigate("/workspace", { state: { templatePath: item.path } });
     } else {
-      navigate("/app", {
+      navigate("/workspace", {
         state: {
           projectToLoad: {
             title: item.name,
@@ -5166,7 +5166,7 @@ export default function Dashboard() {
                   key={proj._id}
                   className="recent-project-item"
                   onClick={() =>
-                    navigate("/app", { state: { projectToLoad: proj } })
+                    navigate("/workspace", { state: { projectToLoad: proj } })
                   }
                 >
                   <div className="project-item-info">
@@ -6907,7 +6907,7 @@ export default function Projects() {
               <h1 className="section-title">My Projects</h1>
               <p className="page-subtitle">Manage and load your saved algorithm workspaces.</p>
             </div>
-            <button className="btn-new-project-large" onClick={() => navigate('/app')}>
+            <button className="btn-new-project-large" onClick={() => navigate('/workspace')}>
               <PlusIcon /> Blank Workspace
             </button>
           </div>
@@ -6919,14 +6919,14 @@ export default function Projects() {
               <div className="empty-icon"><DocumentIcon /></div>
               <h3 className="empty-title">No projects found</h3>
               <p className="empty-desc">You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!</p>
-              <button className="btn-new-project-large" onClick={() => navigate('/app')}>
+              <button className="btn-new-project-large" onClick={() => navigate('/workspace')}>
                 <PlusIcon /> Create First Project
               </button>
             </div>
           ) : (
             <div className="projects-grid">
               {projects.map(proj => (
-                <div key={proj._id} className="project-card" onClick={() => navigate("/app", { state: { projectToLoad: proj } })}>
+                <div key={proj._id} className="project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                   <div className="project-card-header">
                     <div className="project-icon-wrapper">
                       <FolderIcon />

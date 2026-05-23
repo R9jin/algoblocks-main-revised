@@ -136,9 +136,9 @@ export default function Dashboard() {
     if (!window.confirm(confirmMsg)) return;
 
     if (item.isSystem) {
-      navigate("/app", { state: { templatePath: item.path } });
+      navigate("/workspace", { state: { templatePath: item.path } });
     } else {
-      navigate("/app", {
+      navigate("/workspace", {
         state: {
           projectToLoad: {
             title: item.name,
@@ -232,7 +232,7 @@ export default function Dashboard() {
                   key={proj._id}
                   className="recent-project-item"
                   onClick={() =>
-                    navigate("/app", { state: { projectToLoad: proj } })
+                    navigate("/workspace", { state: { projectToLoad: proj } })
                   }
                 >
                   <div className="project-item-info">

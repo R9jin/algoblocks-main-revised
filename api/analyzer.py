@@ -9,8 +9,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     """
     A Context-Aware, Multi-Pass Rule-Based AST Traversal Algorithm.
     Evaluates time and space complexity line-by-line using deep structural heuristics.
-    Upgraded to dynamically identify Combinatorial, Permutation, and Branching recursions
-    without relying on hardcoded function names.
+    Completely structurally driven: Zero reliance on hardcoded variable or parameter names.
     """
 
     def __init__(self, source_code, trace_data=None):
@@ -28,9 +27,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_if_depth = 0
         self.loop_stack = []
         
-        # Advanced Symbolic Multiple Variable Tracking
+        # Purely Dynamic Multiple Variable Tracking
         self.var_dimensions = {} 
-        self.available_dims = ['n', 'm', 'k', 'p', 'q']
         self.active_poly_dims = [] 
         
         # Peak complexity trackers
@@ -52,8 +50,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.memoized_funcs = set() 
         self.indirect_recursive_funcs = set() 
         
-        # Combinatorial & Backtracking flags
-        self.has_k_param = False
+        # Structural Combinatorial & Backtracking flags
+        self.has_backtracking = False
         self.is_factorial = False
         self.is_combination = False
         self.recursive_branch_factor = 0
@@ -68,7 +66,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.conditional_partition_lines = []
         self.logic_hints = {} 
 
-        # Extended Built-In Complexities accommodating Blockly AST nodes
+        # Extended Built-In Complexities
         self.builtin_complexities = {
             'sort': {'time': 'O(n log n)', 'space': 'O(log n)', 'desc': 'uses the in-place Timsort algorithm which involves minimal auxiliary storage'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'creates a completely new sorted list while iterating through the original input'},
@@ -89,8 +87,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'matmul': {'time': 'O(n^3)', 'space': 'O(n^2)', 'desc': 'performs matrix multiplication which mathematically scales cubically with dimensions'},
             'dot': {'time': 'O(n^3)', 'space': 'O(n^2)', 'desc': 'calculates the dot product of multi-dimensional arrays, dominating execution time'},
             'input': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'reads a sequence of characters from standard input sequentially and allocates a new string object'},
-            
-            # Additional Standard/Block Built-ins
             'abs': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time mathematical absolute value calculation'},
             'round': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time numerical rounding operation'},
             'int': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type cast to integer'},
@@ -139,7 +135,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         final_space = self.get_final_space_badge()
         max_w = max([d.get('weight', -1) for d in self._details], default=-1)
         
-        excluded_complexities = ["O(1)", "O(log n)", "O(√n)", "O(n)", "O(n + m)", "O(m)", "-", ""]
+        excluded_complexities = ["O(1)", "O(log n)", "O(√n)", "O(n)", "O(n + m)", "O(m)", "O(k)", "-", ""]
         praise_complexities = ["O(log n)", "O(√n)"]
         
         for d in self._details:
@@ -164,14 +160,61 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if lineno not in self.logic_hints: self.logic_hints[lineno] = []
             if hint not in self.logic_hints[lineno]: self.logic_hints[lineno].append(hint)
 
+    # ---------------------------------------------------------
+    # NEW STRUCTURAL LIMIT DETECTORS (CRUTCH-FREE)
+    # ---------------------------------------------------------
+
     def _get_iterable_name(self, node):
+        """Extracts the variable dictating loop scale purely from AST structure."""
         if isinstance(node, ast.Name): return node.id
         if isinstance(node, ast.Call) and getattr(node.func, 'id', '') == 'range':
-            if len(node.args) > 0:
-                arg = node.args[0]
-                if isinstance(arg, ast.Name): return arg.id
-                if isinstance(arg, ast.Call) and getattr(arg.func, 'id', '') == 'len' and len(arg.args) > 0 and isinstance(arg.args[0], ast.Name): return arg.args[0].id
+            args_len = len(node.args)
+            if args_len == 1: arg = node.args[0]
+            elif args_len >= 2: arg = node.args[1]  # Extract 'stop'
+            else: return None
+
+            if isinstance(arg, ast.Name): return arg.id
+            if isinstance(arg, ast.BinOp):
+                if isinstance(arg.left, ast.Name): return arg.left.id
+                if isinstance(arg.right, ast.Name): return arg.right.id
+            if isinstance(arg, ast.Call) and getattr(arg.func, 'id', '') == 'len' and len(arg.args) > 0 and isinstance(arg.args[0], ast.Name):
+                return arg.args[0].id
         return None
+
+    def _register_and_get_dim(self, var_name):
+        """Dynamically maps any unseen variable to an asymptotic dimension (n, m, p)."""
+        if not var_name: return 'n'
+        # Preserve direct single-character standard math notation (like 'k' or 'n')
+        if len(var_name) == 1 and var_name.isalpha():
+            return var_name
+            
+        if var_name not in self.var_dimensions:
+            available = [d for d in ['n', 'm', 'k', 'p', 'q'] if d not in self.var_dimensions.values() and d != var_name]
+            self.var_dimensions[var_name] = available[0] if available else 'n'
+        return self.var_dimensions[var_name]
+
+    def _get_while_limit_var(self, node):
+        """Structurally deduces the loop limit by checking which variables are updated."""
+        updated_vars = set()
+        for child in node.body:
+            for sub in ast.walk(child):
+                if isinstance(sub, ast.Assign):
+                    for target in sub.targets:
+                        if isinstance(target, ast.Name): updated_vars.add(target.id)
+                elif isinstance(sub, ast.AugAssign):
+                    if isinstance(sub.target, ast.Name): updated_vars.add(sub.target.id)
+
+        # The limit variable is the one in the condition that is NOT being updated inside the loop
+        limit_vars = []
+        for child in ast.walk(node.test):
+            if isinstance(child, ast.Name) and child.id not in updated_vars:
+                limit_vars.append(child.id)
+                
+        return limit_vars[0] if limit_vars else None
+
+    # ---------------------------------------------------------
+    # CORE TRACKING
+    # ---------------------------------------------------------
 
     def _build_time_str(self, poly_dims, log, sqrt=0, exp=0, graph=0):
         if exp > 0: return "O(2^n)"  
@@ -183,9 +226,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             counts = Counter(poly_dims)
             terms = []
             for dim, count in counts.items():
-                display_dim = dim if len(dim) <= 2 and dim.isalpha() else 'n'
-                if count == 1: terms.append(display_dim)
-                else: terms.append(f"{display_dim}^{count}")
+                if count == 1: terms.append(dim)
+                else: terms.append(f"{dim}^{count}")
             parts.append(" * ".join(terms))
                 
         if sqrt == 1: parts.append("√n")
@@ -382,26 +424,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(node, ast.For):
                 if not self._is_constant_loop(node):
                     iter_name = self._get_iterable_name(node.iter)
-                    dim = iter_name if iter_name and len(iter_name) <= 2 and iter_name.isalpha() else 'n'
+                    dim = self._register_and_get_dim(iter_name)
                     display_dims = [dim]
             elif isinstance(node, ast.While):
                 if getattr(self, 'in_graph_context', False) and self._is_graph_while_loop(node): display_graph = 1
                 elif self._is_log_loop(node): display_log = 1
                 elif self._is_sqrt_loop(node): display_sqrt = 1
                 elif not self._is_constant_loop(node): 
-                    dim = 'n'
-                    if isinstance(node.test, ast.Compare):
-                        for comp in [node.test.left] + node.test.comparators:
-                            if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
-                                dim = comp.id
-                                break
-                    elif isinstance(node.test, ast.BoolOp):
-                        for val in node.test.values:
-                            if isinstance(val, ast.Compare):
-                                for comp in [val.left] + val.comparators:
-                                    if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
-                                        dim = comp.id
-                                        break
+                    limit_var = self._get_while_limit_var(node)
+                    dim = self._register_and_get_dim(limit_var)
                     display_dims = [dim]
 
         if time_override == "Definition":
@@ -552,8 +583,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.current_function_name = node.name
         self.recursive_calls_count = 0
         
-        # Combinatorial Detectors Reset
-        self.has_k_param = any(arg.arg == 'k' for arg in node.args.args)
+        # Structural Backtracking Detection (No Crutches)
+        self.has_backtracking = False
+        for child in ast.walk(node):
+            if isinstance(child, ast.For):
+                calls = [n for n in ast.walk(child) if isinstance(n, ast.Call)]
+                has_app = any(getattr(getattr(c, 'func', None), 'attr', '') in ['append', 'add', 'insert'] for c in calls)
+                has_pop = any(getattr(getattr(c, 'func', None), 'attr', '') in ['pop', 'remove'] for c in calls)
+                has_rec = any(isinstance(c.func, ast.Name) and c.func.id == node.name for c in calls)
+                if has_app and has_pop and has_rec:
+                    self.has_backtracking = True
+
         self.is_factorial = False
         self.is_combination = False
         self.recursive_branch_factor = 0
@@ -673,21 +713,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def visit_For(self, node):
         iter_name = self._get_iterable_name(node.iter)
-        dim = 'n'
+        dim = self._register_and_get_dim(iter_name)
         
-        # Structural inference for combinatorial branching loops
-        iter_type = 'n'
-        if isinstance(node.iter, ast.Subscript) or (isinstance(node.iter, ast.Name) and any(kw in node.iter.id.lower() for kw in ['letters', 'mapping', 'chars', 'choices', 'digits'])):
-            iter_type = 'b' # Branching width
-        elif isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
-            iter_type = 'n'
-            
+        # Structural Branching detection
+        iter_type = 'b' if getattr(self, 'has_backtracking', False) else 'n'
         self.loop_stack.append(iter_type)
-        
-        if iter_name:
-            dim = iter_name
-            if dim.lower() in ['arr', 'array', 'list', 'nums', 'items', 'string', 's', 'left', 'right', 'mid'] or len(dim) > 2 or not dim.isalpha(): 
-                dim = 'n'
             
         if self._is_exponential_loop(node):
             self.max_exp = 1; self.record_line(node, time_override="O(2^n)")
@@ -709,19 +739,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_log, is_sqrt, is_const = self._is_log_loop(node), self._is_sqrt_loop(node), self._is_constant_loop(node)
         is_graph = self._is_graph_while_loop(node)
         
-        dim = 'n'
-        if isinstance(node.test, ast.Compare):
-            for comp in [node.test.left] + node.test.comparators:
-                if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
-                    dim = comp.id
-                    break
-        elif isinstance(node.test, ast.BoolOp):
-            for val in node.test.values:
-                if isinstance(val, ast.Compare):
-                    for comp in [val.left] + val.comparators:
-                        if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
-                            dim = comp.id
-                            break
+        # Dynamic Limit Extraction
+        limit_var = self._get_while_limit_var(node)
+        dim = self._register_and_get_dim(limit_var)
 
         if is_graph: self.graph_depth = getattr(self, 'graph_depth', 0) + 1
         elif not is_const:
@@ -755,16 +775,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if len(self.active_poly_dims) > 0 or self.log_loop_depth > 0: 
                     self.has_recursion_in_loop = True  
                     
-                # Combinatorial/Branching Inference Check
-                if getattr(self, 'loop_stack', []):
-                    top_loop = self.loop_stack[-1]
-                    if top_loop == 'b':
-                        self.recursive_branch_factor = 4
-                    else:
-                        if getattr(self, 'has_k_param', False):
-                            self.is_combination = True
-                        else:
-                            self.is_factorial = True
+                # Structural Backtracking mapping
+                if self.has_backtracking:
+                    self.is_combination = True
+                elif self.has_recursion_in_loop:
+                    self.is_factorial = True
 
                 if getattr(self, 'in_graph_context', False): 
                     self.record_line(node, time_override="O(V + E)", space_override="O(V)", custom_op="Recursive Call")
@@ -881,7 +896,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "T(n) = T(n-1) + O(n)": ("O(n^2)", 6), "O(n^2)": ("O(n^2)", 6), "O(n * m)": ("O(n * m)", 6),
             "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5), "n * log n": ("O(n log n)", 5),
             "O(V + E)": ("O(V + E)", 4.5),
-            "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4), "O(m)": ("O(n)", 4),
+            "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4), "O(m)": ("O(n)", 4), "O(k)": ("O(k)", 4),
             "O(√n)": ("O(√n)", 3),
             "T(n) = T(n/2) + O(1)": ("O(log n)", 2), "O(log n)": ("O(log n)", 2),
             "O(1)": ("O(1)", 1)
@@ -923,7 +938,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         rankings = {
             "O(n!)": 8, "O(C(n,k))": 7.5, "O(4^n)": 7.2, "O(2^n)": 7, 
             "O(n^2)": 6, "O(n * m)": 6, "O(n log n)": 5, 
-            "O(V + E)": 4.5, "O(V)": 4.2, "O(n)": 4, "O(n + m)": 4, "O(log n)": 3, "O(1)": 1
+            "O(V + E)": 4.5, "O(V)": 4.2, "O(n)": 4, "O(n + m)": 4, "O(k)": 4, "O(log n)": 3, "O(1)": 1
         }
         
         best_space = "O(1)"

@@ -200,7 +200,7 @@ export default function DashboardHeader({
           {/* NEW WORKSPACE BUTTON */}
           <button
             className="btn-new-project"
-            onClick={() => navigate("/app")}
+            onClick={() => navigate("/workspace")}
           >
             + New Workspace
           </button>
