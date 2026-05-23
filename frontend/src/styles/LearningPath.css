@@ -1,3 +1,4 @@
+/* frontend/src/styles/LearningPath.css */
 html {
   scroll-behavior: smooth;
 }
@@ -43,6 +44,11 @@ html {
   gap: 16px;
 }
 
+.module-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 .module-card-v2 {
   background: white;
   border-radius: 16px;
@@ -53,6 +59,7 @@ html {
   gap: 24px;
   cursor: pointer;
   transition: all 0.3s ease;
+  z-index: 2;
 }
 
 .module-card-v2:hover {
@@ -110,87 +117,30 @@ html {
   border: 1px solid #ece8f8;
   border-top: none;
   border-radius: 0 0 16px 16px;
-  overflow: visible;
-  animation: slideDown 0.3s ease;
-  max-height: none;
+  overflow: hidden;
+  animation: slideDown 0.3s ease forwards;
+  transform-origin: top;
+  margin-top: -10px;
+  padding-top: 10px;
 }
 
 @keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: scaleY(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scaleY(1);
   }
-}
-
-/* Footer button styled like a lesson row */
-.module-dropdown-footer {
-  border-top: 1px solid #ece8f8;
-  padding: 0;
-  background: transparent;
-}
-
-.module-dropdown-footer .view-all-lessons {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 14px 24px;
-  background: transparent;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #2d245c;
-}
-
-.module-dropdown-footer .view-all-lessons::before {
-  content: "All";
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 50px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #7c5cff;
-  background: #ede6ff;
-  padding: 4px 8px;
-  border-radius: 6px;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.module-dropdown-footer .view-all-lessons:hover {
-  background: #f0e8ff;
-}
-
-.module-dropdown-footer .view-all-lessons svg {
-  color: #d8cbff;
-  flex-shrink: 0;
-}
-
-.module-dropdown-footer .view-all-lessons:hover svg {
-  color: #7c5cff;
-}
-
-.module-dropdown-footer .view-all-lessons:focus {
-  outline: none;
-  box-shadow: inset 0 0 0 2px rgba(124,92,255,0.06);
-  border-radius: 6px;
 }
 
 .dropdown-lesson-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
-  padding: 14px 24px;
+  padding: 16px 24px;
   background: transparent;
   border: none;
   border-bottom: 1px solid #ece8f8;
@@ -213,15 +163,17 @@ html {
   font-weight: 600;
   color: #7c5cff;
   background: #ede6ff;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 6px;
+  text-align: center;
 }
 
 .lesson-title {
   flex: 1;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   color: #2d245c;
-  font-weight: 500;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
 .lesson-arrow {
@@ -233,55 +185,4 @@ html {
 .dropdown-lesson-item:hover .lesson-arrow {
   color: #7c5cff;
   transform: translateX(4px);
-}
-
-.lp-back-icon {
-  margin-right: 6px;
-}
-
-/* =========================================
-   ACTIVITIES
-========================================= */
-
-.lp-activities-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.lp-activity-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #faf9ff;
-  border: 1px solid #e6deff;
-  border-radius: 10px;
-  padding: 16px;
-  transition: 0.2s;
-}
-
-.lp-activity-card:hover {
-  border-color: #c9b6ff;
-  transform: translateY(-1px);
-}
-
-.lp-activity-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.lp-activity-number {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.lp-activity-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #3c2d76;
 }

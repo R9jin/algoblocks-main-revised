@@ -13,7 +13,7 @@ import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
 
-// This checks if the user is in localStorage. If not, it kicks them to /signin.
+// Protected Route wrapper to kick unauthenticated users to sign-in
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user");
   if (!user) {
@@ -25,6 +25,7 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   useEffect(() => {
     startBackgroundSync();
+    // Pre-warm the python analyzer worker
     sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
   }, []);
 
@@ -65,7 +66,7 @@ function App() {
             element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
           />
           
-          {/* Integration Route from Learning Path to the Activity App */}
+          {/* Integrated Activity Engine Route */}
           <Route
             path="/activity/:moduleId/:activityId"
             element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
