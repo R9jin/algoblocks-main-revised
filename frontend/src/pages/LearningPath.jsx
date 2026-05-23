@@ -7,85 +7,74 @@ import "../styles/LearningPath.css";
 
 export default function LearningPath() {
   const navigate = useNavigate();
-
-  // State to hold our curriculum modules
   const [modules, setModules] = useState([]);
-  
-  // State to track which module's accordion is currently open
   const [expandedTopic, setExpandedTopic] = useState(null);
 
   useEffect(() => {
-    // Load the curriculum index into state when the component mounts
     setModules(curriculumIndex);
+    // Auto-expand the first module
+    if (curriculumIndex.length > 0) {
+      setExpandedTopic(curriculumIndex[0].moduleId);
+    }
   }, []);
 
-  // Toggles the accordion open/closed for a specific module
   const toggleTopic = (moduleId) => {
-    setExpandedTopic((prevTopic) => (prevTopic === moduleId ? null : moduleId));
+    setExpandedTopic((prev) => (prev === moduleId ? null : moduleId));
   };
 
-  // Handles clicking on a specific lesson
   const handleLessonClick = (lessonPath) => {
-    // Navigate to the LessonViewer, passing the JSON path as a URL parameter
     navigate(`/lesson-viewer?path=${encodeURIComponent(lessonPath)}`);
   };
 
   return (
-    <div className="learning-path-layout">
+    <div className="learning-path-page">
       <DashboardHeader />
-      
-      <div className="learning-path-container">
-        <h1>Learning Path</h1>
-        <p className="learning-path-subtitle">
-          Select a module below to start your journey into algorithms and data structures.
-        </p>
+      <div className="learning-path-content">
+        <div className="learning-path-header-section">
+          <h1>Learning Path</h1>
+          <p>Master Data Structures and Algorithms with interactive line-by-line block tracing.</p>
+        </div>
         
-        {modules.length === 0 ? (
-          <div className="loading-container">
-            <p>Loading modules...</p>
-          </div>
-        ) : (
-          <div className="modules-list">
-            {modules.map((mod) => (
-              <div key={mod.moduleId} className={`module-card ${expandedTopic === mod.moduleId ? 'expanded' : ''}`}>
-                <div 
-                  className="module-header" 
-                  onClick={() => toggleTopic(mod.moduleId)}
-                >
-                  <div className="module-title-group">
+        <div className="modules-container">
+          {modules.map((mod) => {
+            const isExpanded = expandedTopic === mod.moduleId;
+            return (
+              <div key={mod.moduleId} className={`module-card ${isExpanded ? "expanded" : ""}`}>
+                <div className="module-header" onClick={() => toggleTopic(mod.moduleId)}>
+                  <div className="module-info">
                     <h2>{mod.title}</h2>
-                    <span className="lesson-count">
-                      {mod.lessons.length} {mod.lessons.length === 1 ? 'Lesson' : 'Lessons'}
-                    </span>
+                    <span className="lesson-count">{mod.lessons.length} Lessons</span>
                   </div>
-                  <span className="expand-icon">
-                    {expandedTopic === mod.moduleId ? "▼" : "▶"}
-                  </span>
+                  <div className="expand-indicator">
+                    {isExpanded ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    ) : (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    )}
+                  </div>
                 </div>
-                
-                {expandedTopic === mod.moduleId && (
-                  <div className="lesson-list-container">
-                    <ul className="lesson-list">
-                      {mod.lessons.map((lesson, index) => (
-                        <li 
-                          key={lesson.lessonId} 
-                          className="lesson-item"
-                          onClick={() => handleLessonClick(lesson.path)}
-                        >
-                          <div className="lesson-item-content">
-                            <span className="lesson-number">{index + 1}.</span>
-                            <span className="lesson-title">{lesson.title}</span>
-                          </div>
-                          <button className="start-lesson-btn">Start</button>
-                        </li>
-                      ))}
-                    </ul>
+
+                {isExpanded && (
+                  <div className="lesson-list">
+                    {mod.lessons.map((lesson, index) => (
+                      <div 
+                        key={lesson.lessonId} 
+                        className="lesson-item"
+                        onClick={() => handleLessonClick(lesson.path)}
+                      >
+                        <div className="lesson-details">
+                          <span className="lesson-number">{index + 1}</span>
+                          <span className="lesson-title">{lesson.title}</span>
+                        </div>
+                        <button className="start-btn">Start Lesson</button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
