@@ -14,9 +14,6 @@ export default function LessonViewer() {
 
   useEffect(() => {
     // Load lesson JSON metadata for the selected module and lesson.
-    // This is a client-side fetch to the `path` declared in `curriculumIndex`.
-    // The fetch is intentionally simple to avoid introducing complex error UI
-    // in this viewer; errors are logged and a 'Lesson not found' message is shown.
     const loadLesson = async () => {
       try {
         const module = curriculumIndex.find((m) => m.moduleId === moduleId);
@@ -31,7 +28,14 @@ export default function LessonViewer() {
           return;
         }
 
-        const response = await fetch(lessonMeta.path);
+        // FIX: Force the correct path to point to the public/data/curriculum folder
+        const fetchPath = `/data/curriculum/${moduleId}/${lessonId}.json`;
+        const response = await fetch(fetchPath);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch lesson: ${response.status}`);
+        }
+        
         const data = await response.json();
         setLesson(data);
       } catch (error) {

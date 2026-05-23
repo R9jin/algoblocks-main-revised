@@ -185,26 +185,37 @@ html {
   border-radius: 6px;
 }
 
+/* Adjusted Dropdown Item Layout */
 .dropdown-lesson-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   width: 100%;
   padding: 14px 24px;
   background: transparent;
-  border: none;
   border-bottom: 1px solid #ece8f8;
-  cursor: pointer;
   transition: all 0.2s ease;
-  text-align: left;
+}
+
+.dropdown-lesson-item.locked {
+  background: #f8f8fb;
+  opacity: 0.65;
 }
 
 .dropdown-lesson-item:last-child {
   border-bottom: none;
 }
 
-.dropdown-lesson-item:hover {
+.dropdown-lesson-item:hover:not(.locked) {
   background: #f0e8ff;
+}
+
+.lesson-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
 }
 
 .lesson-number {
@@ -215,22 +226,59 @@ html {
   background: #ede6ff;
   padding: 4px 8px;
   border-radius: 6px;
+  text-align: center;
 }
 
 .lesson-title {
-  flex: 1;
   font-size: 0.95rem;
   color: #2d245c;
   font-weight: 500;
 }
 
-.lesson-arrow {
-  font-size: 1rem;
-  color: #d8cbff;
-  transition: all 0.2s ease;
+/* Buttons Container */
+.lesson-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-right: 16px;
 }
 
-.dropdown-lesson-item:hover .lesson-arrow {
+.btn-read-lesson, .btn-start-activity {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-read-lesson {
+  background: #f0e8ff;
   color: #7c5cff;
-  transform: translateX(4px);
+}
+
+.btn-read-lesson:hover:not(:disabled) {
+  background: #e0d4ff;
+}
+
+.btn-start-activity {
+  background: #7c5cff;
+  color: #ffffff;
+}
+
+.btn-start-activity:hover:not(:disabled) {
+  background: #6248d4;
+}
+
+.btn-start-activity.disabled, .btn-start-activity:disabled, .btn-read-lesson:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.lesson-status-icon {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
 }
