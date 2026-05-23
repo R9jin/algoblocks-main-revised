@@ -1,0 +1,105 @@
+{
+  "lessonId": "lesson-2-2",
+
+  "moduleId": "module-2",
+
+  "title": "Linear Search",
+
+  "description": "Understand how linear search works and learn why sequential scanning is one of the simplest searching techniques.",
+
+  "difficulty": "Beginner",
+
+  "estimatedTime": "25 min",
+
+  "prerequisites": "Brute Force Strategy",
+
+  "tags": [
+    "linear search",
+    "searching",
+    "arrays"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "Searching is one of the most common operations in computer science.\n\nApplications constantly search through data collections such as usernames, products, files, or records.\n\nLinear search is one of the simplest searching algorithms because it examines elements one-by-one until the target value is found."
+    },
+
+    {
+      "id": "how-linear-search-works",
+
+      "type": "concept",
+
+      "title": "How Linear Search Works",
+
+      "content": "Linear search scans data sequentially from the beginning of the collection toward the end.\n\nThe algorithm compares each element with the target value.\n\nIf a match is found, the search stops immediately. Otherwise, the algorithm continues until all elements have been checked."
+    },
+
+    {
+      "id": "step-by-step-process",
+
+      "type": "deep_dive",
+
+      "title": "Step-by-Step Search Process",
+
+      "content": "Suppose an array contains several numbers and the algorithm must locate a specific value.\n\nThe search begins at the first element. If the value does not match, the algorithm moves to the next element.\n\nThis process repeats continuously until the target is discovered or the entire array has been scanned.\n\nBecause every element may need to be checked, linear search has linear time complexity."
+    },
+
+    {
+      "id": "advantages-limitations",
+
+      "type": "concept",
+
+      "title": "Advantages and Limitations",
+
+      "content": "Linear search is extremely simple to understand and implement.\n\nIt works even when the data is unsorted, making it flexible for many beginner-level problems.\n\nHowever, linear search becomes inefficient for very large datasets because the algorithm may need to inspect every element individually."
+    },
+
+    {
+      "id": "real-world-example",
+
+      "type": "analogy",
+
+      "title": "Searching Through a Backpack",
+
+      "content": "Imagine searching for a specific notebook inside a backpack.\n\nWithout any organized arrangement, the easiest strategy is to inspect items one-by-one until the notebook is found.\n\nThis mirrors how linear search works when scanning through data sequentially."
+    },
+
+    {
+      "id": "real-world-connection",
+
+      "type": "real_world_connection",
+
+      "title": "Linear Search in Real Applications",
+
+      "content": "Linear search is commonly used for small datasets or situations where the data is not sorted.\n\nMany beginner systems and simple applications rely on sequential scanning because it is straightforward and reliable.\n\nAlthough more advanced search algorithms exist, linear search remains important because it introduces the fundamental idea of searching through data collections."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "Linear search scans elements sequentially until the target value is found. It is simple, flexible, and works on unsorted data, but its performance becomes slower as dataset size increases."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "Programiz — Linear Search",
+      "url": "https://www.programiz.com/dsa/linear-search"
+    },
+
+    {
+      "title": "GeeksforGeeks — Linear Search",
+      "url": "https://www.geeksforgeeks.org/linear-search/"
+    }
+  ]
+}

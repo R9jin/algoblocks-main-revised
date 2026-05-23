@@ -1,0 +1,94 @@
+{
+  "lessonId": "lesson-0-3",
+  "moduleId": "module-0",
+
+  "title": "The Complexity Analyzer",
+
+  "description": "Learn how the AlgoBlocks Complexity Analyzer helps visualize algorithm efficiency and performance growth.",
+
+  "difficulty": "Beginner",
+
+  "estimatedTime": "20 min",
+
+  "prerequisites": "Core Blockly Components",
+
+  "tags": [
+    "complexity",
+    "performance",
+    "analysis"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "Efficient algorithms are important because modern applications often process massive amounts of data.\n\nThe Complexity Analyzer inside AlgoBlocks helps students understand how algorithm performance changes as input size grows.\n\nInstead of only seeing the final output, learners can analyze how much work an algorithm performs internally."
+    },
+
+    {
+      "id": "time-complexity",
+
+      "type": "concept",
+
+      "title": "Understanding Time Complexity",
+
+      "content": "Time complexity describes how the running time of an algorithm changes as the input size increases.\n\nSome algorithms remain efficient even with large datasets, while others become slower very quickly.\n\nThe Complexity Analyzer helps visualize these differences through graphs and execution analysis."
+    },
+
+    {
+      "id": "space-complexity",
+
+      "type": "concept",
+
+      "title": "Understanding Space Complexity",
+
+      "content": "Space complexity measures how much memory an algorithm consumes while executing.\n\nAlgorithms that store large amounts of temporary data may require more memory resources.\n\nThe analyzer helps students observe how variables, arrays, and recursion affect memory usage."
+    },
+
+    {
+      "id": "bottlenecks",
+
+      "type": "deep_dive",
+
+      "title": "Identifying Bottlenecks",
+
+      "content": "A bottleneck is a part of an algorithm that significantly slows down performance.\n\nNested loops, repeated calculations, and unnecessary operations often create bottlenecks.\n\nThe Complexity Analyzer helps students identify inefficient sections so they can improve algorithm design and reduce computational cost."
+    },
+
+    {
+      "id": "real-world",
+
+      "type": "real_world_connection",
+
+      "title": "Why Performance Analysis Matters",
+
+      "content": "Large systems such as search engines, banking platforms, and social media applications rely heavily on efficient algorithms.\n\nEven small inefficiencies can become major problems when software handles millions of users or large datasets.\n\nPerformance analysis allows engineers to predict scalability issues before deploying systems to real users."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "The Complexity Analyzer helps students visualize algorithm efficiency by examining time complexity, space complexity, and performance bottlenecks. Understanding algorithm efficiency is important for designing scalable and optimized software systems."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "GeeksforGeeks — Analysis of Algorithms",
+      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
+    },
+
+    {
+      "title": "Programiz — Time Complexity",
+      "url": "https://www.programiz.com/dsa/time-complexity"
+    }
+  ]
+}

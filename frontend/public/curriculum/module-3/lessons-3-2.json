@@ -1,0 +1,105 @@
+{
+  "lessonId": "lesson-3-2",
+
+  "moduleId": "module-3",
+
+  "title": "Binary Search",
+
+  "description": "Understand how Binary Search efficiently locates elements in sorted datasets by repeatedly reducing the search space.",
+
+  "difficulty": "Intermediate",
+
+  "estimatedTime": "30 min",
+
+  "prerequisites": "Divide and Conquer Paradigm",
+
+  "tags": [
+    "binary search",
+    "searching",
+    "divide and conquer"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "Searching large datasets efficiently is an important problem in computer science.\n\nLinear search checks elements one-by-one, but this approach becomes inefficient for large collections.\n\nBinary Search improves performance by repeatedly cutting the search space in half."
+    },
+
+    {
+      "id": "sorted-data",
+
+      "type": "concept",
+
+      "title": "Why Sorted Data Matters",
+
+      "content": "Binary Search only works correctly when the dataset is already sorted.\n\nBecause the elements are arranged in order, the algorithm can eliminate half of the remaining search space after each comparison.\n\nWithout sorted data, this elimination strategy would not be possible."
+    },
+
+    {
+      "id": "search-process",
+
+      "type": "deep_dive",
+
+      "title": "How Binary Search Works",
+
+      "content": "The algorithm begins by examining the middle element of the dataset.\n\nIf the target value matches the middle element, the search is complete.\n\nIf the target is smaller, the algorithm continues searching only the left half of the collection. If the target is larger, it searches only the right half.\n\nThis process repeats until the target is found or the search space becomes empty."
+    },
+
+    {
+      "id": "efficiency",
+
+      "type": "concept",
+
+      "title": "Why Binary Search is Efficient",
+
+      "content": "Binary Search reduces the search space dramatically after every comparison.\n\nEven extremely large datasets can be searched quickly because the number of remaining possibilities shrinks rapidly.\n\nThis logarithmic growth behavior makes Binary Search far more efficient than linear scanning for sorted data."
+    },
+
+    {
+      "id": "real-world-example",
+
+      "type": "analogy",
+
+      "title": "Dictionary Search Analogy",
+
+      "content": "Imagine searching for a word inside a dictionary.\n\nInstead of reading every page one-by-one, you usually open the dictionary near the middle and determine whether the target word appears before or after that section.\n\nBy repeatedly narrowing the remaining pages, the correct word can be located very quickly."
+    },
+
+    {
+      "id": "real-world-connection",
+
+      "type": "real_world_connection",
+
+      "title": "Binary Search in Real Applications",
+
+      "content": "Binary Search is widely used in databases, operating systems, search engines, and software libraries.\n\nMany efficient systems depend on ordered data structures because logarithmic searching significantly improves performance for large datasets."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "Binary Search efficiently locates elements by repeatedly dividing the search space in half. It requires sorted data and demonstrates logarithmic performance growth, making it far more efficient than linear searching for large datasets."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "Programiz — Binary Search",
+      "url": "https://www.programiz.com/dsa/binary-search"
+    },
+
+    {
+      "title": "GeeksforGeeks — Binary Search",
+      "url": "https://www.geeksforgeeks.org/binary-search/"
+    }
+  ]
+}

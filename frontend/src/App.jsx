@@ -1,6 +1,5 @@
 // frontend/src/App.jsx
 import { lazy, Suspense, useEffect } from "react";
-// IMPORT Navigate alongside Route and Routes
 import { Navigate, Route, Routes } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import Dashboard from "./pages/Dashboard";
@@ -14,7 +13,6 @@ import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
 
-// --- NEW: Create a ProtectedRoute component ---
 // This checks if the user is in localStorage. If not, it kicks them to /signin.
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user");
@@ -37,7 +35,6 @@ function App() {
     <>
       <OfflineIndicator />
 
-      {/* FIXED: Added Suspense boundary for lazy-loaded components */}
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
         <Routes>
           {/* Public Routes */}
@@ -46,7 +43,7 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* --- NEW: Wrap private routes with ProtectedRoute --- */}
+          {/* Protected Routes */}
           <Route
             path="/dashboard"
             element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
@@ -67,6 +64,8 @@ function App() {
             path="/home"
             element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
           />
+          
+          {/* Integration Route from Learning Path to the Activity App */}
           <Route
             path="/activity/:moduleId/:activityId"
             element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}

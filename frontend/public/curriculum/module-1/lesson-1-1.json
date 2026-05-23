@@ -1,0 +1,96 @@
+{
+  "lessonId": "lesson-1-1",
+
+  "moduleId": "module-1",
+
+  "title": "Big-O Notation",
+
+  "description": "Understand how programmers measure algorithm efficiency and analyze how performance changes as input size grows.",
+
+  "difficulty": "Beginner",
+
+  "estimatedTime": "25 min",
+
+  "prerequisites": "The Complexity Analyzer",
+
+  "tags": [
+    "big-o",
+    "complexity",
+    "performance",
+    "algorithms"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "Modern applications often process massive amounts of data every second. Because of this, programmers must think not only about solving problems correctly, but also about solving them efficiently.\n\nAn algorithm that works perfectly for ten items may become extremely slow when handling one million items. This is why computer scientists study algorithm efficiency and scalability.\n\nBig-O notation provides a standardized way to describe how an algorithm behaves as the input size grows."
+    },
+
+    {
+      "id": "what-is-big-o",
+
+      "type": "concept",
+
+      "title": "What is Big-O Notation?",
+
+      "content": "Big-O notation is a mathematical representation used to describe the growth rate of an algorithm.\n\nInstead of measuring exact execution time in seconds, Big-O focuses on how the workload changes as more input data is added.\n\nThis allows programmers to compare algorithms fairly regardless of hardware speed, operating system, or programming language."
+    },
+
+    {
+      "id": "growth-rate",
+
+      "type": "deep_dive",
+
+      "title": "Understanding Growth Rate",
+
+      "content": "The most important idea behind Big-O notation is growth rate.\n\nSome algorithms grow slowly and remain efficient even with large datasets. Others grow rapidly and become impractical as input size increases.\n\nFor example, an algorithm with linear growth becomes twice as slow when the input size doubles. In contrast, an algorithm with quadratic growth may become four times slower when the input size doubles."
+    },
+
+    {
+      "id": "real-world-example",
+
+      "type": "analogy",
+
+      "title": "Library Search Analogy",
+
+      "content": "Imagine searching for a book inside a library.\n\nOne strategy is to inspect every shelf one-by-one until the book is found. This method works, but it becomes slower as the library grows.\n\nAnother strategy is to use an organized catalog system that repeatedly narrows the search space. This method is far more efficient for large collections.\n\nBig-O notation helps programmers describe the difference between these approaches."
+    },
+
+    {
+      "id": "why-efficiency-matters",
+
+      "type": "real_world_connection",
+
+      "title": "Why Efficiency Matters",
+
+      "content": "Large technology companies constantly analyze algorithm efficiency because even small performance improvements can affect millions of users.\n\nSearch engines, banking systems, navigation software, and social media platforms all depend on efficient algorithms.\n\nPoor algorithm design can increase server costs, reduce responsiveness, and create scalability problems."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "Big-O notation describes how algorithm performance changes as input size grows. Instead of focusing on exact execution time, it focuses on growth behavior and scalability. Understanding Big-O helps programmers compare algorithms and design more efficient systems."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "GeeksforGeeks — Analysis of Algorithms",
+      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
+    },
+
+    {
+      "title": "Programiz — Asymptotic Notation",
+      "url": "https://www.programiz.com/dsa/asymptotic-notations"
+    }
+  ]
+}

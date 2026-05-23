@@ -1,0 +1,106 @@
+{
+  "lessonId": "lesson-2-3",
+
+  "moduleId": "module-2",
+
+  "title": "Simple Sorting",
+
+  "description": "Learn the basic mechanics of simple sorting algorithms such as Bubble Sort and Selection Sort.",
+
+  "difficulty": "Beginner",
+
+  "estimatedTime": "35 min",
+
+  "prerequisites": "Linear Search",
+
+  "tags": [
+    "sorting",
+    "bubble sort",
+    "selection sort",
+    "arrays"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "Sorting is the process of arranging data into a specific order.\n\nMany algorithms become more efficient when data is organized properly.\n\nSimple sorting algorithms help students understand how elements can be compared, swapped, and rearranged systematically."
+    },
+
+    {
+      "id": "why-sorting-matters",
+
+      "type": "concept",
+
+      "title": "Why Sorting Matters",
+
+      "content": "Sorted data is easier to search, analyze, and process efficiently.\n\nApplications such as online stores, ranking systems, and databases rely heavily on sorting algorithms.\n\nAlthough advanced sorting methods exist, simple sorting algorithms provide an important introduction to algorithmic thinking."
+    },
+
+    {
+      "id": "bubble-sort",
+
+      "type": "deep_dive",
+
+      "title": "Bubble Sort",
+
+      "content": "Bubble Sort repeatedly compares neighboring elements and swaps them if they are in the wrong order.\n\nAfter each pass, larger values gradually move toward the end of the collection.\n\nThis process continues until the entire dataset becomes sorted.\n\nAlthough Bubble Sort is easy to understand, it becomes inefficient for large datasets because it requires many repeated comparisons."
+    },
+
+    {
+      "id": "selection-sort",
+
+      "type": "deep_dive",
+
+      "title": "Selection Sort",
+
+      "content": "Selection Sort works by repeatedly finding the smallest remaining element and placing it into its correct position.\n\nThe algorithm divides the array into sorted and unsorted regions.\n\nDuring each iteration, the smallest value from the unsorted region is selected and moved into the sorted portion."
+    },
+
+    {
+      "id": "comparison",
+
+      "type": "concept",
+
+      "title": "Comparing Bubble Sort and Selection Sort",
+
+      "content": "Both Bubble Sort and Selection Sort are simple quadratic-time algorithms.\n\nBubble Sort performs many swaps between neighboring elements, while Selection Sort focuses on selecting the correct element during each iteration.\n\nAlthough neither algorithm is ideal for large-scale systems, they are valuable educational tools for understanding sorting behavior."
+    },
+
+    {
+      "id": "real-world-connection",
+
+      "type": "real_world_connection",
+
+      "title": "Sorting in Real Applications",
+
+      "content": "Sorting algorithms are widely used in databases, search engines, recommendation systems, and operating systems.\n\nEven though modern applications often use advanced sorting algorithms, understanding simple sorting methods helps students build a strong foundation in algorithm design and performance analysis."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "Simple sorting algorithms arrange data into an organized order through repeated comparisons and swaps. Bubble Sort and Selection Sort introduce important algorithm concepts such as iteration, comparison, and data movement."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "Programiz — Bubble Sort",
+      "url": "https://www.programiz.com/dsa/bubble-sort"
+    },
+
+    {
+      "title": "Programiz — Selection Sort",
+      "url": "https://www.programiz.com/dsa/selection-sort"
+    }
+  ]
+}

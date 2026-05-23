@@ -1,0 +1,85 @@
+{
+  "lessonId": "lesson-0-1",
+
+  "moduleId": "module-0",
+
+  "title": "The AlgoBlocks Workspace",
+
+  "description": "Learn the structure of the AlgoBlocks environment and understand how algorithms are visually created and executed.",
+
+  "difficulty": "Beginner",
+
+  "estimatedTime": "15 min",
+
+  "prerequisites": "None",
+
+  "tags": [
+    "workspace",
+    "visual programming",
+    "algorithm basics"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "Before building algorithms, students must first understand how the AlgoBlocks environment works. AlgoBlocks is designed to simplify algorithm learning through visual programming and interactive execution.\n\nInstead of writing syntax-heavy code immediately, learners can focus on understanding logic, sequencing, and problem-solving using draggable visual blocks.\n\nThe workspace acts as the main learning environment where algorithms are assembled, executed, and observed step-by-step."
+    },
+
+    {
+      "id": "workspace-overview",
+
+      "type": "concept",
+
+      "title": "Overview of the Workspace",
+
+      "content": "The AlgoBlocks workspace is divided into several important areas that work together during algorithm creation.\n\nThe Toolbox contains all available programming blocks grouped into categories such as variables, loops, conditions, arrays, and mathematical operations.\n\nThe Workspace Canvas is the main area where blocks are dragged and connected to form algorithms visually.\n\nThe Output Console displays the result of the algorithm execution and helps students observe how their instructions affect the final output."
+    },
+
+    {
+      "id": "sequential-execution",
+
+      "type": "deep_dive",
+
+      "title": "Understanding Sequential Execution",
+
+      "content": "Algorithms inside AlgoBlocks execute sequentially from top to bottom. This means instructions are processed in the exact order they appear unless a condition or loop changes the execution flow.\n\nSequential execution is one of the most fundamental concepts in programming because computers follow instructions step-by-step.\n\nEven small changes in instruction order can produce completely different outputs. Because of this, programmers must carefully organize instructions to ensure the algorithm behaves correctly."
+    },
+
+    {
+      "id": "visual-learning",
+
+      "type": "real_world_connection",
+
+      "title": "Why Visual Learning Matters",
+
+      "content": "Many beginner programmers struggle because they focus too heavily on memorizing programming syntax instead of understanding logic.\n\nVisual programming environments like AlgoBlocks help students develop computational thinking by allowing them to focus on problem-solving first.\n\nThis teaching approach is widely used in beginner computer science education because visual interaction makes abstract programming concepts easier to understand."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "The AlgoBlocks workspace is the main environment used to build and execute algorithms visually. It includes the Toolbox, Workspace Canvas, and Output Console. Algorithms execute sequentially from top to bottom, helping students understand how instructions are processed step-by-step."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "Blockly Documentation",
+      "url": "https://developers.google.com/blockly"
+    },
+
+    {
+      "title": "MIT Scratch — Visual Programming Concepts",
+      "url": "https://scratch.mit.edu"
+    }
+  ]
+}

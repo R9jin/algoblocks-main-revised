@@ -1,0 +1,94 @@
+{
+  "lessonId": "lesson-0-4",
+  "moduleId": "module-0",
+
+  "title": "Memory Visualizer",
+
+  "description": "Understand how variables, arrays, and function calls change during algorithm execution using the Memory Visualizer.",
+
+  "difficulty": "Beginner",
+
+  "estimatedTime": "20 min",
+
+  "prerequisites": "The Complexity Analyzer",
+
+  "tags": [
+    "memory",
+    "variables",
+    "visualization"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "Algorithms do not only perform calculations — they also use memory to store information while executing.\n\nThe Memory Visualizer inside AlgoBlocks helps students observe how variables, arrays, and function calls behave during execution.\n\nThis makes abstract programming concepts easier to understand because learners can visually track state changes in real time."
+    },
+
+    {
+      "id": "variables-memory",
+
+      "type": "concept",
+
+      "title": "Variable State Changes",
+
+      "content": "Variables store temporary information while a program runs.\n\nAs algorithms execute, variable values may change multiple times depending on calculations, conditions, and loops.\n\nThe Memory Visualizer allows students to observe how variables update step-by-step during execution."
+    },
+
+    {
+      "id": "arrays-memory",
+
+      "type": "concept",
+
+      "title": "Tracking Arrays",
+
+      "content": "Arrays store multiple related values inside a single structure.\n\nDuring algorithm execution, elements inside arrays may be inserted, removed, swapped, or modified.\n\nVisualizing array changes helps students better understand searching, sorting, and data manipulation algorithms."
+    },
+
+    {
+      "id": "call-stack",
+
+      "type": "deep_dive",
+
+      "title": "Understanding the Call Stack",
+
+      "content": "When functions are executed, the computer stores information about each function call inside a structure called the call stack.\n\nThe call stack helps the computer keep track of active function executions and return locations.\n\nThis concept becomes especially important in recursion, where functions repeatedly call themselves."
+    },
+
+    {
+      "id": "real-world",
+
+      "type": "real_world_connection",
+
+      "title": "Why Memory Visualization Matters",
+
+      "content": "Many programming bugs happen because developers misunderstand how memory changes during execution.\n\nVisual memory tracking helps programmers debug problems, optimize algorithms, and understand program behavior more clearly.\n\nModern development tools often include memory visualization and debugging systems to help engineers analyze complex applications."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "The Memory Visualizer helps students observe how variables, arrays, and function calls behave during algorithm execution. Understanding memory behavior is important for debugging, optimization, and learning advanced programming concepts such as recursion and data structures."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "MDN Web Docs — Memory Management",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Memory_Management"
+    },
+
+    {
+      "title": "Visualgo",
+      "url": "https://visualgo.net/en"
+    }
+  ]
+}

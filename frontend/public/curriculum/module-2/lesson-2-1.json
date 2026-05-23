@@ -1,0 +1,105 @@
+{
+  "lessonId": "lesson-2-1",
+
+  "moduleId": "module-2",
+
+  "title": "Brute Force Strategy",
+
+  "description": "Learn the fundamentals of brute force algorithms and understand why exhaustive search guarantees correctness but may become inefficient for large inputs.",
+
+  "difficulty": "Beginner",
+
+  "estimatedTime": "25 min",
+
+  "prerequisites": "Space Complexity",
+
+  "tags": [
+    "brute force",
+    "searching",
+    "algorithm strategies"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "One of the simplest ways to solve a problem is to test every possible solution until the correct answer is found.\n\nThis approach is known as brute force. Instead of searching for shortcuts or optimizations, brute force algorithms systematically examine all possible cases.\n\nAlthough brute force methods are often inefficient for large datasets, they are extremely important because they are usually easy to understand and guaranteed to find the correct solution."
+    },
+
+    {
+      "id": "what-is-brute-force",
+
+      "type": "concept",
+
+      "title": "What is Brute Force?",
+
+      "content": "Brute force is a problem-solving strategy that checks every possibility directly.\n\nThe algorithm continues testing options until it discovers the desired result.\n\nBecause brute force explores all possibilities, it guarantees correctness as long as the implementation is accurate."
+    },
+
+    {
+      "id": "exhaustive-search",
+
+      "type": "deep_dive",
+
+      "title": "Understanding Exhaustive Search",
+
+      "content": "Exhaustive search means systematically exploring every possible candidate solution.\n\nFor small datasets, this approach can work efficiently enough. However, as the input size increases, the number of possibilities may grow extremely quickly.\n\nThis rapid growth is one of the major reasons why brute force algorithms can become impractical for large-scale systems."
+    },
+
+    {
+      "id": "advantages-limitations",
+
+      "type": "concept",
+
+      "title": "Advantages and Limitations",
+
+      "content": "Brute force algorithms are usually simple to design and easy to debug.\n\nBecause they explore all possibilities, they rarely miss valid solutions.\n\nHowever, brute force methods often perform unnecessary work. They may repeatedly test inefficient paths or duplicate calculations, causing poor performance when handling massive datasets."
+    },
+
+    {
+      "id": "real-world-example",
+
+      "type": "analogy",
+
+      "title": "Password Guessing Analogy",
+
+      "content": "Imagine trying to unlock a password-protected device without knowing the password.\n\nOne possible strategy is to try every combination until the correct password is discovered.\n\nThis guarantees success eventually, but it may take an extremely long time if the number of possible combinations is very large.\n\nThis is similar to how brute force algorithms operate."
+    },
+
+    {
+      "id": "real-world-connection",
+
+      "type": "real_world_connection",
+
+      "title": "Brute Force in Real Systems",
+
+      "content": "Brute force methods are still used in real-world computing when datasets are small enough or when correctness is more important than efficiency.\n\nThey are also commonly used as baseline solutions before developing optimized algorithms.\n\nIn cybersecurity, brute force attacks attempt to guess passwords by testing many combinations automatically."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "Brute force algorithms solve problems by checking every possible solution directly. While they guarantee correctness and are easy to implement, they often become inefficient for large datasets because exhaustive search requires significant computational work."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "GeeksforGeeks — Brute Force Algorithm",
+      "url": "https://www.geeksforgeeks.org/introduction-to-brute-force-algorithm/"
+    },
+
+    {
+      "title": "Programiz — Searching Algorithms",
+      "url": "https://www.programiz.com/dsa/searching-algorithms"
+    }
+  ]
+}

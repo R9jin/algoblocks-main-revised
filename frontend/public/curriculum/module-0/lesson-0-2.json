@@ -1,0 +1,105 @@
+{
+  "lessonId": "lesson-0-2",
+  "moduleId": "module-0",
+
+  "title": "Core Blockly Components",
+
+  "description": "Understand the fundamental Blockly components used to build algorithms visually inside AlgoBlocks.",
+
+  "difficulty": "Beginner",
+
+  "estimatedTime": "20 min",
+
+  "prerequisites": "The AlgoBlocks Workspace",
+
+  "tags": [
+    "blockly",
+    "variables",
+    "loops",
+    "conditions"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "AlgoBlocks uses Blockly components to help students build algorithms through visual programming.\n\nEach block represents a programming instruction or logical operation. By combining blocks together, learners can create complete algorithms without immediately dealing with programming syntax.\n\nUnderstanding the purpose of each component is important because these blocks form the foundation of all future algorithm activities."
+    },
+
+    {
+      "id": "variables",
+
+      "type": "concept",
+
+      "title": "Variables",
+
+      "content": "Variables are used to store information temporarily while an algorithm executes.\n\nA variable can hold numbers, text, or other forms of data that may change during execution.\n\nProgrammers use variables to track values, store calculations, and manage the state of an algorithm while it runs."
+    },
+
+    {
+      "id": "loops",
+
+      "type": "deep_dive",
+
+      "title": "Loops",
+
+      "content": "Loops allow algorithms to repeat instructions multiple times automatically.\n\nInstead of manually writing the same instructions repeatedly, programmers use loops to perform repetitive tasks efficiently.\n\nLoops are extremely important in programming because many real-world problems require repeated processing of data, calculations, or user actions."
+    },
+
+    {
+      "id": "conditions",
+
+      "type": "concept",
+
+      "title": "Conditional Logic",
+
+      "content": "Conditional logic allows algorithms to make decisions.\n\nUsing if and else conditions, the program can choose different actions depending on whether a condition is true or false.\n\nDecision-making is a core part of programming because algorithms often need to react differently depending on the situation."
+    },
+
+    {
+      "id": "arrays",
+
+      "type": "concept",
+
+      "title": "Arrays",
+
+      "content": "Arrays are used to store multiple related values inside a single structure.\n\nInstead of creating many separate variables, programmers use arrays to organize collections of data efficiently.\n\nArrays are commonly used for managing lists, processing datasets, and performing algorithm operations such as searching and sorting."
+    },
+
+    {
+      "id": "math-operations",
+
+      "type": "real_world_connection",
+
+      "title": "Math Operations in Algorithms",
+
+      "content": "Algorithms frequently perform mathematical operations such as addition, subtraction, multiplication, and comparison.\n\nThese operations are used in calculations, scoring systems, simulations, data analysis, and many other computational tasks.\n\nUnderstanding how mathematical blocks work is essential because mathematics forms the foundation of many computer science concepts."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "Blockly components allow students to build algorithms visually using variables, loops, conditions, arrays, and mathematical operations. These components form the foundation of algorithm design and problem-solving inside AlgoBlocks."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "Blockly Official Documentation",
+      "url": "https://developers.google.com/blockly"
+    },
+
+    {
+      "title": "Programiz — Programming Basics",
+      "url": "https://www.programiz.com"
+    }
+  ]
+}

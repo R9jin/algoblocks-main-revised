@@ -1,0 +1,105 @@
+{
+  "lessonId": "lesson-6-2",
+
+  "moduleId": "module-6",
+
+  "title": "Permutations and Combinations",
+
+  "description": "Understand how Backtracking generates all possible arrangements and selections systematically.",
+
+  "difficulty": "Advanced",
+
+  "estimatedTime": "40 min",
+
+  "prerequisites": "Backtracking Fundamentals",
+
+  "tags": [
+    "permutations",
+    "combinations",
+    "backtracking"
+  ],
+
+  "sections": [
+    {
+      "id": "introduction",
+
+      "type": "introduction",
+
+      "title": "Introduction",
+
+      "content": "Many computational problems require generating all possible arrangements or selections from a dataset.\n\nBacktracking provides an efficient framework for exploring these possibilities systematically.\n\nPermutations and combinations are classic examples of problems solved using recursive exploration and rollback."
+    },
+
+    {
+      "id": "permutations",
+
+      "type": "concept",
+
+      "title": "Understanding Permutations",
+
+      "content": "A permutation is an arrangement of elements where order matters.\n\nDifferent orderings are considered separate solutions.\n\nFor example, arranging the letters A, B, and C in different sequences produces multiple unique permutations."
+    },
+
+    {
+      "id": "combinations",
+
+      "type": "concept",
+
+      "title": "Understanding Combinations",
+
+      "content": "A combination is a selection of elements where order does not matter.\n\nUnlike permutations, selecting the same elements in a different order is considered the same combination.\n\nCombinations are commonly used in selection and grouping problems."
+    },
+
+    {
+      "id": "backtracking-process",
+
+      "type": "deep_dive",
+
+      "title": "Generating Possibilities with Backtracking",
+
+      "content": "Backtracking generates possibilities by building partial solutions step-by-step.\n\nThe algorithm selects an element, continues deeper recursively, and removes the choice during rollback before trying another option.\n\nThis repeated exploration systematically generates every valid arrangement or selection."
+    },
+
+    {
+      "id": "state-tracking",
+
+      "type": "deep_dive",
+
+      "title": "State Tracking During Exploration",
+
+      "content": "Backtracking algorithms often maintain temporary state information during execution.\n\nThis state may include visited elements, current selections, or partial solution paths.\n\nProper state management is essential to ensure the algorithm explores all valid possibilities correctly."
+    },
+
+    {
+      "id": "real-world-connection",
+
+      "type": "real_world_connection",
+
+      "title": "Permutations and Combinations in Real Applications",
+
+      "content": "Permutation and combination problems appear in password generation, scheduling, recommendation systems, genetics, and cryptography.\n\nMany optimization systems rely on systematic arrangement generation to evaluate possible solutions."
+    },
+
+    {
+      "id": "summary",
+
+      "type": "summary",
+
+      "title": "Lesson Summary",
+
+      "content": "Backtracking efficiently generates permutations and combinations by systematically exploring possible arrangements and selections. Recursive exploration and rollback allow algorithms to examine all valid possibilities."
+    }
+  ],
+
+  "references": [
+    {
+      "title": "GeeksforGeeks — Permutations and Combinations",
+      "url": "https://www.geeksforgeeks.org/different-ways-to-generate-permutations-of-an-array/"
+    },
+
+    {
+      "title": "Programiz — Recursion",
+      "url": "https://www.programiz.com/javascript/recursion"
+    }
+  ]
+}
