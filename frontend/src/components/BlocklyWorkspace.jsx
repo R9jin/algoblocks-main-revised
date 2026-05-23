@@ -342,7 +342,6 @@ const customBlocks = [
     style: "list_blocks",
     tooltip: "Creates a list of numbers from start to end, e.g. list(range(1, 5))"
   },
-  // --- NEW COMPREHENSIVE ALGORITHM BLOCKS ---
   {
     type: "variable_swap",
     message0: "swap variable %1 and %2",
@@ -441,6 +440,90 @@ const customBlocks = [
     nextStatement: null,
     colour: "#8bcf8b",
     tooltip: "The pass statement does nothing. Used as a placeholder."
+  },
+  {
+    type: "list_sort",
+    message0: "sort list %1 %2",
+    args0: [
+      { type: "input_value", name: "LIST", check: "Array" },
+      { type: "field_dropdown", name: "REVERSE", options: [["in ascending order", "FALSE"], ["in descending order", "TRUE"]] }
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    style: "list_blocks",
+    tooltip: "Sorts the list in-place (O(n log n) time)."
+  },
+  {
+    type: "list_sorted",
+    message0: "get sorted copy of list %1 %2",
+    args0: [
+      { type: "input_value", name: "LIST", check: "Array" },
+      { type: "field_dropdown", name: "REVERSE", options: [["in ascending order", "FALSE"], ["in descending order", "TRUE"]] }
+    ],
+    output: "Array",
+    style: "list_blocks",
+    tooltip: "Returns a new sorted list from the given list (O(n log n) time)."
+  },
+  {
+    type: "list_insert",
+    message0: "insert %1 at index %2 in list %3",
+    args0: [
+      { type: "input_value", name: "ITEM" },
+      { type: "input_value", name: "INDEX", check: "Number" },
+      { type: "input_value", name: "LIST", check: "Array" }
+    ],
+    inputsInline: true,
+    previousStatement: null,
+    nextStatement: null,
+    style: "list_blocks",
+    tooltip: "Inserts an item into a list at a specified index (O(n) time)."
+  },
+  {
+    type: "string_split",
+    message0: "split string %1 by delimiter %2",
+    args0: [
+      { type: "input_value", name: "STRING", check: "String" },
+      { type: "input_value", name: "DELIMITER", check: "String" }
+    ],
+    inputsInline: true,
+    output: "Array",
+    colour: "#d5a52a",
+    tooltip: "Splits a string into a list using the given delimiter (O(n) time)."
+  },
+  {
+    type: "math_abs_round",
+    message0: "%1 of %2",
+    args0: [
+      { type: "field_dropdown", name: "OP", options: [["absolute value", "abs"], ["round", "round"]] },
+      { type: "input_value", name: "VALUE", check: "Number" }
+    ],
+    output: "Number",
+    colour: "#4C97FF",
+    tooltip: "Calculates the absolute value or rounds a number (O(1) time)."
+  },
+  {
+    type: "type_cast_advanced",
+    message0: "convert %1 to %2",
+    args0: [
+      { type: "input_value", name: "VALUE" },
+      { type: "field_dropdown", name: "TYPE", options: [["float", "float"], ["boolean", "bool"], ["string", "str"], ["list", "list"]] }
+    ],
+    inputsInline: true,
+    output: null,
+    colour: "#c1a0e8",
+    tooltip: "Converts a value to the specified type."
+  },
+  {
+    type: "string_case_formatting",
+    message0: "convert text %1 to %2",
+    args0: [
+      { type: "input_value", name: "STRING", check: "String" },
+      { type: "field_dropdown", name: "CASE", options: [["UPPERCASE", "upper"], ["lowercase", "lower"], ["Title Case", "title"], ["Capitalized", "capitalize"]] }
+    ],
+    inputsInline: true,
+    output: "String",
+    colour: "#d5a52a",
+    tooltip: "Converts text to uppercase, lowercase, title case, or capitalized (O(n) time)."
   }
 ];
 
@@ -463,7 +546,7 @@ const toolbox = {
         { kind: "block", type: "controls_if" },
         { kind: "block", type: "logic_compare" },
         { kind: "block", type: "logic_operation" },
-        { kind: "block", type: "logic_in" }, // NEW
+        { kind: "block", type: "logic_in" }, 
         { kind: "block", type: "logic_negate" },
         { kind: "block", type: "logic_boolean" },
         { kind: "block", type: "logic_null" },
@@ -471,7 +554,8 @@ const toolbox = {
         { kind: "block", type: "procedure_return_value" },
         { kind: "block", type: "python_type" },
         { kind: "block", type: "python_type_primitive" },
-        { kind: "block", type: "python_isinstance" }
+        { kind: "block", type: "python_isinstance" },
+        { kind: "block", type: "type_cast_advanced" }
       ]
     },
     {
@@ -490,7 +574,7 @@ const toolbox = {
         },
         { kind: "block", type: "controls_forEach" },
         { kind: "block", type: "controls_flow_statements" },
-        { kind: "block", type: "controls_pass" } // NEW
+        { kind: "block", type: "controls_pass" } 
       ]
     },
     {
@@ -509,6 +593,7 @@ const toolbox = {
         { kind: "block", type: "math_assignment", inputs: { DELTA: { shadow: { type: "math_number", fields: { NUM: 1 } } } } },
         { kind: "block", type: "type_cast_int" },
         { kind: "block", type: "math_min_max" },
+        { kind: "block", type: "math_abs_round" },
         { kind: "block", type: "math_single" },
         { kind: "block", type: "math_trig" },
         { kind: "block", type: "math_constant" },
@@ -542,6 +627,8 @@ const toolbox = {
         { kind: "block", type: "text_newline" }, 
         { kind: "block", type: "text_multiply", inputs: { MULTIPLIER: { shadow: { type: "math_number", fields: { NUM: 2 } } } } }, 
         { kind: "block", type: "custom_string_join" },
+        { kind: "block", type: "string_split" },
+        { kind: "block", type: "string_case_formatting" },
         { kind: "block", type: "text_join" },
         { kind: "block", type: "text_append" },
         { kind: "block", type: "text_length" },
@@ -570,11 +657,14 @@ const toolbox = {
         { kind: "block", type: "lists_create_with", extraState: { itemCount: 0 } },
         { kind: "block", type: "lists_create_with" },
         { kind: "block", type: "list_append" }, 
-        { kind: "block", type: "list_concat" }, // NEW
-        { kind: "block", type: "list_remove_value" }, // NEW
-        { kind: "block", type: "list_pop" }, // NEW
-        { kind: "block", type: "list_pop_statement" }, // NEW
-        { kind: "block", type: "list_slice_advanced" }, // NEW
+        { kind: "block", type: "list_concat" }, 
+        { kind: "block", type: "list_remove_value" }, 
+        { kind: "block", type: "list_pop" }, 
+        { kind: "block", type: "list_pop_statement" }, 
+        { kind: "block", type: "list_slice_advanced" }, 
+        { kind: "block", type: "list_sort" },
+        { kind: "block", type: "list_sorted" },
+        { kind: "block", type: "list_insert" },
         { kind: "block", type: "list_range", inputs: {
             START: { shadow: { type: "math_number", fields: { NUM: 1 } } },
             END: { shadow: { type: "math_number", fields: { NUM: 10 } } }
@@ -600,7 +690,7 @@ const toolbox = {
             KEY: { shadow: { type: "text", fields: { TEXT: "key_name" } } }
           }
         },
-        { kind: "block", type: "dict_keys_values" }, // NEW
+        { kind: "block", type: "dict_keys_values" }, 
         {
           kind: "block", type: "dict_from_pairs", inputs: {
             LIST: { block: { type: "lists_create_with", extraState: { itemCount: 2 } } }
@@ -620,7 +710,7 @@ const toolbox = {
       categorystyle: "variable_category", 
       contents: [
         { kind: "button", text: "Create variable...", callbackKey: "createVariable" },
-        { kind: "block", type: "variable_swap" } // NEW
+        { kind: "block", type: "variable_swap" } 
       ],
       custom: "VARIABLE"
     },
@@ -1076,6 +1166,55 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
 
       pythonGenerator.forBlock['controls_pass'] = function (block) {
         return 'pass\n';
+      };
+
+      pythonGenerator.forBlock['list_sort'] = function (block) {
+        const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+        const reverse = block.getFieldValue('REVERSE') === 'TRUE';
+        if (reverse) {
+          return `${list}.sort(reverse=True)\n`;
+        }
+        return `${list}.sort()\n`;
+      };
+
+      pythonGenerator.forBlock['list_sorted'] = function (block) {
+        const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_NONE) || '[]';
+        const reverse = block.getFieldValue('REVERSE') === 'TRUE';
+        if (reverse) {
+          return [`sorted(${list}, reverse=True)`, pythonGenerator.ORDER_FUNCTION_CALL];
+        }
+        return [`sorted(${list})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['list_insert'] = function (block) {
+        const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
+        const index = pythonGenerator.valueToCode(block, 'INDEX', pythonGenerator.ORDER_NONE) || '0';
+        const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+        return `${list}.insert(${index}, ${item})\n`;
+      };
+
+      pythonGenerator.forBlock['string_split'] = function (block) {
+        const string = pythonGenerator.valueToCode(block, 'STRING', pythonGenerator.ORDER_MEMBER) || "''";
+        const delimiter = pythonGenerator.valueToCode(block, 'DELIMITER', pythonGenerator.ORDER_NONE) || "''";
+        return [`${string}.split(${delimiter})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['math_abs_round'] = function (block) {
+        const op = block.getFieldValue('OP');
+        const value = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_NONE) || '0';
+        return [`${op}(${value})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['type_cast_advanced'] = function (block) {
+        const type = block.getFieldValue('TYPE');
+        const value = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_NONE) || 'None';
+        return [`${type}(${value})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['string_case_formatting'] = function (block) {
+        const string = pythonGenerator.valueToCode(block, 'STRING', pythonGenerator.ORDER_MEMBER) || "''";
+        const caseType = block.getFieldValue('CASE');
+        return [`${string}.${caseType}()`, pythonGenerator.ORDER_FUNCTION_CALL];
       };
 
       // Raw fallsbacks
