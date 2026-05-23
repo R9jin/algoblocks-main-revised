@@ -360,15 +360,27 @@ const ActivityApp = () => {
     try {
       const res = await fetch(url);
       if (res.ok) {
-        const json = await res.json();
-        try { await templatesDB.setItem(cacheKey, json); } catch (e) { /* ignore */ }
-        return json;
+        // Prevent parsing HTML 404 fallback pages as JSON
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const json = await res.json();
+          try { await templatesDB.setItem(cacheKey, json); } catch (e) { /* ignore */ }
+          return json;
+        } else {
+           throw new Error("Response is not JSON format");
+        }
+      } else {
+        throw new Error(`HTTP error ${res.status}`);
       }
-    } catch (e) { console.warn(`Network fetch failed for ${url}, falling back to cache.`); }
+    } catch (e) { 
+      console.warn(`Network fetch failed for ${url}, falling back to cache.`, e); 
+    }
+    
     try {
       const cached = await templatesDB.getItem(cacheKey);
       if (cached) return cached;
     } catch (e) { /* ignore */ }
+    
     throw new Error(`Fetch failed for ${url} and no cache available.`);
   };
 
@@ -376,50 +388,52 @@ const ActivityApp = () => {
     const mid = String(moduleId).replace(/[^0-9]/g, "");
     if (!mid) throw new Error("Invalid moduleId");
 
-    const moduleUrl = `/data/modules/module_${mid}.json`;
-    const modulesJson = await fetchJsonWithCache(`modules:module_${mid}`, moduleUrl);
+    // Fetch directly from the activities JSON (skip the non-existent modules JSON)
+    const activitiesUrl = `/data/activities/module_${mid}.json`;
+    const activitiesJson = await fetchJsonWithCache(`activities:module_${mid}`, activitiesUrl);
 
-    const topics = modulesJson?.topics || [];
-    let currentTopic = null;
-    let activitiesInTopic = [];
+    let foundActivity = null;
+    let foundLessonKey = null;
+    let activitiesInLesson = [];
 
-    for (const t of topics) {
-      if (t?.activities?.some((a) => a?.id === activityId)) {
-        currentTopic = t;
-        activitiesInTopic = t.activities;
+    // Find the activity across all lessons in this module
+    for (const [lessonKey, list] of Object.entries(activitiesJson || {})) {
+      if (!Array.isArray(list)) continue;
+      const matched = list.find((a) => a && a.id === activityId);
+      if (matched) {
+        foundActivity = matched;
+        foundLessonKey = lessonKey;
+        activitiesInLesson = list;
         break;
       }
     }
 
-    if (!currentTopic) throw new Error("Activity not found in module topics");
-    setTopicIdResolved(currentTopic.id);
-    setLessonActivitiesResolved(activitiesInTopic);
+    if (!foundActivity) throw new Error("Activity not found in module activities JSON");
 
-    const activitiesUrl = `/data/activities/module_${mid}.json`;
-    const activitiesJson = await fetchJsonWithCache(`activities:module_${mid}`, activitiesUrl);
+    // Resolve the lesson ID for progress tracking (e.g. lesson_1 -> lesson-0-1)
+    const lessonNum = foundLessonKey.replace("lesson_", "");
+    const formattedLessonId = `lesson-${mid}-${lessonNum}`;
 
-    for (const [lessonKey, list] of Object.entries(activitiesJson || {})) {
-      if (!Array.isArray(list)) continue;
-      const found = list.find((x) => x && x.id === activityId);
-      if (found) {
-        const testCasesList = (found.testCasesPool || []).map((tc) => ({
-          call: tc.call,
-          expected: tc.expected,
-          isHidden: !!tc.isHidden,
-        }));
+    setTopicIdResolved(formattedLessonId);
+    setLessonActivitiesResolved(activitiesInLesson);
 
-        return {
-          id: found.id,
-          title: found.title || lessonKey,
-          task: found.task,
-          difficulty: found.difficulty || "Easy",
-          targetTimeComplexity: found.targetTimeComplexity,
-          targetSpaceComplexity: found.targetSpaceComplexity,
-          testCasesList,
-        };
-      }
-    }
-    throw new Error("Activity not found in module activities JSON");
+    // Map the test cases
+    const testCasesList = (foundActivity.testCasesPool || []).map((tc) => ({
+      call: tc.call,
+      expected: tc.expected,
+      isHidden: !!tc.isHidden,
+    }));
+
+    return {
+      id: foundActivity.id,
+      title: foundActivity.title || foundLessonKey,
+      task: foundActivity.task,
+      difficulty: foundActivity.difficulty || "Easy",
+      // Safely grab the target complexity relying on new JSON keys
+      targetTimeComplexity: foundActivity.targetTime || foundActivity.targetTimeComplexity || "O(n)",
+      targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(n)",
+      testCasesList,
+    };
   };
 
   const resetActivitySessionState = () => {

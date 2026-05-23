@@ -10,8 +10,8 @@
         { "call": "find_max([32,45,28,47,39])", "expected": "47", "isHidden": false },
         { "call": "find_max([-10,-5,-20])", "expected": "-5", "isHidden": false },
         { "call": "find_max([0,0,0])", "expected": "0", "isHidden": false },
-        { "call": "find_max([])", "expected": "'Error'", "isHidden": true },
-        { "call": "find_max([100])", "expected": "100", "isHidden": true }
+        { "call": "find_max([])", "expected": "'Error'", "isHidden": false },
+        { "call": "find_max([100])", "expected": "100", "isHidden": false }
       ]
     },
     {
@@ -24,8 +24,8 @@
         { "call": "find_min([3,1,9,2])", "expected": "1", "isHidden": false },
         { "call": "find_min([-5,-2,-10])", "expected": "-10", "isHidden": false },
         { "call": "find_min([7,7,7])", "expected": "7", "isHidden": false },
-        { "call": "find_min([])", "expected": "'Error'", "isHidden": true },
-        { "call": "find_min([42])", "expected": "42", "isHidden": true }
+        { "call": "find_min([])", "expected": "'Error'", "isHidden": false },
+        { "call": "find_min([42])", "expected": "42", "isHidden": false }
       ]
     },
     {
@@ -38,8 +38,8 @@
         { "call": "sum_all([1,2,3])", "expected": "6", "isHidden": false },
         { "call": "sum_all([10,20])", "expected": "30", "isHidden": false },
         { "call": "sum_all([0,0,0])", "expected": "0", "isHidden": false },
-        { "call": "sum_all([])", "expected": "0", "isHidden": true },
-        { "call": "sum_all([-5,5])", "expected": "0", "isHidden": true }
+        { "call": "sum_all([])", "expected": "0", "isHidden": false },
+        { "call": "sum_all([-5,5])", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -52,8 +52,8 @@
         { "call": "count_evens([1,2,3,4,5,6])", "expected": "3", "isHidden": false },
         { "call": "count_evens([2,4,6,8])", "expected": "4", "isHidden": false },
         { "call": "count_evens([1,3,5])", "expected": "0", "isHidden": false },
-        { "call": "count_evens([])", "expected": "0", "isHidden": true },
-        { "call": "count_evens([0,0,1])", "expected": "2", "isHidden": true }
+        { "call": "count_evens([])", "expected": "0", "isHidden": false },
+        { "call": "count_evens([0,0,1])", "expected": "2", "isHidden": false }
       ]
     },
     {
@@ -66,8 +66,8 @@
         { "call": "first_negative([3,2,-1,5])", "expected": "-1", "isHidden": false },
         { "call": "first_negative([-5,2,3])", "expected": "-5", "isHidden": false },
         { "call": "first_negative([1,2,3])", "expected": "-1", "isHidden": false },
-        { "call": "first_negative([])", "expected": "-1", "isHidden": true },
-        { "call": "first_negative([0,-2])", "expected": "-2", "isHidden": true }
+        { "call": "first_negative([])", "expected": "-1", "isHidden": false },
+        { "call": "first_negative([0,-2])", "expected": "-2", "isHidden": false }
       ]
     }
   ],
@@ -83,8 +83,8 @@
         { "call": "linear_search([10,20,30,40],30)", "expected": "2", "isHidden": false },
         { "call": "linear_search([1,2,3],1)", "expected": "0", "isHidden": false },
         { "call": "linear_search([5,5,5],5)", "expected": "0", "isHidden": false },
-        { "call": "linear_search([],10)", "expected": "-1", "isHidden": true },
-        { "call": "linear_search([100],100)", "expected": "0", "isHidden": true }
+        { "call": "linear_search([],10)", "expected": "-1", "isHidden": false },
+        { "call": "linear_search([100],100)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -97,8 +97,8 @@
         { "call": "count_occurrences([1,2,2,3],2)", "expected": "2", "isHidden": false },
         { "call": "count_occurrences([5,5,5],5)", "expected": "3", "isHidden": false },
         { "call": "count_occurrences([1,2,3],4)", "expected": "0", "isHidden": false },
-        { "call": "count_occurrences([],1)", "expected": "0", "isHidden": true },
-        { "call": "count_occurrences([0,0],0)", "expected": "2", "isHidden": true }
+        { "call": "count_occurrences([],1)", "expected": "0", "isHidden": false },
+        { "call": "count_occurrences([0,0],0)", "expected": "2", "isHidden": false }
       ]
     },
     {
@@ -111,8 +111,8 @@
         { "call": "last_occurrence([1,2,2,3],2)", "expected": "2", "isHidden": false },
         { "call": "last_occurrence([5,1,5],5)", "expected": "2", "isHidden": false },
         { "call": "last_occurrence([9,8,7],7)", "expected": "2", "isHidden": false },
-        { "call": "last_occurrence([],1)", "expected": "-1", "isHidden": true },
-        { "call": "last_occurrence([4,4,4],4)", "expected": "2", "isHidden": true }
+        { "call": "last_occurrence([],1)", "expected": "-1", "isHidden": false },
+        { "call": "last_occurrence([4,4,4],4)", "expected": "2", "isHidden": false }
       ]
     },
     {
@@ -125,8 +125,8 @@
         { "call": "search_range([1,2,3,4],2,0,2)", "expected": "1", "isHidden": false },
         { "call": "search_range([10,20,30],30,1,2)", "expected": "2", "isHidden": false },
         { "call": "search_range([5,6,7],8,0,2)", "expected": "-1", "isHidden": false },
-        { "call": "search_range([],1,0,1)", "expected": "-1", "isHidden": true },
-        { "call": "search_range([1,2,3],1,1,2)", "expected": "-1", "isHidden": true }
+        { "call": "search_range([],1,0,1)", "expected": "-1", "isHidden": false },
+        { "call": "search_range([1,2,3],1,1,2)", "expected": "-1", "isHidden": false }
       ]
     },
     {
@@ -139,8 +139,8 @@
         { "call": "multi_search([1,2,3],1,3)", "expected": "True", "isHidden": false },
         { "call": "multi_search([5,6,7],5,7)", "expected": "True", "isHidden": false },
         { "call": "multi_search([1,2,3],4,5)", "expected": "False", "isHidden": false },
-        { "call": "multi_search([],1,2)", "expected": "False", "isHidden": true },
-        { "call": "multi_search([1],1,2)", "expected": "False", "isHidden": true }
+        { "call": "multi_search([],1,2)", "expected": "False", "isHidden": false },
+        { "call": "multi_search([1],1,2)", "expected": "False", "isHidden": false }
       ]
     }
   ],
@@ -156,8 +156,8 @@
         { "call": "bubble_sort_asc([88,92,75,100,84])", "expected": "[75,84,88,92,100]", "isHidden": false },
         { "call": "bubble_sort_asc([5,1,4,2,8])", "expected": "[1,2,4,5,8]", "isHidden": false },
         { "call": "bubble_sort_asc([3,3,3])", "expected": "[3,3,3]", "isHidden": false },
-        { "call": "bubble_sort_asc([])", "expected": "[]", "isHidden": true },
-        { "call": "bubble_sort_asc([42])", "expected": "[42]", "isHidden": true }
+        { "call": "bubble_sort_asc([])", "expected": "[]", "isHidden": false },
+        { "call": "bubble_sort_asc([42])", "expected": "[42]", "isHidden": false }
       ]
     },
     {
@@ -170,8 +170,8 @@
         { "call": "selection_sort_asc([64,25,12,22,11])", "expected": "[11,12,22,25,64]", "isHidden": false },
         { "call": "selection_sort_asc([3,1,2])", "expected": "[1,2,3]", "isHidden": false },
         { "call": "selection_sort_asc([7,7,7])", "expected": "[7,7,7]", "isHidden": false },
-        { "call": "selection_sort_asc([])", "expected": "[]", "isHidden": true },
-        { "call": "selection_sort_asc([9])", "expected": "[9]", "isHidden": true }
+        { "call": "selection_sort_asc([])", "expected": "[]", "isHidden": false },
+        { "call": "selection_sort_asc([9])", "expected": "[9]", "isHidden": false }
       ]
     },
     {
@@ -184,8 +184,8 @@
         { "call": "bubble_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "bubble_sort_desc([5,1,4,2])", "expected": "[5,4,2,1]", "isHidden": false },
         { "call": "bubble_sort_desc([9,9,9])", "expected": "[9,9,9]", "isHidden": false },
-        { "call": "bubble_sort_desc([])", "expected": "[]", "isHidden": true },
-        { "call": "bubble_sort_desc([100])", "expected": "[100]", "isHidden": true }
+        { "call": "bubble_sort_desc([])", "expected": "[]", "isHidden": false },
+        { "call": "bubble_sort_desc([100])", "expected": "[100]", "isHidden": false }
       ]
     },
     {
@@ -198,8 +198,8 @@
         { "call": "selection_sort_desc([3,1,2])", "expected": "[3,2,1]", "isHidden": false },
         { "call": "selection_sort_desc([10,20,30])", "expected": "[30,20,10]", "isHidden": false },
         { "call": "selection_sort_desc([7,7,7])", "expected": "[7,7,7]", "isHidden": false },
-        { "call": "selection_sort_desc([])", "expected": "[]", "isHidden": true },
-        { "call": "selection_sort_desc([5])", "expected": "[5]", "isHidden": true }
+        { "call": "selection_sort_desc([])", "expected": "[]", "isHidden": false },
+        { "call": "selection_sort_desc([5])", "expected": "[5]", "isHidden": false }
       ]
     },
     {
@@ -212,8 +212,8 @@
         { "call": "sort_passes([3,2,1])", "expected": "2", "isHidden": false },
         { "call": "sort_passes([5,1,4,2])", "expected": "3", "isHidden": false },
         { "call": "sort_passes([1,2,3])", "expected": "2", "isHidden": false },
-        { "call": "sort_passes([])", "expected": "0", "isHidden": true },
-        { "call": "sort_passes([9])", "expected": "0", "isHidden": true }
+        { "call": "sort_passes([])", "expected": "0", "isHidden": false },
+        { "call": "sort_passes([9])", "expected": "0", "isHidden": false }
       ]
     }
   ]

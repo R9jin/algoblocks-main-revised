@@ -10,8 +10,8 @@
         { "call": "cache_seq(4)", "expected": "[0,1,1,2,3]", "isHidden": false },
         { "call": "cache_seq(6)", "expected": "[0,1,1,2,3,5,8]", "isHidden": false },
         { "call": "cache_seq(0)", "expected": "[0]", "isHidden": false },
-        { "call": "cache_seq(1)", "expected": "[0,1]", "isHidden": true },
-        { "call": "cache_seq(-3)", "expected": "[]", "isHidden": true }
+        { "call": "cache_seq(1)", "expected": "[0,1]", "isHidden": false },
+        { "call": "cache_seq(-3)", "expected": "[]", "isHidden": false }
       ]
     },
     {
@@ -24,8 +24,8 @@
         { "call": "cache_lookup([0,1,1,2,3],3)", "expected": "2", "isHidden": false },
         { "call": "cache_lookup([0,1,1,2,3],4)", "expected": "3", "isHidden": false },
         { "call": "cache_lookup([0,1],1)", "expected": "1", "isHidden": false },
-        { "call": "cache_lookup([],2)", "expected": "-1", "isHidden": true },
-        { "call": "cache_lookup([0],0)", "expected": "0", "isHidden": true }
+        { "call": "cache_lookup([],2)", "expected": "-1", "isHidden": false },
+        { "call": "cache_lookup([0],0)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -38,8 +38,8 @@
         { "call": "top_down_fib(5)", "expected": "5", "isHidden": false },
         { "call": "top_down_fib(8)", "expected": "21", "isHidden": false },
         { "call": "top_down_fib(10)", "expected": "55", "isHidden": false },
-        { "call": "top_down_fib(0)", "expected": "0", "isHidden": true },
-        { "call": "top_down_fib(1)", "expected": "1", "isHidden": true }
+        { "call": "top_down_fib(0)", "expected": "0", "isHidden": false },
+        { "call": "top_down_fib(1)", "expected": "1", "isHidden": false }
       ]
     },
     {
@@ -52,8 +52,8 @@
         { "call": "bottom_up_fib(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
         { "call": "bottom_up_fib(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
         { "call": "bottom_up_fib(3)", "expected": "[0,1,1,2]", "isHidden": false },
-        { "call": "bottom_up_fib(0)", "expected": "[0]", "isHidden": true },
-        { "call": "bottom_up_fib(1)", "expected": "[0,1]", "isHidden": true }
+        { "call": "bottom_up_fib(0)", "expected": "[0]", "isHidden": false },
+        { "call": "bottom_up_fib(1)", "expected": "[0,1]", "isHidden": false }
       ]
     },
     {
@@ -66,8 +66,8 @@
         { "call": "compare_fib(5)", "expected": "difference_positive", "isHidden": false },
         { "call": "compare_fib(6)", "expected": "difference_positive", "isHidden": false },
         { "call": "compare_fib(7)", "expected": "difference_positive", "isHidden": false },
-        { "call": "compare_fib(2)", "expected": "equal", "isHidden": true },
-        { "call": "compare_fib(0)", "expected": "equal", "isHidden": true }
+        { "call": "compare_fib(2)", "expected": "equal", "isHidden": false },
+        { "call": "compare_fib(0)", "expected": "equal", "isHidden": false }
       ]
     }
   ],
@@ -83,8 +83,8 @@
         { "call": "fib_naive(5)", "expected": "5", "isHidden": false },
         { "call": "fib_naive(8)", "expected": "21", "isHidden": false },
         { "call": "fib_naive(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_naive(0)", "expected": "0", "isHidden": true },
-        { "call": "fib_naive(1)", "expected": "1", "isHidden": true }
+        { "call": "fib_naive(0)", "expected": "0", "isHidden": false },
+        { "call": "fib_naive(1)", "expected": "1", "isHidden": false }
       ]
     },
     {
@@ -97,8 +97,8 @@
         { "call": "fib_memo(5)", "expected": "5", "isHidden": false },
         { "call": "fib_memo(8)", "expected": "21", "isHidden": false },
         { "call": "fib_memo(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_memo(0)", "expected": "0", "isHidden": true },
-        { "call": "fib_memo(1)", "expected": "1", "isHidden": true }
+        { "call": "fib_memo(0)", "expected": "0", "isHidden": false },
+        { "call": "fib_memo(1)", "expected": "1", "isHidden": false }
       ]
     },
     {
@@ -111,8 +111,8 @@
         { "call": "fib_table(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
         { "call": "fib_table(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
         { "call": "fib_table(3)", "expected": "[0,1,1,2]", "isHidden": false },
-        { "call": "fib_table(0)", "expected": "[0]", "isHidden": true },
-        { "call": "fib_table(1)", "expected": "[0,1]", "isHidden": true }
+        { "call": "fib_table(0)", "expected": "[0]", "isHidden": false },
+        { "call": "fib_table(1)", "expected": "[0,1]", "isHidden": false }
       ]
     },
     {
@@ -125,8 +125,8 @@
         { "call": "fib_opt(5)", "expected": "5", "isHidden": false },
         { "call": "fib_opt(8)", "expected": "21", "isHidden": false },
         { "call": "fib_opt(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_opt(0)", "expected": "0", "isHidden": true },
-        { "call": "fib_opt(1)", "expected": "1", "isHidden": true }
+        { "call": "fib_opt(0)", "expected": "0", "isHidden": false },
+        { "call": "fib_opt(1)", "expected": "1", "isHidden": false }
       ]
     },
     {
@@ -139,8 +139,8 @@
         { "call": "fib_seq(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
         { "call": "fib_seq(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
         { "call": "fib_seq(3)", "expected": "[0,1,1,2]", "isHidden": false },
-        { "call": "fib_seq(0)", "expected": "[0]", "isHidden": true },
-        { "call": "fib_seq(1)", "expected": "[0,1]", "isHidden": true }
+        { "call": "fib_seq(0)", "expected": "[0]", "isHidden": false },
+        { "call": "fib_seq(1)", "expected": "[0,1]", "isHidden": false }
       ]
     }
   ],
@@ -156,8 +156,8 @@
         { "call": "knap_init(2,3)", "expected": "[[0,0,0],[0,0,0]]", "isHidden": false },
         { "call": "knap_init(1,5)", "expected": "[[0,0,0,0,0]]", "isHidden": false },
         { "call": "knap_init(3,2)", "expected": "[[0,0],[0,0],[0,0]]", "isHidden": false },
-        { "call": "knap_init(0,5)", "expected": "[]", "isHidden": true },
-        { "call": "knap_init(2,0)", "expected": "[[],[]]", "isHidden": true }
+        { "call": "knap_init(0,5)", "expected": "[]", "isHidden": false },
+        { "call": "knap_init(2,0)", "expected": "[[],[]]", "isHidden": false }
       ]
     },
     {
@@ -170,8 +170,8 @@
         { "call": "knap_choice([1,2],[10,20],2)", "expected": "20", "isHidden": false },
         { "call": "knap_choice([1,2,3],[10,15,40],5)", "expected": "65", "isHidden": false },
         { "call": "knap_choice([5],[100],4)", "expected": "0", "isHidden": false },
-        { "call": "knap_choice([],[],10)", "expected": "0", "isHidden": true },
-        { "call": "knap_choice([1],[10],0)", "expected": "0", "isHidden": true }
+        { "call": "knap_choice([],[],10)", "expected": "0", "isHidden": false },
+        { "call": "knap_choice([1],[10],0)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -184,8 +184,8 @@
         { "call": "knapsack([1,2,3],[10,15,40],5)", "expected": "55", "isHidden": false },
         { "call": "knapsack([2,3,4,5],[3,4,5,6],5)", "expected": "7", "isHidden": false },
         { "call": "knapsack([10,20],[100,200],5)", "expected": "0", "isHidden": false },
-        { "call": "knapsack([1,1],[10,20],0)", "expected": "0", "isHidden": true },
-        { "call": "knapsack([],[],10)", "expected": "0", "isHidden": true }
+        { "call": "knapsack([1,1],[10,20],0)", "expected": "0", "isHidden": false },
+        { "call": "knapsack([],[],10)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -198,8 +198,8 @@
         { "call": "knap_trace([1,2,3],[10,15,40],5)", "expected": "[1,2]", "isHidden": false },
         { "call": "knap_trace([2,3,4],[3,4,5],5)", "expected": "[1]", "isHidden": false },
         { "call": "knap_trace([5],[10],5)", "expected": "[0]", "isHidden": false },
-        { "call": "knap_trace([],[],5)", "expected": "[]", "isHidden": true },
-        { "call": "knap_trace([1],[10],0)", "expected": "[]", "isHidden": true }
+        { "call": "knap_trace([],[],5)", "expected": "[]", "isHidden": false },
+        { "call": "knap_trace([1],[10],0)", "expected": "[]", "isHidden": false }
       ]
     },
     {
@@ -212,8 +212,8 @@
         { "call": "capacity_track([1,2,3],5)", "expected": "[5,4,2,0]", "isHidden": false },
         { "call": "capacity_track([2,2],4)", "expected": "[4,2,0]", "isHidden": false },
         { "call": "capacity_track([5],5)", "expected": "[5,0]", "isHidden": false },
-        { "call": "capacity_track([],5)", "expected": "[5]", "isHidden": true },
-        { "call": "capacity_track([1],0)", "expected": "[0]", "isHidden": true }
+        { "call": "capacity_track([],5)", "expected": "[5]", "isHidden": false },
+        { "call": "capacity_track([1],0)", "expected": "[0]", "isHidden": false }
       ]
     }
   ],
@@ -229,8 +229,8 @@
         { "call": "lcs_init('A','B')", "expected": "[[0,0],[0,0]]", "isHidden": false },
         { "call": "lcs_init('ABC','AB')", "expected": "5x4_matrix", "isHidden": false },
         { "call": "lcs_init('A','')", "expected": "[[0]]", "isHidden": false },
-        { "call": "lcs_init('','')", "expected": "[[0]]", "isHidden": true },
-        { "call": "lcs_init('XYZ','XYZ')", "expected": "4x4_matrix", "isHidden": true }
+        { "call": "lcs_init('','')", "expected": "[[0]]", "isHidden": false },
+        { "call": "lcs_init('XYZ','XYZ')", "expected": "4x4_matrix", "isHidden": false }
       ]
     },
     {
@@ -243,8 +243,8 @@
         { "call": "lcs_match('A','A')", "expected": "1", "isHidden": false },
         { "call": "lcs_match('A','B')", "expected": "0", "isHidden": false },
         { "call": "lcs_match('C','C')", "expected": "1", "isHidden": false },
-        { "call": "lcs_match('A','')", "expected": "0", "isHidden": true },
-        { "call": "lcs_match('','A')", "expected": "0", "isHidden": true }
+        { "call": "lcs_match('A','')", "expected": "0", "isHidden": false },
+        { "call": "lcs_match('','A')", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -257,8 +257,8 @@
         { "call": "lcs_length('ABCBDAB','BDCAB')", "expected": "4", "isHidden": false },
         { "call": "lcs_length('AGGTAB','GXTXAYB')", "expected": "4", "isHidden": false },
         { "call": "lcs_length('AAAA','AA')", "expected": "2", "isHidden": false },
-        { "call": "lcs_length('','ABC')", "expected": "0", "isHidden": true },
-        { "call": "lcs_length('XYZ','ABC')", "expected": "0", "isHidden": true }
+        { "call": "lcs_length('','ABC')", "expected": "0", "isHidden": false },
+        { "call": "lcs_length('XYZ','ABC')", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -271,8 +271,8 @@
         { "call": "lcs_string('ABCBDAB','BDCAB')", "expected": "BCAB", "isHidden": false },
         { "call": "lcs_string('AGGTAB','GXTXAYB')", "expected": "GTAB", "isHidden": false },
         { "call": "lcs_string('AAAA','AA')", "expected": "AA", "isHidden": false },
-        { "call": "lcs_string('','ABC')", "expected": "", "isHidden": true },
-        { "call": "lcs_string('XYZ','ABC')", "expected": "", "isHidden": true }
+        { "call": "lcs_string('','ABC')", "expected": "", "isHidden": false },
+        { "call": "lcs_string('XYZ','ABC')", "expected": "", "isHidden": false }
       ]
     },
     {
@@ -285,8 +285,8 @@
         { "call": "lcs_backtrack('ABC','AC')", "expected": "3", "isHidden": false },
         { "call": "lcs_backtrack('A','A')", "expected": "1", "isHidden": false },
         { "call": "lcs_backtrack('ABCDE','ACE')", "expected": "5", "isHidden": false },
-        { "call": "lcs_backtrack('','')", "expected": "0", "isHidden": true },
-        { "call": "lcs_backtrack('ABC','XYZ')", "expected": "3", "isHidden": true }
+        { "call": "lcs_backtrack('','')", "expected": "0", "isHidden": false },
+        { "call": "lcs_backtrack('ABC','XYZ')", "expected": "3", "isHidden": false }
       ]
     }
   ]

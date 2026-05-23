@@ -10,8 +10,8 @@
         { "call": "largest_first([3,1,4,2])", "expected": "[4,3,2,1]", "isHidden": false },
         { "call": "largest_first([10,5,20])", "expected": "[20,10,5]", "isHidden": false },
         { "call": "largest_first([7])", "expected": "[7]", "isHidden": false },
-        { "call": "largest_first([])", "expected": "[]", "isHidden": true },
-        { "call": "largest_first([5,5,1])", "expected": "[5,5,1]", "isHidden": true }
+        { "call": "largest_first([])", "expected": "[]", "isHidden": false },
+        { "call": "largest_first([5,5,1])", "expected": "[5,5,1]", "isHidden": false }
       ]
     },
     {
@@ -24,8 +24,8 @@
         { "call": "smallest_first([3,1,4,2])", "expected": "[1,2,3,4]", "isHidden": false },
         { "call": "smallest_first([10,5,20])", "expected": "[5,10,20]", "isHidden": false },
         { "call": "smallest_first([7])", "expected": "[7]", "isHidden": false },
-        { "call": "smallest_first([])", "expected": "[]", "isHidden": true },
-        { "call": "smallest_first([2,2,1])", "expected": "[1,2,2]", "isHidden": true }
+        { "call": "smallest_first([])", "expected": "[]", "isHidden": false },
+        { "call": "smallest_first([2,2,1])", "expected": "[1,2,2]", "isHidden": false }
       ]
     },
     {
@@ -38,8 +38,8 @@
         { "call": "greedy_sum([10,50,20,100,5])", "expected": "170", "isHidden": false },
         { "call": "greedy_sum([15,25])", "expected": "40", "isHidden": false },
         { "call": "greedy_sum([5,5,5,5])", "expected": "15", "isHidden": false },
-        { "call": "greedy_sum([])", "expected": "0", "isHidden": true },
-        { "call": "greedy_sum([-10,-50,-20])", "expected": "-80", "isHidden": true }
+        { "call": "greedy_sum([])", "expected": "0", "isHidden": false },
+        { "call": "greedy_sum([-10,-50,-20])", "expected": "-80", "isHidden": false }
       ]
     },
     {
@@ -52,8 +52,8 @@
         { "call": "closest([1,5,9],6)", "expected": "5", "isHidden": false },
         { "call": "closest([10,20,30],25)", "expected": "20", "isHidden": false },
         { "call": "closest([3,7,11],10)", "expected": "11", "isHidden": false },
-        { "call": "closest([5],10)", "expected": "5", "isHidden": true },
-        { "call": "closest([2,4,6],5)", "expected": "4", "isHidden": true }
+        { "call": "closest([5],10)", "expected": "5", "isHidden": false },
+        { "call": "closest([2,4,6],5)", "expected": "4", "isHidden": false }
       ]
     },
     {
@@ -66,8 +66,8 @@
         { "call": "greedy_path([[1,2],[3,4]])", "expected": "8", "isHidden": false },
         { "call": "greedy_path([[5,1],[2,3]])", "expected": "10", "isHidden": false },
         { "call": "greedy_path([[9]])", "expected": "9", "isHidden": false },
-        { "call": "greedy_path([[1,2,3]])", "expected": "6", "isHidden": true },
-        { "call": "greedy_path([[1,1],[1,1]])", "expected": "2", "isHidden": true }
+        { "call": "greedy_path([[1,2,3]])", "expected": "6", "isHidden": false },
+        { "call": "greedy_path([[1,1],[1,1]])", "expected": "2", "isHidden": false }
       ]
     }
   ],
@@ -83,8 +83,8 @@
         { "call": "change_ph(47)", "expected": "[2,0,1,2]", "isHidden": false },
         { "call": "change_ph(99)", "expected": "[4,1,1,4]", "isHidden": false },
         { "call": "change_ph(20)", "expected": "[1,0,0,0]", "isHidden": false },
-        { "call": "change_ph(0)", "expected": "[0,0,0,0]", "isHidden": true },
-        { "call": "change_ph(-5)", "expected": "'Invalid'", "isHidden": true }
+        { "call": "change_ph(0)", "expected": "[0,0,0,0]", "isHidden": false },
+        { "call": "change_ph(-5)", "expected": "'Invalid'", "isHidden": false }
       ]
     },
     {
@@ -97,8 +97,8 @@
         { "call": "change_us(41)", "expected": "[1,1,1,1]", "isHidden": false },
         { "call": "change_us(99)", "expected": "[3,2,0,4]", "isHidden": false },
         { "call": "change_us(25)", "expected": "[1,0,0,0]", "isHidden": false },
-        { "call": "change_us(0)", "expected": "[0,0,0,0]", "isHidden": true },
-        { "call": "change_us(-1)", "expected": "'Invalid'", "isHidden": true }
+        { "call": "change_us(0)", "expected": "[0,0,0,0]", "isHidden": false },
+        { "call": "change_us(-1)", "expected": "'Invalid'", "isHidden": false }
       ]
     },
     {
@@ -111,8 +111,8 @@
         { "call": "coin_count_ph(47)", "expected": "5", "isHidden": false },
         { "call": "coin_count_ph(99)", "expected": "10", "isHidden": false },
         { "call": "coin_count_ph(20)", "expected": "1", "isHidden": false },
-        { "call": "coin_count_ph(0)", "expected": "0", "isHidden": true },
-        { "call": "coin_count_ph(13)", "expected": "4", "isHidden": true }
+        { "call": "coin_count_ph(0)", "expected": "0", "isHidden": false },
+        { "call": "coin_count_ph(13)", "expected": "4", "isHidden": false }
       ]
     },
     {
@@ -125,8 +125,8 @@
         { "call": "custom_change(6)", "expected": "[1,0,1]", "isHidden": false },
         { "call": "custom_change(8)", "expected": "[0,0,2]", "isHidden": false },
         { "call": "custom_change(3)", "expected": "[0,1,0]", "isHidden": false },
-        { "call": "custom_change(0)", "expected": "[0,0,0]", "isHidden": true },
-        { "call": "custom_change(2)", "expected": "[2,0,0]", "isHidden": true }
+        { "call": "custom_change(0)", "expected": "[0,0,0]", "isHidden": false },
+        { "call": "custom_change(2)", "expected": "[2,0,0]", "isHidden": false }
       ]
     },
     {
@@ -139,8 +139,8 @@
         { "call": "can_change([20,10,5,1],47)", "expected": "True", "isHidden": false },
         { "call": "can_change([20,10,5,1],3)", "expected": "True", "isHidden": false },
         { "call": "can_change([20,10,5,1],0)", "expected": "True", "isHidden": false },
-        { "call": "can_change([20,10,5,1],-5)", "expected": "False", "isHidden": true },
-        { "call": "can_change([20,10,5,1],7)", "expected": "True", "isHidden": true }
+        { "call": "can_change([20,10,5,1],-5)", "expected": "False", "isHidden": false },
+        { "call": "can_change([20,10,5,1],7)", "expected": "True", "isHidden": false }
       ]
     }
   ],
@@ -156,8 +156,8 @@
         { "call": "sort_end([1,3,0],[2,4,6])", "expected": "[[1,3,0],[2,4,6]]", "isHidden": false },
         { "call": "sort_end([1,2],[2,3])", "expected": "[[1,2],[2,3]]", "isHidden": false },
         { "call": "sort_end([5,1],[9,2])", "expected": "[[1,5],[2,9]]", "isHidden": false },
-        { "call": "sort_end([],[])", "expected": "[]", "isHidden": true },
-        { "call": "sort_end([1],[2])", "expected": "[[1],[2]]", "isHidden": true }
+        { "call": "sort_end([],[])", "expected": "[]", "isHidden": false },
+        { "call": "sort_end([1],[2])", "expected": "[[1],[2]]", "isHidden": false }
       ]
     },
     {
@@ -170,8 +170,8 @@
         { "call": "schedule([1,3,0,5,8,5],[2,4,6,7,9,9])", "expected": "4", "isHidden": false },
         { "call": "schedule([10,12,20],[20,25,30])", "expected": "2", "isHidden": false },
         { "call": "schedule([1,2,3],[2,3,4])", "expected": "3", "isHidden": false },
-        { "call": "schedule([],[])", "expected": "0", "isHidden": true },
-        { "call": "schedule([1,1,1],[5,5,5])", "expected": "1", "isHidden": true }
+        { "call": "schedule([],[])", "expected": "0", "isHidden": false },
+        { "call": "schedule([1,1,1],[5,5,5])", "expected": "1", "isHidden": false }
       ]
     },
     {
@@ -184,8 +184,8 @@
         { "call": "conflict(1,5,4,8)", "expected": "True", "isHidden": false },
         { "call": "conflict(1,3,3,5)", "expected": "False", "isHidden": false },
         { "call": "conflict(2,6,4,7)", "expected": "True", "isHidden": false },
-        { "call": "conflict(1,2,3,4)", "expected": "False", "isHidden": true },
-        { "call": "conflict(5,10,6,7)", "expected": "True", "isHidden": true }
+        { "call": "conflict(1,2,3,4)", "expected": "False", "isHidden": false },
+        { "call": "conflict(5,10,6,7)", "expected": "True", "isHidden": false }
       ]
     },
     {
@@ -198,8 +198,8 @@
         { "call": "total_time([[1,3],[3,5]])", "expected": "4", "isHidden": false },
         { "call": "total_time([[1,4],[5,6]])", "expected": "4", "isHidden": false },
         { "call": "total_time([[2,5]])", "expected": "3", "isHidden": false },
-        { "call": "total_time([])", "expected": "0", "isHidden": true },
-        { "call": "total_time([[1,1]])", "expected": "0", "isHidden": true }
+        { "call": "total_time([])", "expected": "0", "isHidden": false },
+        { "call": "total_time([[1,1]])", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -212,8 +212,8 @@
         { "call": "rooms([[1,3],[2,4],[5,6]])", "expected": "2", "isHidden": false },
         { "call": "rooms([[1,2],[2,3],[3,4]])", "expected": "2", "isHidden": false },
         { "call": "rooms([[1,10]])", "expected": "1", "isHidden": false },
-        { "call": "rooms([])", "expected": "0", "isHidden": true },
-        { "call": "rooms([[1,2],[1,2]])", "expected": "2", "isHidden": true }
+        { "call": "rooms([])", "expected": "0", "isHidden": false },
+        { "call": "rooms([[1,2],[1,2]])", "expected": "2", "isHidden": false }
       ]
     }
   ]

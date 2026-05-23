@@ -10,8 +10,8 @@
         { "call": "find_best([5,10,15],5)", "expected": "0", "isHidden": false },
         { "call": "find_best([1,2,3],1)", "expected": "0", "isHidden": false },
         { "call": "find_best(['A','B'], 'A')", "expected": "0", "isHidden": false },
-        { "call": "find_best([],5)", "expected": "-1", "isHidden": true },
-        { "call": "find_best([None,1],None)", "expected": "0", "isHidden": true }
+        { "call": "find_best([],5)", "expected": "-1", "isHidden": false },
+        { "call": "find_best([None,1],None)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -24,8 +24,8 @@
         { "call": "find_worst([1,2,3],3)", "expected": "2", "isHidden": false },
         { "call": "find_worst([4,5,6],6)", "expected": "2", "isHidden": false },
         { "call": "find_worst(['X','Y'], 'Y')", "expected": "1", "isHidden": false },
-        { "call": "find_worst([1,2,3],1)", "expected": "-1", "isHidden": true },
-        { "call": "find_worst([],5)", "expected": "-1", "isHidden": true }
+        { "call": "find_worst([1,2,3],1)", "expected": "-1", "isHidden": false },
+        { "call": "find_worst([],5)", "expected": "-1", "isHidden": false }
       ]
     },
     {
@@ -38,8 +38,8 @@
         { "call": "constant([9,8,7])", "expected": "9", "isHidden": false },
         { "call": "constant([1,2,3,4])", "expected": "1", "isHidden": false },
         { "call": "constant(['A','B'])", "expected": "'A'", "isHidden": false },
-        { "call": "constant([])", "expected": "'Empty'", "isHidden": true },
-        { "call": "constant([None,1])", "expected": "None", "isHidden": true }
+        { "call": "constant([])", "expected": "'Empty'", "isHidden": false },
+        { "call": "constant([None,1])", "expected": "None", "isHidden": false }
       ]
     },
     {
@@ -52,8 +52,8 @@
         { "call": "linear_growth(3)", "expected": "3", "isHidden": false },
         { "call": "linear_growth(5)", "expected": "5", "isHidden": false },
         { "call": "linear_growth(10)", "expected": "10", "isHidden": false },
-        { "call": "linear_growth(0)", "expected": "0", "isHidden": true },
-        { "call": "linear_growth(-2)", "expected": "0", "isHidden": true }
+        { "call": "linear_growth(0)", "expected": "0", "isHidden": false },
+        { "call": "linear_growth(-2)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -66,8 +66,8 @@
         { "call": "quadratic_growth(2)", "expected": "4", "isHidden": false },
         { "call": "quadratic_growth(3)", "expected": "9", "isHidden": false },
         { "call": "quadratic_growth(4)", "expected": "16", "isHidden": false },
-        { "call": "quadratic_growth(0)", "expected": "0", "isHidden": true },
-        { "call": "quadratic_growth(-1)", "expected": "0", "isHidden": true }
+        { "call": "quadratic_growth(0)", "expected": "0", "isHidden": false },
+        { "call": "quadratic_growth(-1)", "expected": "0", "isHidden": false }
       ]
     }
   ],
@@ -83,8 +83,8 @@
         { "call": "lookup([1]*100,50)", "expected": "1", "isHidden": false },
         { "call": "lookup([5]*100,50)", "expected": "5", "isHidden": false },
         { "call": "lookup([9,8,7,6,5]*20,50)", "expected": "5", "isHidden": false },
-        { "call": "lookup([],50)", "expected": "'Error'", "isHidden": true },
-        { "call": "lookup([1,2,3],100)", "expected": "'Error'", "isHidden": true }
+        { "call": "lookup([],50)", "expected": "'Error'", "isHidden": false },
+        { "call": "lookup([1,2,3],100)", "expected": "'Error'", "isHidden": false }
       ]
     },
     {
@@ -97,8 +97,8 @@
         { "call": "traverse([1,2,3,4,5])", "expected": "5", "isHidden": false },
         { "call": "traverse([10,20])", "expected": "2", "isHidden": false },
         { "call": "traverse([0])", "expected": "1", "isHidden": false },
-        { "call": "traverse([])", "expected": "0", "isHidden": true },
-        { "call": "traverse(None)", "expected": "0", "isHidden": true }
+        { "call": "traverse([])", "expected": "0", "isHidden": false },
+        { "call": "traverse(None)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -111,8 +111,8 @@
         { "call": "halve_count(16)", "expected": "4", "isHidden": false },
         { "call": "halve_count(8)", "expected": "3", "isHidden": false },
         { "call": "halve_count(32)", "expected": "5", "isHidden": false },
-        { "call": "halve_count(1)", "expected": "0", "isHidden": true },
-        { "call": "halve_count(-5)", "expected": "0", "isHidden": true }
+        { "call": "halve_count(1)", "expected": "0", "isHidden": false },
+        { "call": "halve_count(-5)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -125,8 +125,8 @@
         { "call": "pairs(2)", "expected": "4", "isHidden": false },
         { "call": "pairs(3)", "expected": "9", "isHidden": false },
         { "call": "pairs(4)", "expected": "16", "isHidden": false },
-        { "call": "pairs(0)", "expected": "0", "isHidden": true },
-        { "call": "pairs(-1)", "expected": "0", "isHidden": true }
+        { "call": "pairs(0)", "expected": "0", "isHidden": false },
+        { "call": "pairs(-1)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -139,8 +139,8 @@
         { "call": "double_loop(5)", "expected": "10", "isHidden": false },
         { "call": "double_loop(10)", "expected": "20", "isHidden": false },
         { "call": "double_loop(1)", "expected": "2", "isHidden": false },
-        { "call": "double_loop(0)", "expected": "0", "isHidden": true },
-        { "call": "double_loop(-2)", "expected": "0", "isHidden": true }
+        { "call": "double_loop(0)", "expected": "0", "isHidden": false },
+        { "call": "double_loop(-2)", "expected": "0", "isHidden": false }
       ]
     }
   ],
@@ -156,8 +156,8 @@
         { "call": "running_total([1,2,3])", "expected": "6", "isHidden": false },
         { "call": "running_total([10,20])", "expected": "30", "isHidden": false },
         { "call": "running_total([5])", "expected": "5", "isHidden": false },
-        { "call": "running_total([])", "expected": "0", "isHidden": true },
-        { "call": "running_total(None)", "expected": "0", "isHidden": true }
+        { "call": "running_total([])", "expected": "0", "isHidden": false },
+        { "call": "running_total(None)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -170,8 +170,8 @@
         { "call": "build_string(['a','b','c'])", "expected": "3", "isHidden": false },
         { "call": "build_string(['x','y'])", "expected": "2", "isHidden": false },
         { "call": "build_string(['z'])", "expected": "1", "isHidden": false },
-        { "call": "build_string([])", "expected": "0", "isHidden": true },
-        { "call": "build_string(None)", "expected": "0", "isHidden": true }
+        { "call": "build_string([])", "expected": "0", "isHidden": false },
+        { "call": "build_string(None)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -184,8 +184,8 @@
         { "call": "matrix_size(2)", "expected": "4", "isHidden": false },
         { "call": "matrix_size(3)", "expected": "9", "isHidden": false },
         { "call": "matrix_size(4)", "expected": "16", "isHidden": false },
-        { "call": "matrix_size(0)", "expected": "0", "isHidden": true },
-        { "call": "matrix_size(-1)", "expected": "0", "isHidden": true }
+        { "call": "matrix_size(0)", "expected": "0", "isHidden": false },
+        { "call": "matrix_size(-1)", "expected": "0", "isHidden": false }
       ]
     },
     {
@@ -198,8 +198,8 @@
         { "call": "in_place([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
         { "call": "in_place([5])", "expected": "[10]", "isHidden": false },
         { "call": "in_place([0,0])", "expected": "[0,0]", "isHidden": false },
-        { "call": "in_place([])", "expected": "[]", "isHidden": true },
-        { "call": "in_place(None)", "expected": "[]", "isHidden": true }
+        { "call": "in_place([])", "expected": "[]", "isHidden": false },
+        { "call": "in_place(None)", "expected": "[]", "isHidden": false }
       ]
     },
     {
@@ -212,8 +212,8 @@
         { "call": "out_place([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
         { "call": "out_place([10])", "expected": "[20]", "isHidden": false },
         { "call": "out_place([0,1])", "expected": "[0,2]", "isHidden": false },
-        { "call": "out_place([])", "expected": "[]", "isHidden": true },
-        { "call": "out_place(None)", "expected": "[]", "isHidden": true }
+        { "call": "out_place([])", "expected": "[]", "isHidden": false },
+        { "call": "out_place(None)", "expected": "[]", "isHidden": false }
       ]
     }
   ]
