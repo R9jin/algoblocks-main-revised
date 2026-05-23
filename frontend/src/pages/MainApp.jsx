@@ -558,13 +558,41 @@ export default function MainApp() {
     }
   };
 
-  // --- SAVE / DELETE ---
+  // --- SAVE / DELETE / EXPORT ---
   const openSaveModal = () => {
     if (!activeTab.blocklyJson) { showToast("The workspace is empty. Nothing to save!", "error"); return; }
     setSaveModal({
       isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
       title: activeTab.title !== "Untitled Project" ? activeTab.title : "", description: "", category: "Custom Templates", saveType: activeTab.saveType
     });
+  };
+
+  // NEW: Export active workspace to local JSON file
+  const handleExportJson = () => {
+    if (!activeTab.blocklyJson) {
+      showToast("The workspace is empty. Nothing to export!", "error");
+      return;
+    }
+    
+    // Convert the JSON object to a string
+    const jsonString = JSON.stringify(activeTab.blocklyJson, null, 2);
+    
+    // Create a Blob from the JSON string
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    // Create an invisible anchor element to trigger the download
+    const downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.href = url;
+    downloadAnchorNode.download = `${activeTab.title !== "Untitled Project" ? activeTab.title : "algoblocks_workspace"}.json`;
+    
+    // Append to body, click, and clean up
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    URL.revokeObjectURL(url);
+    
+    showToast("Workspace exported as JSON", "success");
   };
 
   const handleEditItem = (e, item) => {
@@ -663,9 +691,10 @@ export default function MainApp() {
         </div>
       )}
 
+      {/* NEW: Passed handleExport to WorkspaceHeader */}
       <WorkspaceHeader
         viewMode={activeTab.viewMode} setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })}
-        runCode={handleRunCode} handleExport={openSaveModal} handleSaveToDB={openSaveModal}
+        runCode={handleRunCode} handleExport={handleExportJson} handleSaveToDB={openSaveModal}
         currentProjectId={activeTab.currentLoadedId} currentProjectTitle={activeTab.title}
         handleUpdateDB={openSaveModal} isEvaluating={isEvaluating}
       />
