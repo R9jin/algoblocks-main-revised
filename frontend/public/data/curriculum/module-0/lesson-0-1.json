@@ -2,7 +2,7 @@
   "lessonId": "lesson-0-1",
   "moduleId": "module-0",
   "title": "The AlgoBlocks Workspace",
-  "description": "Learn the structure of the AlgoBlocks environment and understand how algorithms are visually created and executed.",
+  "description": "Welcome to AlgoBlocks. Before building algorithms, it is important to understand the structure of the environment where visual programs are created and executed. This lesson introduces the block-based workspace, explains how visual programming reduces syntax-related errors, and demonstrates how block arrangements correspond to executable Python code. The goal is to establish a clear understanding of how computational logic is represented visually and translated into structured program output.",
   "difficulty": "Beginner",
   "estimatedTime": "15 min",
   "prerequisites": "None",
@@ -38,31 +38,31 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Before building algorithms, students must first understand how the AlgoBlocks environment works. AlgoBlocks is designed to simplify algorithm learning through visual programming and interactive execution.\n\nInstead of writing syntax-heavy code immediately, learners can focus on understanding logic, sequencing, and problem-solving using draggable visual blocks.\n\nThe workspace acts as the main learning environment where algorithms are assembled, executed, and observed step-by-step."
+      "content": "Before constructing algorithms, it is necessary to understand the environment in which they are developed. AlgoBlocks is a visual programming system designed to reduce cognitive overhead by removing the need to manually write syntax-heavy code.\n\nInstead of focusing on language-specific syntax rules, learners work with block-based constructs that represent logical operations. These blocks can be connected to form sequences that define program behavior. This approach allows students to concentrate on computational thinking, including sequencing, logic design, and problem decomposition."
     },
     {
       "id": "workspace-overview",
       "type": "concept",
       "title": "Overview of the Workspace",
-      "content": "The AlgoBlocks workspace is divided into several important areas that work together during algorithm creation.\n\nThe Toolbox contains all available programming blocks grouped into categories such as variables, loops, conditions, arrays, and mathematical operations.\n\nThe Workspace Canvas is the main area where blocks are dragged and connected to form algorithms visually.\n\nThe Output Console displays the result of the algorithm execution and helps students observe how their instructions affect the final output."
+      "content": "The AlgoBlocks workspace consists of several functional components that collectively support program construction and execution.\n\nThe Toolbox contains categorized programming blocks such as variables, loops, conditional statements, arrays, and arithmetic operations.\n\nThe Workspace Canvas serves as the primary area where blocks are arranged and connected to define program logic.\n\nThe system generates equivalent Python code based on the block structure, allowing learners to observe the relationship between visual logic and textual programming representation.\n\nThe Output Console displays execution results, enabling verification of program behavior and logical correctness."
     },
     {
       "id": "sequential-execution",
       "type": "deep_dive",
       "title": "Understanding Sequential Execution",
-      "content": "Algorithms inside AlgoBlocks execute sequentially from top to bottom. This means instructions are processed in the exact order they appear unless a condition or loop changes the execution flow.\n\nSequential execution is one of the most fundamental concepts in programming because computers follow instructions step-by-step.\n\nEven small changes in instruction order can produce completely different outputs. Because of this, programmers must carefully organize instructions to ensure the algorithm behaves correctly."
+      "content": "Programs in AlgoBlocks execute according to sequential control flow unless explicitly modified by control structures such as loops or conditionals.\n\nSequential execution follows a top-to-bottom evaluation model in which each instruction is executed in the order it appears. This behavior reflects the fundamental execution model used in imperative programming languages.\n\nCorrect ordering of instructions is essential. Misordering operations can lead to incorrect program output or logical errors. Visual programming environments make this execution model explicit by allowing learners to observe structural flow directly."
     },
     {
       "id": "visual-learning",
       "type": "real_world_connection",
       "title": "Why Visual Learning Matters",
-      "content": "Many beginner programmers struggle because they focus too heavily on memorizing programming syntax instead of understanding logic.\n\nVisual programming environments like AlgoBlocks help students develop computational thinking by allowing them to focus on problem-solving first.\n\nThis teaching approach is widely used in beginner computer science education because visual interaction makes abstract programming concepts easier to understand."
+      "content": "Traditional programming instruction often introduces a high cognitive load due to syntax requirements and abstract control flow representation. This can hinder early-stage understanding of algorithmic logic.\n\nVisual programming reduces these barriers by allowing learners to construct programs through direct manipulation of logical components. This supports construction-based learning, where understanding is developed through active creation rather than passive observation.\n\nAs a result, learners can focus on algorithmic reasoning, pattern recognition, and structural decomposition without being blocked by syntax errors."
     },
     {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "The AlgoBlocks workspace is the main environment used to build and execute algorithms visually. It includes the Toolbox, Workspace Canvas, and Output Console. Algorithms execute sequentially from top to bottom, helping students understand how instructions are processed step-by-step."
+      "content": "The AlgoBlocks workspace provides a structured environment for constructing and executing visual programs. It consists of a Toolbox for available blocks, a Workspace Canvas for assembling logic, and an Output Console for observing execution results. Programs execute sequentially unless modified by control structures. The system also maps visual structures to equivalent Python code, reinforcing the relationship between visual logic and textual programming representations."
     }
   ],
   "references": [
@@ -73,6 +73,18 @@
     {
       "title": "MIT Scratch — Visual Programming Concepts",
       "url": "https://scratch.mit.edu"
+    },
+    {
+      "title": "Programming Learning Platform with Visual Aids (Chung, 2025)",
+      "url": "https://doi.org/10.32535/jicp.v8i1.4002"
+    },
+    {
+      "title": "Learning Evaluation Using Block Programming (Huda et al., 2025)",
+      "url": "https://doi.org/10.58723/ijoem.v4i3.473"
+    },
+    {
+      "title": "Constructionism (Donaldson, 2014)",
+      "url": "https://oaktrust.library.tamu.edu/server/api/core/bitstreams/2b76d854-9be8-4c44-9616-a3136543076b/content"
     }
   ]
 }

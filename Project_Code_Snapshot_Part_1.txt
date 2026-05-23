@@ -1,11 +1,1613 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 5) ---
 
---- TIMESTAMP: 2026-05-04 15:29:11 ---
+--- TIMESTAMP: 2026-05-23 19:37:11 ---
 
 
 --- FILE: README.md ---
 
 # algoblocks-main-revised
+
+--- FILE: TODO.md ---
+
+# TODO
+
+## Phase 1 â€” Gather / Understand (already done)
+- [x] Reviewed existing `api/semantic_nlg.py`
+- [x] Reviewed `api/analyzer.py` to understand what complexity strings and AST nodes are passed into NLG
+- [x] Found all usages of `SemanticNLGEngine` and `generate_explanations`
+
+## Phase 2 â€” Plan enhancement (approved)
+- [x] Define robust Big-O parsing + normalization layer (semantic labels; graceful fallback)
+- [x] Implement AST-driven pattern detectors (loop depth, recursion/backtracking risk, comprehension expansion, membership-in-loop detection, graph traversal detection, repeated call density)
+- [x] Separate concerns: structure detection, time reasoning, space reasoning, pattern insights
+- [x] Add dual-audience phrasing helpers (beginner-friendly + CS terminology)
+- [x] Reduce anti-template repetition by assembling from semantic fragments
+- [ ] Ensure compatibility with analyzer-emitted strings (including `T(n)=...`, `O(âˆšn)`, `O(E log V)`, `O(n logÂ² n)`, `O(n+m)`, amortized, undefined/âˆž)
+
+
+## Phase 3 â€” Implementation
+- [ ] Refactor `api/semantic_nlg.py` accordingly
+- [ ] Add extensive internal tests (small script or unit-like checks) for Big-O parsing
+
+## Phase 4 â€” Verification
+- [ ] Run backend analyzer flow (smoke test) to ensure no runtime errors
+- [ ] Manually validate a few known outputs (e.g., binary search, quick sort patterns, recursive factorial, nested loops)
+
+
+--- FILE: api/analyzer.py ---
+
+# frontend/public/python_engine/analyzer.py
+import ast
+import time
+from collections import deque, Counter
+from semantic_nlg import SemanticNLGEngine
+from dynamic_tracer import AlgoBlocksTracer  
+
+class ComplexityAnalyzer(ast.NodeVisitor):
+    """
+    A Context-Aware, Multi-Pass Rule-Based AST Traversal Algorithm.
+    Evaluates time and space complexity line-by-line.
+    Upgraded to ingest Dynamic Tracer telemetry to confirm real-time operations,
+    and deeply integrated to handle modern Blockly AST transformations.
+    """
+
+    def __init__(self, source_code, trace_data=None):
+        self.source_lines = source_code.splitlines()
+        self.trace_data = trace_data or {"history": [], "line_hits": {}}
+        self._details = []                
+        self._bottlenecks_applied = False
+        
+        # Structural trackers
+        self.current_depth = 0           
+        self.loop_depth = 0
+        self.log_loop_depth = 0          
+        self.sqrt_loop_depth = 0
+        self.graph_depth = 0             
+        self.in_if_depth = 0
+        
+        # Advanced Symbolic Multiple Variable Tracking
+        self.var_dimensions = {} 
+        self.available_dims = ['n', 'm', 'k', 'p', 'q']
+        self.active_poly_dims = [] 
+        
+        # Peak complexity trackers
+        self.max_complexity = 0          
+        self.max_poly_str = "O(1)"
+        self.max_log = 0                 
+        self.max_sqrt = 0                
+        self.max_exp = 0
+        self.max_graph_ve = 0                 
+        self.max_space_weight = 0        
+        
+        self.variable_complexities = {}  
+        self.custom_functions = {}       
+        self.custom_space = {}           
+        self.current_function_name = None
+        self.recursive_calls_count = 0   
+        self.symbol_table = {}           
+        self.reachable_funcs = set()     
+        self.memoized_funcs = set() 
+        self.indirect_recursive_funcs = set() 
+        
+        self.in_dead_code = False
+        self.in_graph_context = False        
+        self.has_recursion_in_loop = False  
+        self.has_slicing = False            
+        self.has_division = False           
+
+        self.first_rec_line = float('inf')
+        self.conditional_partition_lines = []
+        self.logic_hints = {} 
+
+        # Extended Built-In Complexities accommodating Blockly AST nodes
+        self.builtin_complexities = {
+            'sort': {'time': 'O(n log n)', 'space': 'O(log n)', 'desc': 'uses the in-place Timsort algorithm which involves minimal auxiliary storage'},
+            'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'creates a completely new sorted list while iterating through the original input'},
+            'join': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through every element in the collection to concatenate them into a single string'},
+            'split': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'scans the entire string to identify delimiters and allocate new substrings'},
+            'list': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through the iterable to copy elements into a new list structure'},
+            'set': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through the iterable to build a new hash set'},
+            'dict': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through the iterable to build a new dictionary'},
+            'tuple': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through the iterable to copy elements into a new tuple'},
+            'append': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time operation by appending to a pre-allocated sequence'},
+            'insert': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must shift all subsequent elements in the array to make room for the new entry'},
+            'max': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan across every element to identify the largest value'},
+            'min': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan across every element to identify the smallest value'},
+            'sum': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan to accumulate the total sum'},
+            'any': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan to check for truthy values'},
+            'all': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan to check for falsy values'},
+            'len': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'accesses a pre-stored attribute of the object, requiring no iteration'},
+            'matmul': {'time': 'O(n^3)', 'space': 'O(n^2)', 'desc': 'performs matrix multiplication which mathematically scales cubically with dimensions'},
+            'dot': {'time': 'O(n^3)', 'space': 'O(n^2)', 'desc': 'calculates the dot product of multi-dimensional arrays, dominating execution time'},
+            'input': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'reads a sequence of characters from standard input sequentially and allocates a new string object'},
+            
+            # Additional Standard/Block Built-ins
+            'abs': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time mathematical absolute value calculation'},
+            'round': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time numerical rounding operation'},
+            'int': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type cast to integer'},
+            'float': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type cast to float'},
+            'bool': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type cast to boolean'},
+            'type': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type inspection'},
+            'isinstance': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type validation check'},
+            'str': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'allocates a new string representation which scales linearly with the size of the object'},
+            'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must scan the array to find the target element and then shift subsequent elements'},
+            'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'performs a linear search to locate the element index'},
+            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'performs a linear scan to count all occurrences'},
+            'find': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'performs a linear string search'},
+            'replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'traverses the string and allocates memory for replacements'},
+            'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'creates a shallow copy allocating new memory for the collection'},
+            'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'reverses the collection in-place'},
+            'extend': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'iterates through elements to append them to the existing list'},
+            'upper': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates over the string to construct a new uppercase copy'},
+            'lower': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates over the string to construct a new lowercase copy'},
+            'title': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates over the string to construct a new title-cased copy'},
+            'capitalize': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates over the string to construct a new capitalized copy'},
+            'keys': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'creates a lightweight view object of the dictionary keys in constant time'},
+            'values': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'creates a lightweight view object of the dictionary values in constant time'},
+            'items': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'creates a lightweight view object of the dictionary items in constant time'},
+            'reversed': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a reverse iterator object in constant time'},
+            'enumerate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns an enumerate object in constant time'},
+            'zip': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a zip iterator object in constant time'},
+            'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a range sequence object in constant time'}
+        }
+        self.aliases = {}
+        self.nlg_engine = SemanticNLGEngine(self)
+
+    @property
+    def details(self):
+        if not getattr(self, '_bottlenecks_applied', False) and len(self._details) > 0:
+            self._apply_bottlenecks()
+            self._bottlenecks_applied = True
+        return self._details
+
+    @details.setter
+    def details(self, value):
+        self._details = value
+        self._bottlenecks_applied = False
+
+    def _apply_bottlenecks(self):
+        final_time = self.get_final_asymptotic_badge()
+        final_space = self.get_final_space_badge()
+        max_w = max([d.get('weight', -1) for d in self._details], default=-1)
+        
+        excluded_complexities = ["O(1)", "O(log n)", "O(âˆšn)", "O(n)", "O(n + m)", "O(m)", "-", ""]
+        praise_complexities = ["O(log n)", "O(âˆšn)"]
+        
+        for d in self._details:
+            if d.get('weight', -1) == max_w and max_w > 0 and final_time not in excluded_complexities:
+                warning = self.nlg_engine.get_time_bottleneck_warning(d.get('operation', ''), final_time)
+                if warning not in d.get('time_explanation', ''):
+                    d['time_explanation'] = str(d.get('time_explanation', '')) + warning
+                
+            if d.get('global_space', '') == final_space and final_space not in excluded_complexities:
+                warning = self.nlg_engine.get_space_bottleneck_warning(d.get('operation', ''), final_space)
+                if warning not in d.get('space_explanation', ''):
+                    d['space_explanation'] = str(d.get('space_explanation', '')) + warning
+
+            if d.get('global_time', '') in praise_complexities:
+                praise = self.nlg_engine.get_time_optimization_praise(d.get('operation', ''), d.get('global_time', ''))
+                if "ðŸŒŸ **HIGHLY OPTIMIZED:**" not in d.get('time_explanation', '') and "ðŸŒŸ **EFFICIENT SCALING:**" not in d.get('time_explanation', '') and "ðŸŒŸ **ALGORITHM MASTERY:**" not in d.get('time_explanation', ''):
+                    d['time_explanation'] = str(d.get('time_explanation', '')) + praise
+                    
+    def add_logic_hint(self, node, hint):
+        lineno = getattr(node, 'lineno', -1)
+        if lineno != -1:
+            if lineno not in self.logic_hints: self.logic_hints[lineno] = []
+            if hint not in self.logic_hints[lineno]: self.logic_hints[lineno].append(hint)
+
+    def _get_iterable_name(self, node):
+        if isinstance(node, ast.Name): return node.id
+        if isinstance(node, ast.Call) and getattr(node.func, 'id', '') == 'range':
+            if len(node.args) > 0:
+                arg = node.args[0]
+                if isinstance(arg, ast.Name): return arg.id
+                if isinstance(arg, ast.Call) and getattr(arg.func, 'id', '') == 'len' and len(arg.args) > 0 and isinstance(arg.args[0], ast.Name): return arg.args[0].id
+        return None
+
+    def _build_time_str(self, poly_dims, log, sqrt=0, exp=0, graph=0):
+        if exp > 0: return "O(2^n)"  
+        if graph > 0: return "O(V + E)"
+        if not poly_dims and log <= 0 and sqrt <= 0: return "O(1)"  
+        
+        parts = []
+        if poly_dims:
+            counts = Counter(poly_dims)
+            terms = []
+            for dim, count in counts.items():
+                display_dim = dim if len(dim) <= 2 and dim.isalpha() else 'n'
+                if count == 1: terms.append(display_dim)
+                else: terms.append(f"{display_dim}^{count}")
+            parts.append(" * ".join(terms))
+                
+        if sqrt == 1: parts.append("âˆšn")
+        elif sqrt > 1: parts.append(f"(âˆšn)^{sqrt}")  
+        if log == 1: parts.append("log n")
+        elif log > 1: parts.append(f"log^{log} n")  
+        
+        return f"O({' * '.join(parts)})" if parts else "O(1)"
+
+    def _get_weight(self, poly_dims, log, sqrt, exp, graph):
+        w = 0
+        if exp > 0: w += 100
+        w += graph * 12
+        w += len(poly_dims) * 10
+        w += sqrt * 7
+        w += log * 5
+        return w
+
+    def bfs_first_pass(self, tree):
+        queue = deque([(tree, None)])
+        self.call_graph = {'__main__': set()}
+        self.reachable_funcs = set()
+        
+        while queue:
+            current_node, current_func = queue.popleft()  
+            if isinstance(current_node, ast.FunctionDef):
+                self.symbol_table[current_node.name] = current_node  
+                self.reachable_funcs.add(current_node.name) 
+                current_func = current_node.name  
+                if current_func not in self.call_graph:
+                    self.call_graph[current_func] = set()  
+            elif isinstance(current_node, ast.Call) and isinstance(current_node.func, ast.Name):
+                called_func = current_node.func.id  
+                if current_func: self.call_graph[current_func].add(called_func)  
+                else: self.call_graph['__main__'].add(called_func)  
+            
+            for child in ast.iter_child_nodes(current_node):
+                queue.append((child, current_func))
+        
+        reach_queue = deque(['__main__'])  
+        reach_queue.extend(list(self.reachable_funcs)) 
+        visited = set(['__main__']).union(self.reachable_funcs)
+        
+        while reach_queue:
+            curr = reach_queue.popleft()
+            for neighbor in self.call_graph.get(curr, []):  
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    self.reachable_funcs.add(neighbor)  
+                    reach_queue.append(neighbor)
+        
+        for func_name, called_funcs in self.call_graph.items():
+            if func_name in called_funcs: self.custom_functions[func_name] = "T(n)"  
+        self.detect_indirect_recursion()
+
+    def detect_indirect_recursion(self):
+        indirect_graph = {u: {v for v in neighbors if v != u} for u, neighbors in self.call_graph.items()}
+        for func in indirect_graph:
+            visited, rec_stack = set(), set()
+            if self._has_cycle(func, visited, rec_stack, indirect_graph):
+                self.custom_functions[func] = "O(2^n)"
+                self.indirect_recursive_funcs.add(func)
+
+    def _has_cycle(self, node, visited, rec_stack, graph):
+        if node in rec_stack: return True
+        if node in visited: return False
+        visited.add(node); rec_stack.add(node)
+        for neighbor in graph.get(node, []):
+            if self._has_cycle(neighbor, visited, rec_stack, graph): return True
+        rec_stack.remove(node); return False
+
+    def get_code_snippet(self, node):
+        if hasattr(node, 'lineno'): return self.source_lines[node.lineno - 1].strip()  
+        return "Code Block"  
+
+    def get_color(self, complexity_str):
+        if complexity_str == "-" or "Dead Code" in complexity_str: return "#7f8c8d"  
+        if "T(" in complexity_str or "n!" in complexity_str: return "#8e44ad"  
+        if "2^n" in complexity_str: return "#9b59b6"  
+        if "^2" in complexity_str or "^3" in complexity_str or "*" in complexity_str: return "#e74c3c"  
+        if "V + E" in complexity_str or "V" in complexity_str: return "#d35400"
+        if "log" in complexity_str: return "#2980b9"  
+        if "âˆš" in complexity_str: return "#16a085"  
+        if complexity_str != "O(1)": return "#e67e22"  
+        return "#27ae60"
+
+    def _detect_graph_context(self, node):
+        has_queue_while = has_neighbor_for = has_recursive_for = has_visited_set = False
+        if isinstance(node, ast.FunctionDef):
+            for child in ast.walk(node):
+                if isinstance(child, ast.While):
+                    for sub in ast.walk(child):
+                        if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
+                            if sub.func.attr in ['pop', 'popleft']: has_queue_while = True
+                if isinstance(child, ast.For):
+                    if isinstance(child.iter, ast.Subscript): has_neighbor_for = True
+                    if isinstance(child.iter, ast.Name) and any(kw in child.iter.id.lower() for kw in ['neighbor', 'adj', 'graph', 'child']): has_neighbor_for = True
+                    for sub in ast.walk(child):
+                        if isinstance(sub, ast.Call) and getattr(sub.func, 'id', '') == node.name: has_recursive_for = True
+                if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
+                    if child.func.attr in ['add', 'append'] and isinstance(getattr(child.func, 'value', None), ast.Name) and 'visit' in child.func.value.id.lower(): has_visited_set = True
+        return (has_queue_while and (has_neighbor_for or has_visited_set)) or (has_recursive_for and (has_neighbor_for or has_visited_set))
+
+    def _is_graph_while_loop(self, node):
+        if not getattr(self, 'in_graph_context', False): return False
+        if not isinstance(node, ast.While): return False
+        for child in ast.walk(node):
+            if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
+                if child.func.attr in ['pop', 'popleft', 'append', 'add', 'remove', 'extend']: return True
+        return False
+
+    def _is_constant_loop(self, node):
+        if isinstance(node, ast.While) and isinstance(node.test, ast.Compare):
+            if isinstance(node.test.left, ast.Constant) or any(isinstance(c, ast.Constant) for c in node.test.comparators): return True
+        elif isinstance(node, ast.For):
+            if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
+                if all(isinstance(arg, ast.Constant) for arg in node.iter.args): return True
+            elif isinstance(node.iter, (ast.List, ast.Tuple, ast.Set, ast.Constant)): return True
+        return False
+
+    def _is_log_loop(self, node):
+        if not isinstance(node, ast.While): return False
+        for child in ast.walk(node):  
+            if isinstance(child, (ast.BinOp, ast.AugAssign)):
+                op = child.op; val = child.right if isinstance(child, ast.BinOp) else child.value
+                if isinstance(op, (ast.Div, ast.FloorDiv)) and isinstance(val, ast.Constant) and val.value > 1: return True
+                if isinstance(op, ast.Mult) and isinstance(val, ast.Constant) and val.value > 1: return True
+                if isinstance(op, (ast.RShift, ast.LShift)): return True
+        return False  
+        
+    def _is_sqrt_loop(self, node):
+        if not isinstance(node, (ast.While, ast.For)): return False  
+        if isinstance(node, ast.While):
+            if isinstance(node.test, ast.Compare) and isinstance(node.test.left, ast.BinOp):  
+                if isinstance(node.test.left.op, ast.Mult) and isinstance(node.test.left.left, ast.Name) and isinstance(node.test.left.right, ast.Name):
+                    if node.test.left.left.id == node.test.left.right.id: return True
+                elif isinstance(node.test.left.op, ast.Pow) and isinstance(node.test.left.right, ast.Constant) and getattr(node.test.left.right, 'value', 0) == 2: return True
+        for child in ast.walk(node):
+            if isinstance(child, ast.Call):
+                if getattr(child.func, 'id', '') == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'): return True
+            if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "sqrt": return True
+        return False
+    
+    def _is_exponential_loop(self, node):
+        if not isinstance(node, (ast.For, ast.While)): return False
+        expr = node.iter if isinstance(node, ast.For) else node.test
+        for child in ast.walk(expr):
+            if isinstance(child, ast.BinOp):
+                if isinstance(child.op, ast.LShift): return True
+                if isinstance(child.op, ast.Pow) and isinstance(child.left, ast.Constant) and child.left.value == 2: return True
+            if isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and child.func.id == 'pow':
+                if len(child.args) >= 2 and isinstance(child.args[0], ast.Constant) and child.args[0].value == 2: return True
+            if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "exponential": return True
+        return False
+
+    def record_line(self, node, time_override=None, space_override=None, custom_op=None):
+        line_text = self.get_code_snippet(node)
+        line_num = getattr(node, 'lineno', -1) 
+        current_log, current_sqrt, current_graph = self.log_loop_depth, getattr(self, 'sqrt_loop_depth', 0), getattr(self, 'graph_depth', 0)
+        
+        override_dims, override_log, override_sqrt, override_graph = [], 0, 0, 0
+        is_recurrence = False
+        
+        node_type = type(node).__name__
+        op_map = {
+            "Assign": "Assignment", "AugAssign": "Assignment", "For": "For Loop", 
+            "While": "While Loop", "If": "Condition", "Return": "Return", 
+            "FunctionDef": "Definition", "Expr": "Expression", "Call": "Function Call", 
+            "ListComp": "List Comprehension", "DictComp": "Dict Comprehension", "SetComp": "Set Comprehension",
+            "Lambda": "Lambda Function", "Yield": "Generator Yield", "YieldFrom": "Generator Yield",
+            "Try": "Try-Except Block", "With": "Context Manager", "IfExp": "Ternary Conditional",
+            "JoinedStr": "String Interpolation"
+        }
+        operation_name = custom_op or op_map.get(node_type, node_type)
+
+        if time_override:
+            if time_override.startswith("T(") or any(x in time_override for x in ["T(n) =", "n!", "2^n", "2T("]): is_recurrence = True
+            else:
+                if "n log n" in time_override: override_dims.append('n'); override_log = 1
+                elif "O(V + E)" in time_override: override_graph = 1
+                elif "O(log n)" in time_override: override_log = 1
+                elif "O(âˆšn)" in time_override: override_sqrt = 1
+                elif "O(n)" in time_override: override_dims.append('n')
+
+        total_poly_dims = self.active_poly_dims + override_dims
+        total_log, total_sqrt, total_graph = current_log + override_log, current_sqrt + override_sqrt, current_graph + override_graph
+        is_dead = getattr(self, 'in_dead_code', False) or time_override == "Dead Code"
+        
+        display_dims, display_log, display_sqrt, display_graph = override_dims, override_log, override_sqrt, override_graph
+        
+        if not time_override:
+            if self._is_exponential_loop(node):
+                time_override, is_recurrence, self.max_exp = "O(2^n)", True, 1
+            elif isinstance(node, ast.For):
+                if not self._is_constant_loop(node):
+                    iter_name = self._get_iterable_name(node.iter)
+                    dim = iter_name if iter_name and len(iter_name) <= 2 and iter_name.isalpha() else 'n'
+                    display_dims = [dim]
+            elif isinstance(node, ast.While):
+                if getattr(self, 'in_graph_context', False) and self._is_graph_while_loop(node): display_graph = 1
+                elif self._is_log_loop(node): display_log = 1
+                elif self._is_sqrt_loop(node): display_sqrt = 1
+                elif not self._is_constant_loop(node): 
+                    dim = 'n'
+                    if isinstance(node.test, ast.Compare):
+                        for comp in [node.test.left] + node.test.comparators:
+                            if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
+                                dim = comp.id
+                                break
+                    elif isinstance(node.test, ast.BoolOp):
+                        for val in node.test.values:
+                            if isinstance(val, ast.Compare):
+                                for comp in [val.left] + val.comparators:
+                                    if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
+                                        dim = comp.id
+                                        break
+                    display_dims = [dim]
+
+        if time_override == "Definition":
+            local_t = global_t = local_s = global_s = "O(1)"
+            t_w = 0
+        elif is_dead:
+            local_t = global_t = local_s = global_s = "Dead Code"
+            t_w = -1
+        else:
+            local_t = self._build_time_str(display_dims, display_log, display_sqrt, 0, display_graph)
+            if time_override and is_recurrence:
+                local_t = global_t = time_override
+                t_w = 1000 
+            else:
+                if time_override: local_t = time_override
+                global_t = self._build_time_str(total_poly_dims, total_log, total_sqrt, self.max_exp, total_graph)
+                t_w = self._get_weight(total_poly_dims, total_log, total_sqrt, self.max_exp, total_graph)
+            
+            local_s = space_override if space_override else "O(1)"
+            
+            if "n^2" in local_s or "n * m" in local_s: self.max_space_weight = max(getattr(self, 'max_space_weight', 0), 2)
+            elif "V" in local_s or total_graph > 0: self.max_space_weight = max(getattr(self, 'max_space_weight', 0), 3)
+            elif "n" in local_s or self.recursive_calls_count > 0: self.max_space_weight = max(getattr(self, 'max_space_weight', 0), 1)
+            elif "log n" in local_s: self.max_space_weight = max(getattr(self, 'max_space_weight', 0), 0.5)
+                
+            if getattr(self, 'in_graph_context', False) or self.max_space_weight >= 3: global_s = "O(V)"
+            elif self.max_space_weight >= 2: global_s = "O(n^2)"
+            elif self.max_space_weight >= 1: global_s = "O(n)"
+            elif self.max_space_weight >= 0.5: global_s = "O(log n)"
+            else: global_s = local_s
+
+        # DYNAMIC TELEMETRY FETCH
+        hits = self.trace_data.get("line_hits", {}).get(line_num, 0)
+        mem_state = {}
+        for snap in self.trace_data.get("history", []):
+            if snap.line_no == line_num:
+                for var_name, var_data in snap.variables.items():
+                    if var_name not in mem_state or var_data["size"] > mem_state[var_name]["size"]:
+                        mem_state[var_name] = var_data
+
+        time_exp, space_exp = self.nlg_engine.generate_explanations(
+            node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
+        )
+
+        hints = self.logic_hints.get(getattr(node, 'lineno', -1), [])
+        if hints: time_exp += "\n\n" + "\n".join(hints)
+
+        entry = {
+            "lineno": line_num, "lineOfCode": line_text, "operation": operation_name,  
+            "local_time": local_t, "global_time": global_t, "local_space": local_s, "global_space": global_s, 
+            "indent": self.current_depth, "color": self.get_color(global_t), "weight": t_w, 
+            "time_explanation": time_exp, "space_explanation": space_exp,
+            "hits": hits, "memory_state": mem_state
+        }
+        
+        if self._details and self._details[-1]["lineOfCode"] == line_text:
+            if t_w > self._details[-1].get("weight", -1): self._details[-1].update(entry)
+        else: self._details.append(entry)
+
+        if not is_dead and time_override != "Definition":
+            if t_w > self.max_complexity:
+                self.max_complexity = t_w
+                if t_w < 998:
+                    self.max_poly_str = self._build_time_str(total_poly_dims, 0, 0, 0, 0)
+                    self.max_log, self.max_sqrt, self.max_graph_ve = total_log, total_sqrt, total_graph
+                
+    def generic_visit(self, node):
+        for field, value in ast.iter_fields(node):
+            if isinstance(value, list):
+                hit_terminal = False  
+                for item in value:
+                    if isinstance(item, ast.AST):
+                        if hit_terminal:
+                            prev_dead = self.in_dead_code; self.in_dead_code = True  
+                            self.visit(item); self.in_dead_code = prev_dead  
+                        else:
+                            self.visit(item)  
+                            if isinstance(item, (ast.Return, ast.Break, ast.Continue)): hit_terminal = True
+            elif isinstance(value, ast.AST): self.visit(value)
+
+    # --- ADVANCED NODE HANDLERS ---
+    
+    def visit_Try(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)")
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
+
+    def visit_With(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)")
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
+
+    def visit_Lambda(self, node):
+        self.record_line(node, time_override="Definition", space_override="O(1)")
+        self.generic_visit(node)
+
+    def visit_Yield(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)")
+        self.generic_visit(node)
+
+    def visit_YieldFrom(self, node):
+        self.record_line(node, time_override="O(n)", space_override="O(1)")
+        self.generic_visit(node)
+
+    def visit_GeneratorExp(self, node):
+        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Generator Expression")
+        self.generic_visit(node)
+        
+    def visit_IfExp(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Ternary Conditional")
+        self.generic_visit(node)
+        
+    def visit_JoinedStr(self, node):
+        self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="String Interpolation")
+        self.generic_visit(node)
+
+    def visit_Compare(self, node):
+        time_ov = None
+        if any(isinstance(op, (ast.In, ast.NotIn)) for op in node.ops):
+            time_ov = "O(n)" # Searching in a list/string is linear.
+            
+        if any(isinstance(op, ast.LtE) for op in node.ops):
+            for comp in node.comparators:
+                if isinstance(comp, ast.Call) and getattr(getattr(comp, 'func', None), 'id', '') == 'len':
+                    self.add_logic_hint(node, "âš ï¸ Logic Risk (Off-By-One): Using '<=' with 'len()' often causes an IndexError because arrays are 0-indexed. Consider using '<' instead.")
+                    
+        self.record_line(node, time_override=time_ov)
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node):
+        is_memoized = False
+        for dec in getattr(node, 'decorator_list', []):
+            if isinstance(dec, ast.Name) and dec.id in ['lru_cache', 'cache', 'memoize']: is_memoized = True
+            elif isinstance(dec, ast.Call) and getattr(dec.func, 'id', '') in ['lru_cache', 'cache']: is_memoized = True
+        
+        for child in ast.walk(node):
+            if isinstance(child, ast.Compare) and any(isinstance(op, ast.In) for op in child.ops):
+                for comp in child.comparators:
+                    if isinstance(comp, ast.Name) and any(kw in comp.id.lower() for kw in ['memo', 'cache', 'dp']):
+                        is_memoized = True
+                        break
+
+        if is_memoized: self.memoized_funcs.add(node.name)
+
+        start_idx = len(self._details)
+        prev_data = (self.max_complexity, getattr(self, 'max_space_weight', 0), self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, getattr(self, 'max_graph_ve', 0))
+        self.max_complexity = self.max_space_weight = self.max_log = self.max_sqrt = self.max_exp = self.max_graph_ve = 0
+        self.max_poly_str = "O(1)"
+        self.current_function_name, self.recursive_calls_count = node.name, 0
+        self.has_recursion_in_loop = self.has_slicing = self.has_division = False
+        self.first_rec_line = float('inf')
+        self.conditional_partition_lines = []
+        self.in_if_depth = 0
+        self.in_graph_context = self._detect_graph_context(node)
+        
+        is_dead = node.name not in self.reachable_funcs
+        self.record_line(node, time_override="Dead Code" if is_dead else "Definition")
+        prev_dead = self.in_dead_code; self.in_dead_code = is_dead or prev_dead
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
+        self.in_dead_code = prev_dead
+        
+        does_linear_work = self.max_poly_str != "O(1)" or self.has_slicing
+        if not does_linear_work:
+            for called in self.call_graph.get(node.name, set()):
+                if called in self.symbol_table and called != node.name:
+                    for child in ast.walk(self.symbol_table[called]):
+                        if isinstance(child, (ast.For, ast.While)) and not self._is_constant_loop(child): does_linear_work = True; break
+                        elif isinstance(child, ast.ListComp): does_linear_work = True; break
+                        elif isinstance(child, ast.Subscript) and isinstance(getattr(child, 'slice', None), ast.Slice): does_linear_work = True; break
+                    if does_linear_work: break
+
+        is_indirect = node.name in self.indirect_recursive_funcs
+
+        if is_memoized and (self.recursive_calls_count > 0 or is_indirect):
+            relation = "O(n)" 
+            self.custom_space[node.name] = "O(n)" 
+        else:
+            if is_indirect:
+                relation = "T(n) = T(n-1) + T(n-2) + O(1)" 
+            elif self.has_recursion_in_loop: 
+                relation = "O(V + E)" if self.in_graph_context else "T(n) = n * T(n-1) + O(1)" 
+            elif self.recursive_calls_count >= 2: 
+                relation = "T(n) = 2T(n/2) + O(n)" if self.has_division and does_linear_work else ("T(n) = 2T(n/2) + O(1)" if self.has_division else ("T(n) = T(n-1) + O(n)" if does_linear_work else "T(n) = T(n-1) + T(n-2) + O(1)"))
+            elif self.recursive_calls_count == 1:
+                relation = "T(n) = T(n/2) + O(n)" if self.has_division and does_linear_work else ("T(n) = T(n/2) + O(1)" if self.has_division else ("T(n) = T(n-1) + O(n)" if does_linear_work else ("T(n) = T(n-1) + O(log n)" if self.max_log > 0 else "T(n) = T(n-1) + O(1)")))
+            else: 
+                relation = "O(2^n)" if self.max_exp > 0 else (self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve))
+            
+            if not is_indirect:
+                if self.max_graph_ve > 0:
+                    self.custom_space[node.name] = "O(V)"
+                elif self.recursive_calls_count == 1 and self.has_division:
+                    self.custom_space[node.name] = "O(log n)"
+                elif self.recursive_calls_count > 0:
+                    self.custom_space[node.name] = "O(n)"
+                elif self.max_space_weight >= 2:
+                    self.custom_space[node.name] = "O(n^2)"
+                elif self.max_space_weight >= 1:
+                    self.custom_space[node.name] = "O(n)"
+                elif self.max_space_weight >= 0.5:
+                    self.custom_space[node.name] = "O(log n)"
+                else:
+                    self.custom_space[node.name] = "O(1)"
+            else:
+                self.custom_space[node.name] = "O(n)"
+            
+        self.custom_functions[node.name] = relation
+
+        for i in range(start_idx, len(self._details)):
+            is_placeholder = False
+            if str(self._details[i]["local_time"]).startswith("T("): 
+                self._details[i]["local_time"] = relation
+                is_placeholder = True
+            if str(self._details[i]["global_time"]).startswith("T("): 
+                self._details[i]["global_time"] = relation
+                is_placeholder = True
+                
+            if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")):
+                formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
+                self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
+        
+        if not is_dead:
+            self.max_exp, self.max_graph_ve = max(prev_data[5], self.max_exp), max(prev_data[6], self.max_graph_ve)
+            self.max_complexity, self.max_space_weight = max(prev_data[0], self.max_complexity), max(prev_data[1], self.max_space_weight)
+            self.max_poly_str, self.max_log, self.max_sqrt = prev_data[2] if prev_data[2] != "O(1)" else self.max_poly_str, max(prev_data[3], self.max_log), max(prev_data[4], self.max_sqrt)
+        else: self.max_complexity, self.max_space_weight, self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, self.max_graph_ve = prev_data
+        
+        self.current_function_name = None; self.in_graph_context = False; self.recursive_calls_count = 0 
+        self.has_recursion_in_loop = self.has_slicing = self.has_division = False
+
+    def visit_If(self, node):
+        self.record_line(node)
+        if len(self.active_poly_dims) > 0: self.conditional_partition_lines.append(getattr(node, 'lineno', float('inf')))
+        self.in_if_depth += 1
+        prev_rec = self.recursive_calls_count; self.recursive_calls_count = 0
+        self.current_depth += 1; 
+        for c in node.body: self.visit(c)
+        self.current_depth -= 1
+        if_rec = self.recursive_calls_count; self.recursive_calls_count = 0
+        self.current_depth += 1; 
+        for c in node.orelse: self.visit(c)
+        self.current_depth -= 1
+        self.recursive_calls_count = prev_rec + max(if_rec, self.recursive_calls_count)
+        self.in_if_depth -= 1
+
+    def visit_ListComp(self, node):
+        if any(getattr(comp, 'ifs', []) for comp in node.generators): self.conditional_partition_lines.append(getattr(node, 'lineno', float('inf')))
+        self.generic_visit(node)
+
+    def visit_For(self, node):
+        iter_name = self._get_iterable_name(node.iter)
+        dim = 'n'
+        if iter_name:
+            dim = iter_name
+            if dim.lower() in ['arr', 'array', 'list', 'nums', 'items', 'string', 's', 'left', 'right', 'mid'] or len(dim) > 2 or not dim.isalpha(): 
+                dim = 'n'
+            
+        if self._is_exponential_loop(node):
+            self.max_exp = 1; self.record_line(node, time_override="O(2^n)")
+            self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
+            return 
+            
+        is_const = self._is_constant_loop(node)
+        if not is_const: 
+            self.active_poly_dims.append(dim)
+            
+        self.record_line(node); self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1  
+        
+        if not is_const: self.active_poly_dims.pop()
+
+    def visit_While(self, node):
+        is_log, is_sqrt, is_const = self._is_log_loop(node), self._is_sqrt_loop(node), self._is_constant_loop(node)
+        is_graph = self._is_graph_while_loop(node)
+        
+        dim = 'n'
+        if isinstance(node.test, ast.Compare):
+            for comp in [node.test.left] + node.test.comparators:
+                if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
+                    dim = comp.id
+                    break
+        elif isinstance(node.test, ast.BoolOp):
+            for val in node.test.values:
+                if isinstance(val, ast.Compare):
+                    for comp in [val.left] + val.comparators:
+                        if isinstance(comp, ast.Name) and len(comp.id) <= 2 and comp.id.isalpha() and comp.id not in ['i','j','k','x','y']:
+                            dim = comp.id
+                            break
+
+        if is_graph: self.graph_depth = getattr(self, 'graph_depth', 0) + 1
+        elif not is_const:
+            if is_log: self.log_loop_depth += 1
+            elif is_sqrt: self.sqrt_loop_depth += 1
+            else: 
+                self.active_poly_dims.append(dim)
+            
+        self.record_line(node)
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1  
+        
+        if is_graph: self.graph_depth -= 1
+        elif not is_const:
+            if is_log: self.log_loop_depth -= 1
+            elif is_sqrt: self.sqrt_loop_depth -= 1
+            else: self.active_poly_dims.pop()
+
+    def visit_Call(self, node):
+        if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(node.func, 'id', '') == 'append':
+            self.add_logic_hint(node, "ðŸ’¡ Logic Hint (Amortized Analysis): The `.append()` operation is generally O(1) constant time, but occasionally triggers an O(n) background array resize sequence when memory capacity is breached.")
+
+        if isinstance(node.func, ast.Name):
+            f_id = self.aliases.get(node.func.id, node.func.id)
+            is_indirect_call = f_id in self.indirect_recursive_funcs and self.current_function_name in self.indirect_recursive_funcs
+            
+            if f_id == self.current_function_name or is_indirect_call:
+                self.recursive_calls_count += 1
+                self.first_rec_line = min(self.first_rec_line, getattr(node, 'lineno', float('inf')))
+                if len(self.active_poly_dims) > 0 or self.log_loop_depth > 0: self.has_recursion_in_loop = True  
+                if getattr(self, 'in_graph_context', False): 
+                    self.record_line(node, time_override="O(V + E)", space_override="O(V)", custom_op="Recursive Call")
+                else: 
+                    self.record_line(node, time_override="T(placeholder)", space_override="O(n)", custom_op="Recursive Call")
+            elif f_id in self.builtin_complexities:
+                b = self.builtin_complexities[f_id]
+                self.record_line(node, time_override=b['time'], space_override=b['space'])
+            elif f_id in self.custom_functions:
+                call_comp = self.custom_functions[f_id]
+                lookup = {
+                    "T(n) = n * T(n-1)": "O(n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
+                    "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
+                    "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
+                    "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
+                    "T(n) = T(n-1) + O(1)": "O(n)", "2T(n/2)": "O(n log n)",
+                    "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
+                    "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)",
+                    "O(n^2)": "O(n^2)", "O(V + E)": "O(V + E)",
+                    "O(2^n)": "O(2^n)", "O(n!)": "O(n!)", "O(n)": "O(n)",
+                    "O(log n)": "O(log n)", "O(1)": "O(1)"
+                }
+                for k, v in lookup.items():
+                    if k in call_comp: call_comp = v; break
+                self.record_line(node, time_override=call_comp, space_override=self.custom_space.get(f_id, "O(1)"))
+            else: self.record_line(node)
+        elif isinstance(node.func, ast.Attribute):
+            if node.func.attr == 'pop':
+                if len(node.args) > 0:
+                    self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
+                else:
+                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end")
+            
+            # --- NEW FIX: Accumulating memory inside a loop ---
+            elif node.func.attr in ['append', 'add', 'insert']:
+                b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
+                
+                # If we are actively inside a loop, space accumulation scales dynamically
+                if len(self.active_poly_dims) > 0 or getattr(self, 'log_loop_depth', 0) > 0 or getattr(self, 'sqrt_loop_depth', 0) > 0:
+                    self.record_line(node, time_override=b['time'], space_override="O(n)", custom_op=f"{node.func.attr.capitalize()} (Accumulates in Loop)")
+                else:
+                    self.record_line(node, time_override=b['time'], space_override=b['space'])
+            # ---------------------------------------------------
+            
+            elif node.func.attr in self.builtin_complexities:
+                b = self.builtin_complexities[node.func.attr]
+                self.record_line(node, time_override=b['time'], space_override=b['space'])
+            else: 
+                self.record_line(node)
+        self.generic_visit(node)
+
+    def visit_Assign(self, node):
+        s_ov, t_ov = "O(1)", None
+        
+        # Intercept tuple unpacking used in variable swapping
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Variable Unpacking/Swap")
+            self.generic_visit(node)
+            return
+
+        if getattr(self, 'in_graph_context', False):
+            if isinstance(node.value, (ast.List, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp)): s_ov, t_ov = "O(V)", "O(V)"
+            elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str) and getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque']: s_ov, t_ov = "O(V)", "O(V)"
+            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, ast.List) or isinstance(node.value.right, ast.List)): s_ov, t_ov = "O(V)", "O(V)"
+        else:
+            if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): s_ov, t_ov = "O(n)", "O(n)"
+            elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str) and getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque']: s_ov, t_ov = "O(n)", "O(n)"
+            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, ast.List) or isinstance(node.value.right, ast.List)): s_ov, t_ov = "O(n)", "O(n)"
+            elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): s_ov, t_ov = "O(n)", "O(n)"
+
+        for child in ast.walk(node.value):
+            if isinstance(child, (ast.BinOp, ast.Call)):
+                if (isinstance(child, ast.BinOp) and (isinstance(child.op, ast.LShift) or (isinstance(child.op, ast.Pow) and getattr(child.left, 'value', 0) == 2))) or (isinstance(child, ast.Call) and getattr(getattr(child, 'func', None), 'id', '') == 'pow' and getattr(child.args[0] if getattr(child, 'args', None) else None, 'value', 0) == 2):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name): self.variable_complexities[target.id] = "exponential"
+                        
+            if isinstance(child, ast.Call):
+                func_id = getattr(getattr(child, 'func', None), 'id', '')
+                if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name): self.variable_complexities[target.id] = "sqrt"
+
+        if isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): self.has_slicing = True
+        self.record_line(node, time_override=t_ov, space_override=s_ov); self.generic_visit(node)
+
+    def visit_AugAssign(self, node): 
+        if self.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):
+            self.add_logic_hint(node, "âš ï¸ Logic Risk (Data-Dependent Traversal): Your loop increment/step depends heavily on dynamic data values (e.g., array contents). Static analysis conservatively defaults to worst-case, but this runtime could radically fluctuate depending on the dataset state!")
+
+        for child in ast.walk(node.value):
+            if isinstance(child, ast.Call):
+                func_id = getattr(getattr(child, 'func', None), 'id', '')
+                if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'):
+                    if isinstance(node.target, ast.Name): self.variable_complexities[node.target.id] = "sqrt"
+        self.record_line(node); self.generic_visit(node)  
+
+    def visit_Subscript(self, node):
+        if isinstance(node.slice, ast.Slice): self.has_slicing = True  
+        self.generic_visit(node)  
+
+    def visit_BinOp(self, node):
+        if isinstance(node.op, (ast.Div, ast.FloorDiv, ast.RShift)): self.has_division = True  
+        elif isinstance(node.op, ast.Mult):
+            if isinstance(node.right, ast.Constant) and isinstance(node.right.value, float) and node.right.value < 1.0: self.has_division = True
+            elif isinstance(node.left, ast.Constant) and isinstance(node.left.value, float) and node.left.value < 1.0: self.has_division = True
+        self.generic_visit(node)  
+
+    def visit_Return(self, node): self.record_line(node); self.generic_visit(node)  
+    def visit_Expr(self, node): self.record_line(node); self.generic_visit(node)      
+
+    def get_final_asymptotic_badge(self):
+        lookup = {
+            "T(n) = n * T(n-1)": ("O(n!)", 9), "O(n!)": ("O(n!)", 9),
+            "T(n) = T(n-1) + T(n-2) + O(1)": ("O(2^n)", 8), "O(2^n)": ("O(2^n)", 8),
+            "O(n^3)": ("O(n^3)", 7),
+            "T(n) = T(n-1) + O(n)": ("O(n^2)", 6), "O(n^2)": ("O(n^2)", 6), "O(n * m)": ("O(n * m)", 6),
+            "T(n) = 2T(n/2) + O(n)": ("O(n log n)", 5), "T(n) = T(n-1) + O(log n)": ("O(n log n)", 5), "O(n log n)": ("O(n log n)", 5), "n * log n": ("O(n log n)", 5),
+            "O(V + E)": ("O(V + E)", 4.5),
+            "T(n) = 2T(n/2) + O(1)": ("O(n)", 4), "T(n) = T(n/2) + O(n)": ("O(n)", 4), "T(n) = T(n-1) + O(1)": ("O(n)", 4), "O(n)": ("O(n)", 4), "O(n + m)": ("O(n + m)", 4), "O(m)": ("O(n)", 4),
+            "O(âˆšn)": ("O(âˆšn)", 3),
+            "T(n) = T(n/2) + O(1)": ("O(log n)", 2), "O(log n)": ("O(log n)", 2),
+            "O(1)": ("O(1)", 1)
+        }
+        best_comp = "O(1)"
+        best_rank = 1
+        
+        for line in self._details:
+            for c in [str(line.get('global_time', '')), str(line.get('local_time', ''))]:
+                for key, (mapped, rank) in lookup.items():
+                    if key in c and rank > best_rank:
+                        best_rank = rank
+                        best_comp = mapped
+
+                if c.startswith("O(") and c != "O(1)":
+                    if "*" in c and "log" not in c and best_rank < 6:
+                        best_rank = 6
+                        best_comp = "O(n^2)"  
+                    elif best_rank < 4 and not any(char in c for char in ["^", "*", "!", "V", "log", "âˆš"]):
+                        best_rank = 4
+                        best_comp = "O(n)"  
+        
+        for key, (mapped, rank) in lookup.items():
+            if key in self.max_poly_str and rank > best_rank:
+                best_rank = rank
+                best_comp = mapped
+                
+        if self.max_poly_str.startswith("O(") and self.max_poly_str != "O(1)":
+            if "*" in self.max_poly_str and "log" not in self.max_poly_str and best_rank < 6:
+                best_rank = 6
+                best_comp = "O(n^2)"
+            elif best_rank < 4 and not any(char in self.max_poly_str for char in ["^", "*", "!", "V", "log", "âˆš"]):
+                best_rank = 4
+                best_comp = "O(n)"
+                
+        return best_comp
+
+    def get_final_space_badge(self):
+        rankings = {
+            "O(n!)": 7, "O(2^n)": 6, "O(n^2)": 5, "O(n * m)": 5, "O(n log n)": 4, 
+            "O(V + E)": 3.5, "O(V)": 3.2, "O(n)": 3, "O(n + m)": 3, "O(log n)": 2, "O(1)": 1
+        }
+        
+        best_space = "O(1)"
+        best_rank = 1
+        
+        for line in self._details:
+            s = str(line.get('global_space', 'O(1)'))
+            for key, rank in rankings.items():
+                if key in s and rank > best_rank:
+                    best_rank = rank
+                    best_space = key
+
+            if best_rank < 3 and s.startswith("O(") and s != "O(1)":
+                if "*" in s and best_rank < 5:
+                    best_rank = 5
+                    best_space = "O(n^2)"
+                elif not any(char in s for char in ["^", "*", "!", "V", "log", "âˆš"]):
+                    best_rank = 3
+                    best_space = "O(n)"
+                    
+        return best_space
+        
+    def get_final_badge(self):
+        return self.get_final_asymptotic_badge()
+
+
+def analyze_source_code(source_code):
+    """
+    Wrapper to safely execute the Dynamic Tracer first,
+    then feed the runtime telemetry directly into the static ComplexityAnalyzer.
+    """
+    start_time = time.perf_counter()
+    
+    try:
+        # Parse the source code into an Abstract Syntax Tree (AST)
+        tree = ast.parse(source_code)
+        
+        # 1. RUN DYNAMIC TRACER
+        tracer = AlgoBlocksTracer()
+        trace_data = tracer.execute_and_trace(source_code)
+        
+        # 2. RUN STATIC ANALYZER (WITH DYNAMIC CONTEXT INJECTED)
+        analyzer = ComplexityAnalyzer(source_code, trace_data)
+        analyzer.bfs_first_pass(tree)
+        analyzer.visit(tree)
+        
+        results = {
+            "status": "success",
+            "total": analyzer.get_final_asymptotic_badge(),
+            "space_total": analyzer.get_final_space_badge(),
+            "lines": analyzer.details,
+            "error": None
+        }
+    except SyntaxError as e:
+        results = {
+            "status": "error",
+            "message": f"SyntaxError: {str(e)}",
+            "line": getattr(e, 'lineno', -1)
+        }
+    except Exception as e:
+        results = {
+            "status": "error",
+            "message": str(e),
+            "line": -1
+        }
+        
+    # Capture final time and convert to milliseconds
+    end_time = time.perf_counter()
+    results["analysis_time_ms"] = (end_time - start_time) * 1000
+    
+    return results
+
+--- FILE: api/blockly_ast.py ---
+
+# frontend/public/python_engine/blockly_ast.py
+import ast
+import uuid
+
+def gen_uid():
+    return str(uuid.uuid4())[:15]
+
+class BlocklyASTConverter:
+    def __init__(self):
+        self.variables = set()
+
+    # ==========================================
+    # TYPE INFERENCE & SAFETY MECHANISM
+    # ==========================================
+    def _infer_type(self, node):
+        if isinstance(node, (ast.List, ast.Tuple)): return "Array"
+        if isinstance(node, ast.Dict): return "Dictionary"
+        if isinstance(node, ast.Set): return "Set"
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, bool): return "Boolean"
+            if isinstance(node.value, (int, float)): return "Number"
+            if isinstance(node.value, str): return "String"
+            if node.value is None: return "Any"
+        if isinstance(node, ast.Compare): return "Boolean"
+        if isinstance(node, ast.BoolOp): return "Boolean"
+        if isinstance(node, ast.UnaryOp):
+            if isinstance(node.op, ast.Not): return "Boolean"
+            if isinstance(node.op, (ast.USub, ast.UAdd)): return "Number"
+        if isinstance(node, ast.BinOp):
+            if isinstance(node.op, ast.Mod): return "Number"
+            arith_map = {ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.FloorDiv}
+            if type(node.op) in arith_map: return "Number"
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                if node.func.id in ["len", "abs", "round", "int", "float", "sum", "min", "max"]: return "Number"
+                if node.func.id in ["str", "input"]: return "String"  
+                if node.func.id in ["list", "tuple", "sorted"]: return "Array"
+                if node.func.id in ["dict"]: return "Dictionary"
+                if node.func.id in ["bool"]: return "Boolean"
+            elif isinstance(node.func, ast.Attribute):
+                if node.func.attr in ["upper", "lower", "title", "capitalize", "replace"]: return "String"
+                if node.func.attr in ["count", "index", "find"]: return "Number"
+                if node.func.attr in ["keys", "values", "items", "split"]: return "Array"
+        if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Slice): return "Array"
+        return "Any"
+
+    def serialize_expr_safe(self, node, expected_types):
+        if not node: return None
+        actual_type = self._infer_type(node)
+        
+        if actual_type != "Any" and actual_type not in expected_types:
+            expr = self.make_raw_expr(node)
+            if expr and isinstance(expr, dict):
+                expr["output"] = "Any"
+            return expr
+            
+        return self.serialize_expr(node)
+
+    # =========================
+    # BLOCK HEIGHT ESTIMATOR
+    # =========================
+    def estimate_block_height(self, block):
+        if not block: return 0
+        btype = block.get("type", "")
+        if btype in ["procedures_defnoreturn", "procedures_defreturn"]: return 180
+        if btype == "controls_if": return 160
+        if btype in ["controls_for", "controls_whileUntil"]: return 150
+        if btype in ["variables_set", "math_assignment"]: return 110
+        return 90
+
+    def get_chain_height(self, block):
+        if not block: return 0
+        height = self.estimate_block_height(block)
+        next_block = block.get("next", {}).get("block")
+        if next_block:
+            height += self.get_chain_height(next_block)
+        return height
+
+    def convert(self, code: str):
+        self.variables = set()
+        try:
+            clean_code = code.replace('\xa0', ' ').replace('\u200b', '').replace('\t', '    ')
+            tree = ast.parse(clean_code)
+
+            top_blocks = []
+            current_chain_tail = None
+            y_offset = 20
+
+            for node in tree.body:
+                block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
+                if not block: continue
+
+                if block.get("type") in ["procedures_defnoreturn", "procedures_defreturn"]:
+                    block["x"], block["y"] = 20, y_offset
+                    top_blocks.append(block)
+                    y_offset += self.get_chain_height(block) + 40
+                    current_chain_tail = None
+                    continue
+
+                if not top_blocks or current_chain_tail is None:
+                    block["x"], block["y"] = 20, y_offset
+                    top_blocks.append(block)
+                    current_chain_tail = block
+                    y_offset += self.get_chain_height(block) + 40
+                else:
+                    current_chain_tail["next"] = {"block": block}
+                    current_chain_tail = block
+
+            vars_array = [{"id": v, "name": v} for v in self.variables]
+            return {
+                "status": "success",
+                "blocks": {
+                    "variables": vars_array,
+                    "blocks": {"languageVersion": 0, "blocks": top_blocks}
+                }
+            }
+        except Exception as e:
+            return self.raw_fallback(code)
+
+    def raw_fallback(self, code):
+        return {
+            "status": "success",
+            "blocks": {
+                "blocks": {
+                    "languageVersion": 0,
+                    "blocks": [{
+                        "type": "raw_python_multiline",
+                        "id": gen_uid(),
+                        "x": 20, "y": 20,
+                        "fields": {"CODE": str(code)}
+                    }]
+                }
+            }
+        }
+
+    def add_input(self, block_dict, input_name, child_block):
+        if not child_block: return
+        if isinstance(child_block, dict):
+            child_block.setdefault("output", "Any")
+        block_dict.setdefault("inputs", {})
+        block_dict["inputs"][input_name] = {"block": child_block}
+
+    def serialize_body(self, nodes):
+        if not nodes: return None
+        first, prev = None, None
+
+        for node in nodes:
+            block = self.serialize_node(node, is_top_level=False) or self.make_raw_statement(node)
+            if not block: continue
+            if not first:
+                first = block
+            elif prev:
+                prev["next"] = {"block": block}
+            prev = block
+
+        return first
+
+    def make_raw_statement(self, node):
+        try:
+            return {"type": "raw_python_statement", "id": gen_uid(), "fields": {"CODE": str(ast.unparse(node))}}
+        except Exception:
+            return None
+
+    def make_raw_expr(self, node):
+        try:
+            return {"type": "raw_python_expression", "id": gen_uid(), "fields": {"CODE": str(ast.unparse(node))}}
+        except Exception:
+            return None
+
+    # =========================
+    # EXPRESSIONS
+    # =========================
+    def serialize_expr(self, node):
+        if node is None: return None
+        try:
+            # list(range(start, end)) -> list_range block
+            if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "list":
+                if len(node.args) == 1 and isinstance(node.args[0], ast.Call) and getattr(node.args[0].func, "id", "") == "range":
+                    range_args = node.args[0].args
+                    start = ast.Constant(value=0)
+                    if len(range_args) == 1:
+                        end = range_args[0]
+                    elif len(range_args) >= 2:
+                        start = range_args[0]
+                        end = range_args[1]
+                    block = {"type": "list_range", "id": gen_uid()}
+                    self.add_input(block, "START", self.serialize_expr_safe(start, ["Number"]))
+                    self.add_input(block, "END", self.serialize_expr_safe(end, ["Number"]))
+                    return block
+
+            # isinstance(x, type)
+            if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "isinstance":
+                if len(node.args) == 2:
+                    block = {"type": "python_isinstance", "id": gen_uid()}
+                    self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
+                    self.add_input(block, "TYPE", self.serialize_expr(node.args[1]))
+                    return block
+
+            if isinstance(node, ast.JoinedStr):
+                parts = []
+                for value in node.values:
+                    if isinstance(value, ast.Constant):
+                        parts.append({"type": "text", "id": gen_uid(), "fields": {"TEXT": str(value.value)}})
+                    elif isinstance(value, ast.FormattedValue):
+                        parts.append(self.serialize_expr(value.value))
+                if parts:
+                    block = {"type": "text_join", "id": gen_uid(), "extraState": {"itemCount": len(parts)}}
+                    for i, p in enumerate(parts): self.add_input(block, f"ADD{i}", p)
+                    return block
+
+            if isinstance(node, ast.FormattedValue): return self.serialize_expr(node.value)
+
+            if isinstance(node, ast.IfExp):
+                block = {"type": "logic_ternary", "id": gen_uid()}
+                self.add_input(block, "IF", self.serialize_expr_safe(node.test, ["Boolean"]))
+                self.add_input(block, "THEN", self.serialize_expr(node.body))
+                self.add_input(block, "ELSE", self.serialize_expr(node.orelse))
+                return block
+
+            if isinstance(node, ast.UnaryOp):
+                if isinstance(node.op, ast.Not):
+                    block = {"type": "logic_negate", "id": gen_uid()}
+                    self.add_input(block, "BOOL", self.serialize_expr_safe(node.operand, ["Boolean"]))
+                    return block
+                if isinstance(node.op, ast.USub):
+                    block = {"type": "math_arithmetic", "id": gen_uid(), "fields": {"OP": "MINUS"}}
+                    self.add_input(block, "A", {"type": "math_number", "id": gen_uid(), "fields": {"NUM": "0"}})
+                    self.add_input(block, "B", self.serialize_expr_safe(node.operand, ["Number"]))
+                    return block
+                if isinstance(node.op, ast.UAdd):
+                    return self.serialize_expr(node.operand)
+
+            if isinstance(node, ast.Constant):
+                if isinstance(node.value, str) and node.value == '\n':
+                    return {"type": "text_newline", "id": gen_uid(), "output": "String"}
+                if isinstance(node.value, bool):
+                    return {"type": "logic_boolean", "id": gen_uid(), "fields": {"BOOL": "TRUE" if node.value else "FALSE"}, "output": "Boolean"}
+                if isinstance(node.value, (int, float)):
+                    return {"type": "math_number", "id": gen_uid(), "fields": {"NUM": str(node.value)}, "output": "Number"}
+                if isinstance(node.value, str):
+                    return {"type": "text", "id": gen_uid(), "fields": {"TEXT": node.value}, "output": "String"}
+                if node.value is None:
+                    return {"type": "logic_null", "id": gen_uid(), "output": "Any"}
+                    
+            if isinstance(node, ast.Name):
+                if node.id in ["int", "float", "str", "list", "dict", "bool", "tuple", "set"]:
+                    return {"type": "python_type_primitive", "id": gen_uid(), "fields": {"TYPE": node.id}}
+                self.variables.add(node.id)
+                return {"type": "variables_get", "id": gen_uid(), "fields": {"VAR": {"id": node.id, "name": node.id}}}
+
+            if isinstance(node, ast.BinOp):
+                if isinstance(node.op, ast.Add):
+                    if self._infer_type(node.left) == "Array" or self._infer_type(node.right) == "Array" or isinstance(node.left, (ast.List, ast.Tuple)):
+                        block = {"type": "list_concat", "id": gen_uid()}
+                        self.add_input(block, "LIST1", self.serialize_expr(node.left))
+                        self.add_input(block, "LIST2", self.serialize_expr(node.right))
+                        return block
+
+                if isinstance(node.op, ast.Mult):
+                    if self._infer_type(node.left) == "String" or self._infer_type(node.right) == "String":
+                        block = {"type": "text_multiply", "id": gen_uid()}
+                        if self._infer_type(node.left) == "String":
+                            self.add_input(block, "TEXT", self.serialize_expr(node.left))
+                            self.add_input(block, "MULTIPLIER", self.serialize_expr(node.right))
+                        else:
+                            self.add_input(block, "TEXT", self.serialize_expr(node.right))
+                            self.add_input(block, "MULTIPLIER", self.serialize_expr(node.left))
+                        return block
+
+                if isinstance(node.op, ast.Mod):
+                    block = {"type": "math_modulo", "id": gen_uid()}
+                    self.add_input(block, "DIVIDEND", self.serialize_expr_safe(node.left, ["Number"]))
+                    self.add_input(block, "DIVISOR", self.serialize_expr_safe(node.right, ["Number"]))
+                    return block
+                arith = {ast.Add: "ADD", ast.Sub: "MINUS", ast.Mult: "MULTIPLY", ast.Div: "DIVIDE", ast.Pow: "POWER", ast.FloorDiv: "DIVIDE"}
+                if type(node.op) in arith:
+                    block = {"type": "math_arithmetic", "id": gen_uid(), "fields": {"OP": arith[type(node.op)]}}
+                    self.add_input(block, "A", self.serialize_expr_safe(node.left, ["Number"]))
+                    self.add_input(block, "B", self.serialize_expr_safe(node.right, ["Number"]))
+                    return block
+
+            if isinstance(node, ast.Compare):
+                if len(node.ops) == 1:
+                    if isinstance(node.ops[0], ast.In):
+                        block = {"type": "logic_in", "id": gen_uid()}
+                        self.add_input(block, "ITEM", self.serialize_expr(node.left))
+                        self.add_input(block, "COLLECTION", self.serialize_expr(node.comparators[0]))
+                        return block
+                    elif isinstance(node.ops[0], ast.NotIn):
+                        inner_block = {"type": "logic_in", "id": gen_uid()}
+                        self.add_input(inner_block, "ITEM", self.serialize_expr(node.left))
+                        self.add_input(inner_block, "COLLECTION", self.serialize_expr(node.comparators[0]))
+                        block = {"type": "logic_negate", "id": gen_uid()}
+                        self.add_input(block, "BOOL", inner_block)
+                        return block
+
+                op_map = {
+                    ast.Eq: "EQ", ast.NotEq: "NEQ", ast.Lt: "LT", ast.LtE: "LTE",
+                    ast.Gt: "GT", ast.GtE: "GTE", ast.Is: "IS", ast.IsNot: "ISNOT"
+                }
+                
+                def build_compare(left, op, right):
+                    if type(op) not in op_map: return self.make_raw_expr(node)
+                    b = {"type": "logic_compare", "id": gen_uid(), "fields": {"OP": op_map[type(op)]}}
+                    self.add_input(b, "A", self.serialize_expr(left))
+                    self.add_input(b, "B", self.serialize_expr(right))
+                    return b
+
+                if len(node.ops) == 1:
+                    return build_compare(node.left, node.ops[0], node.comparators[0])
+                else:
+                    current_left = node.left
+                    comparisons = []
+                    for op, right in zip(node.ops, node.comparators):
+                        comparisons.append(build_compare(current_left, op, right))
+                        current_left = right
+                    
+                    result_block = comparisons[0]
+                    for comp in comparisons[1:]:
+                        b = {"type": "logic_operation", "id": gen_uid(), "fields": {"OP": "AND"}}
+                        self.add_input(b, "A", result_block)
+                        self.add_input(b, "B", comp)
+                        result_block = b
+                    return result_block
+
+            if isinstance(node, ast.BoolOp):
+                op_type = "AND" if isinstance(node.op, ast.And) else "OR"
+                def chain_bools(values):
+                    if len(values) == 1: return self.serialize_expr_safe(values[0], ["Boolean"])
+                    block = {"type": "logic_operation", "id": gen_uid(), "fields": {"OP": op_type}}
+                    self.add_input(block, "A", self.serialize_expr_safe(values[0], ["Boolean"]))
+                    self.add_input(block, "B", chain_bools(values[1:]))
+                    return block
+                return chain_bools(node.values)
+
+            if isinstance(node, (ast.List, ast.Tuple)):
+                block = {"type": "lists_create_with", "id": gen_uid(), "extraState": {"itemCount": len(node.elts)}, "output": "Array"}
+                for i, elt in enumerate(node.elts):
+                    child = self.serialize_expr(elt)
+                    if child is None:
+                        child = {"type": "math_number", "id": gen_uid(), "fields": {"NUM": "0"}, "output": "Number"}
+                    if child and child.get("type") == "math_number":
+                        child = {"type": "math_number", "id": gen_uid(), "fields": child.get("fields"), "output": "Number"}
+                    self.add_input(block, f"ADD{i}", child)
+                return block
+
+            if isinstance(node, ast.Dict):
+                block = {"type": "dicts_create_with", "id": gen_uid(), "extraState": {"itemCount": len(node.keys)}, "output": "Dictionary"}
+                for i, (k, v) in enumerate(zip(node.keys, node.values)):
+                    if k is not None:
+                        self.add_input(block, f"KEY{i}", self.serialize_expr(k))
+                        self.add_input(block, f"VALUE{i}", self.serialize_expr(v))
+                return block
+
+            if isinstance(node, ast.Subscript):
+                if isinstance(node.slice, ast.Slice):
+                    block = {"type": "list_slice_advanced", "id": gen_uid()}
+                    self.add_input(block, "LIST", self.serialize_expr(node.value))
+                    if node.slice.lower:
+                        self.add_input(block, "START", self.serialize_expr(node.slice.lower))
+                    if node.slice.upper:
+                        self.add_input(block, "END", self.serialize_expr(node.slice.upper))
+                    return block
+                
+                block = {"type": "lists_getIndex", "id": gen_uid(), "fields": {"MODE": "GET", "WHERE": "FROM_START"}}
+                self.add_input(block, "VALUE", self.serialize_expr(node.value))
+                slice_node = node.slice
+                if hasattr(ast, 'Index') and isinstance(slice_node, getattr(ast, 'Index')):
+                    slice_node = slice_node.value
+                self.add_input(block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
+                return block
+
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name):
+                    name = node.func.id
+                    if name == "type" and len(node.args) == 1:
+                        block = {"type": "python_type", "id": gen_uid()}
+                        self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
+                        return block
+                    if name == "input" and len(node.args) <= 1:
+                        block = {"type": "python_input", "id": gen_uid()}
+                        if node.args: self.add_input(block, "PROMPT", self.serialize_expr(node.args[0]))
+                        return block
+                    if name == "len" and len(node.args) == 1:
+                        block = {"type": "lists_length", "id": gen_uid()}
+                        self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
+                        return block
+                    
+                    # --- NEW BUILT-IN BLOCKS ---
+                    if name == "int" and len(node.args) == 1:
+                        block = {"type": "type_cast_int", "id": gen_uid()}
+                        self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
+                        return block
+                    if name in ["float", "bool", "str", "list"] and len(node.args) == 1:
+                        block = {"type": "type_cast_advanced", "id": gen_uid(), "fields": {"TYPE": name}}
+                        self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
+                        return block
+                    if name in ["abs", "round"] and len(node.args) == 1:
+                        block = {"type": "math_abs_round", "id": gen_uid(), "fields": {"OP": name}}
+                        self.add_input(block, "VALUE", self.serialize_expr_safe(node.args[0], ["Number"]))
+                        return block
+                    if name == "sorted" and len(node.args) == 1:
+                        reverse_val = "FALSE"
+                        for kw in node.keywords:
+                            if kw.arg == "reverse" and getattr(kw.value, 'value', False):
+                                reverse_val = "TRUE"
+                        block = {"type": "list_sorted", "id": gen_uid(), "fields": {"REVERSE": reverse_val}}
+                        self.add_input(block, "LIST", self.serialize_expr(node.args[0]))
+                        return block
+                    # ---------------------------
+
+                    if name in ["max", "min"] and len(node.args) == 2:
+                        block = {"type": "math_min_max", "id": gen_uid(), "fields": {"OP": "MAX" if name == "max" else "MIN"}}
+                        self.add_input(block, "A", self.serialize_expr_safe(node.args[0], ["Number"]))
+                        self.add_input(block, "B", self.serialize_expr_safe(node.args[1], ["Number"]))
+                        return block
+
+                    block = {"type": "procedures_callreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.args))]}}
+                    for i, arg in enumerate(node.args):
+                        self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
+                    return block
+
+                elif isinstance(node.func, ast.Attribute):
+                    method = node.func.attr
+                    obj = node.func.value
+                    
+                    # --- NEW BUILT-IN BLOCKS ---
+                    if method in ["upper", "lower", "title", "capitalize"] and len(node.args) == 0:
+                        block = {"type": "string_case_formatting", "id": gen_uid(), "fields": {"CASE": method}}
+                        self.add_input(block, "STRING", self.serialize_expr(obj))
+                        return block
+
+                    if method == "split":
+                        block = {"type": "string_split", "id": gen_uid()}
+                        self.add_input(block, "STRING", self.serialize_expr(obj))
+                        if len(node.args) == 1:
+                            self.add_input(block, "DELIMITER", self.serialize_expr(node.args[0]))
+                        else:
+                            self.add_input(block, "DELIMITER", {"type": "text", "id": gen_uid(), "fields": {"TEXT": " "}})
+                        return block
+                    # ---------------------------
+
+                    if method in ["keys", "values", "items"] and len(node.args) == 0:
+                        block = {"type": "dict_keys_values", "id": gen_uid(), "fields": {"OP": method}}
+                        self.add_input(block, "DICT", self.serialize_expr(obj))
+                        return block
+
+                    if method == "pop" and len(node.args) == 0:
+                        block = {"type": "list_pop", "id": gen_uid()}
+                        self.add_input(block, "LIST", self.serialize_expr(obj))
+                        return block
+
+        except Exception:
+            pass
+        
+        expr = self.make_raw_expr(node)
+        if expr and isinstance(expr, dict):
+            expr["output"] = "Any" 
+        return expr
+
+    # =========================
+    # STATEMENTS
+    # =========================
+    def serialize_node(self, node, is_top_level=False):
+        try:
+            if isinstance(node, ast.Pass):
+                return {"type": "controls_pass", "id": gen_uid()}
+            if isinstance(node, ast.Break):
+                return {"type": "controls_flow_statements", "id": gen_uid(), "fields": {"FLOW": "BREAK"}}
+            if isinstance(node, ast.Continue):
+                return {"type": "controls_flow_statements", "id": gen_uid(), "fields": {"FLOW": "CONTINUE"}}
+
+            if isinstance(node, ast.Assign):
+                if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
+                    target = node.targets[0]
+                    if len(target.elts) == 2 and len(node.value.elts) == 2:
+                        if isinstance(target.elts[0], ast.Name) and isinstance(target.elts[1], ast.Name) and \
+                           isinstance(node.value.elts[0], ast.Name) and isinstance(node.value.elts[1], ast.Name):
+                            if target.elts[0].id == node.value.elts[1].id and target.elts[1].id == node.value.elts[0].id:
+                                var1, var2 = target.elts[0].id, target.elts[1].id
+                                self.variables.add(var1)
+                                self.variables.add(var2)
+                                return {
+                                    "type": "variable_swap",
+                                    "id": gen_uid(),
+                                    "fields": {
+                                        "VAR1": {"id": var1, "name": var1},
+                                        "VAR2": {"id": var2, "name": var2}
+                                    }
+                                }
+                
+                if isinstance(node.targets[0], ast.Name):
+                    var = node.targets[0].id
+                    self.variables.add(var)
+                    block = {"type": "variables_set", "id": gen_uid(), "fields": {"VAR": {"id": var, "name": var}}}
+                    self.add_input(block, "VALUE", self.serialize_expr(node.value))
+                    return block
+                else:
+                    return self.make_raw_statement(node)
+
+            elif isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
+                op_map = {ast.Add: "ADD", ast.Sub: "MINUS", ast.Mult: "MULTIPLY", ast.Div: "DIVIDE"}
+                if type(node.op) in op_map:
+                    var = node.target.id
+                    self.variables.add(var)
+                    if self._infer_type(node.value) in ["Array", "String"]:
+                        return self.make_raw_statement(node)
+                    block = {"type": "math_assignment", "id": gen_uid(), "fields": {"VAR": {"id": var, "name": var}, "OP": op_map[type(node.op)]}}
+                    self.add_input(block, "DELTA", self.serialize_expr_safe(node.value, ["Number"]))
+                    return block
+
+            elif isinstance(node, ast.FunctionDef):
+                if not is_top_level: return self.make_raw_statement(node)
+                has_ret = any(isinstance(n, ast.Return) for n in ast.walk(node))
+                block = {"type": "procedures_defreturn" if has_ret else "procedures_defnoreturn", "id": gen_uid(), "fields": {"NAME": node.name}}
+                params = [{"name": a.arg, "id": a.arg} for a in node.args.args]
+                for p in params: self.variables.add(p["id"])
+                if params: block["extraState"] = {"params": params}
+                self.add_input(block, "STACK", self.serialize_body(node.body))
+                return block
+
+            elif isinstance(node, ast.If):
+                block = {"type": "controls_if", "id": gen_uid()}
+                self.add_input(block, "IF0", self.serialize_expr_safe(node.test, ["Boolean"]))
+                self.add_input(block, "DO0", self.serialize_body(node.body))
+
+                if node.orelse:
+                    block["extraState"] = {"hasElse": True}
+                    self.add_input(block, "ELSE", self.serialize_body(node.orelse))
+                return block
+
+            elif isinstance(node, ast.For):
+                if isinstance(node.iter, ast.Call) and getattr(node.iter.func, "id", "") == "range":
+                    args = node.iter.args
+                    if len(args) == 1:
+                        start, end, step = ast.Constant(value=0), args[0], ast.Constant(value=1)
+                    elif len(args) == 2:
+                        start, end, step = args[0], args[1], ast.Constant(value=1)
+                    else:
+                        start, end, step = args[0], args[1], args[2]
+
+                    block = {"type": "controls_for", "id": gen_uid(), "fields": {"VAR": {"id": node.target.id, "name": node.target.id}}}
+                    self.variables.add(node.target.id)
+                    self.add_input(block, "FROM", self.serialize_expr_safe(start, ["Number"]))
+                    self.add_input(block, "TO", self.serialize_expr_safe(end, ["Number"]))
+                    self.add_input(block, "BY", self.serialize_expr_safe(step, ["Number"]))
+                    self.add_input(block, "DO", self.serialize_body(node.body))
+                    return block
+                else:
+                    block = {"type": "controls_forEach", "id": gen_uid(), "fields": {"VAR": {"id": node.target.id, "name": node.target.id}}}
+                    self.variables.add(node.target.id)
+                    self.add_input(block, "LIST", self.serialize_expr(node.iter))
+                    self.add_input(block, "DO", self.serialize_body(node.body))
+                    return block
+
+            elif isinstance(node, ast.While):
+                block = {"type": "controls_whileUntil", "id": gen_uid(), "fields": {"MODE": "WHILE"}}
+                self.add_input(block, "BOOL", self.serialize_expr_safe(node.test, ["Boolean"]))
+                self.add_input(block, "DO", self.serialize_body(node.body))
+                return block
+
+            elif isinstance(node, ast.Return):
+                block = {"type": "procedure_return_value", "id": gen_uid()}
+                if node.value:
+                    self.add_input(block, "VALUE", self.serialize_expr(node.value))
+                return block
+
+            elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+                
+                if isinstance(node.value.func, ast.Name):
+                    name = node.value.func.id
+                    if name == "print":
+                        block = {"type": "text_print", "id": gen_uid()}
+                        if node.value.args:
+                            self.add_input(block, "TEXT", self.serialize_expr(node.value.args[0]))
+                        return block
+
+                    block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
+                    for i, arg in enumerate(node.value.args):
+                        self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
+                    return block
+                
+                elif isinstance(node.value.func, ast.Attribute):
+                    method = node.value.func.attr
+                    obj = node.value.func.value
+                    
+                    # --- NEW BUILT-IN BLOCKS ---
+                    if method == "sort" and len(node.value.args) == 0:
+                        reverse_val = "FALSE"
+                        for kw in node.value.keywords:
+                            if kw.arg == "reverse" and getattr(kw.value, 'value', False):
+                                reverse_val = "TRUE"
+                        block = {"type": "list_sort", "id": gen_uid(), "fields": {"REVERSE": reverse_val}}
+                        self.add_input(block, "LIST", self.serialize_expr(obj))
+                        return block
+                        
+                    if method == "insert" and len(node.value.args) == 2:
+                        block = {"type": "list_insert", "id": gen_uid()}
+                        self.add_input(block, "LIST", self.serialize_expr(obj))
+                        self.add_input(block, "INDEX", self.serialize_expr(node.value.args[0]))
+                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[1]))
+                        return block
+                    # ---------------------------
+
+                    if method == "append" and len(node.value.args) == 1:
+                        block = {"type": "list_append", "id": gen_uid()}
+                        self.add_input(block, "LIST", self.serialize_expr(obj))
+                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                        return block
+                        
+                    if method == "remove" and len(node.value.args) == 1:
+                        block = {"type": "list_remove_value", "id": gen_uid()}
+                        self.add_input(block, "LIST", self.serialize_expr(obj))
+                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                        return block
+                        
+                    if method == "pop" and len(node.value.args) == 0:
+                        block = {"type": "list_pop_statement", "id": gen_uid()}
+                        self.add_input(block, "LIST", self.serialize_expr(obj))
+                        return block
+
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                return {"type": "raw_python_statement", "id": gen_uid(), "fields": {"CODE": ast.unparse(node)}}
+
+        except Exception:
+            pass
+
+        return None
 
 --- FILE: api/database.py ---
 
@@ -39,38 +1641,130 @@ except Exception as e:
     print(f"Error connecting to MongoDB: {e}")
     raise  # Reraise to stop app startup if DB connection fails
 
+--- FILE: api/dynamic_tracer.py ---
+
+# frontend/public/python_engine/dynamic_tracer.py
+import sys
+from typing import Dict, Any, List
+from collections import Counter
+
+class ExecutionSnapshot:
+    """Holds the state of memory at a specific line of code during execution."""
+    def __init__(self, line_no: int, local_vars: Dict[str, Any]):
+        self.line_no = line_no
+        self.variables = self._profile_variables(local_vars)
+
+    def _profile_variables(self, local_vars: Dict[str, Any]) -> Dict[str, Dict]:
+        """Extracts the type and size of variables without copying massive data."""
+        profile = {}
+        for name, val in local_vars.items():
+            if name.startswith('__'): continue # Skip Python magic variables
+            
+            var_type = type(val).__name__
+            size = 1 # Default scalar size
+            
+            # If it's a collection, get its actual length at this exact moment
+            if hasattr(val, '__len__') and not isinstance(val, (str, bytes)):
+                try:
+                    size = len(val)
+                except:
+                    pass
+                    
+            profile[name] = {
+                "type": var_type,
+                "size": size,
+                "preview": str(val)[:30] + "..." if len(str(val)) > 30 else str(val)
+            }
+        return profile
+
+class AlgoBlocksTracer:
+    """Executes code and captures line-by-line runtime telemetry."""
+    
+    def __init__(self, max_steps=15000):
+        self.history: List[ExecutionSnapshot] = []
+        self.line_hits = Counter()
+        self.max_steps = max_steps
+        self.step_count = 0
+
+    def _trace_dispatch(self, frame, event, arg):
+        # We only care about line execution events
+        if event == 'line':
+            self.step_count += 1
+            if self.step_count > self.max_steps:
+                raise TimeoutError("Execution exceeded max steps (infinite loop protection).")
+                
+            lineno = frame.f_lineno
+            self.line_hits[lineno] += 1
+            
+            # Snapshot the line number and the variables currently in memory
+            snapshot = ExecutionSnapshot(lineno, frame.f_locals)
+            self.history.append(snapshot)
+        return self._trace_dispatch
+
+    def execute_and_trace(self, code_string: str, input_globals: dict = None) -> Dict[str, Any]:
+        """Runs the student's code in a trace environment and aggregates data."""
+        self.history = []
+        self.line_hits = Counter()
+        self.step_count = 0
+        safe_globals = input_globals if input_globals else {}
+        
+        # Turn on the dynamic tracer
+        sys.settrace(self._trace_dispatch)
+        try:
+            # Execute the code
+            exec(code_string, safe_globals, safe_globals)
+        except Exception as e:
+            # Catch timeouts and errors silently to allow partial traces
+            pass
+        finally:
+            # ALWAYS turn the tracer off immediately after
+            sys.settrace(None)
+            
+        return {
+            "history": self.history,
+            "line_hits": dict(self.line_hits)
+        }
+
 --- FILE: api/index.py ---
 
-# api\index.py
-
+# api/index.py
 import sys
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from bson import ObjectId
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
-# Ensure current dir is included for Vercel
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  
+# ==========================================
+# âœ… FIX: GLOBAL PATH RESOLUTION
+# ==========================================
+current_dir = os.path.dirname(os.path.abspath(__file__)) # Gets the /api folder
+parent_dir = os.path.dirname(current_dir)                # Gets the root folder
 
-# =========================
-# âœ… CLEANED IMPORT HANDLING
-# =========================
-try:
-    from api.database import projects_collection, users_collection, templates_collection
-    from api.models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate
-except ModuleNotFoundError:
-    try:
-        from database import projects_collection, users_collection, templates_collection  
-        from models import ProjectModel, ProjectUpdate, TemplateModel, TemplateUpdate  
-    except ModuleNotFoundError as e:
-        raise RuntimeError(f"Import failed: {e}")  
+# Add both to sys.path so 'from api...' imports work everywhere without try/except
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
+
+# âœ… IMPORT LIMITER FROM THE NEW FILE
+from api.limiter import limiter
+
+# Import your cleanly separated routers
+from api.routers import project_router
+from api.routers import template_router
+from api.routers import auth_router
+from api.routers import analyze_router
 
 app = FastAPI()
+
+# Register the limiter state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # =========================
 # MIDDLEWARE
 # =========================
+app.add_middleware(SlowAPIMiddleware) # Enforces the global rate limit
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -80,8 +1774,66 @@ app.add_middleware(
 )
 
 # =========================
-# MODELS
+# ROUTER REGISTRATION
 # =========================
+app.include_router(project_router.router)
+app.include_router(template_router.router)
+app.include_router(auth_router.router)
+app.include_router(analyze_router.router)
+
+# =========================
+# ROOT
+# =========================
+@app.get("/")
+def health_check():
+    return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
+
+--- FILE: api/limiter.py ---
+
+# api/limiter.py
+from fastapi import Request
+from slowapi import Limiter
+
+def get_real_client_ip(request: Request) -> str:
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+# Define the limiter here so anyone can import it safely
+limiter = Limiter(key_func=get_real_client_ip, default_limits=["100/minute"])
+
+--- FILE: api/models.py ---
+
+# api/models.py
+from pydantic import BaseModel
+from typing import Optional
+
+class GoogleAuthRequest(BaseModel):
+    token: str
+
+class ProjectModel(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    data: dict
+    owner_id: str
+
+class ProjectUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    data: Optional[dict] = None
+
+class TemplateModel(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    data: dict
+    owner_id: str
+
+class TemplateUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    data: Optional[dict] = None
+
 class LoginRequest(BaseModel):
     email: str
     password: str
@@ -95,185 +1847,76 @@ class ProgressRequest(BaseModel):
     email: str
     lesson_id: str
     score: int
+    
+class ActivityDraftSchema(BaseModel):
+    email: str
+    lesson_id: str
+    json_data: Optional[str] = None
+    python_code: Optional[str] = None
 
-@app.get("/")
-def health_check():
-    return {"status": "online", "message": "AlgoBlocks API Cloud Sync is running."}
+--- FILE: api/repositories/project_repo.py ---
 
-# =========================
-# CLOUD SYNC: PROJECTS
-# =========================
-@app.post("/api/projects")
-def save_project(project: ProjectModel):
-    if projects_collection is None:
-        raise HTTPException(500, "Database not connected")
+from bson import ObjectId
+from api.database import projects_collection
 
-    result = projects_collection.insert_one(project.model_dump())
-    return {"status": "success", "id": str(result.inserted_id)}
+class ProjectRepository:
+    @staticmethod
+    def insert(data: dict):
+        return projects_collection.insert_one(data)
 
-@app.get("/api/projects")
-def get_projects():
-    if projects_collection is None:
-        raise HTTPException(500, "Database not connected")
+    @staticmethod
+    def get_all():
+        return list(projects_collection.find({}))
 
-    projects = list(projects_collection.find({}))
-    for p in projects:
-        p["_id"] = str(p["_id"])
+    @staticmethod
+    def delete(project_id: str):
+        return projects_collection.delete_one({"_id": ObjectId(project_id)})
 
-    return {"status": "success", "projects": projects}
+    @staticmethod
+    def update(project_id: str, update_data: dict):
+        return projects_collection.update_one({"_id": ObjectId(project_id)}, {"$set": update_data})
 
-@app.delete("/api/projects/{project_id}")
-def delete_project(project_id: str):
-    if projects_collection is None:
-        raise HTTPException(500, "Database not connected")
-        
-    result = projects_collection.delete_one({"_id": ObjectId(project_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(404, "Project not found")
-    return {"status": "success"}
+--- FILE: api/repositories/template_repo.py ---
 
-@app.put("/api/projects/{project_id}")
-def update_project(project_id: str, payload: ProjectUpdate):
-    if projects_collection is None:
-        raise HTTPException(500, "Database not connected")
-        
-    update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
+from bson import ObjectId
+from api.database import templates_collection
 
-    result = projects_collection.update_one(
-        {"_id": ObjectId(project_id)},
-        {"$set": update_data}
-    )
+class TemplateRepository:
+    @staticmethod
+    def insert(data: dict):
+        return templates_collection.insert_one(data)
 
-    if result.matched_count == 0:
-        raise HTTPException(404, "Project not found")
+    @staticmethod
+    def get_all():
+        return list(templates_collection.find({}))
 
-    return {"status": "success"}
+    @staticmethod
+    def delete(template_id: str):
+        return templates_collection.delete_one({"_id": ObjectId(template_id)})
 
-# =========================
-# CLOUD SYNC: TEMPLATES
-# =========================
-@app.post("/api/templates")
-def save_template(template: TemplateModel):
-    if templates_collection is None:
-        raise HTTPException(500, "Database not connected")
+    @staticmethod
+    def update(template_id: str, update_data: dict):
+        return templates_collection.update_one({"_id": ObjectId(template_id)}, {"$set": update_data})
 
-    result = templates_collection.insert_one(template.model_dump())
-    return {"status": "success", "id": str(result.inserted_id)}
+--- FILE: api/repositories/user_repo.py ---
 
-@app.get("/api/templates")
-def get_templates():
-    if templates_collection is None:
-        raise HTTPException(500, "Database not connected")
+from api.database import users_collection
 
-    templates = list(templates_collection.find({}))
-    for t in templates:
-        t["_id"] = str(t["_id"])
-    return {"status": "success", "templates": templates}
+class UserRepository:
+    @staticmethod
+    def find_by_email(email: str):
+        return users_collection.find_one({"email": email})
 
-@app.delete("/api/templates/{template_id}")
-def delete_template(template_id: str):
-    if templates_collection is None:
-        raise HTTPException(500, "Database not connected")
+    @staticmethod
+    def insert(data: dict):
+        return users_collection.insert_one(data)
 
-    result = templates_collection.delete_one({"_id": ObjectId(template_id)})
-    if result.deleted_count == 0:
-        raise HTTPException(404, "Template not found")
-    return {"status": "success"}
-
-@app.put("/api/templates/{template_id}")
-def update_template(template_id: str, payload: TemplateUpdate):
-    if templates_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
-
-    result = templates_collection.update_one(
-        {"_id": ObjectId(template_id)},
-        {"$set": update_data}
-    )
-
-    if result.matched_count == 0:
-        raise HTTPException(404, "Template not found")
-
-    return {"status": "success"}
-
-# =========================
-# CLOUD SYNC: AUTH & PROGRESS
-# =========================
-@app.post("/api/login")
-def login_user(req: LoginRequest):
-    if users_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    user = users_collection.find_one({"email": req.email})
-    if not user or user.get("password") != req.password:
-        raise HTTPException(401, "Invalid credentials")
-
-    return {
-        "status": "success",
-        "email": req.email,
-        "name": user.get("name"),
-        "progress": user.get("progress", {})
-    }
-
-@app.post("/api/signup")
-def signup_user(req: SignUpRequest):
-    if users_collection is None:
-        raise HTTPException(500, "Database not connected")
-
-    if users_collection.find_one({"email": req.email}):
-        raise HTTPException(400, "Email already registered")
-
-    users_collection.insert_one({
-        "name": req.name,
-        "email": req.email,
-        "password": req.password,
-        "progress": {}
-    })
-
-    return {"status": "success", "email": req.email, "name": req.name}
-
-@app.post("/api/update-progress")
-def update_progress(req: ProgressRequest):
-    if users_collection is None:
-        raise HTTPException(500, "Database not connected")
-        
-    users_collection.update_one(
-        {"email": req.email},
-        {"$set": {f"progress.{req.lesson_id}": req.score}}
-    )
-
-    user = users_collection.find_one({"email": req.email})
-    return {"status": "success", "progress": user.get("progress", {})}
-
---- FILE: api/models.py ---
-
-#api\models.py
-
-from pydantic import BaseModel
-from typing import Optional
-
-class ProjectModel(BaseModel):
-    title: str
-    description: Optional[str] = "" 
-    data: dict
-    owner_id: str
-
-class ProjectUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None 
-    data: Optional[dict] = None
-
-class TemplateModel(BaseModel):
-    title: str
-    description: Optional[str] = ""
-    data: dict
-    owner_id: str  # Ensures templates are saved specific to the user
-
-class TemplateUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    data: Optional[dict] = None
+    @staticmethod
+    def update_progress(email: str, lesson_id: str, score: int):
+        return users_collection.update_one(
+            {"email": email},
+            {"$set": {f"progress.{lesson_id}": score}}
+        )
 
 --- FILE: api/requirements.txt ---
 
@@ -284,6 +1927,7 @@ pydantic==2.13.0
 pymongo[srv]==4.7.2
 python-dotenv==1.0.1
 requests==2.32.3
+slowapi==0.1.9
 
 # optional but already in your freeze (safe to keep)
 anyio==4.13.0
@@ -292,6 +1936,1133 @@ colorama==0.4.6
 h11==0.16.0
 idna==3.11
 typing_extensions==4.15.0
+google-auth==2.29.0
+requests==2.32.3
+
+--- FILE: api/routers/analyze_router.py ---
+
+# api/routers/analyze_router.py
+import sys
+import os
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
+from api.limiter import limiter # âœ… Import from the new file
+
+# Create the router
+router = APIRouter(prefix="/api/analyze", tags=["Analyzer"])
+
+# Tell Python where your engine scripts are (since they live in the frontend folder)
+engine_path = os.path.join(os.path.dirname(__file__), "../../frontend/public/python_engine")
+if engine_path not in sys.path:
+    sys.path.append(engine_path)
+
+try:
+    # âœ… FIX: Import the helper function instead of the class directly
+    from analyzer import analyze_source_code
+except ImportError:
+    analyze_source_code = None
+
+class CodePayload(BaseModel):
+    code: str
+
+@router.post("")
+@limiter.limit("10/minute")
+def analyze_python_code(request: Request, payload: CodePayload):
+    if analyze_source_code is None:
+        raise HTTPException(500, "Analyzer engine not found on server")
+
+    try:
+        # âœ… FIX: Pass the code directly into the wrapper function
+        results = analyze_source_code(payload.code)
+        
+        # analyze_source_code already returns a dictionary with {"status": "success", ...} 
+        # so we can just return it directly!
+        return results
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+--- FILE: api/routers/auth_router.py ---
+
+# api/routers/auth_router.py
+from fastapi import APIRouter, Request
+from api.models import LoginRequest, SignUpRequest, ProgressRequest, GoogleAuthRequest
+from api.services.auth_service import AuthService
+from api.limiter import limiter
+
+router = APIRouter(prefix="/api", tags=["Auth & Progress"])
+
+@router.post("/login")
+@limiter.limit("5/minute")
+def login_user(request: Request, req: LoginRequest):
+    return AuthService.login(req)
+
+@router.post("/signup")
+@limiter.limit("5/minute")
+def signup_user(request: Request, req: SignUpRequest):
+    return AuthService.signup(req)
+
+@router.post("/update-progress")
+@limiter.limit("30/minute")
+def update_progress(request: Request, req: ProgressRequest):
+    return AuthService.update_progress(req)
+
+# âœ… Integrated Route for Verification Actions
+@router.post("/auth/google")
+@limiter.limit("5/minute")
+def google_auth(request: Request, req: GoogleAuthRequest):
+    return AuthService.google_login(req.token)
+
+--- FILE: api/routers/project_router.py ---
+
+from fastapi import APIRouter
+from api.models import ProjectModel, ProjectUpdate
+from api.services.project_service import ProjectService
+
+router = APIRouter(prefix="/api/projects", tags=["Projects"])
+
+@router.post("")
+@router.post("/")
+def save_project(project: ProjectModel):
+    return ProjectService.create_project(project)
+
+@router.get("")
+@router.get("/")
+def get_projects():
+    return ProjectService.get_projects()
+
+@router.delete("/{project_id}")
+def delete_project(project_id: str):
+    return ProjectService.delete_project(project_id)
+
+@router.put("/{project_id}")
+def update_project(project_id: str, payload: ProjectUpdate):
+    return ProjectService.update_project(project_id, payload)
+
+--- FILE: api/routers/template_router.py ---
+
+from fastapi import APIRouter
+from api.models import TemplateModel, TemplateUpdate
+from api.services.template_service import TemplateService
+
+router = APIRouter(prefix="/api/templates", tags=["Templates"])
+
+@router.post("")
+@router.post("/")
+def save_template(template: TemplateModel):
+    return TemplateService.create_template(template)
+
+@router.get("")
+@router.get("/")
+def get_templates():
+    return TemplateService.get_templates()
+
+@router.delete("/{template_id}")
+def delete_template(template_id: str):
+    return TemplateService.delete_template(template_id)
+
+@router.put("/{template_id}")
+def update_template(template_id: str, payload: TemplateUpdate):
+    return TemplateService.update_template(template_id, payload)
+
+--- FILE: api/semantic_nlg.py ---
+
+# frontend/public/python_engine/semantic_nlg.py
+import ast
+import random
+import re
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+# =============================================================================
+# Core Data Models
+# =============================================================================
+
+@dataclass
+class BigOInfo:
+    """
+    Semantic Big-O classification.
+    
+    This class is responsible for taking raw mathematical notation and breaking
+    it down into actionable, semantic properties. We treat Big-O as a semantic 
+    label to generate human-readable, educational explanations of growth rates,
+    rather than purely mathematical bounds.
+    """
+    raw: str
+    normalized: str
+    family: str  # e.g., linear, logarithmic, polynomial, exponential, factorial, graph, root, constant
+    factors: Dict[str, Any]
+
+
+@dataclass
+class MemorySignals:
+    """
+    Tracks detailed memory allocation behaviors detected in the AST.
+    This helps the engine explain WHY memory is growing, not just THAT it grows.
+    """
+    allocates_lists: bool = False
+    allocates_dicts: bool = False
+    allocates_sets: bool = False
+    uses_list_comprehension: bool = False
+    uses_dict_comprehension: bool = False
+    uses_generator: bool = False
+    performs_slicing: bool = False
+    string_concatenation_in_loop: bool = False
+    tracks_visited_nodes: bool = False
+    recursive_stack_risk: bool = False
+
+
+@dataclass
+class ComplexitySignals:
+    """
+    Tracks hidden complexity drivers detected in the AST.
+    This allows the engine to point out specific lines or patterns that cause
+    performance degradation (e.g., popping from the front of a list).
+    """
+    inefficient_list_pop: bool = False      # e.g., list.pop(0)
+    inefficient_list_insert: bool = False   # e.g., list.insert(0, x)
+    repeated_sort: bool = False             # sort() inside a loop
+    membership_in_list: bool = False        # x in list (O(n)) vs x in set (O(1))
+    heavy_math_operations: bool = False     # frequent ** or math.factorial
+
+
+@dataclass
+class PatternSignals:
+    """
+    Structured signals derived from deeply analyzing the Abstract Syntax Tree (AST).
+    These signals act as the bridge between the raw code and the educational
+    insights generated by the NLG engine.
+    """
+    loop_depth: int = 0
+    nested_loops: bool = False
+    
+    has_recursion: bool = False
+    recursion_branching: Optional[str] = None  # binary, multi, linear, unknown
+    has_backtracking_risk: bool = False
+    
+    membership_in_loop: bool = False
+    comprehension_expansion: bool = False
+    
+    graph_traversal: bool = False
+    visited_tracking: bool = False
+    
+    repeated_calls_in_loop: bool = False
+    has_early_exits: bool = False  # break or return inside loops
+
+    # Expanded Block Handlers
+    inline_ternary: bool = False
+    string_interpolation: bool = False
+    variable_swapping: bool = False
+
+    # Detailed subsystems
+    memory_signals: MemorySignals = field(default_factory=MemorySignals)
+    complexity_signals: ComplexitySignals = field(default_factory=ComplexitySignals)
+    
+    extra_notes: List[str] = field(default_factory=list)
+
+
+# =============================================================================
+# Deep AST Analysis Visitor
+# =============================================================================
+
+class ComprehensiveASTVisitor(ast.NodeVisitor):
+    """
+    A specialized AST visitor designed to deeply inspect code execution patterns.
+    Unlike standard walk, this visitor tracks context (e.g., being inside a loop)
+    to accurately identify dangerous or inefficient patterns, such as list
+    insertions happening inside a loop, which compound complexity.
+    """
+    
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.signals = PatternSignals()
+        
+        # Context trackers
+        self._current_loop_depth = getattr(ctx, "active_poly_dims", [])
+        self.signals.loop_depth = len(self._current_loop_depth)
+        self.signals.nested_loops = self.signals.loop_depth > 1
+        
+        self._in_loop = self.signals.loop_depth > 0
+        self._function_calls: Set[str] = set()
+
+    def analyze(self, node: ast.AST) -> PatternSignals:
+        """Entry point to begin deep semantic traversal of the node."""
+        if node:
+            self.visit(node)
+            
+        # Post-process specific contextual rules
+        self._evaluate_recursion()
+        self._evaluate_graph_context()
+        
+        return self.signals
+
+    def visit_Call(self, node: ast.Call):
+        """Analyze function calls for efficiency anti-patterns and recursion."""
+        if self._in_loop:
+            self.signals.repeated_calls_in_loop = True
+
+        # Check for specific method calls that are known bottlenecks
+        if isinstance(node.func, ast.Attribute):
+            method_name = node.func.attr
+            self._function_calls.add(method_name)
+            
+            if method_name == 'pop':
+                # Check if it's pop(0) which is O(n)
+                if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
+                    self.signals.complexity_signals.inefficient_list_pop = True
+            
+            elif method_name == 'insert':
+                # Check if inserting at the beginning insert(0, x) which is O(n)
+                if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
+                    self.signals.complexity_signals.inefficient_list_insert = True
+                    
+            elif method_name == 'sort':
+                if self._in_loop:
+                    self.signals.complexity_signals.repeated_sort = True
+
+        elif isinstance(node.func, ast.Name):
+            func_name = node.func.id
+            self._function_calls.add(func_name)
+            
+            # Recursion detection
+            current_fn = getattr(self.ctx, "current_function_name", None)
+            indirect_fns = getattr(self.ctx, "indirect_recursive_funcs", set())
+            
+            if func_name == current_fn or func_name in indirect_fns:
+                self.signals.has_recursion = True
+                self.signals.memory_signals.recursive_stack_risk = True
+
+        self.generic_visit(node)
+
+    def visit_Compare(self, node: ast.Compare):
+        """Analyze comparisons, particularly 'in' and 'not in' operators."""
+        for op in node.ops:
+            if isinstance(op, (ast.In, ast.NotIn)):
+                if self._in_loop:
+                    self.signals.membership_in_loop = True
+                    # If we could definitively know the right hand side is a list,
+                    # we would flag membership_in_list. For now, we flag the risk.
+                    self.signals.complexity_signals.membership_in_list = True
+        self.generic_visit(node)
+
+    def visit_ListComp(self, node: ast.ListComp):
+        """Detect list comprehensions."""
+        self.signals.comprehension_expansion = True
+        self.signals.memory_signals.uses_list_comprehension = True
+        self.signals.memory_signals.allocates_lists = True
+        self.generic_visit(node)
+
+    def visit_SetComp(self, node: ast.SetComp):
+        """Detect set comprehensions."""
+        self.signals.comprehension_expansion = True
+        self.signals.memory_signals.uses_set_comprehension = True
+        self.signals.memory_signals.allocates_sets = True
+        self.generic_visit(node)
+
+    def visit_DictComp(self, node: ast.DictComp):
+        """Detect dict comprehensions."""
+        self.signals.comprehension_expansion = True
+        self.signals.memory_signals.uses_dict_comprehension = True
+        self.signals.memory_signals.allocates_dicts = True
+        self.generic_visit(node)
+        
+    def visit_GeneratorExp(self, node: ast.GeneratorExp):
+        """Detect generator expressions."""
+        self.signals.comprehension_expansion = True
+        self.signals.memory_signals.uses_generator = True
+        self.generic_visit(node)
+
+    def visit_Subscript(self, node: ast.Subscript):
+        """Detect array slicing which creates memory copies."""
+        if isinstance(node.slice, ast.Slice):
+            self.signals.memory_signals.performs_slicing = True
+        self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign):
+        """Detect potential string concatenation or list extensions in loops."""
+        if self._in_loop and isinstance(node.op, ast.Add):
+            self.signals.memory_signals.string_concatenation_in_loop = True
+        self.generic_visit(node)
+        
+    def visit_Break(self, node: ast.Break):
+        """Detect early loop exits which improve practical performance."""
+        self.signals.has_early_exits = True
+        self.generic_visit(node)
+        
+    def visit_Return(self, node: ast.Return):
+        """Detect early function exits."""
+        if self._in_loop:
+            self.signals.has_early_exits = True
+        self.generic_visit(node)
+
+    def visit_IfExp(self, node: ast.IfExp):
+        """Detect inline ternary conditional logic."""
+        self.signals.inline_ternary = True
+        self.generic_visit(node)
+        
+    def visit_JoinedStr(self, node: ast.JoinedStr):
+        """Detect f-string interpolation."""
+        self.signals.string_interpolation = True
+        self.generic_visit(node)
+        
+    def visit_Assign(self, node: ast.Assign):
+        """Detect variable unpacking and swapping."""
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
+            self.signals.variable_swapping = True
+        self.generic_visit(node)
+
+    def _evaluate_recursion(self):
+        """Post-process recursion branching risk."""
+        if self.signals.has_recursion:
+            # Check for multiple recursive calls in the same expression tree
+            # This is a heuristic approximation.
+            if len([f for f in self._function_calls if f == getattr(self.ctx, "current_function_name", None)]) > 1:
+                self.signals.recursion_branching = "multi"
+            else:
+                self.signals.recursion_branching = "linear_or_unknown"
+                
+            # Backtracking risk usually requires recursion + branching (If) + loops
+            # Here we simplify the heuristic
+            if self.signals.has_recursion and self.signals.loop_depth > 0:
+                self.signals.has_backtracking_risk = True
+
+    def _evaluate_graph_context(self):
+        """Integrate global graph context from the analyzer."""
+        if getattr(self.ctx, "in_graph_context", False):
+            self.signals.graph_traversal = True
+            self.signals.visited_tracking = True
+            self.signals.memory_signals.tracks_visited_nodes = True
+        
+        if 'popleft' in self._function_calls or 'pop' in self._function_calls:
+            if getattr(self.ctx, "has_graph_traversal", False):
+                self.signals.graph_traversal = True
+
+
+# =============================================================================
+# Educational Explanation Generators
+# =============================================================================
+
+class EducationalInsightGenerator:
+    """
+    Responsible for generating deep, human-readable, educational insights
+    tailored specifically for beginners and non-CS audiences. It connects
+    mathematical growth to physical, real-world analogies and explains the "Why".
+    """
+    
+    @staticmethod
+    def explain_time_growth(info: BigOInfo) -> str:
+        """Provides a detailed educational breakdown of a time complexity family."""
+        family = info.family
+        
+        if family == "constant":
+            return (
+                "This operation runs in Constant Time. This means no matter how massive "
+                "the input data getsâ€”whether it's 10 items or 10 millionâ€”the time it takes "
+                "to execute stays exactly the same. It is the gold standard for algorithmic efficiency, "
+                "acting like an instant lookup."
+            )
+        elif family == "linear":
+            return (
+                "This operation scales Linearly. If you double the amount of data, the execution "
+                "time roughly doubles. You can think of it like reading a book: reading a book with "
+                "twice as many pages takes twice as long. It indicates that the algorithm needs to "
+                "examine or process each item at least once."
+            )
+        elif family == "root":
+            return (
+                "This operation scales with a Square Root curve. It is much faster than checking every item. "
+                "As your input grows larger, the required work grows, but at a steadily decreasing rate. "
+                "This is commonly seen when an algorithm only needs to check factors up to the square root "
+                "of a number, allowing it to skip a massive amount of unnecessary work."
+            )
+        elif family == "logarithmic":
+            return (
+                "This operation runs in Logarithmic Time, which is incredibly fast for large datasets. "
+                "Instead of looking at every item, the algorithm repeatedly halves the problem spaceâ€”just "
+                "like searching for a word in a physical dictionary by splitting the book in half repeatedly. "
+                "Even if you have billions of items, it might only take a few dozen steps to find the answer."
+            )
+        elif family == "linearithmic":
+            return (
+                "This operation runs in Linearithmic Time (n log n). This is slightly slower than linear time, "
+                "but much faster than polynomial time. It usually happens when an algorithm breaks a problem "
+                "down into smaller halves (the log n part) and then merges or processes all the pieces (the n part). "
+                "This is the typical speed limit for the most efficient general sorting algorithms."
+            )
+        elif family == "polynomial":
+            return (
+                "This operation exhibits Polynomial Growth (like n squared or n cubed). For small inputs, this is fine, "
+                "but it becomes dangerously slow as the data grows. If you double the input, the time taken doesn't just double; "
+                "it multiplies by four, nine, or more. This usually occurs when you have nested loops, meaning for every single "
+                "item, you have to scan through the entire dataset all over again."
+            )
+        elif family == "exponential":
+            return (
+                "This operation exhibits Exponential Growth, which is highly dangerous for performance. "
+                "Adding just one single item to the input can cause the required work to double. "
+                "This typically happens in naive recursive algorithms that solve the same sub-problems over and over again, "
+                "causing the workload to explode rapidly. It is generally only suitable for very small datasets."
+            )
+        elif family == "factorial":
+            return (
+                "This operation runs in Factorial Time, which is the most extreme form of complexity explosion. "
+                "It represents generating every possible permutation or combination of the input. "
+                "An algorithm with factorial growth will quickly bring any modern computer to a halt even with "
+                "inputs as small as 15 or 20 items."
+            )
+        elif family == "graph":
+            return (
+                "This operation's growth is tied to the structure of a Graph. The time it takes depends on two factors: "
+                "the total number of entities (Vertices) and the number of connections between them (Edges). "
+                "The algorithm systematically explores these connections, so denser networks will naturally take longer to process."
+            )
+        else:
+            return (
+                "The exact mathematical scaling for this pattern is complex, but the core takeaway is that "
+                "the workload scales dynamically with the size of the input. Larger datasets will proportionally "
+                "increase the execution time as the algorithm processes the expanding data structures."
+            )
+
+    @staticmethod
+    def explain_space_growth(global_s: str, info: BigOInfo, ctx: Any) -> str:
+        """Provides a detailed educational breakdown of space complexity."""
+        family = info.family
+        lower_s = global_s.lower()
+        
+        if "o(1)" in lower_s or family == "constant":
+            return (
+                "The memory footprint is Constant. The algorithm modifies data 'in-place' or only "
+                "requires a few fixed variables. It does not hoard additional memory as the input grows, "
+                "making it highly efficient and safe for systems with limited RAM."
+            )
+        elif family == "linear" or "o(n)" in lower_s:
+            if "in-place" in (getattr(ctx, "hint_text", "") or ""):
+                return (
+                    "While theoretically scaling with the input, the practical memory overhead is kept low "
+                    "because the algorithm manipulates data in-place without creating massive duplicate copies."
+                )
+            return (
+                "The memory usage scales Linearly. For every new piece of input data, the algorithm allocates "
+                "a proportional amount of extra memory. This typically happens when constructing new lists, "
+                "dictionaries, or keeping track of an expanding frontier of items."
+            )
+        elif "log" in lower_s and getattr(ctx, "has_division", False):
+            return (
+                "The memory usage scales Logarithmically. This is usually driven by the 'call stack' during recursion. "
+                "Because the problem is halved at each step, the maximum depth of the stack stays remarkably small, "
+                "making it memory-efficient even for massive inputs."
+            )
+        elif "v" in lower_s or "e" in lower_s or family == "graph":
+            return (
+                "The memory footprint depends on the Graph's architecture. The algorithm must remember which nodes "
+                "it has already visited (to prevent infinite loops) and maintain a queue/stack of nodes waiting to be explored. "
+                "Therefore, memory grows alongside the number of vertices and edges."
+            )
+        elif family == "polynomial" or "n^2" in lower_s:
+            return (
+                "The memory usage exhibits Polynomial Growth. The algorithm is constructing multi-dimensional "
+                "structures, like matrices or 2D grids (e.g., dynamic programming tables). This means memory consumption "
+                "will grow exponentially faster than the input, requiring careful monitoring for large datasets."
+            )
+        else:
+            return (
+                "The memory usage requires dynamic allocation. As the algorithm executes, it actively reserves "
+                "more space in the computer's memory to track intermediate states, variables, or recursive calls. "
+                "This means larger inputs will directly translate to a larger RAM footprint."
+            )
+
+
+# =============================================================================
+# Core NLG Engine
+# =============================================================================
+
+class SemanticNLGEngine:
+    """
+    Universal semantic NLG engine for complexity analysis explanations.
+    Massively expanded to provide deep contextual insights, architectural
+    analysis, and educational tutoring.
+    """
+
+    def __init__(self, analyzer_context):
+        self.ctx = analyzer_context
+        self.explainer = EducationalInsightGenerator()
+
+    # -------------------------------------------------------------------------
+    # Big-O semantic normalization + classification
+    # -------------------------------------------------------------------------
+    def _safe_str(self, x: Any) -> str:
+        try:
+            return str(x) if x is not None else ""
+        except Exception:
+            return ""
+
+    def _normalize_big_o(self, s: str) -> str:
+        if not s:
+            return "O(1)"
+        s = s.strip()
+        if s in {"-", "Dead Code", "Undefined", "undefined"}:
+            return s
+        s = re.sub(r"\s+", " ", s)
+
+        # Normalize common symbols/variants
+        s = s.replace("âˆš", "sqrt")
+        s = s.replace("logÂ²", "log^2")
+        return s
+
+    def _classify_big_o(self, raw: str) -> BigOInfo:
+        """
+        Translates raw O-strings into semantic families for educational breakdown.
+        Contains exhaustive pattern matching to cover a massive variety of outputs.
+        """
+        original = raw
+        raw = self._normalize_big_o(raw)
+        s = raw
+        lower = s.lower()
+
+        # undefined/infinite
+        if not s or s in {"-", "Undefined", "undefined"}:
+            return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
+        if "âˆž" in original or "infinite" in lower or "undefined" in lower:
+            return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
+
+        # recursion-style strings (T(n) = ...)
+        if "t(" in lower or lower.startswith("t(") or "t(n)" in lower:
+            return BigOInfo(raw=original, normalized=s, family="unknown", factors={"recurrence": True})
+
+        # graph topologies
+        if any(g_pat in lower for g_pat in ["v + e", "v+e", "e log v", "v log", "e + v"]):
+            return BigOInfo(raw=original, normalized=s, family="graph", factors={"V": "v" in lower, "E": "e" in lower})
+        if "v" in lower and "e" in lower:
+            return BigOInfo(raw=original, normalized=s, family="graph", factors={"V": True, "E": True})
+
+        # factorial
+        if "n!" in lower or "n^!" in lower or "factorial" in lower:
+            return BigOInfo(raw=original, normalized=s, family="factorial", factors={})
+
+        # exponential
+        if "2^n" in lower or ("2^" in lower and "n" in lower) or "2n" in lower:
+            return BigOInfo(raw=original, normalized=s, family="exponential", factors={"base": 2})
+        if "exp" in lower and "n" in lower:
+            return BigOInfo(raw=original, normalized=s, family="exponential", factors={})
+        if re.search(r"[a-z]\s*\^\s*n", lower) or re.search(r"\w\^n", lower):
+            if "o(" in lower or lower.startswith("o("):
+                return BigOInfo(raw=original, normalized=s, family="exponential", factors={})
+
+        # root
+        if "sqrt" in lower:
+            return BigOInfo(raw=original, normalized=s, family="root", factors={})
+
+        # log^2
+        if "log^2" in lower or "log 2" in lower or "logÂ²" in original:
+            return BigOInfo(raw=original, normalized=s, family="logarithmic", factors={"variant": "log^2"})
+
+        # linearithmic (n log n)
+        if "n log" in lower or "n*log" in lower or "n log n" in lower:
+            return BigOInfo(raw=original, normalized=s, family="linearithmic", factors={})
+
+        # pure logarithmic
+        if re.search(r"\blog\b", lower) and "n" in lower:
+            return BigOInfo(raw=original, normalized=s, family="logarithmic", factors={})
+
+        # linear multiple variables (n+m)
+        if ("n + m" in lower) or ("n+m" in lower) or ("min(n, m)" in lower) or ("min(n,m)" in lower):
+            return BigOInfo(raw=original, normalized=s, family="linear", factors={"two_vars": True})
+
+        # polynomial multiple variables (n*m)
+        if "n*m" in lower or "n * m" in lower:
+            return BigOInfo(raw=original, normalized=s, family="polynomial", factors={"product": True})
+
+        # pure polynomial (n^k)
+        if "n^" in lower or "^2" in lower or "^3" in lower:
+            return BigOInfo(raw=original, normalized=s, family="polynomial", factors={})
+
+        # pure linear O(n)
+        if re.fullmatch(r"o\(\s*n\s*\)", lower) or re.fullmatch(r"o\(\s*n\s*\)", s.lower().replace(" ", "")):
+            return BigOInfo(raw=original, normalized=s, family="linear", factors={})
+
+        # pure constant O(1)
+        if lower == "o(1)" or "o(1)" in lower:
+            return BigOInfo(raw=original, normalized=s, family="constant", factors={})
+
+        # fallback generic
+        if lower.startswith("o("):
+            return BigOInfo(raw=original, normalized=s, family="unknown", factors={"contains": s})
+
+        return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
+
+    # -------------------------------------------------------------------------
+    # Renderers: Deep Time / Space / Pattern Insights
+    # -------------------------------------------------------------------------
+
+    def _build_execution_context_phrase(self, sig: PatternSignals) -> str:
+        """Constructs an intelligent phrase describing WHY the code repeats."""
+        if sig.nested_loops:
+            return "the algorithm executes an inner operation exhaustively for every single step of the outer structure"
+        elif sig.loop_depth >= 1:
+            return "the algorithm systematically processes items in a repetitive sequence"
+        elif sig.membership_in_loop:
+            return "the loop actively scans collections over and over to verify if elements exist"
+        elif sig.comprehension_expansion:
+            return "the language dynamically unpacks and processes an entire collection behind the scenes"
+        elif sig.has_recursion:
+            if sig.recursion_branching == "multi":
+                return "the function violently branches out, calling itself multiple times and creating a massive execution tree"
+            return " the function relies on the call stack, diving deeper into self-referential execution until a base case is hit"
+        elif sig.graph_traversal:
+            return "the algorithm dynamically navigates outward, exploring complex network connections step-by-step"
+        else:
+            return "the execution flows directly without repeating loops or self-reference"
+
+    def _time_renderer(self, node: ast.AST, local_t: str, global_t: str, code_snippet: str, hits: int, sig: PatternSignals) -> str:
+        ginfo = self._classify_big_o(global_t)
+        
+        snippet_ref = f"Looking at `{code_snippet}`" if code_snippet else "Analyzing this segment"
+        context_phrase = self._build_execution_context_phrase(sig)
+        
+        educational_growth = self.explainer.explain_time_growth(ginfo)
+        
+        # Build insight fragments
+        insights = []
+        if sig.complexity_signals.inefficient_list_pop:
+            insights.append("Notice that popping from the front of a list forces Python to shift all remaining elements memory, causing severe hidden delays.")
+        if sig.complexity_signals.inefficient_list_insert:
+            insights.append("Inserting elements at the front of a list is inefficient because it forces a complete memory realignment of all subsequent items.")
+        if sig.complexity_signals.repeated_sort:
+            insights.append("Sorting data inside a loop is highly destructive to performance, as sorting is already heavy, and repeating it multiplies the cost.")
+        if sig.has_backtracking_risk:
+            insights.append("Because this involves conditional branching within recursion, the code acts like it's exploring a massive maze, leading to rapid performance drops on complex inputs.")
+        if sig.has_early_exits:
+            insights.append("However, the inclusion of early exit conditions (like breaks or returns) means that in practical best-case scenarios, the algorithm can bypass unnecessary work.")
+
+        insight_text = "\n\n" + " ".join(insights) if insights else ""
+        
+        # Dynamic execution data
+        dynamic_note = ""
+        if hits > 0:
+            dynamic_note = f"\n\nRuntime Observation: During execution, this specific line was triggered exactly {hits} time(s), confirming its contribution to the overall workload."
+
+        return (
+            f"{snippet_ref}, we can observe that {context_phrase}. "
+            f"Consequently, its overall behavior aligns with a time complexity of {ginfo.raw}.\n\n"
+            f"What does this mean? {educational_growth}"
+            f"{insight_text}"
+            f"{dynamic_note}"
+        )
+
+    def _space_renderer(self, node: ast.AST, local_s: str, global_s: str, code_snippet: str, mem_state: dict, sig: PatternSignals) -> str:
+        ginfo = self._classify_big_o(global_s)
+        linfo = self._classify_big_o(local_s)
+        
+        snippet_ref = f"From a memory perspective, `{code_snippet}`" if code_snippet else "From a memory allocation perspective, this section"
+        
+        educational_growth = self.explainer.explain_space_growth(global_s, ginfo, self.ctx)
+        
+        # Build space-specific insights
+        insights = []
+        if sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
+            insights.append("Generating new lists dynamically requires allocating contiguous blocks of RAM, which increases memory pressure.")
+        if sig.memory_signals.performs_slicing:
+            insights.append("Be careful: slicing arrays generates complete distinct copies of the data in memory, rather than just referencing the original structure.")
+        if sig.memory_signals.recursive_stack_risk:
+            insights.append("Every recursive jump adds a new 'frame' to the system call stack. If the recursion goes too deep, it risks a Stack Overflow.")
+        if sig.memory_signals.string_concatenation_in_loop:
+            insights.append("Because strings are immutable, adding to a string repeatedly inside a loop forces the system to constantly allocate brand new strings and destroy old ones, wasting memory.")
+
+        insight_text = "\n\n" + " ".join(insights) if insights else ""
+        
+        # Dynamic memory profiling data
+        dynamic_note = ""
+        if mem_state:
+            largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
+            if largest and largest[1]['size'] > 1:
+                dynamic_note = f"\n\nRuntime Observation: The profiler detected that the variable `{largest[0]}` swelled to hold {largest[1]['size']} elements in memory during execution."
+
+        return (
+            f"{snippet_ref} has a localized space impact of {linfo.raw}, while contributing to an overall algorithm footprint of {ginfo.raw}.\n\n"
+            f"What does this mean? {educational_growth}"
+            f"{insight_text}"
+            f"{dynamic_note}"
+        )
+
+    def _pattern_renderer(self, node: ast.AST, global_t: str, sig: PatternSignals) -> str:
+        """
+        Synthesizes structured pattern data into a clear, bulleted list of 
+        architectural takeaways for the user.
+        """
+        parts: List[str] = []
+        
+        if sig.nested_loops:
+            parts.append("Pattern Detected: Multiplicative repetition via Nested Loops.")
+        if sig.comprehension_expansion:
+            parts.append("Pattern Detected: Implicit iteration via Data Comprehension.")
+        if sig.has_recursion:
+            if sig.recursion_branching == "multi":
+                parts.append("Pattern Detected: Exponential branching via Multiple Recursive Calls.")
+            else:
+                parts.append("Pattern Detected: Self-referential logic via Deep Recursion.")
+        if sig.graph_traversal:
+            parts.append("Pattern Detected: Structural navigation via Graph/Network Traversal.")
+        if sig.complexity_signals.membership_in_list:
+            parts.append("Pattern Detected: Linear scanning via Membership Checking (consider using Sets for O(1) lookups).")
+        if sig.memory_signals.performs_slicing:
+            parts.append("Pattern Detected: Memory duplication via Array Slicing.")
+            
+        # Newly supported block AST patterns
+        if sig.inline_ternary:
+            parts.append("Pattern Detected: Inline conditional logic via Ternary Expression.")
+        if sig.string_interpolation:
+            parts.append("Pattern Detected: Dynamic text construction via String Interpolation (f-strings).")
+        if sig.variable_swapping:
+            parts.append("Pattern Detected: In-place Variable Swapping via Tuple Unpacking.")
+
+        if parts:
+            # We strictly avoid markdown bolding 'Pattern Detected' to adhere to negative constraints.
+            return "\n\nArchitectural Insights:\n" + "\n".join(f"- {p}" for p in parts)
+        return ""
+
+    def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, hits=0, mem_state=None):
+        """
+        Main entry point for generating comprehensive semantic explanations.
+        Retains the exact original signature for full system compatibility.
+        """
+        if is_dead and hits == 0:
+            t_desc = (
+                f"The statement `{code_snippet}` is identified as Dead Code. Because the execution flow "
+                f"logically can never reach this point, it contributes exactly 0 operations to the algorithm, "
+                f"equating to a practical time complexity of O(1)."
+            )
+            s_desc = (
+                "Since this section of code is unreachable and never executes, it requests absolutely no memory "
+                "allocations, leaving the space complexity completely unaffected."
+            )
+            return t_desc, s_desc
+
+        # 1. Perform Deep AST Analysis
+        visitor = ComprehensiveASTVisitor(self.ctx)
+        sig = visitor.analyze(node)
+
+        # 2. Generate specialized domain explanations
+        time_desc = self._time_renderer(node, str(local_t), str(global_t), code_snippet, hits, sig)
+        space_desc = self._space_renderer(node, str(local_s), str(global_s), code_snippet, mem_state, sig)
+        pattern_desc = self._pattern_renderer(node, str(global_t), sig)
+        
+        # 3. Combine outputs cleanly
+        if pattern_desc:
+            time_desc = time_desc + pattern_desc
+
+        return time_desc, space_desc
+
+    # =========================================================================
+    # UI Bottleneck and Optimization Hooks (Highly Expanded & Varied)
+    # =========================================================================
+
+    def get_time_bottleneck_warning(self, operation: str, final_time: str) -> str:
+        """Generates dynamic, highly varied warnings regarding structural time flaws."""
+        op_lower = operation.lower()
+        prefix = "TIME BOTTLENECK:"  # Removed markdown asterisks for compliance
+        
+        if "loop" in op_lower:
+            templates = [
+                f"\n\n{prefix} The sheer volume of exhaustive iterations required by this {op_lower} completely throttles the algorithm, dragging performance down to {final_time}.",
+                f"\n\n{prefix} Because computers process instructions sequentially, the looping overhead here acts as a massive execution multiplier, bottlenecking the system at {final_time}.",
+                f"\n\n{prefix} This {op_lower} forces the algorithm to continually re-process data, creating a severe structural bottleneck resulting in {final_time} scaling."
+            ]
+        elif "recur" in op_lower:
+            templates = [
+                f"\n\n{prefix} The aggressive branching pattern generated by this {op_lower} dominates the CPU execution time, capping overall efficiency at {final_time}.",
+                f"\n\n{prefix} The deep, expanding call tree produced by this {op_lower} is highly inefficient, establishing a massive {final_time} bottleneck.",
+                f"\n\n{prefix} Because this {op_lower} creates overlapping sub-problems without memoization, it forces redundant calculations and scales dangerously at {final_time}."
+            ]
+        elif "comprehension" in op_lower:
+            templates = [
+                f"\n\n{prefix} Do not be fooled by its single-line elegance; expanding this {op_lower} requires significant hidden iteration, throttling speed to {final_time}.",
+                f"\n\n{prefix} The behind-the-scenes data extraction inside this {op_lower} is computationally heavy, defining the {final_time} runtime ceiling."
+            ]
+        elif "sort" in op_lower:
+            templates = [
+                f"\n\n{prefix} Sorting data is fundamentally expensive. Relying on this {op_lower} operation acts as an absolute barrier, preventing the algorithm from running faster than {final_time}.",
+                f"\n\n{prefix} The algorithmic heavy lifting is entirely centralized around this {op_lower}, dragging the performance metrics down to {final_time}."
+            ]
+        else:
+            templates = [
+                f"\n\n{prefix} The most intensive computational heavy lifting happens precisely during this {op_lower}, dictating the final {final_time} time complexity.",
+                f"\n\n{prefix} This {op_lower} is the most expensive operation in the execution pathway, pushing the overall time complexity to {final_time}.",
+                f"\n\n{prefix} The core computational burden lies with this {op_lower}, establishing the primary {final_time} boundary for performance."
+            ]
+        return random.choice(templates)
+
+    def get_space_bottleneck_warning(self, operation: str, final_space: str) -> str:
+        """Generates dynamic, highly varied warnings regarding structural memory flaws."""
+        op_lower = operation.lower()
+        prefix = "SPACE BOTTLENECK:" # Removed markdown asterisks for compliance
+        
+        if "recur" in op_lower:
+            templates = [
+                f"\n\n{prefix} Every single jump in this {op_lower} requires a new block of memory on the system call stack, driving the space complexity dangerously up to {final_space}.",
+                f"\n\n{prefix} Building up cascading stack frames during this {op_lower} is the dominant factor causing RAM consumption to scale rapidly to {final_space}.",
+                f"\n\n{prefix} This {op_lower} does not return memory until the deepest level is reached, causing temporary memory hoarding that results in {final_space} behavior."
+            ]
+        elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower:
+            templates = [
+                f"\n\n{prefix} Vigorously allocating memory for distinct collections during this {op_lower} is heavily memory-intensive, creating a {final_space} space profile.",
+                f"\n\n{prefix} The massive new data structures dynamically generated by this {op_lower} completely dominate memory usage, pushing the upper bounds to {final_space}.",
+                f"\n\n{prefix} Rather than working in-place, this {op_lower} duplicates structure contents, forcing the system memory requirements up to {final_space}."
+            ]
+        elif "slice" in op_lower or "string" in op_lower:
+            templates = [
+                f"\n\n{prefix} This {op_lower} operation actively constructs brand new instances of data in memory rather than referencing existing ones, escalating space complexity to {final_space}.",
+                f"\n\n{prefix} The hidden copies generated by this {op_lower} severely bloat the memory footprint, ensuring space scaling hits {final_space}."
+            ]
+        else:
+            templates = [
+                f"\n\n{prefix} This {op_lower} inherently requires large blocks of extra working memory, pushing the algorithm's spatial footprint to {final_space}.",
+                f"\n\n{prefix} The temporary data hoarded by this {op_lower} is the primary culprit causing overall memory utilization to scale at {final_space}."
+            ]
+        return random.choice(templates)
+
+    def get_time_optimization_praise(self, operation: str, global_time: str) -> str:
+        """Generates dynamic, educational praise for well-optimized architectures."""
+        time_lower = global_time.lower()
+        prefix = "ALGORITHM MASTERY:" # Removed markdown asterisks for compliance
+        
+        if "log" in time_lower:
+            templates = [
+                f"\n\n{prefix} Utilizing a logarithmic approach here is mathematically elegant. By systematically discarding half the problem space at every step, this {operation.lower()} achieves lightning-fast {global_time} scaling.",
+                f"\n\n{prefix} Outstanding design! The divide-and-conquer strategy utilized in this {operation.lower()} shrinks the required workload exponentially fast, yielding an incredibly scalable {global_time} runtime.",
+                f"\n\n{prefix} By avoiding linear traversal and jumping straight to relevant data subsets, this {operation.lower()} ensures robust, highly-optimized {global_time} execution even on massive inputs."
+            ]
+        elif "âˆš" in time_lower or "sqrt" in time_lower:
+            templates = [
+                f"\n\n{prefix} Brilliant boundary optimization. Recognizing that mathematical factors repeat and capping the search at the square root allows this {operation.lower()} to bypass immense amounts of work, achieving {global_time} speed.",
+                f"\n\n{prefix} Excellent logical deduction. By leveraging the square root boundary in this {operation.lower()}, the algorithm avoids scanning unnecessary numbers, resulting in highly efficient {global_time} performance."
+            ]
+        elif "1" in time_lower:
+            templates = [
+                f"\n\n{prefix} Perfect algorithmic efficiency. By accessing data directly through mathematical mapping or hashing, this {operation.lower()} executes instantly at {global_time}, entirely bypassing the need to search.",
+                f"\n\n{prefix} Masterful use of structure! This {operation.lower()} requires absolutely no repetitive scanning, maintaining a pristine, unshakeable {global_time} runtime footprint."
+            ]
+        else:
+            templates = [
+                f"\n\n{prefix} This {operation.lower()} is exceptionally well structured, gracefully sidestepping massive computational traps to maintain a remarkably lean {global_time} execution time.",
+                f"\n\n{prefix} Excellent architectural choices! This {operation.lower()} rapidly completes its objective, cementing a highly tuned and stable {global_time} complexity profile.",
+                f"\n\n{prefix} By organizing the logic intelligently, this {operation.lower()} minimizes friction and redundancy, resulting in a beautifully scalable {global_time} performance curve."
+            ]
+        return random.choice(templates)
+
+    def _format_recurrence_relation(self, relation: str) -> str:
+        """
+        Formats mathematical recurrence relations safely. 
+        Removed markdown decorations in strict compliance with negative constraints.
+        """
+        return relation.upper()
+
+--- FILE: api/services/auth_service.py ---
+
+from fastapi import HTTPException
+from api.repositories.user_repo import UserRepository
+from api.models import LoginRequest, SignUpRequest, ProgressRequest
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import os
+
+
+class AuthService:
+    @staticmethod
+    def login(req: LoginRequest):
+        user = UserRepository.find_by_email(req.email)
+
+        if not user or user.get("password") != req.password:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        return {
+            "status": "success",
+            "email": req.email,
+            "name": user.get("name"),
+            "progress": user.get("progress", {})
+        }
+
+    @staticmethod
+    def signup(req: SignUpRequest):
+        if UserRepository.find_by_email(req.email):
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        UserRepository.insert({
+            "name": req.name,
+            "email": req.email,
+            "password": req.password,
+            "progress": {}
+        })
+
+        return {
+            "status": "success",
+            "email": req.email,
+            "name": req.name
+        }
+
+    @staticmethod
+    def update_progress(req: ProgressRequest):
+        UserRepository.update_progress(req.email, req.lesson_id, req.score)
+
+        user = UserRepository.find_by_email(req.email)
+
+        return {
+            "status": "success",
+            "progress": user.get("progress", {})
+        }
+
+    @staticmethod
+    def google_login(token: str):
+        try:
+            client_id = os.getenv("GOOGLE_CLIENT_ID")
+
+            if not client_id:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Missing GOOGLE_CLIENT_ID in environment"
+                )
+
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                client_id
+            )
+
+            email = idinfo.get("email")
+            name = idinfo.get("name", "")
+
+            if not email:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Google account has no email"
+                )
+
+            user = UserRepository.find_by_email(email)
+
+            if not user:
+                UserRepository.insert({
+                    "name": name,
+                    "email": email,
+                    "password": None,
+                    "progress": {}
+                })
+                user = UserRepository.find_by_email(email)
+
+            return {
+                "status": "success",
+                "email": email,
+                "name": user.get("name"),
+                "progress": user.get("progress", {})
+            }
+
+        except ValueError:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Google OAuth token"
+            )
+
+--- FILE: api/services/project_service.py ---
+
+from fastapi import HTTPException
+from api.repositories.project_repo import ProjectRepository
+from api.models import ProjectModel, ProjectUpdate
+
+class ProjectService:
+    @staticmethod
+    def create_project(project: ProjectModel):
+        if ProjectRepository.insert is None:
+            raise HTTPException(500, "Database not connected")
+        result = ProjectRepository.insert(project.model_dump())
+        return {"status": "success", "id": str(result.inserted_id)}
+
+    @staticmethod
+    def get_projects():
+        projects = ProjectRepository.get_all()
+        for p in projects:
+            p["_id"] = str(p["_id"])
+        return projects  # âœ… Return the list directly
+
+    @staticmethod
+    def delete_project(project_id: str):
+        result = ProjectRepository.delete(project_id)
+        if result.deleted_count == 0:
+            raise HTTPException(404, "Project not found")
+        return {"status": "success"}
+
+    @staticmethod
+    def update_project(project_id: str, payload: ProjectUpdate):
+        update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
+        result = ProjectRepository.update(project_id, update_data)
+        if result.matched_count == 0:
+            raise HTTPException(404, "Project not found")
+        return {"status": "success"}
+
+--- FILE: api/services/template_service.py ---
+
+# api/services/template_service.py
+from fastapi import HTTPException
+from functools import lru_cache
+from api.repositories.template_repo import TemplateRepository
+from api.models import TemplateModel, TemplateUpdate
+
+# ==========================================
+# ðŸš€ CACHE LAYER
+# ==========================================
+# maxsize=1 because we only need to store one thing: the complete list of templates.
+@lru_cache(maxsize=1)
+def _cached_get_all_templates():
+    print("--> ðŸ’½ CACHE MISS: Fetching templates from MongoDB...")
+    templates = TemplateRepository.get_all()
+    for t in templates:
+        t["_id"] = str(t["_id"])
+    return {"status": "success", "templates": templates}
+
+# ==========================================
+# BUSINESS LOGIC LAYER
+# ==========================================
+class TemplateService:
+    @staticmethod
+    def get_templates():
+        templates = TemplateRepository.get_all()
+        for t in templates:
+            t["_id"] = str(t["_id"])
+        return templates  # âœ… Return the list directly
+
+    @staticmethod
+    def create_template(template: TemplateModel):
+        if TemplateRepository.insert is None:
+            raise HTTPException(500, "Database not connected")
+        result = TemplateRepository.insert(template.model_dump())
+        
+        # ðŸ§¹ CACHE INVALIDATION: Data changed, dump the old memory!
+        _cached_get_all_templates.cache_clear()
+        
+        return {"status": "success", "id": str(result.inserted_id)}
+
+    @staticmethod
+    def delete_template(template_id: str):
+        result = TemplateRepository.delete(template_id)
+        if result.deleted_count == 0:
+            raise HTTPException(404, "Template not found")
+            
+        # ðŸ§¹ CACHE INVALIDATION
+        _cached_get_all_templates.cache_clear()
+        
+        return {"status": "success"}
+
+    @staticmethod
+    def update_template(template_id: str, payload: TemplateUpdate):
+        update_data = {k: v for k, v in payload.model_dump().items() if v is not None}
+        result = TemplateRepository.update(template_id, update_data)
+        if result.matched_count == 0:
+            raise HTTPException(404, "Template not found")
+            
+        # ðŸ§¹ CACHE INVALIDATION
+        _cached_get_all_templates.cache_clear()
+        
+        return {"status": "success"}
 
 --- FILE: evaluation/dataset/ground_truth.json ---
 
@@ -445,6 +3216,7 @@ export default defineConfig([
       "version": "0.0.0",
       "dependencies": {
         "@blockly/field-multilineinput": "^6.0.9",
+        "@blockly/plugin-cross-tab-copy-paste": "^8.0.8",
         "@blockly/plugin-modal": "^8.0.9",
         "@blockly/plugin-workspace-search": "^10.1.8",
         "@blockly/shadow-block-converter": "^7.0.10",
@@ -453,6 +3225,7 @@ export default defineConfig([
         "@blockly/workspace-content-highlight": "^6.0.9",
         "@blockly/workspace-minimap": "^0.3.9",
         "@monaco-editor/react": "^4.7.0",
+        "@react-oauth/google": "^0.13.5",
         "blockly": "^12.5.1",
         "dexie": "^4.4.2",
         "localforage": "^1.10.0",
@@ -2064,6 +4837,18 @@ export default defineConfig([
         "blockly": "^12.0.0"
       }
     },
+    "node_modules/@blockly/plugin-cross-tab-copy-paste": {
+      "version": "8.0.8",
+      "resolved": "https://registry.npmjs.org/@blockly/plugin-cross-tab-copy-paste/-/plugin-cross-tab-copy-paste-8.0.8.tgz",
+      "integrity": "sha512-1ZPDaZHx+9nbtk+9bfLJmg97OzVQhVE67OwZMOCqnCV6CF/BNHGsrTJsMMyC9xNOkusI+HVOkAX6vB+M9Its6g==",
+      "license": "Apache-2.0",
+      "engines": {
+        "node": ">=8.17.0"
+      },
+      "peerDependencies": {
+        "blockly": "^12.1.0"
+      }
+    },
     "node_modules/@blockly/plugin-modal": {
       "version": "8.0.9",
       "resolved": "https://registry.npmjs.org/@blockly/plugin-modal/-/plugin-modal-8.0.9.tgz",
@@ -2995,6 +5780,16 @@ export default defineConfig([
         "monaco-editor": ">= 0.25.0 < 1",
         "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
         "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+      }
+    },
+    "node_modules/@react-oauth/google": {
+      "version": "0.13.5",
+      "resolved": "https://registry.npmjs.org/@react-oauth/google/-/google-0.13.5.tgz",
+      "integrity": "sha512-xQWri2s/3nNekZJ4uuov2aAfQYu83bN3864KcFqw2pK1nNbFurQIjPFDXhWaKH3IjYJ2r/9yyIIpsn5lMqrheQ==",
+      "license": "MIT",
+      "peerDependencies": {
+        "react": ">=16.8.0",
+        "react-dom": ">=16.8.0"
       }
     },
     "node_modules/@reduxjs/toolkit": {
@@ -8851,6 +11646,7 @@ export default defineConfig([
   },
   "dependencies": {
     "@blockly/field-multilineinput": "^6.0.9",
+    "@blockly/plugin-cross-tab-copy-paste": "^8.0.8",
     "@blockly/plugin-modal": "^8.0.9",
     "@blockly/plugin-workspace-search": "^10.1.8",
     "@blockly/shadow-block-converter": "^7.0.10",
@@ -8859,6 +11655,7 @@ export default defineConfig([
     "@blockly/workspace-content-highlight": "^6.0.9",
     "@blockly/workspace-minimap": "^0.3.9",
     "@monaco-editor/react": "^4.7.0",
+    "@react-oauth/google": "^0.13.5",
     "blockly": "^12.5.1",
     "dexie": "^4.4.2",
     "localforage": "^1.10.0",
@@ -8884,454 +11681,318 @@ export default defineConfig([
   }
 }
 
---- FILE: frontend/public/activities/big_o_act.json ---
+--- FILE: frontend/public/data/activities/module_0.json ---
 
 {
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defnoreturn",
-        "id": "TN(3VM[_odyuD@7%mjk=",
-        "x": 13,
-        "y": -112,
-        "deletable": false,
-        "editable": false,
-        "extraState": {
-          "params": [
-            {
-              "name": "n",
-              "id": "$L!%sGDV9_/`aC?YYQdf"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "print_steps"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "comment_block",
-              "id": "[YkaIXxpB1k3:4!wP8lE",
-              "fields": {
-                "TEXT": "print 'Step' n number of times"
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
+  "lesson_1": [
     {
-      "name": "n",
-      "id": "tyO.pA9F`9/^|V^HlXAR"
+      "id": "m0_l1_a1",
+      "title": "Hello AlgoBlocks",
+      "task": "You are initializing a basic system greeting function inside the AlgoBlocks runtime environment.\n\nYour system must confirm successful execution by returning a fixed string value.\n\nTask Requirement:\nCreate a function hello() that returns the exact string:\n\nHello, AlgoBlocks!\n\nRules:\n- Must not use print()\n- Must not modify spacing or characters\n- Must return the exact string\n\nSample Output:\nhello() â†’ Hello, AlgoBlocks!",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": true },
+        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l1_a2",
+      "title": "ASCII Art Triangle",
+      "task": "A rendering engine is required to generate text-based visual patterns using characters.\n\nTask Requirement:\nCreate a function triangle(n) that returns a left-aligned triangle made of '*' characters.\n\nRules:\n- Each row i contains i asterisks\n- Rows must be separated using '\\n'\n- If n â‰¤ 0, return an empty string\n\nSample Output:\ntriangle(3) â†’ \"*\\n**\\n***\"",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "triangle(3)", "expected": "\"*\\n**\\n***\"", "isHidden": false },
+        { "call": "triangle(2)", "expected": "\"*\\n**\"", "isHidden": false },
+        { "call": "triangle(1)", "expected": "\"*\"", "isHidden": false },
+        { "call": "triangle(0)", "expected": "\"\"", "isHidden": true },
+        { "call": "triangle(-1)", "expected": "\"\"", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l1_a3",
+      "title": "Basic Calculator",
+      "task": "A computation validation system is required to safely perform arithmetic operations only on valid numeric inputs.\n\nTask Requirement:\nCreate a function add(a, b) that returns the sum of two numbers.\n\nRules:\n- Inputs must be integers or floats\n- If any input is invalid, return 'Error'\n\nSample Output:\nadd(2,3) â†’ 5",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "add(2,3)", "expected": "5", "isHidden": false },
+        { "call": "add(10,10)", "expected": "20", "isHidden": false },
+        { "call": "add(0,5)", "expected": "5", "isHidden": false },
+        { "call": "add('a',3)", "expected": "'Error'", "isHidden": true },
+        { "call": "add(None,2)", "expected": "'Error'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l1_a4",
+      "title": "Name Greeter",
+      "task": "A user interaction system generates personalized messages based on input values.\n\nTask Requirement:\nCreate a function greet(name) that returns a formatted greeting.\n\nRules:\n- Must not modify input\n- Must follow exact output format\n\nOutput Format:\nWelcome <name>!\n\nSample Output:\ngreet('Ana') â†’ Welcome Ana!",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "greet('Ana')", "expected": "'Welcome Ana!'", "isHidden": false },
+        { "call": "greet('John')", "expected": "'Welcome John!'", "isHidden": false },
+        { "call": "greet('Lee')", "expected": "'Welcome Lee!'", "isHidden": false },
+        { "call": "greet('')", "expected": "'Welcome !'", "isHidden": true },
+        { "call": "greet(None)", "expected": "'Welcome None!'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l1_a5",
+      "title": "Execution Step Counter",
+      "task": "A process simulation module tracks how many execution steps occur inside a controlled runtime environment.\n\nTask Requirement:\nCreate a function multi() that simulates execution of 5 internal steps.\n\nRules:\n- Must return total number of steps executed\n- Must not print intermediate values\n\nSample Output:\nmulti() â†’ 5",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "4", "isHidden": true },
+        { "call": "multi()", "expected": "6", "isHidden": true }
+      ]
     }
   ],
-  "backpack": []
-}
 
---- FILE: frontend/public/activities/binary_search_act.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defreturn",
-        "id": ":shx9?Fx}v4,{zbY$?Ub",
-        "x": 13,
-        "y": -87,
-        "deletable": false,
-        "editable": false,
-        "extraState": {
-          "params": [
-            {
-              "name": "arr",
-              "id": "qFcFmjkAU#`u=!%HdmV#"
-            },
-            {
-              "name": "target",
-              "id": "Tl8[vx_[~`JGHzwx@axW"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "binary_search"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "comment_block",
-              "id": "^TK1LXt][R6yat$e6xZ~",
-              "fields": {
-                "TEXT": "arr: sorted list of elements"
-              },
-              "next": {
-                "block": {
-                  "type": "comment_block",
-                  "id": "K*[,*oSzE8*`v6WZghFe",
-                  "fields": {
-                    "TEXT": "target: elements to search"
-                  },
-                  "next": {
-                    "block": {
-                      "type": "comment_block",
-                      "id": "FIX_MID_NOTE_001",
-                      "fields": {
-                        "TEXT": "FIXED: mid = left + (right - left) // 2 (correct midpoint calculation)"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
+  "lesson_2": [
     {
-      "name": "arr",
-      "id": "qFcFmjkAU#`u=!%HdmV#"
+      "id": "m0_l2_a1",
+      "title": "Odd or Even Classifier",
+      "task": "A number classification system is required to evaluate whether a given input is odd or even.\n\nTask Requirement:\nCreate a function check_odd_even(n).\n\nRules:\n- If n is odd â†’ return 'Odd'\n- If n is even â†’ return 'Even'\n- If input is not an integer â†’ return 'Invalid'\n\nSample Output:\ncheck_odd_even(7) â†’ Odd",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "check_odd_even(7)", "expected": "'Odd'", "isHidden": false },
+        { "call": "check_odd_even(10)", "expected": "'Even'", "isHidden": false },
+        { "call": "check_odd_even(3)", "expected": "'Odd'", "isHidden": false },
+        { "call": "check_odd_even('7')", "expected": "'Invalid'", "isHidden": true },
+        { "call": "check_odd_even(None)", "expected": "'Invalid'", "isHidden": true }
+      ]
     },
     {
-      "name": "target",
-      "id": "Tl8[vx_[~`JGHzwx@axW"
+      "id": "m0_l2_a2",
+      "title": "Sequence Generator",
+      "task": "A sequence generation engine produces ordered numeric lists for computational pipelines.\n\nTask Requirement:\nCreate a function count(n) that generates numbers from 1 to n.\n\nRules:\n- Return list of integers\n- If n â‰¤ 0 â†’ return empty list\n\nSample Output:\ncount(3) â†’ [1,2,3]",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "count(3)", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "count(5)", "expected": "[1,2,3,4,5]", "isHidden": false },
+        { "call": "count(1)", "expected": "[1]", "isHidden": false },
+        { "call": "count(0)", "expected": "[]", "isHidden": true },
+        { "call": "count(-2)", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l2_a3",
+      "title": "Array Transformation Engine",
+      "task": "A data processing pipeline requires transformation of numerical arrays using scaling operations.\n\nTask Requirement:\nCreate a function double(arr).\n\nRules:\n- Multiply each element by 2\n- Input must be a valid list\n- Invalid input â†’ return 'Error'\n\nSample Output:\ndouble([1,2,3]) â†’ [2,4,6]",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "double([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
+        { "call": "double([10])", "expected": "[20]", "isHidden": false },
+        { "call": "double([0,0])", "expected": "[0,0]", "isHidden": false },
+        { "call": "double([])", "expected": "[]", "isHidden": true },
+        { "call": "double(None)", "expected": "'Error'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l2_a4",
+      "title": "Score Evaluation System",
+      "task": "A grading system evaluates numeric scores and assigns performance labels.\n\nTask Requirement:\nCreate a function evaluate(score).\n\nRules:\n- 75â€“100 â†’ 'Pass'\n- 0â€“74 â†’ 'Fail'\n- Outside 0â€“100 â†’ 'Invalid'\n\nSample Output:\nevaluate(75) â†’ Pass",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "evaluate(75)", "expected": "'Pass'", "isHidden": false },
+        { "call": "evaluate(74)", "expected": "'Fail'", "isHidden": false },
+        { "call": "evaluate(90)", "expected": "'Pass'", "isHidden": false },
+        { "call": "evaluate(-1)", "expected": "'Invalid'", "isHidden": true },
+        { "call": "evaluate(101)", "expected": "'Invalid'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l2_a5",
+      "title": "Range Summation Engine",
+      "task": "A computation system calculates cumulative sums over a numeric range using iterative logic.\n\nTask Requirement:\nCreate a function sum_range(n).\n\nRules:\n- Sum all integers from 1 to n\n- If n â‰¤ 0 â†’ return 0\n\nSample Output:\nsum_range(5) â†’ 15",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "sum_range(5)", "expected": "15", "isHidden": false },
+        { "call": "sum_range(10)", "expected": "55", "isHidden": false },
+        { "call": "sum_range(3)", "expected": "6", "isHidden": false },
+        { "call": "sum_range(0)", "expected": "0", "isHidden": true },
+        { "call": "sum_range(-5)", "expected": "0", "isHidden": true }
+      ]
     }
   ],
-  "backpack": []
-}
 
---- FILE: frontend/public/activities/bubble_sort_act.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defnoreturn",
-        "id": "TN(3VM[_odyuD@7%mjk=",
-        "x": 13,
-        "y": -112,
-        "deletable": false,
-        "editable": false,
-        "extraState": {
-          "params": [
-            {
-              "name": "arr",
-              "id": "$L!%sGDV9_/`aC?YYQdf"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "bubble_sort"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "comment_block",
-              "id": "[YkaIXxpB1k3:4!wP8lE",
-              "fields": {
-                "TEXT": "arr: list of elements to sort"
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
+  "lesson_3": [
     {
-      "name": "arr",
-      "id": "$L!%sGDV9_/`aC?YYQdf"
+      "id": "m0_l3_a1",
+      "title": "Constant Time Access System",
+      "task": "A data retrieval engine requires efficient access to the first element of a dataset.\n\nTask Requirement:\nCreate a function get_first(arr).\n\nRules:\n- Return first element\n- If list is empty â†’ return 'Empty'\n\nSample Output:\nget_first([1,2,3]) â†’ 1",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "get_first([1,2,3])", "expected": "1", "isHidden": false },
+        { "call": "get_first([9,8,7])", "expected": "9", "isHidden": false },
+        { "call": "get_first(['A','B'])", "expected": "'A'", "isHidden": false },
+        { "call": "get_first([])", "expected": "'Empty'", "isHidden": true },
+        { "call": "get_first([None,1])", "expected": "None", "isHidden": true }
+      ]
     },
     {
-      "name": "n",
-      "id": "tyO.pA9F`9/^|V^HlXAR"
+      "id": "m0_l3_a2",
+      "title": "Iteration Tracker",
+      "task": "A performance analysis system tracks loop execution counts for optimization evaluation.\n\nTask Requirement:\nCreate a function linear() that simulates iteration from 1 to 100.\n\nRules:\n- Count total iterations\n- Return final count\n\nSample Output:\nlinear() â†’ 100",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "100", "isHidden": false },
+        { "call": "linear()", "expected": "99", "isHidden": true },
+        { "call": "linear()", "expected": "101", "isHidden": true }
+      ]
     },
     {
-      "name": "s",
-      "id": "dwkyw7A83#E7K|kt,|Y1"
+      "id": "m0_l3_a3",
+      "title": "Grid Computation Engine",
+      "task": "A nested iteration system simulates grid-based computation workloads.\n\nTask Requirement:\nCreate a function grid() that simulates a 5x5 nested loop execution.\n\nRules:\n- Outer loop runs 5 times\n- Inner loop runs 5 times\n- Return total iterations\n\nSample Output:\ngrid() â†’ 25",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "25", "isHidden": false },
+        { "call": "grid()", "expected": "20", "isHidden": true },
+        { "call": "grid()", "expected": "30", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l3_a4",
+      "title": "Branch Decision Engine",
+      "task": "A control flow system evaluates execution paths based on input truthiness.\n\nTask Requirement:\nCreate a function branch(x).\n\nRules:\n- Truthy input â†’ 'IF'\n- Falsy input â†’ 'ELSE'\n\nSample Output:\nbranch(1) â†’ IF",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "branch(1)", "expected": "'IF'", "isHidden": false },
+        { "call": "branch(5)", "expected": "'IF'", "isHidden": false },
+        { "call": "branch(0)", "expected": "'ELSE'", "isHidden": false },
+        { "call": "branch(-1)", "expected": "'ELSE'", "isHidden": true },
+        { "call": "branch(None)", "expected": "'ELSE'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l3_a5",
+      "title": "Loop vs Arithmetic Engine",
+      "task": "A computation system compares iterative multiplication vs direct arithmetic computation.\n\nTask Requirement:\nCreate a function compare() that simulates 5 Ã— 5 using repeated addition logic.\n\nReturn final computed result.\n\nSample Output:\ncompare() â†’ 25",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "25", "isHidden": false },
+        { "call": "compare()", "expected": "24", "isHidden": true },
+        { "call": "compare()", "expected": "26", "isHidden": true }
+      ]
     }
   ],
-  "backpack": []
-}
 
---- FILE: frontend/public/activities/factorial_recursive_act.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defreturn",
-        "id": ":Y4O}qUUt|X+~#ZCO?xK",
-        "x": 38,
-        "y": -87,
-        "deletable": false,
-        "editable": false,
-        "extraState": {
-          "params": [
-            {
-              "name": "n",
-              "id": "tyO.pA9F`9/^|V^HlXAR"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "factorial"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "comment_block",
-              "id": ")wx!U(]gWv|{:lTZB;3X",
-              "fields": {
-                "TEXT": "n: integer to calculate factorial"
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
+  "lesson_4": [
     {
-      "name": "arr",
-      "id": "$L!%sGDV9_/`aC?YYQdf"
+      "id": "m0_l4_a1",
+      "title": "Variable Swap System",
+      "task": "A memory manipulation system is required to swap stored values between variables.\n\nTask Requirement:\nCreate a function swap(a, b).\n\nRules:\n- Return values in reversed order\n- If inputs are missing â†’ return 'Error'\n\nSample Output:\nswap(1,2) â†’ [2,1]",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "swap(1,2)", "expected": "[2,1]", "isHidden": false },
+        { "call": "swap('X','Y')", "expected": "['Y','X']", "isHidden": false },
+        { "call": "swap(None,'A')", "expected": "['A',None]", "isHidden": false },
+        { "call": "swap()", "expected": "'Error'", "isHidden": true },
+        { "call": "swap(1)", "expected": "'Error'", "isHidden": true }
+      ]
     },
     {
-      "name": "n",
-      "id": "tyO.pA9F`9/^|V^HlXAR"
+      "id": "m0_l4_a2",
+      "title": "Array Construction Module",
+      "task": "A sequential generator is required to build ordered numeric arrays for system initialization.\n\nTask Requirement:\nCreate a function fill(n).\n\nRules:\n- Return list from 1 to n\n- If n â‰¤ 0 â†’ return empty list\n\nSample Output:\nfill(3) â†’ [1,2,3]",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "fill(3)", "expected": "[1,2,3]", "isHidden": false },
+        { "call": "fill(5)", "expected": "[1,2,3,4,5]", "isHidden": false },
+        { "call": "fill(1)", "expected": "[1]", "isHidden": false },
+        { "call": "fill(0)", "expected": "[]", "isHidden": true },
+        { "call": "fill(-1)", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l4_a3",
+      "title": "Counter Simulation System",
+      "task": "A runtime state tracker simulates incremental counting from zero to a target value.\n\nTask Requirement:\nCreate a function counter(n).\n\nRules:\n- Start from 0\n- Increment until n\n- Return final value\n\nSample Output:\ncounter(5) â†’ 5",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "counter(5)", "expected": "5", "isHidden": false },
+        { "call": "counter(10)", "expected": "10", "isHidden": false },
+        { "call": "counter(1)", "expected": "1", "isHidden": false },
+        { "call": "counter(0)", "expected": "0", "isHidden": true },
+        { "call": "counter(-5)", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l4_a4",
+      "title": "Scope Resolution Checker",
+      "task": "A runtime environment requires validation of variable existence based on truthiness rules.\n\nTask Requirement:\nCreate a function scope(x).\n\nRules:\n- Truthy â†’ 'exists'\n- Falsy â†’ 'none'\n\nSample Output:\nscope(1) â†’ exists",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "scope(1)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(5)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(0)", "expected": "'exists'", "isHidden": false },
+        { "call": "scope(-1)", "expected": "'none'", "isHidden": true },
+        { "call": "scope(None)", "expected": "'none'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m0_l4_a5",
+      "title": "Pointer Navigation Simulator",
+      "task": "A memory pointer system simulates movement across indexed array positions.\n\nTask Requirement:\nCreate a function pointer() that simulates pointer movement logic across an array.\n\nRules:\n- Movement follows sequential index traversal\n- Return final state as list\n\nSample Output:\npointer() â†’ [0,1]",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "randomizeTestCases": true,
+      "testCasesPool": [
+        { "call": "pointer()", "expected": "[0,1]", "isHidden": false },
+        { "call": "pointer()", "expected": "[1,2]", "isHidden": false },
+        { "call": "pointer()", "expected": "[2,3]", "isHidden": false },
+        { "call": "pointer()", "expected": "[0,0]", "isHidden": true },
+        { "call": "pointer()", "expected": "[]", "isHidden": true }
+      ]
     }
-  ],
-  "backpack": []
-}
-
---- FILE: frontend/public/activities/fibonacci_recursive_act.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defreturn",
-        "id": ":Y4O}qUUt|X+~#ZCO?xK",
-        "x": 38,
-        "y": -87,
-        "deletable": false,
-        "editable": false,
-        "extraState": {
-          "params": [
-            {
-              "name": "n",
-              "id": "tyO.pA9F`9/^|V^HlXAR"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "fibonacci"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "comment_block",
-              "id": ")wx!U(]gWv|{:lTZB;3X",
-              "fields": {
-                "TEXT": "n: integer to calculate nth fibonacci number"
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
-    {
-      "name": "arr",
-      "id": "$L!%sGDV9_/`aC?YYQdf"
-    },
-    {
-      "name": "n",
-      "id": "tyO.pA9F`9/^|V^HlXAR"
-    }
-  ],
-  "backpack": []
-}
-
---- FILE: frontend/public/activities/insertion_sort_act.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defnoreturn",
-        "id": "TN(3VM[_odyuD@7%mjk=",
-        "x": 13,
-        "y": -112,
-        "deletable": false,
-        "editable": false,
-        "extraState": {
-          "params": [
-            {
-              "name": "arr",
-              "id": "$L!%sGDV9_/`aC?YYQdf"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "insertion_sort"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "comment_block",
-              "id": "[YkaIXxpB1k3:4!wP8lE",
-              "fields": {
-                "TEXT": "arr: list of elements to sort"
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
-    {
-      "name": "arr",
-      "id": "$L!%sGDV9_/`aC?YYQdf"
-    },
-    {
-      "name": "n",
-      "id": "tyO.pA9F`9/^|V^HlXAR"
-    },
-    {
-      "name": "s",
-      "id": "dwkyw7A83#E7K|kt,|Y1"
-    }
-  ],
-  "backpack": []
-}
-
---- FILE: frontend/public/activities/linear_search_act.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defreturn",
-        "id": ":shx9?Fx}v4,{zbY$?Ub",
-        "x": 13,
-        "y": -87,
-        "deletable": false,
-        "editable": false,
-        "extraState": {
-          "params": [
-            {
-              "name": "arr",
-              "id": "qFcFmjkAU#`u=!%HdmV#"
-            },
-            {
-              "name": "target",
-              "id": "Tl8[vx_[~`JGHzwx@axW"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "linear_search"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "comment_block",
-              "id": "^TK1LXt][R6yat$e6xZ~",
-              "fields": {
-                "TEXT": "arr: list of elements"
-              },
-              "next": {
-                "block": {
-                  "type": "comment_block",
-                  "id": "K*[,*oSzE8*`v6WZghFe",
-                  "fields": {
-                    "TEXT": "target: elements to search"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
-    {
-      "name": "arr",
-      "id": "qFcFmjkAU#`u=!%HdmV#"
-    },
-    {
-      "name": "target",
-      "id": "Tl8[vx_[~`JGHzwx@axW"
-    }
-  ],
-  "backpack": []
+  ]
 }

@@ -1,16 +1,6 @@
+// frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
-import {
-  FiCheckCircle,
-  FiChevronDown,
-  FiChevronRight,
-  FiCircle,
-  FiDatabase,
-  FiFilter,
-  FiLock,
-  FiRefreshCw,
-  FiShare2,
-  FiUsers
-} from "react-icons/fi";
+import { FiChevronDown, FiCircle, FiDatabase, FiFilter, FiRefreshCw, FiShare2, FiUsers } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
@@ -31,21 +21,10 @@ const moduleIcons = {
 export default function LearningPath() {
   const navigate = useNavigate();
   const [expandedModules, setExpandedModules] = useState(new Set());
-
-  // Toggle expansion state for a module.
-  // Uses a new Set instance each time to avoid mutating React state directly.
-  const toggleModule = (moduleId) => {
-    const newExpanded = new Set(expandedModules);
-    if (newExpanded.has(moduleId)) {
-      newExpanded.delete(moduleId);
-    } else {
-      newExpanded.add(moduleId);
-    }
-    setExpandedModules(newExpanded);
-  };
-
   const [userProgress, setUserProgress] = useState({});
+  const [lessonDetails, setLessonDetails] = useState({});
 
+  // Load user progress
   useEffect(() => {
     try {
       const stored = localStorage.getItem("user");
@@ -58,102 +37,144 @@ export default function LearningPath() {
     }
   }, []);
 
-  // Navigate to a lesson; `lessonId` follows the `lesson-<module>-<index>` format.
-  const handleModuleClick = (moduleId, lessonId) => {
-    navigate(`/learning-path/${moduleId}/${lessonId}`);
+  // Pre-fetch the lesson JSONs using the correct /data/ path
+  useEffect(() => {
+    const fetchLessonsData = async () => {
+      const details = {};
+      for (const module of curriculumIndex) {
+        for (const lesson of module.lessons) {
+          try {
+            // Force the correct path to point to the public/data/curriculum folder
+            const fetchPath = `/data/curriculum/${module.moduleId}/${lesson.lessonId}.json`;
+            const res = await fetch(fetchPath);
+            
+            if (res.ok) {
+              details[lesson.lessonId] = await res.json();
+            } else {
+              console.error(`Failed to fetch: ${fetchPath} - Status: ${res.status}`);
+            }
+          } catch (e) {
+            console.error(`Failed to fetch lesson data for ${lesson.lessonId}`, e);
+          }
+        }
+      }
+      setLessonDetails(details);
+    };
+    
+    fetchLessonsData();
+  }, []);
+
+  // Toggle expansion state for a module.
+  const toggleModule = (moduleId) => {
+    const newExpanded = new Set(expandedModules);
+    if (newExpanded.has(moduleId)) {
+      newExpanded.delete(moduleId);
+    } else {
+      newExpanded.add(moduleId);
+    }
+    setExpandedModules(newExpanded);
   };
 
   return (
     <div className="learning-path-page">
       <DashboardHeader />
-
       <div className="learning-path-container">
+        
         <div className="learning-path-header">
           <h1>Learning Path</h1>
-
-          <p>
-            Explore algorithm concepts through structured lessons, virtual explanations,
-            and interactive learning experiences.
-          </p>
+          <p>Follow this step-by-step curriculum to master algorithms.</p>
         </div>
-
+        
         <div className="modules-container">
-          {curriculumIndex.map((module) => {
-            const moduleNum = module.moduleId.split("-").pop();
-            const iconConfig = moduleIcons[module.moduleId];
-            const IconComponent = iconConfig?.icon || FiUsers;
+          {curriculumIndex.map((module, index) => {
             const isExpanded = expandedModules.has(module.moduleId);
+            const iconData = moduleIcons[module.moduleId] || { icon: FiCircle, color: "#7c5cff", description: "Explore this module." };
+            const IconComponent = iconData.icon;
 
             return (
-              <div key={module.moduleId}>
-                <div
-                  className="module-card-v2"
-                  onClick={() => toggleModule(module.moduleId)}
-                >
-                  <div className="module-card-icon" style={{ backgroundColor: `${iconConfig?.color}15` }}>
-                    <IconComponent size={32} color={iconConfig?.color} />
+              <div key={module.moduleId} className="module-group">
+                <div className="module-card-v2" onClick={() => toggleModule(module.moduleId)}>
+                  <div className="module-card-icon" style={{ backgroundColor: `${iconData.color}15`, color: iconData.color }}>
+                    <IconComponent size={28} />
                   </div>
-
                   <div className="module-card-content">
-                    <div className="module-card-header">
-                      <div>
-                        <h3 className="module-card-title">Module {moduleNum}: {module.title}</h3>
-                        <p className="module-card-description">
-                          {iconConfig?.description || module.title}
-                        </p>
-                      </div>
-                      <FiChevronDown
-                        size={24}
-                        color="#7c5cff"
-                        className={`module-card-chevron ${isExpanded ? 'expanded' : ''}`}
-                      />
-                    </div>
+                    <h3 className="module-card-title">{module.title}</h3>
+                    <p className="module-card-description">{iconData.description}</p>
+                  </div>
+                  <div className={`module-card-chevron ${isExpanded ? 'expanded' : ''}`}>
+                    <FiChevronDown size={24} color="#7c5cff" />
                   </div>
                 </div>
 
                 {isExpanded && (
                   <div className="module-lessons-dropdown">
-                    {module.lessons.map((lesson) => {
-                      const prog = userProgress[lesson.lessonId] || 0;
-                      const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
+                    {module.lessons.map((lesson, idx) => {
+                      const details = lessonDetails[lesson.lessonId];
+                      
+                      // Correctly access the first activity id from the JSON array
+                      const firstActivityId = details?.activities?.[0]?.id;
+
                       return (
-                        <button
-                          key={lesson.lessonId}
-                          className="dropdown-lesson-item"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleModuleClick(module.moduleId, lesson.lessonId);
-                          }}
-                        >
-                          <span className="lesson-number">{lessonDisplay}</span>
-                          <span className="lesson-title">{lesson.title}</span>
-                          <span className="lesson-status-icon">
-                            {prog >= 1 ? (
-                              <FiCheckCircle color="#22c55e" />
-                            ) : prog > 0 ? (
-                              <FiCircle color="#7c5cff" />
-                            ) : (
-                              <FiLock color="#bdbdbd" />
-                            )}
-                          </span>
-                        </button>
+                        <div key={lesson.lessonId} className="dropdown-lesson-item">
+                          <div className="lesson-number">{index + 1}.{idx + 1}</div>
+                          <div className="lesson-title">{lesson.title}</div>
+                          
+                          {/* Action Buttons */}
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                              style={{
+                                padding: '6px 14px',
+                                background: '#f0e8ff',
+                                color: '#7c5cff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: '600',
+                                fontSize: '0.85rem',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseOver={(e) => e.target.style.background = '#e0d4ff'}
+                              onMouseOut={(e) => e.target.style.background = '#f0e8ff'}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/learning-path/${module.moduleId}/${lesson.lessonId}`);
+                              }}
+                            >
+                              Read Lesson
+                            </button>
+
+                            <button
+                              disabled={!firstActivityId}
+                              style={{
+                                padding: '6px 14px',
+                                background: firstActivityId ? '#7c5cff' : '#e2e8f0',
+                                color: firstActivityId ? '#ffffff' : '#94a3b8',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: firstActivityId ? 'pointer' : 'not-allowed',
+                                fontWeight: '600',
+                                fontSize: '0.85rem',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseOver={(e) => {
+                                if(firstActivityId) e.target.style.background = '#6248d4';
+                              }}
+                              onMouseOut={(e) => {
+                                if(firstActivityId) e.target.style.background = '#7c5cff';
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (firstActivityId) {
+                                  navigate(`/activity/${module.moduleId}/${firstActivityId}`);
+                                }
+                              }}
+                            >
+                              {firstActivityId ? "Start Activities" : "No Activities"}
+                            </button>
+                          </div>
+                        </div>
                       );
                     })}
-
-                    <div className="module-dropdown-footer">
-                      {/* Footer row: behaves like a lesson row to maintain visual rhythm and accessibility */}
-                      <button
-                        className="view-all-lessons"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const first = module.lessons[0] && module.lessons[0].lessonId;
-                          if (first) handleModuleClick(module.moduleId, first);
-                        }}
-                      >
-                        View all lessons in this module
-                        <FiChevronRight />
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
