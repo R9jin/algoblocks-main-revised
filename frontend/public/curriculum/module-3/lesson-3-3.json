@@ -1,102 +1,87 @@
 {
   "lessonId": "lesson-3-3",
-
   "moduleId": "module-3",
-
   "title": "Merge Sort",
-
   "description": "Learn how Merge Sort uses Divide and Conquer to sort data efficiently through recursive splitting and merging.",
-
   "difficulty": "Intermediate",
-
   "estimatedTime": "35 min",
-
   "prerequisites": "Binary Search",
-
   "tags": [
     "merge sort",
     "sorting",
     "divide and conquer"
   ],
-
+  "activities": [
+    {
+      "id": "m3_l3_a1",
+      "title": "Sort by End Time"
+    },
+    {
+      "id": "m3_l3_a2",
+      "title": "Event Scheduler"
+    },
+    {
+      "id": "m3_l3_a3",
+      "title": "Conflict Detector"
+    },
+    {
+      "id": "m3_l3_a4",
+      "title": "Total Time Scheduled"
+    },
+    {
+      "id": "m3_l3_a5",
+      "title": "Room Allocator"
+    }
+  ],
   "sections": [
     {
       "id": "introduction",
-
       "type": "introduction",
-
       "title": "Introduction",
-
       "content": "Simple sorting algorithms become inefficient when working with very large datasets.\n\nMerge Sort improves performance by using the Divide and Conquer paradigm to split large problems into smaller manageable parts.\n\nThis strategy allows Merge Sort to maintain efficient performance even as dataset size grows."
     },
-
     {
       "id": "splitting-phase",
-
       "type": "concept",
-
       "title": "Dividing the Array",
-
       "content": "Merge Sort repeatedly divides the array into smaller halves.\n\nThe splitting process continues recursively until each subarray contains only one element.\n\nAt this point, each individual subarray is already considered sorted."
     },
-
     {
       "id": "merging-phase",
-
       "type": "deep_dive",
-
       "title": "Merging Sorted Subarrays",
-
       "content": "After dividing the array, Merge Sort begins combining smaller sorted subarrays together.\n\nDuring the merge phase, elements are compared carefully to ensure the final combined array remains sorted.\n\nThis repeated merging process eventually produces one fully sorted collection."
     },
-
     {
       "id": "stability",
-
       "type": "concept",
-
       "title": "Stable Sorting",
-
       "content": "Merge Sort is considered a stable sorting algorithm.\n\nStable sorting means elements with equal values maintain their original relative order after sorting.\n\nThis property becomes important in systems that process multiple sorting conditions or structured datasets."
     },
-
     {
       "id": "real-world-example",
-
       "type": "analogy",
-
       "title": "Organizing Papers Analogy",
-
       "content": "Imagine sorting a large stack of papers.\n\nInstead of sorting the entire stack at once, you first divide the papers into smaller piles, organize each pile separately, and then combine the sorted piles together.\n\nThis mirrors how Merge Sort processes data."
     },
-
     {
       "id": "real-world-connection",
-
       "type": "real_world_connection",
-
       "title": "Merge Sort in Real Systems",
-
       "content": "Merge Sort is widely used in large-scale data processing systems because of its predictable efficiency.\n\nIt is especially useful for sorting linked structures, external storage data, and distributed datasets where stable sorting behavior is important."
     },
-
     {
       "id": "summary",
-
       "type": "summary",
-
       "title": "Lesson Summary",
-
       "content": "Merge Sort uses Divide and Conquer to sort data efficiently by recursively splitting arrays and merging sorted subarrays together. Its stable behavior and logarithmic efficiency make it suitable for large-scale applications."
     }
   ],
-
   "references": [
     {
       "title": "Programiz — Merge Sort",
       "url": "https://www.programiz.com/dsa/merge-sort"
     },
-
     {
       "title": "GeeksforGeeks — Merge Sort",
       "url": "https://www.geeksforgeeks.org/merge-sort/"

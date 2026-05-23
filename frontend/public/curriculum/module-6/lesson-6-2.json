@@ -1,105 +1,71 @@
 {
-  "lessonId": "lesson-6-2",
-
+  "lessonId": "lesson-6-1",
   "moduleId": "module-6",
-
-  "title": "Permutations and Combinations",
-
-  "description": "Understand how Backtracking generates all possible arrangements and selections systematically.",
-
+  "title": "State Trees",
+  "description": "Navigating decisions and building paths using the Choose, Explore, and Unchoose architectural pattern.",
   "difficulty": "Advanced",
-
   "estimatedTime": "40 min",
-
-  "prerequisites": "Backtracking Fundamentals",
-
-  "tags": [
-    "permutations",
-    "combinations",
-    "backtracking"
+  "prerequisites": "Longest Common Subsequence (LCS)",
+  "tags": ["backtracking", "search", "recursion", "optimization"],
+  "activities": [
+    { "id": "m6_l1_a1", "title": "The Choose Step" },
+    { "id": "m6_l1_a2", "title": "The Unchoose Step" },
+    { "id": "m6_l1_a3", "title": "State Validation" },
+    { "id": "m6_l1_a4", "title": "Recursive Exploration" },
+    { "id": "m6_l1_a5", "title": "Base Case Print" }
   ],
-
   "sections": [
     {
       "id": "introduction",
-
       "type": "introduction",
-
       "title": "Introduction",
-
-      "content": "Many computational problems require generating all possible arrangements or selections from a dataset.\n\nBacktracking provides an efficient framework for exploring these possibilities systematically.\n\nPermutations and combinations are classic examples of problems solved using recursive exploration and rollback."
+      "content": "Some problems require exploring many possible solution paths before finding the correct answer.\n\nInstead of blindly checking every possibility, Backtracking improves efficiency by abandoning paths that cannot lead to valid solutions.\n\nThis strategy allows algorithms to systematically explore possibilities while undoing incorrect choices when necessary."
     },
-
     {
-      "id": "permutations",
-
+      "id": "core-idea",
       "type": "concept",
-
-      "title": "Understanding Permutations",
-
-      "content": "A permutation is an arrangement of elements where order matters.\n\nDifferent orderings are considered separate solutions.\n\nFor example, arranging the letters A, B, and C in different sequences produces multiple unique permutations."
+      "title": "The Core Idea of Backtracking",
+      "content": "Backtracking builds solutions step-by-step.\n\nAt every stage, the algorithm chooses a possible option and continues exploring deeper.\n\nIf the current path becomes invalid or impossible, the algorithm reverses its previous decision and tries a different path instead."
     },
-
     {
-      "id": "combinations",
-
+      "id": "rollback-mechanism",
+      "type": "deep_dive",
+      "title": "Understanding Rollback",
+      "content": "Rollback is one of the most important features of Backtracking.\n\nWhen the algorithm discovers that the current path cannot produce a valid solution, it removes the most recent choice and returns to an earlier state.\n\nThis process prevents unnecessary exploration of impossible paths and improves efficiency significantly."
+    },
+    {
+      "id": "search-tree",
       "type": "concept",
-
-      "title": "Understanding Combinations",
-
-      "content": "A combination is a selection of elements where order does not matter.\n\nUnlike permutations, selecting the same elements in a different order is considered the same combination.\n\nCombinations are commonly used in selection and grouping problems."
+      "title": "The Search Tree",
+      "content": "Backtracking problems are often visualized as search trees.\n\nEach node represents a decision, while branches represent possible choices.\n\nThe algorithm systematically explores branches until it either finds a valid solution or determines that a branch should be abandoned."
     },
-
     {
-      "id": "backtracking-process",
-
-      "type": "deep_dive",
-
-      "title": "Generating Possibilities with Backtracking",
-
-      "content": "Backtracking generates possibilities by building partial solutions step-by-step.\n\nThe algorithm selects an element, continues deeper recursively, and removes the choice during rollback before trying another option.\n\nThis repeated exploration systematically generates every valid arrangement or selection."
+      "id": "real-world-example",
+      "type": "analogy",
+      "title": "Maze Exploration Analogy",
+      "content": "Imagine navigating a maze.\n\nWhenever you encounter a dead end, you return to the previous intersection and try another direction.\n\nThis process of exploring, failing, reversing, and retrying mirrors how Backtracking algorithms operate."
     },
-
-    {
-      "id": "state-tracking",
-
-      "type": "deep_dive",
-
-      "title": "State Tracking During Exploration",
-
-      "content": "Backtracking algorithms often maintain temporary state information during execution.\n\nThis state may include visited elements, current selections, or partial solution paths.\n\nProper state management is essential to ensure the algorithm explores all valid possibilities correctly."
-    },
-
     {
       "id": "real-world-connection",
-
       "type": "real_world_connection",
-
-      "title": "Permutations and Combinations in Real Applications",
-
-      "content": "Permutation and combination problems appear in password generation, scheduling, recommendation systems, genetics, and cryptography.\n\nMany optimization systems rely on systematic arrangement generation to evaluate possible solutions."
+      "title": "Backtracking in Real Applications",
+      "content": "Backtracking is widely used in puzzle solving, scheduling systems, artificial intelligence, game development, and constraint satisfaction problems.\n\nMany systems rely on Backtracking when multiple possible combinations must be explored efficiently."
     },
-
     {
       "id": "summary",
-
       "type": "summary",
-
       "title": "Lesson Summary",
-
-      "content": "Backtracking efficiently generates permutations and combinations by systematically exploring possible arrangements and selections. Recursive exploration and rollback allow algorithms to examine all valid possibilities."
+      "content": "Backtracking systematically explores solution paths while undoing incorrect decisions through rollback. By abandoning impossible paths early, Backtracking improves efficiency compared to exhaustive brute force search."
     }
   ],
-
   "references": [
     {
-      "title": "GeeksforGeeks — Permutations and Combinations",
-      "url": "https://www.geeksforgeeks.org/different-ways-to-generate-permutations-of-an-array/"
+      "title": "Programiz — Backtracking Algorithm",
+      "url": "https://www.programiz.com/dsa/backtracking-algorithm"
     },
-
     {
-      "title": "Programiz — Recursion",
-      "url": "https://www.programiz.com/javascript/recursion"
+      "title": "GeeksforGeeks — Backtracking",
+      "url": "https://www.geeksforgeeks.org/backtracking-algorithms/"
     }
   ]
 }

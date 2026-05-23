@@ -1,102 +1,87 @@
 {
   "lessonId": "lesson-4-3",
-
   "moduleId": "module-4",
-
   "title": "Activity Selection",
-
   "description": "Learn how Greedy Algorithms maximize scheduling efficiency by selecting the best non-overlapping activities.",
-
   "difficulty": "Intermediate",
-
   "estimatedTime": "35 min",
-
   "prerequisites": "Coin Change Problem",
-
   "tags": [
     "activity selection",
     "scheduling",
     "greedy algorithms"
   ],
-
+  "activities": [
+    {
+      "id": "m4_l3_a1",
+      "title": "Sort by End Time"
+    },
+    {
+      "id": "m4_l3_a2",
+      "title": "Event Scheduler"
+    },
+    {
+      "id": "m4_l3_a3",
+      "title": "Conflict Detector"
+    },
+    {
+      "id": "m4_l3_a4",
+      "title": "Total Time Scheduled"
+    },
+    {
+      "id": "m4_l3_a5",
+      "title": "Room Allocator"
+    }
+  ],
   "sections": [
     {
       "id": "introduction",
-
       "type": "introduction",
-
       "title": "Introduction",
-
       "content": "Scheduling problems appear frequently in computer science and real-world systems.\n\nThe Activity Selection Problem focuses on choosing the maximum number of non-overlapping activities from a larger collection.\n\nGreedy Algorithms solve this efficiently by selecting activities strategically based on finishing times."
     },
-
     {
       "id": "problem-overview",
-
       "type": "concept",
-
       "title": "Understanding the Activity Selection Problem",
-
       "content": "Each activity contains a start time and a finish time.\n\nThe goal is to select as many compatible activities as possible without overlapping schedules.\n\nOnce an activity is selected, overlapping activities can no longer be chosen."
     },
-
     {
       "id": "greedy-solution",
-
       "type": "deep_dive",
-
       "title": "The Greedy Scheduling Strategy",
-
       "content": "The greedy approach sorts activities according to their finishing times.\n\nThe algorithm first selects the activity that finishes earliest.\n\nAfterward, it repeatedly selects the next activity that starts after the previously selected activity ends.\n\nThis strategy maximizes the remaining available time for future activities."
     },
-
     {
       "id": "why-it-works",
-
       "type": "concept",
-
       "title": "Why Earliest Finish Time Works",
-
       "content": "Choosing activities that finish earlier leaves more room for additional activities later.\n\nThis greedy decision increases the probability of selecting the maximum number of compatible activities.\n\nThe strategy succeeds because local optimization aligns correctly with the global objective in this problem."
     },
-
     {
       "id": "real-world-example",
-
       "type": "analogy",
-
       "title": "Meeting Schedule Analogy",
-
       "content": "Imagine scheduling meetings inside a conference room.\n\nIf shorter meetings are selected first, more meetings can fit throughout the day.\n\nSelecting long meetings too early may block many future opportunities.\n\nThis reflects the logic behind activity selection."
     },
-
     {
       "id": "real-world-connection",
-
       "type": "real_world_connection",
-
       "title": "Scheduling Systems in Real Applications",
-
       "content": "Scheduling optimization is important in operating systems, event management, airline scheduling, manufacturing systems, and network resource allocation.\n\nGreedy scheduling algorithms help maximize efficiency while minimizing conflicts and wasted resources."
     },
-
     {
       "id": "summary",
-
       "type": "summary",
-
       "title": "Lesson Summary",
-
       "content": "The Activity Selection Problem uses a greedy scheduling strategy to maximize the number of compatible activities. By selecting activities with the earliest finishing times, the algorithm efficiently optimizes scheduling opportunities."
     }
   ],
-
   "references": [
     {
       "title": "GeeksforGeeks — Activity Selection Problem",
       "url": "https://www.geeksforgeeks.org/activity-selection-problem-greedy-algo-1/"
     },
-
     {
       "title": "Programiz — Greedy Algorithms",
       "url": "https://www.programiz.com/dsa/greedy-algorithm"

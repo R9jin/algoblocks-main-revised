@@ -1,102 +1,87 @@
 {
   "lessonId": "lesson-3-4",
-
   "moduleId": "module-3",
-
   "title": "Quick Sort",
-
   "description": "Understand how Quick Sort efficiently organizes data using pivot partitioning and recursive sorting.",
-
   "difficulty": "Intermediate",
-
   "estimatedTime": "35 min",
-
   "prerequisites": "Merge Sort",
-
   "tags": [
     "quick sort",
     "sorting",
     "partitioning"
   ],
-
+  "activities": [
+    {
+      "id": "m3_l4_a1",
+      "title": "The Partition Step"
+    },
+    {
+      "id": "m3_l4_a2",
+      "title": "Choose First Pivot"
+    },
+    {
+      "id": "m3_l4_a3",
+      "title": "Full Quick Sort Ascending"
+    },
+    {
+      "id": "m3_l4_a4",
+      "title": "Quick Sort Descending"
+    },
+    {
+      "id": "m3_l4_a5",
+      "title": "Pivot Tracker"
+    }
+  ],
   "sections": [
     {
       "id": "introduction",
-
       "type": "introduction",
-
       "title": "Introduction",
-
       "content": "Quick Sort is one of the most widely used sorting algorithms because of its excellent average-case performance.\n\nLike Merge Sort, it uses Divide and Conquer principles. However, instead of splitting arrays evenly, Quick Sort reorganizes elements around a selected pivot value."
     },
-
     {
       "id": "pivot-selection",
-
       "type": "concept",
-
       "title": "Understanding the Pivot",
-
       "content": "A pivot is a selected element used to divide the dataset.\n\nElements smaller than the pivot are moved to one side, while larger elements are moved to the opposite side.\n\nThis process is called partitioning."
     },
-
     {
       "id": "partitioning-process",
-
       "type": "deep_dive",
-
       "title": "Partitioning the Array",
-
       "content": "During partitioning, the algorithm rearranges elements so the pivot ends in its correct sorted position.\n\nOnce partitioning is complete, the algorithm recursively sorts the left and right partitions independently.\n\nThis repeated partitioning process eventually sorts the entire dataset."
     },
-
     {
       "id": "efficiency",
-
       "type": "concept",
-
       "title": "Performance Characteristics",
-
       "content": "Quick Sort performs extremely well on average and is often faster than many other sorting algorithms in practice.\n\nHowever, poor pivot selection can lead to inefficient worst-case behavior.\n\nDespite this limitation, optimized pivot strategies help Quick Sort remain highly efficient in most applications."
     },
-
     {
       "id": "real-world-example",
-
       "type": "analogy",
-
       "title": "Classroom Organization Analogy",
-
       "content": "Imagine organizing students by height.\n\nA teacher selects one student as a reference point and separates shorter students to the left and taller students to the right.\n\nThe same process is then repeated for each smaller group until everyone becomes properly ordered."
     },
-
     {
       "id": "real-world-connection",
-
       "type": "real_world_connection",
-
       "title": "Quick Sort in Modern Computing",
-
       "content": "Quick Sort is commonly used in standard software libraries and operating systems because of its strong average-case performance.\n\nIts in-place partitioning strategy also reduces memory overhead compared to some other sorting algorithms."
     },
-
     {
       "id": "summary",
-
       "type": "summary",
-
       "title": "Lesson Summary",
-
       "content": "Quick Sort uses pivot partitioning and recursive sorting to organize data efficiently. Its strong average-case performance makes it one of the most important and widely used sorting algorithms in computer science."
     }
   ],
-
   "references": [
     {
       "title": "Programiz — Quick Sort",
       "url": "https://www.programiz.com/dsa/quick-sort"
     },
-
     {
       "title": "GeeksforGeeks — Quick Sort",
       "url": "https://www.geeksforgeeks.org/quick-sort/"

@@ -1,102 +1,87 @@
 {
   "lessonId": "lesson-5-4",
-
   "moduleId": "module-5",
-
   "title": "Longest Common Subsequence (LCS)",
-
   "description": "Understand how Dynamic Programming identifies matching sequences efficiently using matrix-based comparison.",
-
   "difficulty": "Advanced",
-
   "estimatedTime": "45 min",
-
   "prerequisites": "0/1 Knapsack Problem",
-
   "tags": [
     "LCS",
     "dynamic programming",
     "string matching"
   ],
-
+  "activities": [
+    {
+      "id": "m5_l4_a1",
+      "title": "LCS Grid Init"
+    },
+    {
+      "id": "m5_l4_a2",
+      "title": "Character Match Logic"
+    },
+    {
+      "id": "m5_l4_a3",
+      "title": "Full LCS Table"
+    },
+    {
+      "id": "m5_l4_a4",
+      "title": "Reconstruct LCS String"
+    },
+    {
+      "id": "m5_l4_a5",
+      "title": "Backtrack Steps"
+    }
+  ],
   "sections": [
     {
       "id": "introduction",
-
       "type": "introduction",
-
       "title": "Introduction",
-
       "content": "Comparing sequences is an important problem in computer science.\n\nApplications such as version control systems, DNA analysis, and text comparison tools all require efficient sequence matching techniques.\n\nThe Longest Common Subsequence problem demonstrates how Dynamic Programming can solve these comparisons efficiently."
     },
-
     {
       "id": "problem-overview",
-
       "type": "concept",
-
       "title": "Understanding the LCS Problem",
-
       "content": "A subsequence is a sequence that appears in the same relative order but not necessarily continuously.\n\nThe objective of the LCS problem is to find the longest subsequence shared between two sequences.\n\nThis requires systematic comparison between characters or elements."
     },
-
     {
       "id": "why-brute-force-fails",
-
       "type": "deep_dive",
-
       "title": "Why Exhaustive Search is Difficult",
-
       "content": "A brute force solution would examine many possible subsequences from both sequences.\n\nAs sequence length increases, the number of combinations grows extremely quickly.\n\nThis makes exhaustive comparison computationally expensive."
     },
-
     {
       "id": "dynamic-programming-matrix",
-
       "type": "concept",
-
       "title": "Using a Dynamic Programming Matrix",
-
       "content": "Dynamic Programming solves the LCS problem using a matrix.\n\nEach cell represents the longest matching subsequence length between partial sections of the two sequences.\n\nThe algorithm gradually fills the matrix until the final answer appears in the last cell."
     },
-
     {
       "id": "matching-logic",
-
       "type": "deep_dive",
-
       "title": "Character Comparison Logic",
-
       "content": "When two characters match, the algorithm extends the current subsequence length.\n\nWhen characters differ, the algorithm compares neighboring values to determine the best partial solution.\n\nThis systematic comparison process efficiently constructs the final subsequence."
     },
-
     {
       "id": "real-world-connection",
-
       "type": "real_world_connection",
-
       "title": "Sequence Matching in Real Applications",
-
       "content": "LCS-style algorithms are used in plagiarism detection, file comparison systems, bioinformatics, and text editors.\n\nMany collaborative software systems rely on efficient sequence matching to detect changes and synchronize data."
     },
-
     {
       "id": "summary",
-
       "type": "summary",
-
       "title": "Lesson Summary",
-
       "content": "The Longest Common Subsequence problem uses Dynamic Programming to compare sequences efficiently. Matrix-based computation eliminates redundant work and enables powerful matching systems used in many real-world applications."
     }
   ],
-
   "references": [
     {
       "title": "GeeksforGeeks — Longest Common Subsequence",
-      "url": "https://www.geeksforgeeks.org/longest-common-subsequence-dp-4/"
+      "url": "https://www.geeksforgeks.org/longest-common-subsequence-dp-4/"
     },
-
     {
       "title": "Programiz — Dynamic Programming",
       "url": "https://www.programiz.com/dsa/dynamic-programming"

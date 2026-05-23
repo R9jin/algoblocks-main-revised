@@ -1,102 +1,87 @@
 {
   "lessonId": "lesson-5-3",
-
   "moduleId": "module-5",
-
   "title": "0/1 Knapsack Problem",
-
   "description": "Learn how Dynamic Programming solves optimization problems under strict capacity constraints.",
-
   "difficulty": "Advanced",
-
   "estimatedTime": "45 min",
-
   "prerequisites": "Fibonacci Optimization",
-
   "tags": [
     "knapsack",
     "dynamic programming",
     "optimization"
   ],
-
+  "activities": [
+    {
+      "id": "m5_l3_a1",
+      "title": "Knapsack Grid Init"
+    },
+    {
+      "id": "m5_l3_a2",
+      "title": "Include/Exclude Choice"
+    },
+    {
+      "id": "m5_l3_a3",
+      "title": "Knapsack Matrix"
+    },
+    {
+      "id": "m5_l3_a4",
+      "title": "Traceback Items"
+    },
+    {
+      "id": "m5_l3_a5",
+      "title": "Capacity Tracker"
+    }
+  ],
   "sections": [
     {
       "id": "introduction",
-
       "type": "introduction",
-
       "title": "Introduction",
-
       "content": "The 0/1 Knapsack Problem is one of the most famous optimization problems in computer science.\n\nThe objective is to maximize total value while staying within a limited carrying capacity.\n\nDynamic Programming solves this efficiently by systematically evaluating combinations of decisions."
     },
-
     {
       "id": "problem-overview",
-
       "type": "concept",
-
       "title": "Understanding the Knapsack Problem",
-
       "content": "Suppose a backpack has limited weight capacity and several items are available.\n\nEach item has both a weight and a value.\n\nThe challenge is to select the combination of items that produces the highest total value without exceeding the capacity limit."
     },
-
     {
       "id": "why-brute-force-fails",
-
       "type": "deep_dive",
-
       "title": "Why Brute Force Becomes Inefficient",
-
       "content": "A brute force solution would examine every possible combination of items.\n\nAs the number of items increases, the number of combinations grows exponentially.\n\nThis quickly becomes impractical for large datasets."
     },
-
     {
       "id": "dynamic-programming-approach",
-
       "type": "concept",
-
       "title": "Dynamic Programming Solution",
-
       "content": "Dynamic Programming solves the problem using a two-dimensional table.\n\nEach table entry represents the best possible value achievable for a specific capacity and subset of items.\n\nBy reusing previously computed results, the algorithm efficiently constructs the optimal final solution."
     },
-
     {
       "id": "decision-making",
-
       "type": "deep_dive",
-
       "title": "Include or Exclude Decisions",
-
       "content": "For every item, the algorithm evaluates two possibilities: include the item or exclude it.\n\nThe algorithm compares both choices and selects the better option while respecting the remaining capacity.\n\nThis repeated decision-making process gradually builds the optimal combination."
     },
-
     {
       "id": "real-world-connection",
-
       "type": "real_world_connection",
-
       "title": "Optimization Problems in Real Life",
-
       "content": "Knapsack-style optimization appears in logistics, cargo loading, budgeting, investment planning, and resource allocation.\n\nCompanies constantly optimize limited resources to maximize efficiency, profit, or performance."
     },
-
     {
       "id": "summary",
-
       "type": "summary",
-
       "title": "Lesson Summary",
-
       "content": "The 0/1 Knapsack Problem demonstrates how Dynamic Programming solves constrained optimization problems efficiently by reusing intermediate results and evaluating inclusion or exclusion decisions systematically."
     }
   ],
-
   "references": [
     {
       "title": "Programiz — Knapsack Problem",
       "url": "https://www.programiz.com/dsa/knapsack-problem"
     },
-
     {
       "title": "GeeksforGeeks — 0/1 Knapsack Problem",
       "url": "https://www.geeksforgeeks.org/0-1-knapsack-problem-dp-10/"

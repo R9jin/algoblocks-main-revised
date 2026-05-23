@@ -1,102 +1,87 @@
 {
   "lessonId": "lesson-1-2",
-
   "moduleId": "module-1",
-
   "title": "Time Complexity Classes",
-
   "description": "Learn the most common time complexity classes and understand how they affect algorithm performance.",
-
   "difficulty": "Beginner",
-
   "estimatedTime": "30 min",
-
   "prerequisites": "Big-O Notation",
-
   "tags": [
     "time complexity",
     "big-o",
     "algorithm analysis"
   ],
-
+  "activities": [
+    {
+      "id": "m1_l2_a1",
+      "title": "O(1) Lookup"
+    },
+    {
+      "id": "m1_l2_a2",
+      "title": "O(n) Traversal"
+    },
+    {
+      "id": "m1_l2_a3",
+      "title": "O(log n) Halving"
+    },
+    {
+      "id": "m1_l2_a4",
+      "title": "O(n²) Pairing"
+    },
+    {
+      "id": "m1_l2_a5",
+      "title": "O(n + n) vs O(n)"
+    }
+  ],
   "sections": [
     {
       "id": "introduction",
-
       "type": "introduction",
-
       "title": "Introduction",
-
       "content": "Not all algorithms grow at the same rate as input size increases.\n\nSome algorithms remain efficient even with very large datasets, while others quickly become slow and impractical.\n\nTime complexity classes help programmers categorize algorithm efficiency based on how workload increases."
     },
-
     {
       "id": "constant-complexity",
-
       "type": "concept",
-
       "title": "Constant Complexity — O(1)",
-
       "content": "An algorithm with constant complexity performs the same amount of work regardless of input size.\n\nEven if the dataset becomes extremely large, the execution time remains nearly unchanged.\n\nAccessing a specific array element by index is a common example of constant-time behavior."
     },
-
     {
       "id": "linear-complexity",
-
       "type": "concept",
-
       "title": "Linear Complexity — O(n)",
-
       "content": "Linear complexity means the workload grows proportionally with the input size.\n\nIf the amount of data doubles, the algorithm generally performs twice as much work.\n\nScanning through a list one-by-one is a common example of linear complexity."
     },
-
     {
       "id": "logarithmic-complexity",
-
       "type": "deep_dive",
-
       "title": "Logarithmic Complexity — O(log n)",
-
       "content": "Logarithmic algorithms reduce the problem size repeatedly during execution.\n\nInstead of examining every item individually, the algorithm continuously narrows the search space.\n\nThis type of complexity is extremely efficient for large datasets and is commonly seen in binary search algorithms."
     },
-
     {
       "id": "quadratic-complexity",
-
       "type": "deep_dive",
-
       "title": "Quadratic Complexity — O(n²)",
-
       "content": "Quadratic complexity occurs when algorithms use nested iterations.\n\nAs the dataset grows, the amount of work increases very rapidly.\n\nSimple sorting algorithms such as Bubble Sort often demonstrate quadratic complexity because every element may need to be compared repeatedly."
     },
-
     {
       "id": "comparison",
-
       "type": "real_world_connection",
-
       "title": "Comparing Growth Rates",
-
       "content": "Small differences in complexity become extremely important when working with large datasets.\n\nAn efficient algorithm may process millions of items quickly, while an inefficient algorithm may become unusable.\n\nUnderstanding complexity classes helps programmers choose the right algorithm for different situations."
     },
-
     {
       "id": "summary",
-
       "type": "summary",
-
       "title": "Lesson Summary",
-
       "content": "Time complexity classes describe how algorithm workload changes as input size increases. Common complexity classes include O(1), O(n), O(log n), and O(n²). Understanding these patterns helps programmers analyze performance and design efficient algorithms."
     }
   ],
-
   "references": [
     {
       "title": "Programiz — Time Complexity",
       "url": "https://www.programiz.com/dsa/time-complexity"
     },
-
     {
       "title": "Big-O Cheat Sheet",
       "url": "https://www.bigocheatsheet.com/"

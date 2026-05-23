@@ -1,103 +1,88 @@
 {
   "lessonId": "lesson-5-1",
-
   "moduleId": "module-5",
-
   "title": "Dynamic Programming Fundamentals",
-
   "description": "Learn how Dynamic Programming solves complex problems efficiently by reusing previously computed results.",
-
   "difficulty": "Intermediate",
-
   "estimatedTime": "40 min",
-
   "prerequisites": "Activity Selection",
-
   "tags": [
     "dynamic programming",
     "memoization",
     "tabulation",
     "optimization"
   ],
-
+  "activities": [
+    {
+      "id": "m5_l1_a1",
+      "title": "Array Caching"
+    },
+    {
+      "id": "m5_l1_a2",
+      "title": "Cache Lookup"
+    },
+    {
+      "id": "m5_l1_a3",
+      "title": "Top-Down Blueprint"
+    },
+    {
+      "id": "m5_l1_a4",
+      "title": "Bottom-Up Build"
+    },
+    {
+      "id": "m5_l1_a5",
+      "title": "Execution Comparison"
+    }
+  ],
   "sections": [
     {
       "id": "introduction",
-
       "type": "introduction",
-
       "title": "Introduction",
-
       "content": "Many recursive algorithms repeatedly solve the same subproblems multiple times.\n\nThis repeated computation wastes processing time and significantly reduces efficiency.\n\nDynamic Programming improves performance by storing previously computed results and reusing them whenever the same subproblem appears again."
     },
-
     {
       "id": "core-idea",
-
       "type": "concept",
-
       "title": "The Core Idea of Dynamic Programming",
-
       "content": "Dynamic Programming breaks complex problems into smaller overlapping subproblems.\n\nInstead of recalculating solutions repeatedly, the algorithm stores intermediate results in memory.\n\nWhenever the same subproblem is encountered again, the stored answer can be reused immediately."
     },
-
     {
       "id": "overlapping-subproblems",
-
       "type": "deep_dive",
-
       "title": "Overlapping Subproblems",
-
       "content": "A problem contains overlapping subproblems when the same smaller computations appear repeatedly.\n\nTraditional recursive solutions may solve identical subproblems many times unnecessarily.\n\nDynamic Programming avoids this repetition by saving computed answers and reusing them throughout execution."
     },
-
     {
       "id": "memoization-vs-tabulation",
-
       "type": "concept",
-
       "title": "Memoization vs Tabulation",
-
       "content": "Memoization stores results during recursive execution. When a recursive call repeats, the saved value is reused immediately.\n\nTabulation solves subproblems iteratively using tables, usually starting from the smallest cases and gradually building toward the final solution.\n\nBoth techniques reduce redundant computation and improve efficiency significantly."
     },
-
     {
       "id": "real-world-example",
-
       "type": "analogy",
-
       "title": "Studying for Exams Analogy",
-
       "content": "Imagine solving a difficult math problem repeatedly without writing down previous solutions.\n\nEach time the same calculation appears, you would waste time recomputing it.\n\nInstead, keeping notes allows you to reuse earlier work instantly.\n\nDynamic Programming follows this same principle by storing useful intermediate results."
     },
-
     {
       "id": "real-world-connection",
-
       "type": "real_world_connection",
-
       "title": "Dynamic Programming in Real Applications",
-
       "content": "Dynamic Programming is widely used in artificial intelligence, route optimization, financial systems, genetics, and machine learning.\n\nMany advanced optimization problems rely on Dynamic Programming because it dramatically improves efficiency compared to brute force recursion."
     },
-
     {
       "id": "summary",
-
       "type": "summary",
-
       "title": "Lesson Summary",
-
       "content": "Dynamic Programming improves efficiency by storing and reusing previously computed results. Techniques such as memoization and tabulation eliminate redundant calculations and optimize recursive problem solving."
     }
   ],
-
   "references": [
     {
       "title": "Programiz — Dynamic Programming",
       "url": "https://www.programiz.com/dsa/dynamic-programming"
     },
-
     {
       "title": "GeeksforGeeks — Dynamic Programming",
       "url": "https://www.geeksforgeeks.org/dynamic-programming/"
