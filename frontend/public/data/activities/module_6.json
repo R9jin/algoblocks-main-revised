@@ -127,8 +127,8 @@
       "id": "m6_l2_a4",
       "title": "Length-K Combinations",
       "task": "A combinatorial search engine generates all unique selections of size k from a dataset.\n\nTask Requirement:\nCreate a function combine(arr, k) that generates all combinations of size k.\n\nRules:\n- Order does not matter\n- Duplicate combinations must not exist\n- Return [] when k exceeds array size\n\nSample Output:\ncombine([1,2,3],2) → [[1,2],[1,3],[2,3]]",
-      "targetTime": "O(C(n,k))",
-      "targetSpace": "O(C(n,k))",
+      "targetTime": "O(2^n)",
+      "targetSpace": "O(2^n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "combine([1,2,3],2)", "expected": "[[1,2],[1,3],[2,3]]", "isHidden": false },
@@ -142,8 +142,8 @@
       "id": "m6_l2_a5",
       "title": "Keypad Letters",
       "task": "A recursive keypad decoder generates all possible letter combinations from numeric phone keypad mappings.\n\nTask Requirement:\nCreate a function keypad(digits) that generates all possible letter combinations.\n\nRules:\n- Each digit maps to multiple letters\n- One letter must be chosen per digit\n- Empty string returns []\n- Unsupported digits return []\n\nSample Output:\nkeypad('23') → ['ad','ae','af','bd','be','bf','cd','ce','cf']",
-      "targetTime": "O(4^n)",
-      "targetSpace": "O(4^n)",
+      "targetTime": "O(2^n)",
+      "targetSpace": "O(2^n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "keypad('23')", "expected": "['ad','ae','af','bd','be','bf','cd','ce','cf']", "isHidden": false },

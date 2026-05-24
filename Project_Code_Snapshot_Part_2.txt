@@ -829,7 +829,7 @@
       "id": "m4_l1_a5",
       "title": "Greedy Path",
       "task": "A grid traversal engine is simulating path optimization through weighted nodes.\n\nSystem Requirement:\nStart from the initial position and move through the grid by always selecting the highest available adjacent value.\n\nBehavior Rules:\n- At each step, choose the largest adjacent cell value\n- Move sequentially according to greedy selection\n- Accumulate visited values\n\nOutput Requirement:\nReturn the total sum of all visited cells.",
-      "targetTime": "O(n*m)",
+      "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "greedy_path([[1,2],[3,4]])", "expected": "8", "isHidden": false },
@@ -846,7 +846,7 @@
       "id": "m4_l2_a1",
       "title": "Philippine Cashier",
       "task": "A national cashier system is performing automated currency breakdown operations.\n\nSystem Requirement:\nDecompose a given amount using Philippine denominations in a greedy manner: [20, 10, 5, 1].\n\nBehavior Rules:\n- Always use the largest denomination first\n- Minimize total number of coins\n- Return counts per denomination in order [20,10,5,1]\n\nOutput Requirement:\nReturn a list of integers representing coin counts.",
-      "targetTime": "O(k)",
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "change_ph(47)", "expected": "[2,0,1,2]", "isHidden": false },
@@ -860,7 +860,7 @@
       "id": "m4_l2_a2",
       "title": "US Cashier",
       "task": "A currency breakdown system is simulating US coin optimization.\n\nSystem Requirement:\nBreak down a given value using denominations [25, 10, 5, 1] using a greedy strategy.\n\nBehavior Rules:\n- Prioritize highest denomination first\n- Minimize coin usage\n- Return counts in order [25,10,5,1]\n\nOutput Requirement:\nReturn list of coin counts.",
-      "targetTime": "O(k)",
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "change_us(41)", "expected": "[1,1,1,1]", "isHidden": false },
@@ -874,7 +874,7 @@
       "id": "m4_l2_a3",
       "title": "Coin Breakdown Report",
       "task": "A financial analytics system is evaluating transaction efficiency.\n\nSystem Requirement:\nCompute the total number of coins used when performing a greedy coin breakdown using Philippine denominations [20, 10, 5, 1].\n\nBehavior Rules:\n- Perform greedy breakdown first\n- Sum all coin counts\n\nOutput Requirement:\nReturn a single integer representing total coins used.",
-      "targetTime": "O(k)",
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "coin_count_ph(47)", "expected": "5", "isHidden": false },
@@ -888,7 +888,7 @@
       "id": "m4_l2_a4",
       "title": "Custom Coin System",
       "task": "A configurable currency engine is using a custom denomination set.\n\nSystem Requirement:\nBreak down a value using coins [1, 3, 4] using greedy selection.\n\nBehavior Rules:\n- Always pick highest denomination first\n- Continue until value is fully reduced\n\nOutput Requirement:\nReturn list of counts in order [1,3,4].",
-      "targetTime": "O(k)",
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "custom_change(6)", "expected": "[1,0,1]", "isHidden": false },
@@ -902,7 +902,7 @@
       "id": "m4_l2_a5",
       "title": "Exact Change Validator",
       "task": "A validation system checks whether a value can be represented using a given coin system.\n\nSystem Requirement:\nDetermine whether exact change can be formed using greedy decomposition logic.\n\nBehavior Rules:\n- If value is negative, return False\n- Otherwise determine feasibility using provided denominations\n\nOutput Requirement:\nReturn True or False.",
-      "targetTime": "O(k)",
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "can_change([20,10,5,1],47)", "expected": "True", "isHidden": false },
@@ -1142,8 +1142,8 @@
       "id": "m5_l3_a1",
       "title": "Knapsack Grid Init",
       "task": "A dynamic programming grid is being initialized for knapsack computation.\n\nSystem Requirement:\nCreate a 2D DP table initialized with zeros for given dimensions.\n\nBehavior Rules:\n- Create matrix of size n x m\n- Fill all cells with 0\n\nOutput Requirement:\nReturn initialized matrix.",
-      "targetTime": "O(n*m)",
-      "targetSpace": "O(n*m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         { "call": "knap_init(2,3)", "expected": "[[0,0,0],[0,0,0]]", "isHidden": false },
         { "call": "knap_init(1,5)", "expected": "[[0,0,0,0,0]]", "isHidden": false },
@@ -1215,8 +1215,8 @@
       "id": "m5_l4_a1",
       "title": "LCS Grid Init",
       "task": "A dynamic programming system is initializing a Longest Common Subsequence matrix.\n\nSystem Requirement:\nCreate a 2D matrix for LCS computation initialized with base values.\n\nBehavior Rules:\n- Matrix dimensions depend on string lengths\n- Initialize all cells to 0\n\nOutput Requirement:\nReturn initialized LCS matrix.",
-      "targetTime": "O(n*m)",
-      "targetSpace": "O(n*m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         { "call": "lcs_init('A','B')", "expected": "[[0,0],[0,0]]", "isHidden": false },
         { "call": "lcs_init('ABC','AB')", "expected": "5x4_matrix", "isHidden": false },
@@ -1243,8 +1243,8 @@
       "id": "m5_l4_a3",
       "title": "Full LCS Table",
       "task": "A DP system computes the length of the Longest Common Subsequence using a full matrix approach.\n\nSystem Requirement:\nBuild LCS DP table and compute final LCS length.\n\nBehavior Rules:\n- Fill DP table bottom-up\n- Use standard LCS recurrence relation\n\nOutput Requirement:\nReturn LCS length.",
-      "targetTime": "O(n*m)",
-      "targetSpace": "O(n*m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         { "call": "lcs_length('ABCBDAB','BDCAB')", "expected": "4", "isHidden": false },
         { "call": "lcs_length('AGGTAB','GXTXAYB')", "expected": "4", "isHidden": false },
@@ -1257,8 +1257,8 @@
       "id": "m5_l4_a4",
       "title": "Reconstruct LCS String",
       "task": "A reconstruction engine is rebuilding the actual Longest Common Subsequence from a computed DP table.\n\nSystem Requirement:\nBacktrack through DP matrix to construct LCS string.\n\nBehavior Rules:\n- Follow DP backtracking rules\n- Build sequence in correct order\n\nOutput Requirement:\nReturn reconstructed LCS string.",
-      "targetTime": "O(n*m)",
-      "targetSpace": "O(n*m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         { "call": "lcs_string('ABCBDAB','BDCAB')", "expected": "BCAB", "isHidden": false },
         { "call": "lcs_string('AGGTAB','GXTXAYB')", "expected": "GTAB", "isHidden": false },
@@ -1271,8 +1271,8 @@
       "id": "m5_l4_a5",
       "title": "Backtrack Steps",
       "task": "A DP analyzer is measuring the number of steps taken during LCS backtracking.\n\nSystem Requirement:\nSimulate backtracking process and count total traversal steps.\n\nBehavior Rules:\n- Count every move during reconstruction\n- Include diagonal, up, and left transitions\n\nOutput Requirement:\nReturn total step count.",
-      "targetTime": "O(n*m)",
-      "targetSpace": "O(n*m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
         { "call": "lcs_backtrack('ABC','AC')", "expected": "3", "isHidden": false },
         { "call": "lcs_backtrack('A','A')", "expected": "1", "isHidden": false },
@@ -1415,8 +1415,8 @@
       "id": "m6_l2_a4",
       "title": "Length-K Combinations",
       "task": "A combinatorial search engine generates all unique selections of size k from a dataset.\n\nTask Requirement:\nCreate a function combine(arr, k) that generates all combinations of size k.\n\nRules:\n- Order does not matter\n- Duplicate combinations must not exist\n- Return [] when k exceeds array size\n\nSample Output:\ncombine([1,2,3],2) â†’ [[1,2],[1,3],[2,3]]",
-      "targetTime": "O(C(n,k))",
-      "targetSpace": "O(C(n,k))",
+      "targetTime": "O(2^n)",
+      "targetSpace": "O(2^n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "combine([1,2,3],2)", "expected": "[[1,2],[1,3],[2,3]]", "isHidden": false },
@@ -1430,8 +1430,8 @@
       "id": "m6_l2_a5",
       "title": "Keypad Letters",
       "task": "A recursive keypad decoder generates all possible letter combinations from numeric phone keypad mappings.\n\nTask Requirement:\nCreate a function keypad(digits) that generates all possible letter combinations.\n\nRules:\n- Each digit maps to multiple letters\n- One letter must be chosen per digit\n- Empty string returns []\n- Unsupported digits return []\n\nSample Output:\nkeypad('23') â†’ ['ad','ae','af','bd','be','bf','cd','ce','cf']",
-      "targetTime": "O(4^n)",
-      "targetSpace": "O(4^n)",
+      "targetTime": "O(2^n)",
+      "targetSpace": "O(2^n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "keypad('23')", "expected": "['ad','ae','af','bd','be','bf','cd','ce','cf']", "isHidden": false },
