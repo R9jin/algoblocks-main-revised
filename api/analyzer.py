@@ -3,7 +3,13 @@ import ast
 import time
 from collections import deque, Counter
 from semantic_nlg import SemanticNLGEngine
-from dynamic_tracer import AlgoBlocksTracer  
+
+# Note: We wrap the dynamic tracer import so it fails gracefully if missing in Pyodide.
+# The analyzer should still perform static analysis even if dynamic tracing is offline.
+try:
+    from dynamic_tracer import AlgoBlocksTracer
+except ImportError:
+    AlgoBlocksTracer = None
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     """
@@ -524,11 +530,48 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
         
     def visit_IfExp(self, node):
-        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Ternary Conditional")
+        is_linear = False
+        for child in ast.walk(node):
+            if isinstance(child, (ast.ListComp, ast.SetComp, ast.DictComp, ast.List, ast.Dict, ast.Set)):
+                is_linear = True
+                break
+            if isinstance(child, ast.Call):
+                func_name = getattr(getattr(child, 'func', None), 'id', '')
+                if func_name in ['list', 'dict', 'set', 'sorted', 'max', 'min', 'sum']:
+                    is_linear = True
+                    break
+        
+        if is_linear:
+            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Ternary Conditional (Iterable)")
+        else:
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Ternary Conditional")
+            
         self.generic_visit(node)
         
     def visit_JoinedStr(self, node):
-        self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="String Interpolation")
+        is_linear = False
+        
+        for value in getattr(node, 'values', []):
+            if isinstance(value, ast.FormattedValue):
+                for child in ast.walk(value.value):
+                    if isinstance(child, (ast.List, ast.Dict, ast.Set, ast.Tuple, ast.ListComp, ast.DictComp, ast.SetComp, ast.Subscript)):
+                        is_linear = True
+                        break
+                    if isinstance(child, ast.Name):
+                        if any(kw in child.id.lower() for kw in ['arr', 'list', 'dict', 'set', 'graph', 'matrix', 'queue', 'stack', 'data', 'words', 'res']):
+                            is_linear = True
+                            break
+                    if isinstance(child, ast.Call):
+                        func_name = getattr(getattr(child, 'func', None), 'id', '')
+                        if func_name in ['list', 'dict', 'set', 'tuple', 'sorted', 'join']:
+                            is_linear = True
+                            break
+
+        if is_linear:
+            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="String Interpolation (Iterable)")
+        else:
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Interpolation")
+            
         self.generic_visit(node)
 
     def visit_Compare(self, node):
@@ -741,6 +784,27 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif f_id in self.builtin_complexities:
                 b = self.builtin_complexities[f_id]
                 self.record_line(node, time_override=b['time'], space_override=b['space'])
+            elif f_id == 'print':
+                is_linear = False
+                for arg in node.args:
+                    for child in ast.walk(arg):
+                        if isinstance(child, (ast.List, ast.Dict, ast.Set, ast.Tuple, ast.ListComp, ast.DictComp, ast.SetComp, ast.Subscript)):
+                            is_linear = True
+                            break
+                        if isinstance(child, ast.Name):
+                            if any(kw in child.id.lower() for kw in ['arr', 'list', 'dict', 'set', 'graph', 'matrix', 'queue', 'stack', 'data', 'words', 'res']):
+                                is_linear = True
+                                break
+                        if isinstance(child, ast.Call):
+                            func_name = getattr(getattr(child, 'func', None), 'id', '')
+                            if func_name in ['list', 'dict', 'set', 'tuple', 'sorted', 'join']:
+                                is_linear = True
+                                break
+                
+                if is_linear:
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Print (Iterable)")
+                else:
+                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print Statement")
             elif f_id in self.custom_functions:
                 call_comp = self.custom_functions[f_id]
                 lookup = {
@@ -840,6 +904,21 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)  
 
     def visit_BinOp(self, node):
+        if isinstance(node.op, (ast.Add, ast.Mult)):
+            is_linear = False
+            for child in ast.walk(node):
+                if isinstance(child, (ast.List, ast.Tuple, ast.Str, ast.ListComp)):
+                    is_linear = True
+                    break
+                if isinstance(child, ast.Name) and any(kw in child.id.lower() for kw in ['arr', 'list', 'str', 'string', 'text', 'data']):
+                    is_linear = True
+                    break
+            
+            if is_linear:
+                self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Concatenation / Repetition")
+            else:
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Binary Operation")
+                
         if isinstance(node.op, (ast.Div, ast.FloorDiv, ast.RShift)): self.has_division = True  
         elif isinstance(node.op, ast.Mult):
             if isinstance(node.right, ast.Constant) and isinstance(node.right.value, float) and node.right.value < 1.0: self.has_division = True
@@ -945,14 +1024,22 @@ def analyze_source_code(source_code):
     """
     Wrapper to safely execute the Dynamic Tracer first,
     then feed the runtime telemetry directly into the static ComplexityAnalyzer.
+    Works entirely offline in the browser.
     """
     start_time = time.perf_counter()
     
     try:
         tree = ast.parse(source_code)
         
-        tracer = AlgoBlocksTracer()
-        trace_data = tracer.execute_and_trace(source_code)
+        trace_data = {"history": [], "line_hits": {}}
+        # Check if dynamic tracer is available in pyodide
+        if AlgoBlocksTracer is not None:
+            try:
+                tracer = AlgoBlocksTracer()
+                trace_data = tracer.execute_and_trace(source_code)
+            except Exception as dyn_error:
+                # Fall back to static analysis if dynamic fails
+                pass 
         
         analyzer = ComplexityAnalyzer(source_code, trace_data)
         analyzer.bfs_first_pass(tree)
