@@ -161,8 +161,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if hint not in self.logic_hints[lineno]: self.logic_hints[lineno].append(hint)
 
     def _is_variable_iterable(self, name_lower):
-        """Helper to safely determine if a variable name likely represents a collection vs a scalar."""
-        # Extremely robust whitelist of common scalar variables (prevents 'res' matching 'result')
         safe_scalars = ['result', 'res', 'idx', 'index', 'count', 'val', 'value', 'num', 'id', 'key', 'ptr', 'pointer', 'length', 'len', 'size', 'target', 'element', 'item', 'node', 'char', 'mid', 'low', 'high', 'left', 'right']
         if name_lower in safe_scalars:
             return False
@@ -350,25 +348,97 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _is_log_loop(self, node):
         if not isinstance(node, ast.While): return False
-        for child in ast.walk(node):  
-            if isinstance(child, (ast.BinOp, ast.AugAssign)):
-                op = child.op; val = child.right if isinstance(child, ast.BinOp) else child.value
-                if isinstance(op, (ast.Div, ast.FloorDiv)) and isinstance(val, ast.Constant) and val.value > 1: return True
-                if isinstance(op, ast.Mult) and isinstance(val, ast.Constant) and val.value > 1: return True
-                if isinstance(op, (ast.RShift, ast.LShift)): return True
-        return False  
+        
+        # Extract variables dynamically controlling the loop condition
+        cond_vars = set()
+        for child in ast.walk(node.test):
+            if isinstance(child, ast.Name):
+                cond_vars.add(child.id)
+                
+        # 1. Standard Geometric Progression (e.g., i = i * 2, n = n // 2)
+        for child in node.body:
+            for sub in ast.walk(child):
+                if isinstance(sub, ast.AugAssign):
+                    if isinstance(sub.target, ast.Name) and sub.target.id in cond_vars:
+                        if isinstance(sub.op, (ast.Mult, ast.Div, ast.FloorDiv)) and isinstance(sub.value, ast.Constant) and sub.value.value > 1:
+                            return True
+                        if isinstance(sub.op, (ast.LShift, ast.RShift)):
+                            return True
+                elif isinstance(sub, ast.Assign):
+                    for target in sub.targets:
+                        if isinstance(target, ast.Name) and target.id in cond_vars:
+                            if isinstance(sub.value, ast.BinOp):
+                                if isinstance(sub.value.op, (ast.Mult, ast.Div, ast.FloorDiv)):
+                                    if getattr(sub.value.left, 'id', None) == target.id and getattr(sub.value.right, 'value', 0) > 1: return True
+                                    if getattr(sub.value.right, 'id', None) == target.id and getattr(sub.value.left, 'value', 0) > 1: return True
+                                if isinstance(sub.value.op, (ast.LShift, ast.RShift)):
+                                    return True
+
+        # 2. Two-Pointer Range Contraction (Binary Search Pattern: l <= r)
+        # Look for a midpoint calculation dividing by 2, which then updates a boundary
+        if len(cond_vars) >= 2:
+            mid_var = None
+            for child in node.body:
+                for sub in ast.walk(child):
+                    if isinstance(sub, ast.Assign):
+                        is_mid_calc = False
+                        for v in ast.walk(sub.value):
+                            # Detect (... // 2) or (... / 2)
+                            if isinstance(v, ast.BinOp) and isinstance(v.op, (ast.FloorDiv, ast.Div)):
+                                if getattr(v.right, 'value', None) == 2:
+                                    is_mid_calc = True
+                        if is_mid_calc:
+                            for target in sub.targets:
+                                if isinstance(target, ast.Name):
+                                    mid_var = target.id
+            
+            # If a mid variable is calculated, check if the condition variables (l, r) contract to it
+            if mid_var:
+                for child in node.body:
+                    for sub in ast.walk(child):
+                        if isinstance(sub, ast.Assign):
+                            for target in sub.targets:
+                                if getattr(target, 'id', None) in cond_vars:
+                                    # If 'l' or 'r' is updated using 'mid' (e.g. l = mid + 1)
+                                    for v in ast.walk(sub.value):
+                                        if isinstance(v, ast.Name) and v.id == mid_var:
+                                            return True
+        return False
         
     def _is_sqrt_loop(self, node):
         if not isinstance(node, (ast.While, ast.For)): return False  
-        if isinstance(node, ast.While):
-            if isinstance(node.test, ast.Compare) and isinstance(node.test.left, ast.BinOp):  
-                if isinstance(node.test.left.op, ast.Mult) and isinstance(node.test.left.left, ast.Name) and isinstance(node.test.left.right, ast.Name):
-                    if node.test.left.left.id == node.test.left.right.id: return True
-                elif isinstance(node.test.left.op, ast.Pow) and isinstance(node.test.left.right, ast.Constant) and getattr(node.test.left.right, 'value', 0) == 2: return True
-        for child in ast.walk(node):
+        
+        expr = node.test if isinstance(node, ast.While) else node.iter
+        
+        # 1. Native Python explicit sqrt() bindings
+        for child in ast.walk(expr):
             if isinstance(child, ast.Call):
-                if getattr(child.func, 'id', '') == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'): return True
-            if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "sqrt": return True
+                func_id = getattr(getattr(child, 'func', None), 'id', '')
+                if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'):
+                    return True
+            if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "sqrt": 
+                return True
+
+        # 2. Advanced algebraic condition resolving: v * v <= n OR n // v < v
+        if isinstance(node, ast.While) and isinstance(node.test, ast.Compare):
+            left = node.test.left
+            for right in node.test.comparators:
+                # Pattern: v * v <= limit
+                if isinstance(left, ast.BinOp) and isinstance(left.op, ast.Mult):
+                    if isinstance(left.left, ast.Name) and isinstance(left.right, ast.Name) and left.left.id == left.right.id: return True
+                if isinstance(right, ast.BinOp) and isinstance(right.op, ast.Mult):
+                    if isinstance(right.left, ast.Name) and isinstance(right.right, ast.Name) and right.left.id == right.right.id: return True
+                
+                # Pattern: v ** 2 <= limit
+                if isinstance(left, ast.BinOp) and isinstance(left.op, ast.Pow) and isinstance(left.right, ast.Constant) and left.right.value == 2: return True
+                if isinstance(right, ast.BinOp) and isinstance(right.op, ast.Pow) and isinstance(right.right, ast.Constant) and right.right.value == 2: return True
+                
+                # Pattern: limit // v <= v or limit / v < v (Algebraically implies v > sqrt(n))
+                if isinstance(left, ast.BinOp) and isinstance(left.op, (ast.Div, ast.FloorDiv)):
+                    if isinstance(left.right, ast.Name) and isinstance(right, ast.Name) and left.right.id == right.id: return True
+                if isinstance(right, ast.BinOp) and isinstance(right.op, (ast.Div, ast.FloorDiv)):
+                    if isinstance(right.right, ast.Name) and isinstance(left, ast.Name) and right.right.id == left.id: return True
+
         return False
     
     def _is_exponential_loop(self, node):
@@ -661,7 +731,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else: 
                 relation = "O(2^n)" if self.max_exp > 0 else (self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve))
             
-            # Map default space
             if node.name not in self.custom_space:
                 if not is_indirect:
                     if self.max_graph_ve > 0:
@@ -957,7 +1026,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for line in self._details:
             for c in [str(line.get('global_time', '')), str(line.get('local_time', ''))]:
                 
-                # Standardize Combinations/Branching if they slip through
                 if "C(n,k)" in c or "4^n" in c: c = "O(2^n)"
                 if "n * m" in c: c = "O(n^2)"
                 if "n + m" in c or "k" in c and c != "O(1)": c = "O(n)"
@@ -1003,7 +1071,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for line in self._details:
             s = str(line.get('global_space', 'O(1)'))
             
-            # Map combinations to standard buckets internally
             if "C(n,k)" in s or "4^n" in s:
                 s = "O(2^n)"
             elif "n * m" in s:
@@ -1042,13 +1109,11 @@ def analyze_source_code(source_code):
         tree = ast.parse(source_code)
         
         trace_data = {"history": [], "line_hits": {}}
-        # Check if dynamic tracer is available in pyodide
         if AlgoBlocksTracer is not None:
             try:
                 tracer = AlgoBlocksTracer()
                 trace_data = tracer.execute_and_trace(source_code)
             except Exception as dyn_error:
-                # Fall back to static analysis if dynamic fails
                 pass 
         
         analyzer = ComplexityAnalyzer(source_code, trace_data)
