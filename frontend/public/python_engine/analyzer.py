@@ -160,8 +160,20 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if lineno not in self.logic_hints: self.logic_hints[lineno] = []
             if hint not in self.logic_hints[lineno]: self.logic_hints[lineno].append(hint)
 
+    def _is_variable_iterable(self, name_lower):
+        """Helper to safely determine if a variable name likely represents a collection vs a scalar."""
+        # Extremely robust whitelist of common scalar variables (prevents 'res' matching 'result')
+        safe_scalars = ['result', 'res', 'idx', 'index', 'count', 'val', 'value', 'num', 'id', 'key', 'ptr', 'pointer', 'length', 'len', 'size', 'target', 'element', 'item', 'node', 'char', 'mid', 'low', 'high', 'left', 'right']
+        if name_lower in safe_scalars:
+            return False
+            
+        iterable_kws = ['arr', 'list', 'dict', 'set', 'graph', 'matrix', 'queue', 'stack', 'data', 'words', 'nums', 'elements', 'items', 'nodes', 'chars']
+        for kw in iterable_kws:
+            if kw in name_lower:
+                return True
+        return False
+
     def _get_iterable_name(self, node):
-        """Extracts the variable dictating loop scale purely from AST structure."""
         if isinstance(node, ast.Name): return node.id
         if isinstance(node, ast.Call) and getattr(node.func, 'id', '') == 'range':
             args_len = len(node.args)
@@ -178,7 +190,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return None
 
     def _register_and_get_dim(self, var_name):
-        """Dynamically maps any unseen variable to an asymptotic dimension (n, m, p)."""
         if not var_name: return 'n'
         if len(var_name) == 1 and var_name.isalpha():
             return var_name
@@ -189,7 +200,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return self.var_dimensions[var_name]
 
     def _get_while_limit_var(self, node):
-        """Structurally deduces the loop limit by checking which variables are updated."""
         updated_vars = set()
         for child in node.body:
             for sub in ast.walk(child):
@@ -558,7 +568,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         is_linear = True
                         break
                     if isinstance(child, ast.Name):
-                        if any(kw in child.id.lower() for kw in ['arr', 'list', 'dict', 'set', 'graph', 'matrix', 'queue', 'stack', 'data', 'words', 'res']):
+                        if self._is_variable_iterable(child.id.lower()):
                             is_linear = True
                             break
                     if isinstance(child, ast.Call):
@@ -792,7 +802,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             is_linear = True
                             break
                         if isinstance(child, ast.Name):
-                            if any(kw in child.id.lower() for kw in ['arr', 'list', 'dict', 'set', 'graph', 'matrix', 'queue', 'stack', 'data', 'words', 'res']):
+                            if self._is_variable_iterable(child.id.lower()):
                                 is_linear = True
                                 break
                         if isinstance(child, ast.Call):
@@ -910,7 +920,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if isinstance(child, (ast.List, ast.Tuple, ast.Str, ast.ListComp)):
                     is_linear = True
                     break
-                if isinstance(child, ast.Name) and any(kw in child.id.lower() for kw in ['arr', 'list', 'str', 'string', 'text', 'data']):
+                if isinstance(child, ast.Name) and self._is_variable_iterable(child.id.lower()):
                     is_linear = True
                     break
             
