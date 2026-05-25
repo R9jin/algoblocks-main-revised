@@ -4,7 +4,6 @@ import * as En from "blockly/msg/en";
 import { pythonGenerator } from "blockly/python";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
-// --- STABLE PLUGIN IMPORTS ---
 import { registerFieldMultilineInput } from '@blockly/field-multilineinput';
 import { CrossTabCopyPaste } from '@blockly/plugin-cross-tab-copy-paste';
 import { Modal } from "@blockly/plugin-modal";
@@ -19,13 +18,11 @@ import { convertPythonToBlocks } from "../workers/analyzerInstance";
 registerFieldMultilineInput();
 Blockly.setLocale(En);
 
-// Track plugin globally so it's only attached to the Blockly registry once
 let crossTabPluginInitialized = false;
 
 const DarkTheme = Blockly.Themes.Dark;
 const ModernTheme = Blockly.Themes.Modern;
 
-// --- DEFINE CUSTOM PASTEL THEME ---
 const pastelTheme = Blockly.Theme.defineTheme('pastelTheme', {
   base: ModernTheme,
   categoryStyles: {
@@ -55,7 +52,6 @@ const pastelTheme = Blockly.Theme.defineTheme('pastelTheme', {
   }
 });
 
-// --- 1. DEFINE CUSTOM BLOCKS ---
 const customBlocks = [
   {
     type: "comment_block",
@@ -161,7 +157,7 @@ const customBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "list_blocks",
-    tooltip: "Sets a key-value pair in a dictionary (e.g., dict['key'] = value)"
+    tooltip: "Sets a key-value pair in a dictionary"
   },
   {
     type: "dict_get",
@@ -185,7 +181,7 @@ const customBlocks = [
     inputsInline: true,
     output: "DictPair",
     style: "list_blocks",
-    tooltip: "Creates a single Key-Value pair (e.g., 'A': 1)"
+    tooltip: "Creates a single Key-Value pair"
   },
   {
     type: "dict_from_pairs",
@@ -196,6 +192,59 @@ const customBlocks = [
     output: null,
     style: "list_blocks",
     tooltip: "Converts a list of key-value pairs into a dictionary literal"
+  },
+  {
+    type: "set_create_empty",
+    message0: "create empty set",
+    output: null,
+    style: "list_blocks",
+    tooltip: "Creates a new, empty Python set"
+  },
+  {
+    type: "set_from_list",
+    message0: "create set from list %1",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }],
+    output: null,
+    style: "list_blocks",
+    tooltip: "Converts a list into a set, removing duplicates and enabling O(1) lookups"
+  },
+  {
+    type: "set_add",
+    message0: "add %1 to set %2",
+    args0: [
+      { type: "input_value", name: "ITEM" },
+      { type: "input_value", name: "SET" }
+    ],
+    inputsInline: true,
+    previousStatement: null,
+    nextStatement: null,
+    style: "list_blocks",
+    tooltip: "Adds an item to a set in constant time"
+  },
+  {
+    type: "set_remove",
+    message0: "remove %1 from set %2",
+    args0: [
+      { type: "input_value", name: "ITEM" },
+      { type: "input_value", name: "SET" }
+    ],
+    inputsInline: true,
+    previousStatement: null,
+    nextStatement: null,
+    style: "list_blocks",
+    tooltip: "Removes an item from a set in constant time"
+  },
+  {
+    type: "tuple_create",
+    message0: "create tuple with %1 and %2",
+    args0: [
+      { type: "input_value", name: "A" },
+      { type: "input_value", name: "B" }
+    ],
+    inputsInline: true,
+    output: null,
+    style: "list_blocks",
+    tooltip: "Creates an immutable tuple containing two elements"
   },
   {
     type: "multi_line_comment",
@@ -209,7 +258,7 @@ const customBlocks = [
     previousStatement: null,
     nextStatement: null,
     colour: "#999999",
-    tooltip: "Adds a multi-line comment (docstring) to the Python code"
+    tooltip: "Adds a multi-line comment to the Python code"
   },
   {
     type: "raw_python_statement",
@@ -268,7 +317,7 @@ const customBlocks = [
     args0: [{ type: "input_value", name: "VALUE" }],
     output: null,
     colour: "#c1a0e8",
-    tooltip: "Returns the type of the given value (e.g., type(x))"
+    tooltip: "Returns the type of the given value"
   },
   {
     type: "python_type_primitive",
@@ -284,7 +333,7 @@ const customBlocks = [
     }],
     output: null,
     colour: "#c1a0e8",
-    tooltip: "Python primitive types (e.g., int, float, str)"
+    tooltip: "Python primitive types"
   },
   {
     type: "python_isinstance",
@@ -296,7 +345,7 @@ const customBlocks = [
     inputsInline: true,
     output: "Boolean",
     colour: "#c1a0e8",
-    tooltip: "Checks if a value is of a specific type (e.g., isinstance(x, int))"
+    tooltip: "Checks if a value is of a specific type"
   },
   {
     type: "text_multiply",
@@ -308,7 +357,7 @@ const customBlocks = [
     inputsInline: true,
     output: "String",
     colour: "#d5a52a",
-    tooltip: "Repeats a string a given number of times (e.g., '*' * 5)"
+    tooltip: "Repeats a string a given number of times"
   },
   {
     type: "text_newline",
@@ -340,7 +389,7 @@ const customBlocks = [
     inputsInline: true,
     output: "Array",
     style: "list_blocks",
-    tooltip: "Creates a list of numbers from start to end, e.g. list(range(1, 5))"
+    tooltip: "Creates a list of numbers from start to end"
   },
   {
     type: "variable_swap",
@@ -352,7 +401,7 @@ const customBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "variable_blocks",
-    tooltip: "Swaps the values of two variables (a, b = b, a). Extremely useful for Sorting."
+    tooltip: "Swaps the values of two variables"
   },
   {
     type: "logic_in",
@@ -364,7 +413,7 @@ const customBlocks = [
     inputsInline: true,
     output: "Boolean",
     colour: "#c1a0e8",
-    tooltip: "Checks if an item exists within a list or dictionary."
+    tooltip: "Checks if an item exists within a collection."
   },
   {
     type: "list_slice_advanced",
@@ -377,7 +426,7 @@ const customBlocks = [
     inputsInline: true,
     output: "Array",
     style: "list_blocks",
-    tooltip: "Python list slicing: list[start:end]. Leave inputs blank to default to the beginning or end of the list."
+    tooltip: "Python list slicing. Leave inputs blank to default to the beginning or end of the list."
   },
   {
     type: "list_concat",
@@ -389,7 +438,7 @@ const customBlocks = [
     inputsInline: true,
     output: "Array",
     style: "list_blocks",
-    tooltip: "Concatenates two arrays together (list1 + list2)."
+    tooltip: "Concatenates two arrays together."
   },
   {
     type: "list_remove_value",
@@ -451,7 +500,7 @@ const customBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "list_blocks",
-    tooltip: "Sorts the list in-place (O(n log n) time)."
+    tooltip: "Sorts the list in-place."
   },
   {
     type: "list_sorted",
@@ -462,7 +511,7 @@ const customBlocks = [
     ],
     output: "Array",
     style: "list_blocks",
-    tooltip: "Returns a new sorted list from the given list (O(n log n) time)."
+    tooltip: "Returns a new sorted list from the given list."
   },
   {
     type: "list_insert",
@@ -476,7 +525,7 @@ const customBlocks = [
     previousStatement: null,
     nextStatement: null,
     style: "list_blocks",
-    tooltip: "Inserts an item into a list at a specified index (O(n) time)."
+    tooltip: "Inserts an item into a list at a specified index."
   },
   {
     type: "string_split",
@@ -488,7 +537,7 @@ const customBlocks = [
     inputsInline: true,
     output: "Array",
     colour: "#d5a52a",
-    tooltip: "Splits a string into a list using the given delimiter (O(n) time)."
+    tooltip: "Splits a string into a list using the given delimiter."
   },
   {
     type: "math_abs_round",
@@ -499,7 +548,7 @@ const customBlocks = [
     ],
     output: "Number",
     colour: "#4C97FF",
-    tooltip: "Calculates the absolute value or rounds a number (O(1) time)."
+    tooltip: "Calculates the absolute value or rounds a number."
   },
   {
     type: "type_cast_advanced",
@@ -523,7 +572,7 @@ const customBlocks = [
     inputsInline: true,
     output: "String",
     colour: "#d5a52a",
-    tooltip: "Converts text to uppercase, lowercase, title case, or capitalized (O(n) time)."
+    tooltip: "Converts text to uppercase, lowercase, title case, or capitalized."
   }
 ];
 
@@ -533,7 +582,6 @@ if (Blockly.common && Blockly.common.defineBlocksWithJsonArray) {
   Blockly.defineBlocksWithJsonArray(customBlocks);
 }
 
-// --- 2. TOOLBOX CONFIGURATION ---
 const toolbox = {
   kind: "categoryToolbox",
   contents: [
@@ -650,7 +698,7 @@ const toolbox = {
     },
     {
       kind: "category",
-      name: "Lists & Dicts",
+      name: "Data Structures",
       categorystyle: "list_category",
       contents: [
         { kind: "block", type: "string_to_list" },
@@ -678,6 +726,11 @@ const toolbox = {
         { kind: "block", type: "lists_getSublist" },
         { kind: "block", type: "lists_split" },
         { kind: "block", type: "lists_sort" },
+        { kind: "block", type: "tuple_create" },
+        { kind: "block", type: "set_create_empty" },
+        { kind: "block", type: "set_from_list" },
+        { kind: "block", type: "set_add" },
+        { kind: "block", type: "set_remove" },
         { kind: "block", type: "dict_create_empty" },
         {
           kind: "block", type: "dict_set", inputs: {
@@ -817,7 +870,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         Blockly.ShortcutRegistry.registry.unregister('startSearch');
       }
 
-      // Add Custom Button Callback for Variables
       Blockly.Variables.flyoutCategory = function(workspace) {
         let xmlList = new Array();
         let button = document.createElement('button');
@@ -873,17 +925,15 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         }
       }, 150);
 
-      // --- CUSTOMIZE PYTHON GENERATOR INITIALIZATION ---
       if (!pythonGenerator.__originalInit) {
         pythonGenerator.__originalInit = pythonGenerator.init;
         pythonGenerator.init = function (workspace) {
-          pythonGenerator.INDENT = "    "; // 4 Spaces for readability
+          pythonGenerator.INDENT = "    "; 
           pythonGenerator.__originalInit.call(this, workspace);
           if (this.definitions_['variables']) delete this.definitions_['variables'];
         };
       }
 
-      // --- CUSTOMIZE PYTHON GENERATOR FINALIZATION (SPACING) ---
       if (!pythonGenerator.__originalFinish) {
         pythonGenerator.__originalFinish = pythonGenerator.finish;
         pythonGenerator.finish = function (code) {
@@ -898,7 +948,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         };
       }
 
-      // -- ALL CUSTOM GENERATOR DEFS --
       pythonGenerator.forBlock['math_assignment'] = function (block) {
         const variable = pythonGenerator.getVariableName(block.getFieldValue('VAR'));
         const operator = block.getFieldValue('OP');
@@ -1077,6 +1126,33 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         return [code, pythonGenerator.ORDER_ATOMIC];
       };
 
+      pythonGenerator.forBlock['set_create_empty'] = function (block) {
+        return ['set()', pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['set_from_list'] = function (block) {
+        const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_NONE) || '[]';
+        return [`set(${list})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['set_add'] = function (block) {
+        const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
+        const setVal = pythonGenerator.valueToCode(block, 'SET', pythonGenerator.ORDER_MEMBER) || 'set()';
+        return `${setVal}.add(${item})\n`;
+      };
+
+      pythonGenerator.forBlock['set_remove'] = function (block) {
+        const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
+        const setVal = pythonGenerator.valueToCode(block, 'SET', pythonGenerator.ORDER_MEMBER) || 'set()';
+        return `${setVal}.remove(${item})\n`;
+      };
+
+      pythonGenerator.forBlock['tuple_create'] = function (block) {
+        const a = pythonGenerator.valueToCode(block, 'A', pythonGenerator.ORDER_NONE) || 'None';
+        const b = pythonGenerator.valueToCode(block, 'B', pythonGenerator.ORDER_NONE) || 'None';
+        return [`(${a}, ${b})`, pythonGenerator.ORDER_ATOMIC];
+      };
+
       pythonGenerator.forBlock['python_type'] = function (block) {
         const value = pythonGenerator.valueToCode(block, 'VALUE', pythonGenerator.ORDER_NONE) || 'None';
         return [`type(${value})`, pythonGenerator.ORDER_FUNCTION_CALL];
@@ -1114,8 +1190,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         const end = pythonGenerator.valueToCode(block, 'END', pythonGenerator.ORDER_NONE) || '0';
         return [`list(range(${start}, ${end}))`, pythonGenerator.ORDER_FUNCTION_CALL];
       };
-
-      // --- NEW BLOCKS GENERATORS ---
       
       pythonGenerator.forBlock['variable_swap'] = function (block) {
         const var1 = pythonGenerator.getVariableName(block.getFieldValue('VAR1'));
@@ -1217,7 +1291,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         return [`${string}.${caseType}()`, pythonGenerator.ORDER_FUNCTION_CALL];
       };
 
-      // Raw fallsbacks
       pythonGenerator.forBlock['raw_python_statement'] = function (block) { return block.getFieldValue('CODE') + '\n'; };
       pythonGenerator.forBlock['raw_python_expression'] = function (block) { return [block.getFieldValue('CODE'), pythonGenerator.ORDER_ATOMIC]; };
       pythonGenerator.forBlock['raw_python_multiline'] = function (block) { return block.getFieldValue('CODE') + '\n'; };
