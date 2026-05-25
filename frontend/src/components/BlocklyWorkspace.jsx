@@ -30,7 +30,11 @@ const pastelTheme = Blockly.Theme.defineTheme('pastelTheme', {
     loop_category: { colour: "#8bcf8b" },
     math_category: { colour: "#4C97FF" },
     text_category: { colour: "#d5a52a" },
+    io_category: { colour: "#FF8A65" },
     list_category: { colour: "#4DB6AC" },
+    dict_category: { colour: "#BA68C8" },
+    set_tuple_category: { colour: "#7986CB" },
+    stack_queue_category: { colour: "#F06292" },
     variable_category: { colour: "#f38286" },
     procedure_category: { colour: "#7a6b66" },
     raw_category: { colour: "#FF6B6B" }
@@ -40,7 +44,11 @@ const pastelTheme = Blockly.Theme.defineTheme('pastelTheme', {
     loop_blocks: { colourPrimary: "#8bcf8b", colourSecondary: "#90BC90", colourTertiary: "#7CA77C" },
     math_blocks: { colourPrimary: "#4C97FF", colourSecondary: "#2c80f5", colourTertiary: "#2A70CC" },
     text_blocks: { colourPrimary: "#d5a52a", colourSecondary: "#E5AF2C", colourTertiary: "#CC9A26" },
+    io_blocks: { colourPrimary: "#FF8A65", colourSecondary: "#E27A59", colourTertiary: "#C76B4E" },
     list_blocks: { colourPrimary: "#4DB6AC", colourSecondary: "#42A097", colourTertiary: "#388C83" },
+    dict_blocks: { colourPrimary: "#BA68C8", colourSecondary: "#A65CB4", colourTertiary: "#9251A0" },
+    set_tuple_blocks: { colourPrimary: "#7986CB", colourSecondary: "#6B77B5", colourTertiary: "#5E68A0" },
+    stack_queue_blocks: { colourPrimary: "#F06292", colourSecondary: "#D75883", colourTertiary: "#BD4D73" },
     variable_blocks: { colourPrimary: "#f38286", colourSecondary: "#DB888B", colourTertiary: "#C27679" },
     procedure_blocks: { colourPrimary: "#7a6b66", colourSecondary: "#BDB2AE", colourTertiary: "#A89D9A" },
     raw_blocks: { colourPrimary: "#FF6B6B", colourSecondary: "#FF8787", colourTertiary: "#FFA8A8" }
@@ -101,7 +109,7 @@ const customBlocks = [
     message0: "create list from string %1",
     args0: [{ type: "input_value", name: "STRING", check: "String" }],
     output: "Array",
-    colour: "#4DB6AC",
+    style: "list_blocks",
     tooltip: "Converts a string into a list of its characters"
   },
   {
@@ -142,7 +150,7 @@ const customBlocks = [
     type: "dict_create_empty",
     message0: "create empty dictionary",
     output: null,
-    style: "list_blocks",
+    style: "dict_blocks",
     tooltip: "Creates a new, empty Python dictionary"
   },
   {
@@ -156,7 +164,7 @@ const customBlocks = [
     inputsInline: true,
     previousStatement: null,
     nextStatement: null,
-    style: "list_blocks",
+    style: "dict_blocks",
     tooltip: "Sets a key-value pair in a dictionary"
   },
   {
@@ -168,7 +176,7 @@ const customBlocks = [
     ],
     inputsInline: true,
     output: null,
-    style: "list_blocks",
+    style: "dict_blocks",
     tooltip: "Retrieves the value for a specific key in a dictionary"
   },
   {
@@ -180,7 +188,7 @@ const customBlocks = [
     ],
     inputsInline: true,
     output: "DictPair",
-    style: "list_blocks",
+    style: "dict_blocks",
     tooltip: "Creates a single Key-Value pair"
   },
   {
@@ -190,14 +198,26 @@ const customBlocks = [
       { type: "input_value", "name": "LIST", check: "Array" }
     ],
     output: null,
-    style: "list_blocks",
+    style: "dict_blocks",
     tooltip: "Converts a list of key-value pairs into a dictionary literal"
+  },
+  {
+    type: "dict_pop",
+    message0: "remove and get value for key/index %1 in %2",
+    args0: [
+      { type: "input_value", name: "KEY" },
+      { type: "input_value", name: "DICT" }
+    ],
+    inputsInline: true,
+    output: null,
+    style: "dict_blocks",
+    tooltip: "Removes the specified key or index and returns the corresponding value."
   },
   {
     type: "set_create_empty",
     message0: "create empty set",
     output: null,
-    style: "list_blocks",
+    style: "set_tuple_blocks",
     tooltip: "Creates a new, empty Python set"
   },
   {
@@ -205,7 +225,7 @@ const customBlocks = [
     message0: "create set from list %1",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }],
     output: null,
-    style: "list_blocks",
+    style: "set_tuple_blocks",
     tooltip: "Converts a list into a set, removing duplicates and enabling O(1) lookups"
   },
   {
@@ -218,7 +238,7 @@ const customBlocks = [
     inputsInline: true,
     previousStatement: null,
     nextStatement: null,
-    style: "list_blocks",
+    style: "set_tuple_blocks",
     tooltip: "Adds an item to a set in constant time"
   },
   {
@@ -231,8 +251,21 @@ const customBlocks = [
     inputsInline: true,
     previousStatement: null,
     nextStatement: null,
-    style: "list_blocks",
+    style: "set_tuple_blocks",
     tooltip: "Removes an item from a set in constant time"
+  },
+  {
+    type: "set_operations",
+    message0: "set %1 of %2 and %3",
+    args0: [
+      { type: "field_dropdown", name: "OP", options: [["union", "UNION"], ["intersection", "INTERSECTION"], ["difference", "DIFFERENCE"]] },
+      { type: "input_value", name: "SET1" },
+      { type: "input_value", name: "SET2" }
+    ],
+    inputsInline: true,
+    output: null,
+    style: "set_tuple_blocks",
+    tooltip: "Performs mathematical set operations (union, intersection, difference)."
   },
   {
     type: "tuple_create",
@@ -243,7 +276,7 @@ const customBlocks = [
     ],
     inputsInline: true,
     output: null,
-    style: "list_blocks",
+    style: "set_tuple_blocks",
     tooltip: "Creates an immutable tuple containing two elements"
   },
   {
@@ -308,7 +341,7 @@ const customBlocks = [
       { type: "input_value", name: "PROMPT", check: "String" }
     ],
     output: "String",
-    colour: "#d5a52a",
+    style: "io_blocks",
     tooltip: "Displays a message and waits for the user to type something in the console."
   },
   {
@@ -378,6 +411,36 @@ const customBlocks = [
     nextStatement: null,
     style: "list_blocks",
     tooltip: "Appends an item to the end of a list"
+  },
+  {
+    type: "list_count",
+    message0: "count occurrences of %1 in list %2",
+    args0: [
+      { type: "input_value", name: "ITEM" },
+      { type: "input_value", name: "LIST", check: "Array" }
+    ],
+    inputsInline: true,
+    output: "Number",
+    style: "list_blocks",
+    tooltip: "Counts how many times an item appears in a list."
+  },
+  {
+    type: "list_reverse",
+    message0: "reverse list %1",
+    args0: [{ type: "input_value", name: "LIST", check: "Array" }],
+    previousStatement: null,
+    nextStatement: null,
+    style: "list_blocks",
+    tooltip: "Reverses the items of a list in place."
+  },
+  {
+    type: "list_clear",
+    message0: "clear all items from %1",
+    args0: [{ type: "input_value", name: "LIST" }],
+    previousStatement: null,
+    nextStatement: null,
+    style: "list_blocks",
+    tooltip: "Removes all elements from the list or dictionary."
   },
   {
     type: "list_range",
@@ -479,7 +542,7 @@ const customBlocks = [
     ],
     inputsInline: true,
     output: "Array",
-    style: "list_blocks",
+    style: "dict_blocks",
     tooltip: "Returns the keys, values, or items from a dictionary as a list."
   },
   {
@@ -573,6 +636,82 @@ const customBlocks = [
     output: "String",
     colour: "#d5a52a",
     tooltip: "Converts text to uppercase, lowercase, title case, or capitalized."
+  },
+  {
+    type: "stack_push",
+    message0: "push %1 to stack %2",
+    args0: [
+      { type: "input_value", name: "ITEM" },
+      { type: "input_value", name: "STACK", check: "Array" }
+    ],
+    inputsInline: true,
+    previousStatement: null,
+    nextStatement: null,
+    style: "stack_queue_blocks",
+    tooltip: "Pushes an item onto the top of the stack (equivalent to list.append)."
+  },
+  {
+    type: "stack_pop",
+    message0: "pop and get top of stack %1",
+    args0: [{ type: "input_value", name: "STACK", check: "Array" }],
+    output: null,
+    style: "stack_queue_blocks",
+    tooltip: "Pops the top item off the stack and returns it (equivalent to list.pop())."
+  },
+  {
+    type: "stack_pop_statement",
+    message0: "pop from stack %1",
+    args0: [{ type: "input_value", name: "STACK", check: "Array" }],
+    previousStatement: null,
+    nextStatement: null,
+    style: "stack_queue_blocks",
+    tooltip: "Pops the top item off the stack."
+  },
+  {
+    type: "stack_peek",
+    message0: "peek top of stack %1",
+    args0: [{ type: "input_value", name: "STACK", check: "Array" }],
+    output: null,
+    style: "stack_queue_blocks",
+    tooltip: "Returns the top item of the stack without removing it."
+  },
+  {
+    type: "queue_enqueue",
+    message0: "enqueue %1 to queue %2",
+    args0: [
+      { type: "input_value", name: "ITEM" },
+      { type: "input_value", name: "QUEUE", check: "Array" }
+    ],
+    inputsInline: true,
+    previousStatement: null,
+    nextStatement: null,
+    style: "stack_queue_blocks",
+    tooltip: "Adds an item to the back of the queue (equivalent to list.append)."
+  },
+  {
+    type: "queue_dequeue",
+    message0: "dequeue and get front of queue %1",
+    args0: [{ type: "input_value", name: "QUEUE", check: "Array" }],
+    output: null,
+    style: "stack_queue_blocks",
+    tooltip: "Removes and returns the front item of the queue (equivalent to list.pop(0))."
+  },
+  {
+    type: "queue_dequeue_statement",
+    message0: "dequeue from queue %1",
+    args0: [{ type: "input_value", name: "QUEUE", check: "Array" }],
+    previousStatement: null,
+    nextStatement: null,
+    style: "stack_queue_blocks",
+    tooltip: "Removes the front item of the queue."
+  },
+  {
+    type: "queue_peek",
+    message0: "peek front of queue %1",
+    args0: [{ type: "input_value", name: "QUEUE", check: "Array" }],
+    output: null,
+    style: "stack_queue_blocks",
+    tooltip: "Returns the front item of the queue without removing it."
   }
 ];
 
@@ -685,7 +824,14 @@ const toolbox = {
         { kind: "block", type: "text_charAt" },
         { kind: "block", type: "text_getSubstring" },
         { kind: "block", type: "text_changeCase" },
-        { kind: "block", type: "text_trim" },
+        { kind: "block", type: "text_trim" }
+      ]
+    },
+    {
+      kind: "category",
+      name: "Input / Output",
+      categorystyle: "io_category",
+      contents: [
         { kind: "block", type: "text_print" },
         {
           kind: "block",
@@ -698,7 +844,7 @@ const toolbox = {
     },
     {
       kind: "category",
-      name: "Data Structures",
+      name: "Lists (Built-in Type)",
       categorystyle: "list_category",
       contents: [
         { kind: "block", type: "string_to_list" },
@@ -712,7 +858,10 @@ const toolbox = {
         { kind: "block", type: "list_slice_advanced" }, 
         { kind: "block", type: "list_sort" },
         { kind: "block", type: "list_sorted" },
+        { kind: "block", type: "list_reverse" },
+        { kind: "block", type: "list_clear" },
         { kind: "block", type: "list_insert" },
+        { kind: "block", type: "list_count" },
         { kind: "block", type: "list_range", inputs: {
             START: { shadow: { type: "math_number", fields: { NUM: 1 } } },
             END: { shadow: { type: "math_number", fields: { NUM: 10 } } }
@@ -725,12 +874,14 @@ const toolbox = {
         { kind: "block", type: "lists_setIndex" },
         { kind: "block", type: "lists_getSublist" },
         { kind: "block", type: "lists_split" },
-        { kind: "block", type: "lists_sort" },
-        { kind: "block", type: "tuple_create" },
-        { kind: "block", type: "set_create_empty" },
-        { kind: "block", type: "set_from_list" },
-        { kind: "block", type: "set_add" },
-        { kind: "block", type: "set_remove" },
+        { kind: "block", type: "lists_sort" }
+      ]
+    },
+    {
+      kind: "category",
+      name: "Dictionaries (Built-in Type)",
+      categorystyle: "dict_category",
+      contents: [
         { kind: "block", type: "dict_create_empty" },
         {
           kind: "block", type: "dict_set", inputs: {
@@ -743,6 +894,8 @@ const toolbox = {
             KEY: { shadow: { type: "text", fields: { TEXT: "key_name" } } }
           }
         },
+        { kind: "block", type: "dict_pop" },
+        { kind: "block", type: "list_clear" }, 
         { kind: "block", type: "dict_keys_values" }, 
         {
           kind: "block", type: "dict_from_pairs", inputs: {
@@ -755,6 +908,34 @@ const toolbox = {
             VALUE: { shadow: { type: "text", fields: { TEXT: "value" } } }
           }
         }
+      ]
+    },
+    {
+      kind: "category",
+      name: "Sets & Tuples (Core Built-in Types)",
+      categorystyle: "set_tuple_category",
+      contents: [
+        { kind: "block", type: "tuple_create" },
+        { kind: "block", type: "set_create_empty" },
+        { kind: "block", type: "set_from_list" },
+        { kind: "block", type: "set_add" },
+        { kind: "block", type: "set_remove" },
+        { kind: "block", type: "set_operations" }
+      ]
+    },
+    {
+      kind: "category",
+      name: "Stacks & Queues (Abstract Data Types)",
+      categorystyle: "stack_queue_category",
+      contents: [
+        { kind: "block", type: "stack_push" },
+        { kind: "block", type: "stack_pop" },
+        { kind: "block", type: "stack_pop_statement" },
+        { kind: "block", type: "stack_peek" },
+        { kind: "block", type: "queue_enqueue" },
+        { kind: "block", type: "queue_dequeue" },
+        { kind: "block", type: "queue_dequeue_statement" },
+        { kind: "block", type: "queue_peek" }
       ]
     },
     { 
@@ -1125,6 +1306,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         const code = '{\n    ' + pairs.join(',\n    ') + '\n}';
         return [code, pythonGenerator.ORDER_ATOMIC];
       };
+      
+      pythonGenerator.forBlock['dict_pop'] = function (block) {
+        const key = pythonGenerator.valueToCode(block, 'KEY', pythonGenerator.ORDER_NONE) || '""';
+        const dict = pythonGenerator.valueToCode(block, 'DICT', pythonGenerator.ORDER_MEMBER) || '{}';
+        return [`${dict}.pop(${key})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
 
       pythonGenerator.forBlock['set_create_empty'] = function (block) {
         return ['set()', pythonGenerator.ORDER_FUNCTION_CALL];
@@ -1145,6 +1332,14 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
         const setVal = pythonGenerator.valueToCode(block, 'SET', pythonGenerator.ORDER_MEMBER) || 'set()';
         return `${setVal}.remove(${item})\n`;
+      };
+      
+      pythonGenerator.forBlock['set_operations'] = function(block) {
+        const op = block.getFieldValue('OP');
+        const set1 = pythonGenerator.valueToCode(block, 'SET1', pythonGenerator.ORDER_MEMBER) || 'set()';
+        const set2 = pythonGenerator.valueToCode(block, 'SET2', pythonGenerator.ORDER_NONE) || 'set()';
+        const method = op.toLowerCase();
+        return [`${set1}.${method}(${set2})`, pythonGenerator.ORDER_FUNCTION_CALL];
       };
 
       pythonGenerator.forBlock['tuple_create'] = function (block) {
@@ -1183,6 +1378,22 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
         const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
         return `${list}.append(${item})\n`;
+      };
+      
+      pythonGenerator.forBlock['list_count'] = function(block) {
+        const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
+        const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+        return [`${list}.count(${item})`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+      
+      pythonGenerator.forBlock['list_reverse'] = function(block) {
+        const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+        return `${list}.reverse()\n`;
+      };
+      
+      pythonGenerator.forBlock['list_clear'] = function(block) {
+        const list = pythonGenerator.valueToCode(block, 'LIST', pythonGenerator.ORDER_MEMBER) || '[]';
+        return `${list}.clear()\n`;
       };
 
       pythonGenerator.forBlock['list_range'] = function (block) {
@@ -1291,9 +1502,53 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         return [`${string}.${caseType}()`, pythonGenerator.ORDER_FUNCTION_CALL];
       };
 
+      // --- New Stack and Queue Code Generators ---
+      pythonGenerator.forBlock['stack_push'] = function(block) {
+        const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
+        const stackVal = pythonGenerator.valueToCode(block, 'STACK', pythonGenerator.ORDER_MEMBER) || '[]';
+        return `${stackVal}.append(${item})\n`;
+      };
+
+      pythonGenerator.forBlock['stack_pop'] = function(block) {
+        const stackVal = pythonGenerator.valueToCode(block, 'STACK', pythonGenerator.ORDER_MEMBER) || '[]';
+        return [`${stackVal}.pop()`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['stack_pop_statement'] = function(block) {
+        const stackVal = pythonGenerator.valueToCode(block, 'STACK', pythonGenerator.ORDER_MEMBER) || '[]';
+        return `${stackVal}.pop()\n`;
+      };
+      
+      pythonGenerator.forBlock['stack_peek'] = function(block) {
+        const stackVal = pythonGenerator.valueToCode(block, 'STACK', pythonGenerator.ORDER_MEMBER) || '[]';
+        return [`${stackVal}[-1]`, pythonGenerator.ORDER_MEMBER];
+      };
+
+      pythonGenerator.forBlock['queue_enqueue'] = function(block) {
+        const item = pythonGenerator.valueToCode(block, 'ITEM', pythonGenerator.ORDER_NONE) || 'None';
+        const queueVal = pythonGenerator.valueToCode(block, 'QUEUE', pythonGenerator.ORDER_MEMBER) || '[]';
+        return `${queueVal}.append(${item})\n`;
+      };
+
+      pythonGenerator.forBlock['queue_dequeue'] = function(block) {
+        const queueVal = pythonGenerator.valueToCode(block, 'QUEUE', pythonGenerator.ORDER_MEMBER) || '[]';
+        return [`${queueVal}.pop(0)`, pythonGenerator.ORDER_FUNCTION_CALL];
+      };
+
+      pythonGenerator.forBlock['queue_dequeue_statement'] = function(block) {
+        const queueVal = pythonGenerator.valueToCode(block, 'QUEUE', pythonGenerator.ORDER_MEMBER) || '[]';
+        return `${queueVal}.pop(0)\n`;
+      };
+
+      pythonGenerator.forBlock['queue_peek'] = function(block) {
+        const queueVal = pythonGenerator.valueToCode(block, 'QUEUE', pythonGenerator.ORDER_MEMBER) || '[]';
+        return [`${queueVal}[0]`, pythonGenerator.ORDER_MEMBER];
+      };
+
       pythonGenerator.forBlock['raw_python_statement'] = function (block) { return block.getFieldValue('CODE') + '\n'; };
       pythonGenerator.forBlock['raw_python_expression'] = function (block) { return [block.getFieldValue('CODE'), pythonGenerator.ORDER_ATOMIC]; };
       pythonGenerator.forBlock['raw_python_multiline'] = function (block) { return block.getFieldValue('CODE') + '\n'; };
+      
       pythonGenerator.forBlock['python_input'] = function (block) {
         const promptMsg = pythonGenerator.valueToCode(block, 'PROMPT', pythonGenerator.ORDER_NONE) || "''";
         return [`input(${promptMsg})`, pythonGenerator.ORDER_FUNCTION_CALL];
