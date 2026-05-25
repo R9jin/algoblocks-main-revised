@@ -1,0 +1,366 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defreturn",
+        "id": "43fc2831-9dc8-4",
+        "x": 20,
+        "y": 20,
+        "extraState": {
+          "params": [
+            {
+              "name": "left",
+              "id": "left"
+            },
+            {
+              "name": "right",
+              "id": "right"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "merge_arrays"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "variables_set",
+              "id": "b6b89ead-e2db-4",
+              "fields": {
+                "VAR": {
+                  "id": "result"
+                }
+              },
+              "inputs": {
+                "VALUE": {
+                  "block": {
+                    "type": "lists_create_with",
+                    "id": "d37926f3-a051-4",
+                    "extraState": {
+                      "itemCount": 0
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "controls_whileUntil",
+                  "id": "0d42db68-9fa6-4",
+                  "fields": {
+                    "MODE": "WHILE"
+                  },
+                  "inputs": {
+                    "BOOL": {
+                      "block": {
+                        "type": "logic_operation",
+                        "id": "9ccfd16a-7b26-4",
+                        "fields": {
+                          "OP": "AND"
+                        },
+                        "inputs": {
+                          "A": {
+                            "block": {
+                              "type": "logic_compare",
+                              "id": "53baafd9-1fe5-4",
+                              "fields": {
+                                "OP": "GT"
+                              },
+                              "inputs": {
+                                "A": {
+                                  "block": {
+                                    "type": "lists_length",
+                                    "id": "ebff14cb-4cdd-4",
+                                    "inputs": {
+                                      "VALUE": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "72020584-b48d-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "left"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "B": {
+                                  "block": {
+                                    "type": "math_number",
+                                    "id": "c9769b66-297c-4",
+                                    "fields": {
+                                      "NUM": 0
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "B": {
+                            "block": {
+                              "type": "logic_compare",
+                              "id": "3aa9a024-70b7-4",
+                              "fields": {
+                                "OP": "GT"
+                              },
+                              "inputs": {
+                                "A": {
+                                  "block": {
+                                    "type": "lists_length",
+                                    "id": "188a277c-e16c-4",
+                                    "inputs": {
+                                      "VALUE": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "b3dfd1ab-0d9a-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "right"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "B": {
+                                  "block": {
+                                    "type": "math_number",
+                                    "id": "cfe6b710-13ee-4",
+                                    "fields": {
+                                      "NUM": 0
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "DO": {
+                      "block": {
+                        "type": "controls_if",
+                        "id": "194c8c0a-abd9-4",
+                        "extraState": {
+                          "hasElse": true
+                        },
+                        "inputs": {
+                          "IF0": {
+                            "block": {
+                              "type": "logic_compare",
+                              "id": "56b2d92e-aaa9-4",
+                              "fields": {
+                                "OP": "LTE"
+                              },
+                              "inputs": {
+                                "A": {
+                                  "block": {
+                                    "type": "lists_getIndex",
+                                    "id": "40eff6d1-2f8e-4",
+                                    "fields": {
+                                      "MODE": "GET",
+                                      "WHERE": "FROM_START"
+                                    },
+                                    "inputs": {
+                                      "VALUE": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "b869c5c5-4506-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "left"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "AT": {
+                                        "block": {
+                                          "type": "math_number",
+                                          "id": "b9827344-fd44-4",
+                                          "fields": {
+                                            "NUM": 0
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "B": {
+                                  "block": {
+                                    "type": "lists_getIndex",
+                                    "id": "3799922a-73ba-4",
+                                    "fields": {
+                                      "MODE": "GET",
+                                      "WHERE": "FROM_START"
+                                    },
+                                    "inputs": {
+                                      "VALUE": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "4e778b33-5438-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "right"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "AT": {
+                                        "block": {
+                                          "type": "math_number",
+                                          "id": "5cd950aa-1822-4",
+                                          "fields": {
+                                            "NUM": 0
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "DO0": {
+                            "block": {
+                              "type": "list_append",
+                              "id": "1e76600d-f163-4",
+                              "inputs": {
+                                "ITEM": {
+                                  "block": {
+                                    "type": "queue_dequeue",
+                                    "id": "c74e38a5-60da-4",
+                                    "inputs": {
+                                      "QUEUE": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "dc50f208-7fce-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "left"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "LIST": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "8f8c27fc-da47-4",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "result"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "ELSE": {
+                            "block": {
+                              "type": "list_append",
+                              "id": "3f461bbf-2f8f-4",
+                              "inputs": {
+                                "ITEM": {
+                                  "block": {
+                                    "type": "queue_dequeue",
+                                    "id": "ccc5eb78-8aff-4",
+                                    "inputs": {
+                                      "QUEUE": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "4920cfba-fdc3-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "right"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "LIST": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "0b00da6a-f487-4",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "result"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "raw_python_statement",
+                      "id": "39191e62-16c2-4",
+                      "fields": {
+                        "CODE": "result.extend(left)"
+                      },
+                      "next": {
+                        "block": {
+                          "type": "raw_python_statement",
+                          "id": "f624544d-b5b3-4",
+                          "fields": {
+                            "CODE": "result.extend(right)"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "RETURN": {
+            "block": {
+              "type": "variables_get",
+              "id": "d7e5d358-7ab9-4",
+              "fields": {
+                "VAR": {
+                  "id": "result"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "left",
+      "id": "left"
+    },
+    {
+      "name": "result",
+      "id": "result"
+    },
+    {
+      "name": "right",
+      "id": "right"
+    }
+  ],
+  "backpack": []
+}

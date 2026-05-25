@@ -25,6 +25,8 @@ class MemorySignals:
     string_concatenation_in_loop: bool = False
     tracks_visited_nodes: bool = False
     recursive_stack_risk: bool = False
+    efficient_deque_pop: bool = False
+    set_and_dict_updates: bool = False
 
 
 @dataclass
@@ -34,6 +36,8 @@ class ComplexitySignals:
     repeated_sort: bool = False             
     membership_in_list: bool = False        
     heavy_math_operations: bool = False     
+    set_mathematical_ops: bool = False
+    dict_lookup_constant: bool = False
 
 
 @dataclass
@@ -57,6 +61,7 @@ class PatternSignals:
     inline_ternary: bool = False
     string_interpolation: bool = False
     variable_swapping: bool = False
+    has_comment_block: bool = False
 
     memory_signals: MemorySignals = field(default_factory=MemorySignals)
     complexity_signals: ComplexitySignals = field(default_factory=ComplexitySignals)
@@ -105,6 +110,18 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 if self._in_loop:
                     self.signals.complexity_signals.repeated_sort = True
 
+            elif method_name == 'popleft':
+                self.signals.memory_signals.efficient_deque_pop = True
+
+            elif method_name in ['union', 'intersection', 'difference']:
+                self.signals.complexity_signals.set_mathematical_ops = True
+
+            elif method_name == 'get':
+                self.signals.complexity_signals.dict_lookup_constant = True
+
+            elif method_name in ['update', 'add']:
+                self.signals.memory_signals.set_and_dict_updates = True
+
         elif isinstance(node.func, ast.Name):
             func_name = node.func.id
             self._function_calls.add(func_name)
@@ -124,6 +141,16 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 if self._in_loop:
                     self.signals.membership_in_loop = True
                     self.signals.complexity_signals.membership_in_list = True
+        self.generic_visit(node)
+
+    def visit_BinOp(self, node: ast.BinOp):
+        if isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.Sub, ast.BitXor)):
+            self.signals.complexity_signals.set_mathematical_ops = True
+        self.generic_visit(node)
+
+    def visit_Expr(self, node: ast.Expr):
+        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            self.signals.has_comment_block = True
         self.generic_visit(node)
 
     def visit_ListComp(self, node: ast.ListComp):
@@ -426,9 +453,11 @@ class SemanticNLGEngine:
         elif sig.has_recursion:
             if sig.recursion_branching == "multi":
                 return "the function violently branches out, calling itself multiple times and creating a massive execution tree"
-            return " the function relies on the call stack, diving deeper into self-referential execution until a base case is hit"
+            return "the function relies on the call stack, diving deeper into self-referential execution until a base case is hit"
         elif sig.graph_traversal:
             return "the algorithm dynamically navigates outward, exploring complex network connections step-by-step"
+        elif sig.has_comment_block:
+            return "the interpreter encounters a descriptive code annotation or text block"
         else:
             return "the execution flows directly without repeating loops or self-reference"
 
@@ -442,11 +471,15 @@ class SemanticNLGEngine:
         
         insights = []
         if sig.complexity_signals.inefficient_list_pop:
-            insights.append("Notice that popping from the front of a list forces Python to shift all remaining elements memory, causing severe hidden delays.")
+            insights.append("Notice that popping from the front of a list forces Python to shift all remaining elements in memory, causing severe hidden delays.")
         if sig.complexity_signals.inefficient_list_insert:
             insights.append("Inserting elements at the front of a list is inefficient because it forces a complete memory realignment of all subsequent items.")
         if sig.complexity_signals.repeated_sort:
             insights.append("Sorting data inside a loop is highly destructive to performance, as sorting is already heavy, and repeating it multiplies the cost.")
+        if sig.complexity_signals.set_mathematical_ops:
+            insights.append("Performing mathematical set operations computes intersections or unions efficiently, scaling with the size of the participating collections.")
+        if sig.complexity_signals.dict_lookup_constant:
+            insights.append("Using a dictionary get lookup provides a safe, constant-time query that prevents fallback execution errors if keys are absent.")
         if sig.has_backtracking_risk:
             insights.append("Because this involves conditional branching within recursion, the code acts like it's exploring a massive maze, leading to rapid performance drops on complex inputs.")
         if sig.has_early_exits:
@@ -485,6 +518,10 @@ class SemanticNLGEngine:
             insights.append("Every recursive jump adds a new 'frame' to the system call stack. If the recursion goes too deep, it risks a Stack Overflow.")
         if sig.memory_signals.string_concatenation_in_loop:
             insights.append("Because strings are immutable, adding to a string repeatedly inside a loop forces the system to constantly allocate brand new strings and destroy old ones, wasting memory.")
+        if sig.memory_signals.efficient_deque_pop:
+            insights.append("Utilizing popleft from a deque structure optimizes memory deallocation from the front of the sequence in constant space and time.")
+        if sig.memory_signals.set_and_dict_updates:
+            insights.append("Updating elements inside sets or dictionaries dynamically resizes hash tables depending on unique entry volume.")
 
         insight_text = "\n\n" + " ".join(insights) if insights else ""
         
@@ -517,15 +554,20 @@ class SemanticNLGEngine:
             parts.append("Pattern Detected: Structural navigation via Graph/Network Traversal.")
         if sig.complexity_signals.membership_in_list:
             parts.append("Pattern Detected: Linear scanning via Membership Checking (consider using Sets for O(1) lookups).")
+        if sig.complexity_signals.set_mathematical_ops:
+            parts.append("Pattern Detected: Collection manipulation via Set Theory Operations.")
+        if sig.complexity_signals.dict_lookup_constant:
+            parts.append("Pattern Detected: Defensive constant-time query via Dictionary Get Lookup.")
         if sig.memory_signals.performs_slicing:
             parts.append("Pattern Detected: Memory duplication via Array Slicing.")
-            
         if sig.inline_ternary:
             parts.append("Pattern Detected: Inline conditional logic via Ternary Expression.")
         if sig.string_interpolation:
             parts.append("Pattern Detected: Dynamic text construction via String Interpolation (f-strings).")
         if sig.variable_swapping:
             parts.append("Pattern Detected: In-place Variable Swapping via Tuple Unpacking.")
+        if sig.has_comment_block:
+            parts.append("Pattern Detected: Documentation preservation via Inline Text Block.")
             
         if "n!" in global_t.lower():
             parts.append("Pattern Detected: Combinatorial explosion via Recursive Permutations.")

@@ -57,6 +57,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.conditional_partition_lines = []
         self.logic_hints = {} 
 
+        # Extended for the new Set, Dict, Stack/Queue and List operations mapping from BlocklyWorkspace
         self.builtin_complexities = {
             'sort': {'time': 'O(n log n)', 'space': 'O(log n)', 'desc': 'uses the in-place Timsort algorithm which involves minimal auxiliary storage'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'creates a completely new sorted list while iterating through the original input'},
@@ -103,7 +104,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'reversed': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a reverse iterator object in constant time'},
             'enumerate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns an enumerate object in constant time'},
             'zip': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a zip iterator object in constant time'},
-            'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a range sequence object in constant time'}
+            'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a range sequence object in constant time'},
+            
+            # --- New Blockly Workspace Mapping ---
+            'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'clears the collection in constant or linear deallocation time'},
+            'get': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'retrieves dictionary value by key in constant time'},
+            'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'removes from the left of a deque in constant time'},
+            'union': {'time': 'O(n + m)', 'space': 'O(n + m)', 'desc': 'creates a new set containing all items from both sets'},
+            'intersection': {'time': 'O(min(n, m))', 'space': 'O(min(n, m))', 'desc': 'creates a new set with elements common to both'},
+            'difference': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'creates a new set with elements in the first that are not in the second'},
+            'update': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'updates the set or dictionary with elements from another collection'},
+            'add': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'adds an element to the set in constant expected time'},
         }
         self.aliases = {}
         self.nlg_engine = SemanticNLGEngine(self)
@@ -963,11 +974,27 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else: self.record_line(node)
         elif isinstance(node.func, ast.Attribute):
             if node.func.attr == 'pop':
+                is_dict = False
+                if isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'dict':
+                    is_dict = True
+                
                 if len(node.args) > 0:
-                    self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
+                    if is_dict:
+                        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
+                    else:
+                        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
                 else:
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end")
+                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
             
+            elif node.func.attr == 'remove':
+                is_set = False
+                if isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'set':
+                    is_set = True
+                if is_set:
+                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
+                else:
+                    self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
+                    
             elif node.func.attr == 'append':
                 is_appending_list = False
                 if node.args:
@@ -989,12 +1016,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 else:
                     self.record_line(node, time_override=b['time'], space_override=b['space'])
                     
-            elif node.func.attr in ['add', 'insert']:
+            elif node.func.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'copy', 'keys', 'values', 'items']:
                 b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
-                if len(self.active_poly_dims) > 0 or getattr(self, 'log_loop_depth', 0) > 0 or getattr(self, 'sqrt_loop_depth', 0) > 0:
-                    self.record_line(node, time_override=b['time'], space_override="O(n)", custom_op=f"{node.func.attr.capitalize()} (Accumulates in Loop)")
-                else:
-                    self.record_line(node, time_override=b['time'], space_override=b['space'])
+                
+                # Check for loop accumulation
+                if node.func.attr in ['add', 'insert', 'update']:
+                    if len(self.active_poly_dims) > 0 or getattr(self, 'log_loop_depth', 0) > 0 or getattr(self, 'sqrt_loop_depth', 0) > 0:
+                        self.record_line(node, time_override=b['time'], space_override="O(n)", custom_op=f"{node.func.attr.capitalize()} (Accumulates in Loop)")
+                        self.generic_visit(node)
+                        self.in_accumulation_context = prev_acc
+                        return
+
+                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize())
             
             elif node.func.attr in self.builtin_complexities:
                 b = self.builtin_complexities[node.func.attr]
@@ -1010,14 +1043,20 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if isinstance(target, ast.Name):
                 if isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') == 'set':
                     self.var_types[target.id] = 'set'
-                elif isinstance(node.value, ast.Set):
+                elif isinstance(node.value, (ast.Set, ast.SetComp)):
                     self.var_types[target.id] = 'set'
+                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') == 'dict':
+                    self.var_types[target.id] = 'dict'
+                elif isinstance(node.value, (ast.Dict, ast.DictComp)):
+                    self.var_types[target.id] = 'dict'
                 elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                     self.var_types[target.id] = 'str'
-                elif isinstance(node.value, ast.List) or isinstance(node.value, ast.ListComp):
+                elif isinstance(node.value, (ast.List, ast.ListComp)):
                     self.var_types[target.id] = 'list'
                 elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') == 'list':
                     self.var_types[target.id] = 'list'
+                elif isinstance(node.value, ast.Tuple):
+                    self.var_types[target.id] = 'tuple'
 
         s_ov, t_ov = "O(1)", None
         
@@ -1118,7 +1157,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)  
 
     def visit_Return(self, node): self.record_line(node); self.generic_visit(node)  
-    def visit_Expr(self, node): self.record_line(node); self.generic_visit(node)      
+
+    def visit_Expr(self, node): 
+        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Comment / Docstring")
+        else:
+            self.record_line(node)
+        self.generic_visit(node)      
 
     def get_final_asymptotic_badge(self):
         lookup = {

@@ -1,0 +1,157 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defreturn",
+        "id": "f02a4494-692a-4",
+        "x": 20,
+        "y": 20,
+        "extraState": {
+          "params": [
+            {
+              "name": "arr",
+              "id": "arr"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "accumulate_sum"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "variables_set",
+              "id": "336ac1a7-b0f2-4",
+              "fields": {
+                "VAR": {
+                  "id": "new_arr"
+                }
+              },
+              "inputs": {
+                "VALUE": {
+                  "block": {
+                    "type": "raw_python_expression",
+                    "id": "4a2e65d2-7052-4",
+                    "fields": {
+                      "CODE": "arr.copy()"
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "variables_set",
+                  "id": "899bae0a-3ee1-4",
+                  "fields": {
+                    "VAR": {
+                      "id": "total"
+                    }
+                  },
+                  "inputs": {
+                    "VALUE": {
+                      "block": {
+                        "type": "math_number",
+                        "id": "8715a97a-4747-4",
+                        "fields": {
+                          "NUM": 0
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "controls_forEach",
+                      "id": "419412a1-7e1e-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "num"
+                        }
+                      },
+                      "inputs": {
+                        "LIST": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "7cfd49df-0bcf-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "new_arr"
+                              }
+                            }
+                          }
+                        },
+                        "DO": {
+                          "block": {
+                            "type": "math_assignment",
+                            "id": "75a58a46-4e65-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "total"
+                              },
+                              "OP": "ADD"
+                            },
+                            "inputs": {
+                              "DELTA": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "79c5b9d8-7793-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "num"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "RETURN": {
+            "block": {
+              "type": "variables_get",
+              "id": "6b96c9af-4555-4",
+              "fields": {
+                "VAR": {
+                  "id": "total"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "new_arr",
+      "id": "new_arr"
+    },
+    {
+      "name": "total",
+      "id": "total"
+    },
+    {
+      "name": "arr",
+      "id": "arr"
+    },
+    {
+      "name": "num",
+      "id": "num"
+    }
+  ],
+  "backpack": []
+}
