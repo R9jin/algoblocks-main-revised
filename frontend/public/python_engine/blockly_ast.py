@@ -438,11 +438,35 @@ class BlocklyASTConverter:
                         block = {"type": "dict_keys_values", "id": gen_uid(), "fields": {"OP": method}}
                         self.add_input(block, "DICT", self.serialize_expr(obj))
                         return block
-
-                    if method == "pop" and len(node.args) == 0:
-                        block = {"type": "list_pop", "id": gen_uid()}
+                        
+                    if method == "count" and len(node.args) == 1:
+                        block = {"type": "list_count", "id": gen_uid()}
                         self.add_input(block, "LIST", self.serialize_expr(obj))
+                        self.add_input(block, "ITEM", self.serialize_expr(node.args[0]))
                         return block
+
+                    if method in ["union", "intersection", "difference"] and len(node.args) == 1:
+                        block = {"type": "set_operations", "id": gen_uid(), "fields": {"OP": method.upper()}}
+                        self.add_input(block, "SET1", self.serialize_expr(obj))
+                        self.add_input(block, "SET2", self.serialize_expr(node.args[0]))
+                        return block
+
+                    if method == "pop":
+                        if len(node.args) == 0:
+                            block = {"type": "list_pop", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            return block
+                        elif len(node.args) == 1:
+                            arg = node.args[0]
+                            if isinstance(arg, ast.Constant) and arg.value == 0:
+                                block = {"type": "queue_dequeue", "id": gen_uid()}
+                                self.add_input(block, "QUEUE", self.serialize_expr(obj))
+                                return block
+                            else:
+                                block = {"type": "dict_pop", "id": gen_uid()}
+                                self.add_input(block, "KEY", self.serialize_expr(arg))
+                                self.add_input(block, "DICT", self.serialize_expr(obj))
+                                return block
 
         except Exception:
             pass
@@ -605,10 +629,27 @@ class BlocklyASTConverter:
                         self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
                         return block
                         
-                    if method == "pop" and len(node.value.args) == 0:
-                        block = {"type": "list_pop_statement", "id": gen_uid()}
+                    if method == "reverse" and len(node.value.args) == 0:
+                        block = {"type": "list_reverse", "id": gen_uid()}
                         self.add_input(block, "LIST", self.serialize_expr(obj))
                         return block
+                        
+                    if method == "clear" and len(node.value.args) == 0:
+                        block = {"type": "list_clear", "id": gen_uid()}
+                        self.add_input(block, "LIST", self.serialize_expr(obj))
+                        return block
+                        
+                    if method == "pop":
+                        if len(node.value.args) == 0:
+                            block = {"type": "list_pop_statement", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            return block
+                        elif len(node.value.args) == 1:
+                            arg = node.value.args[0]
+                            if isinstance(arg, ast.Constant) and arg.value == 0:
+                                block = {"type": "queue_dequeue_statement", "id": gen_uid()}
+                                self.add_input(block, "QUEUE", self.serialize_expr(obj))
+                                return block
 
             elif isinstance(node, (ast.Import, ast.ImportFrom)):
                 return {"type": "raw_python_statement", "id": gen_uid(), "fields": {"CODE": ast.unparse(node)}}
