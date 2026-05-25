@@ -1,3 +1,4 @@
+// frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
   FiCheckCircle,
@@ -10,6 +11,7 @@ import {
   FiRefreshCw,
   FiShare2,
   FiUsers,
+  FiClipboard,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -28,19 +30,32 @@ const moduleIcons = {
   "module-6": { icon: FiRefreshCw, color: "#ec4899", description: "Solve problems using backtracking." },
 };
 
+// Last lesson per module — determines when post-assessment unlocks
+const MODULE_LAST_LESSONS = {
+  "module-0": "lesson-0-4",
+  "module-1": "lesson-1-3",
+  "module-2": "lesson-2-3",
+  "module-3": "lesson-3-4",
+  "module-4": "lesson-4-3",
+  "module-5": "lesson-5-4",
+  "module-6": "lesson-6-4",
+};
+
 export default function LearningPath() {
   const navigate = useNavigate();
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [userProgress, setUserProgress] = useState({});
   const [lessonDetails, setLessonDetails] = useState({});
+  const [assessments, setAssessments] = useState({});
 
-  // 1. Load User Progress
+  // 1. Load User Progress & Assessment results from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem("user");
       if (stored) {
         const parsed = JSON.parse(stored);
         setUserProgress(parsed.progress || {});
+        setAssessments(parsed.assessments || {});
       }
     } catch (e) {
       // ignore
@@ -66,11 +81,9 @@ export default function LearningPath() {
       }
       setLessonDetails(details);
     };
-    
     fetchLessonsData();
   }, []);
 
-  // Toggle expansion state for a module.
   const toggleModule = (moduleId) => {
     const newExpanded = new Set(expandedModules);
     if (newExpanded.has(moduleId)) {
@@ -85,25 +98,71 @@ export default function LearningPath() {
     navigate(`/learning-path/${moduleId}/${lessonId}`);
   };
 
-  // 3. Compute Lesson Locks
-  // A lesson is locked if the previous lesson HAS an activity, and the user hasn't passed it.
-  let isNextLocked = false;
-  const lockMap = {};
+  // ── Assessment helpers ────────────────────────────────────────────────────
 
-  curriculumIndex.forEach(module => {
-    module.lessons.forEach(lesson => {
-      lockMap[lesson.lessonId] = isNextLocked;
+  /** True if the user has completed the pre-assessment for this module */
+  const hasPreAssessment = (moduleId) => {
+    const key = `${moduleId}_pre_assessment`;
+    return assessments[key] !== undefined;
+  };
 
+  /** True if the user has completed the post-assessment for this module */
+  const hasPostAssessment = (moduleId) => {
+    const key = `${moduleId}_post_assessment`;
+    return assessments[key] !== undefined;
+  };
+
+  /** Score label for display */
+  const getAssessmentScore = (moduleId, type) => {
+    const key = `${moduleId}_${type}_assessment`;
+    return assessments[key]?.score ?? null;
+  };
+
+  /**
+   * True if all lessons in the module are completed — this gates the post-assessment.
+   * A lesson is "complete" if it has no activity (just reading counts), or its activity progress >= 1.
+   */
+  const isModuleComplete = (moduleId) => {
+    const module = curriculumIndex.find((m) => m.moduleId === moduleId);
+    if (!module) return false;
+    return module.lessons.every((lesson) => {
       const details = lessonDetails[lesson.lessonId];
       const firstActivityId = details?.activities?.[0]?.id;
-      const prog = userProgress[lesson.lessonId] || 0;
-
-      // If the lesson has an activity and progress is < 1, lock the next lessons.
-      if (firstActivityId && prog < 1) {
-        isNextLocked = true;
-      }
+      if (!firstActivityId) return true; // Reading-only lesson always counts as complete
+      return (userProgress[lesson.lessonId] || 0) >= 1;
     });
-  });
+  };
+
+  // ── Lesson lock computation ────────────────────────────────────────────────
+  // A lesson is locked if:
+  //   (a) The module's pre-assessment hasn't been taken yet, OR
+  //   (b) The previous lesson had an activity and hasn't been passed
+  const buildLockMap = () => {
+    const lockMap = {};
+
+    for (const module of curriculumIndex) {
+      const preComplete = hasPreAssessment(module.moduleId);
+      let isNextLocked = !preComplete; // ALL lessons locked until pre-assessment is done
+
+      for (const lesson of module.lessons) {
+        lockMap[lesson.lessonId] = isNextLocked;
+
+        if (!isNextLocked) {
+          // Activity-based gate (only after pre is done)
+          const details = lessonDetails[lesson.lessonId];
+          const firstActivityId = details?.activities?.[0]?.id;
+          const prog = userProgress[lesson.lessonId] || 0;
+          if (firstActivityId && prog < 1) {
+            isNextLocked = true;
+          }
+        }
+      }
+    }
+
+    return lockMap;
+  };
+
+  const lockMap = buildLockMap();
 
   return (
     <div className="learning-path-page">
@@ -125,20 +184,31 @@ export default function LearningPath() {
             const IconComponent = iconConfig?.icon || FiUsers;
             const isExpanded = expandedModules.has(module.moduleId);
 
+            const preComplete = hasPreAssessment(module.moduleId);
+            const preScore = getAssessmentScore(module.moduleId, "pre");
+            const moduleComplete = isModuleComplete(module.moduleId);
+            const postComplete = hasPostAssessment(module.moduleId);
+            const postScore = getAssessmentScore(module.moduleId, "post");
+
             return (
               <div key={module.moduleId}>
                 <div
                   className="module-card-v2"
                   onClick={() => toggleModule(module.moduleId)}
                 >
-                  <div className="module-card-icon" style={{ backgroundColor: `${iconConfig?.color}15` }}>
+                  <div
+                    className="module-card-icon"
+                    style={{ backgroundColor: `${iconConfig?.color}15` }}
+                  >
                     <IconComponent size={32} color={iconConfig?.color} />
                   </div>
 
                   <div className="module-card-content">
                     <div className="module-card-header">
                       <div>
-                        <h3 className="module-card-title">Module {moduleNum}: {module.title}</h3>
+                        <h3 className="module-card-title">
+                          Module {moduleNum}: {module.title}
+                        </h3>
                         <p className="module-card-description">
                           {iconConfig?.description || module.title}
                         </p>
@@ -146,7 +216,7 @@ export default function LearningPath() {
                       <FiChevronDown
                         size={24}
                         color="#7c5cff"
-                        className={`module-card-chevron ${isExpanded ? 'expanded' : ''}`}
+                        className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
                       />
                     </div>
                   </div>
@@ -154,15 +224,59 @@ export default function LearningPath() {
 
                 {isExpanded && (
                   <div className="module-lessons-dropdown">
+
+                    {/* ── PRE-ASSESSMENT ROW ─────────────────────────────── */}
+                    <div className={`assessment-row pre ${preComplete ? "done" : "pending"}`}>
+                      <div className="assessment-row-left">
+                        <FiClipboard size={16} />
+                        <span className="assessment-row-label">Pre-Assessment</span>
+                        {preScore !== null && (
+                          <span className="assessment-score-badge">{preScore}%</span>
+                        )}
+                      </div>
+                      <div className="assessment-row-right">
+                        {preComplete ? (
+                          <>
+                            <FiCheckCircle color="#22c55e" size={16} />
+                            <button
+                              className="btn-assessment retake"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/assessment/${module.moduleId}/pre`);
+                              }}
+                            >
+                              Retake
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="btn-assessment start"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/assessment/${module.moduleId}/pre`);
+                            }}
+                          >
+                            Take Pre-Assessment
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ── LESSON ROWS ────────────────────────────────────── */}
                     {module.lessons.map((lesson) => {
                       const details = lessonDetails[lesson.lessonId];
                       const firstActivityId = details?.activities?.[0]?.id;
                       const prog = userProgress[lesson.lessonId] || 0;
-                      const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
+                      const lessonDisplay = lesson.lessonId
+                        .replace("lesson-", "")
+                        .replace(/-/g, ".");
                       const isLocked = lockMap[lesson.lessonId];
 
                       return (
-                        <div key={lesson.lessonId} className={`dropdown-lesson-item ${isLocked ? 'locked' : ''}`}>
+                        <div
+                          key={lesson.lessonId}
+                          className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}
+                        >
                           <div className="lesson-info">
                             <span className="lesson-number">{lessonDisplay}</span>
                             <span className="lesson-title">{lesson.title}</span>
@@ -174,19 +288,24 @@ export default function LearningPath() {
                               disabled={isLocked}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lesson.lessonId}`);
+                                if (!isLocked)
+                                  navigate(
+                                    `/learning-path/${module.moduleId}/${lesson.lessonId}`
+                                  );
                               }}
                             >
                               Read Lesson
                             </button>
 
                             <button
-                              className={`btn-start-activity ${!firstActivityId ? 'disabled' : ''}`}
+                              className={`btn-start-activity ${!firstActivityId ? "disabled" : ""}`}
                               disabled={isLocked || !firstActivityId}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (!isLocked && firstActivityId) {
-                                  navigate(`/activity/${module.moduleId}/${firstActivityId}`);
+                                  navigate(
+                                    `/activity/${module.moduleId}/${firstActivityId}`
+                                  );
                                 }
                               }}
                             >
@@ -207,13 +326,63 @@ export default function LearningPath() {
                       );
                     })}
 
+                    {/* ── POST-ASSESSMENT ROW ────────────────────────────── */}
+                    <div
+                      className={`assessment-row post ${
+                        postComplete ? "done" : moduleComplete ? "pending" : "locked"
+                      }`}
+                    >
+                      <div className="assessment-row-left">
+                        <FiClipboard size={16} />
+                        <span className="assessment-row-label">Post-Assessment</span>
+                        {postScore !== null && (
+                          <span className="assessment-score-badge post">{postScore}%</span>
+                        )}
+                        {!moduleComplete && !postComplete && (
+                          <span className="assessment-gate-note">
+                            (Complete all lessons first)
+                          </span>
+                        )}
+                      </div>
+                      <div className="assessment-row-right">
+                        {!moduleComplete && !postComplete ? (
+                          <FiLock color="#bdbdbd" size={16} />
+                        ) : postComplete ? (
+                          <>
+                            <FiCheckCircle color="#22c55e" size={16} />
+                            <button
+                              className="btn-assessment retake"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/assessment/${module.moduleId}/post`);
+                              }}
+                            >
+                              Retake
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="btn-assessment start post"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/assessment/${module.moduleId}/post`);
+                            }}
+                          >
+                            Take Post-Assessment
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="module-dropdown-footer">
                       <button
                         className="view-all-lessons"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const first = module.lessons[0] && module.lessons[0].lessonId;
-                          if (first && !lockMap[first]) handleModuleClick(module.moduleId, first);
+                          const first = module.lessons[0]?.lessonId;
+                          if (first && !lockMap[first]) {
+                            handleModuleClick(module.moduleId, first);
+                          }
                         }}
                       >
                         View all lessons in this module

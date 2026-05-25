@@ -11,6 +11,7 @@ import Projects from "./pages/Projects";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
+import AssessmentPage from "./pages/AssessmentPage";
 
 import { startBackgroundSync } from "./utils/syncManager";
 import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
@@ -55,6 +56,9 @@ function App() {
           <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />
           <Route path="/learning-path/:moduleId/:lessonId" element={<ProtectedRoute><LessonViewer /></ProtectedRoute>} />
           <Route path="/activity/:moduleId/:activityId" element={<ProtectedRoute><ActivityApp /></ProtectedRoute>} />
+
+          {/* Assessment Routes */}
+          <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
           
           {/* Main IDE / Workspace */}
           <Route path="/workspace" element={<ProtectedRoute><MainApp /></ProtectedRoute>} />
