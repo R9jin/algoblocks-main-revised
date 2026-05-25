@@ -1,0 +1,186 @@
+{
+  "moduleId": "module-0",
+  "moduleTitle": "Welcome to AlgoBlocks",
+  "questions": [
+    {
+      "id": "m0_q1",
+      "question": "What is AlgoBlocks?",
+      "options": [
+        "A text-based programming language for advanced developers",
+        "A visual, block-based learning platform for understanding algorithmic logic",
+        "A database management tool for storing algorithms",
+        "A hardware simulation tool for testing processors"
+      ],
+      "answer": 1,
+      "explanation": "AlgoBlocks is a visual, block-based educational platform designed to teach algorithmic logic and complexity analysis to beginner students."
+    },
+    {
+      "id": "m0_q2",
+      "question": "How are programs constructed in a block-based system?",
+      "options": [
+        "By writing text code in a terminal window",
+        "By dragging and connecting pre-built logical blocks that represent programming constructs",
+        "By drawing diagrams on a whiteboard",
+        "By configuring settings in a menu-driven interface"
+      ],
+      "answer": 1,
+      "explanation": "In a block-based system, programs are built by dragging and snapping together visual blocks that each represent a programming construct such as variables, loops, or conditions."
+    },
+    {
+      "id": "m0_q3",
+      "question": "What is the primary function of the Workspace Canvas?",
+      "options": [
+        "To display execution output and error messages",
+        "To store saved projects in the cloud",
+        "To serve as the main area where blocks are arranged and connected to define program logic",
+        "To visualize memory usage during program execution"
+      ],
+      "answer": 2,
+      "explanation": "The Workspace Canvas is the central area where learners drag and connect blocks to design and build their algorithmic programs."
+    },
+    {
+      "id": "m0_q4",
+      "question": "What does the Output Console display?",
+      "options": [
+        "The Big-O complexity rating of the algorithm",
+        "The Python source code generated from blocks",
+        "The results of program execution, including printed values and errors",
+        "The memory usage graph over time"
+      ],
+      "answer": 2,
+      "explanation": "The Output Console shows the results of running the program, including any printed output, return values, and runtime errors."
+    },
+    {
+      "id": "m0_q5",
+      "question": "What does sequential execution mean?",
+      "options": [
+        "Instructions are executed in a random order determined by the CPU",
+        "Instructions execute only when a condition is true",
+        "Instructions are executed from top to bottom in the order they appear",
+        "Instructions run in parallel across multiple threads"
+      ],
+      "answer": 2,
+      "explanation": "Sequential execution means each instruction runs one after another from top to bottom, following the natural order they appear in the program."
+    },
+    {
+      "id": "m0_q6",
+      "question": "What is a variable used for?",
+      "options": [
+        "To define a reusable block of code that can be called multiple times",
+        "To store and manage a named piece of data that can change during execution",
+        "To loop through a list of items automatically",
+        "To compare two values and branch the program flow"
+      ],
+      "answer": 1,
+      "explanation": "A variable is a named storage location that holds a value which can be read, modified, and reused throughout the program."
+    },
+    {
+      "id": "m0_q7",
+      "question": "What programming construct is used for iteration?",
+      "options": [
+        "A conditional (if/else) statement",
+        "A function definition",
+        "A variable assignment",
+        "A loop (for or while)"
+      ],
+      "answer": 3,
+      "explanation": "Loops (for or while) are the constructs used for iteration, allowing a set of instructions to repeat multiple times."
+    },
+    {
+      "id": "m0_q8",
+      "question": "What is conditional logic?",
+      "options": [
+        "Logic that executes the same path regardless of input",
+        "Logic that determines which branch of code executes based on whether a condition is true or false",
+        "Logic that runs only once at program startup",
+        "Logic used exclusively inside loops"
+      ],
+      "answer": 1,
+      "explanation": "Conditional logic (if/else) directs program flow by evaluating a condition and executing different blocks of code depending on whether the result is true or false."
+    },
+    {
+      "id": "m0_q9",
+      "question": "What is an array?",
+      "options": [
+        "A single variable that stores one value at a time",
+        "A function that processes numbers sequentially",
+        "An ordered collection of elements stored under a single variable name, accessible by index",
+        "A loop that iterates a fixed number of times"
+      ],
+      "answer": 2,
+      "explanation": "An array is a data structure that stores multiple values in an ordered sequence, where each element is accessible by its index position."
+    },
+    {
+      "id": "m0_q10",
+      "question": "What does the Complexity Analyzer evaluate?",
+      "options": [
+        "The visual appearance of the block arrangement",
+        "The number of variables used in the program",
+        "The time and space complexity of each line of code",
+        "The network speed required to run the program"
+      ],
+      "answer": 2,
+      "explanation": "The Complexity Analyzer evaluates each line or block of code and assigns a time and space complexity rating, helping learners identify performance bottlenecks."
+    },
+    {
+      "id": "m0_q11",
+      "question": "What represents constant time complexity?",
+      "options": [
+        "O(n) — performance scales linearly with input size",
+        "O(log n) — performance scales logarithmically",
+        "O(n²) — performance scales quadratically",
+        "O(1) — performance does not change regardless of input size"
+      ],
+      "answer": 3,
+      "explanation": "O(1) means the operation always takes the same amount of time regardless of how large the input is."
+    },
+    {
+      "id": "m0_q12",
+      "question": "What represents linear time complexity?",
+      "options": [
+        "O(1) — constant regardless of input",
+        "O(n) — performance grows directly proportional to input size",
+        "O(n²) — performance grows quadratically",
+        "O(log n) — performance grows logarithmically"
+      ],
+      "answer": 1,
+      "explanation": "O(n) means the number of operations grows linearly as the input size increases — doubling the input roughly doubles the execution time."
+    },
+    {
+      "id": "m0_q13",
+      "question": "What does the Memory Visualizer track?",
+      "options": [
+        "The Big-O time complexity of each block",
+        "The network bandwidth consumed during execution",
+        "Changes in variable states, array contents, and the call stack over the course of execution",
+        "The number of blocks used in the workspace"
+      ],
+      "answer": 2,
+      "explanation": "The Memory Visualizer shows how variable values change, how arrays are modified, and how the call stack grows and shrinks during program execution."
+    },
+    {
+      "id": "m0_q14",
+      "question": "What is a function call stack?",
+      "options": [
+        "A list of all variables declared in the program",
+        "A data structure that records the active function calls, tracking which function called which and in what order",
+        "A log of all output printed to the console",
+        "A visual timeline of loop iterations"
+      ],
+      "answer": 1,
+      "explanation": "The call stack is a LIFO data structure that keeps track of all active function calls during execution, including where each function was called from."
+    },
+    {
+      "id": "m0_q15",
+      "question": "Why is code execution considered dynamic rather than static?",
+      "options": [
+        "Because the code is written using drag-and-drop blocks",
+        "Because the program structure is fixed and never changes",
+        "Because the actual behavior, variable values, and execution paths are determined at runtime based on input and state",
+        "Because execution speed depends on the programming language chosen"
+      ],
+      "answer": 2,
+      "explanation": "Execution is dynamic because the actual values, paths taken through conditionals, and number of iterations are only determined when the program runs with real input data."
+    }
+  ]
+}

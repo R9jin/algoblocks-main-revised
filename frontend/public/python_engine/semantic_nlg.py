@@ -21,7 +21,7 @@ class BigOInfo:
     """
     raw: str
     normalized: str
-    family: str  # e.g., linear, logarithmic, polynomial, exponential, factorial, graph, root, constant, combinatorial
+    family: str  # e.g., linear, logarithmic, polynomial, exponential, factorial, graph, root, constant
     factors: Dict[str, Any]
 
 
@@ -171,8 +171,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             if isinstance(op, (ast.In, ast.NotIn)):
                 if self._in_loop:
                     self.signals.membership_in_loop = True
-                    # If we could definitively know the right hand side is a list,
-                    # we would flag membership_in_list. For now, we flag the risk.
                     self.signals.complexity_signals.membership_in_list = True
         self.generic_visit(node)
 
@@ -339,12 +337,6 @@ class EducationalInsightGenerator:
                 "An algorithm with factorial growth will quickly bring any modern computer to a halt even with "
                 "inputs as small as 15 or 20 items."
             )
-        elif family == "combinatorial":
-            return (
-                "This operation runs in Combinatorial Time. It represents generating specific groups "
-                "or combinations of the input. As the size of the selection grows, the total number "
-                "of possibilities explodes computationally, making this highly demanding for larger datasets."
-            )
         elif family == "graph":
             return (
                 "This operation's growth is tied to the structure of a Graph. The time it takes depends on two factors: "
@@ -473,10 +465,10 @@ class SemanticNLGEngine:
         # factorial
         if "n!" in lower or "n^!" in lower or "factorial" in lower:
             return BigOInfo(raw=original, normalized=s, family="factorial", factors={})
-            
-        # combinatorial
-        if "c(" in lower or "combination" in lower or "choose" in lower:
-            return BigOInfo(raw=original, normalized=s, family="combinatorial", factors={})
+
+        # combinations / permutations mapping fallback
+        if "c(" in lower or "combination" in lower or "choose" in lower or "4^n" in lower:
+            return BigOInfo(raw=original, normalized=s, family="exponential", factors={})
 
         # exponential
         if "2^n" in lower or ("2^" in lower and "n" in lower) or "2n" in lower:
@@ -654,9 +646,9 @@ class SemanticNLGEngine:
         if sig.variable_swapping:
             parts.append("Pattern Detected: In-place Variable Swapping via Tuple Unpacking.")
             
-        # Combinatorial & Permutation integration from analyzer context
-        if getattr(self.ctx, "is_factorial", False) or getattr(self.ctx, "is_combination", False):
-            parts.append("Pattern Detected: Combinatorial explosion via Permutations or Combinations.")
+        # Explicit combinatorial logic mapping
+        if "n!" in global_t.lower():
+            parts.append("Pattern Detected: Combinatorial explosion via Recursive Permutations.")
 
         if parts:
             return "\n\nArchitectural Insights:\n" + "\n".join(f"- {p}" for p in parts)

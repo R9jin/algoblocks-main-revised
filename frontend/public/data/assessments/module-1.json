@@ -1,0 +1,186 @@
+{
+  "moduleId": "module-1",
+  "moduleTitle": "Foundations of Algorithm Analysis",
+  "questions": [
+    {
+      "id": "m1_q1",
+      "question": "What is algorithm efficiency?",
+      "options": [
+        "The visual neatness of the block arrangement in the workspace",
+        "A measure of how well an algorithm uses time and memory resources as input size grows",
+        "The number of lines of code written to solve a problem",
+        "Whether an algorithm produces the correct output for a single test case"
+      ],
+      "answer": 1,
+      "explanation": "Algorithm efficiency measures how an algorithm's time and space resource usage scales with increasing input size, independent of hardware."
+    },
+    {
+      "id": "m1_q2",
+      "question": "What is meant by best-case execution?",
+      "options": [
+        "The scenario where the algorithm uses the most memory",
+        "The scenario where the algorithm takes the longest time to complete",
+        "The most favorable input arrangement that minimizes the algorithm's execution steps",
+        "The average number of steps taken across all possible inputs"
+      ],
+      "answer": 2,
+      "explanation": "Best-case execution refers to the input that causes the algorithm to complete in the fewest possible steps — for example, finding a search target at the very first position."
+    },
+    {
+      "id": "m1_q3",
+      "question": "What is meant by worst-case execution?",
+      "options": [
+        "The input that causes the algorithm to crash or fail",
+        "The most unfavorable input that causes the algorithm to take the maximum number of steps",
+        "The scenario with the highest memory allocation",
+        "Any input where the algorithm returns an incorrect result"
+      ],
+      "answer": 1,
+      "explanation": "Worst-case execution is the upper bound on performance — the hardest possible input for the algorithm, such as searching for a target that doesn't exist in an array."
+    },
+    {
+      "id": "m1_q4",
+      "question": "What is Big-O notation?",
+      "options": [
+        "A notation system for writing Python functions",
+        "A visual chart showing algorithm block counts",
+        "A mathematical notation that describes the upper bound of an algorithm's growth rate as input size approaches infinity",
+        "A grading scale for measuring code readability"
+      ],
+      "answer": 2,
+      "explanation": "Big-O notation describes how an algorithm's resource usage grows in the worst case as n (input size) increases, abstracting away hardware and constant factors."
+    },
+    {
+      "id": "m1_q5",
+      "question": "Why does Big-O ignore hardware differences?",
+      "options": [
+        "Because hardware is always the same across all computers",
+        "Because Big-O focuses on the mathematical growth rate of the algorithm itself, which is independent of the machine running it",
+        "Because hardware does not affect how fast code runs",
+        "Because Big-O only applies to programs running in the cloud"
+      ],
+      "answer": 1,
+      "explanation": "Big-O strips away constant factors and hardware-specific speeds to focus purely on how the number of operations scales with n, making it a universal measure."
+    },
+    {
+      "id": "m1_q6",
+      "question": "What complexity class is O(log n)?",
+      "options": [
+        "Quadratic — grows quadratically with input size",
+        "Linear — grows proportionally with input size",
+        "Constant — does not grow with input size",
+        "Logarithmic — grows very slowly, halving the problem at each step"
+      ],
+      "answer": 3,
+      "explanation": "O(log n) is logarithmic complexity. Algorithms in this class typically cut the problem in half at each step, such as Binary Search."
+    },
+    {
+      "id": "m1_q7",
+      "question": "What complexity class is O(n²)?",
+      "options": [
+        "Linear — grows proportionally to input size",
+        "Logarithmic — grows slowly",
+        "Quadratic — grows proportional to the square of the input size",
+        "Exponential — doubles with each additional input"
+      ],
+      "answer": 2,
+      "explanation": "O(n²) is quadratic complexity, typically caused by nested loops where the outer and inner loops each iterate n times."
+    },
+    {
+      "id": "m1_q8",
+      "question": "Which is faster: O(1) or O(n)?",
+      "options": [
+        "O(n), because it processes more elements",
+        "They are equal for all input sizes",
+        "O(1), because it executes in constant time regardless of input size",
+        "It depends entirely on the hardware being used"
+      ],
+      "answer": 2,
+      "explanation": "O(1) is always faster in terms of growth rate because it never increases with n, while O(n) grows linearly as input size increases."
+    },
+    {
+      "id": "m1_q9",
+      "question": "Which is slower: O(n log n) or O(n²)?",
+      "options": [
+        "O(n log n), because logarithms are slow",
+        "They are always equal",
+        "O(n²), because it grows much faster for large values of n",
+        "It cannot be determined without knowing the exact input"
+      ],
+      "answer": 2,
+      "explanation": "O(n²) is significantly slower than O(n log n) for large inputs. For example, at n=1000, O(n²) = 1,000,000 operations vs O(n log n) ≈ 10,000."
+    },
+    {
+      "id": "m1_q10",
+      "question": "What does space complexity measure?",
+      "options": [
+        "The physical disk space needed to install the program",
+        "The number of blocks in the workspace",
+        "The amount of memory (RAM) an algorithm uses as a function of input size",
+        "The time taken to allocate variables at program startup"
+      ],
+      "answer": 2,
+      "explanation": "Space complexity measures how much memory an algorithm requires relative to its input size, including variables, data structures, and call stack frames."
+    },
+    {
+      "id": "m1_q11",
+      "question": "Does faster execution always result in lower memory usage?",
+      "options": [
+        "Yes, faster algorithms always use less memory",
+        "No, there is often a time-space tradeoff where using more memory can speed up execution, and vice versa",
+        "Yes, because the CPU handles both time and memory the same way",
+        "No, but memory usage is always irrelevant to algorithm design"
+      ],
+      "answer": 1,
+      "explanation": "There is a common time-space tradeoff: using additional memory (like a cache or lookup table) can dramatically reduce execution time, but at the cost of higher memory usage."
+    },
+    {
+      "id": "m1_q12",
+      "question": "How does array allocation affect space complexity?",
+      "options": [
+        "It has no effect on space complexity",
+        "Allocating an array of size n adds O(n) to the space complexity",
+        "Arrays always use O(1) space regardless of their size",
+        "Array allocation only affects time complexity, not space"
+      ],
+      "answer": 1,
+      "explanation": "Each element in an array requires memory, so allocating an array of size n contributes O(n) to the algorithm's space complexity."
+    },
+    {
+      "id": "m1_q13",
+      "question": "How does deep recursion affect space complexity?",
+      "options": [
+        "It has no impact because recursion is handled by the CPU automatically",
+        "It reduces space complexity by reusing the same memory frame",
+        "Each recursive call adds a new stack frame, increasing space complexity proportional to the recursion depth",
+        "Deep recursion only affects time complexity, not space complexity"
+      ],
+      "answer": 2,
+      "explanation": "Every recursive call creates a new stack frame on the call stack. For a recursion depth of n, this adds O(n) space complexity even if no other data structures are used."
+    },
+    {
+      "id": "m1_q14",
+      "question": "What is a computational bottleneck?",
+      "options": [
+        "A syntax error that prevents the program from compiling",
+        "The part of an algorithm with the highest complexity that dominates overall performance",
+        "A hardware limitation that slows down all programs equally",
+        "A loop that executes exactly once"
+      ],
+      "answer": 1,
+      "explanation": "A computational bottleneck is the section of code with the highest time or space complexity — it dominates the algorithm's overall Big-O rating and is the primary target for optimization."
+    },
+    {
+      "id": "m1_q15",
+      "question": "What defines algorithmic scalability?",
+      "options": [
+        "Whether the algorithm can be rewritten in a different programming language",
+        "The number of programmers needed to maintain the algorithm",
+        "How well an algorithm maintains acceptable performance as input size increases significantly",
+        "Whether the algorithm uses loops or recursive functions"
+      ],
+      "answer": 2,
+      "explanation": "Scalability refers to how an algorithm performs as n grows large. A scalable algorithm (e.g., O(n log n)) remains practical at large input sizes, while an unscalable one (e.g., O(2ⁿ)) becomes infeasible quickly."
+    }
+  ]
+}
