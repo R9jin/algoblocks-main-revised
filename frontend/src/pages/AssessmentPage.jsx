@@ -1,6 +1,6 @@
 // frontend/src/pages/AssessmentPage.jsx
 import { useEffect, useRef, useState } from "react";
-import { FiChevronLeft, FiChevronRight, FiCheck, FiX, FiAward, FiSave } from "react-icons/fi";
+import { FiAward, FiCheck, FiChevronLeft, FiChevronRight, FiSave, FiX } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import "../styles/AssessmentPage.css";
@@ -8,10 +8,14 @@ import "../styles/AssessmentPage.css";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
+const getUserEmail = () => {
+  try { return JSON.parse(localStorage.getItem("user") || "{}").email || "guest"; } 
+  catch { return "guest"; }
+};
+
 // Draft key: stores in-progress answers, question order, and elapsed time.
-// Separate from the final submitted result so they don't collide.
-const getDraftKey = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
-const getResultKey = (moduleId, type) => `algoblocks_result_${moduleId}_${type}`;
+const getDraftKey = (moduleId, type) => `algoblocks_draft_${getUserEmail()}_${moduleId}_${type}`;
+const getResultKey = (moduleId, type) => `algoblocks_result_${getUserEmail()}_${moduleId}_${type}`;
 
 function saveDraft(moduleId, type, payload) {
   try {
@@ -23,7 +27,18 @@ function saveDraft(moduleId, type, payload) {
 
 function loadDraft(moduleId, type) {
   try {
-    const raw = localStorage.getItem(getDraftKey(moduleId, type));
+    const scopedKey = getDraftKey(moduleId, type);
+    const unScopedKey = `algoblocks_draft_${moduleId}_${type}`;
+    let raw = localStorage.getItem(scopedKey);
+    
+    // Migrate old unscoped draft if it exists
+    if (!raw) {
+        raw = localStorage.getItem(unScopedKey);
+        if (raw) {
+            localStorage.setItem(scopedKey, raw);
+            localStorage.removeItem(unScopedKey);
+        }
+    }
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -41,7 +56,7 @@ function clearDraft(moduleId, type) {
 function saveResult(moduleId, type, result) {
   try {
     localStorage.setItem(getResultKey(moduleId, type), JSON.stringify(result));
-    // Also persist into the user object so LearningPath can read it
+    // Also persist into the user object so LearningPath can read it immediately
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const assessments = user.assessments || {};
     assessments[`${moduleId}_${type}_assessment`] = result;
@@ -54,7 +69,18 @@ function saveResult(moduleId, type, result) {
 
 function loadResult(moduleId, type) {
   try {
-    const raw = localStorage.getItem(getResultKey(moduleId, type));
+    const scopedKey = getResultKey(moduleId, type);
+    const unScopedKey = `algoblocks_result_${moduleId}_${type}`;
+    let raw = localStorage.getItem(scopedKey);
+    
+    // Migrate old unscoped result if it exists
+    if (!raw) {
+        raw = localStorage.getItem(unScopedKey);
+        if (raw) {
+            localStorage.setItem(scopedKey, raw);
+            localStorage.removeItem(unScopedKey);
+        }
+    }
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -167,9 +193,6 @@ export default function AssessmentPage() {
 
     return () => clearInterval(autoSaveRef.current);
   }, [submitted, loading, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type]);
-
-  // ── 3. Save draft immediately on every answer selection ────────────────────
-  // (handled directly inside handleSelectAnswer — no effect needed)
 
   // ── 4. Timer ────────────────────────────────────────────────────────────────
   useEffect(() => {

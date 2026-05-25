@@ -5,13 +5,13 @@ import {
   FiChevronDown,
   FiChevronRight,
   FiCircle,
+  FiClipboard,
   FiDatabase,
   FiFilter,
   FiLock,
   FiRefreshCw,
   FiShare2,
   FiUsers,
-  FiClipboard,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -19,15 +19,15 @@ import curriculumIndex from "../data/curriculumIndex";
 
 import "../styles/LearningPath.css";
 
-// Module icon mapping with colors
+// ✅ ADDED: Difficulty and Prerequisites to support the Hub-and-Spoke semi-linear model
 const moduleIcons = {
-  "module-0": { icon: FiUsers, color: "#7c5cff", description: "Learn the fundamentals of AlgoBlocks." },
-  "module-1": { icon: FiUsers, color: "#6366f1", description: "Understand Big-O notation and complexity analysis." },
-  "module-2": { icon: FiDatabase, color: "#22c55e", description: "Master brute force and exhaustive search strategies." },
-  "module-3": { icon: FiFilter, color: "#f97316", description: "Learn divide and conquer algorithm design." },
-  "module-4": { icon: FiFilter, color: "#a855f7", description: "Explore greedy algorithm strategies." },
-  "module-5": { icon: FiShare2, color: "#3b82f6", description: "Master dynamic programming techniques." },
-  "module-6": { icon: FiRefreshCw, color: "#ec4899", description: "Solve problems using backtracking." },
+  "module-0": { icon: FiUsers, color: "#7c5cff", difficulty: "Beginner", description: "Learn the fundamentals of AlgoBlocks." },
+  "module-1": { icon: FiUsers, color: "#6366f1", difficulty: "Beginner", description: "Understand Big-O notation and complexity analysis." },
+  "module-2": { icon: FiDatabase, color: "#22c55e", difficulty: "Intermediate", prereq: "Module 1", description: "Master brute force and exhaustive search strategies." },
+  "module-3": { icon: FiFilter, color: "#f97316", difficulty: "Intermediate", prereq: "Module 1", description: "Learn divide and conquer algorithm design." },
+  "module-4": { icon: FiFilter, color: "#a855f7", difficulty: "Intermediate", prereq: "Module 1", description: "Explore greedy algorithm strategies." },
+  "module-5": { icon: FiShare2, color: "#3b82f6", difficulty: "Advanced", prereq: "Module 3", description: "Master dynamic programming techniques." },
+  "module-6": { icon: FiRefreshCw, color: "#ec4899", difficulty: "Advanced", prereq: "Module 3", description: "Solve problems using backtracking." },
 };
 
 // Last lesson per module — determines when post-assessment unlocks
@@ -100,28 +100,21 @@ export default function LearningPath() {
 
   // ── Assessment helpers ────────────────────────────────────────────────────
 
-  /** True if the user has completed the pre-assessment for this module */
   const hasPreAssessment = (moduleId) => {
     const key = `${moduleId}_pre_assessment`;
     return assessments[key] !== undefined;
   };
 
-  /** True if the user has completed the post-assessment for this module */
   const hasPostAssessment = (moduleId) => {
     const key = `${moduleId}_post_assessment`;
     return assessments[key] !== undefined;
   };
 
-  /** Score label for display */
   const getAssessmentScore = (moduleId, type) => {
     const key = `${moduleId}_${type}_assessment`;
     return assessments[key]?.score ?? null;
   };
 
-  /**
-   * True if all lessons in the module are completed — this gates the post-assessment.
-   * A lesson is "complete" if it has no activity (just reading counts), or its activity progress >= 1.
-   */
   const isModuleComplete = (moduleId) => {
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
@@ -134,21 +127,18 @@ export default function LearningPath() {
   };
 
   // ── Lesson lock computation ────────────────────────────────────────────────
-  // A lesson is locked if:
-  //   (a) The module's pre-assessment hasn't been taken yet, OR
-  //   (b) The previous lesson had an activity and hasn't been passed
+  // This explicitly isolates locks per module.
   const buildLockMap = () => {
     const lockMap = {};
 
     for (const module of curriculumIndex) {
       const preComplete = hasPreAssessment(module.moduleId);
-      let isNextLocked = !preComplete; // ALL lessons locked until pre-assessment is done
+      let isNextLocked = !preComplete; // Resets for each module!
 
       for (const lesson of module.lessons) {
         lockMap[lesson.lessonId] = isNextLocked;
 
         if (!isNextLocked) {
-          // Activity-based gate (only after pre is done)
           const details = lessonDetails[lesson.lessonId];
           const firstActivityId = details?.activities?.[0]?.id;
           const prog = userProgress[lesson.lessonId] || 0;
@@ -173,7 +163,7 @@ export default function LearningPath() {
           <h1>Learning Path</h1>
           <p>
             Explore algorithm concepts through structured lessons, virtual explanations,
-            and interactive learning experiences.
+            and interactive learning experiences. Jump into the topic that interests you most!
           </p>
         </div>
 
@@ -198,25 +188,49 @@ export default function LearningPath() {
                 >
                   <div
                     className="module-card-icon"
-                    style={{ backgroundColor: `${iconConfig?.color}15` }}
+                    style={{ backgroundColor: `${iconConfig?.color || '#7c5cff'}15` }}
                   >
-                    <IconComponent size={32} color={iconConfig?.color} />
+                    <IconComponent size={32} color={iconConfig?.color || '#7c5cff'} />
                   </div>
 
                   <div className="module-card-content">
-                    <div className="module-card-header">
-                      <div>
-                        <h3 className="module-card-title">
-                          Module {moduleNum}: {module.title}
-                        </h3>
-                        <p className="module-card-description">
+                    <div className="module-card-header" style={{ alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                          <h3 className="module-card-title" style={{ margin: 0 }}>
+                            Module {moduleNum}: {module.title}
+                          </h3>
+                          
+                          {/* ✅ ADDED: Beautifully styled UI Tags for Semi-Linear Guidance */}
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {iconConfig?.difficulty && (
+                                <span style={{ 
+                                  fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px',
+                                  backgroundColor: iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)",
+                                  color: iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899"
+                                }}>
+                                  {iconConfig.difficulty}
+                                </span>
+                            )}
+                            {iconConfig?.prereq && (
+                              <span style={{ 
+                                fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', backgroundColor: 'rgba(100, 116, 139, 0.1)', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' 
+                              }}>
+                                Req: {iconConfig.prereq}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="module-card-description" style={{ marginTop: 0 }}>
                           {iconConfig?.description || module.title}
                         </p>
                       </div>
                       <FiChevronDown
                         size={24}
-                        color="#7c5cff"
+                        color={iconConfig?.color || "#7c5cff"}
                         className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
+                        style={{ marginTop: '4px' }}
                       />
                     </div>
                   </div>
