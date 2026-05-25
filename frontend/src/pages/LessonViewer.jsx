@@ -1,19 +1,91 @@
 import { useEffect, useState } from "react";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import {
+  FiBarChart2,
+  FiBookOpen,
+  FiChevronLeft,
+  FiChevronRight,
+  FiCircle,
+  FiClock,
+  FiTarget,
+} from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
+import BigOChart from "../components/BigOChart";
+import CodeSnippet from "../components/CodeSnippet";
 import curriculumIndex from "../data/curriculumIndex";
 import "../styles/LessonViewer.css";
+
+function renderParagraphs(content, className = "lesson-section-content") {
+  if (!content) {
+    return null;
+  }
+
+  return (
+    <div className={className}>
+      {content.split("\n\n").map((paragraph, index) => (
+        <p key={index}>{paragraph}</p>
+      ))}
+    </div>
+  );
+}
+
+function renderBullets(items) {
+  if (!items?.length) {
+    return null;
+  }
+
+  return (
+    <ul className="lesson-bullet-list">
+      {items.map((item, index) => (
+        <li key={index}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
+function renderCodeSnippets(snippets) {
+  if (!snippets?.length) {
+    return null;
+  }
+
+  return (
+    <div className="lesson-code-snippets">
+      {snippets.map((snippet, index) => (
+        <CodeSnippet key={`${snippet.title || "snippet"}-${index}`} snippet={snippet} />
+      ))}
+    </div>
+  );
+}
+
+function renderChart(chart) {
+  if (!chart) {
+    return null;
+  }
+
+  return (
+    <figure className="lesson-chart-panel">
+      {(chart.title || chart.description) && (
+        <figcaption>
+          {chart.title && <strong>{chart.title}</strong>}
+          {chart.description && <span>{chart.description}</span>}
+        </figcaption>
+      )}
+      <BigOChart
+        maxN={chart.maxN}
+        curves={chart.curves}
+        normalize={chart.normalize}
+      />
+    </figure>
+  );
+}
 
 export default function LessonViewer() {
   const { moduleId, lessonId } = useParams();
   const navigate = useNavigate();
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
-  // Keep the current module expanded in the sidebar by default.
   const [expandedModules, setExpandedModules] = useState(new Set([moduleId]));
 
   useEffect(() => {
-    // Load lesson JSON metadata for the selected module and lesson.
     const loadLesson = async () => {
       try {
         const module = curriculumIndex.find((m) => m.moduleId === moduleId);
@@ -28,14 +100,13 @@ export default function LessonViewer() {
           return;
         }
 
-        // FIX: Force the correct path to point to the public/data/curriculum folder
         const fetchPath = `/data/curriculum/${moduleId}/${lessonId}.json`;
         const response = await fetch(fetchPath);
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch lesson: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setLesson(data);
       } catch (error) {
@@ -53,7 +124,6 @@ export default function LessonViewer() {
     if (newExpanded.has(mId)) {
       newExpanded.delete(mId);
     } else {
-      // toggleModule: update sidebar expansion state using a new Set each time
       newExpanded.add(mId);
     }
     setExpandedModules(newExpanded);
@@ -68,19 +138,12 @@ export default function LessonViewer() {
   }
 
   const currentModule = curriculumIndex.find((m) => m.moduleId === moduleId);
-  const currentLessonIndex = currentModule?.lessons.findIndex(
-    (l) => l.lessonId === lessonId
-  );
-  
-  // Extract module and lesson numbers
   const moduleNum = moduleId.split("-").pop();
   const lessonNum = lessonId.split("-").pop();
 
   return (
     <div className="lesson-viewer-wrapper">
-      {/* Left Sidebar with Modules Navigation */}
       <aside className="lesson-modules-sidebar">
-        {/* Back to Dashboard */}
         <div className="sidebar-header">
           <button
             className="back-button"
@@ -95,7 +158,7 @@ export default function LessonViewer() {
         </div>
 
         <nav className="modules-nav">
-          {curriculumIndex.map((module, modIdx) => {
+          {curriculumIndex.map((module) => {
             const modNumber = module.moduleId.split("-").pop();
             const isExpanded = expandedModules.has(module.moduleId);
 
@@ -106,18 +169,18 @@ export default function LessonViewer() {
                   onClick={() => toggleModule(module.moduleId)}
                 >
                   <span className="module-info">
-                    <span className="module-icon">📚</span>
+                    <FiBookOpen className="module-icon" />
                     <span>
                       <span className="module-number">Module {modNumber}</span>
                       <span className="module-name">{module.title}</span>
                     </span>
                   </span>
-                  <span className="expand-icon">▼</span>
+                  <span className="expand-icon">v</span>
                 </button>
 
                 {isExpanded && (
                   <div className="lessons-list">
-                    {module.lessons.map((lessonItem, lesIdx) => {
+                    {module.lessons.map((lessonItem) => {
                       const lesNumber = lessonItem.lessonId.split("-").pop();
                       const isActive = lessonId === lessonItem.lessonId;
 
@@ -140,7 +203,7 @@ export default function LessonViewer() {
                             {lessonItem.title}
                           </span>
                           <span className="lesson-indicator">
-                            {isActive ? "●" : "○"}
+                            <FiCircle aria-hidden="true" />
                           </span>
                         </a>
                       );
@@ -153,13 +216,14 @@ export default function LessonViewer() {
         </nav>
       </aside>
 
-      {/* Main Content Area */}
       <main className="lesson-viewer-container">
         <div className="lesson-top-nav">
           <div className="breadcrumb">
             <a href="/learning-path">Learning Path</a>
             <FiChevronRight className="breadcrumb-icon" />
-            <span>Module {moduleNum}: {currentModule?.title}</span>
+            <span>
+              Module {moduleNum}: {currentModule?.title}
+            </span>
             <FiChevronRight className="breadcrumb-icon" />
             <span className="breadcrumb-current">
               Lesson {moduleNum}.{lessonNum}: {lesson.title}
@@ -174,39 +238,53 @@ export default function LessonViewer() {
             <p>{lesson.description}</p>
             <div className="lesson-meta-grid">
               <div className="lesson-meta-card">
-                <div className="meta-icon">⏱️</div>
+                <FiClock className="meta-icon" />
                 <span>Estimated Time</span>
                 <strong>{lesson.estimatedTime}</strong>
               </div>
               <div className="lesson-meta-card">
-                <div className="meta-icon">📊</div>
+                <FiBarChart2 className="meta-icon" />
                 <span>Difficulty</span>
                 <strong>{lesson.difficulty}</strong>
               </div>
               <div className="lesson-meta-card">
-                <div className="meta-icon">🎯</div>
+                <FiTarget className="meta-icon" />
                 <span>Prerequisites</span>
                 <strong>{lesson.prerequisites}</strong>
               </div>
             </div>
           </div>
 
-          {lesson.sections?.map((section) => (
-            <section
-              key={section.id}
-              id={section.id}
-              className={`lesson-section ${section.type}`}
-            >
-              <h2>{section.title}</h2>
-              <div className="lesson-section-content">
-                {section.content
-                  .split("\\n\\n")
-                  .map((paragraph, index) => (
-                    <p key={index}>{paragraph}</p>
-                  ))}
-              </div>
-            </section>
-          ))}
+          <article className="lesson-article">
+            {lesson.sections?.map((section) => (
+              <section
+                key={section.id}
+                id={section.id}
+                className={`lesson-section ${section.type}`}
+              >
+                <h2>{section.title}</h2>
+                {renderParagraphs(section.content)}
+                {renderBullets(section.bullets)}
+                {renderChart(section.chart)}
+                {renderCodeSnippets(section.codeSnippets)}
+                {section.subsections?.map((subsection) => (
+                  <div
+                    key={subsection.id || subsection.title}
+                    className="lesson-subsection"
+                  >
+                    <h3>{subsection.title}</h3>
+                    {renderParagraphs(
+                      subsection.content,
+                      "lesson-subsection-content"
+                    )}
+                    {renderBullets(subsection.bullets)}
+                    {renderChart(subsection.chart)}
+                    {renderCodeSnippets(subsection.codeSnippets)}
+                  </div>
+                ))}
+              </section>
+            ))}
+          </article>
 
           {lesson.references?.length > 0 && (
             <div className="lesson-resources">
