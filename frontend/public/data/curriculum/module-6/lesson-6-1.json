@@ -1,12 +1,17 @@
 {
   "lessonId": "lesson-6-1",
   "moduleId": "module-6",
-  "title": "State Trees",
-  "description": "Navigating decisions and building paths using the Choose, Explore, and Unchoose architectural pattern.",
-  "difficulty": "Advanced",
-  "estimatedTime": "40 min",
+  "title": "Backtracking Fundamentals",
+  "description": "Learn how backtracking systematically explores decision paths using recursion, rollback, and pruning to solve constraint-based problems.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "50 min",
   "prerequisites": "Longest Common Subsequence (LCS)",
-  "tags": ["backtracking", "search", "recursion", "optimization"],
+  "tags": [
+    "backtracking",
+    "recursion",
+    "constraint solving",
+    "state space search"
+  ],
   "activities": [
     { "id": "m6_l1_a1", "title": "The Choose Step" },
     { "id": "m6_l1_a2", "title": "The Unchoose Step" },
@@ -19,53 +24,203 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Some problems require exploring many possible solution paths before finding the correct answer.\n\nInstead of blindly checking every possibility, Backtracking improves efficiency by abandoning paths that cannot lead to valid solutions.\n\nThis strategy allows algorithms to systematically explore possibilities while undoing incorrect choices when necessary."
+      "content": "Backtracking is an algorithmic problem-solving technique used to systematically explore possible solutions.\n\nInstead of directly jumping to a final answer, the algorithm tries one possible choice, explores where that choice leads, undoes the choice if it fails, and then tries another path.\n\nThis recursive exploration continues until a valid solution is discovered or all possibilities have been exhausted.\n\nBacktracking is widely used in puzzles, pathfinding, scheduling, game-solving systems, and constraint-based optimization problems."
+    },
+    {
+      "id": "why-backtracking-matters",
+      "type": "concept",
+      "title": "Why Backtracking Matters",
+      "content": "Many computational problems involve exploring multiple possible decisions.\n\nExamples include maze solving, Sudoku solving, route exploration, permutations, password generation, and N-Queens placement.\n\nThese problems often contain enormous search spaces where many possible paths eventually fail.\n\nBacktracking provides a systematic way to explore possibilities while rejecting impossible paths early.",
+      "bullets": [
+        "Systematically explores decision paths.",
+        "Supports recursive constraint solving.",
+        "Prunes impossible paths early.",
+        "Widely used in intelligent search systems."
+      ]
     },
     {
       "id": "core-idea",
       "type": "concept",
-      "title": "The Core Idea of Backtracking",
-      "content": "Backtracking builds solutions step-by-step.\n\nAt every stage, the algorithm chooses a possible option and continues exploring deeper.\n\nIf the current path becomes invalid or impossible, the algorithm reverses its previous decision and tries a different path instead."
+      "title": "Core Idea of Backtracking",
+      "content": "The central idea of backtracking is:\n\nTry a choice. If it fails, undo it and try another.\n\nThe algorithm repeatedly:\n1. chooses a possible option\n2. explores recursively\n3. checks whether constraints are violated\n4. backtracks if the path becomes invalid\n\nThis creates systematic recursive trial-and-error exploration."
     },
     {
-      "id": "rollback-mechanism",
+      "id": "state-space-exploration",
+      "type": "deep_dive",
+      "title": "Understanding State Space Exploration",
+      "content": "Backtracking problems are often represented using a state space tree.\n\nEach node represents a partial solution, a current decision state, or an exploration path.\n\nThe algorithm explores one branch at a time using recursion.\n\nIf a branch fails, the algorithm returns upward and explores another branch.\n\nThis process is called backtracking."
+    },
+    {
+      "id": "rollback",
       "type": "deep_dive",
       "title": "Understanding Rollback",
-      "content": "Rollback is one of the most important features of Backtracking.\n\nWhen the algorithm discovers that the current path cannot produce a valid solution, it removes the most recent choice and returns to an earlier state.\n\nThis process prevents unnecessary exploration of impossible paths and improves efficiency significantly."
+      "content": "Rollback is one of the most important concepts in backtracking.\n\nSuppose we place a queen on a chessboard. Later, we discover that the placement causes conflicts.\n\nThe algorithm must remove the queen, restore the previous board state, and try another placement.\n\nThis undo operation is called rollback.\n\nBacktracking constantly performs:\n● make choice\n● explore deeper\n● undo choice\n● try another branch"
     },
     {
-      "id": "search-tree",
+      "id": "backtracking-vs-bruteforce",
       "type": "concept",
-      "title": "The Search Tree",
-      "content": "Backtracking problems are often visualized as search trees.\n\nEach node represents a decision, while branches represent possible choices.\n\nThe algorithm systematically explores branches until it either finds a valid solution or determines that a branch should be abandoned."
+      "title": "Backtracking vs Brute Force",
+      "content": "Brute-force algorithms blindly explore every possible solution completely.\n\nBacktracking improves this process by detecting invalid states early and immediately abandoning impossible branches.\n\nThis early rejection process is called pruning.\n\nPruning dramatically reduces unnecessary recursive exploration."
     },
     {
-      "id": "real-world-example",
-      "type": "analogy",
-      "title": "Maze Exploration Analogy",
-      "content": "Imagine navigating a maze.\n\nWhenever you encounter a dead end, you return to the previous intersection and try another direction.\n\nThis process of exploring, failing, reversing, and retrying mirrors how Backtracking algorithms operate."
+      "id": "pruning",
+      "type": "deep_dive",
+      "title": "Understanding Pruning",
+      "content": "Pruning means stopping exploration of impossible paths early.\n\nSuppose we are solving a maze.\n\nIf a path reaches a wall or revisits an invalid position, the algorithm immediately stops exploring that branch.\n\nThis prevents useless recursive exploration and improves practical efficiency.\n\nEfficient pruning is one of the main reasons backtracking becomes useful in large search problems."
     },
     {
-      "id": "real-world-connection",
+      "id": "workflow",
+      "type": "deep_dive",
+      "title": "Step-by-Step Backtracking Workflow",
+      "content": "General backtracking execution follows a repeated cycle:\n\nchoose option\n↓\nexplore recursively\n↓\nvalid?\n↓\nYES → continue deeper\nNO → undo choice\n↓\ntry next option\n\nThis recursive exploration continues until a valid solution is found or all possibilities are exhausted."
+    },
+    {
+      "id": "maze-example",
+      "type": "deep_dive",
+      "title": "Example — Maze Exploration",
+      "content": "Suppose we are navigating a maze.\n\nThe algorithm first moves in one direction and recursively continues exploration.\n\nIf a dead end is reached, the algorithm backtracks to the previous position and tries another direction.\n\nExample:\nStart\n↓\nRight\n↓\nDead End\n↓\nBacktrack\n↓\nTry Down\n\nThis demonstrates exploration with rollback."
+    },
+    {
+      "id": "role-of-recursion",
+      "type": "concept",
+      "title": "Role of Recursion in Backtracking",
+      "content": "Backtracking commonly relies on recursion.\n\nRecursion naturally supports branching decisions, depth-first exploration, and rollback behavior.\n\nEach recursive call represents a deeper exploration state.\n\nWhen recursion returns, the algorithm automatically backtracks to earlier decisions.\n\nThis makes recursion extremely suitable for systematic search problems."
+    },
+    {
+      "id": "recursive-tree",
+      "type": "deep_dive",
+      "title": "Recursive Exploration Tree",
+      "content": "Backtracking problems naturally form recursive branching trees.\n\nExample:\nstart\n├── choice A\n│   ├── choice A1\n│   └── choice A2\n└── choice B\n\nEach branch represents another possible exploration path.\n\nInvalid branches are pruned immediately while valid branches continue recursively."
+    },
+    {
+      "id": "general-pseudocode",
+      "type": "concept",
+      "title": "General Backtracking Pseudocode",
+      "content": "Most backtracking algorithms follow a similar structure.",
+      "codeSnippets": [
+        {
+          "title": "General backtracking pseudocode",
+          "language": "python",
+          "code": "def backtrack(current_state):\n    if solution_found:\n        save_solution()\n        return\n\n    for choice in possible_choices:\n        make_choice(choice)\n\n        if valid(choice):\n            backtrack(next_state)\n\n        undo_choice(choice)"
+        }
+      ]
+    },
+    {
+      "id": "python-example",
+      "type": "concept",
+      "title": "Python Backtracking Example",
+      "content": "Simple subset generation demonstrates recursive branching and rollback clearly.",
+      "codeSnippets": [
+        {
+          "title": "Subset generation using backtracking",
+          "language": "python",
+          "code": "def backtrack(start, path):\n    print(path)\n\n    for i in range(start, 4):\n        path.append(i)\n        backtrack(i + 1, path)\n        path.pop()\n\nbacktrack(1, [])"
+        },
+        {
+          "title": "Rollback demonstration",
+          "language": "python",
+          "code": "path = [1, 2, 3]\n\nprint(path)\npath.pop()\nprint(path)"
+        },
+        {
+          "title": "Simple recursive branching",
+          "language": "python",
+          "code": "def explore(level):\n    if level == 3:\n        return\n\n    print('Level:', level)\n\n    explore(level + 1)\n\nexplore(0)"
+        }
+      ]
+    },
+    {
+      "id": "rollback-code",
+      "type": "concept",
+      "title": "Understanding Rollback in Code",
+      "content": "The rollback step restores the previous recursive state.\n\nIn many backtracking programs, rollback appears as:\n\npath.pop()\n\nThis removes the most recent decision so another branch can be explored.\n\nWithout rollback, recursive states become corrupted."
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Backtracking problems often have exponential complexity because recursive branching creates enormous search spaces.\n\nExamples:\n\nPermutations → O(n!)\nSubsets → O(2^n)\nN-Queens → Exponential\nMaze Solving → Exponential worst case\n\nPruning significantly reduces practical runtime by eliminating impossible paths early.",
+      "chart": {
+        "title": "Backtracking complexity growth",
+        "description": "Recursive branching causes rapid search-space growth in backtracking problems, while pruning helps reduce unnecessary exploration.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(2^n)",
+          "O(n!)"
+        ]
+      }
+    },
+    {
+      "id": "common-problems",
+      "type": "concept",
+      "title": "Common Backtracking Problems",
+      "content": "Backtracking is commonly used in:\n\n● N-Queens Problem\n● Sudoku Solver\n● Rat in a Maze\n● Permutations\n● Subset Generation\n● Graph Coloring\n● Hamiltonian Paths\n\nThese problems involve recursive exploration under constraints."
+    },
+    {
+      "id": "backtracking-vs-dp",
+      "type": "concept",
+      "title": "Backtracking vs Dynamic Programming",
+      "content": "Backtracking focuses on exploring possible decision paths and constraint satisfaction.\n\nDynamic Programming focuses on avoiding repeated computation through stored subproblem results.\n\nBacktracking usually performs recursive trial-and-error exploration with rollback, while Dynamic Programming performs optimization through subproblem reuse."
+    },
+    {
+      "id": "real-world-applications",
       "type": "real_world_connection",
-      "title": "Backtracking in Real Applications",
-      "content": "Backtracking is widely used in puzzle solving, scheduling systems, artificial intelligence, game development, and constraint satisfaction problems.\n\nMany systems rely on Backtracking when multiple possible combinations must be explored efficiently."
+      "title": "Real-World Applications",
+      "content": "Backtracking appears in puzzle-solving systems, robotics pathfinding, game engines, AI search systems, scheduling platforms, cybersecurity testing, and route exploration systems.\n\nMany intelligent systems rely heavily on systematic recursive search."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "forgetting-rollback",
+          "title": "Mistake: Forgetting rollback operations",
+          "content": "Without undoing choices, recursive states become corrupted and exploration becomes invalid."
+        },
+        {
+          "id": "ignoring-pruning",
+          "title": "Mistake: Ignoring pruning conditions",
+          "content": "Efficient backtracking depends heavily on rejecting impossible paths early."
+        },
+        {
+          "id": "confusing-bruteforce",
+          "title": "Mistake: Confusing backtracking with brute force",
+          "content": "Backtracking prunes invalid branches early, while brute force explores every possibility blindly."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Backtracking systematically explores solution paths while undoing incorrect decisions through rollback. By abandoning impossible paths early, Backtracking improves efficiency compared to exhaustive brute force search."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Backtracking systematically explores possible solutions.",
+        "The algorithm tries choices and undoes them when necessary.",
+        "Rollback restores previous recursive states.",
+        "Pruning eliminates impossible branches early.",
+        "Recursion naturally supports backtracking exploration.",
+        "Backtracking is widely used in puzzles, pathfinding, and constraint-solving systems."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Backtracking Algorithm",
+      "title": "Programiz – Backtracking Algorithm",
       "url": "https://www.programiz.com/dsa/backtracking-algorithm"
     },
     {
-      "title": "GeeksforGeeks — Backtracking",
+      "title": "GeeksforGeeks – Backtracking Algorithms",
       "url": "https://www.geeksforgeeks.org/backtracking-algorithms/"
+    },
+    {
+      "title": "Wikipedia – Backtracking",
+      "url": "https://en.wikipedia.org/wiki/Backtracking"
+    },
+    {
+      "title": "Hello Algo – Backtracking",
+      "url": "https://www.hello-algo.com/en/chapter_backtracking/"
     }
   ]
 }

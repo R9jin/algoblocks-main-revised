@@ -2,9 +2,9 @@
   "lessonId": "lesson-3-3",
   "moduleId": "module-3",
   "title": "Merge Sort",
-  "description": "Learn how Merge Sort uses Divide and Conquer to sort data efficiently through recursive splitting and merging.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "35 min",
+  "description": "Learn how Merge Sort uses Divide and Conquer to recursively split arrays, merge sorted subarrays, and achieve efficient large-scale sorting.",
+  "difficulty": "Beginner",
+  "estimatedTime": "45 min",
   "prerequisites": "Binary Search",
   "tags": [
     "merge sort",
@@ -38,53 +38,206 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Simple sorting algorithms become inefficient when working with very large datasets.\n\nMerge Sort improves performance by using the Divide and Conquer paradigm to split large problems into smaller manageable parts.\n\nThis strategy allows Merge Sort to maintain efficient performance even as dataset size grows."
+      "content": "Merge Sort is a sorting algorithm based on the Divide and Conquer strategy.\n\nInstead of sorting the entire array directly, Merge Sort repeatedly divides the array into smaller halves, recursively sorts each half, and merges the sorted halves back together.\n\nThe recursive splitting continues until every subarray contains only one element. Since a single element is already sorted, the algorithm then rebuilds the final sorted array through repeated merging."
     },
     {
-      "id": "splitting-phase",
+      "id": "why-merge-sort-matters",
       "type": "concept",
-      "title": "Dividing the Array",
-      "content": "Merge Sort repeatedly divides the array into smaller halves.\n\nThe splitting process continues recursively until each subarray contains only one element.\n\nAt this point, each individual subarray is already considered sorted."
+      "title": "Why Merge Sort Matters",
+      "content": "Large systems constantly process enormous amounts of data. Search engines, databases, analytics systems, and recommendation platforms all rely heavily on efficient sorting.\n\nSimple sorting algorithms such as Bubble Sort become very slow for large datasets because repeated comparisons create quadratic growth. Merge Sort remains efficient because it repeatedly reduces problem size through recursive decomposition.",
+      "bullets": [
+        "It scales efficiently for large datasets.",
+        "It uses Divide and Conquer recursion.",
+        "It provides predictable performance.",
+        "It is considered a stable sorting algorithm."
+      ]
     },
     {
-      "id": "merging-phase",
+      "id": "core-idea",
+      "type": "concept",
+      "title": "Core Idea of Merge Sort",
+      "content": "Merge Sort follows three major phases: divide, conquer, and merge.\n\nThe divide phase repeatedly splits the array into smaller halves. The conquer phase recursively sorts the smaller subarrays. The merge phase combines sorted subarrays back together in the correct order.\n\nThe algorithm repeatedly reduces the workload until every subarray contains only one element."
+    },
+    {
+      "id": "three-phases",
       "type": "deep_dive",
-      "title": "Merging Sorted Subarrays",
-      "content": "After dividing the array, Merge Sort begins combining smaller sorted subarrays together.\n\nDuring the merge phase, elements are compared carefully to ensure the final combined array remains sorted.\n\nThis repeated merging process eventually produces one fully sorted collection."
+      "title": "The Three Phases",
+      "content": "Understanding Merge Sort requires understanding recursive splitting and reconstruction.",
+      "subsections": [
+        {
+          "id": "divide-phase",
+          "title": "Step 1 — Divide",
+          "content": "The array is repeatedly divided into smaller halves. For example, the array [8, 3, 5, 1] becomes [8, 3] and [5, 1], then continues dividing into individual elements."
+        },
+        {
+          "id": "conquer-phase",
+          "title": "Step 2 — Conquer",
+          "content": "Each smaller subarray is recursively sorted. A single element is already considered sorted, which becomes the base case of the recursion."
+        },
+        {
+          "id": "merge-phase",
+          "title": "Step 3 — Merge",
+          "content": "Sorted subarrays are combined back together in order. During merging, the algorithm repeatedly compares the smallest remaining elements from each subarray and inserts the smaller value first."
+        }
+      ]
     },
     {
-      "id": "stability",
+      "id": "recursive-splitting",
+      "type": "deep_dive",
+      "title": "Understanding Recursive Splitting",
+      "content": "Merge Sort repeatedly reduces the problem size through recursive decomposition.\n\nSuppose we start with 8 elements. The algorithm divides the array into 4 and 4, then 2 and 2, then finally individual elements.\n\nThis repeated reduction creates a recursion tree that shrinks logarithmically. Recursive decomposition is the reason Merge Sort belongs to Divide and Conquer algorithms.",
+      "chart": {
+        "title": "Merge Sort recursive reduction",
+        "description": "Merge Sort repeatedly divides arrays into smaller halves before rebuilding the final sorted result through merging.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(log n)",
+          "O(n)",
+          "O(n log n)"
+        ]
+      }
+    },
+    {
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Merge Example",
+      "content": "Suppose we sort the array [6, 2, 8, 1].\n\nThe array first divides into [6, 2] and [8, 1]. Each section divides again into individual elements: [6], [2], [8], and [1].\n\nThe algorithm then begins merging. [6] and [2] become [2, 6]. [8] and [1] become [1, 8]. Finally, [2, 6] and [1, 8] merge together into [1, 2, 6, 8].\n\nThe array becomes fully sorted through repeated merging."
+    },
+    {
+      "id": "why-merge-phase-matters",
+      "type": "concept",
+      "title": "Why the Merge Phase Matters",
+      "content": "The merge operation combines two already-sorted arrays into a larger sorted array.\n\nSuppose the algorithm merges [2, 6] and [1, 8]. The smallest remaining elements are repeatedly compared. The smaller value is inserted first, and the process continues until all elements are merged.\n\nEfficient merging is the central idea behind Merge Sort."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "Merge Sort implementations rely heavily on recursion, array splitting, and merging logic.",
+      "codeSnippets": [
+        {
+          "title": "Merge Sort implementation",
+          "language": "python",
+          "code": "def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n\n    mid = len(arr) // 2\n\n    left = merge_sort(arr[:mid])\n    right = merge_sort(arr[mid:])\n\n    return merge(left, right)\n\n\ndef merge(left, right):\n    result = []\n    i = 0\n    j = 0\n\n    while i < len(left) and j < len(right):\n        if left[i] < right[j]:\n            result.append(left[i])\n            i += 1\n        else:\n            result.append(right[j])\n            j += 1\n\n    result.extend(left[i:])\n    result.extend(right[j:])\n\n    return result\n\nprint(merge_sort([6, 2, 8, 1]))"
+        },
+        {
+          "title": "Merge two sorted arrays",
+          "language": "python",
+          "code": "def merge_arrays(left, right):\n    result = []\n    i = 0\n    j = 0\n\n    while i < len(left) and j < len(right):\n        if left[i] < right[j]:\n            result.append(left[i])\n            i += 1\n        else:\n            result.append(right[j])\n            j += 1\n\n    result.extend(left[i:])\n    result.extend(right[j:])\n\n    return result\n\nprint(merge_arrays([1, 4, 7], [2, 3, 8]))"
+        },
+        {
+          "title": "Recursive splitting demonstration",
+          "language": "python",
+          "code": "def split_array(arr):\n    print(arr)\n\n    if len(arr) <= 1:\n        return\n\n    mid = len(arr) // 2\n\n    split_array(arr[:mid])\n    split_array(arr[mid:])\n\nsplit_array([8, 3, 5, 1])"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Merge Sort achieves O(n log n) complexity in the best, average, and worst cases.\n\nThe recursive splitting creates log n levels, while each level processes all n elements during merging. Combining these behaviors produces O(n log n) efficiency.\n\nSpace complexity is O(n) because Merge Sort uses auxiliary arrays during the merge process."
+    },
+    {
+      "id": "extra-memory",
+      "type": "concept",
+      "title": "Why Merge Sort Uses Extra Memory",
+      "content": "Merge Sort temporarily stores left subarrays, right subarrays, and merged results during execution.\n\nUnlike in-place algorithms, Merge Sort requires additional memory while combining arrays.\n\nThis creates a tradeoff between excellent time efficiency and increased space usage."
+    },
+    {
+      "id": "stable-sorting",
       "type": "concept",
       "title": "Stable Sorting",
-      "content": "Merge Sort is considered a stable sorting algorithm.\n\nStable sorting means elements with equal values maintain their original relative order after sorting.\n\nThis property becomes important in systems that process multiple sorting conditions or structured datasets."
+      "content": "Merge Sort is considered a stable sorting algorithm.\n\nThis means equal elements preserve their original order after sorting. For example, if Alice and Bob both have score 90, Alice will still appear before Bob after sorting if Alice originally appeared first.\n\nStability becomes important in ranking systems, databases, and multi-condition sorting."
     },
     {
-      "id": "real-world-example",
-      "type": "analogy",
-      "title": "Organizing Papers Analogy",
-      "content": "Imagine sorting a large stack of papers.\n\nInstead of sorting the entire stack at once, you first divide the papers into smaller piles, organize each pile separately, and then combine the sorted piles together.\n\nThis mirrors how Merge Sort processes data."
+      "id": "merge-vs-bubble",
+      "type": "concept",
+      "title": "Merge Sort vs Bubble Sort",
+      "content": "Bubble Sort repeatedly swaps adjacent elements and produces O(n^2) behavior for large datasets. Merge Sort instead uses recursive decomposition and efficient merging to achieve O(n log n) performance.\n\nMerge Sort scales dramatically better for large inputs, although it requires additional memory during merging."
     },
     {
-      "id": "real-world-connection",
+      "id": "advantages-limitations",
+      "type": "concept",
+      "title": "Advantages and Limitations",
+      "subsections": [
+        {
+          "id": "advantages",
+          "title": "Advantages",
+          "bullets": [
+            "Efficient for large datasets.",
+            "Provides predictable O(n log n) performance.",
+            "Uses stable sorting behavior.",
+            "Demonstrates Divide and Conquer clearly."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "bullets": [
+            "Requires additional memory.",
+            "Recursive flow may confuse beginners.",
+            "Merging logic can become difficult initially.",
+            "Not always ideal for very small datasets."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "applications",
       "type": "real_world_connection",
-      "title": "Merge Sort in Real Systems",
-      "content": "Merge Sort is widely used in large-scale data processing systems because of its predictable efficiency.\n\nIt is especially useful for sorting linked structures, external storage data, and distributed datasets where stable sorting behavior is important."
+      "title": "Real-World Applications",
+      "content": "Merge Sort appears in database engines, distributed computing systems, large-scale analytics, external sorting systems, and parallel processing systems.\n\nIt is especially useful when stability matters or when extremely large datasets must be processed efficiently."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "division-sorts",
+          "title": "Mistake: Thinking Merge Sort sorts during division",
+          "content": "The division phase only breaks the array into smaller parts. Most sorting actually occurs during the merge phase."
+        },
+        {
+          "id": "ignoring-space",
+          "title": "Mistake: Ignoring auxiliary memory",
+          "content": "Merge Sort requires additional arrays during merging, which increases space complexity."
+        },
+        {
+          "id": "confusing-recursion",
+          "title": "Mistake: Confusing recursion flow",
+          "content": "Beginners often struggle understanding recursive calls, merge order, and return flow. Recursion trees help visualize the process."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Merge Sort uses Divide and Conquer to sort data efficiently by recursively splitting arrays and merging sorted subarrays together. Its stable behavior and logarithmic efficiency make it suitable for large-scale applications."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Merge Sort uses Divide and Conquer.",
+        "The algorithm recursively divides arrays into smaller halves.",
+        "Sorted subarrays are merged back together.",
+        "Merge Sort achieves O(n log n) efficiency.",
+        "Merge Sort is stable but requires extra memory.",
+        "Recursive decomposition is central to Merge Sort."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Merge Sort",
+      "title": "Programiz - Merge Sort",
       "url": "https://www.programiz.com/dsa/merge-sort"
     },
     {
-      "title": "GeeksforGeeks — Merge Sort",
+      "title": "GeeksforGeeks - Merge Sort",
       "url": "https://www.geeksforgeeks.org/merge-sort/"
+    },
+    {
+      "title": "VisuAlgo - Sorting Visualizations",
+      "url": "https://visualgo.net/en/sorting"
     }
   ]
 }

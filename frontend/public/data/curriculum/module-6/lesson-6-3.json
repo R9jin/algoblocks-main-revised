@@ -2,11 +2,16 @@
   "lessonId": "lesson-6-3",
   "moduleId": "module-6",
   "title": "N-Queens Problem",
-  "description": "Learn how Backtracking solves constraint-based placement problems using systematic search and pruning.",
-  "difficulty": "Advanced",
-  "estimatedTime": "45 min",
-  "prerequisites": "Permutations and Combinations",
-  "tags": ["n-queens", "backtracking", "constraints", "search"],
+  "description": "Learn how backtracking solves constraint satisfaction problems by placing queens systematically while pruning invalid chessboard states.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "60 min",
+  "prerequisites": "Permutations & Combinations",
+  "tags": [
+    "backtracking",
+    "n-queens",
+    "constraint solving",
+    "recursive search"
+  ],
   "activities": [
     { "id": "m6_l3_a1", "title": "Is Safe Row/Column" },
     { "id": "m6_l3_a2", "title": "Diagonal Safety Check" },
@@ -19,49 +24,191 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "The N-Queens Problem is one of the most famous Backtracking problems in computer science.\n\nThe objective is to place queens on a chessboard so that no queen attacks another.\n\nThis problem demonstrates how Backtracking systematically explores valid placements while rejecting impossible configurations early."
+      "content": "The N-Queens Problem is one of the most famous backtracking problems in computer science.\n\nThe objective is to place N queens on an N × N chessboard such that no two queens attack each other.\n\nQueens attack horizontally, vertically, and diagonally.\n\nThe challenge is finding valid placements while systematically avoiding conflicts.\n\nThe N-Queens Problem demonstrates recursive exploration, rollback operations, pruning, and constraint satisfaction extremely clearly."
     },
     {
-      "id": "problem-overview",
+      "id": "why-nqueens-matters",
       "type": "concept",
-      "title": "Understanding the N-Queens Problem",
-      "content": "Queens in chess can attack horizontally, vertically, and diagonally.\n\nThe challenge is to place N queens on an N × N chessboard while ensuring that no two queens threaten each other.\n\nAs board size increases, the number of possible arrangements grows rapidly."
+      "title": "Why the N-Queens Problem Matters",
+      "content": "The N-Queens Problem models many real-world constraint-solving situations.\n\nExamples include scheduling systems, resource allocation, puzzle solving, AI search systems, and optimization under restrictions.\n\nThe problem demonstrates how recursive search can systematically explore possibilities while rejecting invalid states early.",
+      "bullets": [
+        "Demonstrates recursive backtracking clearly.",
+        "Introduces constraint satisfaction problems.",
+        "Shows the importance of pruning.",
+        "Appears in AI and optimization systems."
+      ]
     },
     {
-      "id": "constraint-checking",
+      "id": "understanding-queen-movement",
       "type": "deep_dive",
-      "title": "Constraint Validation",
-      "content": "During exploration, the algorithm checks whether a queen placement violates any constraints.\n\nIf two queens attack each other, the current arrangement becomes invalid.\n\nThe algorithm immediately abandons invalid configurations and backtracks to try different placements."
+      "title": "Understanding Queen Movement",
+      "content": "In chess, a queen can attack:\n\n● horizontally\n● vertically\n● diagonally\n\nThis means two queens cannot share:\n● the same row\n● the same column\n● the same diagonal\n\nAny violation creates an invalid board state."
     },
     {
-      "id": "systematic-search",
+      "id": "problem-setup",
       "type": "deep_dive",
-      "title": "Systematic Recursive Exploration",
-      "content": "The algorithm places queens row-by-row.\n\nFor each row, it attempts every valid column position.\n\nIf no valid placement exists, the algorithm removes previously placed queens and revisits earlier decisions until a valid arrangement is discovered."
+      "title": "Problem Setup",
+      "content": "Suppose we solve the 4-Queens Problem.\n\nWe must place 4 queens on a 4 × 4 board.\n\nThe goal is ensuring every queen remains safe from attack.\n\nExample invalid placement:\nQ . . .\n. Q . .\n. . Q .\n. . . Q\n\nThis arrangement fails because all queens share the same diagonal."
     },
     {
-      "id": "why-backtracking-works",
+      "id": "core-backtracking-idea",
       "type": "concept",
-      "title": "Why Backtracking is Effective",
-      "content": "Backtracking reduces unnecessary exploration by rejecting invalid states immediately.\n\nInstead of evaluating every possible chessboard arrangement completely, the algorithm prunes impossible branches early.\n\nThis significantly improves efficiency compared to brute force enumeration."
+      "title": "Core Backtracking Idea",
+      "content": "The algorithm places queens row by row.\n\nFor each row:\n● try a column\n● check whether placement is safe\n● continue recursively if valid\n● backtrack if invalid\n\nThis repeated choose-explore-undo process systematically explores the board."
     },
     {
-      "id": "real-world-connection",
+      "id": "safe-placement",
+      "type": "deep_dive",
+      "title": "Understanding Safe Placement",
+      "content": "Before placing a queen, the algorithm checks:\n\n● Is another queen in the same column?\n● Is another queen on the upper-left diagonal?\n● Is another queen on the upper-right diagonal?\n\nIf any conflict exists, the placement becomes invalid.\n\nThe algorithm immediately rejects the position and tries another column."
+    },
+    {
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Exploration Example",
+      "content": "Suppose we solve the 4-Queens Problem.\n\nStep 1 — Place queen in row 0:\nQ . . .\n\nStep 2 — Explore row 1.\nSome columns become invalid because they are attacked.\n\nStep 3 — Place another queen safely:\nQ . . .\n. . Q .\n\nStep 4 — Continue recursively.\n\nIf no valid position exists in a later row, the algorithm backtracks by removing the most recent queen and trying another column."
+    },
+    {
+      "id": "rollback",
+      "type": "deep_dive",
+      "title": "Understanding Rollback",
+      "content": "Rollback is critical in the N-Queens Problem.\n\nSuppose the algorithm places queens successfully in rows 0, 1, and 2.\n\nLater, row 3 has no safe placement.\n\nThe algorithm must:\n● remove the queen from row 2\n● restore the previous board state\n● try another position\n\nThis undo process is called rollback."
+    },
+    {
+      "id": "recursive-tree",
+      "type": "deep_dive",
+      "title": "Recursive Search Tree",
+      "content": "The N-Queens Problem forms a recursive branching tree.\n\nExample:\nrow 0\n├── column 0\n│   ├── row 1 choices\n│   └── invalid branch\n├── column 1\n└── column 2\n\nEach branch represents another possible queen placement path.\n\nInvalid branches are pruned immediately."
+    },
+    {
+      "id": "why-pruning-important",
+      "type": "concept",
+      "title": "Why Pruning Is Important",
+      "content": "Without pruning, the algorithm would explore enormous numbers of impossible board states.\n\nConflict checking immediately eliminates invalid placements.\n\nThis dramatically reduces unnecessary recursive exploration.\n\nEfficient pruning is one reason backtracking becomes practical."
+    },
+    {
+      "id": "general-pseudocode",
+      "type": "concept",
+      "title": "General N-Queens Pseudocode",
+      "content": "Most N-Queens backtracking algorithms follow this structure.",
+      "codeSnippets": [
+        {
+          "title": "General N-Queens pseudocode",
+          "language": "python",
+          "code": "def solve(row):\n    if row == n:\n        save_solution()\n        return\n\n    for col in range(n):\n        if safe(row, col):\n            place_queen(row, col)\n\n            solve(row + 1)\n\n            remove_queen(row, col)"
+        }
+      ]
+    },
+    {
+      "id": "python-implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "N-Queens implementations commonly use recursive row exploration and safety checking.",
+      "codeSnippets": [
+        {
+          "title": "4-Queens backtracking implementation",
+          "language": "python",
+          "code": "n = 4\nboard = [[0 for _ in range(n)] for _ in range(n)]\n\ndef safe(row, col):\n    for i in range(row):\n        if board[i][col] == 1:\n            return False\n\n    i = row - 1\n    j = col - 1\n\n    while i >= 0 and j >= 0:\n        if board[i][j] == 1:\n            return False\n\n        i -= 1\n        j -= 1\n\n    i = row - 1\n    j = col + 1\n\n    while i >= 0 and j < n:\n        if board[i][j] == 1:\n            return False\n\n        i -= 1\n        j += 1\n\n    return True\n\n\ndef solve(row):\n    if row == n:\n        for r in board:\n            print(r)\n        print()\n        return\n\n    for col in range(n):\n        if safe(row, col):\n            board[row][col] = 1\n\n            solve(row + 1)\n\n            board[row][col] = 0\n\nsolve(0)"
+        },
+        {
+          "title": "Rollback demonstration",
+          "language": "python",
+          "code": "board = [1, 0, 1]\n\nprint(board)\nboard.pop()\nprint(board)"
+        },
+        {
+          "title": "Simple diagonal check",
+          "language": "python",
+          "code": "row1 = 0\ncol1 = 0\n\nrow2 = 1\ncol2 = 1\n\nif abs(row1 - row2) == abs(col1 - col2):\n    print('Diagonal conflict')"
+        }
+      ]
+    },
+    {
+      "id": "board-representation",
+      "type": "concept",
+      "title": "Board Representation",
+      "content": "The chessboard is commonly represented using a 2D matrix.\n\nExample:\n1 → queen exists\n0 → empty cell\n\nExample board:\n[0, 1, 0, 0]\n[0, 0, 0, 1]\n[1, 0, 0, 0]\n[0, 0, 1, 0]\n\nThis representation allows easy conflict checking."
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "The N-Queens Problem commonly has exponential or factorial-style complexity because recursive branching creates enormous search spaces.\n\nEach row may explore multiple column possibilities.\n\nWorst-case complexity grows approximately toward O(n!).\n\nPruning dramatically reduces practical runtime by rejecting invalid branches early.",
+      "chart": {
+        "title": "N-Queens recursive growth",
+        "description": "Recursive branching causes rapid growth in the N-Queens search space, while pruning reduces unnecessary exploration.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(2^n)",
+          "O(n!)"
+        ]
+      }
+    },
+    {
+      "id": "nqueens-vs-bruteforce",
+      "type": "concept",
+      "title": "Backtracking vs Brute Force",
+      "content": "A brute-force solution would blindly test all possible queen placements.\n\nBacktracking improves this process by rejecting conflicts immediately.\n\nPruning invalid states dramatically reduces unnecessary exploration.\n\nThis makes backtracking far more practical for constraint-solving problems."
+    },
+    {
+      "id": "real-world-applications",
       "type": "real_world_connection",
-      "title": "Constraint Problems in Real Systems",
-      "content": "Constraint satisfaction problems appear in scheduling systems, resource allocation, robotics, artificial intelligence, and network configuration.\n\nMany optimization systems rely on Backtracking to search for valid configurations efficiently."
+      "title": "Real-World Applications",
+      "content": "N-Queens-style constraint solving appears in scheduling systems, robotics movement planning, AI search systems, resource allocation, puzzle solving, compiler optimization, and network configuration systems.\n\nMany intelligent systems rely heavily on recursive constraint exploration."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "forgetting-rollback",
+          "title": "Mistake: Forgetting rollback operations",
+          "content": "Without removing queens after recursion, the board state becomes corrupted."
+        },
+        {
+          "id": "partial-checks",
+          "title": "Mistake: Incomplete conflict checking",
+          "content": "The algorithm must check columns and both diagonals carefully."
+        },
+        {
+          "id": "confusing-pruning",
+          "title": "Mistake: Thinking backtracking explores every possibility fully",
+          "content": "Backtracking aggressively prunes invalid branches early."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "The N-Queens Problem demonstrates how Backtracking solves constraint-based placement challenges efficiently through recursive exploration, rollback, and pruning of invalid configurations."
+      "title": "Key Takeaways",
+      "bullets": [
+        "The N-Queens Problem places queens safely on a chessboard.",
+        "Queens cannot share rows, columns, or diagonals.",
+        "Backtracking explores placements recursively.",
+        "Rollback restores previous board states.",
+        "Pruning eliminates invalid placements early.",
+        "N-Queens demonstrates recursive constraint solving clearly."
+      ]
     }
   ],
   "references": [
     {
-      "title": "GeeksforGeeks — N Queen Problem",
+      "title": "Programiz – N Queen Problem",
+      "url": "https://www.programiz.com/dsa/n-queen-problem"
+    },
+    {
+      "title": "GeeksforGeeks – N Queen Problem",
       "url": "https://www.geeksforgeeks.org/n-queen-problem-backtracking-3/"
+    },
+    {
+      "title": "Wikipedia – Eight Queens Puzzle",
+      "url": "https://en.wikipedia.org/wiki/Eight_queens_puzzle"
+    },
+    {
+      "title": "Hello Algo – Backtracking",
+      "url": "https://www.hello-algo.com/en/chapter_backtracking/"
     }
   ]
 }
