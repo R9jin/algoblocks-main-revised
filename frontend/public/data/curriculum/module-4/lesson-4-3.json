@@ -1,17 +1,17 @@
 {
   "lessonId": "lesson-4-3",
   "moduleId": "module-4",
-  "title": "Activity Selection",
-  "description": "Learn how Greedy Algorithms maximize scheduling efficiency by selecting the best non-overlapping activities.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "35 min",
+  "title": "Activity Selection Problem",
+  "description": "Learn how greedy scheduling selects the maximum number of non-overlapping activities through earliest-finish-time optimization.",
+  "difficulty": "Beginner",
+  "estimatedTime": "45 min",
   "prerequisites": "Coin Change Problem",
   "tags": [
     "activity selection",
-    "scheduling",
-    "greedy algorithms"
+    "greedy algorithms",
+    "scheduling"
   ],
-  "activities": [
+   "activities": [
     {
       "id": "m4_l3_a1",
       "title": "Sort by End Time"
@@ -38,53 +38,160 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Scheduling problems appear frequently in computer science and real-world systems.\n\nThe Activity Selection Problem focuses on choosing the maximum number of non-overlapping activities from a larger collection.\n\nGreedy Algorithms solve this efficiently by selecting activities strategically based on finishing times."
+      "content": "The Activity Selection Problem is one of the most well-known applications of Greedy Algorithms.\n\nThe goal is to select the maximum number of non-overlapping activities.\n\nEach activity has a start time and finish time, but only one activity can be performed at a time.\n\nThis problem demonstrates how local greedy decisions can produce globally optimal scheduling solutions."
     },
     {
-      "id": "problem-overview",
+      "id": "why-problem-matters",
       "type": "concept",
-      "title": "Understanding the Activity Selection Problem",
-      "content": "Each activity contains a start time and a finish time.\n\nThe goal is to select as many compatible activities as possible without overlapping schedules.\n\nOnce an activity is selected, overlapping activities can no longer be chosen."
+      "title": "Why This Problem Matters",
+      "content": "Many real-world systems involve scheduling limited resources. Classrooms, airport runways, meeting rooms, CPU processors, and manufacturing systems cannot handle multiple overlapping tasks simultaneously.\n\nEfficient scheduling improves productivity, resource usage, and execution efficiency.\n\nThe Activity Selection Problem models this challenge computationally.",
+      "bullets": [
+        "Maximizes resource usage efficiency.",
+        "Demonstrates greedy scheduling optimization.",
+        "Appears in many real-world systems.",
+        "Introduces compatibility checking and interval scheduling."
+      ]
     },
     {
-      "id": "greedy-solution",
+      "id": "problem-setup",
       "type": "deep_dive",
-      "title": "The Greedy Scheduling Strategy",
-      "content": "The greedy approach sorts activities according to their finishing times.\n\nThe algorithm first selects the activity that finishes earliest.\n\nAfterward, it repeatedly selects the next activity that starts after the previously selected activity ends.\n\nThis strategy maximizes the remaining available time for future activities."
+      "title": "Problem Setup",
+      "content": "Suppose we are given the following activities:\n\nA1 = (1, 4)\nA2 = (3, 5)\nA3 = (0, 6)\nA4 = (5, 7)\nA5 = (8, 9)\n\nEach activity contains a start time and finish time.\n\nThe objective is to select the maximum number of compatible activities.\n\nTwo activities are compatible if their time intervals do not overlap."
     },
     {
-      "id": "why-it-works",
+      "id": "overlapping-activities",
       "type": "concept",
-      "title": "Why Earliest Finish Time Works",
-      "content": "Choosing activities that finish earlier leaves more room for additional activities later.\n\nThis greedy decision increases the probability of selecting the maximum number of compatible activities.\n\nThe strategy succeeds because local optimization aligns correctly with the global objective in this problem."
+      "title": "Understanding Overlapping Activities",
+      "content": "Suppose we first select activity A1 = (1, 4).\n\nActivity A2 = (3, 5) cannot be selected afterward because 3 is less than 4.\n\nThis means A2 begins before A1 finishes, creating a scheduling conflict.\n\nThe algorithm must therefore carefully choose compatible activities."
     },
     {
-      "id": "real-world-example",
-      "type": "analogy",
-      "title": "Meeting Schedule Analogy",
-      "content": "Imagine scheduling meetings inside a conference room.\n\nIf shorter meetings are selected first, more meetings can fit throughout the day.\n\nSelecting long meetings too early may block many future opportunities.\n\nThis reflects the logic behind activity selection."
+      "id": "core-greedy-idea",
+      "type": "concept",
+      "title": "Core Greedy Idea",
+      "content": "The greedy strategy is simple: always select the activity that finishes earliest.\n\nAt first, this may seem unusual. Choosing the earliest finishing activity maximizes the remaining time available for future activities.\n\nThis increases the chance of selecting additional compatible activities later."
     },
     {
-      "id": "real-world-connection",
+      "id": "why-earliest-finishing-works",
+      "type": "deep_dive",
+      "title": "Why Earliest Finishing Works",
+      "content": "Suppose we select an activity that finishes very late, such as (1, 10). This blocks many future activities.\n\nHowever, if we instead choose an activity such as (1, 3), more scheduling space remains afterward.\n\nThe greedy strategy succeeds because early finishing preserves maximum scheduling flexibility.\n\nThis is the key intuition behind the algorithm."
+    },
+    {
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Execution Example",
+      "content": "Suppose activities are sorted by finish time:\n\nA1 = (1, 4)\nA2 = (3, 5)\nA3 = (0, 6)\nA4 = (5, 7)\nA5 = (8, 9)\n\nThe algorithm first selects A1 because it finishes earliest.\n\nA2 overlaps with A1 because 3 is less than 4, so A2 is skipped.\n\nA3 also overlaps with A1, so it is skipped as well.\n\nA4 becomes compatible because 5 is greater than or equal to 4, so A4 is selected.\n\nFinally, A5 is compatible with A4 because 8 is greater than or equal to 7.\n\nThe final selected activities become A1, A4, and A5."
+    },
+    {
+      "id": "timeline-visualization",
+      "type": "concept",
+      "title": "Timeline Visualization",
+      "content": "Visualizing activity intervals helps explain overlap detection and scheduling compatibility.\n\nA1: |----|\nA2: |----|\nA3: |------|\nA4: |---|\nA5: |-|\n\nSelected schedule:\nA1 → A4 → A5\n\nThe visualization shows how compatible activities avoid overlap."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "Activity Selection implementations usually sort activities by finish time before greedily selecting compatible intervals.",
+      "codeSnippets": [
+        {
+          "title": "Activity Selection implementation",
+          "language": "python",
+          "code": "activities = [\n    (1, 4),\n    (3, 5),\n    (0, 6),\n    (5, 7),\n    (8, 9)\n]\n\nactivities.sort(key=lambda x: x[1])\n\nselected = []\nlast_finish = -1\n\nfor start, finish in activities:\n    if start >= last_finish:\n        selected.append((start, finish))\n        last_finish = finish\n\nprint(selected)"
+        },
+        {
+          "title": "Count compatible activities",
+          "language": "python",
+          "code": "activities = [(1, 3), (2, 5), (4, 6), (6, 8)]\n\nactivities.sort(key=lambda x: x[1])\n\ncount = 0\nlast_finish = -1\n\nfor start, finish in activities:\n    if start >= last_finish:\n        count += 1\n        last_finish = finish\n\nprint(count)"
+        },
+        {
+          "title": "Compatibility checking demonstration",
+          "language": "python",
+          "code": "a1 = (1, 4)\na2 = (5, 7)\n\nif a2[0] >= a1[1]:\n    print('Compatible')\nelse:\n    print('Overlapping')"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Sorting activities by finish time requires O(n log n) complexity.\n\nAfter sorting, the algorithm performs only one linear traversal to select compatible activities.\n\nThis creates overall O(n log n) complexity.\n\nSpace complexity is usually O(1) because only a few tracking variables are required.",
+      "chart": {
+        "title": "Activity Selection complexity",
+        "description": "Sorting dominates the runtime of Activity Selection, while compatibility checking only requires linear traversal afterward.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(n log n)",
+          "O(n^2)"
+        ]
+      }
+    },
+    {
+      "id": "why-greedy-works",
+      "type": "concept",
+      "title": "Why This Problem Is Greedy",
+      "content": "The Activity Selection Problem satisfies the Greedy Choice Property.\n\nChoosing the earliest finishing activity never reduces future scheduling opportunities.\n\nInstead, early finishing preserves the maximum remaining time for additional compatible activities.\n\nThis is why the greedy strategy works correctly for this problem."
+    },
+    {
+      "id": "applications",
       "type": "real_world_connection",
-      "title": "Scheduling Systems in Real Applications",
-      "content": "Scheduling optimization is important in operating systems, event management, airline scheduling, manufacturing systems, and network resource allocation.\n\nGreedy scheduling algorithms help maximize efficiency while minimizing conflicts and wasted resources."
+      "title": "Real-World Applications",
+      "content": "The Activity Selection Problem appears in CPU scheduling, classroom scheduling, airline runway allocation, manufacturing systems, operating systems, conference management, and cloud infrastructure scheduling.\n\nMany modern scheduling systems rely heavily on greedy optimization strategies."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "earliest-start",
+          "title": "Mistake: Selecting earliest starting activities",
+          "content": "Starting earlier does not guarantee maximum scheduling flexibility. Earliest finishing activities preserve more future time."
+        },
+        {
+          "id": "ignoring-sorting",
+          "title": "Mistake: Ignoring sorting",
+          "content": "The greedy strategy depends on finish-time ordering."
+        },
+        {
+          "id": "wrong-overlap",
+          "title": "Mistake: Incorrect overlap checking",
+          "content": "Activities are compatible only if current.start is greater than or equal to previous.finish."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "The Activity Selection Problem uses a greedy scheduling strategy to maximize the number of compatible activities. By selecting activities with the earliest finishing times, the algorithm efficiently optimizes scheduling opportunities."
+      "title": "Key Takeaways",
+      "bullets": [
+        "The Activity Selection Problem maximizes compatible activities.",
+        "Activities must not overlap.",
+        "The greedy strategy selects the earliest finishing activity first.",
+        "Early finishing maximizes future scheduling flexibility.",
+        "Sorting by finish time is essential.",
+        "The algorithm achieves O(n log n) complexity."
+      ]
     }
   ],
   "references": [
     {
-      "title": "GeeksforGeeks — Activity Selection Problem",
+      "title": "Programiz - Greedy Algorithm",
+      "url": "https://www.programiz.com/dsa/greedy-algorithm"
+    },
+    {
+      "title": "GeeksforGeeks - Activity Selection Problem",
       "url": "https://www.geeksforgeeks.org/activity-selection-problem-greedy-algo-1/"
     },
     {
-      "title": "Programiz — Greedy Algorithms",
-      "url": "https://www.programiz.com/dsa/greedy-algorithm"
+      "title": "AlgoDaily - Activity Selection Greedy Algorithm",
+      "url": "https://algodaily.com/lessons/activity-selection-problem"
+    },
+    {
+      "title": "Wikipedia - Activity Selection Problem",
+      "url": "https://en.wikipedia.org/wiki/Activity_selection_problem"
     }
   ]
 }

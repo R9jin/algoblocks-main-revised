@@ -2,10 +2,10 @@
   "lessonId": "lesson-4-2",
   "moduleId": "module-4",
   "title": "Coin Change Problem",
-  "description": "Understand how Greedy Algorithms solve the Coin Change Problem by selecting the largest denominations first.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "30 min",
-  "prerequisites": "Greedy Strategy",
+  "description": "Learn how greedy coin selection minimizes resource usage and understand when greedy optimization succeeds or fails.",
+  "difficulty": "Beginner",
+  "estimatedTime": "40 min",
+  "prerequisites": "Greedy Algorithms",
   "tags": [
     "coin change",
     "greedy algorithms",
@@ -38,53 +38,160 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "The Coin Change Problem is one of the most common examples used to demonstrate greedy problem solving.\n\nThe objective is to determine the minimum number of coins needed to represent a target amount.\n\nGreedy strategies attempt to solve this efficiently by always selecting the largest possible coin denomination first."
+      "content": "The Coin Change Problem is one of the most common applications of Greedy Algorithms.\n\nThe objective is to find the minimum number of coins needed to make a target amount.\n\nInstead of trying every possible combination, the greedy strategy repeatedly selects the largest coin denomination available.\n\nThis problem introduces learners to greedy optimization, local decision making, resource minimization, and algorithmic efficiency."
     },
     {
-      "id": "problem-overview",
+      "id": "why-problem-matters",
       "type": "concept",
-      "title": "Understanding the Problem",
-      "content": "Suppose a system contains several coin denominations such as 1, 5, 10, and 25.\n\nThe algorithm must repeatedly choose coins until the target amount is reached.\n\nThe goal is to minimize the total number of coins used."
+      "title": "Why This Problem Matters",
+      "content": "Cashier systems, vending machines, banking software, and digital payment systems constantly calculate efficient ways to return change.\n\nGiving many small coins may technically work, but it becomes inefficient and inconvenient. The Coin Change Problem models how systems minimize resource usage through optimization.",
+      "bullets": [
+        "Minimizes the number of coins used.",
+        "Demonstrates greedy optimization.",
+        "Appears in real-world financial systems.",
+        "Introduces local decision-making strategies."
+      ]
     },
     {
-      "id": "greedy-approach",
+      "id": "core-idea",
+      "type": "concept",
+      "title": "Core Idea of the Greedy Strategy",
+      "content": "The greedy approach follows one simple rule: always choose the largest possible coin at the current step.\n\nAfter selecting a coin, the algorithm subtracts its value from the remaining amount and repeats the process again.\n\nThis continues until the remaining amount becomes zero."
+    },
+    {
+      "id": "greedy-selection",
       "type": "deep_dive",
-      "title": "The Greedy Solution",
-      "content": "The greedy strategy selects the largest denomination that does not exceed the remaining amount.\n\nAfter choosing a coin, the remaining value is reduced and the process repeats.\n\nFor many currency systems, this approach successfully produces an optimal solution quickly and efficiently."
+      "title": "Understanding Greedy Coin Selection",
+      "content": "Suppose we need to make 18 pesos using coins 10, 5, and 1.\n\nThe algorithm first selects 10 because it is the largest usable coin. The remaining amount becomes 8.\n\nNext, the algorithm selects 5, reducing the remaining amount to 3.\n\nFinally, the algorithm uses three 1-peso coins.\n\nThe final solution becomes 10 + 5 + 1 + 1 + 1."
     },
     {
-      "id": "limitations",
+      "id": "why-greedy-works",
       "type": "concept",
-      "title": "When Greedy Fails",
-      "content": "Although greedy solutions work well for many currency systems, they do not always guarantee optimal results.\n\nCertain coin combinations may produce better solutions that the greedy approach cannot discover because it focuses only on immediate choices.\n\nThis limitation demonstrates why some problems require Dynamic Programming instead."
+      "title": "Why the Greedy Strategy Works Here",
+      "content": "The greedy strategy succeeds because larger denominations reduce the remaining amount quickly.\n\nChoosing large coins first usually minimizes unnecessary smaller denominations and reduces the total coin count.\n\nMany real-world currency systems are designed so greedy coin selection works correctly."
     },
     {
-      "id": "real-world-example",
-      "type": "analogy",
-      "title": "Cashier Analogy",
-      "content": "Imagine a cashier returning change to a customer.\n\nTo minimize the number of coins or bills used, the cashier usually gives the largest denominations first.\n\nThis mirrors the greedy strategy used in the Coin Change Problem."
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Execution Visualization",
+      "content": "Suppose we need to make 36 using coins 25, 10, 5, and 1.\n\nThe algorithm selects 25 first, leaving 11 remaining.\n\nNext, the algorithm selects 10, leaving 1 remaining.\n\nFinally, the algorithm selects 1.\n\nThe final solution becomes 25 + 10 + 1, using only 3 coins."
     },
     {
-      "id": "real-world-connection",
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "Greedy Coin Change implementations repeatedly select the largest possible denomination until the target amount becomes zero.",
+      "codeSnippets": [
+        {
+          "title": "Greedy Coin Change implementation",
+          "language": "python",
+          "code": "coins = [25, 10, 5, 1]\namount = 36\nselected = []\n\nfor coin in coins:\n    while amount >= coin:\n        selected.append(coin)\n        amount -= coin\n\nprint(selected)"
+        },
+        {
+          "title": "Count total coins used",
+          "language": "python",
+          "code": "coins = [10, 5, 1]\namount = 18\ncount = 0\n\nfor coin in coins:\n    while amount >= coin:\n        amount -= coin\n        count += 1\n\nprint(count)"
+        },
+        {
+          "title": "Track remaining amount",
+          "language": "python",
+          "code": "coins = [25, 10, 5, 1]\namount = 41\n\nfor coin in coins:\n    while amount >= coin:\n        print('Use:', coin)\n        amount -= coin\n        print('Remaining:', amount)"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Traversing the coin denominations requires O(n) time, where n represents the number of coin types.\n\nIn the worst case, the algorithm may repeatedly subtract small denominations such as 1 until the amount becomes zero.\n\nThis creates worst-case behavior proportional to the target amount.\n\nSpace complexity is usually O(1) because only a small number of variables are required.",
+      "chart": {
+        "title": "Greedy Coin Change complexity",
+        "description": "Greedy Coin Change often scales efficiently because the algorithm immediately commits to large denominations instead of exploring every combination.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(amount)",
+          "O(2^n)"
+        ]
+      }
+    },
+    {
+      "id": "when-greedy-fails",
+      "type": "deep_dive",
+      "title": "When Greedy Coin Change Fails",
+      "content": "Greedy solutions do not always guarantee optimal answers.\n\nSuppose the available coins are 1, 3, and 4, and the target amount is 6.\n\nThe greedy strategy selects 4 first, leaving 2 remaining. The algorithm then uses two 1-peso coins, producing 3 coins total.\n\nHowever, the optimal solution is 3 + 3, which uses only 2 coins.\n\nThis demonstrates that local optimal choices may sometimes produce globally suboptimal solutions."
+    },
+    {
+      "id": "canonical-systems",
+      "type": "concept",
+      "title": "Why Some Currency Systems Work Well",
+      "content": "Many real-world currency systems are intentionally designed so greedy coin selection consistently produces optimal solutions.\n\nThese are called canonical coin systems.\n\nExamples include many international currencies and common coin denominations used in modern financial systems."
+    },
+    {
+      "id": "greedy-vs-dp",
+      "type": "concept",
+      "title": "Greedy vs Dynamic Programming",
+      "content": "Greedy Coin Change prioritizes efficiency by making immediate locally optimal decisions.\n\nDynamic Programming explores many subproblems and revisits earlier states to guarantee optimal solutions.\n\nGreedy methods are usually faster and use less memory, while Dynamic Programming provides stronger correctness guarantees."
+    },
+    {
+      "id": "applications",
       "type": "real_world_connection",
-      "title": "Greedy Optimization in Real Applications",
-      "content": "Greedy optimization strategies are used in financial systems, vending machines, and automated transaction systems.\n\nThese systems prioritize fast decision-making because efficiency is often more important than exploring every possible solution."
+      "title": "Real-World Applications",
+      "content": "Coin Change logic appears in cashier systems, ATM machines, vending machines, banking software, financial optimization systems, and payment processing platforms.\n\nMany resource minimization problems use similar greedy reasoning strategies."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "always-optimal",
+          "title": "Mistake: Assuming greedy always produces optimal solutions",
+          "content": "Some coin systems break greedy correctness and require Dynamic Programming instead."
+        },
+        {
+          "id": "ignore-order",
+          "title": "Mistake: Ignoring coin ordering",
+          "content": "The greedy strategy depends on descending denomination order."
+        },
+        {
+          "id": "exhaustive-search",
+          "title": "Mistake: Confusing greedy optimization with exhaustive search",
+          "content": "Greedy algorithms do not test every possibility. They commit immediately to local decisions."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "The Coin Change Problem demonstrates how Greedy Algorithms make locally optimal decisions by repeatedly selecting the largest denomination available. While efficient, greedy solutions may not always produce globally optimal answers."
+      "title": "Key Takeaways",
+      "bullets": [
+        "The Coin Change Problem minimizes the number of coins used.",
+        "Greedy Coin Change repeatedly selects the largest denomination possible.",
+        "Local optimal choices may or may not produce global optimality.",
+        "Some currency systems are designed for greedy correctness.",
+        "Greedy algorithms are fast and memory efficient.",
+        "Dynamic Programming is used when greedy solutions fail."
+      ]
     }
   ],
   "references": [
     {
-      "title": "GeeksforGeeks — Coin Change Problem",
-      "url": "https://www.geeksforgeeks.org/greedy-algorithm-to-find-minimum-number-of-coins/"
+      "title": "Programiz - Greedy Algorithm",
+      "url": "https://www.programiz.com/dsa/greedy-algorithm"
     },
     {
-      "title": "Programiz — Greedy Algorithms",
-      "url": "https://www.programiz.com/dsa/greedy-algorithm"
+      "title": "Codecademy - Greedy Algorithms and Coin Change",
+      "url": "https://www.codecademy.com/article/greedy-algorithms"
+    },
+    {
+      "title": "Wikipedia - Change-Making Problem",
+      "url": "https://en.wikipedia.org/wiki/Change-making_problem"
+    },
+    {
+      "title": "GeeksforGeeks - Coin Change Problem",
+      "url": "https://www.geeksforgeeks.org/coin-change-problem-in-cpp/"
     }
   ]
 }

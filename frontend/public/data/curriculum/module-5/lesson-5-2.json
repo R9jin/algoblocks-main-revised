@@ -2,15 +2,15 @@
   "lessonId": "lesson-5-2",
   "moduleId": "module-5",
   "title": "Fibonacci Optimization",
-  "description": "Understand how Dynamic Programming optimizes recursive Fibonacci computation by eliminating redundant calculations.",
+  "description": "Learn how Dynamic Programming optimizes Fibonacci computation using memoization, tabulation, and space-efficient iterative techniques.",
   "difficulty": "Intermediate",
-  "estimatedTime": "35 min",
+  "estimatedTime": "50 min",
   "prerequisites": "Dynamic Programming Fundamentals",
   "tags": [
-    "fibonacci",
     "dynamic programming",
-    "optimization",
-    "recursion"
+    "fibonacci",
+    "memoization",
+    "tabulation"
   ],
   "activities": [
     {
@@ -39,53 +39,188 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "The Fibonacci sequence is one of the most common examples used to demonstrate Dynamic Programming.\n\nAlthough the recursive Fibonacci solution is simple to understand, it performs many repeated calculations unnecessarily.\n\nDynamic Programming transforms this inefficient recursive process into a much faster solution."
+      "content": "The Fibonacci sequence is one of the most famous examples used to demonstrate Dynamic Programming optimization.\n\nThe sequence follows the rule:\nF(n) = F(n-1) + F(n-2)\n\nwith base cases:\nF(0) = 0\nF(1) = 1\n\nAlthough recursive Fibonacci appears simple and elegant, naive recursion repeatedly recomputes identical Fibonacci values many times.\n\nDynamic Programming optimizes this process by storing previously computed results."
     },
     {
-      "id": "recursive-fibonacci",
+      "id": "why-fibonacci-important",
       "type": "concept",
-      "title": "The Recursive Fibonacci Approach",
-      "content": "The Fibonacci sequence defines each value as the sum of the two previous values.\n\nA recursive solution repeatedly calls smaller Fibonacci computations until reaching the base cases.\n\nHowever, many identical subproblems appear repeatedly during execution."
+      "title": "Why Fibonacci Is Important in Dynamic Programming",
+      "content": "The Fibonacci problem clearly demonstrates overlapping subproblems.\n\nA recursive Fibonacci algorithm repeatedly solves identical smaller Fibonacci values again and again.\n\nThis makes Fibonacci one of the clearest introductions to memoization, tabulation, recursion efficiency, and Dynamic Programming optimization.",
+      "bullets": [
+        "Demonstrates overlapping subproblems clearly.",
+        "Introduces memoization and tabulation.",
+        "Shows how DP eliminates redundant computation.",
+        "Teaches optimization reasoning."
+      ]
     },
     {
-      "id": "redundant-computation",
+      "id": "understanding-sequence",
       "type": "deep_dive",
-      "title": "Understanding Redundant Computation",
-      "content": "Recursive Fibonacci algorithms repeatedly calculate the same values many times.\n\nFor example, Fibonacci(5) may require multiple separate calculations of Fibonacci(3) and Fibonacci(2).\n\nAs the sequence grows larger, the number of repeated computations increases rapidly, causing exponential time complexity."
+      "title": "Understanding the Fibonacci Sequence",
+      "content": "The Fibonacci sequence begins:\n0, 1, 1, 2, 3, 5, 8, 13, 21 ...\n\nEach number is generated using:\ncurrent = previous + previousPrevious\n\nFor example:\nF(5) = F(4) + F(3)\n\nand:\nF(4) = F(3) + F(2)\n\nNotice that F(3) appears repeatedly.\n\nThis repeated recomputation creates inefficiency."
     },
     {
-      "id": "dynamic-programming-solution",
+      "id": "naive-recursion",
       "type": "concept",
-      "title": "Optimizing with Dynamic Programming",
-      "content": "Dynamic Programming stores previously computed Fibonacci values inside memory.\n\nOnce a Fibonacci value has been calculated, it can be reused immediately whenever needed again.\n\nThis optimization reduces the algorithm from exponential complexity to linear complexity."
+      "title": "Naive Recursive Fibonacci",
+      "content": "A basic recursive Fibonacci implementation is easy to understand but computationally expensive.\n\nThe recursion repeatedly branches into two recursive calls for almost every invocation.\n\nThis creates exponential recursive growth."
     },
     {
-      "id": "memoization-tabulation",
+      "id": "redundant-recursion",
       "type": "deep_dive",
-      "title": "Memoization and Tabulation Approaches",
-      "content": "Memoization improves recursive execution by caching results during function calls.\n\nTabulation builds the Fibonacci sequence iteratively from the smallest values upward.\n\nBoth approaches eliminate redundant calculations and significantly improve efficiency."
+      "title": "Visualizing Redundant Recursion",
+      "content": "Suppose we compute fib(5).\n\nThe recursive tree repeatedly computes fib(3) and fib(2) multiple times.\n\nThese repeated recursive branches create massive unnecessary work.\n\nDynamic Programming eliminates these duplicates by storing previously computed answers."
     },
     {
-      "id": "real-world-connection",
+      "id": "why-recursive-slow",
+      "type": "concept",
+      "title": "Why Recursive Fibonacci Is Slow",
+      "content": "Naive recursive Fibonacci repeatedly expands into two recursive calls.\n\nThis creates exponential-style growth similar to O(2^n).\n\nAs input size increases, recursive calls explode dramatically.\n\nThe issue is not recursion itself. The real problem is repeated overlapping computation."
+    },
+    {
+      "id": "memoization",
+      "type": "concept",
+      "title": "Memoization Optimization",
+      "content": "Memoization solves repeated computation by storing already-computed Fibonacci values.\n\nBefore calculating a Fibonacci number, the algorithm first checks whether the answer already exists inside memory.\n\nIf the answer was solved earlier, the stored value is immediately reused.\n\nThis prevents repeated recursion."
+    },
+    {
+      "id": "memoization-workflow",
+      "type": "deep_dive",
+      "title": "Memoized Fibonacci Workflow",
+      "content": "The algorithm begins with recursive computation.\n\nWhen fib(5) requires fib(4), the result is computed and stored.\n\nLater, if fib(4) or fib(3) is needed again, the algorithm retrieves the stored value directly from memory instead of recomputing it.\n\nThis dramatically improves efficiency."
+    },
+    {
+      "id": "memoized-implementation",
+      "type": "concept",
+      "title": "Memoized Fibonacci Implementation",
+      "content": "Memoized Fibonacci preserves recursion while avoiding duplicate computation.",
+      "codeSnippets": [
+        {
+          "title": "Memoized Fibonacci",
+          "language": "python",
+          "code": "memo = {}\n\ndef fib(n):\n    if n in memo:\n        return memo[n]\n\n    if n <= 1:\n        return n\n\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\n\nprint(fib(10))"
+        }
+      ]
+    },
+    {
+      "id": "tabulation",
+      "type": "concept",
+      "title": "Tabulation Optimization",
+      "content": "Tabulation is a bottom-up Dynamic Programming approach.\n\nInstead of recursion, the algorithm builds Fibonacci values iteratively.\n\nThe process begins with small known values and progressively fills a table.\n\nEach Fibonacci value depends on previously computed entries."
+    },
+    {
+      "id": "tabulation-implementation",
+      "type": "concept",
+      "title": "Tabulation Fibonacci Implementation",
+      "content": "Tabulation avoids recursion overhead while maintaining linear efficiency.",
+      "codeSnippets": [
+        {
+          "title": "Tabulation Fibonacci",
+          "language": "python",
+          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    dp = [0] * (n + 1)\n    dp[1] = 1\n\n    for i in range(2, n + 1):\n        dp[i] = dp[i - 1] + dp[i - 2]\n\n    return dp[n]\n\nprint(fib(10))"
+        }
+      ]
+    },
+    {
+      "id": "complexity-comparison",
+      "type": "deep_dive",
+      "title": "Complexity Comparison",
+      "content": "Naive recursion may require exponential computation because recursive calls repeatedly branch.\n\nMemoization and tabulation solve each Fibonacci value only once.\n\nThis reduces complexity from exponential time to linear time.",
+      "chart": {
+        "title": "Fibonacci optimization comparison",
+        "description": "Dynamic Programming dramatically reduces Fibonacci computation from exponential growth to linear growth.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(n^2)",
+          "O(2^n)"
+        ]
+      }
+    },
+    {
+      "id": "space-optimization",
+      "type": "concept",
+      "title": "Space Optimization",
+      "content": "The tabulation approach can be optimized further.\n\nNotice that each Fibonacci value only depends on the two previous values.\n\nThis means the entire DP array is unnecessary.\n\nWe only need two tracking variables to compute future values."
+    },
+    {
+      "id": "optimized-iterative",
+      "type": "concept",
+      "title": "Optimized Iterative Fibonacci",
+      "content": "The Fibonacci sequence can be computed using constant memory while preserving linear efficiency.",
+      "codeSnippets": [
+        {
+          "title": "Space-optimized Fibonacci",
+          "language": "python",
+          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    prev2 = 0\n    prev1 = 1\n\n    for i in range(2, n + 1):\n        current = prev1 + prev2\n        prev2 = prev1\n        prev1 = current\n\n    return prev1\n\nprint(fib(10))"
+        }
+      ]
+    },
+    {
+      "id": "memoization-vs-tabulation",
+      "type": "deep_dive",
+      "title": "Memoization vs Tabulation in Fibonacci",
+      "content": "Memoization uses top-down recursion and caching, while tabulation uses bottom-up iterative construction.\n\nMemoization often feels easier conceptually because it preserves recursive thinking.\n\nTabulation avoids recursion overhead and usually uses less stack memory.\n\nBoth approaches eliminate redundant recursive computation."
+    },
+    {
+      "id": "real-world-importance",
       "type": "real_world_connection",
-      "title": "Optimization in Real Systems",
-      "content": "Many optimization systems in finance, robotics, networking, and machine learning rely on Dynamic Programming techniques similar to Fibonacci optimization.\n\nReducing redundant computation improves performance, lowers energy consumption, and increases scalability."
+      "title": "Real-World Importance",
+      "content": "Fibonacci optimization teaches principles used in AI optimization, shortest path algorithms, robotics, recommendation systems, sequence alignment, game development, and computational biology.\n\nMany advanced Dynamic Programming problems rely on exactly the same optimization concepts."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "recursion-bad",
+          "title": "Mistake: Thinking recursion is always inefficient",
+          "content": "Recursion mainly becomes inefficient when overlapping subproblems repeatedly recompute identical work."
+        },
+        {
+          "id": "memoization-library",
+          "title": "Mistake: Confusing memoization with caching libraries",
+          "content": "Memoization is an algorithmic strategy for storing computed results."
+        },
+        {
+          "id": "dp-arrays-only",
+          "title": "Mistake: Believing Dynamic Programming always requires arrays",
+          "content": "Dynamic Programming may use dictionaries, matrices, trees, graphs, or other structures depending on the problem."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Dynamic Programming optimizes Fibonacci computation by storing previously computed values. This eliminates redundant recursion and reduces exponential performance growth into efficient linear execution."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Fibonacci demonstrates overlapping subproblems clearly.",
+        "Naive recursion repeatedly recomputes identical values.",
+        "Memoization stores computed results for reuse.",
+        "Tabulation builds answers iteratively from smaller subproblems.",
+        "Dynamic Programming reduces Fibonacci from exponential to linear time.",
+        "Space optimization can reduce memory complexity to O(1)."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Fibonacci Series",
-      "url": "https://www.programiz.com/dsa/fibonacci-series"
+      "title": "Programiz - Dynamic Programming",
+      "url": "https://www.programiz.com/dsa/dynamic-programming"
     },
     {
-      "title": "GeeksforGeeks — Fibonacci Using Dynamic Programming",
-      "url": "https://www.geeksforgeeks.org/program-for-nth-fibonacci-number/"
+      "title": "GeeksforGeeks - Overlapping Subproblems in DP",
+      "url": "https://www.geeksforgeeks.org/overlapping-subproblems-property-in-dynamic-programming-dp-1/"
+    },
+    {
+      "title": "Wikipedia - Dynamic Programming",
+      "url": "https://en.wikipedia.org/wiki/Dynamic_programming"
+    },
+    {
+      "title": "MIT 6.006 Dynamic Programming Lecture",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
     }
   ]
 }

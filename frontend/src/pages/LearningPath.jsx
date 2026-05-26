@@ -1,9 +1,11 @@
+// frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
   FiCheckCircle,
   FiChevronDown,
   FiChevronRight,
   FiCircle,
+  FiClipboard,
   FiDatabase,
   FiFilter,
   FiLock,
@@ -17,15 +19,15 @@ import curriculumIndex from "../data/curriculumIndex";
 
 import "../styles/LearningPath.css";
 
-// Module icon mapping with colors
+// ✅ Difficulty and Prerequisites to support the Hub-and-Spoke semi-linear model
 const moduleIcons = {
-  "module-0": { icon: FiUsers, color: "#7c5cff", description: "Learn the fundamentals of AlgoBlocks." },
-  "module-1": { icon: FiUsers, color: "#6366f1", description: "Understand Big-O notation and complexity analysis." },
-  "module-2": { icon: FiDatabase, color: "#22c55e", description: "Master brute force and exhaustive search strategies." },
-  "module-3": { icon: FiFilter, color: "#f97316", description: "Learn divide and conquer algorithm design." },
-  "module-4": { icon: FiFilter, color: "#a855f7", description: "Explore greedy algorithm strategies." },
-  "module-5": { icon: FiShare2, color: "#3b82f6", description: "Master dynamic programming techniques." },
-  "module-6": { icon: FiRefreshCw, color: "#ec4899", description: "Solve problems using backtracking." },
+  "module-0": { icon: FiUsers, color: "#7c5cff", difficulty: "Beginner", description: "Learn the fundamentals of AlgoBlocks." },
+  "module-1": { icon: FiUsers, color: "#6366f1", difficulty: "Beginner", description: "Understand Big-O notation and complexity analysis." },
+  "module-2": { icon: FiDatabase, color: "#22c55e", difficulty: "Intermediate", prereq: "Module 1", description: "Master brute force and exhaustive search strategies." },
+  "module-3": { icon: FiFilter, color: "#f97316", difficulty: "Intermediate", prereq: "Module 1", description: "Learn divide and conquer algorithm design." },
+  "module-4": { icon: FiFilter, color: "#a855f7", difficulty: "Intermediate", prereq: "Module 1", description: "Explore greedy algorithm strategies." },
+  "module-5": { icon: FiShare2, color: "#3b82f6", difficulty: "Advanced", prereq: "Module 3", description: "Master dynamic programming techniques." },
+  "module-6": { icon: FiRefreshCw, color: "#ec4899", difficulty: "Advanced", prereq: "Module 3", description: "Solve problems using backtracking." },
 };
 
 export default function LearningPath() {
@@ -33,25 +35,39 @@ export default function LearningPath() {
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [userProgress, setUserProgress] = useState({});
   const [lessonDetails, setLessonDetails] = useState({});
+  const [activitiesData, setActivitiesData] = useState({});
+  const [assessments, setAssessments] = useState({});
 
-  // 1. Load User Progress
+  // 1. Load User Progress & Assessment results from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem("user");
       if (stored) {
         const parsed = JSON.parse(stored);
         setUserProgress(parsed.progress || {});
+        setAssessments(parsed.assessments || {});
       }
     } catch (e) {
       // ignore
     }
   }, []);
 
-  // 2. Fetch Lesson JSONs to find activities
+  // 2. Fetch Lesson JSONs and Activities JSONs concurrently
   useEffect(() => {
-    const fetchLessonsData = async () => {
+    const fetchAllData = async () => {
       const details = {};
+      const acts = {};
+      
       for (const module of curriculumIndex) {
+        const mid = module.moduleId.split("-").pop();
+        
+        // Fetch activities data to check for optimizations
+        try {
+          const resAct = await fetch(`/data/activities/module_${mid}.json`);
+          if (resAct.ok) acts[module.moduleId] = await resAct.json();
+        } catch (e) {}
+
+        // Fetch curriculum data
         for (const lesson of module.lessons) {
           try {
             const fetchPath = `/data/curriculum/${module.moduleId}/${lesson.lessonId}.json`;
@@ -65,12 +81,11 @@ export default function LearningPath() {
         }
       }
       setLessonDetails(details);
+      setActivitiesData(acts);
     };
-    
-    fetchLessonsData();
+    fetchAllData();
   }, []);
 
-  // Toggle expansion state for a module.
   const toggleModule = (moduleId) => {
     const newExpanded = new Set(expandedModules);
     if (newExpanded.has(moduleId)) {
@@ -85,25 +100,60 @@ export default function LearningPath() {
     navigate(`/learning-path/${moduleId}/${lessonId}`);
   };
 
-  // 3. Compute Lesson Locks
-  // A lesson is locked if the previous lesson HAS an activity, and the user hasn't passed it.
-  let isNextLocked = false;
-  const lockMap = {};
+  // ── Assessment helpers ────────────────────────────────────────────────────
 
-  curriculumIndex.forEach(module => {
-    module.lessons.forEach(lesson => {
-      lockMap[lesson.lessonId] = isNextLocked;
+  const hasPreAssessment = (moduleId) => {
+    const key = `${moduleId}_pre_assessment`;
+    return assessments[key] !== undefined;
+  };
 
+  const hasPostAssessment = (moduleId) => {
+    const key = `${moduleId}_post_assessment`;
+    return assessments[key] !== undefined;
+  };
+
+  const getAssessmentScore = (moduleId, type) => {
+    const key = `${moduleId}_${type}_assessment`;
+    return assessments[key]?.score ?? null;
+  };
+
+  const isModuleComplete = (moduleId) => {
+    const module = curriculumIndex.find((m) => m.moduleId === moduleId);
+    if (!module) return false;
+    return module.lessons.every((lesson) => {
       const details = lessonDetails[lesson.lessonId];
       const firstActivityId = details?.activities?.[0]?.id;
-      const prog = userProgress[lesson.lessonId] || 0;
-
-      // If the lesson has an activity and progress is < 1, lock the next lessons.
-      if (firstActivityId && prog < 1) {
-        isNextLocked = true;
-      }
+      if (!firstActivityId) return true; // Reading-only lesson always counts as complete
+      return (userProgress[lesson.lessonId] || 0) >= 1;
     });
-  });
+  };
+
+  // ── Lesson lock computation ────────────────────────────────────────────────
+  const buildLockMap = () => {
+    const lockMap = {};
+
+    for (const module of curriculumIndex) {
+      const preComplete = hasPreAssessment(module.moduleId);
+      let isNextLocked = !preComplete; 
+
+      for (const lesson of module.lessons) {
+        lockMap[lesson.lessonId] = isNextLocked;
+
+        if (!isNextLocked) {
+          const details = lessonDetails[lesson.lessonId];
+          const firstActivityId = details?.activities?.[0]?.id;
+          const prog = userProgress[lesson.lessonId] || 0;
+          if (firstActivityId && prog < 1) {
+            isNextLocked = true;
+          }
+        }
+      }
+    }
+
+    return lockMap;
+  };
+
+  const lockMap = buildLockMap();
 
   return (
     <div className="learning-path-page">
@@ -114,7 +164,7 @@ export default function LearningPath() {
           <h1>Learning Path</h1>
           <p>
             Explore algorithm concepts through structured lessons, virtual explanations,
-            and interactive learning experiences.
+            and interactive learning experiences. Jump into the topic that interests you most!
           </p>
         </div>
 
@@ -125,28 +175,68 @@ export default function LearningPath() {
             const IconComponent = iconConfig?.icon || FiUsers;
             const isExpanded = expandedModules.has(module.moduleId);
 
+            const preComplete = hasPreAssessment(module.moduleId);
+            const preScore = getAssessmentScore(module.moduleId, "pre");
+            const moduleComplete = isModuleComplete(module.moduleId);
+            const postComplete = hasPostAssessment(module.moduleId);
+            const postScore = getAssessmentScore(module.moduleId, "post");
+
+            // Look up Optimization Activities
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
+            const hasOptimizations = optimizations.length > 0;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
+            const optimizationsLocked = lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
+
             return (
               <div key={module.moduleId}>
                 <div
                   className="module-card-v2"
                   onClick={() => toggleModule(module.moduleId)}
                 >
-                  <div className="module-card-icon" style={{ backgroundColor: `${iconConfig?.color}15` }}>
-                    <IconComponent size={32} color={iconConfig?.color} />
+                  <div
+                    className="module-card-icon"
+                    style={{ backgroundColor: `${iconConfig?.color || '#7c5cff'}15` }}
+                  >
+                    <IconComponent size={32} color={iconConfig?.color || '#7c5cff'} />
                   </div>
 
                   <div className="module-card-content">
-                    <div className="module-card-header">
-                      <div>
-                        <h3 className="module-card-title">Module {moduleNum}: {module.title}</h3>
-                        <p className="module-card-description">
+                    <div className="module-card-header" style={{ alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                          <h3 className="module-card-title" style={{ margin: 0 }}>
+                            Module {moduleNum}: {module.title}
+                          </h3>
+                          
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {iconConfig?.difficulty && (
+                                <span style={{ 
+                                  fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px',
+                                  backgroundColor: iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)",
+                                  color: iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899"
+                                }}>
+                                  {iconConfig.difficulty}
+                                </span>
+                            )}
+                            {iconConfig?.prereq && (
+                              <span style={{ 
+                                fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', backgroundColor: 'rgba(100, 116, 139, 0.1)', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' 
+                              }}>
+                                Req: {iconConfig.prereq}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="module-card-description" style={{ marginTop: 0 }}>
                           {iconConfig?.description || module.title}
                         </p>
                       </div>
                       <FiChevronDown
                         size={24}
-                        color="#7c5cff"
-                        className={`module-card-chevron ${isExpanded ? 'expanded' : ''}`}
+                        color={iconConfig?.color || "#7c5cff"}
+                        className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
+                        style={{ marginTop: '4px' }}
                       />
                     </div>
                   </div>
@@ -154,15 +244,59 @@ export default function LearningPath() {
 
                 {isExpanded && (
                   <div className="module-lessons-dropdown">
+
+                    {/* ── PRE-ASSESSMENT ROW ─────────────────────────────── */}
+                    <div className={`assessment-row pre ${preComplete ? "done" : "pending"}`}>
+                      <div className="assessment-row-left">
+                        <FiClipboard size={16} />
+                        <span className="assessment-row-label">Pre-Assessment</span>
+                        {preScore !== null && (
+                          <span className="assessment-score-badge">{preScore}%</span>
+                        )}
+                      </div>
+                      <div className="assessment-row-right">
+                        {preComplete ? (
+                          <>
+                            <FiCheckCircle color="#22c55e" size={16} />
+                            <button
+                              className="btn-assessment retake"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/assessment/${module.moduleId}/pre`);
+                              }}
+                            >
+                              Retake
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="btn-assessment start"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/assessment/${module.moduleId}/pre`);
+                            }}
+                          >
+                            Take Pre-Assessment
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* ── LESSON ROWS ────────────────────────────────────── */}
                     {module.lessons.map((lesson) => {
                       const details = lessonDetails[lesson.lessonId];
                       const firstActivityId = details?.activities?.[0]?.id;
                       const prog = userProgress[lesson.lessonId] || 0;
-                      const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
+                      const lessonDisplay = lesson.lessonId
+                        .replace("lesson-", "")
+                        .replace(/-/g, ".");
                       const isLocked = lockMap[lesson.lessonId];
 
                       return (
-                        <div key={lesson.lessonId} className={`dropdown-lesson-item ${isLocked ? 'locked' : ''}`}>
+                        <div
+                          key={lesson.lessonId}
+                          className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}
+                        >
                           <div className="lesson-info">
                             <span className="lesson-number">{lessonDisplay}</span>
                             <span className="lesson-title">{lesson.title}</span>
@@ -174,19 +308,24 @@ export default function LearningPath() {
                               disabled={isLocked}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lesson.lessonId}`);
+                                if (!isLocked)
+                                  navigate(
+                                    `/learning-path/${module.moduleId}/${lesson.lessonId}`
+                                  );
                               }}
                             >
                               Read Lesson
                             </button>
 
                             <button
-                              className={`btn-start-activity ${!firstActivityId ? 'disabled' : ''}`}
+                              className={`btn-start-activity ${!firstActivityId ? "disabled" : ""}`}
                               disabled={isLocked || !firstActivityId}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (!isLocked && firstActivityId) {
-                                  navigate(`/activity/${module.moduleId}/${firstActivityId}`);
+                                  navigate(
+                                    `/activity/${module.moduleId}/${firstActivityId}`
+                                  );
                                 }
                               }}
                             >
@@ -207,13 +346,99 @@ export default function LearningPath() {
                       );
                     })}
 
+                    {/* ── OPTIMIZATION CHALLENGES ROW ─────────────────────── */}
+                    {hasOptimizations && (
+                      <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
+                        <div className="lesson-info">
+                          <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
+                          <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
+                        </div>
+
+                        <div className="lesson-actions">
+                          <button
+                            className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`}
+                            style={{ backgroundColor: optimizationsLocked ? "" : "#f39c12" }}
+                            disabled={optimizationsLocked}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!optimizationsLocked) {
+                                navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
+                              }
+                            }}
+                          >
+                            Start Challenges
+                          </button>
+                        </div>
+
+                        <span className="lesson-status-icon">
+                          {optimizationsLocked ? (
+                            <FiLock color="#bdbdbd" />
+                          ) : userProgress[`lesson-${moduleNum}-optimizations`] ? (
+                            <FiCheckCircle color="#22c55e" />
+                          ) : (
+                            <FiCircle color="#f39c12" />
+                          )}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* ── POST-ASSESSMENT ROW ────────────────────────────── */}
+                    <div
+                      className={`assessment-row post ${
+                        postComplete ? "done" : moduleComplete ? "pending" : "locked"
+                      }`}
+                    >
+                      <div className="assessment-row-left">
+                        <FiClipboard size={16} />
+                        <span className="assessment-row-label">Post-Assessment</span>
+                        {postScore !== null && (
+                          <span className="assessment-score-badge post">{postScore}%</span>
+                        )}
+                        {!moduleComplete && !postComplete && (
+                          <span className="assessment-gate-note">
+                            (Complete all lessons first)
+                          </span>
+                        )}
+                      </div>
+                      <div className="assessment-row-right">
+                        {!moduleComplete && !postComplete ? (
+                          <FiLock color="#bdbdbd" size={16} />
+                        ) : postComplete ? (
+                          <>
+                            <FiCheckCircle color="#22c55e" size={16} />
+                            <button
+                              className="btn-assessment retake"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/assessment/${module.moduleId}/post`);
+                              }}
+                            >
+                              Retake
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="btn-assessment start post"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/assessment/${module.moduleId}/post`);
+                            }}
+                          >
+                            Take Post-Assessment
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="module-dropdown-footer">
                       <button
                         className="view-all-lessons"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const first = module.lessons[0] && module.lessons[0].lessonId;
-                          if (first && !lockMap[first]) handleModuleClick(module.moduleId, first);
+                          const first = module.lessons[0]?.lessonId;
+                          if (first && !lockMap[first]) {
+                            handleModuleClick(module.moduleId, first);
+                          }
                         }}
                       >
                         View all lessons in this module

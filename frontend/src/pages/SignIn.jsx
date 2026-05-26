@@ -3,8 +3,32 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
 import { FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { projectsDB, syncQueueDB, templatesDB } from "../db";
+import { progressDB, projectsDB, submissionsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
+
+// Helper to rebuild user.assessments array safely on login, scoped by email.
+const rebuildAssessments = (email) => {
+  const assessments = {};
+  for (let i = 0; i < localStorage.length; i++) {
+     const key = localStorage.key(i);
+     if (!key) continue;
+     let suffix = null;
+     
+     if (key.startsWith(`algoblocks_result_${email}_`)) {
+         suffix = key.replace(`algoblocks_result_${email}_`, "");
+     } else if (key.startsWith(`algoblocks_result_`) && key.split('_').length === 4) {
+         // Gracefully ingest old unscoped keys
+         suffix = key.replace(`algoblocks_result_`, "");
+     }
+     
+     if (suffix) {
+         try {
+             assessments[`${suffix}_assessment`] = JSON.parse(localStorage.getItem(key));
+         } catch(e) {}
+     }
+  }
+  return assessments;
+};
 
 export default function SignIn() {
   const [email, setEmail] = useState(""); 
@@ -18,10 +42,13 @@ export default function SignIn() {
   // Hydrate local IndexedDB from MongoDB Cloud after wiping
   const syncUserCloudData = async (userEmail) => {
     try {
+      // ✅ Completely wipe activity tracks when swapping accounts
       await Promise.all([
         projectsDB.clear(),
         templatesDB.clear(),
-        syncQueueDB.clear()
+        syncQueueDB.clear(),
+        submissionsDB.clear(),
+        progressDB.clear()
       ]); 
 
       const [projRes, tempRes] = await Promise.all([
@@ -74,11 +101,12 @@ export default function SignIn() {
         return;
       }
 
-      // ✅ FIX: Added progress to localStorage so it persists across logins
+      // ✅ Dynamically rebuild the assessments array so UI doesn't think progress was wiped 
       localStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {}
+        progress: data.progress || {},
+        assessments: rebuildAssessments(data.email)
       })); 
 
       await syncUserCloudData(data.email); 
@@ -98,14 +126,19 @@ export default function SignIn() {
       await Promise.all([
         projectsDB.clear(),
         templatesDB.clear(),
-        syncQueueDB.clear()
+        syncQueueDB.clear(),
+        submissionsDB.clear(),
+        progressDB.clear()
       ]); 
+      
+      const guestEmail = `guest_${Date.now()}@algoblocks.local`;
 
       localStorage.setItem("user", JSON.stringify({
-        email: `guest_${Date.now()}@algoblocks.local`,
+        email: guestEmail,
         name: "Guest User",
         isGuest: true,
-        progress: {}
+        progress: {},
+        assessments: rebuildAssessments(guestEmail)
       })); 
 
       navigate("/dashboard"); 
@@ -132,11 +165,12 @@ export default function SignIn() {
         return;
       }
 
-      // ✅ FIX: Added progress to localStorage for Google Logins as well
+      // ✅ Rebuild assessment array
       localStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {}
+        progress: data.progress || {},
+        assessments: rebuildAssessments(data.email)
       }));
 
       await syncUserCloudData(data.email);

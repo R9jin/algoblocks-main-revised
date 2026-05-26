@@ -2,9 +2,9 @@
   "lessonId": "lesson-2-3",
   "moduleId": "module-2",
   "title": "Simple Sorting",
-  "description": "Learn the basic mechanics of simple sorting algorithms such as Bubble Sort and Selection Sort.",
+  "description": "Learn how simple sorting rearranges data, with a focused technical walkthrough of Bubble Sort comparisons, swaps, and quadratic growth.",
   "difficulty": "Beginner",
-  "estimatedTime": "35 min",
+  "estimatedTime": "40 min",
   "prerequisites": "Linear Search",
   "tags": [
     "sorting",
@@ -39,53 +39,176 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Sorting is the process of arranging data into a specific order.\n\nMany algorithms become more efficient when data is organized properly.\n\nSimple sorting algorithms help students understand how elements can be compared, swapped, and rearranged systematically."
+      "content": "Sorting algorithms rearrange data into a specific order. Common orders include ascending order, descending order, and alphabetical order.\n\nSorting is one of the most important operations in computing because organized data is easier to search, compare, display, and analyze. Many larger systems depend on sorting before they can perform efficient searching, ranking, reporting, or grouping."
     },
     {
       "id": "why-sorting-matters",
       "type": "concept",
       "title": "Why Sorting Matters",
-      "content": "Sorted data is easier to search, analyze, and process efficiently.\n\nApplications such as online stores, ranking systems, and databases rely heavily on sorting algorithms.\n\nAlthough advanced sorting methods exist, simple sorting algorithms provide an important introduction to algorithmic thinking."
+      "content": "Imagine searching for a name inside an unsorted list versus an alphabetically sorted list. The sorted list is easier to navigate because the data has structure.\n\nSorting improves searching efficiency, data organization, user interfaces, database queries, ranking systems, and analytics. Even when professional systems use advanced sorting algorithms, simple sorting teaches the fundamental operations behind comparison-based sorting.",
+      "bullets": [
+        "Comparing two values.",
+        "Deciding whether their order is correct.",
+        "Swapping values when needed.",
+        "Repeating passes until the entire collection is ordered."
+      ]
     },
     {
-      "id": "bubble-sort",
+      "id": "what-is-bubble-sort",
       "type": "deep_dive",
-      "title": "Bubble Sort",
-      "content": "Bubble Sort repeatedly compares neighboring elements and swaps them if they are in the wrong order.\n\nAfter each pass, larger values gradually move toward the end of the collection.\n\nThis process continues until the entire dataset becomes sorted.\n\nAlthough Bubble Sort is easy to understand, it becomes inefficient for large datasets because it requires many repeated comparisons."
+      "title": "What is Bubble Sort?",
+      "content": "Bubble Sort is a simple comparison-based sorting algorithm. It repeatedly compares adjacent elements and swaps them when they are in the wrong order.\n\nDuring each pass, larger values gradually move toward the end of the array, similar to bubbles rising upward in water. This is why the algorithm is called Bubble Sort."
     },
     {
-      "id": "selection-sort",
-      "type": "deep_dive",
-      "title": "Selection Sort",
-      "content": "Selection Sort works by repeatedly finding the smallest remaining element and placing it into its correct position.\n\nThe algorithm divides the array into sorted and unsorted regions.\n\nDuring each iteration, the smallest value from the unsorted region is selected and moved into the sorted portion."
-    },
-    {
-      "id": "comparison",
+      "id": "core-idea",
       "type": "concept",
-      "title": "Comparing Bubble Sort and Selection Sort",
-      "content": "Both Bubble Sort and Selection Sort are simple quadratic-time algorithms.\n\nBubble Sort performs many swaps between neighboring elements, while Selection Sort focuses on selecting the correct element during each iteration.\n\nAlthough neither algorithm is ideal for large-scale systems, they are valuable educational tools for understanding sorting behavior."
+      "title": "Core Idea of Bubble Sort",
+      "content": "Bubble Sort works through repeated passes. During each pass, adjacent elements are compared. If the left value is greater than the right value in ascending order, the two values are swapped.\n\nAfter one full pass, the largest unsorted value is usually in its correct final position. The algorithm then repeats the process for the remaining unsorted portion of the array."
     },
     {
-      "id": "real-world-connection",
+      "id": "walkthrough",
+      "type": "deep_dive",
+      "title": "Step-by-Step Example",
+      "content": "Suppose the algorithm sorts [5, 2, 8, 1] in ascending order.\n\nDuring the first pass, 5 and 2 are compared. Since 5 is greater than 2, they are swapped, producing [2, 5, 8, 1]. Next, 5 and 8 are compared and left unchanged. Then 8 and 1 are compared and swapped, producing [2, 5, 1, 8]. The largest value, 8, has reached the end.\n\nThe next pass starts again from the beginning. Values 2 and 5 are already in order, but 5 and 1 must be swapped, producing [2, 1, 5, 8]. A final pass swaps 2 and 1, producing [1, 2, 5, 8]."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "Bubble Sort is usually implemented with nested loops. The outer loop controls repeated passes. The inner loop compares adjacent pairs and performs swaps.",
+      "codeSnippets": [
+        {
+          "title": "Bubble Sort in ascending order",
+          "language": "python",
+          "code": "def bubble_sort_asc(arr):\n    result = arr[:]\n\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] > result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n\n    return result\n\nprint(bubble_sort_asc([5, 2, 8, 1]))"
+        },
+        {
+          "title": "Bubble Sort in descending order",
+          "language": "python",
+          "code": "def bubble_sort_desc(arr):\n    result = arr[:]\n\n    for pass_index in range(len(result)):\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] < result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n\n    return result\n\nprint(bubble_sort_desc([1, 2, 3]))"
+        },
+        {
+          "title": "Optimized Bubble Sort stops when no swaps occur",
+          "language": "python",
+          "code": "def optimized_bubble_sort(arr):\n    result = arr[:]\n\n    for pass_index in range(len(result)):\n        swapped = False\n\n        for i in range(0, len(result) - pass_index - 1):\n            if result[i] > result[i + 1]:\n                result[i], result[i + 1] = result[i + 1], result[i]\n                swapped = True\n\n        if not swapped:\n            break\n\n    return result\n\nprint(optimized_bubble_sort([1, 2, 3, 4]))"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Bubble Sort is slow for large datasets because it repeatedly scans the array. For every element, multiple comparisons may occur. This repeated work creates quadratic growth.\n\nThe best case can be O(n) if the implementation stops early when no swaps occur. The average and worst cases are O(n^2). Space complexity is O(1) when the algorithm sorts in place, because it only needs a small fixed amount of extra memory.",
+      "chart": {
+        "title": "Bubble Sort quadratic growth",
+        "description": "Bubble Sort uses repeated adjacent comparisons, so its average and worst-case work grows much faster than linear scanning.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(n^2)",
+          "O(n log n)"
+        ]
+      }
+    },
+    {
+      "id": "why-quadratic",
+      "type": "concept",
+      "title": "Why Bubble Sort Is O(n^2)",
+      "content": "The nested-loop structure is the main reason Bubble Sort becomes quadratic. The algorithm performs many passes, and each pass compares adjacent elements across the array.\n\nIf the input size doubles, the number of comparisons grows much more than double. This is why Bubble Sort is useful for learning but rarely used for large production datasets."
+    },
+    {
+      "id": "sorting-vs-searching",
+      "type": "concept",
+      "title": "Sorting vs Searching",
+      "content": "Searching algorithms locate values. Sorting algorithms rearrange values. This distinction matters because sorting changes the arrangement of data, while searching only reports information about data.\n\nA sorted array can make future searching faster, but the sorting step itself has a cost. Programmers must decide whether the cost of sorting is worth the later performance benefit."
+    },
+    {
+      "id": "advantages-limitations",
+      "type": "concept",
+      "title": "Advantages and Limitations",
+      "subsections": [
+        {
+          "id": "advantages",
+          "title": "Advantages",
+          "bullets": [
+            "Simple to understand.",
+            "Easy to implement with loops and swaps.",
+            "Useful for teaching comparisons, passes, and in-place updates.",
+            "Works acceptably on very small datasets."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "bullets": [
+            "Poor scalability for large datasets.",
+            "Repeated passes can perform unnecessary work.",
+            "Average and worst-case time complexity are O(n^2).",
+            "Advanced algorithms such as Merge Sort and Quick Sort are usually faster."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "applications",
       "type": "real_world_connection",
-      "title": "Sorting in Real Applications",
-      "content": "Sorting algorithms are widely used in databases, search engines, recommendation systems, and operating systems.\n\nEven though modern applications often use advanced sorting algorithms, understanding simple sorting methods helps students build a strong foundation in algorithm design and performance analysis."
+      "title": "Real-World Applications",
+      "content": "Bubble Sort is not commonly chosen for large production systems because it is inefficient. However, it remains important in education, visualization tools, debugging examples, and small demonstrations of sorting logic.\n\nIt helps students understand how ordering can be produced through repeated comparison and swapping."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "one-pass",
+          "title": "Mistake: Thinking one pass fully sorts the array",
+          "content": "One pass usually moves one large value into place. Multiple passes are required to sort the entire array."
+        },
+        {
+          "id": "loop-boundaries",
+          "title": "Mistake: Using incorrect loop boundaries",
+          "content": "Incorrect boundaries can cause index errors or unnecessary comparisons. The inner loop should avoid reading beyond the last valid adjacent pair."
+        },
+        {
+          "id": "swap-direction",
+          "title": "Mistake: Reversing the comparison",
+          "content": "Ascending and descending order require opposite comparison checks. Using the wrong operator sorts in the wrong direction."
+        },
+        {
+          "id": "ignoring-complexity",
+          "title": "Mistake: Ignoring quadratic growth",
+          "content": "Bubble Sort may look simple, but its repeated comparisons make it inefficient as input size grows."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Simple sorting algorithms arrange data into an organized order through repeated comparisons and swaps. Bubble Sort and Selection Sort introduce important algorithm concepts such as iteration, comparison, and data movement."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Sorting rearranges data into organized order.",
+        "Bubble Sort compares adjacent elements repeatedly.",
+        "Larger elements gradually move toward the end in ascending order.",
+        "Bubble Sort relies on repeated swapping.",
+        "Nested loops create O(n^2) average and worst-case behavior.",
+        "Bubble Sort is useful for learning, but not ideal for large datasets."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Bubble Sort",
+      "title": "Programiz - Bubble Sort",
       "url": "https://www.programiz.com/dsa/bubble-sort"
     },
     {
-      "title": "Programiz — Selection Sort",
-      "url": "https://www.programiz.com/dsa/selection-sort"
+      "title": "GeeksforGeeks - Bubble Sort",
+      "url": "https://www.geeksforgeeks.org/bubble-sort-algorithm/"
+    },
+    {
+      "title": "VisuAlgo - Sorting Visualizations",
+      "url": "https://visualgo.net/en/sorting"
     }
   ]
 }

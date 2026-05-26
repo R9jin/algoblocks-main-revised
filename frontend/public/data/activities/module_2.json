@@ -216,5 +216,52 @@
         { "call": "sort_passes([9])", "expected": "0", "isHidden": false }
       ]
     }
+  ],
+  "optimizations": [
+    {
+      "id": "m2_opt_1",
+      "title": "Optimize Fibonacci Sequence",
+      "task": "The default `fibonacci(n)` function uses naive recursion, leading to an exponential O(2ⁿ) time complexity due to overlapping subproblems.\n\n**Task Requirement:**\nOptimize it to run in O(n) time.\n\n**Rules:**\n- Use Memoization (caching) OR convert it to an iterative approach.\n- Return the nth Fibonacci number (where fib(0)=0, fib(1)=1).",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m2-2.1.json",
+      "testCasesPool": [
+        { "call": "fibonacci(5)", "expected": "5", "isHidden": false },
+        { "call": "fibonacci(10)", "expected": "55", "isHidden": false },
+        { "call": "fibonacci(0)", "expected": "0", "isHidden": false },
+        { "call": "fibonacci(1)", "expected": "1", "isHidden": false },
+        { "call": "fibonacci(20)", "expected": "6765", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m2_opt_2",
+      "title": "Optimize Power Function",
+      "task": "The given `power(base, exp)` multiplies the base `exp` times sequentially, resulting in O(n) time.\n\n**Task Requirement:**\nOptimize the power calculation using *Divide and Conquer* (Exponentiation by Squaring).\n\n**Rules:**\n- If exp is even, `power(b, e) = power(b*b, e/2)`\n- If exp is odd, `power(b, e) = b * power(b, e-1)`",
+      "targetTime": "O(log n)",
+      "targetSpace": "O(log n)",
+      "templateUrl": "/data/optimizations/m2-2.2.json",
+      "testCasesPool": [
+        { "call": "power(2, 3)", "expected": "8", "isHidden": false },
+        { "call": "power(5, 2)", "expected": "25", "isHidden": false },
+        { "call": "power(3, 0)", "expected": "1", "isHidden": false },
+        { "call": "power(2, 10)", "expected": "1024", "isHidden": false },
+        { "call": "power(1, 100)", "expected": "1", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m2_opt_3",
+      "title": "Tail Recursion Conversion",
+      "task": "The `factorial(n)` function uses standard recursion which builds up the call stack O(n).\n\n**Task Requirement:**\nConvert the function to use an iterative approach to reduce the space complexity to O(1).",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m2-2.3.json",
+      "testCasesPool": [
+        { "call": "factorial(5)", "expected": "120", "isHidden": false },
+        { "call": "factorial(3)", "expected": "6", "isHidden": false },
+        { "call": "factorial(0)", "expected": "1", "isHidden": false },
+        { "call": "factorial(1)", "expected": "1", "isHidden": false },
+        { "call": "factorial(7)", "expected": "5040", "isHidden": false }
+      ]
+    }
   ]
 }

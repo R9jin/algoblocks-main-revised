@@ -1,12 +1,17 @@
 {
   "lessonId": "lesson-6-4",
   "moduleId": "module-6",
-  "title": "Maze and Subset Problems",
-  "description": "Explore how Backtracking solves pathfinding and subset exploration problems through recursive search.",
-  "difficulty": "Advanced",
-  "estimatedTime": "45 min",
+  "title": "Maze Solving with Backtracking",
+  "description": "Learn how backtracking systematically explores paths, avoids dead ends, and finds valid routes through recursive maze traversal.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "55 min",
   "prerequisites": "N-Queens Problem",
-  "tags": ["maze solving", "subset problems", "backtracking", "pathfinding"],
+  "tags": [
+    "backtracking",
+    "maze solving",
+    "pathfinding",
+    "recursive search"
+  ],
   "activities": [
     { "id": "m6_l4_a1", "title": "Move Directions" },
     { "id": "m6_l4_a2", "title": "Boundary Check" },
@@ -19,53 +24,197 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Backtracking is highly effective for pathfinding and subset exploration problems.\n\nMaze solving and subset generation demonstrate how recursive exploration can systematically examine possible paths while avoiding invalid decisions."
+      "content": "Maze solving is one of the most classic applications of backtracking.\n\nThe objective is to find a valid path from a starting point to a destination while avoiding walls, invalid cells, and dead ends.\n\nThe algorithm systematically explores possible directions, recursively continues exploration, and backtracks whenever a path becomes impossible.\n\nMaze solving clearly demonstrates recursive search, rollback operations, pruning, and path exploration."
     },
     {
-      "id": "maze-solving",
+      "id": "why-maze-solving-matters",
       "type": "concept",
-      "title": "Maze Solving with Backtracking",
-      "content": "Maze-solving algorithms attempt to find a valid path from a starting point to a destination.\n\nThe algorithm explores possible directions recursively while tracking visited locations.\n\nIf a path reaches a dead end, the algorithm backtracks and explores alternative routes."
+      "title": "Why Maze Solving Matters",
+      "content": "Many real-world systems involve pathfinding and route exploration.\n\nExamples include robotics navigation, GPS systems, AI movement, video games, warehouse automation, and network routing.\n\nMaze solving models how intelligent systems systematically explore possible movement paths while avoiding obstacles.",
+      "bullets": [
+        "Demonstrates recursive pathfinding.",
+        "Introduces visited-state tracking.",
+        "Shows rollback and dead-end recovery.",
+        "Appears in robotics and AI systems."
+      ]
     },
     {
-      "id": "path-exploration",
+      "id": "maze-representation",
       "type": "deep_dive",
-      "title": "Recursive Path Exploration",
-      "content": "At every step, the algorithm evaluates possible movements such as moving up, down, left, or right.\n\nValid paths are explored recursively, while blocked or previously visited cells are rejected.\n\nThis systematic exploration eventually discovers valid paths if they exist."
+      "title": "Understanding Maze Representation",
+      "content": "A maze is commonly represented using a 2D matrix.\n\nExample:\n0 → blocked cell or wall\n1 → open path\n\nExample maze:\n[1, 0, 1, 1]\n[1, 1, 1, 0]\n[0, 1, 0, 1]\n[1, 1, 1, 1]\n\nThe algorithm starts from one position and attempts to reach the destination."
     },
     {
-      "id": "subset-generation",
+      "id": "core-backtracking-idea",
       "type": "concept",
-      "title": "Subset Problems",
-      "content": "Subset problems involve generating all possible subsets from a collection of elements.\n\nFor every element, the algorithm decides whether to include or exclude it.\n\nThis repeated branching process produces all possible combinations systematically."
+      "title": "Core Backtracking Idea",
+      "content": "The algorithm repeatedly:\n● moves to a possible neighboring cell\n● checks whether the move is valid\n● continues recursively\n● backtracks if a dead end is reached\n\nThis recursive choose-explore-undo process systematically explores the maze."
     },
     {
-      "id": "decision-tree",
+      "id": "valid-movement",
       "type": "deep_dive",
-      "title": "The Decision Tree Structure",
-      "content": "Subset generation can be visualized as a decision tree.\n\nEvery branch represents a choice to include or exclude an element.\n\nBacktracking explores each branch recursively until all possible subsets have been generated."
+      "title": "Understanding Valid Movement",
+      "content": "Before moving into a new cell, the algorithm checks:\n\n● Is the position inside maze boundaries?\n● Is the cell blocked?\n● Was the cell already visited?\n\nIf any condition fails, the movement becomes invalid.\n\nThe algorithm immediately rejects the move and explores another direction."
     },
     {
-      "id": "real-world-connection",
+      "id": "visited-cells",
+      "type": "concept",
+      "title": "Why Visited Tracking Is Important",
+      "content": "Without tracking visited cells, the algorithm may revisit the same positions repeatedly.\n\nThis creates infinite recursive loops.\n\nVisited tracking prevents repeated exploration of already-visited paths.\n\nIt also helps the algorithm avoid unnecessary recursive work."
+    },
+    {
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Maze Exploration",
+      "content": "Suppose the algorithm starts at the top-left corner.\n\nStep 1 — Move Right\nIf the cell is valid, continue recursively.\n\nStep 2 — Reach Dead End\nSuppose all neighboring cells become blocked.\n\nStep 3 — Backtrack\nThe algorithm returns to the previous position.\n\nStep 4 — Try Another Direction\nExplore Down instead.\n\nThis repeated exploration-and-rollback process continues until a valid path is found."
+    },
+    {
+      "id": "dead-ends",
+      "type": "deep_dive",
+      "title": "Understanding Dead Ends",
+      "content": "A dead end occurs when no valid movement remains.\n\nExample:\n● wall ahead\n● already visited cell\n● maze boundary\n\nWhen this happens, recursion returns backward to the previous state.\n\nThe algorithm then explores another branch.\n\nThis rollback behavior is the heart of backtracking."
+    },
+    {
+      "id": "recursive-search-tree",
+      "type": "deep_dive",
+      "title": "Recursive Search Tree",
+      "content": "Maze exploration forms a recursive branching tree.\n\nExample:\nStart\n├── Right\n│   ├── Down\n│   └── Dead End\n├── Down\n└── Left\n\nEach branch represents another possible movement path.\n\nInvalid branches are pruned immediately."
+    },
+    {
+      "id": "path-marking",
+      "type": "concept",
+      "title": "Path Marking",
+      "content": "Many maze-solving algorithms mark path cells during exploration.\n\nExample:\n● current path\n● visited positions\n● solution path\n\nMarking helps visualize recursive exploration and prevents repeated movement cycles."
+    },
+    {
+      "id": "general-pseudocode",
+      "type": "concept",
+      "title": "General Maze Backtracking Pseudocode",
+      "content": "Most maze-solving algorithms follow this recursive structure.",
+      "codeSnippets": [
+        {
+          "title": "Maze-solving pseudocode",
+          "language": "python",
+          "code": "def solve(row, col):\n    if reached_destination:\n        return True\n\n    if invalid_position:\n        return False\n\n    mark_visited(row, col)\n\n    for each direction:\n        if solve(next_row, next_col):\n            return True\n\n    unmark_position(row, col)\n\n    return False"
+        }
+      ]
+    },
+    {
+      "id": "python-implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "Maze-solving implementations commonly use recursive movement exploration and visited-state tracking.",
+      "codeSnippets": [
+        {
+          "title": "Maze solving using backtracking",
+          "language": "python",
+          "code": "maze = [\n    [1, 0, 0, 0],\n    [1, 1, 0, 1],\n    [0, 1, 0, 0],\n    [1, 1, 1, 1]\n]\n\nn = 4\nvisited = [[False for _ in range(n)] for _ in range(n)]\n\ndef solve(row, col):\n    if row == n - 1 and col == n - 1:\n        return True\n\n    if row < 0 or col < 0 or row >= n or col >= n:\n        return False\n\n    if maze[row][col] == 0 or visited[row][col]:\n        return False\n\n    visited[row][col] = True\n\n    if solve(row + 1, col):\n        return True\n\n    if solve(row, col + 1):\n        return True\n\n    if solve(row - 1, col):\n        return True\n\n    if solve(row, col - 1):\n        return True\n\n    visited[row][col] = False\n\n    return False\n\nprint(solve(0, 0))"
+        },
+        {
+          "title": "Visited cell tracking",
+          "language": "python",
+          "code": "visited = [[False, False],\n[False, False]]\n\nvisited[0][0] = True\n\nfor row in visited:\n    print(row)"
+        },
+        {
+          "title": "Boundary checking example",
+          "language": "python",
+          "code": "row = 2\ncol = 1\nn = 4\n\nif row >= 0 and col >= 0 and row < n and col < n:\n    print('Valid Position')"
+        }
+      ]
+    },
+    {
+      "id": "rollback-code",
+      "type": "concept",
+      "title": "Understanding Rollback in Maze Solving",
+      "content": "Rollback occurs when a movement path fails.\n\nExample rollback operation:\nvisited[row][col] = False\n\nThis restores the previous exploration state so another direction can be tested.\n\nWithout rollback, recursive exploration becomes incorrect."
+    },
+    {
+      "id": "pruning",
+      "type": "concept",
+      "title": "Why Pruning Is Important",
+      "content": "Maze-solving search spaces grow rapidly.\n\nWithout pruning, the algorithm would waste time exploring:\n● walls\n● invalid positions\n● already visited paths\n● impossible branches\n\nEfficient pruning dramatically improves practical performance."
+    },
+    {
+      "id": "dfs-connection",
+      "type": "deep_dive",
+      "title": "Connection to Depth-First Search",
+      "content": "Maze solving with backtracking behaves similarly to Depth-First Search (DFS).\n\nThe algorithm explores one path deeply before returning backward.\n\nThis recursive depth-first exploration naturally fits maze traversal problems.\n\nBacktracking extends DFS with rollback and constraint checking."
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Maze-solving complexity depends heavily on maze size and branching possibilities.\n\nIn the worst case, recursive exploration may visit many possible paths.\n\nWorst-case complexity commonly approaches exponential growth.\n\nPruning and visited tracking significantly reduce unnecessary recursive exploration.",
+      "chart": {
+        "title": "Maze-solving recursive growth",
+        "description": "Recursive path exploration causes rapid search-space growth, while pruning and visited tracking improve efficiency.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(2^n)",
+          "O(n!)"
+        ]
+      }
+    },
+    {
+      "id": "real-world-applications",
       "type": "real_world_connection",
-      "title": "Pathfinding and Subset Problems in Real Applications",
-      "content": "Pathfinding algorithms are used in robotics, navigation systems, video games, and autonomous vehicles.\n\nSubset exploration appears in recommendation systems, optimization problems, financial analysis, and machine learning."
+      "title": "Real-World Applications",
+      "content": "Maze-solving techniques appear in robotics navigation, autonomous vehicles, game AI, GPS systems, warehouse automation, network routing, and search-and-rescue systems.\n\nMany intelligent systems rely heavily on recursive pathfinding and exploration."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "forgetting-visited",
+          "title": "Mistake: Forgetting visited-state tracking",
+          "content": "Without visited tracking, recursion may revisit cells repeatedly and create infinite loops."
+        },
+        {
+          "id": "missing-rollback",
+          "title": "Mistake: Forgetting rollback operations",
+          "content": "Without undoing visited states, future valid paths may become incorrectly blocked."
+        },
+        {
+          "id": "boundary-errors",
+          "title": "Mistake: Incorrect boundary checking",
+          "content": "Movement validation must carefully check maze dimensions and invalid positions."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Backtracking efficiently solves maze and subset problems through recursive exploration, rollback, and systematic decision-making. These techniques form the foundation of many pathfinding and optimization systems."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Maze solving systematically explores movement paths.",
+        "Backtracking recursively explores and undoes paths.",
+        "Visited tracking prevents infinite loops.",
+        "Rollback restores previous exploration states.",
+        "Pruning eliminates invalid paths early.",
+        "Maze solving demonstrates recursive pathfinding clearly."
+      ]
     }
   ],
   "references": [
     {
-      "title": "GeeksforGeeks — Rat in a Maze",
+      "title": "Programiz – Backtracking Algorithm",
+      "url": "https://www.programiz.com/dsa/backtracking-algorithm"
+    },
+    {
+      "title": "GeeksforGeeks – Rat in a Maze",
       "url": "https://www.geeksforgeeks.org/rat-in-a-maze-backtracking-2/"
     },
     {
-      "title": "GeeksforGeeks — Subset Problems",
-      "url": "https://www.geeksforgeeks.org/backtracking-to-find-all-subsets/"
+      "title": "Wikipedia – Maze Solving Algorithm",
+      "url": "https://en.wikipedia.org/wiki/Maze-solving_algorithm"
+    },
+    {
+      "title": "Hello Algo – Backtracking",
+      "url": "https://www.hello-algo.com/en/chapter_backtracking/"
     }
   ]
 }

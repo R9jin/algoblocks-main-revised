@@ -1,0 +1,186 @@
+{
+  "moduleId": "module-2",
+  "moduleTitle": "Brute Force & Exhaustive Search",
+  "questions": [
+    {
+      "id": "m2_q1",
+      "question": "What is a brute force strategy?",
+      "options": [
+        "An approach that skips invalid inputs to save time",
+        "A method that uses mathematical shortcuts to find answers instantly",
+        "An approach that systematically tries every possible candidate solution until the correct one is found",
+        "A technique that divides the problem into subproblems and solves each independently"
+      ],
+      "answer": 2,
+      "explanation": "Brute force exhaustively tries all possibilities without applying any optimization or pruning, guaranteeing correctness at the cost of efficiency."
+    },
+    {
+      "id": "m2_q2",
+      "question": "Why is brute force inefficient for large inputs?",
+      "options": [
+        "Because it always produces incorrect results for large datasets",
+        "Because the number of operations grows too fast (often O(n²) or worse), making it impractical for large n",
+        "Because it requires special hardware to run correctly",
+        "Because it cannot be implemented using block-based programming"
+      ],
+      "answer": 1,
+      "explanation": "Brute force often has polynomial or exponential time complexity, causing execution time to explode as input size increases — making it infeasible for large-scale problems."
+    },
+    {
+      "id": "m2_q3",
+      "question": "What is linear search?",
+      "options": [
+        "A search algorithm that halves the search space at each step",
+        "A search algorithm that checks each element one by one from left to right until the target is found",
+        "A search algorithm that uses a hash table for constant-time lookup",
+        "A search algorithm that only works on sorted arrays"
+      ],
+      "answer": 1,
+      "explanation": "Linear search scans elements sequentially from the first to the last, checking each one against the target value."
+    },
+    {
+      "id": "m2_q4",
+      "question": "What is the time complexity of linear search?",
+      "options": [
+        "O(1) — constant time",
+        "O(log n) — logarithmic time",
+        "O(n) — linear time",
+        "O(n²) — quadratic time"
+      ],
+      "answer": 2,
+      "explanation": "Linear search is O(n) because in the worst case it must examine every element in the array once."
+    },
+    {
+      "id": "m2_q5",
+      "question": "Does linear search require sorted data?",
+      "options": [
+        "Yes, it only works on ascending sorted arrays",
+        "Yes, it requires either ascending or descending sorted data",
+        "No, it works on both sorted and unsorted data",
+        "No, but it produces incorrect results on unsorted data"
+      ],
+      "answer": 2,
+      "explanation": "Linear search works by sequentially checking each element, so it does not require the data to be sorted — unlike Binary Search."
+    },
+    {
+      "id": "m2_q6",
+      "question": "What is the worst-case scenario for linear search?",
+      "options": [
+        "The target is at the first index (index 0)",
+        "The array contains duplicate values",
+        "The target is not in the array, requiring all n elements to be checked",
+        "The array is already sorted in ascending order"
+      ],
+      "answer": 2,
+      "explanation": "The worst case for linear search is when the target doesn't exist — the algorithm must scan all n elements before concluding the target is absent."
+    },
+    {
+      "id": "m2_q7",
+      "question": "What is Bubble Sort?",
+      "options": [
+        "A sorting algorithm that selects the minimum element and places it at the front",
+        "A sorting algorithm that repeatedly swaps adjacent elements that are in the wrong order until the array is sorted",
+        "A sorting algorithm that divides the array in half recursively and merges sorted halves",
+        "A sorting algorithm that inserts elements one by one into their correct position"
+      ],
+      "answer": 1,
+      "explanation": "Bubble Sort works by repeatedly comparing and swapping adjacent elements, causing larger elements to 'bubble' toward the end with each pass."
+    },
+    {
+      "id": "m2_q8",
+      "question": "What is Selection Sort?",
+      "options": [
+        "A sorting algorithm that swaps adjacent elements in each pass",
+        "A sorting algorithm that repeatedly finds the minimum element from the unsorted portion and places it at the beginning of the unsorted region",
+        "A sorting algorithm that uses a pivot to partition elements",
+        "A sorting algorithm that merges two halves into a sorted array"
+      ],
+      "answer": 1,
+      "explanation": "Selection Sort scans the unsorted portion for the minimum element and swaps it into its correct position, expanding the sorted portion one element at a time."
+    },
+    {
+      "id": "m2_q9",
+      "question": "What is the time complexity of Bubble Sort?",
+      "options": [
+        "O(n log n) in all cases",
+        "O(n) in all cases",
+        "O(n²) in the worst and average case",
+        "O(log n) in the best case"
+      ],
+      "answer": 2,
+      "explanation": "Bubble Sort has O(n²) worst and average case due to its nested loop structure. The best case is O(n) only with an optimized early-exit flag when no swaps occur."
+    },
+    {
+      "id": "m2_q10",
+      "question": "What is the time complexity of Selection Sort?",
+      "options": [
+        "O(n) in all cases",
+        "O(n log n) in the best case",
+        "O(n²) in all cases, because it always scans the full unsorted portion",
+        "O(log n) for small arrays"
+      ],
+      "answer": 2,
+      "explanation": "Selection Sort is always O(n²) — even if the array is already sorted, it must still scan the full unsorted portion to confirm the minimum element."
+    },
+    {
+      "id": "m2_q11",
+      "question": "Why do simple sorting algorithms use nested loops?",
+      "options": [
+        "Because nested loops are required by the Python programming language",
+        "To process each element, they must compare it with every other relevant element, requiring an outer loop for passes and an inner loop for comparisons",
+        "Because single loops are not powerful enough to store sorted results",
+        "Nested loops are only used for printing 2D grids, not for sorting"
+      ],
+      "answer": 1,
+      "explanation": "Simple O(n²) sorts use an outer loop to iterate over positions and an inner loop to find the correct element or make comparisons — this double iteration causes the quadratic complexity."
+    },
+    {
+      "id": "m2_q12",
+      "question": "What does 'in-place sorting' mean?",
+      "options": [
+        "The algorithm sorts data by transferring it to an external storage device",
+        "The algorithm creates a completely new sorted array, leaving the original unchanged",
+        "The algorithm sorts the array by rearranging elements within the original array using only a constant amount of extra memory",
+        "The algorithm sorts data by using a secondary hash table"
+      ],
+      "answer": 2,
+      "explanation": "In-place sorting rearranges elements within the existing array without requiring significant additional memory, unlike out-of-place algorithms that create a new sorted copy."
+    },
+    {
+      "id": "m2_q13",
+      "question": "How do you find the maximum value in an unsorted array?",
+      "options": [
+        "By jumping directly to the middle element",
+        "By sorting the array first, then reading the last element",
+        "By iterating through every element and tracking the largest value seen so far",
+        "By using binary search on the unsorted array"
+      ],
+      "answer": 2,
+      "explanation": "Without sorting, the only reliable way to find the maximum is to scan all elements linearly while maintaining a running maximum — a classic O(n) brute force approach."
+    },
+    {
+      "id": "m2_q14",
+      "question": "In what scenario is brute force acceptable?",
+      "options": [
+        "When the input size is very large and performance is critical",
+        "When input size is small enough that even O(n²) or higher completes within acceptable time limits",
+        "When an optimized algorithm is not yet available on the market",
+        "Only when the program runs on specialized hardware"
+      ],
+      "answer": 1,
+      "explanation": "Brute force is acceptable for small input sizes where even quadratic or exponential complexity finishes quickly, and simplicity of implementation outweighs performance concerns."
+    },
+    {
+      "id": "m2_q15",
+      "question": "What is an auxiliary array?",
+      "options": [
+        "The original input array passed to a function",
+        "An array that stores only negative values",
+        "A temporary additional array used to assist the main algorithm, typically to store intermediate results",
+        "An array that is automatically created by the programming language runtime"
+      ],
+      "answer": 2,
+      "explanation": "An auxiliary array is a helper data structure used alongside the main data to store intermediate values — for example, a seen-values array used to track visited elements in O(n) duplicate detection."
+    }
+  ]
+}
