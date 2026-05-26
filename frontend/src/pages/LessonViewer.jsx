@@ -106,6 +106,7 @@ export default function LessonViewer() {
   // Progress State
   const [userProgress, setUserProgress] = useState({});
   const [lessonDetails, setLessonDetails] = useState({});
+  const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
 
   // Load User Progress
@@ -124,12 +125,21 @@ export default function LessonViewer() {
     }
   }, []);
 
-  // Fetch ALL lesson data
+  // Fetch ALL lesson data and activities data
   useEffect(() => {
-    const fetchLessonsData = async () => {
+    const fetchAllData = async () => {
       const details = {};
+      const acts = {};
 
       for (const module of curriculumIndex) {
+        const mid = module.moduleId.split("-").pop();
+        
+        // Fetch activities data to check for optimizations
+        try {
+          const resAct = await fetch(`/data/activities/module_${mid}.json`);
+          if (resAct.ok) acts[module.moduleId] = await resAct.json();
+        } catch (e) {}
+
         for (const lessonMeta of module.lessons) {
           try {
             const fetchPath = `/data/curriculum/${module.moduleId}/${lessonMeta.lessonId}.json`;
@@ -149,9 +159,10 @@ export default function LessonViewer() {
       }
 
       setLessonDetails(details);
+      setActivitiesData(acts);
     };
 
-    fetchLessonsData();
+    fetchAllData();
   }, []);
 
   // Fetch current lesson
@@ -200,7 +211,6 @@ export default function LessonViewer() {
   }, [moduleId, lessonId]);
 
   // Lock Logic
-
   const hasPreAssessment = (mId) =>
     assessments[`${mId}_pre_assessment`] !== undefined;
 
@@ -333,6 +343,11 @@ export default function LessonViewer() {
             const postComplete = hasPostAssessment(
               module.moduleId
             );
+
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
+            const hasOptimizations = optimizations.length > 0;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
+            const optimizationsLocked = lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
 
             return (
               <div
@@ -491,6 +506,44 @@ export default function LessonViewer() {
                         </a>
                       );
                     })}
+
+                    {/* Optimization Challenges */}
+                    {hasOptimizations && (
+                      <div
+                        onClick={() => {
+                          if (!optimizationsLocked) {
+                            navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
+                          }
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          padding: "10px 15px",
+                          paddingLeft: "45px",
+                          cursor: optimizationsLocked ? "not-allowed" : "pointer",
+                          opacity: optimizationsLocked ? 0.5 : 1,
+                          color: "#d35400",
+                          fontSize: "0.85rem",
+                          fontWeight: "bold",
+                          backgroundColor: "rgba(243, 156, 18, 0.05)",
+                        }}
+                      >
+                        <span style={{color: "#f39c12", fontSize: "1.1rem"}}>★</span>
+
+                        <span>Optimization Challenges</span>
+
+                        <span style={{ marginLeft: "auto" }}>
+                          {optimizationsLocked ? (
+                            <FiLock size={12} />
+                          ) : userProgress[`lesson-${modNumber}-optimizations`] ? (
+                            <FiCheckCircle size={14} color="#22c55e" />
+                          ) : (
+                            <FiCircle size={14} color="#f39c12" />
+                          )}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Post Assessment */}
 

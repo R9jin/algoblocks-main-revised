@@ -1,3 +1,4 @@
+// frontend/src/pages/ActivityApp.jsx
 import Editor from "@monaco-editor/react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -95,7 +96,6 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
-// Updated formatter to handle new semantic_nlg.py output without emojis
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
@@ -360,7 +360,6 @@ const ActivityApp = () => {
     try {
       const res = await fetch(url);
       if (res.ok) {
-        // Prevent parsing HTML 404 fallback pages as JSON
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const json = await res.json();
@@ -388,7 +387,6 @@ const ActivityApp = () => {
     const mid = String(moduleId).replace(/[^0-9]/g, "");
     if (!mid) throw new Error("Invalid moduleId");
 
-    // Fetch directly from the activities JSON (skip the non-existent modules JSON)
     const activitiesUrl = `/data/activities/module_${mid}.json`;
     const activitiesJson = await fetchJsonWithCache(`activities:module_${mid}`, activitiesUrl);
 
@@ -410,14 +408,13 @@ const ActivityApp = () => {
 
     if (!foundActivity) throw new Error("Activity not found in module activities JSON");
 
-    // Resolve the lesson ID for progress tracking (e.g. lesson_1 -> lesson-0-1)
+    // Resolve the lesson ID for progress tracking
     const lessonNum = foundLessonKey.replace("lesson_", "");
     const formattedLessonId = `lesson-${mid}-${lessonNum}`;
 
     setTopicIdResolved(formattedLessonId);
     setLessonActivitiesResolved(activitiesInLesson);
 
-    // Map the test cases
     const testCasesList = (foundActivity.testCasesPool || []).map((tc) => ({
       call: tc.call,
       expected: tc.expected,
@@ -428,11 +425,11 @@ const ActivityApp = () => {
       id: foundActivity.id,
       title: foundActivity.title || foundLessonKey,
       task: foundActivity.task,
-      difficulty: foundActivity.difficulty || "Easy",
-      // Safely grab the target complexity relying on new JSON keys
+      difficulty: foundActivity.difficulty || (foundLessonKey === "optimizations" ? "Advanced" : "Easy"),
       targetTimeComplexity: foundActivity.targetTime || foundActivity.targetTimeComplexity || "O(n)",
       targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(n)",
       testCasesList,
+      templateUrl: foundActivity.templateUrl || null
     };
   };
 
@@ -500,6 +497,17 @@ const ActivityApp = () => {
           }
         } else {
           if (workspaceRef.current?.clear) workspaceRef.current.clear();
+
+          // LOAD TEMPLATE FOR OPTIMIZATION ACTIVITIES IF EXISTS
+          if (resolvedActivity.templateUrl && workspaceRef.current) {
+            try {
+              const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
+              workspaceRef.current.loadTemplate(templateJson);
+              latestBlocksJsonRef.current = templateJson;
+            } catch (err) {
+              console.warn("Failed to load pre-made optimization template:", err);
+            }
+          }
         }
 
         const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
@@ -805,7 +813,7 @@ const ActivityApp = () => {
       });
     } else {
       setModalConfig({
-        isOpen: true, title: "Lesson Completed!", message: `${promptMsg}\n\nIncredible! You have finished all activities in this lesson.\nReturn to the learning path to unlock the next topic.`, confirmText: "Finish Lesson", cancelText: "Stay Here", isDanger: false,
+        isOpen: true, title: "Section Completed!", message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to unlock the next topic.`, confirmText: "Finish", cancelText: "Stay Here", isDanger: false,
         onConfirmAction: async () => { closeModal(); if (topicIdResolved) { await completeFullTopic(topicIdResolved); } navigate("/learning-path"); }, onCancelAction: closeModal,
       });
     }
@@ -813,7 +821,6 @@ const ActivityApp = () => {
 
   const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
 
-  // NEW REWRITTEN RUN TESTS (7 cases integration)
   const runTestCases = async () => {
     if (isEvaluating) return;
     if (!processedTestCases.length) return;
@@ -844,7 +851,6 @@ const ActivityApp = () => {
     for (let i = 0; i < totalTests; i++) {
       const tc = processedTestCases[i];
 
-      // Handle custom Complexity Check pseudo-tests
       if (tc.isComplexityTest) {
         const actualVal = tc.title.includes("Time") ? analysisResult.total : analysisResult.space_total;
         const actualWeight = getComplexityWeight(actualVal);
@@ -864,7 +870,6 @@ const ActivityApp = () => {
         continue;
       }
 
-      // Handle standard functional tests
       functionalTotal++;
       const isFunctionCall = tc.call?.includes("(") && tc.call?.includes(")");
       const taskId = activityDataResolved?.id || "";
@@ -903,7 +908,6 @@ const ActivityApp = () => {
 
     setIsEvaluating(false);
 
-    // Scoring logic (3 Base + 2 Complexity = 5 max points)
     let score = 0;
     if (functionalPassed === 0) {
       score = 0;

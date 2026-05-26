@@ -19,7 +19,7 @@ import curriculumIndex from "../data/curriculumIndex";
 
 import "../styles/LearningPath.css";
 
-// ✅ ADDED: Difficulty and Prerequisites to support the Hub-and-Spoke semi-linear model
+// ✅ Difficulty and Prerequisites to support the Hub-and-Spoke semi-linear model
 const moduleIcons = {
   "module-0": { icon: FiUsers, color: "#7c5cff", difficulty: "Beginner", description: "Learn the fundamentals of AlgoBlocks." },
   "module-1": { icon: FiUsers, color: "#6366f1", difficulty: "Beginner", description: "Understand Big-O notation and complexity analysis." },
@@ -30,22 +30,12 @@ const moduleIcons = {
   "module-6": { icon: FiRefreshCw, color: "#ec4899", difficulty: "Advanced", prereq: "Module 3", description: "Solve problems using backtracking." },
 };
 
-// Last lesson per module — determines when post-assessment unlocks
-const MODULE_LAST_LESSONS = {
-  "module-0": "lesson-0-4",
-  "module-1": "lesson-1-3",
-  "module-2": "lesson-2-3",
-  "module-3": "lesson-3-4",
-  "module-4": "lesson-4-3",
-  "module-5": "lesson-5-4",
-  "module-6": "lesson-6-4",
-};
-
 export default function LearningPath() {
   const navigate = useNavigate();
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [userProgress, setUserProgress] = useState({});
   const [lessonDetails, setLessonDetails] = useState({});
+  const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
 
   // 1. Load User Progress & Assessment results from localStorage
@@ -62,11 +52,22 @@ export default function LearningPath() {
     }
   }, []);
 
-  // 2. Fetch Lesson JSONs to find activities
+  // 2. Fetch Lesson JSONs and Activities JSONs concurrently
   useEffect(() => {
-    const fetchLessonsData = async () => {
+    const fetchAllData = async () => {
       const details = {};
+      const acts = {};
+      
       for (const module of curriculumIndex) {
+        const mid = module.moduleId.split("-").pop();
+        
+        // Fetch activities data to check for optimizations
+        try {
+          const resAct = await fetch(`/data/activities/module_${mid}.json`);
+          if (resAct.ok) acts[module.moduleId] = await resAct.json();
+        } catch (e) {}
+
+        // Fetch curriculum data
         for (const lesson of module.lessons) {
           try {
             const fetchPath = `/data/curriculum/${module.moduleId}/${lesson.lessonId}.json`;
@@ -80,8 +81,9 @@ export default function LearningPath() {
         }
       }
       setLessonDetails(details);
+      setActivitiesData(acts);
     };
-    fetchLessonsData();
+    fetchAllData();
   }, []);
 
   const toggleModule = (moduleId) => {
@@ -127,13 +129,12 @@ export default function LearningPath() {
   };
 
   // ── Lesson lock computation ────────────────────────────────────────────────
-  // This explicitly isolates locks per module.
   const buildLockMap = () => {
     const lockMap = {};
 
     for (const module of curriculumIndex) {
       const preComplete = hasPreAssessment(module.moduleId);
-      let isNextLocked = !preComplete; // Resets for each module!
+      let isNextLocked = !preComplete; 
 
       for (const lesson of module.lessons) {
         lockMap[lesson.lessonId] = isNextLocked;
@@ -180,6 +181,12 @@ export default function LearningPath() {
             const postComplete = hasPostAssessment(module.moduleId);
             const postScore = getAssessmentScore(module.moduleId, "post");
 
+            // Look up Optimization Activities
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
+            const hasOptimizations = optimizations.length > 0;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
+            const optimizationsLocked = lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
+
             return (
               <div key={module.moduleId}>
                 <div
@@ -201,7 +208,6 @@ export default function LearningPath() {
                             Module {moduleNum}: {module.title}
                           </h3>
                           
-                          {/* ✅ ADDED: Beautifully styled UI Tags for Semi-Linear Guidance */}
                           <div style={{ display: 'flex', gap: '6px' }}>
                             {iconConfig?.difficulty && (
                                 <span style={{ 
@@ -339,6 +345,42 @@ export default function LearningPath() {
                         </div>
                       );
                     })}
+
+                    {/* ── OPTIMIZATION CHALLENGES ROW ─────────────────────── */}
+                    {hasOptimizations && (
+                      <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
+                        <div className="lesson-info">
+                          <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
+                          <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
+                        </div>
+
+                        <div className="lesson-actions">
+                          <button
+                            className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`}
+                            style={{ backgroundColor: optimizationsLocked ? "" : "#f39c12" }}
+                            disabled={optimizationsLocked}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!optimizationsLocked) {
+                                navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
+                              }
+                            }}
+                          >
+                            Start Challenges
+                          </button>
+                        </div>
+
+                        <span className="lesson-status-icon">
+                          {optimizationsLocked ? (
+                            <FiLock color="#bdbdbd" />
+                          ) : userProgress[`lesson-${moduleNum}-optimizations`] ? (
+                            <FiCheckCircle color="#22c55e" />
+                          ) : (
+                            <FiCircle color="#f39c12" />
+                          )}
+                        </span>
+                      </div>
+                    )}
 
                     {/* ── POST-ASSESSMENT ROW ────────────────────────────── */}
                     <div
