@@ -329,8 +329,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return False
 
     def _is_constant_loop(self, node):
-        if isinstance(node, ast.While) and isinstance(node.test, ast.Compare):
-            if isinstance(node.test.left, ast.Constant) or any(isinstance(c, ast.Constant) for c in node.test.comparators): return True
+        if isinstance(node, ast.While):
+            # Matches 'while True:' or 'while False:'
+            if isinstance(node.test, ast.Constant): 
+                return True
+            if isinstance(node.test, ast.Compare):
+                # A while loop is only constant if BOTH sides of the comparison are constants
+                if isinstance(node.test.left, ast.Constant) and all(isinstance(c, ast.Constant) for c in node.test.comparators): 
+                    return True
         elif isinstance(node, ast.For):
             if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
                 if all(isinstance(arg, ast.Constant) for arg in node.iter.args): return True

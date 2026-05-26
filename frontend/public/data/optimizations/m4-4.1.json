@@ -1,0 +1,275 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defreturn",
+        "id": "adaffa48-f7fa-4",
+        "x": 20,
+        "y": 20,
+        "extraState": {
+          "params": [
+            {
+              "name": "arr",
+              "id": "arr"
+            },
+            {
+              "name": "target",
+              "id": "target"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "greedy_collect"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "variables_set",
+              "id": "bff44c21-70f6-4",
+              "fields": {
+                "VAR": {
+                  "id": "total"
+                }
+              },
+              "inputs": {
+                "VALUE": {
+                  "block": {
+                    "type": "math_number",
+                    "id": "cc602cd2-6b51-4",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "variables_set",
+                  "id": "840ab5c2-a1c8-4",
+                  "fields": {
+                    "VAR": {
+                      "id": "collected"
+                    }
+                  },
+                  "inputs": {
+                    "VALUE": {
+                      "block": {
+                        "type": "lists_create_with",
+                        "id": "35f93c09-dcc4-4",
+                        "extraState": {
+                          "itemCount": 0
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "controls_forEach",
+                      "id": "775e035a-2994-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "item"
+                        }
+                      },
+                      "inputs": {
+                        "LIST": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "ae9bc596-ce1b-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "arr"
+                              }
+                            }
+                          }
+                        },
+                        "DO": {
+                          "block": {
+                            "type": "variables_set",
+                            "id": "bf8cb498-029e-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "sorted_arr"
+                              }
+                            },
+                            "inputs": {
+                              "VALUE": {
+                                "block": {
+                                  "type": "list_sorted",
+                                  "id": "9060f756-828f-4",
+                                  "fields": {
+                                    "REVERSE": "FALSE"
+                                  },
+                                  "inputs": {
+                                    "LIST": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "af16d53b-d57d-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "arr"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "next": {
+                              "block": {
+                                "type": "controls_if",
+                                "id": "5d8a66e2-9219-4",
+                                "inputs": {
+                                  "IF0": {
+                                    "block": {
+                                      "type": "logic_compare",
+                                      "id": "7764f34a-0d42-4",
+                                      "fields": {
+                                        "OP": "LT"
+                                      },
+                                      "inputs": {
+                                        "A": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "a072a68d-643a-4",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "total"
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "B": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "6102558d-659b-4",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "target"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "DO0": {
+                                    "block": {
+                                      "type": "math_assignment",
+                                      "id": "37ac22a1-d97f-4",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "total"
+                                        },
+                                        "OP": "ADD"
+                                      },
+                                      "inputs": {
+                                        "DELTA": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "67780e80-c5d8-4",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "item"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "next": {
+                                        "block": {
+                                          "type": "list_append",
+                                          "id": "6e671bab-0b31-4",
+                                          "inputs": {
+                                            "ITEM": {
+                                              "block": {
+                                                "type": "variables_get",
+                                                "id": "d95358dc-8850-4",
+                                                "fields": {
+                                                  "VAR": {
+                                                    "id": "item"
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "LIST": {
+                                              "block": {
+                                                "type": "variables_get",
+                                                "id": "37a155c0-0eb9-4",
+                                                "fields": {
+                                                  "VAR": {
+                                                    "id": "collected"
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "RETURN": {
+            "block": {
+              "type": "variables_get",
+              "id": "1b3fe2df-d913-4",
+              "fields": {
+                "VAR": {
+                  "id": "collected"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "collected",
+      "id": "collected"
+    },
+    {
+      "name": "total",
+      "id": "total"
+    },
+    {
+      "name": "sorted_arr",
+      "id": "sorted_arr"
+    },
+    {
+      "name": "item",
+      "id": "item"
+    },
+    {
+      "name": "arr",
+      "id": "arr"
+    },
+    {
+      "name": "target",
+      "id": "target"
+    }
+  ],
+  "backpack": []
+}

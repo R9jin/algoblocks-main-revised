@@ -1,0 +1,186 @@
+{
+  "moduleId": "module-3",
+  "moduleTitle": "Divide and Conquer",
+  "questions": [
+    {
+      "id": "m3_q1",
+      "question": "What is the Divide and Conquer paradigm?",
+      "options": [
+        "An approach that tries all possible solutions exhaustively",
+        "A problem-solving strategy that breaks a problem into smaller subproblems, solves each recursively, and combines results",
+        "A technique that uses memoization to avoid duplicate computations",
+        "A method that always selects the locally optimal choice at each step"
+      ],
+      "answer": 1,
+      "explanation": "Divide and Conquer splits a problem into smaller, independent subproblems, solves them recursively, and merges the solutions to get the final answer."
+    },
+    {
+      "id": "m3_q2",
+      "question": "What are the three steps of Divide and Conquer?",
+      "options": [
+        "Initialize, Loop, Return",
+        "Search, Sort, Merge",
+        "Divide (split), Conquer (solve recursively), Combine (merge results)",
+        "Compare, Swap, Repeat"
+      ],
+      "answer": 2,
+      "explanation": "Every Divide and Conquer algorithm follows three phases: Divide the problem into subproblems, Conquer by solving each recursively, and Combine the sub-solutions into a final answer."
+    },
+    {
+      "id": "m3_q3",
+      "question": "What is Binary Search?",
+      "options": [
+        "A search algorithm that checks every element from left to right",
+        "A search algorithm that uses a hash function to locate elements",
+        "A search algorithm that repeatedly halves the search space by comparing the target to the middle element of a sorted array",
+        "A search algorithm that works only on unsorted data"
+      ],
+      "answer": 2,
+      "explanation": "Binary Search exploits the sorted order of an array by eliminating half the remaining elements at each step using a midpoint comparison."
+    },
+    {
+      "id": "m3_q4",
+      "question": "What is the time complexity of Binary Search?",
+      "options": [
+        "O(n) — linear",
+        "O(n²) — quadratic",
+        "O(1) — constant",
+        "O(log n) — logarithmic"
+      ],
+      "answer": 3,
+      "explanation": "Binary Search is O(log n) because at each step it halves the search space, meaning for n=1,000,000 it needs only about 20 comparisons."
+    },
+    {
+      "id": "m3_q5",
+      "question": "Does Binary Search require a sorted array?",
+      "options": [
+        "No, it works on any order of elements",
+        "Yes, the array must be sorted for Binary Search to produce correct results",
+        "No, but it performs better on sorted arrays",
+        "Yes, but only when searching for the maximum value"
+      ],
+      "answer": 1,
+      "explanation": "Binary Search depends on sorted order to know which half to discard. Applying it to unsorted data produces incorrect and unpredictable results."
+    },
+    {
+      "id": "m3_q6",
+      "question": "What is the formula for the mathematical midpoint in Binary Search?",
+      "options": [
+        "mid = left + right",
+        "mid = (left + right) // 2",
+        "mid = right - left",
+        "mid = left * right // 2"
+      ],
+      "answer": 1,
+      "explanation": "The midpoint is calculated as (left + right) // 2 using integer division, giving the index of the middle element between the current left and right bounds."
+    },
+    {
+      "id": "m3_q7",
+      "question": "What is Merge Sort?",
+      "options": [
+        "A sorting algorithm that selects a pivot and partitions elements around it",
+        "A sorting algorithm that repeatedly swaps adjacent out-of-order elements",
+        "A stable, recursive sorting algorithm that divides the array in half, sorts each half, and merges them back together",
+        "A sorting algorithm that finds the minimum element and places it at the front in each pass"
+      ],
+      "answer": 2,
+      "explanation": "Merge Sort recursively splits the array into halves down to single elements, then merges adjacent sorted halves back together, guaranteeing O(n log n) performance."
+    },
+    {
+      "id": "m3_q8",
+      "question": "What is the time complexity of Merge Sort?",
+      "options": [
+        "O(n²) in all cases",
+        "O(n) in the best case",
+        "O(n log n) in all cases",
+        "O(log n) in the worst case"
+      ],
+      "answer": 2,
+      "explanation": "Merge Sort is O(n log n) in all cases — the log n comes from the depth of recursive splits, and n from the merging work at each level."
+    },
+    {
+      "id": "m3_q9",
+      "question": "Is Merge Sort considered stable?",
+      "options": [
+        "No, Merge Sort changes the relative order of equal elements",
+        "Yes, Merge Sort preserves the original relative order of equal elements",
+        "Stability depends on the implementation language",
+        "Stability is not a property that applies to sorting algorithms"
+      ],
+      "answer": 1,
+      "explanation": "Merge Sort is stable — when two elements are equal, it preserves their original order from the input, which is important for multi-key sorting scenarios."
+    },
+    {
+      "id": "m3_q10",
+      "question": "What is Quick Sort?",
+      "options": [
+        "A sorting algorithm that merges two sorted halves into one",
+        "A sorting algorithm that selects a pivot element and partitions the array into elements smaller and larger than the pivot, then sorts each part recursively",
+        "A sorting algorithm that scans sequentially to find out-of-order pairs",
+        "A sorting algorithm that builds the sorted output one element at a time by insertion"
+      ],
+      "answer": 1,
+      "explanation": "Quick Sort selects a pivot, partitions elements around it, and recursively sorts each partition — achieving O(n log n) average case performance."
+    },
+    {
+      "id": "m3_q11",
+      "question": "What is a pivot in Quick Sort?",
+      "options": [
+        "The index used to calculate the midpoint of the array",
+        "A temporary variable used for swapping two elements",
+        "The element selected to partition the array, where all smaller elements go left and all larger elements go right",
+        "The first element of the merged result"
+      ],
+      "answer": 2,
+      "explanation": "The pivot is the chosen reference element. After partitioning, the pivot is in its final sorted position, with all smaller values to its left and larger values to its right."
+    },
+    {
+      "id": "m3_q12",
+      "question": "What is the worst-case time complexity of Quick Sort?",
+      "options": [
+        "O(n log n) — same as average case",
+        "O(n) — linear",
+        "O(n²) — quadratic, when pivot selection consistently results in unbalanced partitions",
+        "O(log n) — logarithmic"
+      ],
+      "answer": 2,
+      "explanation": "Quick Sort degrades to O(n²) when the pivot is always the smallest or largest element (e.g., sorted array with first-element pivot), creating maximally unbalanced partitions."
+    },
+    {
+      "id": "m3_q13",
+      "question": "How does partitioning work in Quick Sort?",
+      "options": [
+        "By merging two pre-sorted halves into one array",
+        "By finding the minimum element and placing it at the beginning",
+        "By rearranging elements so all values less than the pivot appear before it and all greater values appear after it",
+        "By comparing all pairs of adjacent elements and swapping them if out of order"
+      ],
+      "answer": 2,
+      "explanation": "Partitioning reorganizes the array in-place: elements smaller than the pivot move to the left side, elements larger move to the right side, and the pivot lands in its final sorted position."
+    },
+    {
+      "id": "m3_q14",
+      "question": "What causes Quick Sort's worst case?",
+      "options": [
+        "When the array has an odd number of elements",
+        "When the pivot is always chosen as the median element",
+        "When the pivot consistently creates maximally unbalanced partitions (e.g., always the smallest or largest element)",
+        "When the array contains no duplicate values"
+      ],
+      "answer": 2,
+      "explanation": "Worst case occurs when every partition produces one empty side and one side with n-1 elements, effectively degenerating into a linear scan — common when sorting an already-sorted array with a first-element pivot."
+    },
+    {
+      "id": "m3_q15",
+      "question": "Why is O(n log n) superior to O(n²)?",
+      "options": [
+        "O(n log n) always uses less memory than O(n²)",
+        "O(n log n) grows much more slowly than O(n²) for large n, making it far more scalable",
+        "O(n log n) algorithms are always easier to implement",
+        "O(n²) is actually faster for most real-world input sizes"
+      ],
+      "answer": 1,
+      "explanation": "For n=1,000,000: O(n log n) ≈ 20,000,000 operations vs O(n²) = 1,000,000,000,000 operations — O(n log n) is orders of magnitude faster at scale."
+    }
+  ]
+}
