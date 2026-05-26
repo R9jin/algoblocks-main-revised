@@ -1073,7 +1073,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if isinstance(node.value, ast.ListComp):
                 is_nested = len(node.value.generators) > 1
                 if isinstance(node.value.elt, ast.ListComp): is_nested = True
-                if isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.op, ast.Mult) and isinstance(node.value.left, ast.List): is_nested = True
+                
+                # FIX: Added .elt before .op and .left so it targets the internal BinOp, not the ListComp
+                if isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List): 
+                    is_nested = True
+                    
                 if is_nested:
                     s_ov, t_ov = "O(n^2)", "O(n^2)"
                     self.max_space_weight = max(self.max_space_weight, 2)

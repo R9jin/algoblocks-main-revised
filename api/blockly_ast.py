@@ -28,7 +28,13 @@ class BlocklyASTConverter:
             if isinstance(node.op, (ast.USub, ast.UAdd)): return "Number"
         if isinstance(node, ast.BinOp):
             if isinstance(node.op, ast.Mod): return "Number"
-            arith_map = {ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.FloorDiv}
+            if isinstance(node.op, ast.Add):
+                left_t = self._infer_type(node.left)
+                right_t = self._infer_type(node.right)
+                if left_t == "Array" or right_t == "Array" or isinstance(node.left, (ast.List, ast.Tuple)): return "Array"
+                if left_t == "String" or right_t == "String": return "String"
+                return "Number"
+            arith_map = {ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.FloorDiv}
             if type(node.op) in arith_map: return "Number"
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name):
@@ -65,7 +71,7 @@ class BlocklyASTConverter:
         if btype in ["procedures_defnoreturn", "procedures_defreturn"]: return 180
         if btype == "controls_if": return 160
         if btype in ["controls_for", "controls_whileUntil"]: return 150
-        if btype in ["variables_set", "math_assignment"]: return 110
+        if btype in ["variables_set", "math_assignment", "lists_setIndex"]: return 110
         return 90
 
     def get_chain_height(self, block):
@@ -249,7 +255,7 @@ class BlocklyASTConverter:
             if isinstance(node, ast.BinOp):
                 if isinstance(node.op, ast.Add):
                     if self._infer_type(node.left) == "Array" or self._infer_type(node.right) == "Array" or isinstance(node.left, (ast.List, ast.Tuple)):
-                        block = {"type": "list_concat", "id": gen_uid()}
+                        block = {"type": "list_concat", "id": gen_uid(), "output": "Array"}
                         self.add_input(block, "LIST1", self.serialize_expr(node.left))
                         self.add_input(block, "LIST2", self.serialize_expr(node.right))
                         return block
@@ -343,12 +349,10 @@ class BlocklyASTConverter:
                 return block
 
             if isinstance(node, ast.Dict):
-                block = {"type": "dicts_create_with", "id": gen_uid(), "extraState": {"itemCount": len(node.keys)}, "output": "Dictionary"}
-                for i, (k, v) in enumerate(zip(node.keys, node.values)):
-                    if k is not None:
-                        self.add_input(block, f"KEY{i}", self.serialize_expr(k))
-                        self.add_input(block, f"VALUE{i}", self.serialize_expr(v))
-                return block
+                expr = self.make_raw_expr(node)
+                if expr and isinstance(expr, dict):
+                    expr["output"] = "Dictionary"
+                return expr
 
             if isinstance(node, ast.Subscript):
                 if isinstance(node.slice, ast.Slice):
@@ -489,6 +493,7 @@ class BlocklyASTConverter:
                 return {"type": "controls_flow_statements", "id": gen_uid(), "fields": {"FLOW": "CONTINUE"}}
 
             if isinstance(node, ast.Assign):
+                # Handle Variable Unpacking Swap (a, b = b, a)
                 if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
                     target = node.targets[0]
                     if len(target.elts) == 2 and len(node.value.elts) == 2:
@@ -507,25 +512,77 @@ class BlocklyASTConverter:
                                     }
                                 }
                 
-                if isinstance(node.targets[0], ast.Name):
-                    var = node.targets[0].id
+                target = node.targets[0]
+                
+                # Standard Variable Assignment (x = 5)
+                if isinstance(target, ast.Name):
+                    var = target.id
                     self.variables.add(var)
                     block = {"type": "variables_set", "id": gen_uid(), "fields": {"VAR": {"id": var, "name": var}}}
                     self.add_input(block, "VALUE", self.serialize_expr(node.value))
                     return block
+                
+                # ENHANCEMENT: Handle 1D, 2D, and ND Array/List Assignment (dp[i] = x OR dp[i][j] = x)
+                elif isinstance(target, ast.Subscript):
+                    block = {
+                        "type": "lists_setIndex", 
+                        "id": gen_uid(), 
+                        "fields": {"MODE": "SET", "WHERE": "FROM_START"}
+                    }
+                    
+                    # Target.value gets evaluated recursively to handle infinitely deep index lookups
+                    self.add_input(block, "LIST", self.serialize_expr(target.value))
+                    
+                    slice_node = target.slice
+                    if hasattr(ast, 'Index') and isinstance(slice_node, getattr(ast, 'Index')):
+                        slice_node = slice_node.value
+                        
+                    self.add_input(block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
+                    self.add_input(block, "TO", self.serialize_expr(node.value))
+                    return block
+
                 else:
                     return self.make_raw_statement(node)
 
-            elif isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
+            elif isinstance(node, ast.AugAssign):
                 op_map = {ast.Add: "ADD", ast.Sub: "MINUS", ast.Mult: "MULTIPLY", ast.Div: "DIVIDE"}
                 if type(node.op) in op_map:
-                    var = node.target.id
-                    self.variables.add(var)
-                    if self._infer_type(node.value) in ["Array", "String"]:
-                        return self.make_raw_statement(node)
-                    block = {"type": "math_assignment", "id": gen_uid(), "fields": {"VAR": {"id": var, "name": var}, "OP": op_map[type(node.op)]}}
-                    self.add_input(block, "DELTA", self.serialize_expr_safe(node.value, ["Number"]))
-                    return block
+                    # In-place scalar augmentation (x += 1)
+                    if isinstance(node.target, ast.Name):
+                        var = node.target.id
+                        self.variables.add(var)
+                        if self._infer_type(node.value) in ["Array", "String"]:
+                            return self.make_raw_statement(node)
+                        block = {"type": "math_assignment", "id": gen_uid(), "fields": {"VAR": {"id": var, "name": var}, "OP": op_map[type(node.op)]}}
+                        self.add_input(block, "DELTA", self.serialize_expr_safe(node.value, ["Number"]))
+                        return block
+                        
+                    # ENHANCEMENT: In-place Matrix/Array augmentation (dp[i][j] += 1)
+                    elif isinstance(node.target, ast.Subscript):
+                        block = {
+                            "type": "lists_setIndex", 
+                            "id": gen_uid(), 
+                            "fields": {"MODE": "SET", "WHERE": "FROM_START"}
+                        }
+                        
+                        self.add_input(block, "LIST", self.serialize_expr(node.target.value))
+                        
+                        slice_node = node.target.slice
+                        if hasattr(ast, 'Index') and isinstance(slice_node, getattr(ast, 'Index')):
+                            slice_node = slice_node.value
+                        self.add_input(block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
+                        
+                        # Build the math operation retrieving the current value to add/subtract
+                        math_block = {"type": "math_arithmetic", "id": gen_uid(), "fields": {"OP": op_map[type(node.op)]}}
+                        get_block = {"type": "lists_getIndex", "id": gen_uid(), "fields": {"MODE": "GET", "WHERE": "FROM_START"}}
+                        self.add_input(get_block, "VALUE", self.serialize_expr(node.target.value))
+                        self.add_input(get_block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
+                        
+                        self.add_input(math_block, "A", get_block)
+                        self.add_input(math_block, "B", self.serialize_expr_safe(node.value, ["Number"]))
+                        
+                        self.add_input(block, "TO", math_block)
+                        return block
 
             elif isinstance(node, ast.FunctionDef):
                 if not is_top_level: return self.make_raw_statement(node)
