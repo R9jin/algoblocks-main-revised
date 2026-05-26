@@ -46,3 +46,9 @@ class ActivityDraftSchema(BaseModel):
     lesson_id: str
     json_data: Optional[str] = None
     python_code: Optional[str] = None
+
+# ADD THIS
+class AssessmentRequest(BaseModel):
+    email: str
+    assessment_key: str
+    data: dict

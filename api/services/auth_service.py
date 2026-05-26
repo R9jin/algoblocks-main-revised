@@ -1,10 +1,10 @@
+# api/services/auth_service.py
 from fastapi import HTTPException
 from api.repositories.user_repo import UserRepository
-from api.models import LoginRequest, SignUpRequest, ProgressRequest
+from api.models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
-
 
 class AuthService:
     @staticmethod
@@ -18,7 +18,8 @@ class AuthService:
             "status": "success",
             "email": req.email,
             "name": user.get("name"),
-            "progress": user.get("progress", {})
+            "progress": user.get("progress", {}),
+            "assessments": user.get("assessments", {}) # <-- ADDED
         }
 
     @staticmethod
@@ -30,7 +31,8 @@ class AuthService:
             "name": req.name,
             "email": req.email,
             "password": req.password,
-            "progress": {}
+            "progress": {},
+            "assessments": {} # <-- ADDED
         })
 
         return {
@@ -42,12 +44,20 @@ class AuthService:
     @staticmethod
     def update_progress(req: ProgressRequest):
         UserRepository.update_progress(req.email, req.lesson_id, req.score)
-
         user = UserRepository.find_by_email(req.email)
-
         return {
             "status": "success",
             "progress": user.get("progress", {})
+        }
+
+    # ADD THIS NEW METHOD
+    @staticmethod
+    def update_assessment(req: AssessmentRequest):
+        UserRepository.update_assessment(req.email, req.assessment_key, req.data)
+        user = UserRepository.find_by_email(req.email)
+        return {
+            "status": "success",
+            "assessments": user.get("assessments", {})
         }
 
     @staticmethod
@@ -83,7 +93,8 @@ class AuthService:
                     "name": name,
                     "email": email,
                     "password": None,
-                    "progress": {}
+                    "progress": {},
+                    "assessments": {} # <-- ADDED
                 })
                 user = UserRepository.find_by_email(email)
 
@@ -91,7 +102,8 @@ class AuthService:
                 "status": "success",
                 "email": email,
                 "name": user.get("name"),
-                "progress": user.get("progress", {})
+                "progress": user.get("progress", {}),
+                "assessments": user.get("assessments", {}) # <-- ADDED
             }
 
         except ValueError:

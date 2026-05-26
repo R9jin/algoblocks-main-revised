@@ -1,3 +1,4 @@
+# api/repositories/user_repo.py
 from api.database import users_collection
 
 class UserRepository:
@@ -14,4 +15,12 @@ class UserRepository:
         return users_collection.update_one(
             {"email": email},
             {"$set": {f"progress.{lesson_id}": score}}
+        )
+
+    # ADD THIS
+    @staticmethod
+    def update_assessment(email: str, assessment_key: str, data: dict):
+        return users_collection.update_one(
+            {"email": email},
+            {"$set": {f"assessments.{assessment_key}": data}}
         )

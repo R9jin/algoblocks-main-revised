@@ -1,6 +1,6 @@
 # api/routers/auth_router.py
 from fastapi import APIRouter, Request
-from api.models import LoginRequest, SignUpRequest, ProgressRequest, GoogleAuthRequest
+from api.models import LoginRequest, SignUpRequest, ProgressRequest, GoogleAuthRequest, AssessmentRequest
 from api.services.auth_service import AuthService
 from api.limiter import limiter
 
@@ -21,7 +21,12 @@ def signup_user(request: Request, req: SignUpRequest):
 def update_progress(request: Request, req: ProgressRequest):
     return AuthService.update_progress(req)
 
-# ✅ Integrated Route for Verification Actions
+# ADD THIS
+@router.post("/update-assessment")
+@limiter.limit("30/minute")
+def update_assessment(request: Request, req: AssessmentRequest):
+    return AuthService.update_assessment(req)
+
 @router.post("/auth/google")
 @limiter.limit("5/minute")
 def google_auth(request: Request, req: GoogleAuthRequest):

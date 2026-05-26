@@ -10,34 +10,34 @@ import "../styles/Auth.css";
 const rebuildAssessments = (email) => {
   const assessments = {};
   for (let i = 0; i < localStorage.length; i++) {
-     const key = localStorage.key(i);
-     if (!key) continue;
-     let suffix = null;
-     
-     if (key.startsWith(`algoblocks_result_${email}_`)) {
-         suffix = key.replace(`algoblocks_result_${email}_`, "");
-     } else if (key.startsWith(`algoblocks_result_`) && key.split('_').length === 4) {
-         // Gracefully ingest old unscoped keys
-         suffix = key.replace(`algoblocks_result_`, "");
-     }
-     
-     if (suffix) {
-         try {
-             assessments[`${suffix}_assessment`] = JSON.parse(localStorage.getItem(key));
-         } catch(e) {}
-     }
+    const key = localStorage.key(i);
+    if (!key) continue;
+    let suffix = null;
+
+    if (key.startsWith(`algoblocks_result_${email}_`)) {
+      suffix = key.replace(`algoblocks_result_${email}_`, "");
+    } else if (key.startsWith(`algoblocks_result_`) && key.split('_').length === 4) {
+      // Gracefully ingest old unscoped keys
+      suffix = key.replace(`algoblocks_result_`, "");
+    }
+
+    if (suffix) {
+      try {
+        assessments[`${suffix}_assessment`] = JSON.parse(localStorage.getItem(key));
+      } catch (e) { }
+    }
   }
   return assessments;
 };
 
 export default function SignIn() {
-  const [email, setEmail] = useState(""); 
-  const [password, setPassword] = useState(""); 
-  const [isLoading, setIsLoading] = useState(false); 
-  const navigate = useNavigate(); 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const API_BASE = import.meta.env.VITE_API_URL || ""; 
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
+  const API_BASE = import.meta.env.VITE_API_URL || "";
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   // Hydrate local IndexedDB from MongoDB Cloud after wiping
   const syncUserCloudData = async (userEmail) => {
@@ -49,12 +49,12 @@ export default function SignIn() {
         syncQueueDB.clear(),
         submissionsDB.clear(),
         progressDB.clear()
-      ]); 
+      ]);
 
       const [projRes, tempRes] = await Promise.all([
         fetch(`${API_BASE}/api/projects`),
         fetch(`${API_BASE}/api/templates`)
-      ]); 
+      ]);
 
       if (projRes.ok) {
         const projData = await projRes.json();
@@ -65,7 +65,7 @@ export default function SignIn() {
             }
           }
         }
-      } 
+      }
 
       if (tempRes.ok) {
         const tempData = await tempRes.json();
@@ -76,52 +76,54 @@ export default function SignIn() {
             }
           }
         }
-      } 
+      }
     } catch (error) {
-      console.warn("Could not pull data from cloud. Proceeding with local data.", error); 
+      console.warn("Could not pull data from cloud. Proceeding with local data.", error);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true); 
+    setIsLoading(true);
 
     try {
       const response = await fetch(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-      }); 
+      });
 
-      const data = await response.json(); 
+      const data = await response.json();
 
       if (!response.ok) {
-        alert(data.detail || "Invalid email or password"); 
+        alert(data.detail || "Invalid email or password");
         setIsLoading(false);
         return;
       }
 
-      // ✅ Dynamically rebuild the assessments array so UI doesn't think progress was wiped 
+      const localAssessments = rebuildAssessments(data.email);
+      const mergedAssessments = { ...localAssessments, ...(data.assessments || {}) };
+
       localStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
         progress: data.progress || {},
-        assessments: rebuildAssessments(data.email)
-      })); 
+        assessments: mergedAssessments // <-- CHANGED THIS LINE
+      }));
 
-      await syncUserCloudData(data.email); 
+      await syncUserCloudData(data.email);
 
-      navigate("/dashboard"); 
+      navigate("/dashboard");
     } catch (error) {
-      console.error(error); 
-      alert("Server not reachable. Check backend connection."); 
+      console.error(error);
+      alert("Server not reachable. Check backend connection.");
     } finally {
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   };
 
   const handleGuestLogin = async () => {
-    setIsLoading(true); 
+    setIsLoading(true);
     try {
       await Promise.all([
         projectsDB.clear(),
@@ -129,8 +131,8 @@ export default function SignIn() {
         syncQueueDB.clear(),
         submissionsDB.clear(),
         progressDB.clear()
-      ]); 
-      
+      ]);
+
       const guestEmail = `guest_${Date.now()}@algoblocks.local`;
 
       localStorage.setItem("user", JSON.stringify({
@@ -139,13 +141,13 @@ export default function SignIn() {
         isGuest: true,
         progress: {},
         assessments: rebuildAssessments(guestEmail)
-      })); 
+      }));
 
-      navigate("/dashboard"); 
+      navigate("/dashboard");
     } catch (error) {
-      console.error("Guest login failed:", error); 
+      console.error("Guest login failed:", error);
     } finally {
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   };
 
@@ -164,13 +166,15 @@ export default function SignIn() {
         alert(data.detail || "Google authentication failed");
         return;
       }
+      
+      const localAssessments = rebuildAssessments(data.email);
+      const mergedAssessments = { ...localAssessments, ...(data.assessments || {}) };
 
-      // ✅ Rebuild assessment array
       localStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
         progress: data.progress || {},
-        assessments: rebuildAssessments(data.email)
+        assessments: mergedAssessments // <-- CHANGED THIS LINE
       }));
 
       await syncUserCloudData(data.email);
@@ -190,7 +194,7 @@ export default function SignIn() {
         <div className="auth-card">
           <h2>Sign In to AlgoBlocks</h2>
           <form onSubmit={handleSubmit}>
-            
+
             {/* Standard Email/Password Login */}
             <div className="form-group">
               <label>Email</label>
@@ -203,10 +207,10 @@ export default function SignIn() {
                   placeholder="Enter your email address"
                   required
                   disabled={isLoading}
-                /> 
+                />
               </div>
             </div>
-            
+
             <div className="form-group">
               <label>Password</label>
               <div className="auth-input-wrap">
@@ -218,25 +222,25 @@ export default function SignIn() {
                   placeholder="Enter your password"
                   required
                   disabled={isLoading}
-                /> 
+                />
               </div>
             </div>
-            
+
             <button type="submit" className="auth-button" disabled={isLoading}>
               {isLoading ? "Signing In..." : "Sign In"}
-            </button> 
+            </button>
 
             {/* ✅ Beautifully Styled Divider matching existing Auth.css */}
             <div className="social-divider">
               <span>OR</span>
-            </div> 
+            </div>
 
             {/* ✅ Google Login Centered via Class */}
             <div className="google-auth-wrapper">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => console.error("Google Sign-In Failure Triggered")}
-                theme="outline" 
+                theme="outline"
                 size="large"
                 shape="rectangular"
                 text="signin_with"
@@ -251,14 +255,14 @@ export default function SignIn() {
               disabled={isLoading}
             >
               {isLoading ? "Preparing..." : "Continue as Guest"}
-            </button> 
+            </button>
 
           </form>
 
           <div className="auth-links">
             <Link to="/forgot-password">Forgot password?</Link>
             <p>Don't have an account? <Link to="/signup">Sign up</Link></p>
-          </div> 
+          </div>
         </div>
       </div>
     </GoogleOAuthProvider>

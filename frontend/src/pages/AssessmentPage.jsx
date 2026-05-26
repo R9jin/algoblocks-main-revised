@@ -9,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
 const getUserEmail = () => {
-  try { return JSON.parse(localStorage.getItem("user") || "{}").email || "guest"; } 
+  try { return JSON.parse(localStorage.getItem("user") || "{}").email || "guest"; }
   catch { return "guest"; }
 };
 
@@ -30,14 +30,14 @@ function loadDraft(moduleId, type) {
     const scopedKey = getDraftKey(moduleId, type);
     const unScopedKey = `algoblocks_draft_${moduleId}_${type}`;
     let raw = localStorage.getItem(scopedKey);
-    
+
     // Migrate old unscoped draft if it exists
     if (!raw) {
-        raw = localStorage.getItem(unScopedKey);
-        if (raw) {
-            localStorage.setItem(scopedKey, raw);
-            localStorage.removeItem(unScopedKey);
-        }
+      raw = localStorage.getItem(unScopedKey);
+      if (raw) {
+        localStorage.setItem(scopedKey, raw);
+        localStorage.removeItem(unScopedKey);
+      }
     }
     return raw ? JSON.parse(raw) : null;
   } catch {
@@ -56,12 +56,28 @@ function clearDraft(moduleId, type) {
 function saveResult(moduleId, type, result) {
   try {
     localStorage.setItem(getResultKey(moduleId, type), JSON.stringify(result));
+
     // Also persist into the user object so LearningPath can read it immediately
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const assessments = user.assessments || {};
-    assessments[`${moduleId}_${type}_assessment`] = result;
+    const assessmentKey = `${moduleId}_${type}_assessment`;
+    assessments[assessmentKey] = result;
     user.assessments = assessments;
     localStorage.setItem("user", JSON.stringify(user));
+
+    // ✅ Sync to backend directly
+    if (user.email && !user.isGuest) {
+      fetch(`${API_BASE}/api/update-assessment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          assessment_key: assessmentKey,
+          data: result
+        })
+      }).catch(e => console.warn("Failed to sync assessment:", e));
+    }
+
   } catch (e) {
     console.warn("Could not save result:", e);
   }
@@ -72,14 +88,14 @@ function loadResult(moduleId, type) {
     const scopedKey = getResultKey(moduleId, type);
     const unScopedKey = `algoblocks_result_${moduleId}_${type}`;
     let raw = localStorage.getItem(scopedKey);
-    
+
     // Migrate old unscoped result if it exists
     if (!raw) {
-        raw = localStorage.getItem(unScopedKey);
-        if (raw) {
-            localStorage.setItem(scopedKey, raw);
-            localStorage.removeItem(unScopedKey);
-        }
+      raw = localStorage.getItem(unScopedKey);
+      if (raw) {
+        localStorage.setItem(scopedKey, raw);
+        localStorage.removeItem(unScopedKey);
+      }
     }
     return raw ? JSON.parse(raw) : null;
   } catch {
@@ -113,19 +129,19 @@ export default function AssessmentPage() {
   const { moduleId, type } = useParams(); // type = "pre" | "post"
   const navigate = useNavigate();
 
-  const [questions, setQuestions]           = useState([]);
-  const [moduleTitle, setModuleTitle]       = useState("");
-  const [currentIndex, setCurrentIndex]     = useState(0);
+  const [questions, setQuestions] = useState([]);
+  const [moduleTitle, setModuleTitle] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [submitted, setSubmitted]           = useState(false);
-  const [score, setScore]                   = useState(0);
-  const [loading, setLoading]               = useState(true);
-  const [timeElapsed, setTimeElapsed]       = useState(0);
-  const [lastSavedAt, setLastSavedAt]       = useState(null); // timestamp of last auto-save
-  const [hasDraft, setHasDraft]             = useState(false); // whether a draft was restored
-  const [prevResult, setPrevResult]         = useState(null);  // previously submitted result (for resume display)
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [lastSavedAt, setLastSavedAt] = useState(null); // timestamp of last auto-save
+  const [hasDraft, setHasDraft] = useState(false); // whether a draft was restored
+  const [prevResult, setPrevResult] = useState(null);  // previously submitted result (for resume display)
 
-  const timerRef    = useRef(null);
+  const timerRef = useRef(null);
   const autoSaveRef = useRef(null);
 
   // ── 1. Load assessment JSON + restore draft / previous result ───────────────
@@ -253,10 +269,10 @@ export default function AssessmentPage() {
   };
 
   const getScoreLabel = (s) => {
-    if (s >= 90) return { label: "Excellent!",    color: "#22c55e", icon: "🏆" };
-    if (s >= 75) return { label: "Proficient",    color: "#3b82f6", icon: "🎯" };
-    if (s >= 60) return { label: "Developing",    color: "#f97316", icon: "📈" };
-    return              { label: "Needs Review",  color: "#ef4444", icon: "📚" };
+    if (s >= 90) return { label: "Excellent!", color: "#22c55e", icon: "🏆" };
+    if (s >= 75) return { label: "Proficient", color: "#3b82f6", icon: "🎯" };
+    if (s >= 60) return { label: "Developing", color: "#f97316", icon: "📈" };
+    return { label: "Needs Review", color: "#ef4444", icon: "📚" };
   };
 
   // ── Actions ──────────────────────────────────────────────────────────────────
@@ -312,19 +328,27 @@ export default function AssessmentPage() {
     // Sync to cloud
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user.email) {
-        await fetch(`${API_BASE}/api/update-progress`, {
+
+      if (user.email && !user.isGuest) {
+        // ✅ Direct API call instead of relying strictly on sync queue
+        fetch(`${import.meta.env.VITE_API_URL || ""}/api/update-progress`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: user.email,
-            lesson_id: `${moduleId}_${type}_assessment`,
-            score: finalScore,
-          }),
-        });
+            lesson_id: lessonId,
+            score: 1,
+          })
+        }).catch(err => console.warn("Failed to sync progress:", err));
       }
-    } catch (err) {
-      console.warn("Could not sync assessment to cloud:", err);
+
+      // Still save to local storage for immediate UI refresh
+      const progress = user.progress || {};
+      progress[lessonId] = 1;
+      user.progress = progress;
+      localStorage.setItem("user", JSON.stringify(user));
+    } catch (e) {
+      console.warn("Failed to update user progress offline:", e);
     }
   };
 
@@ -357,9 +381,9 @@ export default function AssessmentPage() {
   };
 
   // ── Derived values ───────────────────────────────────────────────────────────
-  const isPre           = type === "pre";
-  const moduleNum       = moduleId?.split("-").pop();
-  const answeredCount   = Object.keys(selectedAnswers).length;
+  const isPre = type === "pre";
+  const moduleNum = moduleId?.split("-").pop();
+  const answeredCount = Object.keys(selectedAnswers).length;
   const currentQuestion = questions[currentIndex];
 
   // ── Loading / empty guards ───────────────────────────────────────────────────
@@ -541,9 +565,8 @@ export default function AssessmentPage() {
               {questions.map((_, i) => (
                 <button
                   key={i}
-                  className={`nav-dot ${i === currentIndex ? "active" : ""} ${
-                    selectedAnswers[i] !== undefined ? "answered" : ""
-                  }`}
+                  className={`nav-dot ${i === currentIndex ? "active" : ""} ${selectedAnswers[i] !== undefined ? "answered" : ""
+                    }`}
                   onClick={() => setCurrentIndex(i)}
                 >
                   {i + 1}
