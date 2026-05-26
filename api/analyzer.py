@@ -1,3 +1,4 @@
+# frontend/public/python_engine/analyzer.py
 import ast
 import time
 from collections import deque, Counter
@@ -22,10 +23,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.graph_depth = 0             
         self.in_if_depth = 0
         self.loop_stack = []
+        self.in_list_comp_depth = 0
         
         self.var_dimensions = {} 
         self.active_poly_dims = [] 
-        self.var_types = {}
+        self.var_types = {}  # Semantic Memory for variables (list, set, dict, etc.)
         
         self.max_complexity = 0          
         self.max_poly_str = "O(1)"
@@ -49,6 +51,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_graph_context = False        
         self.has_recursion_in_loop = False  
         self.has_slicing = False            
+        self.has_partitioning = False
         self.has_division = False           
         self.in_accumulation_context = False
         self.has_global_accumulation = False
@@ -57,64 +60,53 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.conditional_partition_lines = []
         self.logic_hints = {} 
 
-        # Extended for the new Set, Dict, Stack/Queue and List operations mapping from BlocklyWorkspace
         self.builtin_complexities = {
-            'sort': {'time': 'O(n log n)', 'space': 'O(log n)', 'desc': 'uses the in-place Timsort algorithm which involves minimal auxiliary storage'},
-            'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'creates a completely new sorted list while iterating through the original input'},
-            'join': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through every element in the collection to concatenate them into a single string'},
-            'split': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'scans the entire string to identify delimiters and allocate new substrings'},
-            'list': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through the iterable to copy elements into a new list structure'},
-            'set': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through the iterable to build a new hash set'},
-            'dict': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through the iterable to build a new dictionary'},
-            'tuple': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates through the iterable to copy elements into a new tuple'},
-            'append': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time operation by appending to a pre-allocated sequence'},
-            'insert': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must shift all subsequent elements in the array to make room for the new entry'},
-            'max': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan across every element to identify the largest value'},
-            'min': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan across every element to identify the smallest value'},
-            'sum': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan to accumulate the total sum'},
-            'any': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan to check for truthy values'},
-            'all': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must perform a linear scan to check for falsy values'},
-            'len': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'accesses a pre-stored attribute of the object, requiring no iteration'},
-            'matmul': {'time': 'O(n^3)', 'space': 'O(n^2)', 'desc': 'performs matrix multiplication which mathematically scales cubically with dimensions'},
-            'dot': {'time': 'O(n^3)', 'space': 'O(n^2)', 'desc': 'calculates the dot product of multi-dimensional arrays, dominating execution time'},
-            'input': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'reads a sequence of characters from standard input sequentially and allocates a new string object'},
-            'abs': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time mathematical absolute value calculation'},
-            'round': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time numerical rounding operation'},
-            'int': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type cast to integer'},
-            'float': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type cast to float'},
-            'bool': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type cast to boolean'},
-            'type': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type inspection'},
-            'isinstance': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'performs a constant-time type validation check'},
-            'str': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'allocates a new string representation which scales linearly with the size of the object'},
-            'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'must scan the array to find the target element and then shift subsequent elements'},
-            'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'performs a linear search to locate the element index'},
-            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'performs a linear scan to count all occurrences'},
-            'find': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'performs a linear string search'},
-            'replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'traverses the string and allocates memory for replacements'},
-            'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'creates a shallow copy allocating new memory for the collection'},
-            'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'reverses the collection in-place'},
-            'extend': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'iterates through elements to append them to the existing list'},
-            'upper': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates over the string to construct a new uppercase copy'},
-            'lower': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates over the string to construct a new lowercase copy'},
-            'title': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates over the string to construct a new title-cased copy'},
-            'capitalize': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates over the string to construct a new capitalized copy'},
-            'keys': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'creates a lightweight view object of the dictionary keys in constant time'},
-            'values': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'creates a lightweight view object of the dictionary values in constant time'},
-            'items': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'creates a lightweight view object of the dictionary items in constant time'},
-            'reversed': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a reverse iterator object in constant time'},
-            'enumerate': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns an enumerate object in constant time'},
-            'zip': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a zip iterator object in constant time'},
-            'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns a range sequence object in constant time'},
-            
-            # --- New Blockly Workspace Mapping ---
-            'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'clears the collection in constant or linear deallocation time'},
-            'get': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'retrieves dictionary value by key in constant time'},
-            'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'removes from the left of a deque in constant time'},
-            'union': {'time': 'O(n + m)', 'space': 'O(n + m)', 'desc': 'creates a new set containing all items from both sets'},
-            'intersection': {'time': 'O(min(n, m))', 'space': 'O(min(n, m))', 'desc': 'creates a new set with elements common to both'},
-            'difference': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'creates a new set with elements in the first that are not in the second'},
-            'update': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'updates the set or dictionary with elements from another collection'},
-            'add': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'adds an element to the set in constant expected time'},
+            'sort': {'time': 'O(n log n)', 'space': 'O(log n)', 'desc': 'uses the in-place Timsort algorithm'},
+            'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'creates a completely new sorted list'},
+            'join': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'concatenates collection into a string'},
+            'split': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'scans string to allocate new substrings'},
+            'list': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'copies elements into a new list'},
+            'set': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'builds a new hash set'},
+            'dict': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'builds a new dictionary'},
+            'tuple': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'copies elements into a new tuple'},
+            'append': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time sequence append'},
+            'insert': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'shifts array elements'},
+            'max': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan for largest value'},
+            'min': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan for smallest value'},
+            'sum': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan to accumulate total'},
+            'any': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan to check for truthy'},
+            'all': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan to check for falsy'},
+            'len': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'accesses a pre-stored attribute'},
+            'abs': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time mathematical absolute value'},
+            'round': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time rounding'},
+            'int': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type cast'},
+            'float': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type cast'},
+            'bool': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type cast'},
+            'type': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type inspection'},
+            'isinstance': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type validation'},
+            'str': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'allocates new string representation'},
+            'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'scans and shifts elements'},
+            'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear search for index'},
+            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan to count occurrences'},
+            'find': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear string search'},
+            'replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'traverses string and allocates replacements'},
+            'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'shallow copy allocating new memory'},
+            'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'reverses collection in-place'},
+            'extend': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'iterates to append to existing list'},
+            'upper': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'constructs uppercase copy'},
+            'lower': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'constructs lowercase copy'},
+            'keys': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'lightweight dict view'},
+            'values': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'lightweight dict view'},
+            'items': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'lightweight dict view'},
+            'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns range object'},
+            'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'clears collection'},
+            'get': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'retrieves dictionary value by key'},
+            'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'removes from left of a deque'},
+            'union': {'time': 'O(n + m)', 'space': 'O(n + m)', 'desc': 'creates new set from both sets'},
+            'intersection': {'time': 'O(min(n, m))', 'space': 'O(min(n, m))', 'desc': 'creates new set with common elements'},
+            'difference': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'creates new set with difference'},
+            'update': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'updates collection with elements'},
+            'add': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'adds element to hash set'},
         }
         self.aliases = {}
         self.nlg_engine = SemanticNLGEngine(self)
@@ -161,14 +153,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if lineno not in self.logic_hints: self.logic_hints[lineno] = []
             if hint not in self.logic_hints[lineno]: self.logic_hints[lineno].append(hint)
 
-    def _is_variable_iterable(self, name_lower):
-        safe_scalars = ['result', 'res', 'idx', 'index', 'count', 'val', 'value', 'num', 'id', 'key', 'ptr', 'pointer', 'length', 'len', 'size', 'target', 'element', 'item', 'node', 'char', 'mid', 'low', 'high', 'left', 'right']
-        if name_lower in safe_scalars:
-            return False
-            
-        iterable_kws = ['arr', 'list', 'dict', 'set', 'graph', 'matrix', 'queue', 'stack', 'data', 'words', 'nums', 'elements', 'items', 'nodes', 'chars']
-        for kw in iterable_kws:
-            if kw in name_lower:
+    def _is_linear_type(self, expr_node):
+        """Strict check if an expression acts as an O(n) iterable entity"""
+        if isinstance(expr_node, (ast.List, ast.Tuple, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp)):
+            return True
+        if isinstance(expr_node, ast.Name):
+            t = self.var_types.get(expr_node.id, '')
+            if t in ['list', 'set', 'dict', 'tuple', 'str', 'deque']: return True
+            # Failsafe generic check
+            if any(k in expr_node.id.lower() for k in ['arr', 'list', 'dict', 'set', 'str', 'queue', 'stack', 'graph', 'matrix', 'items', 'nums']): 
                 return True
         return False
 
@@ -190,9 +183,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _register_and_get_dim(self, var_name):
         if not var_name: return 'n'
-        if len(var_name) == 1 and var_name.isalpha():
-            return var_name
-            
+        if len(var_name) == 1 and var_name.isalpha(): return var_name
         if var_name not in self.var_dimensions:
             available = [d for d in ['n', 'm', 'k', 'p', 'q'] if d not in self.var_dimensions.values() and d != var_name]
             self.var_dimensions[var_name] = available[0] if available else 'n'
@@ -340,11 +331,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _is_constant_loop(self, node):
         if isinstance(node, ast.While):
-            if isinstance(node.test, ast.Constant): 
-                return True
+            if isinstance(node.test, ast.Constant): return True
             if isinstance(node.test, ast.Compare):
-                if isinstance(node.test.left, ast.Constant) and all(isinstance(c, ast.Constant) for c in node.test.comparators): 
-                    return True
+                if isinstance(node.test.left, ast.Constant) and all(isinstance(c, ast.Constant) for c in node.test.comparators): return True
         elif isinstance(node, ast.For):
             if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
                 if all(isinstance(arg, ast.Constant) for arg in node.iter.args): return True
@@ -353,20 +342,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _is_log_loop(self, node):
         if not isinstance(node, ast.While): return False
-        
         cond_vars = set()
         for child in ast.walk(node.test):
-            if isinstance(child, ast.Name):
-                cond_vars.add(child.id)
+            if isinstance(child, ast.Name): cond_vars.add(child.id)
                 
         for child in node.body:
             for sub in ast.walk(child):
                 if isinstance(sub, ast.AugAssign):
                     if isinstance(sub.target, ast.Name) and sub.target.id in cond_vars:
-                        if isinstance(sub.op, (ast.Mult, ast.Div, ast.FloorDiv)) and isinstance(sub.value, ast.Constant) and sub.value.value > 1:
-                            return True
-                        if isinstance(sub.op, (ast.LShift, ast.RShift)):
-                            return True
+                        if isinstance(sub.op, (ast.Mult, ast.Div, ast.FloorDiv)) and getattr(sub.value, 'value', 0) > 1: return True
+                        if isinstance(sub.op, (ast.LShift, ast.RShift)): return True
                 elif isinstance(sub, ast.Assign):
                     for target in sub.targets:
                         if isinstance(target, ast.Name) and target.id in cond_vars:
@@ -374,8 +359,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                                 if isinstance(sub.value.op, (ast.Mult, ast.Div, ast.FloorDiv)):
                                     if getattr(sub.value.left, 'id', None) == target.id and getattr(sub.value.right, 'value', 0) > 1: return True
                                     if getattr(sub.value.right, 'id', None) == target.id and getattr(sub.value.left, 'value', 0) > 1: return True
-                                if isinstance(sub.value.op, (ast.LShift, ast.RShift)):
-                                    return True
+                                if isinstance(sub.value.op, (ast.LShift, ast.RShift)): return True
 
         if len(cond_vars) >= 2:
             mid_var = None
@@ -385,13 +369,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         is_mid_calc = False
                         for v in ast.walk(sub.value):
                             if isinstance(v, ast.BinOp) and isinstance(v.op, (ast.FloorDiv, ast.Div)):
-                                if getattr(v.right, 'value', None) == 2:
-                                    is_mid_calc = True
+                                if getattr(v.right, 'value', None) == 2: is_mid_calc = True
                         if is_mid_calc:
                             for target in sub.targets:
-                                if isinstance(target, ast.Name):
-                                    mid_var = target.id
-            
+                                if isinstance(target, ast.Name): mid_var = target.id
             if mid_var:
                 for child in node.body:
                     for sub in ast.walk(child):
@@ -399,22 +380,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             for target in sub.targets:
                                 if getattr(target, 'id', None) in cond_vars:
                                     for v in ast.walk(sub.value):
-                                        if isinstance(v, ast.Name) and v.id == mid_var:
-                                            return True
+                                        if isinstance(v, ast.Name) and v.id == mid_var: return True
         return False
         
     def _is_sqrt_loop(self, node):
         if not isinstance(node, (ast.While, ast.For)): return False  
-        
         expr = node.test if isinstance(node, ast.While) else node.iter
         
         for child in ast.walk(expr):
             if isinstance(child, ast.Call):
                 func_id = getattr(getattr(child, 'func', None), 'id', '')
-                if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'):
-                    return True
-            if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "sqrt": 
-                return True
+                if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'): return True
+            if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "sqrt": return True
 
         if isinstance(node, ast.While) and isinstance(node.test, ast.Compare):
             left = node.test.left
@@ -423,15 +400,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if isinstance(left.left, ast.Name) and isinstance(left.right, ast.Name) and left.left.id == left.right.id: return True
                 if isinstance(right, ast.BinOp) and isinstance(right.op, ast.Mult):
                     if isinstance(right.left, ast.Name) and isinstance(right.right, ast.Name) and right.left.id == right.right.id: return True
-                
-                if isinstance(left, ast.BinOp) and isinstance(left.op, ast.Pow) and isinstance(left.right, ast.Constant) and left.right.value == 2: return True
-                if isinstance(right, ast.BinOp) and isinstance(right.op, ast.Pow) and isinstance(right.right, ast.Constant) and right.right.value == 2: return True
-                
-                if isinstance(left, ast.BinOp) and isinstance(left.op, (ast.Div, ast.FloorDiv)):
-                    if isinstance(left.right, ast.Name) and isinstance(right, ast.Name) and left.right.id == right.id: return True
-                if isinstance(right, ast.BinOp) and isinstance(right.op, (ast.Div, ast.FloorDiv)):
-                    if isinstance(right.right, ast.Name) and isinstance(left, ast.Name) and right.right.id == left.id: return True
-
+                if isinstance(left, ast.BinOp) and isinstance(left.op, ast.Pow) and getattr(left.right, 'value', 0) == 2: return True
+                if isinstance(right, ast.BinOp) and isinstance(right.op, ast.Pow) and getattr(right.right, 'value', 0) == 2: return True
         return False
     
     def _is_exponential_loop(self, node):
@@ -440,9 +410,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for child in ast.walk(expr):
             if isinstance(child, ast.BinOp):
                 if isinstance(child.op, ast.LShift): return True
-                if isinstance(child.op, ast.Pow) and isinstance(child.left, ast.Constant) and child.left.value == 2: return True
+                if isinstance(child.op, ast.Pow) and getattr(child.left, 'value', 0) == 2: return True
             if isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and child.func.id == 'pow':
-                if len(child.args) >= 2 and isinstance(child.args[0], ast.Constant) and child.args[0].value == 2: return True
+                if len(child.args) >= 2 and getattr(child.args[0], 'value', 0) == 2: return True
             if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "exponential": return True
         return False
 
@@ -473,6 +443,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif "O(V + E)" in time_override: override_graph = 1
                 elif "O(log n)" in time_override: override_log = 1
                 elif "O(√n)" in time_override: override_sqrt = 1
+                elif "O(n * m)" in time_override: override_dims.extend(['n', 'm'])
                 elif "O(n)" in time_override: override_dims.append('n')
 
         total_poly_dims = self.active_poly_dims + override_dims
@@ -517,14 +488,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             local_s = space_override if space_override else "O(1)"
             
             s_w = 0
-            if "n^2" in local_s or "n * m" in local_s: s_w = 2
+            if "n * m" in local_s or "n^2" in local_s: s_w = 2
             elif "V + E" in local_s or "V" in local_s or total_graph > 0: s_w = 3
             elif "n" in local_s or self.recursive_calls_count > 0: s_w = 1
             elif "log n" in local_s: s_w = 0.5
             
             self.max_space_weight = max(getattr(self, 'max_space_weight', 0), s_w)
                 
-            if getattr(self, 'in_graph_context', False) or self.max_space_weight >= 3: global_s = "O(V)" if self.max_graph_ve > 0 else "O(V)"
+            if getattr(self, 'in_graph_context', False) or self.max_space_weight >= 3: global_s = "O(V)"
             elif self.max_space_weight >= 2: global_s = "O(n^2)"
             elif self.max_space_weight >= 1: global_s = "O(n)"
             elif self.max_space_weight >= 0.5: global_s = "O(log n)"
@@ -605,97 +576,57 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
         
     def visit_IfExp(self, node):
-        is_linear = False
-        for child in ast.walk(node):
-            if isinstance(child, (ast.ListComp, ast.SetComp, ast.DictComp, ast.List, ast.Dict, ast.Set)):
-                is_linear = True
-                break
-            if isinstance(child, ast.Call):
-                func_name = getattr(getattr(child, 'func', None), 'id', '')
-                if func_name in ['list', 'dict', 'set', 'sorted', 'max', 'min', 'sum']:
-                    is_linear = True
-                    break
-        
-        if is_linear:
+        if self._is_linear_type(node):
             self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Ternary Conditional (Iterable)")
         else:
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Ternary Conditional")
-            
         self.generic_visit(node)
         
     def visit_JoinedStr(self, node):
-        is_linear = False
-        
-        for value in getattr(node, 'values', []):
-            if isinstance(value, ast.FormattedValue):
-                for child in ast.walk(value.value):
-                    if isinstance(child, (ast.List, ast.Dict, ast.Set, ast.Tuple, ast.ListComp, ast.DictComp, ast.SetComp, ast.Subscript)):
-                        is_linear = True
-                        break
-                    if isinstance(child, ast.Name):
-                        if self._is_variable_iterable(child.id.lower()):
-                            is_linear = True
-                            break
-                    if isinstance(child, ast.Call):
-                        func_name = getattr(getattr(child, 'func', None), 'id', '')
-                        if func_name in ['list', 'dict', 'set', 'tuple', 'sorted', 'join']:
-                            is_linear = True
-                            break
-
-        if is_linear:
+        if self._is_linear_type(node):
             self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="String Interpolation (Iterable)")
         else:
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Interpolation")
-            
         self.generic_visit(node)
 
     def visit_Compare(self, node):
-        time_ov = None
-        custom_op = None
         if any(isinstance(op, (ast.In, ast.NotIn)) for op in node.ops):
-            is_set = False
+            is_hash_map = False
             for comp in node.comparators:
                 if isinstance(comp, ast.Name):
-                    comp_id = comp.id.lower()
-                    if self.var_types.get(comp.id) == 'set' or 'visit' in comp_id or 'seen' in comp_id or 'set' in comp_id:
-                        is_set = True
-                elif isinstance(comp, ast.Set):
-                    is_set = True
-                elif isinstance(comp, ast.Call) and getattr(getattr(comp, 'func', None), 'id', '') == 'set':
-                    is_set = True
+                    t = self.var_types.get(comp.id)
+                    if t in ['set', 'dict']: is_hash_map = True
+                    elif any(k in comp.id.lower() for k in ['memo', 'cache', 'visit', 'set', 'map', 'dp']): is_hash_map = True
+                elif isinstance(comp, (ast.Set, ast.Dict, ast.SetComp, ast.DictComp)): is_hash_map = True
+                elif isinstance(comp, ast.Call) and getattr(getattr(comp, 'func', None), 'id', '') in ['set', 'dict']: is_hash_map = True
             
-            if is_set:
-                time_ov = "O(1)"
-                custom_op = "Membership Check (Set)"
+            if is_hash_map:
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Set/Dict)")
             else:
-                time_ov = "O(n)"
-                custom_op = "Membership Check (List/Tuple/String)"
-                
+                self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Membership Check (List/Tuple/String)")
+            
+            self.generic_visit(node)
+            return
+
         if any(isinstance(op, ast.LtE) for op in node.ops):
             for comp in node.comparators:
                 if isinstance(comp, ast.Call) and getattr(getattr(comp, 'func', None), 'id', '') == 'len':
-                    self.add_logic_hint(node, "Logic Risk (Off-By-One): Using '<=' with 'len()' often causes an IndexError because arrays are 0-indexed. Consider using '<' instead.")
+                    self.add_logic_hint(node, "Logic Risk (Off-By-One): Using '<=' with 'len()' often causes an IndexError because arrays are 0-indexed.")
                     
-        if time_ov:
-            self.record_line(node, time_override=time_ov, custom_op=custom_op)
-        else:
-            self.record_line(node)
+        self.record_line(node)
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
-        is_memoized = False
+        is_memoized_or_graph = False
         for dec in getattr(node, 'decorator_list', []):
-            if isinstance(dec, ast.Name) and dec.id in ['lru_cache', 'cache', 'memoize']: is_memoized = True
-            elif isinstance(dec, ast.Call) and getattr(dec.func, 'id', '') in ['lru_cache', 'cache']: is_memoized = True
+            if isinstance(dec, ast.Name) and dec.id in ['lru_cache', 'cache', 'memoize']: is_memoized_or_graph = True
+            elif isinstance(dec, ast.Call) and getattr(dec.func, 'id', '') in ['lru_cache', 'cache']: is_memoized_or_graph = True
         
         for child in ast.walk(node):
-            if isinstance(child, ast.Compare) and any(isinstance(op, ast.In) for op in child.ops):
-                for comp in child.comparators:
-                    if isinstance(comp, ast.Name) and any(kw in comp.id.lower() for kw in ['memo', 'cache', 'dp']):
-                        is_memoized = True
-                        break
+            if isinstance(child, ast.Name) and any(k in child.id.lower() for k in ['memo', 'cache', 'dp', 'visit']):
+                is_memoized_or_graph = True
 
-        if is_memoized: self.memoized_funcs.add(node.name)
+        if is_memoized_or_graph: self.memoized_funcs.add(node.name)
 
         start_idx = len(self._details)
         prev_data = (self.max_complexity, getattr(self, 'max_space_weight', 0), self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, getattr(self, 'max_graph_ve', 0))
@@ -705,7 +636,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.current_function_name = node.name
         self.recursive_calls_count = 0
         
-        self.has_recursion_in_loop = self.has_slicing = self.has_division = self.has_global_accumulation = False
+        self.has_recursion_in_loop = self.has_slicing = self.has_partitioning = self.has_division = self.has_global_accumulation = False
         self.first_rec_line = float('inf')
         self.conditional_partition_lines = []
         self.in_if_depth = 0
@@ -728,39 +659,38 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if does_linear_work: break
 
         is_indirect = node.name in self.indirect_recursive_funcs
+        if self.has_slicing: self.has_partitioning = True
 
-        if is_memoized and (self.recursive_calls_count > 0 or is_indirect):
-            relation = "O(n)" 
-            self.custom_space[node.name] = "O(n)" 
+        # STRICT RECURSION PATTERN DETECTION
+        if is_memoized_or_graph and (self.recursive_calls_count > 0 or self.has_recursion_in_loop):
+            # Graphs map to O(V+E), Grids map to O(N*M)
+            relation = "O(V + E)" if (self.in_graph_context or 'visit' in node.name.lower()) else "O(n * m)" 
+            self.custom_space[node.name] = relation 
         else:
             if is_indirect:
                 relation = "T(n) = T(n-1) + T(n-2) + O(1)" 
             elif self.has_recursion_in_loop: 
                 relation = "O(V + E)" if self.in_graph_context else "T(n) = n * T(n-1) + O(1)" 
-            elif self.recursive_calls_count >= 2: 
-                relation = "T(n) = 2T(n/2) + O(n)" if self.has_division and does_linear_work else ("T(n) = 2T(n/2) + O(1)" if self.has_division else ("T(n) = T(n-1) + T(n-2) + O(1)"))
             elif self.recursive_calls_count == 1:
-                relation = "T(n) = T(n/2) + O(n)" if self.has_division and does_linear_work else ("T(n) = T(n/2) + O(1)" if self.has_division else ("T(n) = T(n-1) + O(n)" if does_linear_work else ("T(n) = T(n-1) + O(log n)" if self.max_log > 0 else "T(n) = T(n-1) + O(1)")))
+                relation = "T(n) = T(n/2) + O(n)" if (self.has_division or self.has_partitioning) and does_linear_work else ("T(n) = T(n/2) + O(1)" if (self.has_division or self.has_partitioning) else ("T(n) = T(n-1) + O(n)" if does_linear_work else ("T(n) = T(n-1) + O(log n)" if self.max_log > 0 else "T(n) = T(n-1) + O(1)")))
+            elif self.recursive_calls_count == 2: 
+                relation = "T(n) = 2T(n/2) + O(n)" if (self.has_division or self.has_partitioning) and does_linear_work else ("T(n) = 2T(n/2) + O(1)" if (self.has_division or self.has_partitioning) else "T(n) = T(n-1) + T(n-2) + O(1)")
+            elif self.recursive_calls_count > 2:
+                relation = f"O({self.recursive_calls_count}^n)"
             else: 
                 relation = "O(2^n)" if self.max_exp > 0 else (self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve))
             
             if node.name not in self.custom_space:
                 if not is_indirect:
-                    if self.max_graph_ve > 0 or self.in_graph_context:
-                        self.custom_space[node.name] = "O(V)"
+                    if self.max_graph_ve > 0 or self.in_graph_context: self.custom_space[node.name] = "O(V)"
                     elif self.recursive_calls_count > 0:
-                        if "T(n) = T(n/2) + O(1)" in relation:
-                            self.custom_space[node.name] = "O(log n)"
-                        else:
-                            self.custom_space[node.name] = "O(n)"
-                    elif self.max_space_weight >= 2:
-                        self.custom_space[node.name] = "O(n^2)"
-                    elif self.max_space_weight >= 1:
-                        self.custom_space[node.name] = "O(n)"
-                    elif self.max_space_weight >= 0.5:
-                        self.custom_space[node.name] = "O(log n)"
-                    else:
-                        self.custom_space[node.name] = "O(1)"
+                        if "T(n) = T(n/2) + O(1)" in relation: self.custom_space[node.name] = "O(log n)"
+                        elif "O(n * m)" in relation: self.custom_space[node.name] = "O(n * m)"
+                        else: self.custom_space[node.name] = "O(n)"
+                    elif self.max_space_weight >= 2: self.custom_space[node.name] = "O(n^2)"
+                    elif self.max_space_weight >= 1: self.custom_space[node.name] = "O(n)"
+                    elif self.max_space_weight >= 0.5: self.custom_space[node.name] = "O(log n)"
+                    else: self.custom_space[node.name] = "O(1)"
                 else:
                     self.custom_space[node.name] = "O(n)"
             
@@ -786,12 +716,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         else: self.max_complexity, self.max_space_weight, self.max_poly_str, self.max_log, self.max_sqrt, self.max_exp, self.max_graph_ve = prev_data
         
         self.current_function_name = None; self.in_graph_context = False; self.recursive_calls_count = 0 
-        self.has_recursion_in_loop = self.has_slicing = self.has_division = self.has_global_accumulation = False
+        self.has_recursion_in_loop = self.has_slicing = self.has_partitioning = self.has_division = self.has_global_accumulation = False
 
     def visit_If(self, node):
         self.record_line(node)
-        if hasattr(node, 'test'):
-            self.visit(node.test)
+        if hasattr(node, 'test'): self.visit(node.test)
         if len(self.active_poly_dims) > 0: self.conditional_partition_lines.append(getattr(node, 'lineno', float('inf')))
         self.in_if_depth += 1
         prev_rec = self.recursive_calls_count; self.recursive_calls_count = 0
@@ -806,21 +735,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_if_depth -= 1
 
     def visit_ListComp(self, node):
+        self.has_partitioning = True
+        self.in_list_comp_depth = getattr(self, 'in_list_comp_depth', 0) + 1
         prev_acc = getattr(self, 'in_accumulation_context', False)
         self.in_accumulation_context = True
         if any(getattr(comp, 'ifs', []) for comp in node.generators): self.conditional_partition_lines.append(getattr(node, 'lineno', float('inf')))
-        
-        is_nested = len(node.generators) > 1
-        if isinstance(node.elt, ast.ListComp): is_nested = True
-        if isinstance(node.elt, ast.BinOp) and isinstance(node.elt.op, ast.Mult) and isinstance(node.elt.left, ast.List): is_nested = True
-        if isinstance(node.elt, ast.List) and isinstance(node.elt.elts[0] if node.elt.elts else None, ast.Constant): is_nested = True
-        
-        if is_nested:
-            self.max_space_weight = max(self.max_space_weight, 2)
-            self.record_line(node, time_override="O(n^2)", space_override="O(n^2)", custom_op="Nested List Comprehension")
-            
         self.generic_visit(node)
         self.in_accumulation_context = prev_acc
+        self.in_list_comp_depth -= 1
 
     def visit_SetComp(self, node):
         prev_acc = getattr(self, 'in_accumulation_context', False)
@@ -837,7 +759,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def visit_For(self, node):
         iter_name = self._get_iterable_name(node.iter)
         dim = self._register_and_get_dim(iter_name)
-        
         self.loop_stack.append('n')
             
         if self._is_exponential_loop(node):
@@ -847,8 +768,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             return 
             
         is_const = self._is_constant_loop(node)
-        if not is_const: 
-            self.active_poly_dims.append(dim)
+        if not is_const: self.active_poly_dims.append(dim)
             
         self.record_line(node); self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1  
         
@@ -867,8 +787,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         elif not is_const:
             if is_log: self.log_loop_depth += 1
             elif is_sqrt: self.sqrt_loop_depth += 1
-            else: 
-                self.active_poly_dims.append(dim)
+            else: self.active_poly_dims.append(dim)
             
         self.record_line(node)
         if hasattr(node, 'test'): self.visit(node.test)
@@ -889,6 +808,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if isinstance(node.func, ast.Attribute) and node.func.attr in ['append', 'extend', 'add']:
             is_accumulating = True
             self.has_global_accumulation = True
+            # SEMANTIC PERSISTENCE: If we add to a variable, it is a Set!
+            if node.func.attr == 'add' and isinstance(getattr(node.func, 'value', None), ast.Name):
+                self.var_types[node.func.value.id] = 'set'
         elif isinstance(node.func, ast.Name) and node.func.id in ['append', 'extend', 'add']:
             is_accumulating = True
             self.has_global_accumulation = True
@@ -923,50 +845,21 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     b = self.builtin_complexities[f_id]
                     self.record_line(node, time_override=b['time'], space_override=b['space'])
             elif f_id == 'print':
-                is_linear = False
-                for arg in node.args:
-                    for child in ast.walk(arg):
-                        if isinstance(child, (ast.List, ast.Dict, ast.Set, ast.Tuple, ast.ListComp, ast.DictComp, ast.SetComp, ast.Subscript)):
-                            is_linear = True
-                            break
-                        if isinstance(child, ast.Name):
-                            if self._is_variable_iterable(child.id.lower()):
-                                is_linear = True
-                                break
-                        if isinstance(child, ast.Call):
-                            func_name = getattr(getattr(child, 'func', None), 'id', '')
-                            if func_name in ['list', 'dict', 'set', 'tuple', 'sorted', 'join']:
-                                is_linear = True
-                                break
-                
-                if is_linear:
-                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Print (Iterable)")
-                else:
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print Statement")
+                is_linear = any(self._is_linear_type(arg) for arg in node.args)
+                if is_linear: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Print (Iterable)")
+                else: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print Statement")
             elif f_id in self.custom_functions:
                 call_comp = self.custom_functions[f_id]
                 lookup = {
-                    "T(n) = n * T(n-1)": "O(n!)",
-                    "T(n) = 2T(n/2) + O(n)": "O(n log n)",
-                    "T(n) = 2T(n/2) + O(1)": "O(n)", 
-                    "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
-                    "T(n) = T(n/2) + O(n)": "O(n)", 
-                    "T(n) = T(n/2) + O(1)": "O(log n)",
-                    "T(n) = T(n-1) + O(n)": "O(n^2)", 
-                    "T(n) = T(n-1) + O(log n)": "O(n log n)",
-                    "T(n) = T(n-1) + O(1)": "O(n)", 
-                    "2T(n/2)": "O(n log n)",
-                    "T(n-1) + T(n-2)": "O(2^n)", 
-                    "T(n/2) + O(1)": "O(log n)", 
-                    "T(n-1) + O(n)": "O(n^2)", 
-                    "O(n log n)": "O(n log n)",
-                    "O(n^2)": "O(n^2)", 
-                    "O(V + E)": "O(V + E)",
-                    "O(2^n)": "O(2^n)", 
-                    "O(n!)": "O(n!)", 
-                    "O(n)": "O(n)",
-                    "O(log n)": "O(log n)", 
-                    "O(1)": "O(1)"
+                    "T(n) = n * T(n-1)": "O(n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
+                    "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
+                    "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
+                    "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
+                    "T(n) = T(n-1) + O(1)": "O(n)", "2T(n/2)": "O(n log n)",
+                    "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
+                    "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)", 
+                    "O(V + E)": "O(V + E)", "O(n * m)": "O(n * m)", "O(2^n)": "O(2^n)", 
+                    "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)"
                 }
                 for k, v in lookup.items():
                     if k in call_comp: call_comp = v; break
@@ -974,27 +867,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else: self.record_line(node)
         elif isinstance(node.func, ast.Attribute):
             if node.func.attr == 'pop':
-                is_dict = False
-                if isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'dict':
-                    is_dict = True
-                
+                is_dict = isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'dict'
                 if len(node.args) > 0:
-                    if is_dict:
-                        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
-                    else:
-                        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
+                    if is_dict: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
+                    else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
                 else:
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
-            
             elif node.func.attr == 'remove':
-                is_set = False
-                if isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'set':
-                    is_set = True
-                if is_set:
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
-                else:
-                    self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
-                    
+                is_set = isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'set'
+                if is_set: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
+                else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
             elif node.func.attr == 'append':
                 is_appending_list = False
                 if node.args:
@@ -1018,17 +900,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     
             elif node.func.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'copy', 'keys', 'values', 'items']:
                 b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
-                
-                # Check for loop accumulation
                 if node.func.attr in ['add', 'insert', 'update']:
                     if len(self.active_poly_dims) > 0 or getattr(self, 'log_loop_depth', 0) > 0 or getattr(self, 'sqrt_loop_depth', 0) > 0:
                         self.record_line(node, time_override=b['time'], space_override="O(n)", custom_op=f"{node.func.attr.capitalize()} (Accumulates in Loop)")
                         self.generic_visit(node)
                         self.in_accumulation_context = prev_acc
                         return
-
                 self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize())
-            
             elif node.func.attr in self.builtin_complexities:
                 b = self.builtin_complexities[node.func.attr]
                 self.record_line(node, time_override=b['time'], space_override=b['space'])
@@ -1039,24 +917,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_accumulation_context = prev_acc
 
     def visit_Assign(self, node):
+        # SEMANTIC VARIABLE MAPPING
         for target in node.targets:
             if isinstance(target, ast.Name):
-                if isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') == 'set':
-                    self.var_types[target.id] = 'set'
-                elif isinstance(node.value, (ast.Set, ast.SetComp)):
-                    self.var_types[target.id] = 'set'
-                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') == 'dict':
-                    self.var_types[target.id] = 'dict'
-                elif isinstance(node.value, (ast.Dict, ast.DictComp)):
-                    self.var_types[target.id] = 'dict'
-                elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                    self.var_types[target.id] = 'str'
-                elif isinstance(node.value, (ast.List, ast.ListComp)):
-                    self.var_types[target.id] = 'list'
-                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') == 'list':
-                    self.var_types[target.id] = 'list'
-                elif isinstance(node.value, ast.Tuple):
-                    self.var_types[target.id] = 'tuple'
+                if isinstance(node.value, (ast.List, ast.ListComp)): self.var_types[target.id] = 'list'
+                elif isinstance(node.value, (ast.Dict, ast.DictComp)): self.var_types[target.id] = 'dict'
+                elif isinstance(node.value, (ast.Set, ast.SetComp)): self.var_types[target.id] = 'set'
+                elif isinstance(node.value, ast.Tuple): self.var_types[target.id] = 'tuple'
+                elif isinstance(node.value, ast.Constant) and isinstance(node.value.value, str): self.var_types[target.id] = 'str'
+                elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['list', 'dict', 'set', 'tuple', 'deque']:
+                    self.var_types[target.id] = node.value.func.id
 
         s_ov, t_ov = "O(1)", None
         
@@ -1071,16 +941,19 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): s_ov, t_ov = "O(V)", "O(V)"
         else:
             if isinstance(node.value, ast.ListComp):
+                # Check for 2D Matrix DP Arrays
                 is_nested = len(node.value.generators) > 1
                 if isinstance(node.value.elt, ast.ListComp): is_nested = True
                 
-                # FIX: Added .elt before .op and .left so it targets the internal BinOp, not the ListComp
                 if isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List): 
                     is_nested = True
                     
                 if is_nested:
-                    s_ov, t_ov = "O(n^2)", "O(n^2)"
+                    s_ov, t_ov = "O(n * m)", "O(n * m)"
                     self.max_space_weight = max(self.max_space_weight, 2)
+                    self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op="2D Array Allocation")
+                    self.generic_visit(node)
+                    return
                 else:
                     s_ov, t_ov = "O(n)", "O(n)"
             elif isinstance(node.value, (ast.SetComp, ast.DictComp, ast.Tuple, ast.List, ast.Set, ast.Dict)): s_ov, t_ov = "O(n)", "O(n)"
@@ -1124,23 +997,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def visit_Subscript(self, node):
         if isinstance(node.slice, ast.Slice):
             self.has_slicing = True  
+            self.has_partitioning = True
             s_ov = "O(n^2)" if getattr(self, 'in_accumulation_context', False) and len(self.active_poly_dims) > 0 else "O(n)"
             self.record_line(node, time_override="O(n)", space_override=s_ov, custom_op="Array Slicing")
         self.generic_visit(node)  
 
     def visit_BinOp(self, node):
         if isinstance(node.op, (ast.Add, ast.Mult)):
-            is_linear = False
-            for child in ast.walk(node):
-                if isinstance(child, (ast.List, ast.Tuple, ast.Str, ast.ListComp)):
-                    is_linear = True
-                    break
-                if isinstance(child, ast.Name) and self._is_variable_iterable(child.id.lower()):
-                    is_linear = True
-                    break
-            
-            if is_linear:
-                self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Concatenation / Repetition")
+            if self._is_linear_type(node.left) or self._is_linear_type(node.right):
+                if getattr(self, 'in_list_comp_depth', 0) > 0:
+                    self.record_line(node, time_override="O(m)", space_override="O(m)", custom_op="Row Allocation")
+                else:
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Concatenation / Repetition")
             else:
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Binary Operation")
                 
