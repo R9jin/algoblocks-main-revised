@@ -289,5 +289,67 @@
         { "call": "lcs_backtrack('ABC','XYZ')", "expected": "3", "isHidden": false }
       ]
     }
+  ],
+  "optimizations": [
+    {
+      "id": "m5_opt_1",
+      "title": "Optimize Graph Traversal",
+      "task": "The given code uses an adjacency matrix resulting in O(V²) traversal time.\n\n**Task Requirement:**\nConvert the logic to handle an Adjacency List to achieve O(V + E) time complexity.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m5-5.1.json",
+      "testCasesPool": [
+        { "call": "bfs_traversal({'A': ['B', 'C'], 'B': ['D'], 'C': [], 'D': []}, 'A')", "expected": "['A', 'B', 'C', 'D']", "isHidden": false },
+        { "call": "bfs_traversal({'1': ['2'], '2': ['3'], '3': []}, '1')", "expected": "['1', '2', '3']", "isHidden": false },
+        { "call": "bfs_traversal({'X': []}, 'X')", "expected": "['X']", "isHidden": false },
+        { "call": "bfs_traversal({'A': ['B'], 'B': ['A']}, 'A')", "expected": "['A', 'B']", "isHidden": false },
+        { "call": "bfs_traversal({}, 'A')", "expected": "[]", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m5_opt_2",
+      "title": "Optimize Tree Depth Check",
+      "task": "The provided code calculates the maximum depth of a binary tree but re-evaluates nodes unnecessarily, causing exponential growth in large trees.\n\n**Task Requirement:**\nOptimize the depth calculation using a standard O(n) post-order traversal.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m5-5.2.json",
+      "testCasesPool": [
+        { "call": "max_depth({'val': 1, 'left': {'val': 2, 'left': None, 'right': None}, 'right': None})", "expected": "2", "isHidden": false },
+        { "call": "max_depth({'val': 1, 'left': None, 'right': None})", "expected": "1", "isHidden": false },
+        { "call": "max_depth(None)", "expected": "0", "isHidden": false },
+        { "call": "max_depth({'val': 1, 'left': {'val': 2, 'left': {'val': 3, 'left': None, 'right': None}, 'right': None}, 'right': None})", "expected": "3", "isHidden": false },
+        { "call": "max_depth({'val': 1, 'left': None, 'right': {'val': 2, 'left': None, 'right': {'val': 3, 'left': None, 'right': None}}})", "expected": "3", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m5_opt_3",
+      "title": "Valid BST Check",
+      "task": "The current algorithm verifies a Binary Search Tree by doing a full array extraction and sorting it, taking O(n log n).\n\n**Task Requirement:**\nOptimize it to check validity in a single pass O(n) by tracking the valid min/max boundaries as you traverse.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m5-5.3.json",
+      "testCasesPool": [
+        { "call": "is_valid_bst({'val': 2, 'left': {'val': 1}, 'right': {'val': 3}})", "expected": "True", "isHidden": false },
+        { "call": "is_valid_bst({'val': 5, 'left': {'val': 1}, 'right': {'val': 4}})", "expected": "False", "isHidden": false },
+        { "call": "is_valid_bst(None)", "expected": "True", "isHidden": false },
+        { "call": "is_valid_bst({'val': 2, 'left': {'val': 2}, 'right': None})", "expected": "False", "isHidden": false },
+        { "call": "is_valid_bst({'val': 10, 'left': {'val': 5}, 'right': {'val': 15}})", "expected": "True", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m5_opt_4",
+      "title": "Level Order Traversal",
+      "task": "The current approach finds all nodes at a specific level by restarting traversal from the root every time (O(n²)).\n\n**Task Requirement:**\nOptimize the traversal to use a Queue to visit nodes level-by-level in O(n) time.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m5-5.4.json",
+      "testCasesPool": [
+        { "call": "level_order({'val': 1, 'left': {'val': 2}, 'right': {'val': 3}})", "expected": "[[1], [2, 3]]", "isHidden": false },
+        { "call": "level_order({'val': 1, 'left': None, 'right': None})", "expected": "[[1]]", "isHidden": false },
+        { "call": "level_order(None)", "expected": "[]", "isHidden": false },
+        { "call": "level_order({'val': 1, 'left': {'val': 2}, 'right': None})", "expected": "[[1], [2]]", "isHidden": false },
+        { "call": "level_order({'val': 1, 'left': None, 'right': {'val': 2}})", "expected": "[[1], [2]]", "isHidden": false }
+      ]
+    }
   ]
 }
