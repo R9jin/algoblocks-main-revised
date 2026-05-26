@@ -15,6 +15,7 @@ class BigOInfo:
 @dataclass
 class MemorySignals:
     allocates_lists: bool = False
+    allocates_2d_lists: bool = False
     allocates_dicts: bool = False
     allocates_sets: bool = False
     uses_list_comprehension: bool = False
@@ -27,6 +28,7 @@ class MemorySignals:
     recursive_stack_risk: bool = False
     efficient_deque_pop: bool = False
     set_and_dict_updates: bool = False
+    caches_results: bool = False
 
 
 @dataclass
@@ -48,6 +50,7 @@ class PatternSignals:
     has_recursion: bool = False
     recursion_branching: Optional[str] = None  
     has_backtracking_risk: bool = False
+    has_memoization: bool = False
     
     membership_in_loop: bool = False
     comprehension_expansion: bool = False
@@ -80,6 +83,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         
         self._in_loop = self.signals.loop_depth > 0
         self._function_calls: Set[str] = set()
+        self._modified_structures: Set[str] = set()
 
     def analyze(self, node: ast.AST) -> PatternSignals:
         if node:
@@ -87,6 +91,8 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             
         self._evaluate_recursion()
         self._evaluate_graph_context()
+        self._evaluate_memoization()
+        self._evaluate_backtracking()
         
         return self.signals
 
@@ -97,6 +103,9 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         if isinstance(node.func, ast.Attribute):
             method_name = node.func.attr
             self._function_calls.add(method_name)
+            
+            if isinstance(node.func.value, ast.Name):
+                self._modified_structures.add(f"{node.func.value.id}.{method_name}")
             
             if method_name == 'pop':
                 if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
@@ -141,6 +150,12 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 if self._in_loop:
                     self.signals.membership_in_loop = True
                     self.signals.complexity_signals.membership_in_list = True
+                
+                # Check for memoization lookup pattern
+                if isinstance(node.comparators[0], ast.Name) and any(k in node.comparators[0].id.lower() for k in ['memo', 'cache', 'dp']):
+                    self.signals.has_memoization = True
+                    self.signals.memory_signals.caches_results = True
+                    
         self.generic_visit(node)
 
     def visit_BinOp(self, node: ast.BinOp):
@@ -154,6 +169,13 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ListComp(self, node: ast.ListComp):
+        is_nested = len(node.generators) > 1
+        if isinstance(node.elt, ast.ListComp) or (isinstance(node.elt, ast.BinOp) and isinstance(node.elt.op, ast.Mult) and isinstance(node.elt.left, ast.List)):
+            is_nested = True
+            
+        if is_nested:
+            self.signals.memory_signals.allocates_2d_lists = True
+            
         self.signals.comprehension_expansion = True
         self.signals.memory_signals.uses_list_comprehension = True
         self.signals.memory_signals.allocates_lists = True
@@ -183,9 +205,21 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
 
     def visit_AugAssign(self, node: ast.AugAssign):
         if self._in_loop and isinstance(node.op, ast.Add):
-            self.signals.memory_signals.string_concatenation_in_loop = True
+            if isinstance(node.target, ast.Name) and getattr(self.ctx, "var_types", {}).get(node.target.id) == 'str':
+                self.signals.memory_signals.string_concatenation_in_loop = True
         self.generic_visit(node)
         
+    def visit_Assign(self, node: ast.Assign):
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
+            self.signals.variable_swapping = True
+            
+        # Check for 2D array allocation via multiplication e.g., `[[0] * m for _ in range(n)]`
+        if isinstance(node.value, ast.ListComp):
+            if isinstance(node.value.elt, ast.ListComp) or (isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List)):
+                self.signals.memory_signals.allocates_2d_lists = True
+                
+        self.generic_visit(node)
+
     def visit_Break(self, node: ast.Break):
         self.signals.has_early_exits = True
         self.generic_visit(node)
@@ -202,15 +236,10 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
     def visit_JoinedStr(self, node: ast.JoinedStr):
         self.signals.string_interpolation = True
         self.generic_visit(node)
-        
-    def visit_Assign(self, node: ast.Assign):
-        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
-            self.signals.variable_swapping = True
-        self.generic_visit(node)
 
     def _evaluate_recursion(self):
         if self.signals.has_recursion:
-            if len([f for f in self._function_calls if f == getattr(self.ctx, "current_function_name", None)]) > 1:
+            if getattr(self.ctx, "recursive_calls_count", 0) > 1:
                 self.signals.recursion_branching = "multi"
             else:
                 self.signals.recursion_branching = "linear_or_unknown"
@@ -225,8 +254,18 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             self.signals.memory_signals.tracks_visited_nodes = True
         
         if 'popleft' in self._function_calls or 'pop' in self._function_calls:
-            if getattr(self.ctx, "has_graph_traversal", False):
-                self.signals.graph_traversal = True
+            if self.signals.graph_traversal:
+                pass # Already marked
+
+    def _evaluate_memoization(self):
+        if getattr(self.ctx, "current_function_name", None) in getattr(self.ctx, "memoized_funcs", set()):
+            self.signals.has_memoization = True
+            self.signals.memory_signals.caches_results = True
+
+    def _evaluate_backtracking(self):
+        # Infer backtracking if we have list mutation (append, pop) combined with recursion
+        if self.signals.has_recursion and 'append' in self._function_calls and 'pop' in self._function_calls:
+            self.signals.has_backtracking_risk = True
 
 
 class EducationalInsightGenerator:
@@ -268,21 +307,19 @@ class EducationalInsightGenerator:
                 "This operation runs in Linearithmic Time (n log n). This is slightly slower than linear time, "
                 "but much faster than polynomial time. It usually happens when an algorithm breaks a problem "
                 "down into smaller halves (the log n part) and then merges or processes all the pieces (the n part). "
-                "This is the typical speed limit for the most efficient general sorting algorithms."
+                "This is the typical speed limit for the most efficient general sorting algorithms like Merge Sort."
             )
         elif family == "polynomial":
             return (
                 "This operation exhibits Polynomial Growth (like n squared or n cubed). For small inputs, this is fine, "
                 "but it becomes dangerously slow as the data grows. If you double the input, the time taken doesn't just double; "
-                "it multiplies by four, nine, or more. This usually occurs when you have nested loops, meaning for every single "
-                "item, you have to scan through the entire dataset all over again."
+                "it multiplies by four, nine, or more. This usually occurs when you have nested loops or worst-case naive sorting."
             )
         elif family == "exponential":
             return (
                 "This operation exhibits Exponential Growth, which is highly dangerous for performance. "
                 "Adding just one single item to the input can cause the required work to double. "
-                "This typically happens in naive recursive algorithms that solve the same sub-problems over and over again, "
-                "causing the workload to explode rapidly. It is generally only suitable for very small datasets."
+                "This typically happens in naive recursive algorithms (like calculating Fibonacci without a cache) that solve the same sub-problems over and over again."
             )
         elif family == "factorial":
             return (
@@ -315,6 +352,12 @@ class EducationalInsightGenerator:
                 "requires a few fixed variables. It does not hoard additional memory as the input grows, "
                 "making it highly efficient and safe for systems with limited RAM."
             )
+        elif "log" in lower_s:
+            return (
+                "The memory usage scales Logarithmically. This is typically driven by the 'call stack' during efficient recursion. "
+                "Because the problem is halved at each step, the maximum depth of the stack stays remarkably small (e.g., about 20 frames for a million items), "
+                "making it highly memory-efficient compared to a linear stack."
+            )
         elif family == "linear" or "o(n)" in lower_s:
             if "in-place" in (getattr(ctx, "hint_text", "") or ""):
                 return (
@@ -324,13 +367,7 @@ class EducationalInsightGenerator:
             return (
                 "The memory usage scales Linearly. For every new piece of input data, the algorithm allocates "
                 "a proportional amount of extra memory. This typically happens when constructing new lists, "
-                "dictionaries, or keeping track of an expanding frontier of items."
-            )
-        elif "log" in lower_s and getattr(ctx, "has_division", False):
-            return (
-                "The memory usage scales Logarithmically. This is usually driven by the 'call stack' during recursion. "
-                "Because the problem is halved at each step, the maximum depth of the stack stays remarkably small, "
-                "making it memory-efficient even for massive inputs."
+                "dictionaries, or keeping track of an expanding recursive call stack where depth equals 'n'."
             )
         elif "v" in lower_s or "e" in lower_s or family == "graph":
             return (
@@ -338,10 +375,10 @@ class EducationalInsightGenerator:
                 "it has already visited (to prevent infinite loops) and maintain a queue/stack of nodes waiting to be explored. "
                 "Therefore, memory grows alongside the number of vertices and edges."
             )
-        elif family == "polynomial" or "n^2" in lower_s:
+        elif family == "polynomial" or "n^2" in lower_s or "n * m" in lower_s:
             return (
                 "The memory usage exhibits Polynomial Growth. The algorithm is constructing multi-dimensional "
-                "structures, like matrices or 2D grids. This means memory consumption "
+                "structures, like matrices or 2D Dynamic Programming grids. This means memory consumption "
                 "will grow exponentially faster than the input, requiring careful monitoring for large datasets."
             )
         else:
@@ -386,6 +423,20 @@ class SemanticNLGEngine:
             return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
         if "∞" in original or "infinite" in lower or "undefined" in lower:
             return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
+
+        # Process Specific Recurrence Relations before generalized T(n) check
+        if "t(n) = n * t(n-1)" in lower:
+            return BigOInfo(raw=original, normalized=s, family="factorial", factors={})
+        if "t(n) = 2t(n/2) + o(n)" in lower:
+            return BigOInfo(raw=original, normalized=s, family="linearithmic", factors={})
+        if "t(n) = 2t(n/2) + o(1)" in lower:
+            return BigOInfo(raw=original, normalized=s, family="linear", factors={})
+        if "t(n) = t(n/2)" in lower or "t(n/2) + o(1)" in lower:
+            return BigOInfo(raw=original, normalized=s, family="logarithmic", factors={})
+        if "t(n) = t(n-1) + o(n)" in lower:
+            return BigOInfo(raw=original, normalized=s, family="polynomial", factors={})
+        if "t(n) = t(n-1) + t(n-2)" in lower:
+            return BigOInfo(raw=original, normalized=s, family="exponential", factors={})
 
         if "t(" in lower or lower.startswith("t(") or "t(n)" in lower:
             return BigOInfo(raw=original, normalized=s, family="unknown", factors={"recurrence": True})
@@ -451,6 +502,8 @@ class SemanticNLGEngine:
         elif sig.comprehension_expansion:
             return "the language dynamically unpacks and processes an entire collection behind the scenes"
         elif sig.has_recursion:
+            if getattr(self.ctx, "has_memoization", False) or sig.has_memoization:
+                return "the function checks a cache before jumping into self-referential execution to prevent duplicated work"
             if sig.recursion_branching == "multi":
                 return "the function violently branches out, calling itself multiple times and creating a massive execution tree"
             return "the function relies on the call stack, diving deeper into self-referential execution until a base case is hit"
@@ -471,7 +524,7 @@ class SemanticNLGEngine:
         
         insights = []
         if sig.complexity_signals.inefficient_list_pop:
-            insights.append("Notice that popping from the front of a list forces Python to shift all remaining elements in memory, causing severe hidden delays.")
+            insights.append("Notice that popping from the front of a list forces Python to shift all remaining elements in memory, causing severe hidden delays. Consider using a `collections.deque`.")
         if sig.complexity_signals.inefficient_list_insert:
             insights.append("Inserting elements at the front of a list is inefficient because it forces a complete memory realignment of all subsequent items.")
         if sig.complexity_signals.repeated_sort:
@@ -481,7 +534,7 @@ class SemanticNLGEngine:
         if sig.complexity_signals.dict_lookup_constant:
             insights.append("Using a dictionary get lookup provides a safe, constant-time query that prevents fallback execution errors if keys are absent.")
         if sig.has_backtracking_risk:
-            insights.append("Because this involves conditional branching within recursion, the code acts like it's exploring a massive maze, leading to rapid performance drops on complex inputs.")
+            insights.append("Because this involves state modification combined with recursion, the code explores paths and backtracks. This acts like navigating a massive maze, leading to rapid performance drops on complex inputs.")
         if sig.has_early_exits:
             insights.append("However, the inclusion of early exit conditions (like breaks or returns) means that in practical best-case scenarios, the algorithm can bypass unnecessary work.")
 
@@ -508,20 +561,24 @@ class SemanticNLGEngine:
         educational_growth = self.explainer.explain_space_growth(global_s, ginfo, self.ctx)
         
         insights = []
-        if sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
+        if sig.memory_signals.allocates_2d_lists:
+            insights.append("Generating nested 2D Arrays or Matrices requires massive continuous blocks of memory, rapidly increasing the footprint beyond simple 1D structures.")
+        elif sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
             insights.append("Generating new lists dynamically requires allocating contiguous blocks of RAM, which increases memory pressure.")
         if sig.memory_signals.allocates_sets or sig.memory_signals.uses_set_comprehension:
             insights.append("Generating sets guarantees unique elements and fast lookups, but building the set structure consumes additional memory based on the number of unique items.")
         if sig.memory_signals.performs_slicing:
-            insights.append("Be careful: slicing arrays generates complete distinct copies of the data in memory, rather than just referencing the original structure.")
+            insights.append("Be careful: slicing arrays generates complete distinct copies of the data in memory, rather than just referencing the original structure. In deep loops, this destroys spatial efficiency.")
         if sig.memory_signals.recursive_stack_risk:
-            insights.append("Every recursive jump adds a new 'frame' to the system call stack. If the recursion goes too deep, it risks a Stack Overflow.")
+            insights.append("Every recursive jump adds a new 'frame' to the system call stack. If the recursion goes too deep linearly, it risks a Stack Overflow.")
         if sig.memory_signals.string_concatenation_in_loop:
             insights.append("Because strings are immutable, adding to a string repeatedly inside a loop forces the system to constantly allocate brand new strings and destroy old ones, wasting memory.")
         if sig.memory_signals.efficient_deque_pop:
             insights.append("Utilizing popleft from a deque structure optimizes memory deallocation from the front of the sequence in constant space and time.")
         if sig.memory_signals.set_and_dict_updates:
             insights.append("Updating elements inside sets or dictionaries dynamically resizes hash tables depending on unique entry volume.")
+        if sig.memory_signals.caches_results:
+            insights.append("Caching results trades space for time: the dictionary stores previously computed values to prevent redundant execution, consuming memory to gain massive speed improvements.")
 
         insight_text = "\n\n" + " ".join(insights) if insights else ""
         
@@ -550,6 +607,10 @@ class SemanticNLGEngine:
                 parts.append("Pattern Detected: Exponential branching via Multiple Recursive Calls.")
             else:
                 parts.append("Pattern Detected: Self-referential logic via Deep Recursion.")
+        if sig.has_memoization:
+            parts.append("Pattern Detected: Dynamic Programming/Memoization via Cache Lookup.")
+        if sig.has_backtracking_risk:
+            parts.append("Pattern Detected: Backtracking logic via Recursion with State Mutation.")
         if sig.graph_traversal:
             parts.append("Pattern Detected: Structural navigation via Graph/Network Traversal.")
         if sig.complexity_signals.membership_in_list:
@@ -566,6 +627,8 @@ class SemanticNLGEngine:
             parts.append("Pattern Detected: Dynamic text construction via String Interpolation (f-strings).")
         if sig.variable_swapping:
             parts.append("Pattern Detected: In-place Variable Swapping via Tuple Unpacking.")
+        if sig.memory_signals.allocates_2d_lists:
+            parts.append("Pattern Detected: Grid/Matrix Generation via Nested Allocations.")
         if sig.has_comment_block:
             parts.append("Pattern Detected: Documentation preservation via Inline Text Block.")
             
