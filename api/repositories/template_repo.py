@@ -1,19 +1,17 @@
-from bson import ObjectId
-from api.database import templates_collection
+# api/repositories/template_repo.py
+from database import templates_collection
 
 class TemplateRepository:
     @staticmethod
-    def insert(data: dict):
-        return templates_collection.insert_one(data)
+    def find_by_category(category: str):
+        templates = list(templates_collection.find({"category": category}))
+        for tpl in templates:
+            tpl["_id"] = str(tpl["_id"])
+        return templates
 
     @staticmethod
-    def get_all():
-        return list(templates_collection.find({}))
-
-    @staticmethod
-    def delete(template_id: str):
-        return templates_collection.delete_one({"_id": ObjectId(template_id)})
-
-    @staticmethod
-    def update(template_id: str, update_data: dict):
-        return templates_collection.update_one({"_id": ObjectId(template_id)}, {"$set": update_data})
+    def find_all():
+        templates = list(templates_collection.find({}))
+        for tpl in templates:
+            tpl["_id"] = str(tpl["_id"])
+        return templates
