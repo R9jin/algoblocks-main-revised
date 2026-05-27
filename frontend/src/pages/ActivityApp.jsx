@@ -118,7 +118,6 @@ const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
   const navigate = useNavigate();
 
-  // FIX: Track current IDs rigorously to prevent saving leaks between route changes
   const activeIdsRef = useRef({ moduleId, activityId });
 
   useEffect(() => {
@@ -135,6 +134,7 @@ const ActivityApp = () => {
   const pendingOutputRef = useRef("");
   const isDragging = useRef(false);
   const saveDraftTimeoutRef = useRef(null);
+  const latestBlocksJsonRef = useRef(null);
 
   const latestStateRef = useRef({
     userId: null,
@@ -353,15 +353,12 @@ const ActivityApp = () => {
       pythonCode: state.pythonCode,
       timestamp: Date.now(),
       submittedAt: new Date().toISOString(),
-      isSynced: true // We assume true for the beacon attempt
+      isSynced: true
     };
 
     const finalSubId = `${state.userId}_${activeIdsRef.current.moduleId}_${activeIdsRef.current.activityId}`;
-
-    // 1. Immediately store to LocalForage so logout doesn't wipe it
     submissionsDB.setItem(finalSubId, { ...payload, isSynced: false });
     
-    // 2. High-priority beacon to cloud
     if (navigator.onLine && API_BASE) {
       try {
         fetch(`${API_BASE}/api/sync-submission`, {
@@ -373,25 +370,50 @@ const ActivityApp = () => {
   };
 
   const resetActivitySessionState = () => {
-    setGeneratedPython("# Drag blocks to generate Python code"); setConsoleOutput("Ready to run...\n");
-    setViewMode("workspace"); setPassedTests(0); setIsEvaluating(false); setConsoleTab("output");
-    setBottomPanel(null); setExpandedTests({}); setExpandedLines({}); setSyntaxError(null);
-    setLineExecutions({}); setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
-    setAnalysisTime("0.0"); setIsEditingCode(false); pendingOutputRef.current = ""; outputCountRef.current = 0;
-    
-    // Clear leak timeout
     if (saveDraftTimeoutRef.current) {
         clearTimeout(saveDraftTimeoutRef.current);
         saveDraftTimeoutRef.current = null;
     }
+    
+    if (workspaceRef.current?.clear) {
+        workspaceRef.current.clear();
+    }
+    
+    latestStateRef.current = {
+        userId: latestStateRef.current.userId, 
+        json: null,
+        pythonCode: "# Drag blocks to generate Python code",
+        score: 0,
+        passed: 0,
+        testResults: [],
+        actualTime: "O(n^2)",
+        actualSpace: "O(1)",
+        status: "draft"
+    };
+    latestBlocksJsonRef.current = null;
+    
+    setGeneratedPython("# Drag blocks to generate Python code");
+    setConsoleOutput("Ready to run...\n");
+    setViewMode("workspace");
+    setPassedTests(0);
+    setIsEvaluating(false);
+    setConsoleTab("output");
+    setBottomPanel(null);
+    setExpandedTests({});
+    setExpandedLines({});
+    setSyntaxError(null);
+    setLineExecutions({});
+    setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
+    setAnalysisTime("0.0");
+    setIsEditingCode(false);
+    pendingOutputRef.current = "";
+    outputCountRef.current = 0;
   };
 
   useEffect(() => {
     if (!moduleId || !activityId) return;
 
-    // FIX: Execute final save for the OLD activity before initializing the NEW activity
     triggerFinalSave();
-    
     resetActivitySessionState();
     let cancelled = false;
 
@@ -408,11 +430,9 @@ const ActivityApp = () => {
         latestStateRef.current.userId = user.email;
         const submissionId = `${user.email}_${moduleId}_${activityId}`;
 
-        // 1. Fetch LocalForage
         let localSubmission = null;
         try { localSubmission = await submissionsDB.getItem(submissionId); } catch(e){}
 
-        // 2. Fetch Cloud
         let cloudSubmission = null;
         if (navigator.onLine) {
             try {
@@ -424,7 +444,6 @@ const ActivityApp = () => {
             } catch(e){}
         }
 
-        // 3. Smart Load Strategy (Prevent Internet Reconnection Overwrite)
         let finalSubmissionToLoad = null;
         const localCode = localSubmission?.pythonCode || "";
         const cloudCode = cloudSubmission?.pythonCode || "";
@@ -433,22 +452,19 @@ const ActivityApp = () => {
         const isCloudBlank = !cloudCode || cloudCode === "# Drag blocks to generate Python code";
 
         if (isLocalBlank && !isCloudBlank) {
-            // Only cloud has data (New device or fresh login)
             finalSubmissionToLoad = cloudSubmission;
-            await submissionsDB.setItem(submissionId, cloudSubmission); // Sync down
+            await submissionsDB.setItem(submissionId, cloudSubmission); 
         } else if (!isLocalBlank && !isCloudBlank) {
-            // Conflict! Both exist. Trust the newest timestamp so offline work isn't overwritten.
             if ((localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0)) {
                 finalSubmissionToLoad = localSubmission;
             } else {
                 finalSubmissionToLoad = cloudSubmission;
             }
         } else if (!isLocalBlank) {
-            finalSubmissionToLoad = localSubmission; // Offline mode only
+            finalSubmissionToLoad = localSubmission; 
         }
 
-        // 4. Apply The Resolved Submission
-        if (finalSubmissionToLoad) {
+        if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId) {
           try {
             const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {}; 
             const pythonCode = finalSubmissionToLoad.pythonCode;
@@ -471,7 +487,6 @@ const ActivityApp = () => {
             if (workspaceRef.current?.clear) workspaceRef.current.clear(); 
           }
         } else {
-          // No history found. Load pre-made template if available.
           if (workspaceRef.current?.clear) workspaceRef.current.clear();
           if (resolvedActivity.templateUrl) {
             try {
@@ -505,12 +520,11 @@ const ActivityApp = () => {
     
     return () => { 
         cancelled = true; 
-        triggerFinalSave(); // Trigger final save on unmount (e.g. going to dashboard)
+        triggerFinalSave(); 
     };
   }, [moduleId, activityId]);
 
   const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
-    // FIX: Verify we are still on the same activity we intend to save
     if (activeIdsRef.current.moduleId !== moduleId || activeIdsRef.current.activityId !== activityId) return;
     if (!latestStateRef.current.userId) return;
 
@@ -600,6 +614,7 @@ const ActivityApp = () => {
   }, [generatedPython, isOnline]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
+    latestBlocksJsonRef.current = json;
     const oldCode = (generatedPython || "").trim(); const newCode = (pythonCode || "").trim();
     handleWorkspaceAutoSave(json, pythonCode);
     if (!isEditingCode && oldCode !== newCode) { setGeneratedPython(pythonCode); setLineExecutions({}); }
@@ -923,7 +938,10 @@ const ActivityApp = () => {
         <main className="workspace-main activity-center-panel">
           <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}><span className="toggle-icon">{isLeftPanelVisible ? "<" : ">"}</span></button>
           <div className="editor-container" style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-            <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ display: viewMode === "workspace" ? "block" : "none", height: "100%" }}><BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={syntaxError} /></div>
+            <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ display: viewMode === "workspace" ? "block" : "none", height: "100%" }}>
+              {/* FIX: The key prop entirely destroys and rebuilds Blockly on navigation to stop visual ghosting */}
+              <BlocklyWorkspace key={activityId} ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={syntaxError} />
+            </div>
             <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"} style={{ display: viewMode === "python" ? "flex" : "none", flexDirection: "column", height: "100%", background: "#1C1236" }}>
               <div className="python-header" style={{ padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)" }}><span className="python-sync-status" style={{ color: "#EBE4FF", fontSize: "0.85rem" }}>{isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span><button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? "active" : "disabled"}`} style={{ padding: "5px 12px", borderRadius: "4px", cursor: isEditingCode ? "pointer" : "not-allowed", backgroundColor: isEditingCode ? "#6C5CE7" : "#444", color: "white", border: "none" }}>Sync to Blocks</button></div>
               <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
