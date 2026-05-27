@@ -363,15 +363,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             for sub in ast.walk(child):
                 if isinstance(sub, ast.AugAssign):
                     if isinstance(sub.target, ast.Name) and sub.target.id in cond_vars:
-                        if isinstance(sub.op, (ast.Mult, ast.Div, ast.FloorDiv)) and getattr(sub.value, 'value', 0) > 1: return True
+                        if isinstance(sub.op, (ast.Mult, ast.Div, ast.FloorDiv, ast.Mod)) and getattr(sub.value, 'value', 0) > 1: return True
                         if isinstance(sub.op, (ast.LShift, ast.RShift)): return True
+                        if isinstance(sub.op, ast.Mod): return True
                 elif isinstance(sub, ast.Assign):
                     for target in sub.targets:
                         if isinstance(target, ast.Name) and target.id in cond_vars:
                             if isinstance(sub.value, ast.BinOp):
-                                if isinstance(sub.value.op, (ast.Mult, ast.Div, ast.FloorDiv)):
+                                if isinstance(sub.value.op, (ast.Mult, ast.Div, ast.FloorDiv, ast.Mod)):
                                     if getattr(sub.value.left, 'id', None) == target.id and getattr(sub.value.right, 'value', 0) > 1: return True
                                     if getattr(sub.value.right, 'id', None) == target.id and getattr(sub.value.left, 'value', 0) > 1: return True
+                                if isinstance(sub.value.op, ast.Mod):
+                                    if getattr(sub.value.left, 'id', None) == target.id or getattr(sub.value.right, 'id', None) == target.id: return True
                                 if isinstance(sub.value.op, (ast.LShift, ast.RShift)): return True
 
         if len(cond_vars) >= 2:
@@ -504,8 +507,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if local_s != "S(placeholder)":
                 if "n * m" in local_s or "n^2" in local_s: s_w = 2
                 elif "V + E" in local_s or "V" in local_s or total_graph > 0: s_w = 3
-                elif "n" in local_s: s_w = 1
-                elif "log n" in local_s: s_w = 0.5
+                elif "log n" in local_s: s_w = 0.5  # Fixed greedy matching order
+                elif "n" in local_s: s_w = 1        # Move 'n' below 'log n'
             
             self.max_space_weight = max(getattr(self, 'max_space_weight', 0), s_w)
                 
@@ -675,7 +678,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if does_linear_work: break
 
         is_indirect = node.name in self.indirect_recursive_funcs
-        if self.has_slicing: self.has_partitioning = True
 
         is_2d_memo = False
         for child in ast.walk(node):
@@ -1075,10 +1077,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'):
                     for target in node.targets:
                         if isinstance(target, ast.Name): self.variable_complexities[target.id] = "sqrt"
-
-        if isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): self.has_slicing = True
         
-        # Determine Custom Op for display purposes
         custom_op = None
         if s_ov == "O(1)" and isinstance(node.value, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
             custom_op = "Literal Assignment"
@@ -1092,8 +1091,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if isinstance(node.target, ast.Name) and self.var_types.get(node.target.id) == 'str' and isinstance(node.op, ast.Add):
             if len(self.loop_stack) > 0:
-                self.max_space_weight = max(self.max_space_weight, 2)
-                self.record_line(node, time_override="O(n^2)", space_override="O(n^2)", custom_op="String Accumulation")
+                self.max_space_weight = max(self.max_space_weight, 1) 
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Accumulation")
                 self.generic_visit(node)
                 return
 
@@ -1107,7 +1106,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def visit_Subscript(self, node):
         if isinstance(node.slice, ast.Slice):
             self.has_slicing = True  
-            self.has_partitioning = True
+            slice_str = ast.dump(node.slice).lower()
+            if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
+                self.has_partitioning = True
+                
             s_ov = "O(n^2)" if getattr(self, 'in_accumulation_context', False) and len(self.active_poly_dims) > 0 else "O(n)"
             self.record_line(node, time_override="O(n)", space_override=s_ov, custom_op="Array Slicing")
         self.generic_visit(node)  
@@ -1122,7 +1124,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else:
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Binary Operation")
                 
-        if isinstance(node.op, (ast.Div, ast.FloorDiv, ast.RShift)): self.has_division = True  
+        if isinstance(node.op, (ast.Div, ast.FloorDiv, ast.RShift, ast.Mod)): self.has_division = True  
         elif isinstance(node.op, ast.Mult):
             if isinstance(node.right, ast.Constant) and isinstance(node.right.value, float) and node.right.value < 1.0: self.has_division = True
             elif isinstance(node.left, ast.Constant) and isinstance(node.left.value, float) and node.left.value < 1.0: self.has_division = True
@@ -1223,11 +1225,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     best_rank = rank
                     best_space = key
 
-            if best_rank < 4 and s.startswith("O(") and s != "O(1)":
-                if "*" in s and best_rank < 6:
-                    best_rank = 6
-                    best_space = "O(n^2)"
-                elif not any(char in s for char in ["^", "*", "!", "V", "log", "√"]):
+            if best_rank < 4 and s.startswith("O(") and "n" in s:
+                if not any(char in s for char in ["^", "*", "!", "V", "log", "√"]):
                     best_rank = 4
                     best_space = "O(n)"
                     
