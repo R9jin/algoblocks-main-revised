@@ -40,10 +40,21 @@ export default function LearningPath() {
 
         // 1. Explicitly override with IndexedDB (Offline First Source of Truth)
         await progressDB.iterate((value, key) => {
-            initialProg[key] = value.score !== undefined ? value.score : value;
+            if (!value) return;
+            const realKey = value.lesson_id || key;
+            // Guard against corrupted numeric keys from previous sync bugs
+            if (typeof realKey === 'string' && isNaN(Number(realKey))) {
+                initialProg[realKey] = value.score !== undefined ? value.score : value;
+            }
         });
         await assessmentsDB.iterate((value, key) => {
-            initialAssm[key] = value;
+            if (!value) return;
+            const realKey = value.assessment_key || key;
+            const realVal = value.data || value;
+            // Guard against corrupted numeric keys from previous sync bugs
+            if (typeof realKey === 'string' && isNaN(Number(realKey))) {
+                initialAssm[realKey] = realVal;
+            }
         });
 
         setUserProgress(initialProg);
@@ -52,23 +63,53 @@ export default function LearningPath() {
         // 2. Explicitly fetch from the cloud properly (Vercel Fix)
         if (navigator.onLine && parsed.email && !parsed.isGuest) {
             try {
+                // Fetch Progress
                 const progRes = await fetch(`${API_BASE}/api/get-progress?email=${parsed.email}`);
                 if (progRes.ok) {
                     const data = await progRes.json();
-                    const progData = data.progress || data;
-                    for (const [key, val] of Object.entries(progData)) {
-                        initialProg[key] = val;
-                        await progressDB.setItem(key, { score: val, isSynced: true });
+                    const progDataRaw = data.progress || data;
+                    
+                    // ✅ FIX: Normalize Array to Object Mapping
+                    let normalizedProg = {};
+                    if (Array.isArray(progDataRaw)) {
+                        progDataRaw.forEach(item => {
+                            const k = item.lesson_id || item.key;
+                            if (k) normalizedProg[k] = item.score !== undefined ? item.score : (item.data?.score ?? 1);
+                        });
+                    } else if (typeof progDataRaw === 'object' && progDataRaw !== null) {
+                        normalizedProg = progDataRaw;
+                    }
+
+                    for (const [key, val] of Object.entries(normalizedProg)) {
+                        if (typeof key === 'string' && isNaN(Number(key))) {
+                            initialProg[key] = val;
+                            await progressDB.setItem(key, { score: val, isSynced: true });
+                        }
                     }
                 }
 
+                // Fetch Assessments
                 const assRes = await fetch(`${API_BASE}/api/get-assessments?email=${parsed.email}`);
                 if (assRes.ok) {
                     const data = await assRes.json();
-                    const assData = data.assessments || data;
-                    for (const [key, val] of Object.entries(assData)) {
-                        initialAssm[key] = val;
-                        await assessmentsDB.setItem(key, { ...val, isSynced: true });
+                    const assDataRaw = data.assessments || data;
+
+                    // ✅ FIX: Normalize Array to Object Mapping
+                    let normalizedAssm = {};
+                    if (Array.isArray(assDataRaw)) {
+                        assDataRaw.forEach(item => {
+                            const k = item.assessment_key || item.key;
+                            if (k) normalizedAssm[k] = item.data || item;
+                        });
+                    } else if (typeof assDataRaw === 'object' && assDataRaw !== null) {
+                        normalizedAssm = assDataRaw;
+                    }
+
+                    for (const [key, val] of Object.entries(normalizedAssm)) {
+                        if (typeof key === 'string' && isNaN(Number(key))) {
+                            initialAssm[key] = val;
+                            await assessmentsDB.setItem(key, { ...val, isSynced: true });
+                        }
                     }
                 }
                 
