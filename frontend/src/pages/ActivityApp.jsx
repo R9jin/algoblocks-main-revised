@@ -19,16 +19,11 @@ import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("algoblocks-purple", {
-    base: "vs-dark",
-    inherit: true,
-    rules: [],
+    base: "vs-dark", inherit: true, rules: [],
     colors: {
-      "editor.background": "#1C1236",
-      "editor.foreground": "#EBE4FF",
-      "editorLineNumber.foreground": "#6C5CE7",
-      "editor.lineHighlightBackground": "#2D234A",
-      "editorCursor.foreground": "#FFFFFF",
-      "editor.selectionBackground": "#6C5CE755",
+      "editor.background": "#1C1236", "editor.foreground": "#EBE4FF",
+      "editorLineNumber.foreground": "#6C5CE7", "editor.lineHighlightBackground": "#2D234A",
+      "editorCursor.foreground": "#FFFFFF", "editor.selectionBackground": "#6C5CE755",
       "editor.inactiveSelectionBackground": "#6C5CE733",
     },
   });
@@ -75,7 +70,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   return sections.map((sec, idx) => {
     const trimmedSec = sec.trim();
     if (!trimmedSec) return null;
-
     if (trimmedSec.startsWith("Architectural Insights:")) {
       const lines = trimmedSec.split("\n").slice(1);
       return (
@@ -114,7 +108,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
         </div>
       );
     }
-
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: parsedSec}}></p>;
   }).filter(Boolean);
@@ -122,12 +115,15 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
 
 const ActivityApp = () => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
-
   const { moduleId, activityId } = useParams();
   const navigate = useNavigate();
 
+  // FIX: Track current IDs rigorously to prevent saving leaks between route changes
+  const activeIdsRef = useRef({ moduleId, activityId });
+
   useEffect(() => {
     if (!moduleId || !activityId) navigate("/learning-path", { replace: true });
+    activeIdsRef.current = { moduleId, activityId };
   }, [moduleId, activityId, navigate]);
 
   const workspaceRef = useRef(null);
@@ -140,7 +136,6 @@ const ActivityApp = () => {
   const isDragging = useRef(false);
   const saveDraftTimeoutRef = useRef(null);
 
-  // STATE TRACKING FOR EXIT SYNC
   const latestStateRef = useRef({
     userId: null,
     json: null,
@@ -183,7 +178,6 @@ const ActivityApp = () => {
 
   const processedTestCases = useMemo(() => {
     if (!activityDataResolved) return [];
-    
     const originalTests = activityDataResolved.testCasesList || [];
     const visibleTests = originalTests.filter(tc => !tc.isHidden);
     const hiddenTests = originalTests.filter(tc => tc.isHidden);
@@ -206,7 +200,7 @@ const ActivityApp = () => {
 
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Syncing drafts...", "success"); };
-    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Saving to local storage.", "error"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Saving drafts locally.", "error"); };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
@@ -216,21 +210,15 @@ const ActivityApp = () => {
     if (!workerRef.current) return;
     workerRef.current.onmessage = (event) => {
       const { type, data, counts } = event.data;
-
       if (type === "ANALYZE_RESULT") {
         if (data.status === "success") {
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
-          latestStateRef.current.actualTime = data.total;
-          latestStateRef.current.actualSpace = data.space_total || "O(1)";
-
-          const initialCounts = {};
-          (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          setLineExecutions(initialCounts);
-          setSyntaxError(null);
+          latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
+          const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
+          setLineExecutions(initialCounts); setSyntaxError(null);
         } else {
-          const hint = translatePythonError(data.message);
-          setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+          const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
       } else if (type === "RUN_RESULT") {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
@@ -243,10 +231,8 @@ const ActivityApp = () => {
         outputCountRef.current += 1; pendingOutputRef.current += data;
         if (outputCountRef.current > 5000) {
           clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-          workerRef.current.terminate();
-          workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-          workerRef.current.postMessage({ type: "INIT_ENGINE" });
-          initWorker();
+          workerRef.current.terminate(); workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
+          workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
           setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
@@ -254,13 +240,11 @@ const ActivityApp = () => {
       } else if (type === "INPUT_REQUEST") {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        setConsoleOutput((prev) => prev + flushed + data.prompt);
-        setIsWaitingForInput(true);
+        setConsoleOutput((prev) => prev + flushed + data.prompt); setIsWaitingForInput(true);
       } else if (type === "ERROR") {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const hint = translatePythonError(data);
-        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+        const hint = translatePythonError(data); setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
     };
@@ -300,16 +284,11 @@ const ActivityApp = () => {
       if (res.ok) {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-          const json = await res.json();
-          try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
-          return json;
+          const json = await res.json(); try { await templatesDB.setItem(cacheKey, json); } catch (e) { } return json;
         } else { throw new Error("Response is not JSON format"); }
       } else { throw new Error(`HTTP error ${res.status}`); }
     } catch (e) { console.warn(`Network fetch failed for ${url}, falling back to cache.`, e); }
-    try {
-      const cached = await templatesDB.getItem(cacheKey);
-      if (cached) return cached;
-    } catch (e) { }
+    try { const cached = await templatesDB.getItem(cacheKey); if (cached) return cached; } catch (e) { }
     throw new Error(`Fetch failed for ${url} and no cache available.`);
   };
 
@@ -336,30 +315,27 @@ const ActivityApp = () => {
     const testCasesList = (foundActivity.testCasesPool || []).map((tc) => ({ call: tc.call, expected: tc.expected, isHidden: !!tc.isHidden }));
 
     return {
-      id: foundActivity.id, 
-      title: foundActivity.title || foundLessonKey, 
-      task: foundActivity.task,
+      id: foundActivity.id, title: foundActivity.title || foundLessonKey, task: foundActivity.task,
       type: foundActivity.type || (foundLessonKey === "optimizations" ? "optimization" : "activity"),
       difficulty: foundActivity.difficulty || (foundLessonKey === "optimizations" ? "Advanced" : "Easy"),
       targetTimeComplexity: foundActivity.targetTime || foundActivity.targetTimeComplexity || "O(n)",
       targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(n)",
-      testCasesList, 
-      templateUrl: foundActivity.templateUrl || null
+      testCasesList, templateUrl: foundActivity.templateUrl || null
     };
   };
 
   // --- COMPONENT UNMOUNT OR EXIT SYNC ---
   const triggerFinalSave = () => {
     const state = latestStateRef.current;
-    if (!state.userId || !moduleId || !activityId) return;
+    if (!state.userId || !activeIdsRef.current.moduleId || !activeIdsRef.current.activityId) return;
     
     // Only attempt to sync if there is actually user-generated code/blocks
     if (state.pythonCode === "# Drag blocks to generate Python code" && !state.json) return;
 
     const payload = {
       userId: state.userId,
-      moduleId,
-      activityId,
+      moduleId: activeIdsRef.current.moduleId,
+      activityId: activeIdsRef.current.activityId,
       type: activityDataResolved?.type || "activity",
       status: state.status || "draft",
       score: state.score,
@@ -380,44 +356,49 @@ const ActivityApp = () => {
       isSynced: true // We assume true for the beacon attempt
     };
 
+    const finalSubId = `${state.userId}_${activeIdsRef.current.moduleId}_${activeIdsRef.current.activityId}`;
+
     // 1. Immediately store to LocalForage so logout doesn't wipe it
-    submissionsDB.setItem(`${state.userId}_${moduleId}_${activityId}`, { ...payload, isSynced: false });
+    submissionsDB.setItem(finalSubId, { ...payload, isSynced: false });
     
     // 2. High-priority beacon to cloud
     if (navigator.onLine && API_BASE) {
       try {
-        fetch(`${API_BASE}/api/update-progress`, { // FIX APPLIED HERE
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          keepalive: true // ENSURES IT SENDS EVEN IF TAB CLOSES OR LOGS OUT
+        fetch(`${API_BASE}/api/sync-submission`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload), keepalive: true 
         });
-      } catch (err) {
-        syncQueueDB.setItem(`sync_${state.userId}_${moduleId}_${activityId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
-      }
-    } else {
-      syncQueueDB.setItem(`sync_${state.userId}_${moduleId}_${activityId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+      } catch (err) { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
+    } else { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
+  };
+
+  const resetActivitySessionState = () => {
+    setGeneratedPython("# Drag blocks to generate Python code"); setConsoleOutput("Ready to run...\n");
+    setViewMode("workspace"); setPassedTests(0); setIsEvaluating(false); setConsoleTab("output");
+    setBottomPanel(null); setExpandedTests({}); setExpandedLines({}); setSyntaxError(null);
+    setLineExecutions({}); setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
+    setAnalysisTime("0.0"); setIsEditingCode(false); pendingOutputRef.current = ""; outputCountRef.current = 0;
+    
+    // Clear leak timeout
+    if (saveDraftTimeoutRef.current) {
+        clearTimeout(saveDraftTimeoutRef.current);
+        saveDraftTimeoutRef.current = null;
     }
   };
 
   useEffect(() => {
-    // Unload listener for browser refresh/close
-    const handleBeforeUnload = (e) => { triggerFinalSave(); };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      // Unmount listener for navigating to Dashboard or Logging out
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      triggerFinalSave();
-    };
-  }, [moduleId, activityId, activityDataResolved]); // Re-bind if core IDs change
-
-  useEffect(() => {
     if (!moduleId || !activityId) return;
+
+    // FIX: Execute final save for the OLD activity before initializing the NEW activity
+    triggerFinalSave();
     
+    resetActivitySessionState();
+    let cancelled = false;
+
     const boot = async () => {
       try {
         const resolvedActivity = await resolveActivityFromModule();
+        if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
 
         const storedUser = localStorage.getItem("user");
@@ -427,16 +408,15 @@ const ActivityApp = () => {
         latestStateRef.current.userId = user.email;
         const submissionId = `${user.email}_${moduleId}_${activityId}`;
 
-        // 1. Check Local Forage First
+        // 1. Fetch LocalForage
         let localSubmission = null;
         try { localSubmission = await submissionsDB.getItem(submissionId); } catch(e){}
 
-        // 2. Check Cloud
+        // 2. Fetch Cloud
         let cloudSubmission = null;
         if (navigator.onLine) {
             try {
-                // FIX APPLIED HERE: Added moduleId parameter and point to /get-progress
-                const res = await fetch(`${API_BASE}/api/get-progress?email=${user.email}&moduleId=${moduleId}&activityId=${activityId}`);
+                const res = await fetch(`${API_BASE}/api/get-submission?email=${user.email}&moduleId=${moduleId}&activityId=${activityId}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.submission) cloudSubmission = data.submission;
@@ -444,27 +424,27 @@ const ActivityApp = () => {
             } catch(e){}
         }
 
-        // 3. Smart Load Strategy (Conflict Resolution)
+        // 3. Smart Load Strategy (Prevent Internet Reconnection Overwrite)
         let finalSubmissionToLoad = null;
+        const localCode = localSubmission?.pythonCode || "";
+        const cloudCode = cloudSubmission?.pythonCode || "";
         
-        const isLocalBlank = !localSubmission || !localSubmission.pythonCode || localSubmission.pythonCode === "# Drag blocks to generate Python code";
-        const isCloudBlank = !cloudSubmission || !cloudSubmission.pythonCode || cloudSubmission.pythonCode === "# Drag blocks to generate Python code";
-        
+        const isLocalBlank = !localCode || localCode === "# Drag blocks to generate Python code";
+        const isCloudBlank = !cloudCode || cloudCode === "# Drag blocks to generate Python code";
+
         if (isLocalBlank && !isCloudBlank) {
-            // Local is completely blank, and cloud has data (New device or fresh browser context)
+            // Only cloud has data (New device or fresh login)
             finalSubmissionToLoad = cloudSubmission;
-            await submissionsDB.setItem(submissionId, cloudSubmission);
+            await submissionsDB.setItem(submissionId, cloudSubmission); // Sync down
         } else if (!isLocalBlank && !isCloudBlank) {
-            // Both local and cloud exist. To PREVENT overwriting an offline user's progress 
-            // when the internet reconnects suddenly, we trust the local workspace if it's newer or equal.
-            if ((cloudSubmission.timestamp || 0) > (localSubmission.timestamp || 0)) {
-                finalSubmissionToLoad = cloudSubmission;
-            } else {
+            // Conflict! Both exist. Trust the newest timestamp so offline work isn't overwritten.
+            if ((localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0)) {
                 finalSubmissionToLoad = localSubmission;
+            } else {
+                finalSubmissionToLoad = cloudSubmission;
             }
         } else if (!isLocalBlank) {
-            // Only local exists
-            finalSubmissionToLoad = localSubmission;
+            finalSubmissionToLoad = localSubmission; // Offline mode only
         }
 
         // 4. Apply The Resolved Submission
@@ -511,22 +491,29 @@ const ActivityApp = () => {
           try {
             const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests);
             if (savedOut) setConsoleOutput(savedOut);
+            if (savedPassed !== undefined) setPassedTests(savedPassed);
           } catch (e) {}
         }
         setViewMode("workspace"); setIsEditingCode(false);
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
-        showToast("Failed to load activity. Returning to path...", "error");
-        navigate("/learning-path", { replace: true });
+        if (!cancelled) navigate("/learning-path", { replace: true });
       }
     };
+    
     boot();
+    
+    return () => { 
+        cancelled = true; 
+        triggerFinalSave(); // Trigger final save on unmount (e.g. going to dashboard)
+    };
   }, [moduleId, activityId]);
 
   const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
-    if (!moduleId || !activityId || !latestStateRef.current.userId) return;
+    // FIX: Verify we are still on the same activity we intend to save
+    if (activeIdsRef.current.moduleId !== moduleId || activeIdsRef.current.activityId !== activityId) return;
+    if (!latestStateRef.current.userId) return;
 
-    // Use current states if null is passed to avoid wiping out previous test success during autosave
     const finalScore = score !== null ? score : latestStateRef.current.score;
     const finalPassed = passed !== null ? passed : latestStateRef.current.passed;
     const finalTestResults = testResults !== null ? testResults : latestStateRef.current.testResults;
@@ -567,8 +554,7 @@ const ActivityApp = () => {
     await submissionsDB.setItem(submissionId, payload);
     if (navigator.onLine) {
       try {
-        // FIX APPLIED HERE
-        await fetch(`${API_BASE}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        await fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         payload.isSynced = true; await submissionsDB.setItem(submissionId, payload);
       } catch (e) { await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
     } else {
@@ -577,10 +563,10 @@ const ActivityApp = () => {
   };
 
   const handleWorkspaceAutoSave = (json, pythonCode) => {
-    if (!moduleId || !activityId) return;
+    if (activeIdsRef.current.moduleId !== moduleId || activeIdsRef.current.activityId !== activityId) return;
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
+    
     saveDraftTimeoutRef.current = setTimeout(async () => { 
-      // Passing nulls for score/tests prevents overwriting passed states while dragging blocks
       await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true); 
     }, 1500);
   };
@@ -596,15 +582,11 @@ const ActivityApp = () => {
         if (data.status === "success") {
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
-          latestStateRef.current.actualTime = data.total;
-          latestStateRef.current.actualSpace = data.space_total || "O(1)";
-
-          const initialCounts = {};
-          (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
+          latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
+          const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts); setSyntaxError(null);
         } else {
-          const hint = translatePythonError(data.message);
-          setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+          const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
         return;
       } catch (error) { console.warn("Online analysis failed, falling back to local worker.", error); }
@@ -682,7 +664,6 @@ const ActivityApp = () => {
     }
   };
 
-  // OFFLINE FIRST: Save Partial Progress
   const savePartialProgress = async (lessonId, score) => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return;
@@ -711,7 +692,6 @@ const ActivityApp = () => {
     }
   };
 
-  // OFFLINE FIRST: Complete Full Topic
   const completeFullTopic = async (topicId) => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return;
@@ -890,7 +870,6 @@ const ActivityApp = () => {
 
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
     
-    // Explicitly Save Final Successful Execution
     await saveSubmission(
       latestStateRef.current.json, 
       generatedPython, 
