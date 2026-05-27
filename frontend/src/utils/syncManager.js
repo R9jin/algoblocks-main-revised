@@ -18,7 +18,7 @@ export const startBackgroundSync = async () => {
       // Route to the correct endpoint based on task type
       if (task.type === 'TEMPLATE') endpoint = '/api/templates';
       else if (task.type === 'PROJECT') endpoint = '/api/projects';
-      else if (task.type === 'SUBMISSION') endpoint = '/api/sync-submission';
+      else if (task.type === 'SUBMISSION') endpoint = '/api/update-progress'; // FIX APPLIED HERE
       else if (task.type === 'PROGRESS') endpoint = '/api/update-progress';
       else if (task.type === 'ASSESSMENT') endpoint = '/api/update-assessment';
 

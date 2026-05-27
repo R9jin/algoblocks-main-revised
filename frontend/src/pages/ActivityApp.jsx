@@ -386,7 +386,7 @@ const ActivityApp = () => {
     // 2. High-priority beacon to cloud
     if (navigator.onLine && API_BASE) {
       try {
-        fetch(`${API_BASE}/api/sync-submission`, {
+        fetch(`${API_BASE}/api/update-progress`, { // FIX APPLIED HERE
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -435,7 +435,8 @@ const ActivityApp = () => {
         let cloudSubmission = null;
         if (navigator.onLine) {
             try {
-                const res = await fetch(`${API_BASE}/api/get-submission?email=${user.email}&activityId=${activityId}`);
+                // FIX APPLIED HERE: Added moduleId parameter and point to /get-progress
+                const res = await fetch(`${API_BASE}/api/get-progress?email=${user.email}&moduleId=${moduleId}&activityId=${activityId}`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.submission) cloudSubmission = data.submission;
@@ -566,7 +567,8 @@ const ActivityApp = () => {
     await submissionsDB.setItem(submissionId, payload);
     if (navigator.onLine) {
       try {
-        await fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        // FIX APPLIED HERE
+        await fetch(`${API_BASE}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         payload.isSynced = true; await submissionsDB.setItem(submissionId, payload);
       } catch (e) { await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
     } else {
