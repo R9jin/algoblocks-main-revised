@@ -19,7 +19,7 @@ class AuthService:
             "email": req.email,
             "name": user.get("name"),
             "progress": user.get("progress", {}),
-            "assessments": user.get("assessments", {}) # <-- ADDED
+            "assessments": user.get("assessments", {}) 
         }
 
     @staticmethod
@@ -32,7 +32,7 @@ class AuthService:
             "email": req.email,
             "password": req.password,
             "progress": {},
-            "assessments": {} # <-- ADDED
+            "assessments": {} 
         })
 
         return {
@@ -50,11 +50,33 @@ class AuthService:
             "progress": user.get("progress", {})
         }
 
-    # ADD THIS NEW METHOD
     @staticmethod
     def update_assessment(req: AssessmentRequest):
         UserRepository.update_assessment(req.email, req.assessment_key, req.data)
         user = UserRepository.find_by_email(req.email)
+        return {
+            "status": "success",
+            "assessments": user.get("assessments", {})
+        }
+
+    # ==========================================
+    # ✅ GET PROGRESS AND ASSESSMENTS METHODS
+    # ==========================================
+    @staticmethod
+    def get_progress(email: str):
+        user = UserRepository.find_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "status": "success",
+            "progress": user.get("progress", {})
+        }
+
+    @staticmethod
+    def get_assessments(email: str):
+        user = UserRepository.find_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
         return {
             "status": "success",
             "assessments": user.get("assessments", {})
@@ -94,7 +116,7 @@ class AuthService:
                     "email": email,
                     "password": None,
                     "progress": {},
-                    "assessments": {} # <-- ADDED
+                    "assessments": {} 
                 })
                 user = UserRepository.find_by_email(email)
 
@@ -103,7 +125,7 @@ class AuthService:
                 "email": email,
                 "name": user.get("name"),
                 "progress": user.get("progress", {}),
-                "assessments": user.get("assessments", {}) # <-- ADDED
+                "assessments": user.get("assessments", {}) 
             }
 
         except ValueError:
