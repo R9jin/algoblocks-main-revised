@@ -5,10 +5,12 @@ from services.template_service import TemplateService
 
 router = APIRouter()
 
-@router.get("/{category}")
-def get_templates_by_category(category: str):
-    return TemplateService.get_templates_by_category(category)
-
+# FIX: Added "" to prevent 307 redirects on /api/templates
+@router.get("")
 @router.get("/")
 def get_all_templates():
     return TemplateService.get_all_templates()
+
+@router.get("/{category}")
+def get_templates_by_category(category: str):
+    return TemplateService.get_templates_by_category(category)

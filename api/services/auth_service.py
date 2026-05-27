@@ -4,7 +4,6 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
 
-# Removed api. prefixes
 from repositories.user_repo import UserRepository
 from models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
 from database import db
@@ -46,20 +45,33 @@ class AuthService:
 
     @staticmethod
     def update_progress(req: ProgressRequest):
-        UserRepository.update_progress(req.email, req.lesson_id, req.score)
+        # FIX: Ignore ghost payloads safely
+        if not req.email or not req.lesson_id:
+            return {"status": "ignored", "message": "Fired before state loaded"}
+            
+        # Safely convert incoming score (nulls or strings) into a float
+        try:
+            score_val = float(req.score) if req.score is not None else 0.0
+        except:
+            score_val = 0.0
+
+        UserRepository.update_progress(req.email, req.lesson_id, score_val)
         user = UserRepository.find_by_email(req.email)
         return {
             "status": "success",
-            "progress": user.get("progress", {})
+            "progress": user.get("progress", {}) if user else {}
         }
 
     @staticmethod
     def update_assessment(req: AssessmentRequest):
-        UserRepository.update_assessment(req.email, req.assessment_key, req.data)
+        if not req.email or not req.assessment_key:
+            return {"status": "ignored", "message": "Fired before state loaded"}
+            
+        UserRepository.update_assessment(req.email, req.assessment_key, req.data or {})
         user = UserRepository.find_by_email(req.email)
         return {
             "status": "success",
-            "assessments": user.get("assessments", {})
+            "assessments": user.get("assessments", {}) if user else {}
         }
 
     @staticmethod
@@ -141,7 +153,7 @@ class AuthService:
         activity_id = payload.get("activityId")
 
         if not user_id or not activity_id:
-            raise HTTPException(status_code=400, detail="Missing userId or activityId")
+            return {"status": "ignored"}
 
         db["submissions"].update_one(
             {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
@@ -152,6 +164,9 @@ class AuthService:
 
     @staticmethod
     def get_submission(email: str, activityId: str, moduleId: str = None):
+        if not email or not activityId:
+             return {"status": "ignored"}
+             
         query = {"userId": email, "activityId": activityId}
         if moduleId:
             query["moduleId"] = moduleId
@@ -165,7 +180,7 @@ class AuthService:
         module_id = payload.get("moduleId")
 
         if not user_id or not module_id:
-            raise HTTPException(status_code=400, detail="Missing userId or moduleId")
+            return {"status": "ignored"}
 
         db["assessments"].update_one(
             {"userId": user_id, "moduleId": module_id},
@@ -176,5 +191,8 @@ class AuthService:
 
     @staticmethod
     def get_assessment(email: str, moduleId: str):
+        if not email or not moduleId:
+            return {"status": "ignored"}
+            
         assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
         return {"status": "success", "assessment": assessment}

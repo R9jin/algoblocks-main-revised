@@ -11,23 +11,24 @@ class SignUpRequest(BaseModel):
     email: str
     password: str
 
+# FIX: Made highly permissive to prevent 422 errors from React state delays
 class ProgressRequest(BaseModel):
-    email: str
-    lesson_id: str
-    score: int
+    email: Optional[str] = ""
+    lesson_id: Optional[str] = ""
+    score: Optional[Any] = 0
+    completed: Optional[Any] = False
 
 class GoogleAuthRequest(BaseModel):
     token: str
 
 class AssessmentRequest(BaseModel):
-    email: str
-    assessment_key: str
-    data: dict
+    email: Optional[str] = ""
+    assessment_key: Optional[str] = ""
+    data: Optional[Dict[str, Any]] = {}
 
-# ADDED: Missing model required by project_router.py
 class SaveProjectRequest(BaseModel):
     projectId: Optional[str] = None
-    userId: str
-    name: str
-    workspace: dict
-    pythonCode: str
+    userId: Optional[str] = ""
+    name: Optional[str] = ""
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: Optional[str] = ""
