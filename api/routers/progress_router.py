@@ -1,12 +1,9 @@
 # api/routers/progress_router.py
 from fastapi import APIRouter, HTTPException, Body
-from api.database import db
+from database import db  # Removed api.
 
 router = APIRouter()
 
-# ==========================================
-# ACTIVITY SUBMISSIONS (DRAFTS & FINAL)
-# ==========================================
 @router.post("/sync-submission")
 async def sync_submission(payload: dict = Body(...)):
     user_id = payload.get("userId")
@@ -16,7 +13,6 @@ async def sync_submission(payload: dict = Body(...)):
     if not user_id or not activity_id:
         raise HTTPException(status_code=400, detail="Missing userId or activityId")
 
-    # Using synchronous PyMongo
     db["submissions"].update_one(
         {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
         {"$set": payload},
@@ -30,14 +26,9 @@ async def get_submission(email: str, activityId: str, moduleId: str = None):
     if moduleId:
         query["moduleId"] = moduleId
         
-    # Using synchronous PyMongo
     submission = db["submissions"].find_one(query, {"_id": 0})
-    
     return {"status": "success", "submission": submission}
 
-# ==========================================
-# ASSESSMENT SUBMISSIONS (DRAFTS & FINAL)
-# ==========================================
 @router.post("/sync-assessment")
 async def sync_assessment(payload: dict = Body(...)):
     user_id = payload.get("userId")
@@ -58,9 +49,6 @@ async def get_assessment(email: str, moduleId: str):
     assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
     return {"status": "success", "assessment": assessment}
 
-# ==========================================
-# GENERAL TOPIC PROGRESS (SCORE ONLY)
-# ==========================================
 @router.post("/update-progress")
 async def update_progress(payload: dict = Body(...)):
     email = payload.get("email")

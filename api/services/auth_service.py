@@ -1,10 +1,13 @@
 # api/services/auth_service.py
 from fastapi import HTTPException
-from api.repositories.user_repo import UserRepository
-from api.models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
+
+# Removed api. prefixes
+from repositories.user_repo import UserRepository
+from models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
+from database import db
 
 class AuthService:
     @staticmethod
@@ -59,9 +62,6 @@ class AuthService:
             "assessments": user.get("assessments", {})
         }
 
-    # ==========================================
-    # ✅ GET PROGRESS AND ASSESSMENTS METHODS
-    # ==========================================
     @staticmethod
     def get_progress(email: str):
         user = UserRepository.find_by_email(email)
@@ -133,3 +133,48 @@ class AuthService:
                 status_code=401,
                 detail="Invalid Google OAuth token"
             )
+
+    @staticmethod
+    def sync_submission(payload: dict):
+        user_id = payload.get("userId")
+        module_id = payload.get("moduleId")
+        activity_id = payload.get("activityId")
+
+        if not user_id or not activity_id:
+            raise HTTPException(status_code=400, detail="Missing userId or activityId")
+
+        db["submissions"].update_one(
+            {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
+            {"$set": payload},
+            upsert=True
+        )
+        return {"status": "success", "message": "Submission synced"}
+
+    @staticmethod
+    def get_submission(email: str, activityId: str, moduleId: str = None):
+        query = {"userId": email, "activityId": activityId}
+        if moduleId:
+            query["moduleId"] = moduleId
+            
+        submission = db["submissions"].find_one(query, {"_id": 0})
+        return {"status": "success", "submission": submission}
+
+    @staticmethod
+    def sync_assessment(payload: dict):
+        user_id = payload.get("userId")
+        module_id = payload.get("moduleId")
+
+        if not user_id or not module_id:
+            raise HTTPException(status_code=400, detail="Missing userId or moduleId")
+
+        db["assessments"].update_one(
+            {"userId": user_id, "moduleId": module_id},
+            {"$set": payload},
+            upsert=True
+        )
+        return {"status": "success", "message": "Assessment synced"}
+
+    @staticmethod
+    def get_assessment(email: str, moduleId: str):
+        assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
+        return {"status": "success", "assessment": assessment}
