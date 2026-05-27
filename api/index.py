@@ -2,9 +2,8 @@
 import uvicorn
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from database import db  # Removed api.
+from database import db
 
-# Removed api. from routers
 from routers import (
     auth_router,
     project_router,
@@ -28,12 +27,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(auth_router.router, prefix="/api/auth", tags=["Authentication"])
+# FIX: Ensure prefixes match exactly what the frontend is calling
+app.include_router(auth_router.router, prefix="/api", tags=["Authentication & Submissions"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
-app.include_router(progress_router.router, prefix="/api", tags=["Progress & Submissions"]) 
+# Note: progress_router is no longer needed in index.py because we merged its routes into auth_router!
 
 @app.get("/api/health")
 async def health_check():

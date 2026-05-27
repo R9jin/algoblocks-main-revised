@@ -1,18 +1,17 @@
 # api/routers/project_router.py
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, Query
 from typing import Dict, Any
 
-# Ensure imports do not have 'api.' prefixes
 from models import SaveProjectRequest
 from services.project_service import ProjectService
 from limiter import limiter
 
-# THIS IS THE CRITICAL LINE THAT WAS MISSING
 router = APIRouter()
 
 @router.get("/")
 @limiter.limit("30/minute")
-def get_user_projects(request: Request, userId: str):
+# FIX: Added Query(...) to correctly parse the userId from the frontend request
+def get_user_projects(request: Request, userId: str = Query(...)):
     return ProjectService.get_user_projects(userId)
 
 @router.post("/save")

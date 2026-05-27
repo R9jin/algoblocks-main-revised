@@ -2,12 +2,12 @@
 from fastapi import APIRouter, Request, Query, Body
 from typing import Dict, Any
 
-# Removed api. prefixes
 from models import LoginRequest, SignUpRequest, ProgressRequest, GoogleAuthRequest, AssessmentRequest
 from services.auth_service import AuthService
 from limiter import limiter
 
-router = APIRouter(prefix="/api", tags=["Auth & Progress"])
+# FIX: Removed prefix="/api" because index.py already mounts this at /api/auth or /api
+router = APIRouter(tags=["Auth & Progress"])
 
 @router.post("/login")
 @limiter.limit("5/minute")
