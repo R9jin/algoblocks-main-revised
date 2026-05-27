@@ -1,47 +1,26 @@
-# api/services/project_service.py
-from repositories.project_repo import ProjectRepository
+# api/routers/project_router.py
+from fastapi import APIRouter, Request, HTTPException
+from typing import Dict, Any
+
+# Ensure imports do not have 'api.' prefixes
 from models import SaveProjectRequest
-from fastapi import HTTPException
-from datetime import datetime
+from services.project_service import ProjectService
+from limiter import limiter
 
-class ProjectService:
-    @staticmethod
-    def get_user_projects(user_id: str):
-        if not user_id:
-            raise HTTPException(status_code=400, detail="Missing userId")
-        projects = ProjectRepository.find_by_user(user_id)
-        return {"status": "success", "projects": projects}
+# THIS IS THE CRITICAL LINE THAT WAS MISSING
+router = APIRouter()
 
-    @staticmethod
-    def save_project(req: SaveProjectRequest):
-        update_data = {
-            "name": req.name,
-            "workspace": req.workspace,
-            "pythonCode": req.pythonCode,
-            "updatedAt": datetime.utcnow().isoformat()
-        }
+@router.get("/")
+@limiter.limit("30/minute")
+def get_user_projects(request: Request, userId: str):
+    return ProjectService.get_user_projects(userId)
 
-        if req.projectId:
-            result = ProjectRepository.update(req.projectId, req.userId, update_data)
-            if result.matched_count == 0:
-                raise HTTPException(status_code=404, detail="Project not found or unauthorized")
-            return {"status": "success", "projectId": req.projectId}
-        else:
-            update_data["userId"] = req.userId
-            update_data["createdAt"] = update_data["updatedAt"]
-            project_id = ProjectRepository.insert(update_data)
-            return {"status": "success", "projectId": project_id}
+@router.post("/save")
+@limiter.limit("20/minute")
+def save_project(request: Request, req: SaveProjectRequest):
+    return ProjectService.save_project(req)
 
-    @staticmethod
-    def delete_project(payload: dict):
-        project_id = payload.get("projectId")
-        user_id = payload.get("userId")
-
-        if not project_id or not user_id:
-            raise HTTPException(status_code=400, detail="Missing projectId or userId")
-
-        result = ProjectRepository.delete(project_id, user_id)
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Project not found or unauthorized")
-
-        return {"status": "success"}
+@router.post("/delete")
+@limiter.limit("10/minute")
+def delete_project(request: Request, payload: Dict[str, str]):
+    return ProjectService.delete_project(payload)

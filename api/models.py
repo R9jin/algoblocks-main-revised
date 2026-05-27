@@ -1,31 +1,6 @@
 # api/models.py
 from pydantic import BaseModel
-from typing import Optional
-
-class GoogleAuthRequest(BaseModel):
-    token: str
-
-class ProjectModel(BaseModel):
-    title: str
-    description: Optional[str] = ""
-    data: dict
-    owner_id: str
-
-class ProjectUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    data: Optional[dict] = None
-
-class TemplateModel(BaseModel):
-    title: str
-    description: Optional[str] = ""
-    data: dict
-    owner_id: str
-
-class TemplateUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    data: Optional[dict] = None
+from typing import Dict, Any, Optional
 
 class LoginRequest(BaseModel):
     email: str
@@ -40,15 +15,19 @@ class ProgressRequest(BaseModel):
     email: str
     lesson_id: str
     score: int
-    
-class ActivityDraftSchema(BaseModel):
-    email: str
-    lesson_id: str
-    json_data: Optional[str] = None
-    python_code: Optional[str] = None
 
-# ADD THIS
+class GoogleAuthRequest(BaseModel):
+    token: str
+
 class AssessmentRequest(BaseModel):
     email: str
     assessment_key: str
     data: dict
+
+# ADDED: Missing model required by project_router.py
+class SaveProjectRequest(BaseModel):
+    projectId: Optional[str] = None
+    userId: str
+    name: str
+    workspace: dict
+    pythonCode: str

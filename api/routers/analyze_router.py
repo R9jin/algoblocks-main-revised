@@ -1,22 +1,28 @@
 # api/routers/analyze_router.py
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
+
+# Import directly from the local api folder
 from analyzer import analyze_source_code
-from blockly_ast import evaluate_blockly_ast
+from limiter import limiter
 
-router = APIRouter()
+router = APIRouter(prefix="/api/analyze", tags=["Analyzer"])
 
-@router.post("/analyze")
-def analyze_code(payload: dict = Body(...)):
-    code = payload.get("code", "")
-    if not code.strip():
-        raise HTTPException(status_code=400, detail="Empty code provided")
-    result = analyze_source_code(code)
-    return result
+class CodePayload(BaseModel):
+    code: str
 
-@router.post("/evaluate-ast")
-def evaluate_ast(payload: dict = Body(...)):
-    workspace_xml = payload.get("workspaceXml", "")
-    if not workspace_xml.strip():
-        raise HTTPException(status_code=400, detail="Empty workspace XML provided")
-    result = evaluate_blockly_ast(workspace_xml)
-    return result
+@router.post("")
+@limiter.limit("10/minute")
+def analyze_python_code(request: Request, payload: CodePayload):
+    try:
+        # Pass the code directly into the wrapper function
+        results = analyze_source_code(payload.code)
+        
+        # analyze_source_code already returns a dictionary with {"status": "success", ...} 
+        return results
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
