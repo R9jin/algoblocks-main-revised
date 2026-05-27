@@ -138,8 +138,20 @@ const ActivityApp = () => {
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const isDragging = useRef(false);
-  const latestBlocksJsonRef = useRef(null);
   const saveDraftTimeoutRef = useRef(null);
+
+  // STATE TRACKING FOR EXIT SYNC
+  const latestStateRef = useRef({
+    userId: null,
+    json: null,
+    pythonCode: "# Drag blocks to generate Python code",
+    score: 0,
+    passed: 0,
+    testResults: [],
+    actualTime: "O(n^2)",
+    actualSpace: "O(1)",
+    status: "draft"
+  });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -194,7 +206,7 @@ const ActivityApp = () => {
 
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored. Syncing drafts...", "success"); };
-    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local IndexedDB cache.", "error"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Saving to local storage.", "error"); };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
@@ -209,6 +221,9 @@ const ActivityApp = () => {
         if (data.status === "success") {
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+          latestStateRef.current.actualTime = data.total;
+          latestStateRef.current.actualSpace = data.space_total || "O(1)";
+
           const initialCounts = {};
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts);
@@ -321,66 +336,169 @@ const ActivityApp = () => {
     const testCasesList = (foundActivity.testCasesPool || []).map((tc) => ({ call: tc.call, expected: tc.expected, isHidden: !!tc.isHidden }));
 
     return {
-      id: foundActivity.id, title: foundActivity.title || foundLessonKey, task: foundActivity.task,
+      id: foundActivity.id, 
+      title: foundActivity.title || foundLessonKey, 
+      task: foundActivity.task,
+      type: foundActivity.type || (foundLessonKey === "optimizations" ? "optimization" : "activity"),
       difficulty: foundActivity.difficulty || (foundLessonKey === "optimizations" ? "Advanced" : "Easy"),
       targetTimeComplexity: foundActivity.targetTime || foundActivity.targetTimeComplexity || "O(n)",
       targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(n)",
-      testCasesList, templateUrl: foundActivity.templateUrl || null
+      testCasesList, 
+      templateUrl: foundActivity.templateUrl || null
     };
   };
 
-  const resetActivitySessionState = () => {
-    setGeneratedPython("# Drag blocks to generate Python code"); setConsoleOutput("Ready to run...\n");
-    setViewMode("workspace"); setPassedTests(0); setIsEvaluating(false); setConsoleTab("output");
-    setBottomPanel(null); setExpandedTests({}); setExpandedLines({}); setSyntaxError(null);
-    setLineExecutions({}); setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
-    setAnalysisTime("0.0"); setIsEditingCode(false); pendingOutputRef.current = ""; outputCountRef.current = 0;
+  // --- COMPONENT UNMOUNT OR EXIT SYNC ---
+  const triggerFinalSave = () => {
+    const state = latestStateRef.current;
+    if (!state.userId || !moduleId || !activityId) return;
+    
+    // Only attempt to sync if there is actually user-generated code/blocks
+    if (state.pythonCode === "# Drag blocks to generate Python code" && !state.json) return;
+
+    const payload = {
+      userId: state.userId,
+      moduleId,
+      activityId,
+      type: activityDataResolved?.type || "activity",
+      status: state.status || "draft",
+      score: state.score,
+      maxScore: 5,
+      passedTestCases: state.passed,
+      totalTestCases: totalTests,
+      passed_tests: state.passed,
+      total_tests: totalTests,
+      testCases: state.testResults,
+      target_complexity: activityDataResolved?.targetTimeComplexity || "O(n)",
+      actual_complexity: state.actualTime,
+      target_space_complexity: activityDataResolved?.targetSpaceComplexity || "O(1)",
+      actual_space_complexity: state.actualSpace,
+      workspace: { blocklyJson: state.json || {} },
+      pythonCode: state.pythonCode,
+      timestamp: Date.now(),
+      submittedAt: new Date().toISOString(),
+      isSynced: true // We assume true for the beacon attempt
+    };
+
+    // 1. Immediately store to LocalForage so logout doesn't wipe it
+    submissionsDB.setItem(`${state.userId}_${moduleId}_${activityId}`, { ...payload, isSynced: false });
+    
+    // 2. High-priority beacon to cloud
+    if (navigator.onLine && API_BASE) {
+      try {
+        fetch(`${API_BASE}/api/sync-submission`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          keepalive: true // ENSURES IT SENDS EVEN IF TAB CLOSES OR LOGS OUT
+        });
+      } catch (err) {
+        syncQueueDB.setItem(`sync_${state.userId}_${moduleId}_${activityId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+      }
+    } else {
+      syncQueueDB.setItem(`sync_${state.userId}_${moduleId}_${activityId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+    }
   };
 
   useEffect(() => {
-    if (!moduleId || !activityId) return;
-    resetActivitySessionState();
-    let cancelled = false;
+    // Unload listener for browser refresh/close
+    const handleBeforeUnload = (e) => { triggerFinalSave(); };
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
+    return () => {
+      // Unmount listener for navigating to Dashboard or Logging out
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      triggerFinalSave();
+    };
+  }, [moduleId, activityId, activityDataResolved]); // Re-bind if core IDs change
+
+  useEffect(() => {
+    if (!moduleId || !activityId) return;
+    
     const boot = async () => {
       try {
         const resolvedActivity = await resolveActivityFromModule();
-        if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
 
         const storedUser = localStorage.getItem("user");
-        let loadedSubmission = null;
+        if (!storedUser) { navigate("/learning-path", { replace: true }); return; }
+        
+        const user = JSON.parse(storedUser);
+        latestStateRef.current.userId = user.email;
+        const submissionId = `${user.email}_${moduleId}_${activityId}`;
 
-        if (storedUser) {
-           const user = JSON.parse(storedUser);
-           const submissionId = `${user.email}_${moduleId}_${activityId}`;
-           try {
-             loadedSubmission = await submissionsDB.getItem(submissionId);
-             if (!loadedSubmission && navigator.onLine) {
+        // 1. Check Local Forage First
+        let localSubmission = null;
+        try { localSubmission = await submissionsDB.getItem(submissionId); } catch(e){}
+
+        // 2. Check Cloud
+        let cloudSubmission = null;
+        if (navigator.onLine) {
+            try {
                 const res = await fetch(`${API_BASE}/api/get-submission?email=${user.email}&activityId=${activityId}`);
                 if (res.ok) {
-                  const data = await res.json();
-                  if (data && data.submission) { loadedSubmission = data.submission; await submissionsDB.setItem(submissionId, loadedSubmission); }
+                    const data = await res.json();
+                    if (data && data.submission) cloudSubmission = data.submission;
                 }
-             }
-           } catch (e) { console.error("Restoration error", e); }
+            } catch(e){}
         }
 
-        if (loadedSubmission) {
+        // 3. Smart Load Strategy (Conflict Resolution)
+        let finalSubmissionToLoad = null;
+        const hasLocal = localSubmission && localSubmission.pythonCode && localSubmission.pythonCode !== "# Drag blocks to generate Python code";
+        const hasCloud = cloudSubmission && cloudSubmission.pythonCode && cloudSubmission.pythonCode !== "# Drag blocks to generate Python code";
+
+        if (hasLocal && hasCloud) {
+            // Compare timestamps: Prevents overwriting local offline work when internet returns
+            if ((cloudSubmission.timestamp || 0) > (localSubmission.timestamp || 0)) {
+                finalSubmissionToLoad = cloudSubmission;
+            } else {
+                finalSubmissionToLoad = localSubmission;
+            }
+        } else if (hasLocal) {
+            finalSubmissionToLoad = localSubmission;
+        } else if (hasCloud) {
+            finalSubmissionToLoad = cloudSubmission;
+            // Update local so it's in sync
+            await submissionsDB.setItem(submissionId, cloudSubmission);
+        }
+
+        // 4. Apply The Resolved Submission
+        if (finalSubmissionToLoad) {
           try {
-            const json = loadedSubmission.workspace?.blocklyJson; const pythonCode = loadedSubmission.pythonCode;
-            latestBlocksJsonRef.current = json; 
-            if (workspaceRef.current?.loadTemplate && json) workspaceRef.current.loadTemplate(json);
+            const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {}; 
+            const pythonCode = finalSubmissionToLoad.pythonCode;
+            
+            latestStateRef.current.json = json;
+            latestStateRef.current.pythonCode = pythonCode;
+            latestStateRef.current.score = finalSubmissionToLoad.score || 0;
+            latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
+            latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
+            
+            setTimeout(() => {
+                if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0) {
+                    workspaceRef.current.loadTemplate(json);
+                }
+            }, 400);
+
             if (pythonCode) setGeneratedPython(pythonCode);
-            if (loadedSubmission.score !== undefined) setPassedTests(loadedSubmission.passedTests || 0);
-          } catch (e) { if (workspaceRef.current?.clear) workspaceRef.current.clear(); }
+            setPassedTests(latestStateRef.current.passed);
+          } catch (e) { 
+            if (workspaceRef.current?.clear) workspaceRef.current.clear(); 
+          }
         } else {
+          // No history found. Load pre-made template if available.
           if (workspaceRef.current?.clear) workspaceRef.current.clear();
-          if (resolvedActivity.templateUrl && workspaceRef.current) {
+          if (resolvedActivity.templateUrl) {
             try {
               const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
-              workspaceRef.current.loadTemplate(templateJson); latestBlocksJsonRef.current = templateJson;
-            } catch (err) { console.warn("Failed to load pre-made optimization template:", err); }
+              latestStateRef.current.json = templateJson;
+              setTimeout(() => {
+                  if (workspaceRef.current?.loadTemplate) {
+                      workspaceRef.current.loadTemplate(templateJson);
+                  }
+              }, 400);
+            } catch (err) {}
           }
         }
 
@@ -389,31 +507,57 @@ const ActivityApp = () => {
           try {
             const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests);
             if (savedOut) setConsoleOutput(savedOut);
-            if (savedPassed !== undefined) setPassedTests(savedPassed);
           } catch (e) {}
         }
         setViewMode("workspace"); setIsEditingCode(false);
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
         showToast("Failed to load activity. Returning to path...", "error");
-        if (!cancelled) navigate("/learning-path", { replace: true });
+        navigate("/learning-path", { replace: true });
       }
     };
     boot();
-    return () => { cancelled = true; };
   }, [moduleId, activityId]);
 
-  const saveSubmission = async (json, pythonCode, score = 0, passed = 0, total = 0, testResults = []) => {
-    if (!moduleId || !activityId) return;
-    const storedUser = localStorage.getItem("user");
-    if (!storedUser) return;
-    const user = JSON.parse(storedUser);
+  const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
+    if (!moduleId || !activityId || !latestStateRef.current.userId) return;
 
-    const submissionId = `${user.email}_${moduleId}_${activityId}`;
+    // Use current states if null is passed to avoid wiping out previous test success during autosave
+    const finalScore = score !== null ? score : latestStateRef.current.score;
+    const finalPassed = passed !== null ? passed : latestStateRef.current.passed;
+    const finalTestResults = testResults !== null ? testResults : latestStateRef.current.testResults;
+    const finalStatus = isDraft ? (finalScore >= 1 ? "passed" : "draft") : (finalScore >= 1 ? "passed" : "failed");
+
+    latestStateRef.current.json = json;
+    latestStateRef.current.pythonCode = pythonCode;
+    latestStateRef.current.score = finalScore;
+    latestStateRef.current.passed = finalPassed;
+    latestStateRef.current.testResults = finalTestResults;
+    latestStateRef.current.status = finalStatus;
+
+    const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
     const payload = {
-      userId: user.email, moduleId, activityId, status: score >= 1 ? "passed" : "failed",
-      score, maxScore: 5, passedTestCases: passed, totalTestCases: total, testCases: testResults,
-      workspace: { blocklyJson: json }, pythonCode, submittedAt: new Date().toISOString(), isSynced: false
+      userId: latestStateRef.current.userId, 
+      moduleId, 
+      activityId, 
+      type: activityDataResolved?.type || "activity",
+      status: finalStatus,
+      score: finalScore, 
+      maxScore: 5, 
+      passedTestCases: finalPassed, 
+      totalTestCases: total,   
+      passed_tests: finalPassed,    
+      total_tests: total,      
+      testCases: finalTestResults,
+      target_complexity: activityDataResolved?.targetTimeComplexity || "O(n)",
+      actual_complexity: actualTime,
+      target_space_complexity: activityDataResolved?.targetSpaceComplexity || "O(1)",
+      actual_space_complexity: actualSpace,
+      workspace: { blocklyJson: json || {} }, 
+      pythonCode: pythonCode || "# Drag blocks to generate Python code", 
+      timestamp: Date.now(),
+      submittedAt: new Date().toISOString(), 
+      isSynced: false
     };
 
     await submissionsDB.setItem(submissionId, payload);
@@ -430,7 +574,10 @@ const ActivityApp = () => {
   const handleWorkspaceAutoSave = (json, pythonCode) => {
     if (!moduleId || !activityId) return;
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
-    saveDraftTimeoutRef.current = setTimeout(async () => { await saveSubmission(json, pythonCode, 0, 0, totalTests, []); }, 1000);
+    saveDraftTimeoutRef.current = setTimeout(async () => { 
+      // Passing nulls for score/tests prevents overwriting passed states while dragging blocks
+      await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true); 
+    }, 1500);
   };
 
   const analyzeCode = async (code) => {
@@ -444,6 +591,9 @@ const ActivityApp = () => {
         if (data.status === "success") {
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+          latestStateRef.current.actualTime = data.total;
+          latestStateRef.current.actualSpace = data.space_total || "O(1)";
+
           const initialCounts = {};
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           setLineExecutions(initialCounts); setSyntaxError(null);
@@ -463,7 +613,6 @@ const ActivityApp = () => {
   }, [generatedPython, isOnline]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
-    latestBlocksJsonRef.current = json; 
     const oldCode = (generatedPython || "").trim(); const newCode = (pythonCode || "").trim();
     handleWorkspaceAutoSave(json, pythonCode);
     if (!isEditingCode && oldCode !== newCode) { setGeneratedPython(pythonCode); setLineExecutions({}); }
@@ -540,7 +689,6 @@ const ActivityApp = () => {
 
     const payload = { email: user.email, lesson_id: lessonId, score: user.progress[lessonId] };
     
-    // Save to Offline DB first
     await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false });
 
     if (navigator.onLine && !user.isGuest) {
@@ -570,7 +718,6 @@ const ActivityApp = () => {
 
     const payload = { email: user.email, lesson_id: topicId, score: 100, completed: true };
 
-    // Save to Offline DB first
     await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false });
 
     if (navigator.onLine && !user.isGuest) {
@@ -737,7 +884,20 @@ const ActivityApp = () => {
     }
 
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
-    await saveSubmission(latestBlocksJsonRef.current, generatedPython, score, passed, totalTests, testResults);
+    
+    // Explicitly Save Final Successful Execution
+    await saveSubmission(
+      latestStateRef.current.json, 
+      generatedPython, 
+      score, 
+      passed, 
+      totalTests, 
+      testResults, 
+      analysisResult.total || "O(n^2)", 
+      analysisResult.space_total || "O(1)",
+      false
+    );
+    
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
     
     const lessonKey = `${moduleId}:${activityId}`;
@@ -784,7 +944,7 @@ const ActivityApp = () => {
               <div className="python-header" style={{ padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)" }}><span className="python-sync-status" style={{ color: "#EBE4FF", fontSize: "0.85rem" }}>{isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span><button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? "active" : "disabled"}`} style={{ padding: "5px 12px", borderRadius: "4px", cursor: isEditingCode ? "pointer" : "not-allowed", backgroundColor: isEditingCode ? "#6C5CE7" : "#444", color: "white", border: "none" }}>Sync to Blocks</button></div>
               <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
                 {syntaxError && (<div style={{ position: "absolute", top: 0, left: 0, right: 0, backgroundColor: "rgba(231, 76, 60, 0.9)", color: "white", padding: "6px 15px", zIndex: 10, fontSize: "0.85rem", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}><span>Syntax Error on line {syntaxError.line}: {syntaxError.message}</span><button onClick={() => setSyntaxError(null)} style={{ background: "transparent", color: "white", border: "none", cursor: "pointer", fontWeight: "bold" }}>X</button></div>)}
-                <Editor height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount} value={generatedPython} onChange={(value) => { const newCode = value || ""; setGeneratedPython(newCode); setIsEditingCode(true); if (syntaxError) setSyntaxError(null); handleWorkspaceAutoSave(latestBlocksJsonRef.current, newCode); }} options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} />
+                <Editor height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount} value={generatedPython} onChange={(value) => { const newCode = value || ""; setGeneratedPython(newCode); setIsEditingCode(true); if (syntaxError) setSyntaxError(null); handleWorkspaceAutoSave(latestStateRef.current.json, newCode); }} options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} />
               </div>
             </div>
           </div>
@@ -876,7 +1036,7 @@ const ActivityApp = () => {
 
           <footer className="workspace-footer">
             <div className="footer-left"><button className={`footer-tab ${bottomPanel === "console" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "console" ? null : "console")}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button><button className={`footer-tab ${bottomPanel === "complexity" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "complexity" ? null : "complexity")}><img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity</button><button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button></div>
-            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, []); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
+            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
           </footer>
         </main>
 
