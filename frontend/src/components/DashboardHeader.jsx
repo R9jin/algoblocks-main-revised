@@ -4,6 +4,7 @@ import {
   LuFolder,
   LuLayoutDashboard,
   LuLogOut,
+  LuUser
 } from "react-icons/lu";
 
 import { Link, useNavigate } from "react-router-dom";
@@ -249,6 +250,20 @@ export default function DashboardHeader({
                     {user?.email || ""}
                   </div>
                 </div>
+
+                {/* PROFILE */}
+                <button
+                  type="button"
+                  className="user-dd-item"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/profile");
+                  }}
+                  role="menuitem"
+                >
+                  <LuUser size={18} aria-hidden="true" />
+                  {" "}My Profile
+                </button>
 
                 {/* DASHBOARD */}
                 <button
