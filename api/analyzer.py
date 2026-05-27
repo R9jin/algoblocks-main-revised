@@ -1,4 +1,4 @@
-# frontend/public/python_engine/analyzer.py
+# analyzer.py
 import ast
 import time
 from collections import deque, Counter
@@ -1013,9 +1013,22 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             return
 
         if getattr(self, 'in_graph_context', False):
-            if isinstance(node.value, (ast.List, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp, ast.Tuple)): s_ov, t_ov = "O(V)", "O(1)"
-            elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str) and getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple']: s_ov, t_ov = "O(V)", "O(1)"
-            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): s_ov, t_ov = "O(V)", "O(V)"
+            if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): 
+                s_ov, t_ov = "O(V)", "O(1)"
+            elif isinstance(node.value, (ast.Tuple, ast.List, ast.Set)):
+                if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
+                    s_ov, t_ov = "O(V)", "O(1)"
+                else:
+                    s_ov, t_ov = "O(1)", "O(1)"
+            elif isinstance(node.value, ast.Dict):
+                if any(k is None for k in node.value.keys):
+                    s_ov, t_ov = "O(V)", "O(1)"
+                else:
+                    s_ov, t_ov = "O(1)", "O(1)"
+            elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str) and getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple']: 
+                s_ov, t_ov = "O(V)", "O(1)"
+            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
+                s_ov, t_ov = "O(V)", "O(V)"
         else:
             if isinstance(node.value, ast.ListComp):
                 is_nested = len(node.value.generators) > 1
@@ -1032,10 +1045,24 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     return
                 else:
                     s_ov, t_ov = "O(n)", "O(n)"
-            elif isinstance(node.value, (ast.SetComp, ast.DictComp, ast.Tuple, ast.List, ast.Set, ast.Dict)): s_ov, t_ov = "O(n)", "O(n)"
-            elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str) and getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple']: s_ov, t_ov = "O(n)", "O(n)"
-            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): s_ov, t_ov = "O(n)", "O(n)"
-            elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): s_ov, t_ov = "O(n)", "O(n)"
+            elif isinstance(node.value, (ast.SetComp, ast.DictComp)): 
+                s_ov, t_ov = "O(n)", "O(n)"
+            elif isinstance(node.value, (ast.Tuple, ast.List, ast.Set)):
+                if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
+                    s_ov, t_ov = "O(n)", "O(n)"
+                else:
+                    s_ov, t_ov = "O(1)", "O(1)"
+            elif isinstance(node.value, ast.Dict):
+                if any(k is None for k in node.value.keys):
+                    s_ov, t_ov = "O(n)", "O(n)"
+                else:
+                    s_ov, t_ov = "O(1)", "O(1)"
+            elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str) and getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple']: 
+                s_ov, t_ov = "O(n)", "O(n)"
+            elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
+                s_ov, t_ov = "O(n)", "O(n)"
+            elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): 
+                s_ov, t_ov = "O(n)", "O(n)"
 
         for child in ast.walk(node.value):
             if isinstance(child, (ast.BinOp, ast.Call)):
@@ -1050,7 +1077,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         if isinstance(target, ast.Name): self.variable_complexities[target.id] = "sqrt"
 
         if isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): self.has_slicing = True
-        self.record_line(node, time_override=t_ov, space_override=s_ov); self.generic_visit(node)
+        
+        # Determine Custom Op for display purposes
+        custom_op = None
+        if s_ov == "O(1)" and isinstance(node.value, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
+            custom_op = "Literal Assignment"
+            
+        self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op); 
+        self.generic_visit(node)
 
     def visit_AugAssign(self, node): 
         if self.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):

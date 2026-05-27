@@ -16,7 +16,7 @@ export const syncQueueDB = localforage.createInstance({
     storeName: "sync_queue"
 });
 
-// NEW: Activity Submissions and Progress DBs
+// Activity Submissions, Progress, and Assessment DBs
 export const submissionsDB = localforage.createInstance({
     name: "AlgoBlocks",
     storeName: "submissions"
@@ -25,6 +25,11 @@ export const submissionsDB = localforage.createInstance({
 export const progressDB = localforage.createInstance({
     name: "AlgoBlocks",
     storeName: "progress"
+});
+
+export const assessmentsDB = localforage.createInstance({
+    name: "AlgoBlocks",
+    storeName: "assessments"
 });
 
 // Helper functions for React components to use

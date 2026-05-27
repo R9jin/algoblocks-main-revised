@@ -1,5 +1,5 @@
 // frontend/src/utils/syncManager.js
-import { projectsDB, submissionsDB, syncQueueDB, templatesDB } from "../db";
+import { assessmentsDB, progressDB, projectsDB, submissionsDB, syncQueueDB, templatesDB } from "../db";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -19,8 +19,9 @@ export const startBackgroundSync = () => {
         else if (task.type === 'PROJECT') endpoint = '/api/projects';
         else if (task.type === 'SUBMISSION') endpoint = '/api/sync-submission';
         else if (task.type === 'PROGRESS') endpoint = '/api/update-progress';
+        else if (task.type === 'ASSESSMENT') endpoint = '/api/update-assessment';
 
-        const url = (method === 'POST' || task.type === 'SUBMISSION' || task.type === 'PROGRESS') 
+        const url = (method === 'POST' || ['SUBMISSION', 'PROGRESS', 'ASSESSMENT'].includes(task.type)) 
             ? `${API_BASE}${endpoint}` 
             : `${API_BASE}${endpoint}/${targetId}`;
 
@@ -44,10 +45,21 @@ export const startBackgroundSync = () => {
           }
 
           if (task.type === 'SUBMISSION') {
-              // Mark local submission as synced
               const submissionId = id.replace('sync_', '');
               const sub = await submissionsDB.getItem(submissionId);
               if (sub) await submissionsDB.setItem(submissionId, { ...sub, isSynced: true });
+          }
+
+          if (task.type === 'PROGRESS') {
+              const progId = task.data.lesson_id;
+              const prog = await progressDB.getItem(progId);
+              if (prog) await progressDB.setItem(progId, { ...prog, isSynced: true });
+          }
+
+          if (task.type === 'ASSESSMENT') {
+              const assKey = task.data.assessment_key;
+              const ass = await assessmentsDB.getItem(assKey);
+              if (ass) await assessmentsDB.setItem(assKey, { ...ass, isSynced: true });
           }
 
           // Remove from queue after successful sync
@@ -65,7 +77,7 @@ export const startBackgroundSync = () => {
 };
 
 export const fetchCloudData = async (userEmail) => {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine || !userEmail) return;
 
   try {
     // 1. Fetch Projects from cloud
@@ -89,6 +101,41 @@ export const fetchCloudData = async (userEmail) => {
         }
       }
     }
+
+    // 3. Fetch User Progress and Assessments
+    const localUser = JSON.parse(localStorage.getItem("user") || "{}");
+    let updated = false;
+
+    try {
+        const progRes = await fetch(`${API_BASE}/api/get-progress?email=${userEmail}`);
+        if (progRes.ok) {
+            const data = await progRes.json();
+            const progressData = data.progress || data;
+            for (const [key, val] of Object.entries(progressData)) {
+                await progressDB.setItem(key, { score: val, isSynced: true });
+            }
+            localUser.progress = { ...localUser.progress, ...progressData };
+            updated = true;
+        }
+    } catch (e) { console.warn("Could not sync progress"); }
+
+    try {
+        const assRes = await fetch(`${API_BASE}/api/get-assessments?email=${userEmail}`);
+        if (assRes.ok) {
+            const data = await assRes.json();
+            const assData = data.assessments || data;
+            for (const [key, val] of Object.entries(assData)) {
+                await assessmentsDB.setItem(key, { ...val, isSynced: true });
+            }
+            localUser.assessments = { ...localUser.assessments, ...assData };
+            updated = true;
+        }
+    } catch (e) { console.warn("Could not sync assessments"); }
+
+    if (updated) {
+        localStorage.setItem("user", JSON.stringify(localUser));
+    }
+
   } catch (error) {
     console.error("Failed to fetch cloud data:", error);
   }
