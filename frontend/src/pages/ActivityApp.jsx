@@ -118,6 +118,7 @@ const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
   const navigate = useNavigate();
 
+  // Used STRICTLY for the window beforeunload event so it captures the latest state
   const activeIdsRef = useRef({ moduleId, activityId });
 
   useEffect(() => {
@@ -136,6 +137,7 @@ const ActivityApp = () => {
   const saveDraftTimeoutRef = useRef(null);
   const latestBlocksJsonRef = useRef(null);
 
+  // FIX: Storing contextual metadata inside the state ref so transitions never cross-contaminate data.
   const latestStateRef = useRef({
     userId: null,
     json: null,
@@ -145,7 +147,10 @@ const ActivityApp = () => {
     testResults: [],
     actualTime: "O(n^2)",
     actualSpace: "O(1)",
-    status: "draft"
+    status: "draft",
+    type: "activity",
+    targetTime: "O(n)",
+    targetSpace: "O(1)"
   });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -324,19 +329,20 @@ const ActivityApp = () => {
     };
   };
 
-  // --- COMPONENT UNMOUNT OR EXIT SYNC ---
-  const triggerFinalSave = () => {
+  // --- FIX: ISOLATED SAVING ENGINE ---
+  const triggerFinalSave = (mId, aId) => {
     const state = latestStateRef.current;
-    if (!state.userId || !activeIdsRef.current.moduleId || !activeIdsRef.current.activityId) return;
+    if (!state.userId || !mId || !aId) return;
     
-    // Only attempt to sync if there is actually user-generated code/blocks
-    if (state.pythonCode === "# Drag blocks to generate Python code" && !state.json) return;
+    // Safety check: Prevent saving empty blank states over actual progress
+    if (state.pythonCode === "# Drag blocks to generate Python code" && (!state.json || Object.keys(state.json).length === 0)) return;
 
+    // Build self-contained payload mapped perfectly to this explicit mId and aId
     const payload = {
       userId: state.userId,
-      moduleId: activeIdsRef.current.moduleId,
-      activityId: activeIdsRef.current.activityId,
-      type: activityDataResolved?.type || "activity",
+      moduleId: mId,
+      activityId: aId,
+      type: state.type || "activity",
       status: state.status || "draft",
       score: state.score,
       maxScore: 5,
@@ -345,9 +351,9 @@ const ActivityApp = () => {
       passed_tests: state.passed,
       total_tests: totalTests,
       testCases: state.testResults,
-      target_complexity: activityDataResolved?.targetTimeComplexity || "O(n)",
+      target_complexity: state.targetTime || "O(n)",
       actual_complexity: state.actualTime,
-      target_space_complexity: activityDataResolved?.targetSpaceComplexity || "O(1)",
+      target_space_complexity: state.targetSpace || "O(1)",
       actual_space_complexity: state.actualSpace,
       workspace: { blocklyJson: state.json || {} },
       pythonCode: state.pythonCode,
@@ -356,7 +362,7 @@ const ActivityApp = () => {
       isSynced: true
     };
 
-    const finalSubId = `${state.userId}_${activeIdsRef.current.moduleId}_${activeIdsRef.current.activityId}`;
+    const finalSubId = `${state.userId}_${mId}_${aId}`;
     submissionsDB.setItem(finalSubId, { ...payload, isSynced: false });
     
     if (navigator.onLine && API_BASE) {
@@ -368,6 +374,15 @@ const ActivityApp = () => {
       } catch (err) { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
     } else { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
   };
+
+  // Used exclusively to capture tab closure events
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+       triggerFinalSave(activeIdsRef.current.moduleId, activeIdsRef.current.activityId);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   const resetActivitySessionState = () => {
     if (saveDraftTimeoutRef.current) {
@@ -388,7 +403,10 @@ const ActivityApp = () => {
         testResults: [],
         actualTime: "O(n^2)",
         actualSpace: "O(1)",
-        status: "draft"
+        status: "draft",
+        type: "activity",
+        targetTime: "O(n)",
+        targetSpace: "O(1)"
     };
     latestBlocksJsonRef.current = null;
     
@@ -410,10 +428,10 @@ const ActivityApp = () => {
     outputCountRef.current = 0;
   };
 
+  // --- FIX: REACT LIFECYCLE ROUTING HOOK ---
   useEffect(() => {
     if (!moduleId || !activityId) return;
 
-    triggerFinalSave();
     resetActivitySessionState();
     let cancelled = false;
 
@@ -422,6 +440,11 @@ const ActivityApp = () => {
         const resolvedActivity = await resolveActivityFromModule();
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
+        
+        // Isolate bounds
+        latestStateRef.current.type = resolvedActivity.type;
+        latestStateRef.current.targetTime = resolvedActivity.targetTimeComplexity;
+        latestStateRef.current.targetSpace = resolvedActivity.targetSpaceComplexity;
 
         const storedUser = localStorage.getItem("user");
         if (!storedUser) { navigate("/learning-path", { replace: true }); return; }
@@ -464,7 +487,8 @@ const ActivityApp = () => {
             finalSubmissionToLoad = localSubmission; 
         }
 
-        if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId) {
+        // Apply if successful, and we haven't furiously clicked to another activity yet
+        if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !cancelled) {
           try {
             const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {}; 
             const pythonCode = finalSubmissionToLoad.pythonCode;
@@ -476,7 +500,7 @@ const ActivityApp = () => {
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
             
             setTimeout(() => {
-                if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0) {
+                if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0 && !cancelled) {
                     workspaceRef.current.loadTemplate(json);
                 }
             }, 400);
@@ -493,7 +517,7 @@ const ActivityApp = () => {
               const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
               latestStateRef.current.json = templateJson;
               setTimeout(() => {
-                  if (workspaceRef.current?.loadTemplate) {
+                  if (workspaceRef.current?.loadTemplate && !cancelled) {
                       workspaceRef.current.loadTemplate(templateJson);
                   }
               }, 400);
@@ -502,14 +526,16 @@ const ActivityApp = () => {
         }
 
         const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
-        if (savedTests) {
+        if (savedTests && !cancelled) {
           try {
             const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests);
             if (savedOut) setConsoleOutput(savedOut);
             if (savedPassed !== undefined) setPassedTests(savedPassed);
           } catch (e) {}
         }
-        setViewMode("workspace"); setIsEditingCode(false);
+        if (!cancelled) {
+            setViewMode("workspace"); setIsEditingCode(false);
+        }
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
         if (!cancelled) navigate("/learning-path", { replace: true });
@@ -518,14 +544,16 @@ const ActivityApp = () => {
     
     boot();
     
+    // FIX: React unmount cleanup runs BEFORE the next effect boots!
+    // This perfectly saves the "old" activity data to the "old" activity ID safely.
     return () => { 
         cancelled = true; 
-        triggerFinalSave(); 
+        triggerFinalSave(moduleId, activityId); 
     };
   }, [moduleId, activityId]);
 
-  const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
-    if (activeIdsRef.current.moduleId !== moduleId || activeIdsRef.current.activityId !== activityId) return;
+  const saveSubmission = async (json, pythonCode, score, passed, total, testResults, actualTime, actualSpace, isDraft, mId, aId) => {
+    if (!mId || !aId) return;
     if (!latestStateRef.current.userId) return;
 
     const finalScore = score !== null ? score : latestStateRef.current.score;
@@ -540,12 +568,12 @@ const ActivityApp = () => {
     latestStateRef.current.testResults = finalTestResults;
     latestStateRef.current.status = finalStatus;
 
-    const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
+    const submissionId = `${latestStateRef.current.userId}_${mId}_${aId}`;
     const payload = {
       userId: latestStateRef.current.userId, 
-      moduleId, 
-      activityId, 
-      type: activityDataResolved?.type || "activity",
+      moduleId: mId, 
+      activityId: aId, 
+      type: latestStateRef.current.type || "activity",
       status: finalStatus,
       score: finalScore, 
       maxScore: 5, 
@@ -554,9 +582,9 @@ const ActivityApp = () => {
       passed_tests: finalPassed,    
       total_tests: total,      
       testCases: finalTestResults,
-      target_complexity: activityDataResolved?.targetTimeComplexity || "O(n)",
+      target_complexity: latestStateRef.current.targetTime || "O(n)",
       actual_complexity: actualTime,
-      target_space_complexity: activityDataResolved?.targetSpaceComplexity || "O(1)",
+      target_space_complexity: latestStateRef.current.targetSpace || "O(1)",
       actual_space_complexity: actualSpace,
       workspace: { blocklyJson: json || {} }, 
       pythonCode: pythonCode || "# Drag blocks to generate Python code", 
@@ -576,12 +604,11 @@ const ActivityApp = () => {
     }
   };
 
-  const handleWorkspaceAutoSave = (json, pythonCode) => {
-    if (activeIdsRef.current.moduleId !== moduleId || activeIdsRef.current.activityId !== activityId) return;
+  const handleWorkspaceAutoSave = (json, pythonCode, mId, aId) => {
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
     
     saveDraftTimeoutRef.current = setTimeout(async () => { 
-      await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true); 
+      await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true, mId, aId); 
     }, 1500);
   };
 
@@ -616,7 +643,8 @@ const ActivityApp = () => {
   const handleWorkspaceChange = async (json, pythonCode) => {
     latestBlocksJsonRef.current = json;
     const oldCode = (generatedPython || "").trim(); const newCode = (pythonCode || "").trim();
-    handleWorkspaceAutoSave(json, pythonCode);
+    // Explicity bound the variables of this render cycle to the autosave to prevent bleeding
+    handleWorkspaceAutoSave(json, pythonCode, moduleId, activityId);
     if (!isEditingCode && oldCode !== newCode) { setGeneratedPython(pythonCode); setLineExecutions({}); }
   };
 
@@ -894,7 +922,9 @@ const ActivityApp = () => {
       testResults, 
       analysisResult.total || "O(n^2)", 
       analysisResult.space_total || "O(1)",
-      false
+      false,
+      moduleId,
+      activityId
     );
     
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
@@ -939,7 +969,7 @@ const ActivityApp = () => {
           <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}><span className="toggle-icon">{isLeftPanelVisible ? "<" : ">"}</span></button>
           <div className="editor-container" style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
             <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ display: viewMode === "workspace" ? "block" : "none", height: "100%" }}>
-              {/* FIX: The key prop entirely destroys and rebuilds Blockly on navigation to stop visual ghosting */}
+              {/* FIX: Force Blockly destruction on URL transition to prevent visual cross-page ghosting */}
               <BlocklyWorkspace key={activityId} ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={syntaxError} />
             </div>
             <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"} style={{ display: viewMode === "python" ? "flex" : "none", flexDirection: "column", height: "100%", background: "#1C1236" }}>
@@ -1038,7 +1068,7 @@ const ActivityApp = () => {
 
           <footer className="workspace-footer">
             <div className="footer-left"><button className={`footer-tab ${bottomPanel === "console" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "console" ? null : "console")}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button><button className={`footer-tab ${bottomPanel === "complexity" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "complexity" ? null : "complexity")}><img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity</button><button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button></div>
-            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
+            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true, moduleId, activityId); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
           </footer>
         </main>
 
