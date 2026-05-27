@@ -445,22 +445,25 @@ const ActivityApp = () => {
 
         // 3. Smart Load Strategy (Conflict Resolution)
         let finalSubmissionToLoad = null;
-        const hasLocal = localSubmission && localSubmission.pythonCode && localSubmission.pythonCode !== "# Drag blocks to generate Python code";
-        const hasCloud = cloudSubmission && cloudSubmission.pythonCode && cloudSubmission.pythonCode !== "# Drag blocks to generate Python code";
-
-        if (hasLocal && hasCloud) {
-            // Compare timestamps: Prevents overwriting local offline work when internet returns
+        
+        const isLocalBlank = !localSubmission || !localSubmission.pythonCode || localSubmission.pythonCode === "# Drag blocks to generate Python code";
+        const isCloudBlank = !cloudSubmission || !cloudSubmission.pythonCode || cloudSubmission.pythonCode === "# Drag blocks to generate Python code";
+        
+        if (isLocalBlank && !isCloudBlank) {
+            // Local is completely blank, and cloud has data (New device or fresh browser context)
+            finalSubmissionToLoad = cloudSubmission;
+            await submissionsDB.setItem(submissionId, cloudSubmission);
+        } else if (!isLocalBlank && !isCloudBlank) {
+            // Both local and cloud exist. To PREVENT overwriting an offline user's progress 
+            // when the internet reconnects suddenly, we trust the local workspace if it's newer or equal.
             if ((cloudSubmission.timestamp || 0) > (localSubmission.timestamp || 0)) {
                 finalSubmissionToLoad = cloudSubmission;
             } else {
                 finalSubmissionToLoad = localSubmission;
             }
-        } else if (hasLocal) {
+        } else if (!isLocalBlank) {
+            // Only local exists
             finalSubmissionToLoad = localSubmission;
-        } else if (hasCloud) {
-            finalSubmissionToLoad = cloudSubmission;
-            // Update local so it's in sync
-            await submissionsDB.setItem(submissionId, cloudSubmission);
         }
 
         // 4. Apply The Resolved Submission

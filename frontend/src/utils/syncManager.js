@@ -3,79 +3,92 @@ import { assessmentsDB, progressDB, projectsDB, submissionsDB, syncQueueDB, temp
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-export const startBackgroundSync = () => {
-  // Check every 30 seconds or when the browser comes back online
-  const sync = async () => {
-    if (!navigator.onLine) return;
+// ==========================================
+// BACKGROUND SYNC MANAGER
+// ==========================================
+export const startBackgroundSync = async () => {
+  if (!navigator.onLine) return;
 
-    await syncQueueDB.iterate(async (task, id) => {
-      try {
-        let endpoint = '';
-        let method = task.action === 'DELETE' ? 'DELETE' : 'POST';
-        let targetId = task.data._id || task.data.id;
+  await syncQueueDB.iterate(async (task, id) => {
+    try {
+      let endpoint = '';
+      let method = task.action === 'DELETE' ? 'DELETE' : 'POST';
+      let targetId = task.data._id || task.data.id;
 
-        // Route to the correct endpoint based on task type
-        if (task.type === 'TEMPLATE') endpoint = '/api/templates';
-        else if (task.type === 'PROJECT') endpoint = '/api/projects';
-        else if (task.type === 'SUBMISSION') endpoint = '/api/sync-submission';
-        else if (task.type === 'PROGRESS') endpoint = '/api/update-progress';
-        else if (task.type === 'ASSESSMENT') endpoint = '/api/update-assessment';
+      // Route to the correct endpoint based on task type
+      if (task.type === 'TEMPLATE') endpoint = '/api/templates';
+      else if (task.type === 'PROJECT') endpoint = '/api/projects';
+      else if (task.type === 'SUBMISSION') endpoint = '/api/sync-submission';
+      else if (task.type === 'PROGRESS') endpoint = '/api/update-progress';
+      else if (task.type === 'ASSESSMENT') endpoint = '/api/update-assessment';
 
-        const url = (method === 'POST' || ['SUBMISSION', 'PROGRESS', 'ASSESSMENT'].includes(task.type)) 
-            ? `${API_BASE}${endpoint}` 
-            : `${API_BASE}${endpoint}/${targetId}`;
+      const url = (method === 'POST' || ['SUBMISSION', 'PROGRESS', 'ASSESSMENT'].includes(task.type)) 
+          ? `${API_BASE}${endpoint}` 
+          : `${API_BASE}${endpoint}/${targetId}`;
 
-        const response = await fetch(url, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: method === 'DELETE' ? null : JSON.stringify(task.data),
-        });
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: method === 'DELETE' ? null : JSON.stringify(task.data),
+      });
 
-        if (response.ok) {
-          const result = await response.json();
-          
-          // If it was a new project/template, update the local ID from "local_..." to the MongoDB ObjectId
-          if (method === 'POST' && result.id && (task.type === 'TEMPLATE' || task.type === 'PROJECT')) {
-            const db = task.type === 'TEMPLATE' ? templatesDB : projectsDB;
-            const item = await db.getItem(id);
-            if (item) {
-                await db.removeItem(id);
-                await db.setItem(result.id, { ...item, _id: result.id, synced: true });
-            }
+      if (response.ok) {
+        const result = await response.json();
+        
+        // If it was a new project/template, update the local ID from "local_..." to the MongoDB ObjectId
+        if (method === 'POST' && result.id && (task.type === 'TEMPLATE' || task.type === 'PROJECT')) {
+          const db = task.type === 'TEMPLATE' ? templatesDB : projectsDB;
+          const item = await db.getItem(id);
+          if (item) {
+              await db.removeItem(id);
+              await db.setItem(result.id, { ...item, _id: result.id, synced: true });
           }
-
-          if (task.type === 'SUBMISSION') {
-              const submissionId = id.replace('sync_', '');
-              const sub = await submissionsDB.getItem(submissionId);
-              if (sub) await submissionsDB.setItem(submissionId, { ...sub, isSynced: true });
-          }
-
-          if (task.type === 'PROGRESS') {
-              const progId = task.data.lesson_id;
-              const prog = await progressDB.getItem(progId);
-              if (prog) await progressDB.setItem(progId, { ...prog, isSynced: true });
-          }
-
-          if (task.type === 'ASSESSMENT') {
-              const assKey = task.data.assessment_key;
-              const ass = await assessmentsDB.getItem(assKey);
-              if (ass) await assessmentsDB.setItem(assKey, { ...ass, isSynced: true });
-          }
-
-          // Remove from queue after successful sync
-          await syncQueueDB.removeItem(id);
         }
-      } catch (err) {
-        console.warn("Background sync failed for item:", id, err);
-      }
-    });
-  };
 
-  window.addEventListener('online', sync);
-  setInterval(sync, 30000); // Poll every 30s
-  sync(); // Run immediately on start
+        if (task.type === 'SUBMISSION') {
+            const submissionId = id.replace('sync_', '');
+            const sub = await submissionsDB.getItem(submissionId);
+            if (sub) await submissionsDB.setItem(submissionId, { ...sub, isSynced: true });
+        }
+
+        if (task.type === 'PROGRESS') {
+            // Supports both the new draft format and the old lesson_id format
+            const progId = task.data.activityId 
+                ? `draft_${task.data.userId}_${task.data.moduleId}_${task.data.activityId}`
+                : task.data.lesson_id;
+            
+            if (progId) {
+                const prog = await progressDB.getItem(progId);
+                if (prog) await progressDB.setItem(progId, { ...prog, isSynced: true });
+            }
+        }
+
+        if (task.type === 'ASSESSMENT') {
+            const assKey = task.data.assessment_key;
+            const ass = await assessmentsDB.getItem(assKey);
+            if (ass) await assessmentsDB.setItem(assKey, { ...ass, isSynced: true });
+        }
+
+        // Remove from queue after successful sync
+        await syncQueueDB.removeItem(id);
+      }
+    } catch (err) {
+      console.warn("Background sync failed for item:", id, err);
+    }
+  });
 };
 
+// Listen for connection return to auto-trigger sync immediately
+window.addEventListener('online', startBackgroundSync);
+
+// Poll every 30s as a fallback
+setInterval(startBackgroundSync, 30000); 
+startBackgroundSync(); // Run immediately on start
+
+
+// ==========================================
+// FETCH CLOUD DATA (On Login / App Load)
+// ==========================================
 export const fetchCloudData = async (userEmail) => {
   if (!navigator.onLine || !userEmail) return;
 
@@ -112,7 +125,7 @@ export const fetchCloudData = async (userEmail) => {
             const data = await progRes.json();
             const progressDataRaw = data.progress || data;
             
-            // ✅ FIX: Normalize Array to Object Mapping
+            // Normalize Array to Object Mapping
             let normalizedProg = {};
             if (Array.isArray(progressDataRaw)) {
                 progressDataRaw.forEach(item => {
@@ -139,7 +152,7 @@ export const fetchCloudData = async (userEmail) => {
             const data = await assRes.json();
             const assDataRaw = data.assessments || data;
 
-            // ✅ FIX: Normalize Array to Object Mapping
+            // Normalize Array to Object Mapping
             let normalizedAssm = {};
             if (Array.isArray(assDataRaw)) {
                 assDataRaw.forEach(item => {

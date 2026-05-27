@@ -25,6 +25,7 @@ from api.routers import project_router
 from api.routers import template_router
 from api.routers import auth_router
 from api.routers import analyze_router
+from api.routers import progress_router
 
 app = FastAPI()
 
@@ -51,6 +52,7 @@ app.include_router(project_router.router)
 app.include_router(template_router.router)
 app.include_router(auth_router.router)
 app.include_router(analyze_router.router)
+app.include_router(progress_router.router)
 
 # =========================
 # ROOT

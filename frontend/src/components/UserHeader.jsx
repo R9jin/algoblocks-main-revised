@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 
 import "../styles/UserHeader.css";
 
+import { startBackgroundSync } from "../utils/syncManager.js";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 
 export default function UserHeader({ user }) {
@@ -101,8 +102,13 @@ export default function UserHeader({ user }) {
   // LOGOUT HANDLER
   // ================================
 
-  // CHANGE: Single logout flow only
-  const handleLogout = () => {
+  // CHANGE: Single logout flow only with Background Sync Enforcer
+  const handleLogout = async () => {
+
+    // FORCE SYNC ON LOGOUT to push localforage data to MongoDB
+    if (navigator.onLine) {
+      await startBackgroundSync();
+    }
 
     localStorage.removeItem("user");
 
