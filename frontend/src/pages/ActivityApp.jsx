@@ -113,18 +113,15 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   }).filter(Boolean);
 };
 
-const ActivityApp = () => {
+// =======================================================================
+// INNER COMPONENT: Guarantees 100% memory wipe on URL changes
+// =======================================================================
+const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
-  const { moduleId, activityId } = useParams();
   const navigate = useNavigate();
 
-  // Used STRICTLY for the window beforeunload event so it captures the latest state
-  const activeIdsRef = useRef({ moduleId, activityId });
-
-  useEffect(() => {
-    if (!moduleId || !activityId) navigate("/learning-path", { replace: true });
-    activeIdsRef.current = { moduleId, activityId };
-  }, [moduleId, activityId, navigate]);
+  // FIX: This lock prevents Blockly from firing "delete/clear" ghost events during initial load!
+  const isReadyRef = useRef(false);
 
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
@@ -137,7 +134,6 @@ const ActivityApp = () => {
   const saveDraftTimeoutRef = useRef(null);
   const latestBlocksJsonRef = useRef(null);
 
-  // FIX: Storing contextual metadata inside the state ref so transitions never cross-contaminate data.
   const latestStateRef = useRef({
     userId: null,
     json: null,
@@ -329,19 +325,18 @@ const ActivityApp = () => {
     };
   };
 
-  // --- FIX: ISOLATED SAVING ENGINE ---
-  const triggerFinalSave = (mId, aId) => {
+  // --- FINAL SAVE MECHANISM (Tied perfectly to this specific Activity ID) ---
+  const triggerFinalSave = () => {
     const state = latestStateRef.current;
-    if (!state.userId || !mId || !aId) return;
+    if (!state.userId) return;
     
-    // Safety check: Prevent saving empty blank states over actual progress
+    // Ignore pure blank ghost states
     if (state.pythonCode === "# Drag blocks to generate Python code" && (!state.json || Object.keys(state.json).length === 0)) return;
 
-    // Build self-contained payload mapped perfectly to this explicit mId and aId
     const payload = {
       userId: state.userId,
-      moduleId: mId,
-      activityId: aId,
+      moduleId: moduleId, // Safe constant from props
+      activityId: activityId, // Safe constant from props
       type: state.type || "activity",
       status: state.status || "draft",
       score: state.score,
@@ -362,7 +357,7 @@ const ActivityApp = () => {
       isSynced: true
     };
 
-    const finalSubId = `${state.userId}_${mId}_${aId}`;
+    const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
     submissionsDB.setItem(finalSubId, { ...payload, isSynced: false });
     
     if (navigator.onLine && API_BASE) {
@@ -375,65 +370,17 @@ const ActivityApp = () => {
     } else { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
   };
 
-  // Used exclusively to capture tab closure events
+  // Used to capture tab closure events
   useEffect(() => {
-    const handleBeforeUnload = () => {
-       triggerFinalSave(activeIdsRef.current.moduleId, activeIdsRef.current.activityId);
-    };
+    const handleBeforeUnload = () => { triggerFinalSave(); };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  const resetActivitySessionState = () => {
-    if (saveDraftTimeoutRef.current) {
-        clearTimeout(saveDraftTimeoutRef.current);
-        saveDraftTimeoutRef.current = null;
-    }
-    
-    if (workspaceRef.current?.clear) {
-        workspaceRef.current.clear();
-    }
-    
-    latestStateRef.current = {
-        userId: latestStateRef.current.userId, 
-        json: null,
-        pythonCode: "# Drag blocks to generate Python code",
-        score: 0,
-        passed: 0,
-        testResults: [],
-        actualTime: "O(n^2)",
-        actualSpace: "O(1)",
-        status: "draft",
-        type: "activity",
-        targetTime: "O(n)",
-        targetSpace: "O(1)"
-    };
-    latestBlocksJsonRef.current = null;
-    
-    setGeneratedPython("# Drag blocks to generate Python code");
-    setConsoleOutput("Ready to run...\n");
-    setViewMode("workspace");
-    setPassedTests(0);
-    setIsEvaluating(false);
-    setConsoleTab("output");
-    setBottomPanel(null);
-    setExpandedTests({});
-    setExpandedLines({});
-    setSyntaxError(null);
-    setLineExecutions({});
-    setAnalysisResult({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
-    setAnalysisTime("0.0");
-    setIsEditingCode(false);
-    pendingOutputRef.current = "";
-    outputCountRef.current = 0;
-  };
-
-  // --- FIX: REACT LIFECYCLE ROUTING HOOK ---
+  // --- COMPONENT MOUNT/UNMOUNT LIFECYCLE ---
   useEffect(() => {
-    if (!moduleId || !activityId) return;
-
-    resetActivitySessionState();
     let cancelled = false;
+    isReadyRef.current = false; // Lock the workspace!
 
     const boot = async () => {
       try {
@@ -441,7 +388,6 @@ const ActivityApp = () => {
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
         
-        // Isolate bounds
         latestStateRef.current.type = resolvedActivity.type;
         latestStateRef.current.targetTime = resolvedActivity.targetTimeComplexity;
         latestStateRef.current.targetSpace = resolvedActivity.targetSpaceComplexity;
@@ -487,7 +433,6 @@ const ActivityApp = () => {
             finalSubmissionToLoad = localSubmission; 
         }
 
-        // Apply if successful, and we haven't furiously clicked to another activity yet
         if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !cancelled) {
           try {
             const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {}; 
@@ -505,13 +450,15 @@ const ActivityApp = () => {
                 }
             }, 400);
 
-            if (pythonCode) setGeneratedPython(pythonCode);
+            if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
+                setGeneratedPython(pythonCode);
+            }
             setPassedTests(latestStateRef.current.passed);
           } catch (e) { 
-            if (workspaceRef.current?.clear) workspaceRef.current.clear(); 
+             console.error("Failed to load blocks");
           }
         } else {
-          if (workspaceRef.current?.clear) workspaceRef.current.clear();
+          // New empty activity, load template if it exists
           if (resolvedActivity.templateUrl) {
             try {
               const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
@@ -533,8 +480,12 @@ const ActivityApp = () => {
             if (savedPassed !== undefined) setPassedTests(savedPassed);
           } catch (e) {}
         }
+        
         if (!cancelled) {
-            setViewMode("workspace"); setIsEditingCode(false);
+            // Unlock the workspace for autosaving ONLY AFTER the blocks have settled
+            setTimeout(() => {
+                if (!cancelled) isReadyRef.current = true;
+            }, 1500); 
         }
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
@@ -544,16 +495,14 @@ const ActivityApp = () => {
     
     boot();
     
-    // FIX: React unmount cleanup runs BEFORE the next effect boots!
-    // This perfectly saves the "old" activity data to the "old" activity ID safely.
     return () => { 
         cancelled = true; 
-        triggerFinalSave(moduleId, activityId); 
+        triggerFinalSave(); 
+        if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
     };
-  }, [moduleId, activityId]);
+  }, []); // Notice empty array: This code runs EXACTLY ONCE because the wrapper manages the key!
 
-  const saveSubmission = async (json, pythonCode, score, passed, total, testResults, actualTime, actualSpace, isDraft, mId, aId) => {
-    if (!mId || !aId) return;
+  const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
     if (!latestStateRef.current.userId) return;
 
     const finalScore = score !== null ? score : latestStateRef.current.score;
@@ -568,11 +517,11 @@ const ActivityApp = () => {
     latestStateRef.current.testResults = finalTestResults;
     latestStateRef.current.status = finalStatus;
 
-    const submissionId = `${latestStateRef.current.userId}_${mId}_${aId}`;
+    const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
     const payload = {
       userId: latestStateRef.current.userId, 
-      moduleId: mId, 
-      activityId: aId, 
+      moduleId: moduleId, 
+      activityId: activityId, 
       type: latestStateRef.current.type || "activity",
       status: finalStatus,
       score: finalScore, 
@@ -604,11 +553,12 @@ const ActivityApp = () => {
     }
   };
 
-  const handleWorkspaceAutoSave = (json, pythonCode, mId, aId) => {
+  const handleWorkspaceAutoSave = (json, pythonCode) => {
+    if (!isReadyRef.current) return;
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
     
     saveDraftTimeoutRef.current = setTimeout(async () => { 
-      await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true, mId, aId); 
+      await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true); 
     }, 1500);
   };
 
@@ -641,10 +591,17 @@ const ActivityApp = () => {
   }, [generatedPython, isOnline]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
+    // ABORT ALL GHOST EVENTS DURING MOUNTING
+    if (!isReadyRef.current) return;
+
     latestBlocksJsonRef.current = json;
-    const oldCode = (generatedPython || "").trim(); const newCode = (pythonCode || "").trim();
-    // Explicity bound the variables of this render cycle to the autosave to prevent bleeding
-    handleWorkspaceAutoSave(json, pythonCode, moduleId, activityId);
+    const oldCode = (generatedPython || "").trim(); 
+    const newCode = (pythonCode || "").trim();
+    
+    latestStateRef.current.json = json;
+    latestStateRef.current.pythonCode = pythonCode;
+
+    handleWorkspaceAutoSave(json, pythonCode);
     if (!isEditingCode && oldCode !== newCode) { setGeneratedPython(pythonCode); setLineExecutions({}); }
   };
 
@@ -922,9 +879,7 @@ const ActivityApp = () => {
       testResults, 
       analysisResult.total || "O(n^2)", 
       analysisResult.space_total || "O(1)",
-      false,
-      moduleId,
-      activityId
+      false
     );
     
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
@@ -969,14 +924,13 @@ const ActivityApp = () => {
           <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}><span className="toggle-icon">{isLeftPanelVisible ? "<" : ">"}</span></button>
           <div className="editor-container" style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
             <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ display: viewMode === "workspace" ? "block" : "none", height: "100%" }}>
-              {/* FIX: Force Blockly destruction on URL transition to prevent visual cross-page ghosting */}
-              <BlocklyWorkspace key={activityId} ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={syntaxError} />
+              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={syntaxError} />
             </div>
             <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"} style={{ display: viewMode === "python" ? "flex" : "none", flexDirection: "column", height: "100%", background: "#1C1236" }}>
               <div className="python-header" style={{ padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)" }}><span className="python-sync-status" style={{ color: "#EBE4FF", fontSize: "0.85rem" }}>{isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span><button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? "active" : "disabled"}`} style={{ padding: "5px 12px", borderRadius: "4px", cursor: isEditingCode ? "pointer" : "not-allowed", backgroundColor: isEditingCode ? "#6C5CE7" : "#444", color: "white", border: "none" }}>Sync to Blocks</button></div>
               <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
                 {syntaxError && (<div style={{ position: "absolute", top: 0, left: 0, right: 0, backgroundColor: "rgba(231, 76, 60, 0.9)", color: "white", padding: "6px 15px", zIndex: 10, fontSize: "0.85rem", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}><span>Syntax Error on line {syntaxError.line}: {syntaxError.message}</span><button onClick={() => setSyntaxError(null)} style={{ background: "transparent", color: "white", border: "none", cursor: "pointer", fontWeight: "bold" }}>X</button></div>)}
-                <Editor height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount} value={generatedPython} onChange={(value) => { const newCode = value || ""; setGeneratedPython(newCode); setIsEditingCode(true); if (syntaxError) setSyntaxError(null); handleWorkspaceAutoSave(latestStateRef.current.json, newCode); }} options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} />
+                <Editor height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount} value={generatedPython} onChange={(value) => { const newCode = value || ""; setGeneratedPython(newCode); setIsEditingCode(true); if (syntaxError) setSyntaxError(null); latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(latestStateRef.current.json, newCode); }} options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} />
               </div>
             </div>
           </div>
@@ -1068,7 +1022,7 @@ const ActivityApp = () => {
 
           <footer className="workspace-footer">
             <div className="footer-left"><button className={`footer-tab ${bottomPanel === "console" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "console" ? null : "console")}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button><button className={`footer-tab ${bottomPanel === "complexity" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "complexity" ? null : "complexity")}><img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity</button><button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button></div>
-            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true, moduleId, activityId); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
+            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
           </footer>
         </main>
 
@@ -1105,4 +1059,10 @@ const ActivityApp = () => {
   );
 };
 
-export default ActivityApp;
+// =======================================================================
+// EXPORT COMPONENT: Wraps Inner to guarantee 100% reset via `key` Prop
+// =======================================================================
+export default function ActivityApp() {
+  const { moduleId, activityId } = useParams();
+  return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;
+}
