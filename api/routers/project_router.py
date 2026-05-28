@@ -23,12 +23,19 @@ def get_user_projects(
     if not uid:
         uid = request.query_params.get("userId") or request.query_params.get("email")
 
-    # FIX: If the frontend fired too early and there is still no UID,
-    # return an empty list instead of crashing with a 400 Bad Request.
+    # If the frontend fired too early and there is still no UID,
+    # return an empty list gracefully.
     if not uid:
         return {"status": "success", "projects": []}
         
-    return ProjectService.get_user_projects(uid)
+    # Get projects from DB
+    projects = ProjectService.get_user_projects(uid)
+    
+    # Ensure consistent dictionary return so frontend data.projects never breaks
+    if isinstance(projects, list):
+        return {"status": "success", "projects": projects}
+        
+    return projects
 
 @router.post("/save")
 @limiter.limit("20/minute")
@@ -39,3 +46,4 @@ def save_project(request: Request, req: SaveProjectRequest):
 @limiter.limit("10/minute")
 def delete_project(request: Request, payload: Dict[str, str]):
     return ProjectService.delete_project(payload)
+

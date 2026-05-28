@@ -94,12 +94,19 @@ export const fetchCloudData = async (userEmail) => {
 
   try {
     // 1. Fetch Projects from cloud
-    const projRes = await fetch(`${API_BASE}/api/projects`);
+    const projRes = await fetch(`${API_BASE}/api/projects?userId=${userEmail}`);
     if (projRes.ok) {
-      const projects = await projRes.json();
-      for (const p of projects) {
-        if (p.owner_id === userEmail) { 
-          await projectsDB.setItem(p._id, { ...p, synced: true });
+      const data = await projRes.json();
+      
+      // FIX: Unwrap the "projects" array from the backend's JSON object
+      const projects = data.projects || data; 
+      
+      if (Array.isArray(projects)) {
+        for (const p of projects) {
+          // FIX: Check 'userId' because that is what Python uses in models.py
+          if (p.userId === userEmail || p.owner_id === userEmail) { 
+            await projectsDB.setItem(p._id, { ...p, synced: true });
+          }
         }
       }
     }
