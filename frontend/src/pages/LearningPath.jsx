@@ -1,8 +1,8 @@
 // frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
-    FiCheckCircle, FiChevronDown, FiChevronRight, FiCircle, FiClipboard,
-    FiDatabase, FiFilter, FiLock, FiRefreshCw, FiShare2, FiUsers,
+  FiCheckCircle, FiChevronDown, FiChevronRight, FiCircle, FiClipboard,
+  FiDatabase, FiFilter, FiLock, FiRefreshCw, FiShare2, FiUsers,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";

@@ -1,289 +1,595 @@
 // frontend/src/pages/AssessmentPage.jsx
 import { useEffect, useRef, useState } from "react";
+import { FiAward, FiCheck, FiChevronLeft, FiChevronRight, FiSave, FiX } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
-import { progressDB, syncQueueDB } from "../db.js";
+import DashboardHeader from "../components/DashboardHeader";
+import { assessmentsDB, progressDB, syncQueueDB } from "../db";
 import "../styles/AssessmentPage.css";
 
-// We use localForage via an extra DB instance or progressDB directly.
-// For assessment drafts, we'll store them directly in progressDB for offline support.
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
-const AssessmentPage = () => {
-  const { moduleId } = useParams();
+// ── Storage helpers ──────────────────────────────────────────────────────────
+// Draft key: stores in-progress answers, question order, and elapsed time.
+const getDraftKey = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
+
+function saveDraft(moduleId, type, payload) {
+  try {
+    localStorage.setItem(getDraftKey(moduleId, type), JSON.stringify(payload));
+  } catch (e) {
+    console.warn("Could not save draft:", e);
+  }
+}
+
+function loadDraft(moduleId, type) {
+  try {
+    const raw = localStorage.getItem(getDraftKey(moduleId, type));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft(moduleId, type) {
+  try {
+    localStorage.removeItem(getDraftKey(moduleId, type));
+  } catch (e) {
+    // ignore
+  }
+}
+
+// ── Shuffle ──────────────────────────────────────────────────────────────────
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ── Module routing maps ──────────────────────────────────────────────────────
+const MODULE_FIRST_LESSON = {
+  "module-0": "lesson-0-1",
+  "module-1": "lesson-1-1",
+  "module-2": "lesson-2-1",
+  "module-3": "lesson-3-1",
+  "module-4": "lesson-4-1",
+  "module-5": "lesson-5-1",
+  "module-6": "lesson-6-1",
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
+export default function AssessmentPage() {
+  const { moduleId, type } = useParams(); // type = "pre" | "post"
   const navigate = useNavigate();
-  const API_BASE = import.meta.env.VITE_API_URL || "";
 
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
+  const [moduleTitle, setModuleTitle] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedAnswers, setSelectedAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
-  // Track specific drafts
-  const [draftTimestamp, setDraftTimestamp] = useState(0);
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [prevResult, setPrevResult] = useState(null);
 
-  const activeModuleRef = useRef(moduleId);
+  const timerRef = useRef(null);
+  const autoSaveRef = useRef(null);
 
+  // ── 1. Load assessment JSON + restore draft / previous result ───────────────
   useEffect(() => {
-    activeModuleRef.current = moduleId;
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-      triggerFinalAssessmentSave();
-    };
-  }, [moduleId]);
-
-  // Load Assessment Questions & Smart Load Drafts
-  useEffect(() => {
-    if (!moduleId) return;
-
-    const loadAssessment = async () => {
+    const load = async () => {
       try {
-        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-        if (!storedUser) {
-          navigate("/learning-path");
-          return;
-        }
-        const user = JSON.parse(storedUser);
-
-        // Fetch questions JSON
-        const res = await fetch(`/data/assessments/module-${moduleId}.json`);
+        const res = await fetch(`/data/assessments/${moduleId}.json`);
         if (!res.ok) throw new Error("Assessment not found");
         const data = await res.json();
-        setQuestions(data);
 
-        // 1. Fetch Local Draft
-        const draftId = `draft_${user.email}_assessment_${moduleId}`;
-        let localDraft = null;
-        try {
-           localDraft = await progressDB.getItem(draftId);
-        } catch(e){}
-
-        // 2. Fetch Cloud Draft
-        let cloudDraft = null;
-        if (navigator.onLine) {
-            try {
-                const cloudRes = await fetch(`${API_BASE}/api/get-assessment?email=${user.email}&moduleId=${moduleId}`);
-                if (cloudRes.ok) {
-                    const cData = await cloudRes.json();
-                    if (cData && cData.assessment) cloudDraft = cData.assessment;
-                }
-            } catch(e){}
+        // OFFLINE FIRST: Check IndexedDB for previously submitted result
+        const assessmentKey = `${moduleId}_${type}_assessment`;
+        const existingResult = await assessmentsDB.getItem(assessmentKey);
+        
+        if (existingResult) {
+          setPrevResult(existingResult);
         }
 
-        // 3. Smart Load
-        let finalDraft = null;
-        const hasLocal = localDraft && Object.keys(localDraft.answers || {}).length > 0;
-        const hasCloud = cloudDraft && Object.keys(cloudDraft.answers || {}).length > 0;
-
-        if (hasLocal && hasCloud) {
-            if ((localDraft.timestamp || 0) >= (cloudDraft.timestamp || 0)) {
-                finalDraft = localDraft;
-            } else {
-                finalDraft = cloudDraft;
-            }
-        } else if (hasLocal) {
-            finalDraft = localDraft;
-        } else if (hasCloud) {
-            finalDraft = cloudDraft;
-            await progressDB.setItem(draftId, cloudDraft); // sync down
+        // Check if there's an in-progress draft (local storage)
+        const draft = loadDraft(moduleId, type);
+        if (draft && draft.questionIds) {
+          const idMap = Object.fromEntries(data.questions.map((q) => [q.id, q]));
+          const restored = draft.questionIds.map((id) => idMap[id]).filter(Boolean);
+          if (restored.length === data.questions.length) {
+            setQuestions(restored);
+            setSelectedAnswers(draft.selectedAnswers || {});
+            setCurrentIndex(draft.currentIndex || 0);
+            setTimeElapsed(draft.timeElapsed || 0);
+            setHasDraft(true);
+            setModuleTitle(data.moduleTitle);
+            setLoading(false);
+            return;
+          }
         }
 
-        if (finalDraft) {
-            setAnswers(finalDraft.answers || {});
-            setDraftTimestamp(finalDraft.timestamp || Date.now());
-            if (finalDraft.submitted) {
-                setSubmitted(true);
-                setScore(finalDraft.score || 0);
-            }
-        }
-        setLoading(false);
+        // Fresh start — shuffle
+        const shuffled = shuffleArray(data.questions);
+        setQuestions(shuffled);
+        setModuleTitle(data.moduleTitle);
       } catch (err) {
         console.error("Failed to load assessment:", err);
-        navigate("/learning-path");
+      } finally {
+        setLoading(false);
       }
     };
-    loadAssessment();
-  }, [moduleId, navigate, API_BASE]);
+    load();
+  }, [moduleId, type]);
 
-  // Handle Radio Selection
-  const handleSelect = (qId, optionIdx) => {
-    if (submitted) return;
-    const newAnswers = { ...answers, [qId]: optionIdx };
-    setAnswers(newAnswers);
-    
-    // Auto-save draft
-    saveAssessmentDraft(newAnswers, false, 0);
-  };
+  // ── 2. Auto-save draft every 10 seconds while answering ────────────────────
+  useEffect(() => {
+    if (submitted || loading || questions.length === 0) return;
 
-  const triggerFinalAssessmentSave = () => {
-    // Only attempt if we have answers and haven't submitted yet
-    if (Object.keys(answers).length > 0 && !submitted) {
-      saveAssessmentDraft(answers, false, 0, true);
-    }
-  };
+    autoSaveRef.current = setInterval(() => {
+      const draft = {
+        moduleId,
+        type,
+        questionIds: questions.map((q) => q.id),
+        selectedAnswers,
+        currentIndex,
+        timeElapsed,
+        savedAt: new Date().toISOString(),
+      };
+      saveDraft(moduleId, type, draft);
+      setLastSavedAt(new Date().toISOString());
+    }, 10_000);
 
-  const saveAssessmentDraft = async (currentAnswers, isSubmitted, currentScore, isUnmounting = false) => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUser) return;
-    const user = JSON.parse(storedUser);
+    return () => clearInterval(autoSaveRef.current);
+  }, [submitted, loading, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type]);
 
-    const payload = {
-        userId: user.email,
-        moduleId: activeModuleRef.current,
-        answers: currentAnswers,
-        submitted: isSubmitted,
-        score: currentScore,
-        timestamp: Date.now()
+  // ── 4. Timer ────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (submitted || loading || questions.length === 0) return;
+    timerRef.current = setInterval(() => {
+      setTimeElapsed((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [submitted, loading, questions.length]);
+
+  // ── 5. Save draft on tab close / visibility change ─────────────────────────
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden" && !submitted && questions.length > 0) {
+        const draft = {
+          moduleId,
+          type,
+          questionIds: questions.map((q) => q.id),
+          selectedAnswers,
+          currentIndex,
+          timeElapsed,
+          savedAt: new Date().toISOString(),
+        };
+        saveDraft(moduleId, type, draft);
+      }
+    };
+    const handleBeforeUnload = (e) => {
+      if (!submitted && Object.keys(selectedAnswers).length > 0) {
+        const draft = {
+          moduleId,
+          type,
+          questionIds: questions.map((q) => q.id),
+          selectedAnswers,
+          currentIndex,
+          timeElapsed,
+          savedAt: new Date().toISOString(),
+        };
+        saveDraft(moduleId, type, draft);
+        e.preventDefault();
+        e.returnValue = "";
+      }
     };
 
-    const draftId = `draft_${user.email}_assessment_${activeModuleRef.current}`;
-    await progressDB.setItem(draftId, payload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [submitted, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type]);
 
-    if (navigator.onLine && API_BASE) {
-      try {
-        fetch(`${API_BASE}/api/sync-assessment`, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify(payload),
-            keepalive: isUnmounting // Ensure it completes even if tab closes
-        });
-      } catch (err) {}
-    }
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  const getScoreLabel = (s) => {
+    if (s >= 90) return { label: "Excellent!", color: "#22c55e", icon: "🏆" };
+    if (s >= 75) return { label: "Proficient", color: "#3b82f6", icon: "🎯" };
+    if (s >= 60) return { label: "Developing", color: "#f97316", icon: "📈" };
+    return { label: "Needs Review", color: "#ef4444", icon: "📚" };
+  };
+
+  // ── Actions ──────────────────────────────────────────────────────────────────
+  const handleSelectAnswer = (optionIndex) => {
+    if (submitted) return;
+
+    const updated = { ...selectedAnswers, [currentIndex]: optionIndex };
+    setSelectedAnswers(updated);
+
+    const draft = {
+      moduleId,
+      type,
+      questionIds: questions.map((q) => q.id),
+      selectedAnswers: updated,
+      currentIndex,
+      timeElapsed,
+      savedAt: new Date().toISOString(),
+    };
+    saveDraft(moduleId, type, draft);
+    setLastSavedAt(new Date().toISOString());
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(answers).length < questions.length) {
-      alert("Please answer all questions before submitting.");
-      return;
-    }
+    clearInterval(timerRef.current);
+    clearInterval(autoSaveRef.current);
 
-    let calculatedScore = 0;
-    questions.forEach((q) => {
-      if (answers[q.id] === q.correct) {
-        calculatedScore += 1;
-      }
+    let correct = 0;
+    questions.forEach((q, i) => {
+      if (selectedAnswers[i] === q.answer) correct++;
     });
 
-    const finalPercent = Math.round((calculatedScore / questions.length) * 100);
-    setScore(finalPercent);
+    const finalScore = Math.round((correct / questions.length) * 100);
+    setScore(finalScore);
     setSubmitted(true);
 
-    // Save Assessment State
-    await saveAssessmentDraft(answers, true, finalPercent);
+    const assessmentKey = `${moduleId}_${type}_assessment`;
+    const result = {
+      moduleId,
+      type,
+      score: finalScore,
+      correct,
+      total: questions.length,
+      timeElapsed,
+      completedAt: new Date().toISOString(),
+      attempts: (prevResult?.attempts ?? 0) + 1,
+    };
 
-    // Update Global Progress Map
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      const lessonKey = `assessment-${moduleId}`;
+    // 1. Offline-First: Save to IndexedDB
+    await assessmentsDB.setItem(assessmentKey, result);
+    await progressDB.setItem(assessmentKey, { score: finalScore });
 
-      if (!user.progress) user.progress = {};
-      user.progress[lessonKey] = finalPercent;
-      localStorage.setItem("user", JSON.stringify(user));
+    // Update local user object for immediate UI reflection
+    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const user = JSON.parse(userStr || "{}");
+    
+    user.assessments = user.assessments || {};
+    user.assessments[assessmentKey] = result;
+    user.progress = user.progress || {};
+    user.progress[assessmentKey] = finalScore;
+    
+    if (localStorage.getItem("user")) localStorage.setItem("user", JSON.stringify(user));
+    if (sessionStorage.getItem("user")) sessionStorage.setItem("user", JSON.stringify(user));
 
-      const payload = { email: user.email, lesson_id: lessonKey, score: finalPercent };
-      await progressDB.setItem(lessonKey, { score: finalPercent, isSynced: false });
+    clearDraft(moduleId, type);
 
-      if (navigator.onLine) {
-        try {
-          await fetch(`${API_BASE}/api/update-progress`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-          await progressDB.setItem(lessonKey, { score: finalPercent, isSynced: true });
-        } catch (err) {
-          await syncQueueDB.setItem(`sync_prog_${lessonKey}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
+    // 2. Cloud Sync (or Queue)
+    if (navigator.onLine && user.email && !user.isGuest) {
+      try {
+        const res = await fetch(`${API_BASE}/api/update-assessment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: user.email, assessment_key: assessmentKey, data: result })
+        });
+        const progRes = await fetch(`${API_BASE}/api/update-progress`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: user.email, lesson_id: assessmentKey, score: finalScore })
+        });
+
+        if (res.ok && progRes.ok) {
+          await assessmentsDB.setItem(assessmentKey, { ...result, isSynced: true });
+          await progressDB.setItem(assessmentKey, { score: finalScore, isSynced: true });
+        } else {
+          throw new Error("Sync failed");
         }
-      } else {
-        await syncQueueDB.setItem(`sync_prog_${lessonKey}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
+      } catch (err) {
+        const syncId = `sync_${Date.now()}`;
+        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, assessment_key: assessmentKey, data: result } });
+        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, lesson_id: assessmentKey, score: finalScore } });
       }
+    } else if (user.email && !user.isGuest) {
+        const syncId = `sync_${Date.now()}`;
+        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, assessment_key: assessmentKey, data: result } });
+        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, lesson_id: assessmentKey, score: finalScore } });
     }
   };
 
+  const handleProceed = () => {
+    if (type === "pre") {
+      navigate(`/learning-path/${moduleId}/${MODULE_FIRST_LESSON[moduleId]}`);
+    } else {
+      navigate("/learning-path");
+    }
+  };
+
+  const handleRetake = () => {
+    clearDraft(moduleId, type);
+    setSubmitted(false);
+    setSelectedAnswers({});
+    setCurrentIndex(0);
+    setTimeElapsed(0);
+    setLastSavedAt(null);
+    setHasDraft(false);
+    setQuestions((prev) => shuffleArray(prev));
+  };
+
+  const handleDiscardDraft = () => {
+    clearDraft(moduleId, type);
+    setSelectedAnswers({});
+    setCurrentIndex(0);
+    setTimeElapsed(0);
+    setHasDraft(false);
+    setQuestions((prev) => shuffleArray(prev));
+  };
+
+  // ── Derived values ───────────────────────────────────────────────────────────
+  const isPre = type === "pre";
+  const moduleNum = moduleId?.split("-").pop();
+  const answeredCount = Object.keys(selectedAnswers).length;
+  const currentQuestion = questions[currentIndex];
+
+  // ── Loading / empty guards ───────────────────────────────────────────────────
   if (loading) {
-    return <div className="assessment-loading">Loading Assessment...</div>;
+    return (
+      <div className="assessment-page">
+        <DashboardHeader />
+        <div className="assessment-loading">Loading assessment...</div>
+      </div>
+    );
   }
 
+  if (questions.length === 0) {
+    return (
+      <div className="assessment-page">
+        <DashboardHeader />
+        <div className="assessment-loading">Assessment not available for this module.</div>
+      </div>
+    );
+  }
+
+  // ── RESULTS SCREEN ────────────────────────────────────────────────────────────
+  if (submitted) {
+    const { label, color, icon } = getScoreLabel(score);
+    const correctCount = Math.round((score / 100) * questions.length);
+    return (
+      <div className="assessment-page">
+        <DashboardHeader />
+        <div className="assessment-results-wrapper">
+          <div className="results-card">
+            <div className="results-header">
+              <div className="results-badge" style={{ borderColor: color }}>
+                <span className="results-icon">{icon}</span>
+                <span className="results-label" style={{ color }}>{label}</span>
+              </div>
+              <h1 className="results-score" style={{ color }}>{score}%</h1>
+              <p className="results-subtitle">
+                {isPre ? "Pre-Assessment" : "Post-Assessment"} — Module {moduleNum}: {moduleTitle}
+              </p>
+              <p className="results-attempt">
+                Attempt #{(prevResult?.attempts ?? 0) + 1} &nbsp;·&nbsp; {formatTime(timeElapsed)} taken
+              </p>
+            </div>
+
+            <div className="results-stats">
+              <div className="stat-box">
+                <span className="stat-number">{correctCount}</span>
+                <span className="stat-label">Correct</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-number">{questions.length - correctCount}</span>
+                <span className="stat-label">Incorrect</span>
+              </div>
+              <div className="stat-box">
+                <span className="stat-number">{questions.length}</span>
+                <span className="stat-label">Total</span>
+              </div>
+            </div>
+
+            <div className="results-review">
+              <h3>Answer Review</h3>
+              <div className="review-list">
+                {questions.map((q, i) => {
+                  const userAnswer = selectedAnswers[i];
+                  const correct = userAnswer === q.answer;
+                  return (
+                    <div key={q.id} className={`review-item ${correct ? "correct" : "incorrect"}`}>
+                      <div className="review-item-header">
+                        <span className="review-num">Q{i + 1}</span>
+                        <span className="review-icon">
+                          {correct ? <FiCheck color="#22c55e" /> : <FiX color="#ef4444" />}
+                        </span>
+                        <span className="review-question">{q.question}</span>
+                      </div>
+                      {!correct && (
+                        <div className="review-answer-detail">
+                          <span className="your-answer">
+                            Your answer: <em>{userAnswer !== undefined ? q.options[userAnswer] : "Not answered"}</em>
+                          </span>
+                          <span className="correct-answer">
+                            Correct: <em>{q.options[q.answer]}</em>
+                          </span>
+                          <span className="explanation-text">💡 {q.explanation}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="results-actions">
+              <button className="btn-retake" onClick={handleRetake}>Retake Assessment</button>
+              <button className="btn-proceed" onClick={handleProceed}>
+                {isPre ? `Start Module ${moduleNum} →` : "Back to Learning Path →"}
+              </button>
+            </div>
+
+            {isPre && score < 60 && (
+              <p className="results-note">
+                📌 Your pre-assessment score suggests this module will introduce new concepts.
+                That's perfectly fine — the lessons are designed to build your understanding from the ground up.
+              </p>
+            )}
+            {!isPre && score >= 75 && (
+              <p className="results-note" style={{ color: "#22c55e" }}>
+                ✅ Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── QUESTION SCREEN ───────────────────────────────────────────────────────────
   return (
     <div className="assessment-page">
-      <header className="assessment-header">
-        <button className="back-btn" onClick={() => navigate("/learning-path")}>
-          &larr; Back to Path
-        </button>
-        <h1>Module {moduleId} Assessment</h1>
-      </header>
+      <DashboardHeader />
 
-      <main className="assessment-content">
-        {!isOnline && (
-            <div style={{ backgroundColor: "#f39c12", color: "white", padding: "10px", borderRadius: "8px", marginBottom: "20px", textAlign: "center" }}>
-                You are offline. Your answers will be saved locally and synced when you reconnect.
-            </div>
-        )}
-      
-        {questions.map((q, idx) => (
-          <div key={q.id} className={`question-card ${submitted ? (answers[q.id] === q.correct ? 'correct-card' : 'wrong-card') : ''}`}>
-            <h3>{idx + 1}. {q.question}</h3>
-            
-            {q.code && (
-              <pre className="code-snippet">
-                <code>{q.code}</code>
-              </pre>
-            )}
-
-            <div className="options-list">
-              {q.options.map((opt, optIdx) => {
-                let optClass = "option-label";
-                if (submitted) {
-                  if (optIdx === q.correct) optClass += " correct-option";
-                  else if (answers[q.id] === optIdx) optClass += " wrong-option";
-                }
-
-                return (
-                  <label key={optIdx} className={optClass}>
-                    <input
-                      type="radio"
-                      name={`q-${q.id}`}
-                      value={optIdx}
-                      checked={answers[q.id] === optIdx}
-                      onChange={() => handleSelect(q.id, optIdx)}
-                      disabled={submitted}
-                    />
-                    <span className="option-text">{opt}</span>
-                  </label>
-                );
-              })}
-            </div>
-            
-            {submitted && answers[q.id] !== q.correct && (
-              <div className="explanation-box">
-                 <strong>Explanation: </strong> {q.explanation || "Review the module lessons to understand why this is the optimal approach."}
+      <div className="assessment-wrapper">
+        <div className="assessment-header">
+          <div className="assessment-title-block">
+            <div className="assessment-tag">{isPre ? "PRE-ASSESSMENT" : "POST-ASSESSMENT"}</div>
+            <h1>Module {moduleNum}: {moduleTitle}</h1>
+            <p className="assessment-subtitle">
+              {isPre
+                ? "This assessment measures your prior knowledge before starting the module. It does not affect your progress."
+                : "This assessment evaluates your understanding after completing the module."}
+            </p>
+          </div>
+          <div className="assessment-meta">
+            <div className="meta-pill">⏱ {formatTime(timeElapsed)}</div>
+            <div className="meta-pill">📝 {answeredCount}/{questions.length} answered</div>
+            {lastSavedAt && (
+              <div className="meta-pill saved">
+                <FiSave size={12} />
+                Saved {new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
             )}
           </div>
-        ))}
+        </div>
 
-        {submitted ? (
-          <div className="results-panel">
-            <h2>Assessment Complete</h2>
-            <div className="score-display">Your Score: {score}%</div>
-            <button className="submit-btn" onClick={() => navigate("/learning-path")}>
-              Return to Modules
+        {hasDraft && (
+          <div className="draft-banner">
+            <span>🔄 Your previous session was restored — {answeredCount} answer{answeredCount !== 1 ? "s" : ""} recovered.</span>
+            <button className="draft-discard-btn" onClick={handleDiscardDraft}>
+              Start Fresh
             </button>
           </div>
-        ) : (
-          <button className="submit-btn" onClick={handleSubmit}>
-            Submit Answers
-          </button>
         )}
-      </main>
+
+        {prevResult && !hasDraft && (
+          <div className="prev-result-banner">
+            <span>
+              📊 You previously scored <strong>{prevResult.score}%</strong> on this assessment
+              (Attempt #{prevResult.attempts}).
+            </span>
+          </div>
+        )}
+
+        <div className="assessment-progress-bar">
+          <div
+            className="assessment-progress-fill"
+            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+          />
+        </div>
+
+        <div className="assessment-body">
+          <aside className="question-navigator">
+            <h4>Questions</h4>
+            <div className="question-nav-grid">
+              {questions.map((_, i) => (
+                <button
+                  key={i}
+                  className={`nav-dot ${i === currentIndex ? "active" : ""} ${
+                    selectedAnswers[i] !== undefined ? "answered" : ""
+                  }`}
+                  onClick={() => setCurrentIndex(i)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <div className="nav-legend">
+              <span className="legend-dot answered" /> Answered
+              <span className="legend-dot active" /> Current
+              <span className="legend-dot" /> Unanswered
+            </div>
+          </aside>
+
+          <main className="question-main">
+            <div className="question-card">
+              <div className="question-counter">
+                Question {currentIndex + 1} of {questions.length}
+              </div>
+              <h2 className="question-text">{currentQuestion.question}</h2>
+
+              <div className="options-list">
+                {currentQuestion.options.map((opt, i) => (
+                  <button
+                    key={i}
+                    className={`option-btn ${selectedAnswers[currentIndex] === i ? "selected" : ""}`}
+                    onClick={() => handleSelectAnswer(i)}
+                    disabled={submitted}
+                  >
+                    <span className="option-letter">{String.fromCharCode(65 + i)}</span>
+                    <span className="option-text">{opt}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="question-nav-row">
+                <button
+                  className="nav-btn"
+                  disabled={currentIndex === 0}
+                  onClick={() => setCurrentIndex((i) => i - 1)}
+                >
+                  <FiChevronLeft /> Previous
+                </button>
+
+                {currentIndex < questions.length - 1 ? (
+                  <button
+                    className="nav-btn primary"
+                    onClick={() => setCurrentIndex((i) => i + 1)}
+                  >
+                    Next <FiChevronRight />
+                  </button>
+                ) : (
+                  <button
+                    className="nav-btn submit"
+                    onClick={handleSubmit}
+                    disabled={answeredCount < questions.length}
+                    title={
+                      answeredCount < questions.length
+                        ? `Answer all ${questions.length} questions to submit`
+                        : ""
+                    }
+                  >
+                    <FiAward /> Submit Assessment
+                  </button>
+                )}
+              </div>
+
+              {answeredCount < questions.length && currentIndex === questions.length - 1 && (
+                <p className="submit-warning">
+                  ⚠ Please answer all {questions.length} questions before submitting.
+                  ({questions.length - answeredCount} remaining)
+                </p>
+              )}
+            </div>
+          </main>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default AssessmentPage;
+}

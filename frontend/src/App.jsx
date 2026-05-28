@@ -29,8 +29,9 @@ function App() {
 
   const MainApp = lazy(() => import("./pages/MainApp"));
   const ActivityApp = lazy(() => import("./pages/ActivityApp"));
-  // --- ADD THIS LINE ---
-  const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
+  
+  // --- FIX 1: Lazy load your AssessmentPage ---
+  const AssessmentPage = lazy(() => import("./pages/AssessmentPage")); 
 
   return (
     <>
@@ -45,18 +46,37 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Private Routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />
-          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-          <Route path="/app" element={<ProtectedRoute><MainApp /></ProtectedRoute>} />
-          <Route path="/home" element={<ProtectedRoute><UserHomePage /></ProtectedRoute>} />
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+          />
+          <Route
+            path="/learning-path"
+            element={<ProtectedRoute><LearningPath /></ProtectedRoute>}
+          />
+          <Route
+            path="/projects"
+            element={<ProtectedRoute><Projects /></ProtectedRoute>}
+          />
+          <Route
+            path="/app"
+            element={<ProtectedRoute><MainApp /></ProtectedRoute>}
+          />
+          <Route
+            path="/home"
+            element={<ProtectedRoute><UserHomePage /></ProtectedRoute>}
+          />
+          <Route
+            path="/activity/:moduleId/:activityId"
+            element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
+          />
           
-          {/* Default Activity Route */}
-          <Route path="/activity/:moduleId/:activityId" element={<ProtectedRoute><ActivityApp /></ProtectedRoute>} />
+          {/* --- FIX 2: Add the explicit route for assessments --- */}
+          <Route 
+            path="/assessment/:moduleId/:type" 
+            element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} 
+          />
           
-          {/* --- ADD THIS NEW ROUTE FOR ASSESSMENTS --- */}
-          <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
-
         </Routes>
       </Suspense>
     </>
