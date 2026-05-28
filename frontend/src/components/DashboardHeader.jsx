@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
-    LuFolder,
-    LuLayoutDashboard,
-    LuLogOut,
-    LuUser
+  LuFolder,
+  LuLayoutDashboard,
+  LuLogOut,
+  LuUser
 } from "react-icons/lu";
 
 import { Link, useNavigate } from "react-router-dom";
@@ -127,8 +127,7 @@ export default function DashboardHeader({
     setOpen(false);
 
     localStorage.removeItem("user");
-
-    sessionStorage.clear();
+    sessionStorage.removeItem("user");
 
     navigate("/signin", {
       replace: true,

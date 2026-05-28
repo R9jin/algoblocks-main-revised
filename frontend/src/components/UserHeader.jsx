@@ -111,8 +111,7 @@ export default function UserHeader({ user }) {
     }
 
     localStorage.removeItem("user");
-
-    sessionStorage.clear();
+    sessionStorage.removeItem("user");
 
     navigate("/signin", {
       replace: true,
