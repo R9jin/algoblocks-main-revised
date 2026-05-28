@@ -1,4 +1,4 @@
-# api/semantic_nlg.py
+# frontend/public/python_engine/semantic_nlg.py
 import ast
 import random
 import re
@@ -24,7 +24,7 @@ class MemorySignals:
     uses_generator: bool = False
     performs_slicing: bool = False
     string_concatenation_in_loop: bool = False
-    exponential_string_growth: bool = False # NEW: Detects s = s + s + ...
+    geometric_capacity_growth: bool = False
     tracks_visited_nodes: bool = False
     recursive_stack_risk: bool = False
     efficient_deque_pop: bool = False
@@ -40,7 +40,7 @@ class ComplexitySignals:
     heavy_math_operations: bool = False     
     set_mathematical_ops: bool = False
     dict_lookup_constant: bool = False
-    amortized_operation: bool = False # NEW: Detects append() scaling
+    amortized_operation: bool = False
 
 @dataclass
 class PatternSignals:
@@ -51,7 +51,7 @@ class PatternSignals:
     recursion_branching: Optional[str] = None  
     has_backtracking_risk: bool = False
     has_memoization: bool = False
-    recursion_in_loop: bool = False # NEW
+    recursion_in_loop: bool = False
     
     membership_in_loop: bool = False
     comprehension_expansion: bool = False
@@ -125,6 +125,11 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 
             elif method_name == 'append':
                 self.signals.complexity_signals.amortized_operation = True
+                
+            elif method_name == 'extend':
+                if self._in_loop and node.args and isinstance(node.args[0], ast.Name) and isinstance(node.func.value, ast.Name):
+                    if node.func.value.id == node.args[0].id:
+                        self.signals.memory_signals.geometric_capacity_growth = True
 
             elif method_name in ['union', 'intersection', 'difference']:
                 self.signals.complexity_signals.set_mathematical_ops = True
@@ -212,6 +217,11 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         if self._in_loop and isinstance(node.op, ast.Add):
             if isinstance(node.target, ast.Name) and getattr(self.ctx, "var_types", {}).get(node.target.id) == 'str':
                 self.signals.memory_signals.string_concatenation_in_loop = True
+            elif isinstance(node.target, ast.Name) and isinstance(node.value, ast.Name) and node.value.id == node.target.id:
+                self.signals.memory_signals.geometric_capacity_growth = True
+        elif self._in_loop and isinstance(node.op, ast.Mult) and isinstance(node.target, ast.Name):
+            self.signals.memory_signals.geometric_capacity_growth = True
+            
         self.generic_visit(node)
         
     def visit_Assign(self, node: ast.Assign):
@@ -222,14 +232,20 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             if isinstance(node.value.elt, ast.ListComp) or (isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List)):
                 self.signals.memory_signals.allocates_2d_lists = True
                 
-        # Detect exponential string doubling: s = s + s + ...
         if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Add):
             target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
             for t_id in target_ids:
-                if getattr(self.ctx, "var_types", {}).get(t_id) == 'str':
+                if getattr(self.ctx, "var_types", {}).get(t_id) in ['str', 'list', 'tuple', 'deque']:
                     count = sum(1 for n in ast.walk(node.value) if isinstance(n, ast.Name) and n.id == t_id)
                     if count >= 2:
-                        self.signals.memory_signals.exponential_string_growth = True
+                        self.signals.memory_signals.geometric_capacity_growth = True
+                        
+        if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult):
+            target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            for t_id in target_ids:
+                for child in ast.walk(node.value):
+                    if isinstance(child, ast.Name) and child.id == t_id:
+                        self.signals.memory_signals.geometric_capacity_growth = True
                         
         self.generic_visit(node)
 
@@ -558,13 +574,13 @@ class SemanticNLGEngine:
         educational_growth = self.explainer.explain_time_growth(ginfo, is_amortized=sig.complexity_signals.amortized_operation)
         
         insights = []
-        if sig.memory_signals.exponential_string_growth:
-            insights.append("Notice that the string is being doubled or multiplied against itself. Because strings are immutable, recreating a string that doubles in size every iteration causes an exponential $O(2^n)$ explosion in computation time.")
+        if sig.memory_signals.geometric_capacity_growth:
+            insights.append("Notice that the collection is being doubled or geometrically multiplied against itself. Continuously expanding a data structure in this manner inside a loop causes an exponential $O(2^n)$ explosion in computation time as the system must continuously re-allocate and copy massive memory blocks.")
         elif sig.memory_signals.string_concatenation_in_loop:
             insights.append("Appending to a string inside a loop forces Python to allocate a brand new string buffer every single time, turning what seems like an O(1) operation into an overall O(n^2) time constraint globally.")
         
         if sig.recursion_in_loop:
-            insights.append("Warning: Firing a recursive function from inside an iterative loop creates an extremely dangerous $O(n^d)$ or $O(n^n)$ dynamic branching tree. This is vastly slower than normal linear recursion.")
+            insights.append("Warning: Firing a recursive function from inside an iterative loop creates an extremely dangerous $O(n^d)$ dynamic branching tree. This is vastly slower than normal linear recursion.")
         
         if sig.complexity_signals.inefficient_list_pop:
             insights.append("Notice that popping from the front of a list forces Python to shift all remaining elements in memory, causing severe hidden delays. Consider using a `collections.deque`.")
@@ -609,8 +625,8 @@ class SemanticNLGEngine:
         elif local_s != global_s and local_s == "O(1)":
             insights.append(f"Locally, this specific step requires only {local_s} for instantaneous, immediate execution. However, Globally, the algorithm's peak simultaneous memory usage settles heavily at {global_s}.")
 
-        if sig.memory_signals.exponential_string_growth:
-            insights.append("Doubling a string against itself doesn't just increase time—it geometrically explodes the required RAM allocation at a rate of O(2^n).")
+        if sig.memory_signals.geometric_capacity_growth:
+            insights.append("Doubling a collection against itself doesn't just increase time—it geometrically explodes the required RAM allocation. The data structure will double its memory footprint every iteration, racing towards an $O(2^n)$ limit.")
         if sig.memory_signals.allocates_2d_lists:
             insights.append("Generating nested 2D Arrays or Matrices requires massive continuous blocks of memory, rapidly increasing the footprint beyond simple 1D structures.")
         elif sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
@@ -651,8 +667,8 @@ class SemanticNLGEngine:
         elif sig.nested_loops:
             parts.append("Pattern Detected: Multiplicative repetition via Nested Loops.")
             
-        if sig.memory_signals.exponential_string_growth:
-            parts.append("Pattern Detected: Geometric Memory Explosion via Self-Concatenation.")
+        if sig.memory_signals.geometric_capacity_growth:
+            parts.append("Pattern Detected: Geometric Memory Explosion via Self-Multiplication.")
             
         if sig.comprehension_expansion:
             parts.append("Pattern Detected: Implicit iteration via Data Comprehension.")
@@ -686,8 +702,8 @@ class SemanticNLGEngine:
         if sig.has_comment_block:
             parts.append("Pattern Detected: Documentation preservation via Inline Text Block.")
             
-        if "n!" in global_t.lower():
-            parts.append("Pattern Detected: Combinatorial explosion via Recursive Permutations.")
+        if "n!" in global_t.lower() or "n^n" in global_t.lower() or "n^d" in global_t.lower():
+            parts.append("Pattern Detected: Combinatorial/Branching explosion via Recursive Expansion.")
 
         if parts:
             return "\n\nArchitectural Insights:\n" + "\n".join(f"- {p}" for p in parts)
@@ -729,7 +745,7 @@ class SemanticNLGEngine:
                 f"\n\n{prefix} Because computers process instructions sequentially, the looping overhead here acts as a massive execution multiplier, bottlenecking the system at {final_time}.",
                 f"\n\n{prefix} This {op_lower} forces the algorithm to continually re-process data, creating a severe structural bottleneck resulting in {final_time} scaling."
             ]
-        elif "recur" in op_lower:
+        elif "recur" in op_lower or "call" in op_lower:
             templates = [
                 f"\n\n{prefix} The aggressive branching pattern generated by this {op_lower} dominates the CPU execution time, capping overall efficiency at {final_time}.",
                 f"\n\n{prefix} The deep, expanding call tree produced by this {op_lower} is highly inefficient, establishing a massive {final_time} bottleneck.",
@@ -757,13 +773,13 @@ class SemanticNLGEngine:
         op_lower = operation.lower()
         prefix = "SPACE BOTTLENECK:"
         
-        if "recur" in op_lower:
+        if "recur" in op_lower or "call" in op_lower:
             templates = [
                 f"\n\n{prefix} Every single jump in this {op_lower} requires a new block of memory on the system call stack, driving the space complexity dangerously up to {final_space}.",
                 f"\n\n{prefix} Building up cascading stack frames during this {op_lower} is the dominant factor causing peak RAM consumption to scale rapidly to {final_space}.",
                 f"\n\n{prefix} This {op_lower} does not return memory until the deepest level is reached, causing temporary memory hoarding that results in {final_space} peak behavior."
             ]
-        elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower:
+        elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower or "expansion" in op_lower:
             templates = [
                 f"\n\n{prefix} Vigorously allocating memory for distinct collections during this {op_lower} is heavily memory-intensive, creating a {final_space} concurrent space profile.",
                 f"\n\n{prefix} The massive new data structures dynamically generated by this {op_lower} completely dominate peak memory usage, pushing the upper bounds to {final_space}.",

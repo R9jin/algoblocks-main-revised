@@ -146,12 +146,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 praise = self.nlg_engine.get_time_optimization_praise(d.get('operation', ''), d.get('global_time', ''))
                 if "ALGORITHM MASTERY:" not in d.get('time_explanation', ''):
                     d['time_explanation'] = str(d.get('time_explanation', '')) + praise
-                    
-    def add_logic_hint(self, node, hint):
-        lineno = getattr(node, 'lineno', -1)
-        if lineno != -1:
-            if lineno not in self.logic_hints: self.logic_hints[lineno] = []
-            if hint not in self.logic_hints[lineno]: self.logic_hints[lineno].append(hint)
 
     def _is_linear_type(self, expr_node):
         if isinstance(expr_node, (ast.List, ast.Tuple, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp)):
@@ -163,6 +157,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 return True
         return False
 
+    def _is_linear_var(self, var_name):
+        t = self.var_types.get(var_name, '')
+        if t in ['list', 'set', 'dict', 'tuple', 'str', 'deque']: return True
+        if any(k in var_name.lower() for k in ['arr', 'list', 'dict', 'set', 'str', 'queue', 'stack', 'graph', 'matrix', 'items', 'nums']): 
+            return True
+        return False
+
     def _get_iterable_name(self, node):
         if isinstance(node, ast.Name): return node.id
         if isinstance(node, ast.Call) and getattr(node.func, 'id', '') == 'range':
@@ -170,7 +171,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if args_len == 1: arg = node.args[0]
             elif args_len >= 2: arg = node.args[1]
             else: return None
-
             if isinstance(arg, ast.Name): return arg.id
             if isinstance(arg, ast.BinOp):
                 if isinstance(arg.left, ast.Name): return arg.left.id
@@ -440,6 +440,38 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if isinstance(child, ast.Name) and self.variable_complexities.get(child.id) == "exponential": return True
         return False
 
+    def _evaluate_organic_growth(self, target_id, value_node):
+        var_t = self.var_types.get(target_id)
+        if var_t not in ['str', 'list', 'tuple', 'set', 'dict', 'deque'] and not self._is_linear_var(target_id):
+            return "O(1)", "O(1)", None
+            
+        self_references = sum(1 for n in ast.walk(value_node) if isinstance(n, ast.Name) and n.id == target_id)
+        is_mult = any(
+            isinstance(n, ast.BinOp) and isinstance(n.op, ast.Mult) and (
+                (isinstance(n.left, ast.Name) and n.left.id == target_id and getattr(n.right, 'value', 0) > 1) or 
+                (isinstance(n.right, ast.Name) and n.right.id == target_id and getattr(n.left, 'value', 0) > 1)
+            ) for n in ast.walk(value_node)
+        )
+        
+        loop_multiplier = len(self.loop_stack)
+        
+        if self_references >= 2 or is_mult:
+            if loop_multiplier > 0:
+                self.max_exp = 1
+                return "O(2^n)", "O(2^n)", "Geometric Expansion"
+            return "O(n)", "O(n)", "Geometric Expansion"
+                
+        elif self_references == 1:
+            if loop_multiplier > 0:
+                dim_str = "n^2" if loop_multiplier == 1 else f"n^{loop_multiplier + 1}"
+                space_str = "n^2" if var_t in ['str', 'tuple'] else "n"
+                time_str = "n^2" if var_t in ['str', 'tuple'] else "n"
+                op_name = "String Build" if var_t == 'str' else "Linear Accumulation"
+                return f"O({time_str})", f"O({space_str})", op_name
+            return "O(1)", "O(1)", "String Build" if var_t == 'str' else "Linear Accumulation"
+            
+        return "O(1)", "O(1)", None
+
     def record_line(self, node, time_override=None, space_override=None, custom_op=None, global_time_override=None, global_space_override=None):
         line_text = self.get_code_snippet(node)
         line_num = getattr(node, 'lineno', -1) 
@@ -656,7 +688,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if t in ['set', 'dict']: is_hash_map = True
                     elif any(k in comp.id.lower() for k in ['memo', 'cache', 'visit', 'set', 'map', 'dp']): is_hash_map = True
                 elif isinstance(comp, (ast.Set, ast.Dict, ast.SetComp, ast.DictComp)): is_hash_map = True
-                elif isinstance(comp, ast.Call) and getattr(getattr(comp, 'func', None), 'id', '') in ['set', 'dict']: is_hash_map = True
+                elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Name) and comp.func.id in ['set', 'dict']: is_hash_map = True
             
             if is_hash_map:
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Set/Dict)", global_space_override="O(1)")
@@ -1042,10 +1074,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     
             elif node.func.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
                 b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=node.func.attr.capitalize(), global_time_override=b['time'], global_space_override=b['space'])
+                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize(), global_time_override=b['time'], global_space_override=b['space'])
             elif node.func.attr in self.builtin_complexities:
                 b = self.builtin_complexities[node.func.attr]
-                self.record_line(node, time_override="O(1)", space_override="O(1)", global_time_override=b['time'], global_space_override=b['space'])
+                self.record_line(node, time_override=b['time'], space_override=b['space'], global_time_override=b['time'], global_space_override=b['space'])
             else: 
                 self.record_line(node, global_space_override="O(1)")
         
@@ -1193,28 +1225,24 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 g_time = "O(n)"
                 g_space = "O(n)"
             
-            if custom_op is None and isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Add):
-                target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
-                for t_id in target_ids:
-                    if self.var_types.get(t_id) == 'str':
-                        count = sum(1 for n in ast.walk(node.value) if isinstance(n, ast.Name) and n.id == t_id)
-                        if count >= 2:
-                            if len(self.loop_stack) > 0:
-                                t_ov = "O(n)"
-                                s_ov = "O(n)"
-                                g_space = "O(2^n)"
-                                g_time = "O(2^n)"
-                                custom_op = "Concatenation / Repetition"
-                            break
-                        elif count == 1:
-                            if len(self.loop_stack) > 0:
-                                loop_dims = len(self.active_poly_dims)
-                                t_ov = "O(n)"
-                                s_ov = "O(n)"
-                                g_space = "O(n^2)" if loop_dims >= 2 else "O(n)"
-                                g_time = "O(n^2)" if loop_dims >= 2 else "O(n)"
-                                custom_op = "String Build"
-                            break
+            target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            for t_id in target_ids:
+                if self._is_linear_var(t_id) or self.var_types.get(t_id) in ['str', 'list', 'tuple', 'set', 'dict']:
+                    gt, gs, op = self._evaluate_organic_growth(t_id, node.value)
+                    if op:
+                        if op == "Geometric Expansion":
+                            t_ov = "O(n)"
+                            s_ov = "O(n)"
+                        elif op == "String Build":
+                            t_ov = "O(1)"
+                            s_ov = "O(1)"
+                        else:
+                            t_ov = "O(n)" if gt != "O(1)" else "O(1)"
+                            s_ov = "O(n)" if gs != "O(1)" else "O(1)"
+                        g_time = gt
+                        g_space = gs
+                        custom_op = op
+                        break
 
             if custom_op is None and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                 custom_op = "Init"
@@ -1242,6 +1270,20 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if self.loop_depth > 0 and isinstance(node.target, ast.Name) and isinstance(node.value, ast.Subscript):
             self.add_logic_hint(node, "Logic Risk (Data-Dependent Traversal): Your loop increment/step depends heavily on dynamic data values. Static analysis conservatively defaults to worst-case, but this runtime could radically fluctuate depending on the dataset state.")
 
+        if isinstance(node.target, ast.Name) and self._is_linear_var(node.target.id):
+            is_geometric = False
+            if isinstance(node.op, ast.Mult) and isinstance(node.value, ast.Constant) and getattr(node.value, 'value', 0) > 1:
+                is_geometric = True
+            elif isinstance(node.op, ast.Add) and isinstance(node.value, ast.Name) and node.value.id == node.target.id:
+                is_geometric = True
+                
+            if is_geometric:
+                if len(self.loop_stack) > 0:
+                    self.max_space_weight = max(self.max_space_weight, 4)
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Geometric Expansion", global_time_override="O(2^n)", global_space_override="O(2^n)")
+                    self.max_exp = 1
+                    return
+
         if isinstance(node.target, ast.Name) and self.var_types.get(node.target.id) == 'str' and isinstance(node.op, ast.Add):
             if len(self.loop_stack) > 0:
                 loop_dims = len(self.active_poly_dims)
@@ -1253,7 +1295,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.max_space_weight = max(self.max_space_weight, 1)
                     g_space = "O(n)"
                     g_time = "O(n^2)"
-                self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="String Build", global_time_override=g_time, global_space_override=g_space)
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Build", global_time_override=g_time, global_space_override=g_space)
                 return 
 
         for child in ast.walk(node.value):
