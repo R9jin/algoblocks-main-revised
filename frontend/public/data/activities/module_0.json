@@ -280,7 +280,7 @@
       ]
     },
     {
-      "id": "m0_l3_a4",
+      "id": "m0_l4_a4",
       "title": "String Length Checker",
       "task": "A text validation system measures the length of input strings for preprocessing.\n\nTask Requirement:\nCreate a function length_check(x).\n\nRules:\n- Return the number of characters in the input string\n- If input is not a string, return 'Error'\n\nSample Output:\nlength_check('hello') → 5",
       "targetTime": "O(1)",
@@ -297,16 +297,16 @@
     {
       "id": "m0_l4_a5",
       "title": "Pointer Navigation Simulator",
-      "task": "A memory pointer system simulates movement across indexed array positions.\n\nTask Requirement:\nCreate a function pointer() that simulates pointer movement logic across an array.\n\nRules:\n- Movement follows sequential index traversal\n- Return final state as list\n\nSample Output:\npointer() → [0,1]",
+      "task": "A memory pointer system simulates movement across indexed array positions.\n\nTask Requirement:\nCreate a function pointer(steps) that simulates pointer movement starting from index 0.\n\nRules:\n- Start at index 0\n- Move forward by 1 step per iteration\n- Return full movement path as a list\n\nSample Output:\npointer(2) → [0,1,2]",
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "pointer()", "expected": "[0,1]", "isHidden": false },
-        { "call": "pointer()", "expected": "[1,2]", "isHidden": false },
-        { "call": "pointer()", "expected": "[2,3]", "isHidden": false },
-        { "call": "pointer()", "expected": "[0,0]", "isHidden": false },
-        { "call": "pointer()", "expected": "[]", "isHidden": false }
+        { "call": "pointer(1)", "expected": "[0,1]", "isHidden": false },
+        { "call": "pointer(2)", "expected": "[0,1,2]", "isHidden": false },
+        { "call": "pointer(3)", "expected": "[0,1,2,3]", "isHidden": false },
+        { "call": "pointer(0)", "expected": "[0]", "isHidden": false },
+        { "call": "pointer(4)", "expected": "[0,1,2,3,4]", "isHidden": false }
       ]
     }
   ]
