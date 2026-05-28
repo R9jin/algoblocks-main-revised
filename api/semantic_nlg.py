@@ -1,3 +1,4 @@
+# api/semantic_nlg.py
 import ast
 import random
 import re
@@ -11,7 +12,6 @@ class BigOInfo:
     family: str  
     factors: Dict[str, Any]
 
-
 @dataclass
 class MemorySignals:
     allocates_lists: bool = False
@@ -24,12 +24,12 @@ class MemorySignals:
     uses_generator: bool = False
     performs_slicing: bool = False
     string_concatenation_in_loop: bool = False
+    exponential_string_growth: bool = False # NEW: Detects s = s + s + ...
     tracks_visited_nodes: bool = False
     recursive_stack_risk: bool = False
     efficient_deque_pop: bool = False
     set_and_dict_updates: bool = False
     caches_results: bool = False
-
 
 @dataclass
 class ComplexitySignals:
@@ -40,7 +40,7 @@ class ComplexitySignals:
     heavy_math_operations: bool = False     
     set_mathematical_ops: bool = False
     dict_lookup_constant: bool = False
-
+    amortized_operation: bool = False # NEW: Detects append() scaling
 
 @dataclass
 class PatternSignals:
@@ -51,6 +51,7 @@ class PatternSignals:
     recursion_branching: Optional[str] = None  
     has_backtracking_risk: bool = False
     has_memoization: bool = False
+    recursion_in_loop: bool = False # NEW
     
     membership_in_loop: bool = False
     comprehension_expansion: bool = False
@@ -121,6 +122,9 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
 
             elif method_name == 'popleft':
                 self.signals.memory_signals.efficient_deque_pop = True
+                
+            elif method_name == 'append':
+                self.signals.complexity_signals.amortized_operation = True
 
             elif method_name in ['union', 'intersection', 'difference']:
                 self.signals.complexity_signals.set_mathematical_ops = True
@@ -141,6 +145,8 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             if func_name == current_fn or func_name in indirect_fns:
                 self.signals.has_recursion = True
                 self.signals.memory_signals.recursive_stack_risk = True
+                if self._in_loop:
+                    self.signals.recursion_in_loop = True
 
         self.generic_visit(node)
 
@@ -151,7 +157,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                     self.signals.membership_in_loop = True
                     self.signals.complexity_signals.membership_in_list = True
                 
-                # Check for memoization lookup pattern
                 if isinstance(node.comparators[0], ast.Name) and any(k in node.comparators[0].id.lower() for k in ['memo', 'cache', 'dp']):
                     self.signals.has_memoization = True
                     self.signals.memory_signals.caches_results = True
@@ -213,11 +218,19 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
             self.signals.variable_swapping = True
             
-        # Check for 2D array allocation via multiplication e.g., `[[0] * m for _ in range(n)]`
         if isinstance(node.value, ast.ListComp):
             if isinstance(node.value.elt, ast.ListComp) or (isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List)):
                 self.signals.memory_signals.allocates_2d_lists = True
                 
+        # Detect exponential string doubling: s = s + s + ...
+        if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Add):
+            target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            for t_id in target_ids:
+                if getattr(self.ctx, "var_types", {}).get(t_id) == 'str':
+                    count = sum(1 for n in ast.walk(node.value) if isinstance(n, ast.Name) and n.id == t_id)
+                    if count >= 2:
+                        self.signals.memory_signals.exponential_string_growth = True
+                        
         self.generic_visit(node)
 
     def visit_Break(self, node: ast.Break):
@@ -246,16 +259,13 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 
             if getattr(self.ctx, "has_recursion_in_loop", False) or self.signals.loop_depth > 0:
                 self.signals.has_backtracking_risk = True
+                self.signals.recursion_in_loop = True
 
     def _evaluate_graph_context(self):
         if getattr(self.ctx, "in_graph_context", False):
             self.signals.graph_traversal = True
             self.signals.visited_tracking = True
             self.signals.memory_signals.tracks_visited_nodes = True
-        
-        if 'popleft' in self._function_calls or 'pop' in self._function_calls:
-            if self.signals.graph_traversal:
-                pass # Already marked
 
     def _evaluate_memoization(self):
         if getattr(self.ctx, "current_function_name", None) in getattr(self.ctx, "memoized_funcs", set()):
@@ -263,7 +273,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             self.signals.memory_signals.caches_results = True
 
     def _evaluate_backtracking(self):
-        # Infer backtracking if we have list mutation (append, pop) combined with recursion
         if self.signals.has_recursion and 'append' in self._function_calls and 'pop' in self._function_calls:
             self.signals.has_backtracking_risk = True
 
@@ -271,10 +280,15 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
 class EducationalInsightGenerator:
     
     @staticmethod
-    def explain_time_growth(info: BigOInfo) -> str:
+    def explain_time_growth(info: BigOInfo, is_amortized: bool = False) -> str:
         family = info.family
         
         if family == "constant":
+            if is_amortized:
+                return (
+                    "This operation runs in Amortized Constant Time O(1). While occasionally it triggers a heavier background array resize, "
+                    "on average across many operations, the time taken remains flat and highly efficient regardless of total input size."
+                )
             return (
                 "This operation runs in Constant Time. This means no matter how massive "
                 "the input data gets, the time it takes "
@@ -321,9 +335,19 @@ class EducationalInsightGenerator:
                 "Adding just one single item to the input can cause the required work to double. "
                 "This typically happens in naive recursive algorithms (like calculating Fibonacci without a cache) that solve the same sub-problems over and over again."
             )
+        elif family == "recursive_branching":
+            return (
+                "This operation runs in Recursive Branching Time (O(n^d)). Because a recursive call is nested directly inside a loop, "
+                "the execution tree explodes dynamically. The base of the exponent is driven by the loop iteration, and the depth 'd' dictates the massive scaling explosion."
+            )
+        elif family == "super_exponential":
+            return (
+                "This operation exhibits Super Exponential Growth (O(n^n)). It represents an absolute worst-case scenario where the algorithm "
+                "expands to the power of its own input size. This scales so horribly that the execution will freeze the system almost immediately."
+            )
         elif family == "factorial":
             return (
-                "This operation runs in Factorial Time, which is the most extreme form of complexity explosion. "
+                "This operation runs in Factorial Time, which is the most extreme form of combinatorial explosion. "
                 "It represents generating every possible permutation or combination of the input. "
                 "An algorithm with factorial growth will quickly bring any modern computer to a halt even with "
                 "inputs as small as 15 or 20 items."
@@ -346,51 +370,54 @@ class EducationalInsightGenerator:
         family = info.family
         lower_s = global_s.lower()
         
+        core_rule = "When evaluating Global Space, we measure the algorithm's maximum concurrent memory footprint at its peak, rather than just summing every single line. "
+        
         if "placeholder" in lower_s or family == "unknown":
             return (
-                "The exact memory usage could not be statically determined by the analyzer for this specific block. "
+                core_rule + "The exact memory usage could not be statically determined by the analyzer for this specific block. "
                 "The algorithm dynamically allocates space depending on runtime conditions, but a strict mathematical bound was not resolved."
             )
         elif "o(1)" in lower_s or family == "constant":
             return (
-                "The memory footprint is Constant. The algorithm modifies data 'in-place' or only "
-                "requires a few fixed variables. It does not hoard additional memory as the input grows, "
+                core_rule + "The global memory footprint here is Constant. The algorithm modifies data 'in-place' or only "
+                "requires a few fixed variables. It does not hoard additional memory structures as the input grows, "
                 "making it highly efficient and safe for systems with limited RAM."
             )
         elif "log" in lower_s:
             return (
-                "The memory usage scales Logarithmically. This is typically driven by the 'call stack' during efficient recursion. "
-                "Because the problem is halved at each step, the maximum depth of the stack stays remarkably small (e.g., about 20 frames for a million items), "
+                core_rule + "The memory usage scales Logarithmically. This is typically driven by the peak depth of the 'call stack' during efficient recursion. "
+                "Because the problem is halved at each step, the maximum depth of the stack stays remarkably small, "
                 "making it highly memory-efficient compared to a linear stack."
             )
         elif family == "linear" or "o(n)" in lower_s:
             if "in-place" in (getattr(ctx, "hint_text", "") or ""):
                 return (
-                    "While theoretically scaling with the input, the practical memory overhead is kept low "
+                    core_rule + "While theoretically scaling with the input, the practical memory overhead is kept low "
                     "because the algorithm manipulates data in-place without creating massive duplicate copies."
                 )
             return (
-                "The memory usage scales Linearly. For every new piece of input data, the algorithm allocates "
-                "a proportional amount of extra memory. This typically happens when constructing new lists, "
-                "dictionaries, or keeping track of an expanding recursive call stack where depth equals 'n'."
+                core_rule + "The memory usage scales Linearly. For every new piece of input data, the overall memory structure requires "
+                "a proportional amount of extra space. This typically happens when constructing final arrays, dictionaries, or tracking a recursive call stack."
             )
         elif re.search(r'\b[ve]\b', lower_s) or family == "graph":
             return (
-                "The memory footprint depends on the Graph's architecture. The algorithm must remember which nodes "
-                "it has already visited (to prevent infinite loops) and maintain a queue/stack of nodes waiting to be explored. "
-                "Therefore, memory grows alongside the number of vertices and edges."
+                core_rule + "The peak memory footprint depends on the Graph's architecture. The algorithm must remember which nodes "
+                "it has already visited and maintain a concurrent queue/stack of nodes waiting to be explored."
             )
-        elif family == "polynomial" or "n^2" in lower_s or "n * m" in lower_s:
+        elif family in ["exponential", "super_exponential", "recursive_branching"] or "2^n" in lower_s or "n^n" in lower_s:
             return (
-                "The memory usage exhibits Polynomial Growth. The algorithm is constructing multi-dimensional "
-                "structures, like matrices or 2D Dynamic Programming grids. This means memory consumption "
-                "will grow exponentially faster than the input, requiring careful monitoring for large datasets."
+                core_rule + "The memory usage is geometrically exploding. The algorithm is forcing the system to maintain rapidly doubling or exponentially generating states simultaneously, which will quickly crash or exhaust available RAM."
+            )
+        elif family == "polynomial" or "n^2" in lower_s or "n * m" in lower_s or "n²" in lower_s:
+            return (
+                core_rule + "The peak memory usage exhibits Polynomial Growth. The algorithm is constructing massive multi-dimensional "
+                "structures, like matrices, 2D Dynamic Programming grids, or exponentially expanding strings. This means memory consumption "
+                "grows exponentially faster than the input."
             )
         else:
             return (
-                "The memory usage requires dynamic allocation. As the algorithm executes, it actively reserves "
-                "more space in the computer's memory to track intermediate states, variables, or recursive calls. "
-                "This means larger inputs will directly translate to a larger RAM footprint."
+                core_rule + "The peak memory usage requires dynamic allocation. As the algorithm executes, it actively reserves "
+                "more concurrent space in the computer's memory to track intermediate states or structures."
             )
 
 
@@ -429,9 +456,10 @@ class SemanticNLGEngine:
         if "∞" in original or "infinite" in lower:
             return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
 
-        # Process Specific Recurrence Relations before generalized T(n) check
-        if "t(n) = n * t(n-1)" in lower:
-            return BigOInfo(raw=original, normalized=s, family="factorial", factors={})
+        if "t(n) = n * t(n-1)" in lower or "n^n" in lower:
+            return BigOInfo(raw=original, normalized=s, family="super_exponential", factors={})
+        if "n^d" in lower:
+            return BigOInfo(raw=original, normalized=s, family="recursive_branching", factors={})
         if "t(n) = 2t(n/2) + o(n)" in lower:
             return BigOInfo(raw=original, normalized=s, family="linearithmic", factors={})
         if "t(n) = 2t(n/2) + o(1)" in lower:
@@ -457,7 +485,7 @@ class SemanticNLGEngine:
         if "c(" in lower or "combination" in lower or "choose" in lower or "4^n" in lower:
             return BigOInfo(raw=original, normalized=s, family="exponential", factors={})
 
-        if "2^n" in lower or ("2^" in lower and "n" in lower) or "2n" in lower:
+        if "2^n" in lower or ("2^" in lower and "n" in lower) or "2n" in lower or "2ⁿ" in lower:
             return BigOInfo(raw=original, normalized=s, family="exponential", factors={"base": 2})
         if "exp" in lower and "n" in lower:
             return BigOInfo(raw=original, normalized=s, family="exponential", factors={})
@@ -483,7 +511,7 @@ class SemanticNLGEngine:
         if "n*m" in lower or "n * m" in lower:
             return BigOInfo(raw=original, normalized=s, family="polynomial", factors={"product": True})
 
-        if "n^" in lower or "^2" in lower or "^3" in lower:
+        if "n^" in lower or "^2" in lower or "^3" in lower or "n²" in lower or "n³" in lower:
             return BigOInfo(raw=original, normalized=s, family="polynomial", factors={})
 
         if re.fullmatch(r"o\(\s*n\s*\)", lower) or re.fullmatch(r"o\(\s*n\s*\)", s.lower().replace(" ", "")):
@@ -500,6 +528,8 @@ class SemanticNLGEngine:
     def _build_execution_context_phrase(self, sig: PatternSignals) -> str:
         if sig.nested_loops:
             return "the algorithm executes an inner operation exhaustively for every single step of the outer structure"
+        elif getattr(self.ctx, "has_recursion_in_loop", False) or sig.recursion_in_loop:
+            return "the function places a dynamic recursive call directly inside a loop, causing an exponential tree explosion"
         elif sig.loop_depth >= 1:
             return "the algorithm systematically processes items in a repetitive sequence"
         elif sig.membership_in_loop:
@@ -525,9 +555,17 @@ class SemanticNLGEngine:
         snippet_ref = f"Looking at `{code_snippet}`" if code_snippet else "Analyzing this segment"
         context_phrase = self._build_execution_context_phrase(sig)
         
-        educational_growth = self.explainer.explain_time_growth(ginfo)
+        educational_growth = self.explainer.explain_time_growth(ginfo, is_amortized=sig.complexity_signals.amortized_operation)
         
         insights = []
+        if sig.memory_signals.exponential_string_growth:
+            insights.append("Notice that the string is being doubled or multiplied against itself. Because strings are immutable, recreating a string that doubles in size every iteration causes an exponential $O(2^n)$ explosion in computation time.")
+        elif sig.memory_signals.string_concatenation_in_loop:
+            insights.append("Appending to a string inside a loop forces Python to allocate a brand new string buffer every single time, turning what seems like an O(1) operation into an overall O(n^2) time constraint globally.")
+        
+        if sig.recursion_in_loop:
+            insights.append("Warning: Firing a recursive function from inside an iterative loop creates an extremely dangerous $O(n^d)$ or $O(n^n)$ dynamic branching tree. This is vastly slower than normal linear recursion.")
+        
         if sig.complexity_signals.inefficient_list_pop:
             insights.append("Notice that popping from the front of a list forces Python to shift all remaining elements in memory, causing severe hidden delays. Consider using a `collections.deque`.")
         if sig.complexity_signals.inefficient_list_insert:
@@ -566,20 +604,25 @@ class SemanticNLGEngine:
         educational_growth = self.explainer.explain_space_growth(global_s, ginfo, self.ctx)
         
         insights = []
+        if sig.complexity_signals.amortized_operation:
+            insights.append(f"Locally, appending elements takes {local_s} space as it only adds a quick reference. However, Globally, it systematically expands the overarching data structure, solidifying the final {global_s} footprint.")
+        elif local_s != global_s and local_s == "O(1)":
+            insights.append(f"Locally, this specific step requires only {local_s} for instantaneous, immediate execution. However, Globally, the algorithm's peak simultaneous memory usage settles heavily at {global_s}.")
+
+        if sig.memory_signals.exponential_string_growth:
+            insights.append("Doubling a string against itself doesn't just increase time—it geometrically explodes the required RAM allocation at a rate of O(2^n).")
         if sig.memory_signals.allocates_2d_lists:
             insights.append("Generating nested 2D Arrays or Matrices requires massive continuous blocks of memory, rapidly increasing the footprint beyond simple 1D structures.")
         elif sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
-            insights.append("Generating new lists dynamically requires allocating contiguous blocks of RAM, which increases memory pressure.")
+            insights.append("Generating new lists dynamically requires allocating contiguous blocks of RAM, which increases overall memory pressure.")
         if sig.memory_signals.allocates_sets or sig.memory_signals.uses_set_comprehension:
-            insights.append("Generating sets guarantees unique elements and fast lookups, but building the set structure consumes additional memory based on the number of unique items.")
+            insights.append("Generating sets guarantees unique elements and fast lookups, but building the underlying hash table consumes additional space.")
         if sig.memory_signals.performs_slicing:
             insights.append("Be careful: slicing arrays generates complete distinct copies of the data in memory, rather than just referencing the original structure. In deep loops, this destroys spatial efficiency.")
         if sig.memory_signals.recursive_stack_risk:
             insights.append("Every recursive jump adds a new 'frame' to the system call stack. If the recursion goes too deep linearly, it risks a Stack Overflow.")
-        if sig.memory_signals.string_concatenation_in_loop:
-            insights.append("Because strings are immutable, adding to a string repeatedly inside a loop forces the system to constantly allocate brand new strings and destroy old ones, wasting memory.")
         if sig.memory_signals.efficient_deque_pop:
-            insights.append("Utilizing popleft from a deque structure optimizes memory deallocation from the front of the sequence in constant space and time.")
+            insights.append("Utilizing popleft from a deque structure optimizes memory deallocation from the front of the sequence in constant space.")
         if sig.memory_signals.set_and_dict_updates:
             insights.append("Updating elements inside sets or dictionaries dynamically resizes hash tables depending on unique entry volume.")
         if sig.memory_signals.caches_results:
@@ -591,10 +634,10 @@ class SemanticNLGEngine:
         if mem_state:
             largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
             if largest and largest[1]['size'] > 1:
-                dynamic_note = f"\n\nRuntime Observation: The profiler detected that the variable `{largest[0]}` swelled to hold {largest[1]['size']} elements in memory during execution."
+                dynamic_note = f"\n\nRuntime Observation: The profiler detected that the variable `{largest[0]}` swelled to hold {largest[1]['size']} elements in memory during peak execution."
 
         return (
-            f"{snippet_ref} has a localized space impact of {linfo.raw}, while contributing to an overall algorithm footprint of {ginfo.raw}.\n\n"
+            f"{snippet_ref} demands an instantaneous local allocation of {linfo.raw}, while contributing to an overall global algorithm footprint of {ginfo.raw}.\n\n"
             f"What does this mean? {educational_growth}"
             f"{insight_text}"
             f"{dynamic_note}"
@@ -603,11 +646,17 @@ class SemanticNLGEngine:
     def _pattern_renderer(self, node: ast.AST, global_t: str, sig: PatternSignals) -> str:
         parts: List[str] = []
         
-        if sig.nested_loops:
+        if getattr(self.ctx, "has_recursion_in_loop", False) or sig.recursion_in_loop:
+            parts.append("Pattern Detected: Super-Exponential expansion via Loop-Driven Recursion.")
+        elif sig.nested_loops:
             parts.append("Pattern Detected: Multiplicative repetition via Nested Loops.")
+            
+        if sig.memory_signals.exponential_string_growth:
+            parts.append("Pattern Detected: Geometric Memory Explosion via Self-Concatenation.")
+            
         if sig.comprehension_expansion:
             parts.append("Pattern Detected: Implicit iteration via Data Comprehension.")
-        if sig.has_recursion:
+        if sig.has_recursion and not sig.recursion_in_loop:
             if sig.recursion_branching == "multi":
                 parts.append("Pattern Detected: Exponential branching via Multiple Recursive Calls.")
             else:
@@ -711,24 +760,24 @@ class SemanticNLGEngine:
         if "recur" in op_lower:
             templates = [
                 f"\n\n{prefix} Every single jump in this {op_lower} requires a new block of memory on the system call stack, driving the space complexity dangerously up to {final_space}.",
-                f"\n\n{prefix} Building up cascading stack frames during this {op_lower} is the dominant factor causing RAM consumption to scale rapidly to {final_space}.",
-                f"\n\n{prefix} This {op_lower} does not return memory until the deepest level is reached, causing temporary memory hoarding that results in {final_space} behavior."
+                f"\n\n{prefix} Building up cascading stack frames during this {op_lower} is the dominant factor causing peak RAM consumption to scale rapidly to {final_space}.",
+                f"\n\n{prefix} This {op_lower} does not return memory until the deepest level is reached, causing temporary memory hoarding that results in {final_space} peak behavior."
             ]
         elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower:
             templates = [
-                f"\n\n{prefix} Vigorously allocating memory for distinct collections during this {op_lower} is heavily memory-intensive, creating a {final_space} space profile.",
-                f"\n\n{prefix} The massive new data structures dynamically generated by this {op_lower} completely dominate memory usage, pushing the upper bounds to {final_space}.",
-                f"\n\n{prefix} Rather than working in-place, this {op_lower} duplicates structure contents, forcing the system memory requirements up to {final_space}."
+                f"\n\n{prefix} Vigorously allocating memory for distinct collections during this {op_lower} is heavily memory-intensive, creating a {final_space} concurrent space profile.",
+                f"\n\n{prefix} The massive new data structures dynamically generated by this {op_lower} completely dominate peak memory usage, pushing the upper bounds to {final_space}.",
+                f"\n\n{prefix} Rather than working in-place, this {op_lower} duplicates structure contents, forcing the maximum system memory requirements up to {final_space}."
             ]
-        elif "slice" in op_lower or "string" in op_lower:
+        elif "slice" in op_lower or "string" in op_lower or "concat" in op_lower:
             templates = [
-                f"\n\n{prefix} This {op_lower} operation actively constructs brand new instances of data in memory rather than referencing existing ones, escalating space complexity to {final_space}.",
-                f"\n\n{prefix} The hidden copies generated by this {op_lower} severely bloat the memory footprint, ensuring space scaling hits {final_space}."
+                f"\n\n{prefix} This {op_lower} operation actively constructs brand new, expanding instances of data in memory rather than referencing existing ones, escalating peak space complexity to {final_space}.",
+                f"\n\n{prefix} The hidden copies generated by this {op_lower} severely bloat the maximum memory footprint, ensuring space scaling hits {final_space}."
             ]
         else:
             templates = [
-                f"\n\n{prefix} This {op_lower} inherently requires large blocks of extra working memory, pushing the algorithm's spatial footprint to {final_space}.",
-                f"\n\n{prefix} The temporary data hoarded by this {op_lower} is the primary culprit causing overall memory utilization to scale at {final_space}."
+                f"\n\n{prefix} This {op_lower} inherently requires large blocks of extra concurrent working memory, pushing the algorithm's spatial footprint to {final_space}.",
+                f"\n\n{prefix} The temporary data hoarded by this {op_lower} is the primary culprit causing overall peak memory utilization to scale at {final_space}."
             ]
         return random.choice(templates)
 
