@@ -1,4 +1,10 @@
 # api/index.py
+import os
+import sys
+
+# Tell Vercel to look inside the 'api' folder for modules
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import uvicorn
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
