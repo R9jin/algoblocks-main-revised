@@ -1,54 +1,42 @@
 // frontend/src/App.jsx
-import { Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-
 import OfflineIndicator from "./components/OfflineIndicator";
-import ActivityApp from "./pages/ActivityApp";
-import AssessmentPage from "./pages/AssessmentPage";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import LandingPage from "./pages/HomePage";
 import LearningPath from "./pages/LearningPath";
-import LessonViewer from "./pages/LessonViewer";
-import MainApp from "./pages/MainApp";
-import ProfilePage from "./pages/ProfilePage";
 import Projects from "./pages/Projects";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
-
-import "./App.css";
 import { startBackgroundSync } from "./utils/syncManager";
+import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
 
-// Check if user is authenticated
-const PrivateRoute = ({ children }) => {
-  const user = localStorage.getItem("user") || sessionStorage.getItem("user");
-  // ✅ Redirect to landing page ("/") instead of "/signin"
-  return user ? children : <Navigate to="/" />;
+const ProtectedRoute = ({ children }) => {
+  const user = localStorage.getItem("user");
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+  return children;
 };
 
 function App() {
   useEffect(() => {
-    // Start the background sync worker for offline capabilities
     startBackgroundSync();
-
-    // ✅ Clear session storage on refresh/unload 
-    // This logs the user out on refresh IF they didn't check "Stay Signed In" (localStorage)
-    const handleUnload = () => {
-      sessionStorage.removeItem("user");
-    };
-
-    window.addEventListener("beforeunload", handleUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleUnload);
-    };
+    sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
   }, []);
+
+  const MainApp = lazy(() => import("./pages/MainApp"));
+  const ActivityApp = lazy(() => import("./pages/ActivityApp"));
+  // --- ADD THIS LINE ---
+  const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
 
   return (
     <>
       <OfflineIndicator />
-      <Suspense fallback={<div className="loading-spinner">Loading AlgoBlocks...</div>}>
+
+      <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
@@ -56,21 +44,19 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* Protected Dashboard/App Routes */}
-          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-          <Route path="/home" element={<PrivateRoute><UserHomePage /></PrivateRoute>} />
-          <Route path="/learning-path" element={<PrivateRoute><LearningPath /></PrivateRoute>} />
-          <Route path="/learning-path/:moduleId/:lessonId" element={<PrivateRoute><LessonViewer /></PrivateRoute>} />
-          <Route path="/projects" element={<PrivateRoute><Projects /></PrivateRoute>} />
-          <Route path="/workspace" element={<PrivateRoute><MainApp /></PrivateRoute>} />
-          <Route path="/workspace/:projectId" element={<PrivateRoute><MainApp /></PrivateRoute>} />
-          <Route path="/activity/:moduleId/:activityId" element={<PrivateRoute><ActivityApp /></PrivateRoute>} />
-          <Route path="/assessment/:moduleId/:type" element={<PrivateRoute><AssessmentPage /></PrivateRoute>} />
+          {/* Private Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+          <Route path="/app" element={<ProtectedRoute><MainApp /></ProtectedRoute>} />
+          <Route path="/home" element={<ProtectedRoute><UserHomePage /></ProtectedRoute>} />
           
-          <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+          {/* Default Activity Route */}
+          <Route path="/activity/:moduleId/:activityId" element={<ProtectedRoute><ActivityApp /></ProtectedRoute>} />
+          
+          {/* --- ADD THIS NEW ROUTE FOR ASSESSMENTS --- */}
+          <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
 
-          {/* Fallback Route */}
-          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Suspense>
     </>
