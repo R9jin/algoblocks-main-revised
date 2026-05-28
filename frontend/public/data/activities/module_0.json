@@ -71,8 +71,8 @@
         { "call": "multi()", "expected": "5", "isHidden": false },
         { "call": "multi()", "expected": "5", "isHidden": false },
         { "call": "multi()", "expected": "5", "isHidden": false },
-        { "call": "multi()", "expected": "4", "isHidden": false },
-        { "call": "multi()", "expected": "6", "isHidden": false }
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "5", "isHidden": false }
       ]
     }
   ],

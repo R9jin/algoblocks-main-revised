@@ -770,16 +770,21 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
-  const handleSuccess = (score, maxScore) => {
+  const handleSuccess = (score, maxScore, funcPassed, funcTotal) => {
     const currentIndex = lessonActivitiesResolved.findIndex(a => a.id === activityId);
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
 
     let promptMsg = "";
-    if (score === 5) promptMsg = `Perfect execution! You earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!\n\nReady for the next challenge?`;
-    else if (score === 4) promptMsg = `Great job! You earned a Silver Medal (4/5).\n\nYou passed all tests and mastered either Time or Space complexity, but not both.\nCan you optimize it further to get the Gold?\n\nReady to proceed?`;
-    else if (score === 3) promptMsg = `Good effort! You earned a Bronze Medal (3/5).\n\nYour code works and passed all tests! However, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster to get the Gold Medal?\n\nReady to proceed?`;
-    else promptMsg = `Keep trying! You met the minimum passing requirements with a score of ${score}/${maxScore}.\n(Hidden test cases or slight logic errors reduced your score).\n\nReady to proceed?`;
+    if (score === 5) {
+      promptMsg = `Perfect execution! You earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!\n\nReady for the next challenge?`;
+    } else if (funcPassed < funcTotal) {
+      promptMsg = `Keep trying! You earned a score of ${score}/${maxScore}.\n\nYou passed ${funcPassed}/${funcTotal} functional test cases. Some hidden test cases or edge cases failed.\n\nReady to proceed or want to try fixing it?`;
+    } else if (score === 4) {
+      promptMsg = `Great job! You earned a Silver Medal (4/5).\n\nYou passed all functional tests, but mastered only one of the Time or Space complexities.\nCan you optimize it further to get the Gold?\n\nReady to proceed?`;
+    } else {
+      promptMsg = `Good effort! You earned a Bronze Medal (${score}/5).\n\nYour code works and passed all functional tests! However, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster or leaner to get the Gold Medal?\n\nReady to proceed?`;
+    }
 
     if (!isLast && nextActivity) {
       setModalConfig({
@@ -793,7 +798,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       });
     }
   };
-
+  
   const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const runTestCases = async () => {
@@ -1022,7 +1027,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
           <footer className="workspace-footer">
             <div className="footer-left"><button className={`footer-tab ${bottomPanel === "console" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "console" ? null : "console")}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button><button className={`footer-tab ${bottomPanel === "complexity" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "complexity" ? null : "complexity")}><img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity</button><button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button></div>
-            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
+            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: async () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
           </footer>
         </main>
 
