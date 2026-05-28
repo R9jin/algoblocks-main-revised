@@ -310,6 +310,44 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
 
 class EducationalInsightGenerator:
     
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.explainer = self
+
+    def _classify_big_o(self, complexity_str: str) -> BigOInfo:
+        c = complexity_str.lower()
+        family = "unknown"
+        
+        if c == "o(1)" or "amortized" in c:
+            family = "constant"
+        elif "n log n" in c:
+            family = "linearithmic"
+        elif "log" in c:
+            family = "logarithmic"
+        elif "√" in c or "sqrt" in c:
+            family = "root"
+        elif "n!" in c:
+            family = "factorial"
+        elif "n^n" in c:
+            family = "super_exponential"
+        elif "2^n" in c or "c(" in c or "2ⁿ" in c:
+            family = "exponential"
+        elif "n^2" in c or "n²" in c or "n^3" in c or "n³" in c or "n * m" in c or "n^d" in c:
+            family = "polynomial"
+        elif "v + e" in c or "v" in c:
+            family = "graph"
+        elif "n" in c:
+            family = "linear"
+        elif "t(" in c:
+            family = "recursive_branching"
+            
+        return BigOInfo(
+            raw=complexity_str,
+            normalized=complexity_str,
+            family=family,
+            factors={}
+        )
+
     @staticmethod
     def _random_choice(options: List[str]) -> str:
         return random.choice(options)

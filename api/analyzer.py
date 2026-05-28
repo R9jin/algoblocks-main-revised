@@ -2,7 +2,7 @@
 import ast
 import time
 from collections import deque, Counter
-from semantic_nlg import SemanticNLGEngine
+from semantic_nlg import EducationalInsightGenerator as SemanticNLGEngine
 
 try:
     from dynamic_tracer import AlgoBlocksTracer
@@ -146,6 +146,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 praise = self.nlg_engine.get_time_optimization_praise(d.get('operation', ''), d.get('global_time', ''))
                 if "ALGORITHM MASTERY:" not in d.get('time_explanation', ''):
                     d['time_explanation'] = str(d.get('time_explanation', '')) + praise
+
+    def add_logic_hint(self, node, hint_text):
+        line_num = getattr(node, 'lineno', -1)
+        if line_num not in self.logic_hints:
+            self.logic_hints[line_num] = []
+        if hint_text not in self.logic_hints[line_num]:
+            self.logic_hints[line_num].append(hint_text)
 
     def _is_linear_type(self, expr_node):
         if isinstance(expr_node, (ast.List, ast.Tuple, ast.Set, ast.Dict, ast.ListComp, ast.SetComp, ast.DictComp)):
