@@ -1,8 +1,8 @@
 // frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
-  FiCheckCircle, FiChevronDown, FiChevronRight, FiCircle, FiClipboard,
-  FiDatabase, FiFilter, FiLock, FiRefreshCw, FiShare2, FiUsers,
+    FiCheckCircle, FiChevronDown, FiChevronRight, FiCircle, FiClipboard,
+    FiDatabase, FiFilter, FiLock, FiRefreshCw, FiShare2, FiUsers,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -33,7 +33,7 @@ export default function LearningPath() {
     const loadOfflineData = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_URL || "";
-        const stored = localStorage.getItem("user");
+        const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
         let parsed = stored ? JSON.parse(stored) : {};
         let initialProg = parsed.progress || {};
         let initialAssm = parsed.assessments || {};

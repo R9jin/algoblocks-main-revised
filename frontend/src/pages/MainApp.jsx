@@ -330,7 +330,7 @@ export default function MainApp() {
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUser) { setAllTemplates(baseTemplates); return; }
       const user = JSON.parse(storedUser);
 

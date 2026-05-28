@@ -36,7 +36,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const loadLocalData = async () => {
-      const storedUserStr = localStorage.getItem("user");
+      const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUserStr) {
         setLoading(false);
         return;

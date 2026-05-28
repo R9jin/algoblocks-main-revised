@@ -392,7 +392,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         latestStateRef.current.targetTime = resolvedActivity.targetTimeComplexity;
         latestStateRef.current.targetSpace = resolvedActivity.targetSpaceComplexity;
 
-        const storedUser = localStorage.getItem("user");
+        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
         if (!storedUser) { navigate("/learning-path", { replace: true }); return; }
         
         const user = JSON.parse(storedUser);
@@ -665,7 +665,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   const savePartialProgress = async (lessonId, score) => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!storedUser) return;
     const user = JSON.parse(storedUser);
 
@@ -693,7 +693,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   const completeFullTopic = async (topicId) => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!storedUser) return;
     const user = JSON.parse(storedUser);
 
@@ -1027,7 +1027,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
           <footer className="workspace-footer">
             <div className="footer-left"><button className={`footer-tab ${bottomPanel === "console" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "console" ? null : "console")}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button><button className={`footer-tab ${bottomPanel === "complexity" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "complexity" ? null : "complexity")}><img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity</button><button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button></div>
-            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: async () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
+            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: async () => { const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
           </footer>
         </main>
 

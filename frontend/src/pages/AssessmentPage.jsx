@@ -43,7 +43,7 @@ const AssessmentPage = () => {
 
     const loadAssessment = async () => {
       try {
-        const storedUser = localStorage.getItem("user");
+        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
         if (!storedUser) {
           navigate("/learning-path");
           return;
@@ -128,7 +128,7 @@ const AssessmentPage = () => {
   };
 
   const saveAssessmentDraft = async (currentAnswers, isSubmitted, currentScore, isUnmounting = false) => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!storedUser) return;
     const user = JSON.parse(storedUser);
 
@@ -177,7 +177,7 @@ const AssessmentPage = () => {
     await saveAssessmentDraft(answers, true, finalPercent);
 
     // Update Global Progress Map
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
       const user = JSON.parse(storedUser);
       const lessonKey = `assessment-${moduleId}`;

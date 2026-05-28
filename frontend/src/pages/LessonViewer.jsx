@@ -77,7 +77,7 @@ export default function LessonViewer() {
     const loadOfflineData = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_URL || "";
-        const stored = localStorage.getItem("user");
+        const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
         let parsed = stored ? JSON.parse(stored) : {};
         let initialProg = parsed.progress || {};
         let initialAssm = parsed.assessments || {};

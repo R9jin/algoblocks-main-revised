@@ -34,6 +34,7 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [staySignedIn, setStaySignedIn] = useState(false); // ✅ NEW STATE
   const navigate = useNavigate();
 
   const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -82,6 +83,20 @@ export default function SignIn() {
     }
   };
 
+  // ✅ HELPER: Save session based on Stay Signed In preference
+  const saveSession = (userData) => {
+    const storage = staySignedIn ? localStorage : sessionStorage;
+    
+    // Clear the opposite storage to prevent conflicts
+    if (staySignedIn) {
+      sessionStorage.removeItem("user");
+    } else {
+      localStorage.removeItem("user");
+    }
+    
+    storage.setItem("user", JSON.stringify(userData));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -104,12 +119,13 @@ export default function SignIn() {
       const localAssessments = rebuildAssessments(data.email);
       const mergedAssessments = { ...localAssessments, ...(data.assessments || {}) };
 
-      localStorage.setItem("user", JSON.stringify({
+      // ✅ Uses the new dynamic session saver
+      saveSession({
         email: data.email,
         name: data.name,
         progress: data.progress || {},
-        assessments: mergedAssessments // <-- CHANGED THIS LINE
-      }));
+        assessments: mergedAssessments
+      });
 
       await syncUserCloudData(data.email);
 
@@ -135,7 +151,9 @@ export default function SignIn() {
 
       const guestEmail = `guest_${Date.now()}@algoblocks.local`;
 
-      localStorage.setItem("user", JSON.stringify({
+      // ✅ Guests always use Session Storage (temporary)
+      localStorage.removeItem("user");
+      sessionStorage.setItem("user", JSON.stringify({
         email: guestEmail,
         name: "Guest User",
         isGuest: true,
@@ -170,12 +188,13 @@ export default function SignIn() {
       const localAssessments = rebuildAssessments(data.email);
       const mergedAssessments = { ...localAssessments, ...(data.assessments || {}) };
 
-      localStorage.setItem("user", JSON.stringify({
+      // ✅ Uses the new dynamic session saver
+      saveSession({
         email: data.email,
         name: data.name,
         progress: data.progress || {},
-        assessments: mergedAssessments // <-- CHANGED THIS LINE
-      }));
+        assessments: mergedAssessments
+      });
 
       await syncUserCloudData(data.email);
 
@@ -226,16 +245,31 @@ export default function SignIn() {
               </div>
             </div>
 
+            {/* ✅ NEW: Stay Signed In Checkbox */}
+            <div className="form-group checkbox-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
+              <input
+                type="checkbox"
+                id="staySignedIn"
+                checked={staySignedIn}
+                onChange={(e) => setStaySignedIn(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: 'pointer', width: 'auto' }}
+              />
+              <label htmlFor="staySignedIn" style={{ margin: 0, cursor: 'pointer', fontSize: '14px', fontWeight: 'normal' }}>
+                Stay signed in
+              </label>
+            </div>
+
             <button type="submit" className="auth-button" disabled={isLoading}>
               {isLoading ? "Signing In..." : "Sign In"}
             </button>
 
-            {/* ✅ Beautifully Styled Divider matching existing Auth.css */}
+            {/* Beautifully Styled Divider */}
             <div className="social-divider">
               <span>OR</span>
             </div>
 
-            {/* ✅ Google Login Centered via Class */}
+            {/* Google Login Centered */}
             <div className="google-auth-wrapper">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
@@ -247,7 +281,7 @@ export default function SignIn() {
               />
             </div>
 
-            {/* ✅ Guest Button utilizing native Auth.css structure */}
+            {/* Guest Button */}
             <button
               type="button"
               className="auth-button guest-button"

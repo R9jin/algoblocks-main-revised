@@ -11,7 +11,7 @@ import LandingPage from "./pages/HomePage";
 import LearningPath from "./pages/LearningPath";
 import LessonViewer from "./pages/LessonViewer";
 import MainApp from "./pages/MainApp";
-import ProfilePage from "./pages/ProfilePage"; // ✅ NEW: Profile Page Import
+import ProfilePage from "./pages/ProfilePage";
 import Projects from "./pages/Projects";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -20,9 +20,9 @@ import UserHomePage from "./pages/UserHomePage";
 import "./App.css";
 import { startBackgroundSync } from "./utils/syncManager";
 
-// Check if user is authenticated
+// Check if user is authenticated (✅ Checks BOTH storages now)
 const PrivateRoute = ({ children }) => {
-  const user = localStorage.getItem("user");
+  const user = localStorage.getItem("user") || sessionStorage.getItem("user");
   return user ? children : <Navigate to="/signin" />;
 };
 
@@ -54,7 +54,6 @@ function App() {
           <Route path="/activity/:moduleId/:activityId" element={<PrivateRoute><ActivityApp /></PrivateRoute>} />
           <Route path="/assessment/:moduleId/:type" element={<PrivateRoute><AssessmentPage /></PrivateRoute>} />
           
-          {/* ✅ NEW: Profile Route */}
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
 
           {/* Fallback Route */}

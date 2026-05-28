@@ -43,7 +43,7 @@ export default function Projects() {
 
   const loadProjects = async () => {
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUser) {
         setLoading(false);
         return;

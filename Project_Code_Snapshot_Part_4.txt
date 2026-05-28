@@ -2051,7 +2051,7 @@ export default function DashboardHeader({
 
   useEffect(() => {
 
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
 
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -2376,7 +2376,7 @@ export default function Header() {
 
   // Check if a user is logged in from the database session
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -4189,7 +4189,7 @@ const ActivityApp = () => {
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
 
-        const storedUser = localStorage.getItem("user");
+        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
         let loadedSubmission = null;
 
         if (storedUser) {
@@ -4247,7 +4247,7 @@ const ActivityApp = () => {
 
   const saveSubmission = async (json, pythonCode, score = 0, passed = 0, total = 0, testResults = []) => {
     if (!moduleId || !activityId) return;
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!storedUser) return;
     const user = JSON.parse(storedUser);
 
@@ -4396,7 +4396,7 @@ const ActivityApp = () => {
   };
 
   const savePartialProgress = async (lessonId, score) => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!storedUser) return;
     const user = JSON.parse(storedUser);
 
@@ -4422,7 +4422,7 @@ const ActivityApp = () => {
   };
 
   const completeFullTopic = async (topicId) => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!storedUser) return;
     const user = JSON.parse(storedUser);
 
@@ -4882,7 +4882,7 @@ const ActivityApp = () => {
               <button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button>
             </div>
             <div className="footer-right">
-              <button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, []); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button>
+              <button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: () => { const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, []); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button>
             </div>
           </footer>
         </main>
@@ -4970,7 +4970,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const loadLocalData = async () => {
-      const storedUserStr = localStorage.getItem("user");
+      const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUserStr) {
         setLoading(false);
         return;
@@ -5269,7 +5269,7 @@ export default function LandingPage() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
@@ -5403,7 +5403,7 @@ export default function LearningPath() {
   // Load user progress
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("user");
+      const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (stored) {
         const parsed = JSON.parse(stored);
         setUserProgress(parsed.progress || {});
@@ -6124,7 +6124,7 @@ export default function MainApp() {
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUser) { setAllTemplates(baseTemplates); return; }
       const user = JSON.parse(storedUser);
 
@@ -6818,7 +6818,7 @@ export default function Projects() {
 
   const loadProjects = async () => {
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUser) {
         setLoading(false);
         return;

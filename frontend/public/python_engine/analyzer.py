@@ -181,13 +181,19 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _register_and_get_dim(self, var_name):
         if not var_name: return 'n'
-        if len(var_name) == 1 and var_name.isalpha(): return var_name
+        if isinstance(var_name, str):
+            lower_name = var_name.lower()
+            if lower_name in ['n1', 'n2', 'n3', 'length', 'size', 'count']: return 'n'
+            if lower_name in ['m1', 'm2', 'm3']: return 'm'
+            if lower_name in ['n', 'm', 'k', 'p', 'q']: return lower_name
+            if any(kw in lower_name for kw in ['len', 'size', 'count']): return 'n'
+            
         if var_name not in self.var_dimensions:
             available = [d for d in ['n', 'm', 'k', 'p', 'q'] if d not in self.var_dimensions.values() and d != var_name]
             self.var_dimensions[var_name] = available[0] if available else 'n'
         return self.var_dimensions[var_name]
 
-    def _get_while_limit_var(self, node):
+    def _get_while_limit_vars(self, node):
         updated_vars = set()
         for child in node.body:
             for sub in ast.walk(child):
@@ -198,11 +204,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if isinstance(sub.target, ast.Name): updated_vars.add(sub.target.id)
 
         limit_vars = []
+        ignore_set = {'len', 'range', 'min', 'max', 'True', 'False', 'None'}
         for child in ast.walk(node.test):
-            if isinstance(child, ast.Name) and child.id not in updated_vars:
-                limit_vars.append(child.id)
+            if isinstance(child, ast.Name) and child.id not in updated_vars and child.id not in ignore_set:
+                if child.id not in limit_vars:
+                    limit_vars.append(child.id)
                 
-        return limit_vars[0] if limit_vars else None
+        return limit_vars
 
     def _build_time_str(self, poly_dims, log, sqrt=0, exp=0, graph=0):
         if exp > 0: return "O(2^n)"  
@@ -481,8 +489,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif self._is_log_loop(node): display_log = 1
                 elif self._is_sqrt_loop(node): display_sqrt = 1
                 elif not self._is_constant_loop(node): 
-                    limit_var = self._get_while_limit_var(node)
-                    dim = self._register_and_get_dim(limit_var)
+                    limit_vars = self._get_while_limit_vars(node)
+                    if limit_vars:
+                        dims = [self._register_and_get_dim(lv) for lv in limit_vars]
+                        dim = dims[0] if dims else 'n'
+                    else:
+                        dim = 'n'
                     display_dims = [dim]
 
         if time_override == "Definition":
@@ -507,8 +519,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if local_s != "S(placeholder)":
                 if "n * m" in local_s or "n^2" in local_s: s_w = 2
                 elif "V + E" in local_s or "V" in local_s or total_graph > 0: s_w = 3
-                elif "log n" in local_s: s_w = 0.5  # Fixed greedy matching order
-                elif "n" in local_s: s_w = 1        # Move 'n' below 'log n'
+                elif "log n" in local_s: s_w = 0.5  
+                elif "n" in local_s: s_w = 1        
             
             self.max_space_weight = max(getattr(self, 'max_space_weight', 0), s_w)
                 
@@ -765,14 +777,28 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
         self.custom_functions[node.name] = relation
 
+        call_idx = 0
         for i in range(start_idx, len(self._details)):
             is_placeholder = False
-            if str(self._details[i]["local_time"]).startswith("T("): 
-                self._details[i]["local_time"] = relation
+            loc_time = str(self._details[i]["local_time"])
+            if loc_time == "T(placeholder)" or loc_time.startswith("T("): 
+                current_call_cost = "T(n-1)"
+                if "T(n/2)" in relation:
+                    current_call_cost = "T(n/2)"
+                elif "T(n-1) + T(n-2)" in relation:
+                    current_call_cost = "T(n-1)" if call_idx == 0 else "T(n-2)"
+                elif "T(n-1)" in relation:
+                    current_call_cost = "T(n-1)"
+                
+                self._details[i]["local_time"] = current_call_cost
                 is_placeholder = True
+                
             if str(self._details[i]["global_time"]).startswith("T("): 
-                self._details[i]["global_time"] = relation
+                self._details[i]["global_time"] = self._details[i]["local_time"]
                 is_placeholder = True
+
+            if is_placeholder:
+                call_idx += 1
 
             if str(self._details[i]["local_space"]).startswith("S("):
                 self._details[i]["local_space"] = self.custom_space[node.name]
@@ -854,8 +880,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_log, is_sqrt, is_const = self._is_log_loop(node), self._is_sqrt_loop(node), self._is_constant_loop(node)
         is_graph = self._is_graph_while_loop(node)
         
-        limit_var = self._get_while_limit_var(node)
-        dim = self._register_and_get_dim(limit_var)
+        limit_vars = self._get_while_limit_vars(node)
+        if limit_vars:
+            dims = [self._register_and_get_dim(lv) for lv in limit_vars]
+            dim = dims[0] if dims else 'n'
+        else:
+            dim = 'n'
 
         if is_graph: self.graph_depth = getattr(self, 'graph_depth', 0) + 1
         elif not is_const:
@@ -1008,6 +1038,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.var_types[target.id] = node.value.func.id
 
         s_ov, t_ov = "O(1)", None
+        custom_op = None
         
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Variable Unpacking/Swap")
@@ -1031,6 +1062,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 s_ov, t_ov = "O(V)", "O(1)"
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
                 s_ov, t_ov = "O(V)", "O(V)"
+                custom_op = "List Repetition"
         else:
             if isinstance(node.value, ast.ListComp):
                 is_nested = len(node.value.generators) > 1
@@ -1062,7 +1094,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str) and getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple']: 
                 s_ov, t_ov = "O(n)", "O(n)"
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
-                s_ov, t_ov = "O(n)", "O(n)"
+                dim_var = 'n'
+                if isinstance(node.value.left, ast.Name): dim_var = self._register_and_get_dim(node.value.left.id)
+                elif isinstance(node.value.right, ast.Name): dim_var = self._register_and_get_dim(node.value.right.id)
+                s_ov, t_ov = f"O({dim_var})", f"O({dim_var})"
+                custom_op = "List Repetition"
             elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): 
                 s_ov, t_ov = "O(n)", "O(n)"
 
@@ -1078,8 +1114,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     for target in node.targets:
                         if isinstance(target, ast.Name): self.variable_complexities[target.id] = "sqrt"
         
-        custom_op = None
-        if s_ov == "O(1)" and isinstance(node.value, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
+        if custom_op is None and s_ov == "O(1)" and isinstance(node.value, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
             custom_op = "Literal Assignment"
             
         self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op); 
@@ -1171,7 +1206,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 
                 if "C(n,k)" in c or "4^n" in c: c = "O(2^n)"
                 if "n * m" in c: c = "O(n^2)"
-                if "n + m" in c or "k" in c and c != "O(1)": c = "O(n)"
+                if any(x in c for x in ["n + m", "n1", "n2", "k"]) and c != "O(1)": c = "O(n)"
                 
                 for key, (mapped, rank) in lookup.items():
                     if key in c and rank > best_rank:
@@ -1217,7 +1252,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 s = "O(n)"
             elif "n * m" in s:
                 s = "O(n^2)"
-            elif "n + m" in s or "k" in s and s != "O(1)":
+            elif any(x in s for x in ["n + m", "n1", "n2", "k"]) and s != "O(1)":
                 s = "O(n)"
                 
             for key, rank in rankings.items():

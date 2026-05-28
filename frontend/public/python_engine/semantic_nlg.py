@@ -346,7 +346,12 @@ class EducationalInsightGenerator:
         family = info.family
         lower_s = global_s.lower()
         
-        if "o(1)" in lower_s or family == "constant":
+        if "placeholder" in lower_s or family == "unknown":
+            return (
+                "The exact memory usage could not be statically determined by the analyzer for this specific block. "
+                "The algorithm dynamically allocates space depending on runtime conditions, but a strict mathematical bound was not resolved."
+            )
+        elif "o(1)" in lower_s or family == "constant":
             return (
                 "The memory footprint is Constant. The algorithm modifies data 'in-place' or only "
                 "requires a few fixed variables. It does not hoard additional memory as the input grows, "
@@ -369,7 +374,7 @@ class EducationalInsightGenerator:
                 "a proportional amount of extra memory. This typically happens when constructing new lists, "
                 "dictionaries, or keeping track of an expanding recursive call stack where depth equals 'n'."
             )
-        elif "v" in lower_s or "e" in lower_s or family == "graph":
+        elif re.search(r'\b[ve]\b', lower_s) or family == "graph":
             return (
                 "The memory footprint depends on the Graph's architecture. The algorithm must remember which nodes "
                 "it has already visited (to prevent infinite loops) and maintain a queue/stack of nodes waiting to be explored. "
@@ -419,9 +424,9 @@ class SemanticNLGEngine:
         s = raw
         lower = s.lower()
 
-        if not s or s in {"-", "Undefined", "undefined"}:
+        if not s or s in {"-", "Undefined", "undefined"} or "placeholder" in lower:
             return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
-        if "∞" in original or "infinite" in lower or "undefined" in lower:
+        if "∞" in original or "infinite" in lower:
             return BigOInfo(raw=original, normalized=s, family="unknown", factors={})
 
         # Process Specific Recurrence Relations before generalized T(n) check
@@ -443,7 +448,7 @@ class SemanticNLGEngine:
 
         if any(g_pat in lower for g_pat in ["v + e", "v+e", "e log v", "v log", "e + v"]):
             return BigOInfo(raw=original, normalized=s, family="graph", factors={"V": "v" in lower, "E": "e" in lower})
-        if "v" in lower and "e" in lower:
+        if re.search(r'\bv\b', lower) and re.search(r'\be\b', lower):
             return BigOInfo(raw=original, normalized=s, family="graph", factors={"V": True, "E": True})
 
         if "n!" in lower or "n^!" in lower or "factorial" in lower:
