@@ -20,16 +20,29 @@ import UserHomePage from "./pages/UserHomePage";
 import "./App.css";
 import { startBackgroundSync } from "./utils/syncManager";
 
-// Check if user is authenticated (✅ Checks BOTH storages now)
+// Check if user is authenticated
 const PrivateRoute = ({ children }) => {
   const user = localStorage.getItem("user") || sessionStorage.getItem("user");
-  return user ? children : <Navigate to="/signin" />;
+  // ✅ Redirect to landing page ("/") instead of "/signin"
+  return user ? children : <Navigate to="/" />;
 };
 
 function App() {
   useEffect(() => {
     // Start the background sync worker for offline capabilities
     startBackgroundSync();
+
+    // ✅ Clear session storage on refresh/unload 
+    // This logs the user out on refresh IF they didn't check "Stay Signed In" (localStorage)
+    const handleUnload = () => {
+      sessionStorage.removeItem("user");
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+    };
   }, []);
 
   return (
