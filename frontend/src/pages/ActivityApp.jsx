@@ -281,18 +281,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const fetchJsonWithCache = async (cacheKey, url) => {
     try {
-      const res = await fetch(url);
+      // Append a timestamp to the URL to forcefully break the Vite cache!
+      const res = await fetch(`${url}?t=${new Date().getTime()}`); 
+      
       if (res.ok) {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-          const json = await res.json(); try { await templatesDB.setItem(cacheKey, json); } catch (e) { } return json;
+          const json = await res.json(); 
+          try { await templatesDB.setItem(cacheKey, json); } catch (e) { } 
+          return json;
         } else { throw new Error("Response is not JSON format"); }
       } else { throw new Error(`HTTP error ${res.status}`); }
     } catch (e) { console.warn(`Network fetch failed for ${url}, falling back to cache.`, e); }
     try { const cached = await templatesDB.getItem(cacheKey); if (cached) return cached; } catch (e) { }
     throw new Error(`Fetch failed for ${url} and no cache available.`);
   };
-
+  
   const resolveActivityFromModule = async () => {
     const mid = String(moduleId).replace(/[^0-9]/g, "");
     if (!mid) throw new Error("Invalid moduleId");
