@@ -46,35 +46,35 @@ export default function Dashboard() {
       // --- 1. PULL CLOUD DATA FIRST ---
       if (navigator.onLine) {
         try {
-          // Sync Projects
-          const pRes = await fetch(`${API_BASE}/api/projects`);
+          // FIXED: Pass explicit userId parameter so backend responds properly
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`);
           if (pRes.ok) {
             const pData = await pRes.json();
             
-            // ✅ FIX: Safely extract the array
             let cloudProjects = [];
             if (pData && Array.isArray(pData.projects)) cloudProjects = pData.projects;
             else if (Array.isArray(pData)) cloudProjects = pData;
 
             for (const cp of cloudProjects) {
-              if (cp.owner_id === storedUser.email) {
+              // FIXED: CHECK BOTH USER ID TYPES
+              if (cp.owner_id === storedUser.email || cp.userId === storedUser.email) {
                 await projectsDB.setItem(cp._id, { ...cp, synced: true });
               }
             }
           }
 
-          // Sync Templates
-          const tRes = await fetch(`${API_BASE}/api/templates`);
+          // FIXED: Pass explicit userId parameter so backend responds properly
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`);
           if (tRes.ok) {
             const tData = await tRes.json();
             
-            // ✅ FIX: Safely extract the array
             let cloudTemplates = [];
             if (tData && Array.isArray(tData.templates)) cloudTemplates = tData.templates;
             else if (Array.isArray(tData)) cloudTemplates = tData;
 
             for (const ct of cloudTemplates) {
-              if (ct.owner_id === storedUser.email) {
+              // FIXED: CHECK BOTH USER ID TYPES
+              if (ct.owner_id === storedUser.email || ct.userId === storedUser.email) {
                 await templatesDB.setItem(ct._id, { ...ct, synced: true });
               }
             }
@@ -86,30 +86,28 @@ export default function Dashboard() {
 
       // --- 2. FETCH FROM LOCAL DB ---
       
-      // Fetch User Projects
       const userProjects = [];
       await projectsDB.iterate((value) => {
-        if (value.owner_id === storedUser.email) {
+        // FIXED: CHECK BOTH USER ID TYPES
+        if (value.owner_id === storedUser.email || value.userId === storedUser.email) {
           userProjects.push(value);
         }
       });
 
-      // Sort by latest update and limit to 5
       setRecentProjects(
         userProjects
           .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
           .slice(0, 5)
       );
 
-      // Fetch User Templates
       const userTemplates = [];
       await templatesDB.iterate((value) => {
-        if (value.owner_id === storedUser.email) {
+        // FIXED: CHECK BOTH USER ID TYPES
+        if (value.owner_id === storedUser.email || value.userId === storedUser.email) {
           userTemplates.push(value);
         }
       });
 
-      // Group templates by category
       const grouped = {};
       userTemplates.forEach((t) => {
         const category = t.category || "Custom Templates";
@@ -236,7 +234,7 @@ export default function Dashboard() {
                   }
                 >
                   <div className="project-item-info">
-                    <div className="project-item-title">{proj.title}</div>
+                    <div className="project-item-title">{proj.title || proj.name}</div>
                     <div className="project-item-meta">
                       Last modified: {new Date(proj.updatedAt || Date.now()).toLocaleDateString()}
                     </div>
