@@ -9,7 +9,6 @@ import "../styles/AssessmentPage.css";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
-// Draft key: stores in-progress answers, question order, and elapsed time.
 const getDraftKey = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
 
 function saveDraft(moduleId, type, payload) {
@@ -321,6 +320,7 @@ export default function AssessmentPage() {
 
   const handleProceed = () => {
     if (type === "pre") {
+      // Reverted to exactly what you requested: /learning-path/:moduleId/:lessonId
       navigate(`/learning-path/${moduleId}/${MODULE_FIRST_LESSON[moduleId]}`);
     } else {
       navigate("/learning-path");

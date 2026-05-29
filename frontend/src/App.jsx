@@ -31,6 +31,8 @@ function App() {
   const ActivityApp = lazy(() => import("./pages/ActivityApp"));
   const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
   const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+  // ADD: lazy import for LessonViewer
+  const LessonViewer = lazy(() => import("./pages/LessonViewer"));
 
   return (
     <>
@@ -53,12 +55,16 @@ function App() {
             path="/learning-path"
             element={<ProtectedRoute><LearningPath /></ProtectedRoute>}
           />
+          {/* ADD: Route for the LessonViewer */}
+          <Route
+            path="/learning-path/:moduleId/:lessonId"
+            element={<ProtectedRoute><LessonViewer /></ProtectedRoute>}
+          />
           <Route
             path="/projects"
             element={<ProtectedRoute><Projects /></ProtectedRoute>}
           />
           
-          {/* FIX: Map BOTH /app and /workspace to MainApp so all links work */}
           <Route
             path="/app"
             element={<ProtectedRoute><MainApp /></ProtectedRoute>}
