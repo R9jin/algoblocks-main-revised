@@ -1153,24 +1153,32 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if is_nested:
                     g_time = "O(n * m)"
                     self.max_space_weight = max(self.max_space_weight, 2)
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="2D Array Allocation", global_time_override=g_time, global_space_override="O(n * m)")
+                    self.record_line(node, time_override="O(n * m)", space_override="O(n * m)", custom_op="2D Array Allocation", global_time_override=g_time, global_space_override="O(n * m)")
                     self.generic_visit(node)
                     return
                 else:
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
             elif isinstance(node.value, (ast.SetComp, ast.DictComp)): 
                 g_time = "O(n)"
                 g_space = "O(n)"
+                t_ov = "O(n)"
+                s_ov = "O(n)"
             elif isinstance(node.value, ast.List):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
                     custom_op = "Init"
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
                 elif len(node.value.elts) > 0:
                     custom_op = "Init"
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
                 else:
                     custom_op = "List Init"
                     g_time = "O(1)"
@@ -1180,10 +1188,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Set Init"
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
                 elif len(node.value.elts) > 0:
                     custom_op = "Set Init"
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
                 else:
                     custom_op = "Set Init"
                     g_time = "O(1)"
@@ -1193,10 +1205,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Dict Init"
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
                 elif len(node.value.keys) > 0:
                     custom_op = "Dict Init"
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
                 else:
                     custom_op = "Dict Init"
                     g_time = "O(1)"
@@ -1206,10 +1222,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Tuple Init"
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
                 elif len(node.value.elts) > 0:
                     custom_op = "Tuple Init"
                     g_time = "O(n)"
                     g_space = "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
                 else:
                     custom_op = "Tuple Init"
                     g_time = "O(1)"
@@ -1220,6 +1240,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 custom_op = f"{f_name.capitalize()} Build"
                 g_time = "O(n)"
                 g_space = "O(n)"
+                t_ov = "O(n)"
+                s_ov = "O(n)"
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
                 dim_var = 'n'
                 if isinstance(node.value.left, ast.Name): dim_var = self._register_and_get_dim(node.value.left.id)
@@ -1227,10 +1249,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 custom_op = "List Repetition"
                 g_time = f"O({dim_var})"
                 g_space = f"O({dim_var})"
+                t_ov = f"O({dim_var})"
+                s_ov = f"O({dim_var})"
             elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): 
                 custom_op = "Array Slicing"
                 g_time = "O(n)"
                 g_space = "O(n)"
+                t_ov = "O(n)"
+                s_ov = "O(n)"
             
             target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
             for t_id in target_ids:
