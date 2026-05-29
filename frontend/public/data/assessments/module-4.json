@@ -2,20 +2,195 @@
   "moduleId": "module-4",
   "moduleTitle": "Greedy Algorithms",
   "questions": [
-    { "id": "m4_q1", "question": "What defines a Greedy Algorithm?", "options": ["An algorithm that explores all possible paths before choosing the best", "An algorithm that makes the locally optimal choice at each step without reconsidering previous decisions", "An algorithm that divides the problem into equal halves recursively", "An algorithm that stores previously computed results to avoid recomputation"], "answer": 1, "explanation": "A greedy algorithm makes the best-looking choice at each decision point with the hope that local optima lead to a global optimum." },
-    { "id": "m4_q2", "question": "What is local optimization?", "options": ["Minimizing the total cost across all future steps simultaneously", "Choosing the best option available at the current step without considering future consequences", "Finding the globally optimal solution by exhaustive search", "Dividing resources equally among all steps"], "answer": 1, "explanation": "Local optimization means selecting the best immediate option at each step, as opposed to evaluating the impact on all future steps." },
-    { "id": "m4_q3", "question": "Do greedy algorithms always guarantee a global optimum?", "options": ["Yes, greedy algorithms always find the best possible solution", "No, greedy algorithms can fail to find the global optimum when local choices lead to suboptimal outcomes", "Yes, but only for problems with more than 100 elements", "No, greedy algorithms always produce the worst possible result"], "answer": 1, "explanation": "Greedy algorithms work optimally only for problems with the 'greedy choice property' — for others (like 0/1 Knapsack), they can miss the global optimum." },
-    { "id": "m4_q4", "question": "What is the Coin Change problem?", "options": ["Finding the minimum number of coins needed to make a given amount using available denominations", "Finding the maximum value that can be stored in a coin-sized container", "Sorting coins by denomination using a comparison algorithm", "Counting the total number of coins in an unsorted collection"], "answer": 0, "explanation": "The Coin Change problem asks for the fewest coins needed to make exact change for a target amount using available denominations." },
-    { "id": "m4_q5", "question": "What is a canonical coin system?", "options": ["A coin system where coins are sorted in ascending order", "A coin system where greedy selection of the largest denomination always yields the minimum number of coins", "A coin system used only in international currency exchanges", "A coin system where all denominations are powers of two"], "answer": 1, "explanation": "A canonical coin system (like US dollars or Philippine pesos) has the property that greedy coin selection always produces an optimal result." },
-    { "id": "m4_q6", "question": "What is the time complexity of the greedy coin change algorithm?", "options": ["O(n²)", "O(n log n) due to the required sorting step", "O(n) where n is the number of available denominations", "O(1) regardless of input"], "answer": 2, "explanation": "After sorting denominations once, the greedy coin selection loop is O(n) where n is the number of denominations." },
-    { "id": "m4_q7", "question": "What is Activity Selection?", "options": ["Sorting activities by their start time to find the earliest one", "Scheduling the maximum number of non-overlapping activities from a given set", "Finding the activity with the longest duration", "Assigning activities to multiple parallel rooms to minimize total time"], "answer": 1, "explanation": "Activity Selection greedily selects the maximum number of activities that can be performed without overlap — the classic interval scheduling problem." },
-    { "id": "m4_q8", "question": "Why sort by end time in Activity Selection?", "options": ["To ensure activities are displayed in chronological order for the user", "Because sorting by end time allows each greedy selection to leave the maximum remaining time for subsequent activities", "Because start time is not available in the input data", "Because end time determines which activity has the highest value"], "answer": 1, "explanation": "Selecting the activity that ends earliest always leaves the most room for future activities — sorting by end time enables this greedy choice to be made efficiently." },
-    { "id": "m4_q9", "question": "What is Fractional Knapsack?", "options": ["A knapsack problem where only whole items can be included", "A knapsack problem where items can be split into fractions to maximize total value within a weight capacity", "A knapsack problem solved using dynamic programming tables", "A knapsack problem where items are selected by brute force"], "answer": 1, "explanation": "Fractional Knapsack allows taking fractions of items, enabling greedy selection by value-to-weight ratio to always produce an optimal solution." },
-    { "id": "m4_q10", "question": "How does Fractional Knapsack differ from 0/1 Knapsack?", "options": ["Fractional Knapsack requires dynamic programming; 0/1 does not", "In Fractional Knapsack items can be partially taken; in 0/1 Knapsack each item must be taken entirely or not at all", "0/1 Knapsack is always more efficient than Fractional Knapsack", "They are identical problems solved by the same algorithm"], "answer": 1, "explanation": "0/1 Knapsack requires selecting whole items (hence the 0 or 1), while Fractional allows splitting — this key difference makes greedy work for Fractional but not for 0/1." },
-    { "id": "m4_q11", "question": "What sorting metric is used for Fractional Knapsack?", "options": ["Sort by item weight in ascending order", "Sort by item value in descending order", "Sort by value-to-weight ratio in descending order", "Sort by item index for predictable access"], "answer": 2, "explanation": "Items are sorted by value/weight ratio descending so the greedy algorithm always picks the most 'bang per unit of weight' first." },
-    { "id": "m4_q12", "question": "What is an optimal substructure?", "options": ["A problem property where the optimal solution can be built from optimal solutions of its subproblems", "A data structure that automatically optimizes memory usage", "A programming pattern that reduces code duplication", "A property where subproblems always have the same size"], "answer": 0, "explanation": "Optimal substructure means the globally optimal solution incorporates optimal solutions to its sub-problems — a requirement for both greedy algorithms and dynamic programming." },
-    { "id": "m4_q13", "question": "What is the greedy choice property?", "options": ["The property that a locally optimal choice at each step can be extended to a globally optimal solution", "The property that all choices must be evaluated before selecting one", "The property that the algorithm must backtrack when a choice leads to failure", "The property that the problem can be solved in constant time"], "answer": 0, "explanation": "The greedy choice property guarantees that making the locally optimal decision at each step leads to the globally optimal solution — this is what separates greedy-solvable from non-greedy-solvable problems." },
-    { "id": "m4_q14", "question": "Why is sorting typically required before greedy selection?", "options": ["Because greedy algorithms cannot process unsorted data at all", "Because sorting arranges candidates in priority order so the algorithm can always pick the best available option first", "Because sorting reduces the problem to O(1) complexity", "Because the greedy choice property only holds after data is randomized"], "answer": 1, "explanation": "Sorting establishes a priority order (by end time, ratio, value, etc.) so the greedy algorithm can always select the best remaining candidate without revisiting or comparing all options." },
-    { "id": "m4_q15", "question": "What is the total time complexity of Activity Selection?", "options": ["O(n) after pre-sorted input", "O(n²) due to nested comparison loops", "O(n log n) dominated by the initial sort, followed by a linear O(n) selection pass", "O(log n) using binary search for conflict detection"], "answer": 2, "explanation": "Activity Selection is O(n log n) overall: sorting takes O(n log n), and the greedy selection loop is O(n) — the sort dominates the total complexity." }
+    {
+      "id": "m4_q1",
+      "question": "What defines a Greedy Algorithm?",
+      "options": [
+        "An algorithm that explores all possible paths before choosing the best",
+        "An algorithm that makes the locally optimal choice at each step without reconsidering previous decisions",
+        "An algorithm that divides the problem into equal halves recursively",
+        "An algorithm that stores previously computed results to avoid recomputation"
+      ],
+      "answer": 1,
+      "explanation": "A greedy algorithm makes the best-looking choice at each decision point with the hope that local optima lead to a global optimum."
+    },
+    {
+      "id": "m4_q2",
+      "question": "What is local optimization?",
+      "options": [
+        "Minimizing the total cost across all future steps simultaneously",
+        "Choosing the best option available at the current step without considering future consequences",
+        "Finding the globally optimal solution by exhaustive search",
+        "Dividing resources equally among all steps"
+      ],
+      "answer": 1,
+      "explanation": "Local optimization means selecting the best immediate option at each step, as opposed to evaluating the impact on all future steps."
+    },
+    {
+      "id": "m4_q3",
+      "type": "code",
+      "code": "coins = [1, 3, 4]\namount = 6\n# Greedy picks: 4, 1, 1 \u2192 3 coins\n# Optimal:      3, 3   \u2192 2 coins",
+      "question": "What does this example demonstrate about greedy algorithms?",
+      "options": [
+        "Greedy always finds the optimal solution for any coin system",
+        "Greedy fails here because coins [1,3,4] is a non-canonical system \u2014 local optimal choice (4) leads to a suboptimal global result (3 coins vs 2 coins)",
+        "The greedy algorithm produces the correct answer of 2 coins",
+        "This proves greedy is always slower than dynamic programming"
+      ],
+      "answer": 1,
+      "explanation": "This non-canonical coin system breaks the greedy choice property. Picking the largest coin (4) first leads to 3 coins total, while the optimal DP solution uses 3+3=2 coins \u2014 proving greedy doesn't always find the global optimum."
+    },
+    {
+      "id": "m4_q4",
+      "question": "What is the Coin Change problem?",
+      "options": [
+        "Finding the minimum number of coins needed to make a given amount using available denominations",
+        "Finding the maximum value that can be stored in a coin-sized container",
+        "Sorting coins by denomination using a comparison algorithm",
+        "Counting the total number of coins in an unsorted collection"
+      ],
+      "answer": 0,
+      "explanation": "The Coin Change problem asks for the fewest coins needed to make exact change for a target amount using available denominations."
+    },
+    {
+      "id": "m4_q5",
+      "type": "code",
+      "code": "def greedy_coins(amount, denominations):\n    denominations.sort(reverse=True)  # O(d log d)\n    count = 0\n    for coin in denominations:         # O(d)\n        while amount >= coin:          # O(amount/coin)\n            amount -= coin\n            count += 1\n    return count",
+      "question": "What is the dominant time complexity of this greedy coin change function?",
+      "options": [
+        "O(amount) \u2014 the while loop drives the complexity",
+        "O(d log d) \u2014 the sort dominates where d is the number of denominations",
+        "O(d \u00d7 amount) \u2014 nested loops multiply",
+        "O(1) \u2014 greedy algorithms always run in constant time"
+      ],
+      "answer": 1,
+      "explanation": "The sort is O(d log d) where d is the number of denominations. The selection loop is O(d) at most. For typical small coin sets, the sort dominates \u2014 overall O(d log d)."
+    },
+    {
+      "id": "m4_q6",
+      "question": "What is the time complexity of the greedy coin change algorithm?",
+      "options": [
+        "O(n\u00b2)",
+        "O(n log n) due to the required sorting step",
+        "O(n) where n is the number of available denominations",
+        "O(1) regardless of input"
+      ],
+      "answer": 2,
+      "explanation": "After sorting denominations once, the greedy coin selection loop is O(n) where n is the number of denominations."
+    },
+    {
+      "id": "m4_q7",
+      "question": "What is Activity Selection?",
+      "options": [
+        "Sorting activities by their start time to find the earliest one",
+        "Scheduling the maximum number of non-overlapping activities from a given set",
+        "Finding the activity with the longest duration",
+        "Assigning activities to multiple parallel rooms to minimize total time"
+      ],
+      "answer": 1,
+      "explanation": "Activity Selection greedily selects the maximum number of activities that can be performed without overlap \u2014 the classic interval scheduling problem."
+    },
+    {
+      "id": "m4_q8",
+      "type": "code",
+      "code": "activities = [(1,4), (3,5), (0,6), (5,7), (3,9), (5,9), (6,10), (8,11)]\n# sorted by end time: [(1,4),(3,5),(0,6),(5,7),...]\n\nselected = []\nlast_end = 0\nfor start, end in sorted(activities, key=lambda x: x[1]):\n    if start >= last_end:\n        selected.append((start, end))\n        last_end = end",
+      "question": "What is the time complexity and why is sorting by end time critical here?",
+      "options": [
+        "O(n\u00b2) \u2014 comparing every activity pair",
+        "O(n log n) for sorting + O(n) for selection = O(n log n) overall; end-time sort ensures each greedy pick leaves maximum future time",
+        "O(n) \u2014 only one pass through activities is needed",
+        "O(2n) \u2014 sort and selection each take O(n)"
+      ],
+      "answer": 1,
+      "explanation": "Sorting is O(n log n) and the selection pass is O(n), so overall O(n log n). Sorting by end time is essential \u2014 it ensures each selected activity finishes as early as possible, maximizing remaining time for future picks."
+    },
+    {
+      "id": "m4_q9",
+      "question": "What is Fractional Knapsack?",
+      "options": [
+        "A knapsack problem where only whole items can be included",
+        "A knapsack problem where items can be split into fractions to maximize total value within a weight capacity",
+        "A knapsack problem solved using dynamic programming tables",
+        "A knapsack problem where items are selected by brute force"
+      ],
+      "answer": 1,
+      "explanation": "Fractional Knapsack allows taking fractions of items, enabling greedy selection by value-to-weight ratio to always produce an optimal solution."
+    },
+    {
+      "id": "m4_q10",
+      "question": "How does Fractional Knapsack differ from 0/1 Knapsack?",
+      "options": [
+        "Fractional Knapsack requires dynamic programming; 0/1 does not",
+        "In Fractional Knapsack items can be partially taken; in 0/1 Knapsack each item must be taken entirely or not at all",
+        "0/1 Knapsack is always more efficient than Fractional Knapsack",
+        "They are identical problems solved by the same algorithm"
+      ],
+      "answer": 1,
+      "explanation": "0/1 Knapsack requires selecting whole items (hence the 0 or 1), while Fractional allows splitting \u2014 this key difference makes greedy work for Fractional but not for 0/1."
+    },
+    {
+      "id": "m4_q11",
+      "type": "code",
+      "code": "items = [(value=60, weight=10), (value=100, weight=20), (value=120, weight=30)]\ncapacity = 50\n\n# Sort by value/weight ratio descending:\n# item1: 60/10=6.0, item2: 100/20=5.0, item3: 120/30=4.0\n# Take item1 fully (w=10), item2 fully (w=20), item3 partially (20/30)\n# Total value = 60 + 100 + 80 = 240",
+      "question": "What metric drives greedy selection in Fractional Knapsack and what is its time complexity?",
+      "options": [
+        "Sort by weight ascending \u2014 O(n)",
+        "Sort by value descending \u2014 O(n log n)",
+        "Sort by value/weight ratio descending \u2014 O(n log n) for sort + O(n) for selection = O(n log n)",
+        "No sorting needed \u2014 O(n)"
+      ],
+      "answer": 2,
+      "explanation": "Fractional Knapsack sorts items by value-to-weight ratio in descending order to always take the most 'efficient' item first. The sort costs O(n log n) which dominates the O(n) selection pass."
+    },
+    {
+      "id": "m4_q12",
+      "question": "What is an optimal substructure?",
+      "options": [
+        "A problem property where the optimal solution can be built from optimal solutions of its subproblems",
+        "A data structure that automatically optimizes memory usage",
+        "A programming pattern that reduces code duplication",
+        "A property where subproblems always have the same size"
+      ],
+      "answer": 0,
+      "explanation": "Optimal substructure means the globally optimal solution incorporates optimal solutions to its sub-problems \u2014 a requirement for both greedy algorithms and dynamic programming."
+    },
+    {
+      "id": "m4_q13",
+      "question": "What is the greedy choice property?",
+      "options": [
+        "The property that a locally optimal choice at each step can be extended to a globally optimal solution",
+        "The property that all choices must be evaluated before selecting one",
+        "The property that the algorithm must backtrack when a choice leads to failure",
+        "The property that the problem can be solved in constant time"
+      ],
+      "answer": 0,
+      "explanation": "The greedy choice property guarantees that making the locally optimal decision at each step leads to the globally optimal solution \u2014 this is what separates greedy-solvable from non-greedy-solvable problems."
+    },
+    {
+      "id": "m4_q14",
+      "type": "code",
+      "code": "# Greedy Activity Selection\nactivities.sort(key=lambda x: x[1])  # sort by end time\nfor activity in activities:\n    if activity.start >= last_end:\n        select(activity)\n\n# vs. Brute Force\nfor subset in all_subsets(activities):  # 2^n subsets\n    if is_valid(subset):\n        track_max(subset)",
+      "question": "What is the time complexity difference between these two approaches for n=20 activities?",
+      "options": [
+        "They have the same time complexity for small n",
+        "Greedy: O(n log n) \u2248 86 operations; Brute Force: O(2\u207f) = 1,048,576 operations \u2014 greedy is over 12,000x faster",
+        "Greedy: O(n\u00b2) = 400; Brute Force: O(n\u00b3) = 8,000",
+        "Brute Force is faster because it finds the globally optimal solution directly"
+      ],
+      "answer": 1,
+      "explanation": "For n=20: Greedy runs in O(n log n) \u2248 86 operations while Brute Force evaluates all 2\u00b2\u2070 = 1,048,576 subsets. Sorting by end time enables the greedy approach to skip this exponential explosion entirely."
+    },
+    {
+      "id": "m4_q15",
+      "question": "What is the total time complexity of Activity Selection?",
+      "options": [
+        "O(n) after pre-sorted input",
+        "O(n\u00b2) due to nested comparison loops",
+        "O(n log n) dominated by the initial sort, followed by a linear O(n) selection pass",
+        "O(log n) using binary search for conflict detection"
+      ],
+      "answer": 2,
+      "explanation": "Activity Selection is O(n log n) overall: sorting takes O(n log n), and the greedy selection loop is O(n) \u2014 the sort dominates the total complexity."
+    }
   ]
 }

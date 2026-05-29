@@ -2,20 +2,195 @@
   "moduleId": "module-5",
   "moduleTitle": "Dynamic Programming",
   "questions": [
-    { "id": "m5_q1", "question": "What is Dynamic Programming?", "options": ["A programming paradigm that uses blocks instead of text", "An optimization technique that solves complex problems by breaking them into overlapping subproblems and storing their results to avoid recomputation", "A brute-force technique that tries all possibilities systematically", "A divide-and-conquer technique that never stores intermediate results"], "answer": 1, "explanation": "Dynamic Programming solves problems with overlapping subproblems and optimal substructure by caching sub-results (memoization or tabulation) to avoid redundant work." },
-    { "id": "m5_q2", "question": "What is Memoization?", "options": ["Sorting an array before processing it", "A top-down DP approach where recursive calls cache their results in a table to avoid recomputing the same subproblem", "A bottom-up DP approach that fills a table iteratively from base cases upward", "A technique for compressing memory usage in large arrays"], "answer": 1, "explanation": "Memoization is top-down DP: a recursive function checks if a result is already cached before computing it, storing new results for future calls." },
-    { "id": "m5_q3", "question": "What is Tabulation?", "options": ["A top-down recursive approach with caching", "Documenting algorithm steps in a spreadsheet", "A bottom-up DP approach that iteratively fills a table starting from base cases, building up to the target answer", "A technique for sorting data into category tables"], "answer": 2, "explanation": "Tabulation is bottom-up DP: it fills a table iteratively from the smallest subproblems upward, avoiding recursion and stack overflow risks entirely." },
-    { "id": "m5_q4", "question": "Is Memoization top-down or bottom-up?", "options": ["Bottom-up — it starts from the base case and builds upward", "Neither — memoization avoids the concept of direction", "Top-down — it starts from the main problem and recursively breaks it into subproblems, caching results", "Both simultaneously"], "answer": 2, "explanation": "Memoization is top-down: the algorithm starts with the full problem, recursively decomposes it, and stores results as subproblems are solved." },
-    { "id": "m5_q5", "question": "Is Tabulation top-down or bottom-up?", "options": ["Top-down — it starts from the full problem and recurses", "Neither — tabulation processes problems in random order", "It depends on which direction the table is filled", "Bottom-up — it starts from the smallest base cases and iteratively builds toward the answer"], "answer": 3, "explanation": "Tabulation is bottom-up: it begins with base cases (e.g., fib[0]=0, fib[1]=1) and iteratively fills the table up to the target value." },
-    { "id": "m5_q6", "question": "What is the complexity of naive recursive Fibonacci?", "options": ["O(n) — linear", "O(n log n) — linearithmic", "O(2ⁿ) — exponential, due to massive redundant recomputation of subproblems", "O(n²) — quadratic"], "answer": 2, "explanation": "Naive recursive Fibonacci is O(2ⁿ) because it recomputes the same subproblems exponentially — fib(n) calls fib(n-1) and fib(n-2), each of which spawn two more calls, and so on." },
-    { "id": "m5_q7", "question": "What is the complexity of DP-optimized Fibonacci?", "options": ["O(2ⁿ) — same as naive recursion", "O(n log n) — due to the caching overhead", "O(n) — linear, since each subproblem is computed exactly once", "O(log n) — because DP halves the problem"], "answer": 2, "explanation": "With memoization or tabulation, each of the n Fibonacci values is computed exactly once and stored, reducing complexity from O(2ⁿ) to O(n)." },
-    { "id": "m5_q8", "question": "What are overlapping subproblems?", "options": ["Subproblems that are always independent and never share results", "A property where the same subproblems are encountered and recomputed multiple times during the solution of the main problem", "Subproblems that require sorting before they can be solved", "Subproblems where the answer is always the same regardless of input"], "answer": 1, "explanation": "Overlapping subproblems occur when the recursive decomposition of a problem revisits the same smaller problems multiple times — DP eliminates this redundancy by caching results." },
-    { "id": "m5_q9", "question": "What is the 0/1 Knapsack Problem?", "options": ["A problem of making change with minimum coins", "A problem of finding the shortest path in a weighted graph", "A problem of selecting a subset of items with given weights and values to maximize total value without exceeding a weight capacity, where each item is either taken (1) or not (0)", "A problem of sorting items by their value-to-weight ratio"], "answer": 2, "explanation": "0/1 Knapsack asks: given n items each with a weight and value, which items maximize total value while staying within a weight limit? Each item is binary — included or excluded." },
-    { "id": "m5_q10", "question": "Are fractional items allowed in 0/1 Knapsack?", "options": ["Yes, items can be split to fill remaining capacity", "Yes, but only for items weighing less than 1 unit", "No, each item must be taken entirely or left entirely — no fractions", "Fractional amounts are automatically rounded to whole numbers"], "answer": 2, "explanation": "The '0/1' in the name means each item is a binary choice: take it completely (1) or don't take it at all (0). This is what prevents a simple greedy solution from working." },
-    { "id": "m5_q11", "question": "How does a DP table help in 0/1 Knapsack?", "options": ["It sorts items by value automatically", "It stores the maximum achievable value for every combination of items considered and capacity used, enabling optimal item selection without brute force", "It visualizes the memory usage of the algorithm", "It generates the sorted input required by the greedy approach"], "answer": 1, "explanation": "The DP table dp[i][w] stores the best value achievable using the first i items with weight capacity w — filling it bottom-up avoids recomputing sub-decisions." },
-    { "id": "m5_q12", "question": "What is Longest Common Subsequence (LCS)?", "options": ["The longest string that appears contiguously in both input strings", "The longest sequence of characters that appears in the same relative order in both strings, but not necessarily contiguously", "The shortest string needed to encode both inputs", "The string formed by concatenating both inputs and removing duplicates"], "answer": 1, "explanation": "LCS finds the longest sequence present in both strings in the same order — unlike substrings, the characters don't need to be adjacent." },
-    { "id": "m5_q13", "question": "Does LCS require letters to be strictly contiguous?", "options": ["Yes, characters must appear consecutively in both strings", "Yes, but only in one of the two strings", "No, the characters must appear in the same relative order but can be non-contiguous", "No, LCS ignores order entirely and just counts shared characters"], "answer": 2, "explanation": "LCS characters must appear in the same relative order in both sequences but can be spread out with gaps between them — this makes LCS distinct from Longest Common Substring." },
-    { "id": "m5_q14", "question": "How is the LCS matrix populated?", "options": ["By sorting both strings first, then comparing them linearly", "Cell by cell: if characters match, take the diagonal value + 1; if they don't match, take the maximum of the cell above or to the left", "By finding the midpoint of both strings and expanding outward", "By filling the diagonal first, then propagating values outward"], "answer": 1, "explanation": "The LCS table is filled using the recurrence: if s1[i]==s2[j], dp[i][j]=dp[i-1][j-1]+1; otherwise dp[i][j]=max(dp[i-1][j], dp[i][j-1])." },
-    { "id": "m5_q15", "question": "What is the space-time tradeoff?", "options": ["The tradeoff between writing faster code and writing more readable code", "The tradeoff where using more memory to store precomputed results can reduce execution time, or vice versa", "The tradeoff between using loops and recursion", "The tradeoff between time to develop an algorithm and time to run it"], "answer": 1, "explanation": "Space-time tradeoff means spending extra memory (e.g., a DP cache or lookup table) to save computation time — DP is the classic example of accepting O(n) or O(n²) space to avoid exponential recomputation." }
+    {
+      "id": "m5_q1",
+      "question": "What is Dynamic Programming?",
+      "options": [
+        "A programming paradigm that uses blocks instead of text",
+        "An optimization technique that solves complex problems by breaking them into overlapping subproblems and storing their results to avoid recomputation",
+        "A brute-force technique that tries all possibilities systematically",
+        "A divide-and-conquer technique that never stores intermediate results"
+      ],
+      "answer": 1,
+      "explanation": "Dynamic Programming solves problems with overlapping subproblems and optimal substructure by caching sub-results (memoization or tabulation) to avoid redundant work."
+    },
+    {
+      "id": "m5_q2",
+      "type": "code",
+      "code": "cache = {}\ndef fib_memo(n):\n    if n in cache:\n        return cache[n]        # O(1) lookup\n    if n <= 1:\n        return n\n    cache[n] = fib_memo(n-1) + fib_memo(n-2)\n    return cache[n]",
+      "question": "What technique is this and what is its time complexity compared to naive recursion?",
+      "options": [
+        "Tabulation \u2014 O(n\u00b2) due to the dictionary overhead",
+        "Memoization (top-down DP) \u2014 O(n) because each subproblem is computed once and cached, vs O(2\u207f) for naive recursion",
+        "Greedy \u2014 O(log n) because the cache halves the problem each time",
+        "Memoization \u2014 still O(2\u207f) because recursive calls are not eliminated"
+      ],
+      "answer": 1,
+      "explanation": "This is top-down memoization. The cache ensures each of the n unique subproblems (fib(0) through fib(n)) is computed exactly once \u2014 reducing time from O(2\u207f) to O(n) while using O(n) space for the cache."
+    },
+    {
+      "id": "m5_q3",
+      "question": "What is Tabulation?",
+      "options": [
+        "A top-down recursive approach with caching",
+        "Documenting algorithm steps in a spreadsheet",
+        "A bottom-up DP approach that iteratively fills a table starting from base cases, building up to the target answer",
+        "A technique for sorting data into category tables"
+      ],
+      "answer": 2,
+      "explanation": "Tabulation is bottom-up DP: it fills a table iteratively from the smallest subproblems upward, avoiding recursion and stack overflow risks entirely."
+    },
+    {
+      "id": "m5_q4",
+      "question": "Is Memoization top-down or bottom-up?",
+      "options": [
+        "Bottom-up \u2014 it starts from the base case and builds upward",
+        "Neither \u2014 memoization avoids the concept of direction",
+        "Top-down \u2014 it starts from the main problem and recursively breaks it into subproblems, caching results",
+        "Both simultaneously"
+      ],
+      "answer": 2,
+      "explanation": "Memoization is top-down: the algorithm starts with the full problem, recursively decomposes it, and stores results as subproblems are solved."
+    },
+    {
+      "id": "m5_q5",
+      "type": "code",
+      "code": "def fib_tabulation(n):\n    if n <= 1:\n        return n\n    dp = [0] * (n + 1)   # allocate table of size n+1\n    dp[0], dp[1] = 0, 1\n    for i in range(2, n + 1):\n        dp[i] = dp[i-1] + dp[i-2]\n    return dp[n]",
+      "question": "What is the time and space complexity of this tabulation approach?",
+      "options": [
+        "Time: O(2\u207f), Space: O(n)",
+        "Time: O(n log n), Space: O(1)",
+        "Time: O(n) \u2014 one loop iteration per value; Space: O(n) \u2014 dp array stores n+1 values",
+        "Time: O(n), Space: O(1) \u2014 no extra storage needed"
+      ],
+      "answer": 2,
+      "explanation": "The loop runs n times computing each Fibonacci value once \u2192 O(n) time. The dp array allocates n+1 slots \u2192 O(n) space. This is the standard bottom-up tabulation tradeoff."
+    },
+    {
+      "id": "m5_q6",
+      "question": "What is the complexity of naive recursive Fibonacci?",
+      "options": [
+        "O(n) \u2014 linear",
+        "O(n log n) \u2014 linearithmic",
+        "O(2\u207f) \u2014 exponential, due to massive redundant recomputation of subproblems",
+        "O(n\u00b2) \u2014 quadratic"
+      ],
+      "answer": 2,
+      "explanation": "Naive recursive Fibonacci is O(2\u207f) because it recomputes the same subproblems exponentially \u2014 fib(n) calls fib(n-1) and fib(n-2), each of which spawn two more calls, and so on."
+    },
+    {
+      "id": "m5_q7",
+      "question": "What is the complexity of DP-optimized Fibonacci?",
+      "options": [
+        "O(2\u207f) \u2014 same as naive recursion",
+        "O(n log n) \u2014 due to the caching overhead",
+        "O(n) \u2014 linear, since each subproblem is computed exactly once",
+        "O(log n) \u2014 because DP halves the problem"
+      ],
+      "answer": 2,
+      "explanation": "With memoization or tabulation, each of the n Fibonacci values is computed exactly once and stored, reducing complexity from O(2\u207f) to O(n)."
+    },
+    {
+      "id": "m5_q8",
+      "type": "code",
+      "code": "def fib_naive(n):           # called on fib(5)\n    if n <= 1: return n\n    return fib_naive(n-1) + fib_naive(n-2)\n\n# Call tree for fib(5):\n# fib(5) \u2192 fib(4) + fib(3)\n# fib(4) \u2192 fib(3) + fib(2)   \u2190 fib(3) computed AGAIN\n# fib(3) \u2192 fib(2) + fib(1)   \u2190 fib(2) computed AGAIN",
+      "question": "What problem does this call tree reveal and what DP property does it violate?",
+      "options": [
+        "No problem \u2014 each call computes a different value",
+        "Overlapping subproblems \u2014 fib(3) and fib(2) are recomputed multiple times, exactly the redundancy DP eliminates through caching",
+        "Optimal substructure violation \u2014 Fibonacci cannot be solved with DP",
+        "Stack overflow \u2014 recursion is too deep for any input"
+      ],
+      "answer": 1,
+      "explanation": "The call tree shows fib(3) computed at least twice and fib(2) at least three times for fib(5) alone. This redundant recomputation of overlapping subproblems is what makes naive recursion O(2\u207f) \u2014 and exactly what memoization/tabulation eliminates."
+    },
+    {
+      "id": "m5_q9",
+      "question": "What is the 0/1 Knapsack Problem?",
+      "options": [
+        "A problem of making change with minimum coins",
+        "A problem of finding the shortest path in a weighted graph",
+        "A problem of selecting a subset of items with given weights and values to maximize total value without exceeding a weight capacity, where each item is either taken (1) or not (0)",
+        "A problem of sorting items by their value-to-weight ratio"
+      ],
+      "answer": 2,
+      "explanation": "0/1 Knapsack asks: given n items each with a weight and value, which items maximize total value while staying within a weight limit? Each item is binary \u2014 included or excluded."
+    },
+    {
+      "id": "m5_q10",
+      "question": "Are fractional items allowed in 0/1 Knapsack?",
+      "options": [
+        "Yes, items can be split to fill remaining capacity",
+        "Yes, but only for items weighing less than 1 unit",
+        "No, each item must be taken entirely or left entirely \u2014 no fractions",
+        "Fractional amounts are automatically rounded to whole numbers"
+      ],
+      "answer": 2,
+      "explanation": "The '0/1' in the name means each item is a binary choice: take it completely (1) or don't take it at all (0). This is what prevents a simple greedy solution from working."
+    },
+    {
+      "id": "m5_q11",
+      "type": "code",
+      "code": "def knapsack_01(weights, values, capacity):\n    n = len(weights)\n    dp = [[0]*(capacity+1) for _ in range(n+1)]  # (n+1) \u00d7 (capacity+1) table\n    for i in range(1, n+1):\n        for w in range(capacity+1):\n            if weights[i-1] <= w:\n                dp[i][w] = max(dp[i-1][w],\n                               values[i-1] + dp[i-1][w-weights[i-1]])\n            else:\n                dp[i][w] = dp[i-1][w]\n    return dp[n][capacity]",
+      "question": "What are the time and space complexities of this 0/1 Knapsack DP solution?",
+      "options": [
+        "Time: O(n\u00b2), Space: O(n)",
+        "Time: O(n \u00d7 capacity), Space: O(n \u00d7 capacity) \u2014 the nested loop fills an (n+1)\u00d7(capacity+1) table",
+        "Time: O(2\u207f), Space: O(n \u00d7 capacity)",
+        "Time: O(n log n), Space: O(capacity)"
+      ],
+      "answer": 1,
+      "explanation": "The nested loops fill every cell of the (n+1)\u00d7(capacity+1) DP table once \u2192 O(n \u00d7 capacity) time. The table itself takes O(n \u00d7 capacity) space. This is the classic pseudo-polynomial complexity of 0/1 Knapsack."
+    },
+    {
+      "id": "m5_q12",
+      "question": "What is Longest Common Subsequence (LCS)?",
+      "options": [
+        "The longest string that appears contiguously in both input strings",
+        "The longest sequence of characters that appears in the same relative order in both strings, but not necessarily contiguously",
+        "The shortest string needed to encode both inputs",
+        "The string formed by concatenating both inputs and removing duplicates"
+      ],
+      "answer": 1,
+      "explanation": "LCS finds the longest sequence present in both strings in the same order \u2014 unlike substrings, the characters don't need to be adjacent."
+    },
+    {
+      "id": "m5_q13",
+      "question": "Does LCS require letters to be strictly contiguous?",
+      "options": [
+        "Yes, characters must appear consecutively in both strings",
+        "Yes, but only in one of the two strings",
+        "No, the characters must appear in the same relative order but can be non-contiguous",
+        "No, LCS ignores order entirely and just counts shared characters"
+      ],
+      "answer": 2,
+      "explanation": "LCS characters must appear in the same relative order in both sequences but can be spread out with gaps between them \u2014 this makes LCS distinct from Longest Common Substring."
+    },
+    {
+      "id": "m5_q14",
+      "type": "code",
+      "code": "def lcs(s1, s2):\n    m, n = len(s1), len(s2)\n    dp = [[0]*(n+1) for _ in range(m+1)]\n    for i in range(1, m+1):\n        for j in range(1, n+1):\n            if s1[i-1] == s2[j-1]:\n                dp[i][j] = dp[i-1][j-1] + 1   # match\n            else:\n                dp[i][j] = max(dp[i-1][j], dp[i][j-1])  # no match\n    return dp[m][n]\n\nlcs('ABCBDAB', 'BDCAB')  # returns 4",
+      "question": "What are the time and space complexities of this LCS implementation?",
+      "options": [
+        "Time: O(m + n), Space: O(1)",
+        "Time: O(m \u00d7 n), Space: O(m \u00d7 n) \u2014 both driven by the (m+1)\u00d7(n+1) DP table",
+        "Time: O(m \u00d7 n), Space: O(m + n)",
+        "Time: O(2^(m+n)), Space: O(m \u00d7 n)"
+      ],
+      "answer": 1,
+      "explanation": "The two nested loops each run m and n times respectively, filling every cell of the (m+1)\u00d7(n+1) matrix \u2192 O(m\u00d7n) time. The matrix itself is stored in memory \u2192 O(m\u00d7n) space."
+    },
+    {
+      "id": "m5_q15",
+      "question": "What is the space-time tradeoff?",
+      "options": [
+        "The tradeoff between writing faster code and writing more readable code",
+        "The tradeoff where using more memory to store precomputed results can reduce execution time, or vice versa",
+        "The tradeoff between using loops and recursion",
+        "The tradeoff between time to develop an algorithm and time to run it"
+      ],
+      "answer": 1,
+      "explanation": "Space-time tradeoff means spending extra memory (e.g., a DP cache or lookup table) to save computation time \u2014 DP is the classic example of accepting O(n) or O(n\u00b2) space to avoid exponential recomputation."
+    }
   ]
 }

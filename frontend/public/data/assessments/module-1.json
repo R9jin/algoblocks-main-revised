@@ -16,15 +16,17 @@
     },
     {
       "id": "m1_q2",
-      "question": "What is meant by best-case execution?",
+      "type": "code",
+      "code": "def find_first(arr, target):\n    if arr[0] == target:\n        return 0\n    return -1",
+      "question": "This code represents which execution case for a search algorithm?",
       "options": [
-        "The scenario where the algorithm uses the most memory",
-        "The scenario where the algorithm takes the longest time to complete",
-        "The most favorable input arrangement that minimizes the algorithm's execution steps",
-        "The average number of steps taken across all possible inputs"
+        "Worst case \u2014 target is at the last position",
+        "Best case \u2014 target is found immediately at index 0 in O(1)",
+        "Average case \u2014 target is somewhere in the middle",
+        "Space case \u2014 measures memory allocation"
       ],
-      "answer": 2,
-      "explanation": "Best-case execution refers to the input that causes the algorithm to complete in the fewest possible steps — for example, finding a search target at the very first position."
+      "answer": 1,
+      "explanation": "Checking only index 0 and returning immediately represents the best case \u2014 the target is found in the first comparison, taking O(1) time."
     },
     {
       "id": "m1_q3",
@@ -36,7 +38,7 @@
         "Any input where the algorithm returns an incorrect result"
       ],
       "answer": 1,
-      "explanation": "Worst-case execution is the upper bound on performance — the hardest possible input for the algorithm, such as searching for a target that doesn't exist in an array."
+      "explanation": "Worst-case execution is the upper bound on performance \u2014 the hardest possible input for the algorithm, such as searching for a target that doesn't exist in an array."
     },
     {
       "id": "m1_q4",
@@ -64,27 +66,29 @@
     },
     {
       "id": "m1_q6",
-      "question": "What complexity class is O(log n)?",
+      "type": "code",
+      "code": "n = 64\ncount = 0\nwhile n > 1:\n    n = n // 2\n    count += 1\nprint(count)  # prints 6",
+      "question": "What is the time complexity of this loop?",
       "options": [
-        "Quadratic — grows quadratically with input size",
-        "Linear — grows proportionally with input size",
-        "Constant — does not grow with input size",
-        "Logarithmic — grows very slowly, halving the problem at each step"
+        "O(n) \u2014 runs n times",
+        "O(n\u00b2) \u2014 nested iterations",
+        "O(log n) \u2014 n is halved each iteration, so it runs log\u2082(n) times",
+        "O(1) \u2014 fixed number of steps"
       ],
-      "answer": 3,
-      "explanation": "O(log n) is logarithmic complexity. Algorithms in this class typically cut the problem in half at each step, such as Binary Search."
+      "answer": 2,
+      "explanation": "Dividing n by 2 each iteration means the loop runs log\u2082(n) times before n reaches 1 \u2014 the defining pattern of O(log n) complexity."
     },
     {
       "id": "m1_q7",
-      "question": "What complexity class is O(n²)?",
+      "question": "What complexity class is O(n\u00b2)?",
       "options": [
-        "Linear — grows proportionally to input size",
-        "Logarithmic — grows slowly",
-        "Quadratic — grows proportional to the square of the input size",
-        "Exponential — doubles with each additional input"
+        "Linear \u2014 grows proportionally to input size",
+        "Logarithmic \u2014 grows slowly",
+        "Quadratic \u2014 grows proportional to the square of the input size",
+        "Exponential \u2014 doubles with each additional input"
       ],
       "answer": 2,
-      "explanation": "O(n²) is quadratic complexity, typically caused by nested loops where the outer and inner loops each iterate n times."
+      "explanation": "O(n\u00b2) is quadratic complexity, typically caused by nested loops where the outer and inner loops each iterate n times."
     },
     {
       "id": "m1_q8",
@@ -100,15 +104,17 @@
     },
     {
       "id": "m1_q9",
-      "question": "Which is slower: O(n log n) or O(n²)?",
+      "type": "code",
+      "code": "# Algorithm A\nfor i in range(n):          # O(n)\n    print(i)\n\n# Algorithm B  \nfor i in range(n):          # O(n)\n    for j in range(n):      # O(n)\n        print(i, j)",
+      "question": "Comparing Algorithm A and B, which is slower and why?",
       "options": [
-        "O(n log n), because logarithms are slow",
-        "They are always equal",
-        "O(n²), because it grows much faster for large values of n",
-        "It cannot be determined without knowing the exact input"
+        "Algorithm A is slower because it runs twice",
+        "They are equal \u2014 both use for loops",
+        "Algorithm B is slower \u2014 it is O(n\u00b2) while Algorithm A is O(n), and O(n\u00b2) grows much faster for large n",
+        "Algorithm A is slower because single loops are less efficient than nested ones"
       ],
       "answer": 2,
-      "explanation": "O(n²) is significantly slower than O(n log n) for large inputs. For example, at n=1000, O(n²) = 1,000,000 operations vs O(n log n) ≈ 10,000."
+      "explanation": "Algorithm A is O(n) and Algorithm B is O(n\u00b2). For n=1000: A runs 1,000 operations vs B's 1,000,000 \u2014 O(n\u00b2) is dramatically slower for large input sizes."
     },
     {
       "id": "m1_q10",
@@ -136,15 +142,17 @@
     },
     {
       "id": "m1_q12",
-      "question": "How does array allocation affect space complexity?",
+      "type": "code",
+      "code": "def build_list(n):\n    result = []\n    for i in range(n):\n        result.append(i * 2)\n    return result",
+      "question": "What is the space complexity of this function?",
       "options": [
-        "It has no effect on space complexity",
-        "Allocating an array of size n adds O(n) to the space complexity",
-        "Arrays always use O(1) space regardless of their size",
-        "Array allocation only affects time complexity, not space"
+        "O(1) \u2014 only one list is created",
+        "O(log n) \u2014 list grows logarithmically",
+        "O(n) \u2014 the result list grows linearly with n, storing one element per iteration",
+        "O(n\u00b2) \u2014 nested structure is allocated"
       ],
-      "answer": 1,
-      "explanation": "Each element in an array requires memory, so allocating an array of size n contributes O(n) to the algorithm's space complexity."
+      "answer": 2,
+      "explanation": "The function allocates a list that grows by one element per iteration, reaching size n at completion \u2014 this is O(n) space complexity."
     },
     {
       "id": "m1_q13",
@@ -160,15 +168,17 @@
     },
     {
       "id": "m1_q14",
-      "question": "What is a computational bottleneck?",
+      "type": "code",
+      "code": "def process(arr):\n    total = 0                    # O(1)\n    for i in range(len(arr)):    # O(n)\n        for j in range(len(arr)):# O(n)\n            total += arr[i] * arr[j]\n    return total",
+      "question": "What is the computational bottleneck in this function?",
       "options": [
-        "A syntax error that prevents the program from compiling",
-        "The part of an algorithm with the highest complexity that dominates overall performance",
-        "A hardware limitation that slows down all programs equally",
-        "A loop that executes exactly once"
+        "Line 1 \u2014 the variable assignment total = 0",
+        "The nested loop on lines 3\u20135 \u2014 it runs n\u00b2 times and dominates the overall O(n\u00b2) complexity",
+        "The return statement \u2014 it executes last",
+        "Line 2 \u2014 the outer loop alone makes it O(n\u00b2)"
       ],
       "answer": 1,
-      "explanation": "A computational bottleneck is the section of code with the highest time or space complexity — it dominates the algorithm's overall Big-O rating and is the primary target for optimization."
+      "explanation": "The nested loop is the bottleneck \u2014 it executes n \u00d7 n = n\u00b2 times, dominating over the O(1) assignment. The overall complexity is O(n\u00b2), and this is where optimization efforts should focus."
     },
     {
       "id": "m1_q15",
@@ -180,7 +190,7 @@
         "Whether the algorithm uses loops or recursive functions"
       ],
       "answer": 2,
-      "explanation": "Scalability refers to how an algorithm performs as n grows large. A scalable algorithm (e.g., O(n log n)) remains practical at large input sizes, while an unscalable one (e.g., O(2ⁿ)) becomes infeasible quickly."
+      "explanation": "Scalability refers to how an algorithm performs as n grows large. A scalable algorithm (e.g., O(n log n)) remains practical at large input sizes, while an unscalable one (e.g., O(2\u207f)) becomes infeasible quickly."
     }
   ]
 }
