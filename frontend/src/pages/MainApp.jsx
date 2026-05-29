@@ -342,7 +342,6 @@ export default function MainApp() {
             const pData = await pRes.json();
             const cloudProjects = pData.projects || pData || [];
             for (const cp of cloudProjects) {
-               // CHECK BOTH USER ID TYPES
                if (cp.owner_id === user.email || cp.userId === user.email) {
                    await projectsDB.setItem(cp._id, { ...cp, synced: true });
                }
@@ -353,7 +352,6 @@ export default function MainApp() {
             const tData = await tRes.json();
             const cloudTemplates = tData.templates || tData || [];
             for (const ct of cloudTemplates) {
-                // CHECK BOTH USER ID TYPES
                 if (ct.owner_id === user.email || ct.userId === user.email) {
                     await templatesDB.setItem(ct._id, { ...ct, synced: true });
                 }
@@ -365,12 +363,30 @@ export default function MainApp() {
       let customItems = [];
       await projectsDB.iterate((value) => { 
         if (value.owner_id === user.email || value.userId === user.email) {
-            customItems.push({ _id: value._id, title: value.title || value.name, description: value.description || "Saved Project", category: "My Projects", isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson, synced: value.synced }); 
+            customItems.push({ 
+                _id: value._id, 
+                title: value.title || value.name || "Untitled Project", // FIXED: Fallback prevents crash
+                description: value.description || "Saved Project", 
+                category: "My Projects", 
+                isSystem: false, 
+                saveType: "project", 
+                data: value.data || value.workspace?.blocklyJson, 
+                synced: value.synced 
+            }); 
         }
       });
       await templatesDB.iterate((value) => { 
         if (value.owner_id === user.email || value.userId === user.email) {
-            customItems.push({ _id: value._id, title: value.title || value.name, description: value.description || "Custom template", category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson, synced: value.synced }); 
+            customItems.push({ 
+                _id: value._id, 
+                title: value.title || value.name || "Untitled Template", // FIXED: Fallback prevents crash
+                description: value.description || "Custom template", 
+                category: value.category || "Custom Templates", 
+                isSystem: false, 
+                saveType: "template", 
+                data: value.data || value.workspace?.blocklyJson, 
+                synced: value.synced 
+            }); 
         }
       });
 
@@ -712,7 +728,11 @@ export default function MainApp() {
     }
   };
 
-  const filteredTemplates = allTemplates.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  // FIXED: Prevents TypeError if title is somehow undefined during filter mapping
+  const filteredTemplates = allTemplates.filter(t => 
+    String(t.title || "").toLowerCase().includes(String(searchTerm || "").toLowerCase())
+  );
+  
   const groupedTemplates = filteredTemplates.reduce((acc, template) => {
     const category = template.category || "Uncategorized";
     if (!acc[category]) acc[category] = [];
