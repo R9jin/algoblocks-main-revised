@@ -58,6 +58,21 @@ const MODULE_FIRST_LESSON = {
   "module-6": "lesson-6-1",
 };
 
+// ── Code Block component ─────────────────────────────────────────────────────
+function CodeBlock({ code }) {
+  if (!code) return null;
+  return (
+    <div className="question-code-block">
+      <div className="code-block-header">
+        <span className="code-block-label">Python</span>
+      </div>
+      <pre className="code-block-pre">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function AssessmentPage() {
   const { moduleId, type } = useParams(); // type = "pre" | "post"
@@ -408,10 +423,18 @@ export default function AssessmentPage() {
                         <span className="review-icon">
                           {correct ? <FiCheck color="#22c55e" /> : <FiX color="#ef4444" />}
                         </span>
-                        <span className="review-question">{q.question}</span>
+                        <span className="review-question">
+                          {q.type === "code" && <span className="review-code-tag">CODE</span>}
+                          {q.question}
+                        </span>
                       </div>
                       {!correct && (
                         <div className="review-answer-detail">
+                          {q.code && (
+                            <div className="review-code-snippet">
+                              <pre>{q.code}</pre>
+                            </div>
+                          )}
                           <span className="your-answer">
                             Your answer: <em>{userAnswer !== undefined ? q.options[userAnswer] : "Not answered"}</em>
                           </span>
@@ -508,13 +531,14 @@ export default function AssessmentPage() {
           <aside className="question-navigator">
             <h4>Questions</h4>
             <div className="question-nav-grid">
-              {questions.map((_, i) => (
+              {questions.map((q, i) => (
                 <button
                   key={i}
                   className={`nav-dot ${i === currentIndex ? "active" : ""} ${
                     selectedAnswers[i] !== undefined ? "answered" : ""
-                  }`}
+                  } ${q.type === "code" ? "code-q" : ""}`}
                   onClick={() => setCurrentIndex(i)}
+                  title={q.type === "code" ? "Code analysis question" : ""}
                 >
                   {i + 1}
                 </button>
@@ -524,14 +548,24 @@ export default function AssessmentPage() {
               <span className="legend-dot answered" /> Answered
               <span className="legend-dot active" /> Current
               <span className="legend-dot" /> Unanswered
+              <span className="legend-dot code-q" /> Code Q
             </div>
           </aside>
 
           <main className="question-main">
             <div className="question-card">
-              <div className="question-counter">
-                Question {currentIndex + 1} of {questions.length}
+              <div className="question-counter-row">
+                <span className="question-counter">Question {currentIndex + 1} of {questions.length}</span>
+                {currentQuestion.type === "code" && (
+                  <span className="code-question-badge">💻 Code Analysis</span>
+                )}
               </div>
+
+              {/* Code block — shown above the question text */}
+              {currentQuestion.type === "code" && currentQuestion.code && (
+                <CodeBlock code={currentQuestion.code} />
+              )}
+
               <h2 className="question-text">{currentQuestion.question}</h2>
 
               <div className="options-list">

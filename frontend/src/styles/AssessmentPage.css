@@ -552,3 +552,129 @@
   color: #94a3b8;
   margin: 0.25rem 0 0;
 }
+
+/* ── CODE ANALYSIS QUESTIONS ──────────────────────────────── */
+
+.question-counter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.question-counter {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a78bfa;
+}
+
+.code-question-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #1e1b3a;
+  color: #a78bfa;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.7rem;
+  border-radius: 20px;
+  border: 1px solid #3d2d8a;
+}
+
+/* Code block container */
+.question-code-block {
+  background: #1e1b3a;
+  border: 1px solid #3d2d8a;
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #16133a;
+  border-bottom: 1px solid #3d2d8a;
+}
+
+.code-block-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a78bfa;
+  text-transform: uppercase;
+}
+
+.code-block-pre {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: #e2d9ff;
+  white-space: pre;
+}
+
+.code-block-pre code {
+  font-family: inherit;
+}
+
+/* Navigator dot for code questions */
+.nav-dot.code-q {
+  border-color: #a78bfa;
+  color: #7c5cff;
+  background: #f0ebff;
+}
+.nav-dot.code-q.active {
+  background: #7c5cff;
+  color: #fff;
+}
+.nav-dot.code-q.answered {
+  background: #ede9ff;
+  border-color: #7c5cff;
+}
+
+.legend-dot.code-q {
+  background: #f0ebff;
+  border-color: #a78bfa;
+}
+
+/* CODE tag in review list */
+.review-code-tag {
+  display: inline-block;
+  background: #1e1b3a;
+  color: #a78bfa;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.06em;
+}
+
+/* Code snippet in answer review (for wrong answers) */
+.review-code-snippet {
+  background: #1e1b3a;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+}
+
+.review-code-snippet pre {
+  margin: 0;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: #e2d9ff;
+  white-space: pre;
+}
