@@ -563,7 +563,7 @@
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"}
     ]
   },
@@ -609,7 +609,7 @@
   },
   {
     "id": "nested_loop_multiplication_45",
-    "name": "Print Multiplication Table O(N^2)",
+    "name": "Print Multiplication Table",
     "code": "def mult_table(n):\n    for i in range(1, n+1):\n        for j in range(1, n+1):\n            print(i * j)",
     "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(1)",

@@ -1115,7 +1115,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     return
                 
                 b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append", global_time_override="O(1) amortized", global_space_override="O(1)")
+                self.record_line(node, time_override="O(1) amortized", space_override="O(1)", custom_op="Append", global_space_override="O(1)")
                     
             elif node.func.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
                 b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
