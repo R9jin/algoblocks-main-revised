@@ -196,3 +196,13 @@ class AuthService:
             
         assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
         return {"status": "success", "assessment": assessment}
+    
+    @staticmethod
+    def get_all_submissions(email: str):
+        if not email:
+            return {"status": "ignored"}
+            
+        # Fetches all submissions from MongoDB, converts cursor to list, removes ObjectID
+        submissions = list(db["submissions"].find({"userId": email}, {"_id": 0}))
+        
+        return {"status": "success", "submissions": submissions}

@@ -29,9 +29,10 @@ function App() {
 
   const MainApp = lazy(() => import("./pages/MainApp"));
   const ActivityApp = lazy(() => import("./pages/ActivityApp"));
-  
+
   // --- FIX 1: Lazy load your AssessmentPage ---
-  const AssessmentPage = lazy(() => import("./pages/AssessmentPage")); 
+  const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
+  const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 
   return (
     <>
@@ -70,13 +71,18 @@ function App() {
             path="/activity/:moduleId/:activityId"
             element={<ProtectedRoute><ActivityApp /></ProtectedRoute>}
           />
-          
+
           {/* --- FIX 2: Add the explicit route for assessments --- */}
-          <Route 
-            path="/assessment/:moduleId/:type" 
-            element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} 
+          <Route
+            path="/assessment/:moduleId/:type"
+            element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>}
           />
-          
+
+          <Route
+            path="/profile"
+            element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}
+          />
+
         </Routes>
       </Suspense>
     </>

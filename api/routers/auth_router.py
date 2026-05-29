@@ -63,3 +63,8 @@ def sync_assessment(request: Request, payload: Dict[str, Any] = Body(...)):
 @limiter.limit("30/minute")
 def get_assessment(request: Request, email: str = Query(...), moduleId: str = Query(...)):
     return AuthService.get_assessment(email, moduleId)
+
+@router.get("/get-all-submissions")
+@limiter.limit("30/minute")
+def get_all_submissions(request: Request, email: str = Query(...)):
+    return AuthService.get_all_submissions(email)
