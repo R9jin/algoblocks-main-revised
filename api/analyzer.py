@@ -1168,13 +1168,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 s_ov = "O(n)"
             elif isinstance(node.value, ast.List):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
-                    custom_op = "Init"
-                    g_time = "O(n)"
-                    g_space = "O(n)"
-                    t_ov = "O(n)"
-                    s_ov = "O(n)"
-                elif len(node.value.elts) > 0:
-                    custom_op = "Init"
+                    custom_op = "List Init (Unpacking)"
                     g_time = "O(n)"
                     g_space = "O(n)"
                     t_ov = "O(n)"
@@ -1183,15 +1177,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "List Init"
                     g_time = "O(1)"
                     g_space = "O(1)"
+                    t_ov = "O(1)"
+                    s_ov = "O(1)"
             elif isinstance(node.value, ast.Set):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
-                    custom_op = "Set Init"
-                    g_time = "O(n)"
-                    g_space = "O(n)"
-                    t_ov = "O(n)"
-                    s_ov = "O(n)"
-                elif len(node.value.elts) > 0:
-                    custom_op = "Set Init"
+                    custom_op = "Set Init (Unpacking)"
                     g_time = "O(n)"
                     g_space = "O(n)"
                     t_ov = "O(n)"
@@ -1200,15 +1190,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Set Init"
                     g_time = "O(1)"
                     g_space = "O(1)"
+                    t_ov = "O(1)"
+                    s_ov = "O(1)"
             elif isinstance(node.value, ast.Dict):
                 if any(k is None for k in node.value.keys):
-                    custom_op = "Dict Init"
-                    g_time = "O(n)"
-                    g_space = "O(n)"
-                    t_ov = "O(n)"
-                    s_ov = "O(n)"
-                elif len(node.value.keys) > 0:
-                    custom_op = "Dict Init"
+                    custom_op = "Dict Init (Unpacking)"
                     g_time = "O(n)"
                     g_space = "O(n)"
                     t_ov = "O(n)"
@@ -1217,15 +1203,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Dict Init"
                     g_time = "O(1)"
                     g_space = "O(1)"
+                    t_ov = "O(1)"
+                    s_ov = "O(1)"
             elif isinstance(node.value, ast.Tuple):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
-                    custom_op = "Tuple Init"
-                    g_time = "O(n)"
-                    g_space = "O(n)"
-                    t_ov = "O(n)"
-                    s_ov = "O(n)"
-                elif len(node.value.elts) > 0:
-                    custom_op = "Tuple Init"
+                    custom_op = "Tuple Init (Unpacking)"
                     g_time = "O(n)"
                     g_space = "O(n)"
                     t_ov = "O(n)"
@@ -1234,6 +1216,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Tuple Init"
                     g_time = "O(1)"
                     g_space = "O(1)"
+                    t_ov = "O(1)"
+                    s_ov = "O(1)"
             elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple', 'set2']: 
                 f_name = node.value.func.id
                 f_name = 'set' if f_name == 'set2' else f_name
