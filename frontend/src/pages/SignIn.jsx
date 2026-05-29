@@ -12,7 +12,10 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false); 
   const navigate = useNavigate(); 
 
-  const API_BASE = import.meta.env.VITE_API_URL || ""; 
+  // ✅ FIX: Strip trailing slashes to prevent //api/login routing errors on Vercel
+  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+  
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
 
   // Hydrate local IndexedDB from MongoDB Cloud after wiping

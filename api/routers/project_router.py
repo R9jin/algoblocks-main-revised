@@ -1,23 +1,49 @@
-from fastapi import APIRouter
-from api.models import ProjectModel, ProjectUpdate
-from api.services.project_service import ProjectService
+# api/routers/project_router.py
+from fastapi import APIRouter, Request, Query
+from typing import Dict, Optional
 
-router = APIRouter(prefix="/api/projects", tags=["Projects"])
+from models import SaveProjectRequest
+from services.project_service import ProjectService
+from limiter import limiter
 
-@router.post("")
-@router.post("/")
-def save_project(project: ProjectModel):
-    return ProjectService.create_project(project)
+router = APIRouter()
 
 @router.get("")
 @router.get("/")
-def get_projects():
-    return ProjectService.get_projects()
+@limiter.limit("30/minute")
+def get_user_projects(
+    request: Request, 
+    userId: Optional[str] = Query(None), 
+    user_id: Optional[str] = Query(None),
+    email: Optional[str] = Query(None)
+):
+    # Try all possible ways the frontend might send the ID
+    uid = userId or user_id or email
+    
+    if not uid:
+        uid = request.query_params.get("userId") or request.query_params.get("email")
 
-@router.delete("/{project_id}")
-def delete_project(project_id: str):
-    return ProjectService.delete_project(project_id)
+    # If the frontend fired too early and there is still no UID,
+    # return an empty list gracefully.
+    if not uid:
+        return {"status": "success", "projects": []}
+        
+    # Get projects from DB
+    projects = ProjectService.get_user_projects(uid)
+    
+    # Ensure consistent dictionary return so frontend data.projects never breaks
+    if isinstance(projects, list):
+        return {"status": "success", "projects": projects}
+        
+    return projects
 
-@router.put("/{project_id}")
-def update_project(project_id: str, payload: ProjectUpdate):
-    return ProjectService.update_project(project_id, payload)
+@router.post("/save")
+@limiter.limit("20/minute")
+def save_project(request: Request, req: SaveProjectRequest):
+    return ProjectService.save_project(req)
+
+@router.post("/delete")
+@limiter.limit("10/minute")
+def delete_project(request: Request, payload: Dict[str, str]):
+    return ProjectService.delete_project(payload)
+

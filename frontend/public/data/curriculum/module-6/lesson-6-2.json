@@ -1,12 +1,17 @@
 {
-  "lessonId": "lesson-6-1",
+  "lessonId": "lesson-6-2",
   "moduleId": "module-6",
-  "title": "State Trees",
-  "description": "Navigating decisions and building paths using the Choose, Explore, and Unchoose architectural pattern.",
-  "difficulty": "Advanced",
-  "estimatedTime": "40 min",
-  "prerequisites": "Longest Common Subsequence (LCS)",
-  "tags": ["backtracking", "search", "recursion", "optimization"],
+  "title": "Permutations & Combinations",
+  "description": "Learn how backtracking systematically generates arrangements and selections using recursion, state tracking, and rollback operations.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "55 min",
+  "prerequisites": "Backtracking Fundamentals",
+  "tags": [
+    "backtracking",
+    "permutations",
+    "combinations",
+    "recursive search"
+  ],
   "activities": [
     { "id": "m6_l1_a1", "title": "The Choose Step" },
     { "id": "m6_l1_a2", "title": "The Unchoose Step" },
@@ -19,53 +24,216 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Some problems require exploring many possible solution paths before finding the correct answer.\n\nInstead of blindly checking every possibility, Backtracking improves efficiency by abandoning paths that cannot lead to valid solutions.\n\nThis strategy allows algorithms to systematically explore possibilities while undoing incorrect choices when necessary."
+      "content": "Permutations and combinations are classic problems solved using backtracking.\n\nThese problems focus on systematically generating possibilities, exploring recursive decision paths, tracking chosen elements, and undoing choices after exploration.\n\nBacktracking works especially well because the number of possible arrangements grows rapidly, while recursive exploration naturally fits the structure of these problems.\n\nThese concepts are foundational in combinatorics, search algorithms, AI systems, scheduling problems, cryptography, and game-solving systems."
     },
     {
-      "id": "core-idea",
+      "id": "why-perm-comb-matter",
       "type": "concept",
-      "title": "The Core Idea of Backtracking",
-      "content": "Backtracking builds solutions step-by-step.\n\nAt every stage, the algorithm chooses a possible option and continues exploring deeper.\n\nIf the current path becomes invalid or impossible, the algorithm reverses its previous decision and tries a different path instead."
+      "title": "Why Permutations and Combinations Matter",
+      "content": "Many real-world systems require generating possible arrangements or selections.\n\nExamples include password generation, seating arrangements, scheduling systems, recommendation engines, route planning, and puzzle-solving systems.\n\nThe challenge is that possibilities grow explosively as input size increases.\n\nBacktracking solves this by systematically exploring states while tracking decisions and pruning unnecessary exploration.",
+      "bullets": [
+        "Generates possible arrangements systematically.",
+        "Demonstrates recursive state exploration.",
+        "Introduces rollback and state tracking.",
+        "Appears in AI, cryptography, and optimization systems."
+      ]
     },
     {
-      "id": "rollback-mechanism",
+      "id": "understanding-permutations",
       "type": "deep_dive",
-      "title": "Understanding Rollback",
-      "content": "Rollback is one of the most important features of Backtracking.\n\nWhen the algorithm discovers that the current path cannot produce a valid solution, it removes the most recent choice and returns to an earlier state.\n\nThis process prevents unnecessary exploration of impossible paths and improves efficiency significantly."
+      "title": "Understanding Permutations",
+      "content": "A permutation is an arrangement where order matters.\n\nSuppose we are given:\nA, B, C\n\nPossible permutations include:\nABC\nACB\nBAC\nBCA\nCAB\nCBA\n\nNotice that ABC and BAC are different because the order changes.\n\nPermutation generation focuses on arranging elements in every possible order."
     },
     {
-      "id": "search-tree",
+      "id": "understanding-combinations",
+      "type": "deep_dive",
+      "title": "Understanding Combinations",
+      "content": "A combination is a selection where order does not matter.\n\nSuppose we are given:\nA, B, C\n\nPossible combinations of size 2 become:\nAB\nAC\nBC\n\nNotice that AB and BA are considered the same combination.\n\nCombination generation focuses on selecting elements rather than arranging them."
+    },
+    {
+      "id": "perm-vs-comb",
       "type": "concept",
-      "title": "The Search Tree",
-      "content": "Backtracking problems are often visualized as search trees.\n\nEach node represents a decision, while branches represent possible choices.\n\nThe algorithm systematically explores branches until it either finds a valid solution or determines that a branch should be abandoned."
+      "title": "Permutations vs Combinations",
+      "content": "Permutations focus on arrangements where order matters.\n\nCombinations focus on selections where order does not matter.\n\nBecause permutations consider ordering differences, they usually generate far more possibilities than combinations."
     },
     {
-      "id": "real-world-example",
-      "type": "analogy",
-      "title": "Maze Exploration Analogy",
-      "content": "Imagine navigating a maze.\n\nWhenever you encounter a dead end, you return to the previous intersection and try another direction.\n\nThis process of exploring, failing, reversing, and retrying mirrors how Backtracking algorithms operate."
+      "id": "why-backtracking-works",
+      "type": "concept",
+      "title": "Why Backtracking Works Well",
+      "content": "Generating arrangements naturally forms a recursive decision tree.\n\nThe algorithm repeatedly:\n● selects an option\n● explores recursively\n● backtracks afterward\n● tries another possibility\n\nThis recursive choose-explore-undo cycle is exactly what backtracking is designed for."
     },
     {
-      "id": "real-world-connection",
+      "id": "state-tracking",
+      "type": "deep_dive",
+      "title": "Understanding State Tracking",
+      "content": "State tracking is one of the most important concepts in backtracking.\n\nThe algorithm must remember:\n● which elements are already used\n● which elements remain available\n● the current partial arrangement\n\nExample:\nCurrent path = [A, B]\nRemaining = [C]\n\nAfter exploration, the algorithm removes the last choice and explores another branch.\n\nThis rollback behavior allows systematic recursive exploration."
+    },
+    {
+      "id": "step-by-step-permutation",
+      "type": "deep_dive",
+      "title": "Step-by-Step Permutation Generation",
+      "content": "Suppose we generate permutations of [1, 2, 3].\n\nStep 1 — Choose First Element\nSelect 1\nCurrent state:\n[1]\nRemaining:\n[2, 3]\n\nStep 2 — Choose Second Element\nSelect 2\nCurrent state:\n[1, 2]\nRemaining:\n[3]\n\nStep 3 — Complete Arrangement\nAdd 3\nPermutation formed:\n[1, 2, 3]\n\nStep 4 — Backtrack\nRemove 3\nThen explore another possibility.\n\nThis repeated choose-explore-undo cycle is the heart of backtracking."
+    },
+    {
+      "id": "recursive-tree",
+      "type": "deep_dive",
+      "title": "Recursive Exploration Tree",
+      "content": "Permutation generation forms a recursive branching tree.\n\nExample:\n[]\n├── [1]\n│   ├── [1,2]\n│   └── [1,3]\n├── [2]\n└── [3]\n\nEach recursive level represents another decision position.\n\nThe algorithm systematically explores every valid branch."
+    },
+    {
+      "id": "permutation-pseudocode",
+      "type": "concept",
+      "title": "Permutation Backtracking Pseudocode",
+      "content": "Permutation generation commonly follows this recursive structure.",
+      "codeSnippets": [
+        {
+          "title": "Permutation backtracking pseudocode",
+          "language": "python",
+          "code": "def backtrack(path):\n    if path_complete:\n        save_permutation()\n        return\n\n    for each unused element:\n        choose_element()\n        mark_used()\n\n        backtrack(path)\n\n        unmark_used()\n        undo_choice()"
+        }
+      ]
+    },
+    {
+      "id": "python-permutation",
+      "type": "concept",
+      "title": "Python Permutation Implementation",
+      "content": "Permutation generation commonly uses used-element tracking and rollback operations.",
+      "codeSnippets": [
+        {
+          "title": "Permutation generation using backtracking",
+          "language": "python",
+          "code": "nums = [1, 2, 3]\nused = [False] * len(nums)\nresult = []\n\ndef backtrack(path):\n    if len(path) == len(nums):\n        result.append(path[:])\n        return\n\n    for i in range(len(nums)):\n        if used[i]:\n            continue\n\n        used[i] = True\n        path.append(nums[i])\n\n        backtrack(path)\n\n        path.pop()\n        used[i] = False\n\nbacktrack([])\nprint(result)"
+        },
+        {
+          "title": "Rollback demonstration",
+          "language": "python",
+          "code": "path = [1, 2, 3]\n\nprint(path)\npath.pop()\nprint(path)"
+        }
+      ]
+    },
+    {
+      "id": "rollback-code",
+      "type": "concept",
+      "title": "Understanding Rollback in Code",
+      "content": "The most important rollback operations are:\n\npath.pop()\nused[i] = False\n\nThese statements restore previous recursive state and allow exploration of new branches.\n\nWithout rollback, recursive exploration becomes corrupted."
+    },
+    {
+      "id": "combination-generation",
+      "type": "deep_dive",
+      "title": "Combination Generation",
+      "content": "Combination problems differ because order does not matter.\n\nTo avoid duplicates, the algorithm progressively moves forward through remaining elements.\n\nPreviously selected elements are not revisited.\n\nExample combinations of [1, 2, 3] with size 2:\n[1,2]\n[1,3]\n[2,3]\n\nNotice that [2,1] does not appear."
+    },
+    {
+      "id": "combination-pseudocode",
+      "type": "concept",
+      "title": "Combination Backtracking Pseudocode",
+      "content": "Combination generation uses recursive forward exploration to avoid duplicate orderings.",
+      "codeSnippets": [
+        {
+          "title": "Combination backtracking pseudocode",
+          "language": "python",
+          "code": "def backtrack(start, path):\n    save_combination()\n\n    for each remaining element:\n        choose_element()\n\n        backtrack(next_index, path)\n\n        undo_choice()"
+        }
+      ]
+    },
+    {
+      "id": "python-combination",
+      "type": "concept",
+      "title": "Python Combination Implementation",
+      "content": "Combination generation avoids repeated orderings through progressive index movement.",
+      "codeSnippets": [
+        {
+          "title": "Combination generation using backtracking",
+          "language": "python",
+          "code": "nums = [1, 2, 3]\nresult = []\n\ndef backtrack(start, path):\n    result.append(path[:])\n\n    for i in range(start, len(nums)):\n        path.append(nums[i])\n\n        backtrack(i + 1, path)\n\n        path.pop()\n\nbacktrack(0, [])\nprint(result)"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Permutation generation commonly requires O(n!) complexity because recursive branching grows factorially.\n\nCombination generation often follows O(2^n) complexity because every element creates inclusion or exclusion decisions.\n\nBacktracking problems commonly experience exponential search-space growth.",
+      "chart": {
+        "title": "Permutation and combination growth",
+        "description": "Recursive branching causes rapid growth in permutation and combination search spaces.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(2^n)",
+          "O(n!)"
+        ]
+      }
+    },
+    {
+      "id": "why-pruning-matters",
+      "type": "concept",
+      "title": "Why Pruning Matters",
+      "content": "Without pruning, recursive exploration becomes enormous.\n\nExamples include:\n● invalid arrangements\n● duplicate states\n● impossible paths\n\nEfficient backtracking algorithms often include early stopping conditions that dramatically reduce unnecessary recursion."
+    },
+    {
+      "id": "real-world-applications",
       "type": "real_world_connection",
-      "title": "Backtracking in Real Applications",
-      "content": "Backtracking is widely used in puzzle solving, scheduling systems, artificial intelligence, game development, and constraint satisfaction problems.\n\nMany systems rely on Backtracking when multiple possible combinations must be explored efficiently."
+      "title": "Real-World Applications",
+      "content": "Permutations and combinations appear in password generation, recommendation systems, scheduling systems, cryptography, AI search systems, puzzle solving, and game engines.\n\nMany intelligent systems rely heavily on systematic arrangement generation."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "forgetting-rollback",
+          "title": "Mistake: Forgetting rollback operations",
+          "content": "Without rollback, recursive state becomes corrupted and exploration becomes invalid."
+        },
+        {
+          "id": "perm-vs-comb-confusion",
+          "title": "Mistake: Confusing permutations with combinations",
+          "content": "Permutations care about order while combinations focus only on selection."
+        },
+        {
+          "id": "missing-used-tracking",
+          "title": "Mistake: Failing to track used elements",
+          "content": "Permutation generation requires preventing duplicate element usage."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Backtracking systematically explores solution paths while undoing incorrect decisions through rollback. By abandoning impossible paths early, Backtracking improves efficiency compared to exhaustive brute force search."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Permutations generate arrangements where order matters.",
+        "Combinations generate selections where order does not matter.",
+        "Backtracking systematically explores recursive possibilities.",
+        "State tracking is essential for valid recursive exploration.",
+        "Rollback restores previous states after recursion.",
+        "Permutation generation commonly grows factorially."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Backtracking Algorithm",
+      "title": "Programiz – Backtracking Algorithm",
       "url": "https://www.programiz.com/dsa/backtracking-algorithm"
     },
     {
-      "title": "GeeksforGeeks — Backtracking",
-      "url": "https://www.geeksforgeeks.org/backtracking-algorithms/"
+      "title": "GeeksforGeeks – Permutations Using Backtracking",
+      "url": "https://www.geeksforgeeks.org/write-a-c-program-to-print-all-permutations-of-a-given-string/"
+    },
+    {
+      "title": "Wikipedia – Permutation",
+      "url": "https://en.wikipedia.org/wiki/Permutation"
+    },
+    {
+      "title": "Wikipedia – Combination",
+      "url": "https://en.wikipedia.org/wiki/Combination"
+    },
+    {
+      "title": "Hello Algo – Backtracking",
+      "url": "https://www.hello-algo.com/en/chapter_backtracking/"
     }
   ]
 }

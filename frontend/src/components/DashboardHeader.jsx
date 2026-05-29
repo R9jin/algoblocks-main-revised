@@ -4,6 +4,7 @@ import {
   LuFolder,
   LuLayoutDashboard,
   LuLogOut,
+  LuUser
 } from "react-icons/lu";
 
 import { Link, useNavigate } from "react-router-dom";
@@ -39,7 +40,7 @@ export default function DashboardHeader({
 
   useEffect(() => {
 
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
 
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -126,8 +127,7 @@ export default function DashboardHeader({
     setOpen(false);
 
     localStorage.removeItem("user");
-
-    sessionStorage.clear();
+    sessionStorage.removeItem("user");
 
     navigate("/signin", {
       replace: true,
@@ -249,6 +249,20 @@ export default function DashboardHeader({
                     {user?.email || ""}
                   </div>
                 </div>
+
+                {/* PROFILE */}
+                <button
+                  type="button"
+                  className="user-dd-item"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/profile");
+                  }}
+                  role="menuitem"
+                >
+                  <LuUser size={18} aria-hidden="true" />
+                  {" "}My Profile
+                </button>
 
                 {/* DASHBOARD */}
                 <button

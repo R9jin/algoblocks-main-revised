@@ -8,7 +8,7 @@ export default function Header() {
 
   // Check if a user is logged in from the database session
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -24,7 +24,7 @@ export default function Header() {
       <div className="nav-links">
         {user ? (
           <Link to={user ? "/dashboard" : "/signup"} className="btn-primary">
-            {user ? "Continue Learning" : "Start for Free"}
+            {user ? "Continue Learning" : "Start Now"}
             <IoArrowForward className="btn-icon-inline" aria-hidden="true" />
           </Link>
         ) : (

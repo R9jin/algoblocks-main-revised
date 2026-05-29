@@ -1,31 +1,6 @@
 # api/models.py
 from pydantic import BaseModel
-from typing import Optional
-
-class GoogleAuthRequest(BaseModel):
-    token: str
-
-class ProjectModel(BaseModel):
-    title: str
-    description: Optional[str] = ""
-    data: dict
-    owner_id: str
-
-class ProjectUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    data: Optional[dict] = None
-
-class TemplateModel(BaseModel):
-    title: str
-    description: Optional[str] = ""
-    data: dict
-    owner_id: str
-
-class TemplateUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    data: Optional[dict] = None
+from typing import Dict, Any, Optional
 
 class LoginRequest(BaseModel):
     email: str
@@ -36,13 +11,24 @@ class SignUpRequest(BaseModel):
     email: str
     password: str
 
+# FIX: Made highly permissive to prevent 422 errors from React state delays
 class ProgressRequest(BaseModel):
-    email: str
-    lesson_id: str
-    score: int
-    
-class ActivityDraftSchema(BaseModel):
-    email: str
-    lesson_id: str
-    json_data: Optional[str] = None
-    python_code: Optional[str] = None
+    email: Optional[str] = ""
+    lesson_id: Optional[str] = ""
+    score: Optional[Any] = 0
+    completed: Optional[Any] = False
+
+class GoogleAuthRequest(BaseModel):
+    token: str
+
+class AssessmentRequest(BaseModel):
+    email: Optional[str] = ""
+    assessment_key: Optional[str] = ""
+    data: Optional[Dict[str, Any]] = {}
+
+class SaveProjectRequest(BaseModel):
+    projectId: Optional[str] = None
+    userId: Optional[str] = ""
+    name: Optional[str] = ""
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: Optional[str] = ""

@@ -2,9 +2,9 @@
   "lessonId": "lesson-2-2",
   "moduleId": "module-2",
   "title": "Linear Search",
-  "description": "Understand how linear search works and learn why sequential scanning is one of the simplest searching techniques.",
+  "description": "Understand how linear search checks data sequentially, handles found and not-found cases, and why its runtime grows with input size.",
   "difficulty": "Beginner",
-  "estimatedTime": "25 min",
+  "estimatedTime": "35 min",
   "prerequisites": "Brute Force Strategy",
   "tags": [
     "linear search",
@@ -38,53 +38,175 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Searching is one of the most common operations in computer science.\n\nApplications constantly search through data collections such as usernames, products, files, or records.\n\nLinear search is one of the simplest searching algorithms because it examines elements one-by-one until the target value is found."
+      "content": "Linear Search is the simplest searching algorithm. It works by checking elements one by one until the target is found or the collection ends.\n\nThe algorithm does not require sorting, recursion, pointer tricks, or extra data structures. It uses a direct sequential scan, which makes it one of the best first examples for understanding how search algorithms operate."
     },
     {
-      "id": "how-linear-search-works",
+      "id": "why-linear-search-matters",
       "type": "concept",
-      "title": "How Linear Search Works",
-      "content": "Linear search scans data sequentially from the beginning of the collection toward the end.\n\nThe algorithm compares each element with the target value.\n\nIf a match is found, the search stops immediately. Otherwise, the algorithm continues until all elements have been checked."
+      "title": "Why Linear Search Matters",
+      "content": "Many real-world systems still use sequential searching. A program may scan attendance lists, search unsorted files, check notifications, locate names in small datasets, or find a first matching record.\n\nLinear Search matters because not all data is sorted. When the input has no useful ordering, the program may have no safe way to skip elements. It must inspect candidates directly.",
+      "bullets": [
+        "It works on unsorted arrays.",
+        "It is simple to implement and debug.",
+        "It uses minimal auxiliary memory.",
+        "It is practical for small datasets or one-time searches."
+      ]
     },
     {
-      "id": "step-by-step-process",
+      "id": "core-idea",
+      "type": "concept",
+      "title": "Core Idea of Linear Search",
+      "content": "Linear Search compares each array element with the target value. If the current element matches the target, the algorithm returns the current index. If the algorithm reaches the end without finding a match, it returns a not-found value such as -1.\n\nUnlike Binary Search, Linear Search does not divide the search space or eliminate large sections. It simply checks elements in sequence."
+    },
+    {
+      "id": "step-by-step",
       "type": "deep_dive",
-      "title": "Step-by-Step Search Process",
-      "content": "Suppose an array contains several numbers and the algorithm must locate a specific value.\n\nThe search begins at the first element. If the value does not match, the algorithm moves to the next element.\n\nThis process repeats continuously until the target is discovered or the entire array has been scanned.\n\nBecause every element may need to be checked, linear search has linear time complexity."
+      "title": "Searching Through an Array",
+      "content": "Suppose the program searches for 11 inside the array [3, 8, 5, 11, 2]. The algorithm compares 3 with 11, then 8 with 11, then 5 with 11. None of those values match.\n\nWhen the algorithm compares 11 with 11, the target is found and the index is returned. Because the target appears before the end, the algorithm can stop early.\n\nIf the program searches for a value that does not exist, every element must be checked. The algorithm reaches the end and returns -1 to communicate that the target was not found."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "A correct Linear Search implementation must include three important behaviors: sequential traversal, immediate return when a match is found, and a clear result when no match exists.",
+      "codeSnippets": [
+        {
+          "title": "Linear search with found and not-found behavior",
+          "language": "python",
+          "code": "def linear_search(arr, target):\n    for i in range(len(arr)):\n        if arr[i] == target:\n            return i\n\n    return -1\n\nprint(linear_search([3, 8, 5, 11, 2], 11))\nprint(linear_search([3, 8, 5, 11, 2], 10))"
+        },
+        {
+          "title": "Count all matches instead of stopping early",
+          "language": "python",
+          "code": "def count_occurrences(arr, target):\n    count = 0\n\n    for value in arr:\n        if value == target:\n            count += 1\n\n    return count\n\nprint(count_occurrences([1, 2, 2, 3], 2))"
+        },
+        {
+          "title": "Track the last matching index",
+          "language": "python",
+          "code": "def last_occurrence(arr, target):\n    last_index = -1\n\n    for i in range(len(arr)):\n        if arr[i] == target:\n            last_index = i\n\n    return last_index\n\nprint(last_occurrence([1, 2, 2, 3], 2))"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Linear Search has O(n) worst-case time complexity because the algorithm may need to inspect every element.\n\nThe best case is O(1), which happens when the target is the first element. The average and worst cases are O(n), especially when the target appears near the end or does not exist at all. Space complexity is O(1) because the algorithm only uses a small fixed amount of extra memory.",
+      "chart": {
+        "title": "Linear Search growth",
+        "description": "Linear Search grows proportionally with input size. The chart compares O(1), O(n), and O(log n) so the sequential scan can be contrasted with constant and logarithmic behavior.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(1)",
+          "O(log n)",
+          "O(n)"
+        ]
+      }
+    },
+    {
+      "id": "best-vs-worst",
+      "type": "concept",
+      "title": "Best Case vs Worst Case",
+      "subsections": [
+        {
+          "id": "best-case",
+          "title": "Best Case",
+          "content": "The best case occurs when the target appears immediately. For example, searching for 8 inside [8, 3, 5, 1] requires only one comparison."
+        },
+        {
+          "id": "worst-case",
+          "title": "Worst Case",
+          "content": "The worst case occurs when the target is at the end or missing. Searching for 10 inside [3, 8, 5, 11, 2] checks every element before returning -1."
+        }
+      ]
+    },
+    {
+      "id": "linear-vs-binary",
+      "type": "real_world_connection",
+      "title": "Linear Search vs Binary Search",
+      "content": "Linear Search works on unsorted data and scans sequentially. Binary Search requires sorted data and uses a divide-and-conquer strategy to eliminate half of the remaining search space after each comparison.\n\nThis means Linear Search is simpler and more flexible, while Binary Search is much more scalable when the data is already sorted."
     },
     {
       "id": "advantages-limitations",
       "type": "concept",
       "title": "Advantages and Limitations",
-      "content": "Linear search is extremely simple to understand and implement.\n\nIt works even when the data is unsorted, making it flexible for many beginner-level problems.\n\nHowever, linear search becomes inefficient for very large datasets because the algorithm may need to inspect every element individually."
+      "subsections": [
+        {
+          "id": "advantages",
+          "title": "Advantages",
+          "bullets": [
+            "No sorting is required.",
+            "The implementation is beginner-friendly.",
+            "The algorithm uses O(1) auxiliary space.",
+            "It is effective for small datasets and simple checks."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "bullets": [
+            "Large datasets can require many comparisons.",
+            "Repeated searches over huge arrays become expensive.",
+            "It does not use ordering or indexing to skip work.",
+            "Optimized search algorithms are better when data is structured."
+          ]
+        }
+      ]
     },
     {
-      "id": "real-world-example",
-      "type": "analogy",
-      "title": "Searching Through a Backpack",
-      "content": "Imagine searching for a specific notebook inside a backpack.\n\nWithout any organized arrangement, the easiest strategy is to inspect items one-by-one until the notebook is found.\n\nThis mirrors how linear search works when scanning through data sequentially."
-    },
-    {
-      "id": "real-world-connection",
+      "id": "applications",
       "type": "real_world_connection",
-      "title": "Linear Search in Real Applications",
-      "content": "Linear search is commonly used for small datasets or situations where the data is not sorted.\n\nMany beginner systems and simple applications rely on sequential scanning because it is straightforward and reliable.\n\nAlthough more advanced search algorithms exist, linear search remains important because it introduces the fundamental idea of searching through data collections."
+      "title": "Real-World Applications",
+      "content": "Linear Search appears in simple mobile apps, validation systems, small configuration lists, file scanning tools, and situations where data arrives unsorted.\n\nIt is also commonly used as a teaching algorithm because it clearly shows comparison flow, stopping conditions, and the relationship between input size and runtime."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "forgetting-stop",
+          "title": "Mistake: Forgetting to stop after a match",
+          "content": "When the task asks for the first matching index, the algorithm should return immediately after the first match is found."
+        },
+        {
+          "id": "wrong-return",
+          "title": "Mistake: Returning the element instead of the index",
+          "content": "Many search tasks ask for the position of the target, not the target value itself. The return value must match the requirement."
+        },
+        {
+          "id": "missing-not-found",
+          "title": "Mistake: Ignoring the not-found case",
+          "content": "A search algorithm must define what happens when the target does not exist. In many beginner problems, -1 is used for this case."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Linear search scans elements sequentially until the target value is found. It is simple, flexible, and works on unsorted data, but its performance becomes slower as dataset size increases."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Linear Search checks elements sequentially.",
+        "It works on unsorted data.",
+        "The best case is O(1) when the first item matches.",
+        "The worst case is O(n) when the target is missing or near the end.",
+        "Linear Search is simple and reliable, but not ideal for repeated searches over large datasets."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Linear Search",
+      "title": "Programiz - Linear Search",
       "url": "https://www.programiz.com/dsa/linear-search"
     },
     {
-      "title": "GeeksforGeeks — Linear Search",
+      "title": "GeeksforGeeks - Linear Search",
       "url": "https://www.geeksforgeeks.org/linear-search/"
+    },
+    {
+      "title": "Khan Academy - Linear Search",
+      "url": "https://www.khanacademy.org/computing/computer-science/algorithms/linear-search/a/linear-search"
     }
   ]
 }

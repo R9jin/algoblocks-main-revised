@@ -1,44 +1,23 @@
 // frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
-  FiCheckCircle,
-  FiChevronDown,
-  FiChevronRight,
-  FiCircle,
-  FiDatabase,
-  FiFilter,
-  FiLock,
-  FiRefreshCw,
-  FiShare2,
-  FiUsers,
-  FiClipboard,
+  FiCheckCircle, FiChevronDown, FiChevronRight, FiCircle, FiClipboard,
+  FiDatabase, FiFilter, FiLock, FiRefreshCw, FiShare2, FiUsers,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
-
+import { assessmentsDB, progressDB } from "../db";
 import "../styles/LearningPath.css";
 
-// Module icon mapping with colors
 const moduleIcons = {
-  "module-0": { icon: FiUsers, color: "#7c5cff", description: "Learn the fundamentals of AlgoBlocks." },
-  "module-1": { icon: FiUsers, color: "#6366f1", description: "Understand Big-O notation and complexity analysis." },
-  "module-2": { icon: FiDatabase, color: "#22c55e", description: "Master brute force and exhaustive search strategies." },
-  "module-3": { icon: FiFilter, color: "#f97316", description: "Learn divide and conquer algorithm design." },
-  "module-4": { icon: FiFilter, color: "#a855f7", description: "Explore greedy algorithm strategies." },
-  "module-5": { icon: FiShare2, color: "#3b82f6", description: "Master dynamic programming techniques." },
-  "module-6": { icon: FiRefreshCw, color: "#ec4899", description: "Solve problems using backtracking." },
-};
-
-// Last lesson per module — determines when post-assessment unlocks
-const MODULE_LAST_LESSONS = {
-  "module-0": "lesson-0-4",
-  "module-1": "lesson-1-3",
-  "module-2": "lesson-2-3",
-  "module-3": "lesson-3-4",
-  "module-4": "lesson-4-3",
-  "module-5": "lesson-5-4",
-  "module-6": "lesson-6-4",
+  "module-0": { icon: FiUsers, color: "#7c5cff", difficulty: "Beginner", description: "Learn the fundamentals of AlgoBlocks." },
+  "module-1": { icon: FiUsers, color: "#6366f1", difficulty: "Beginner", description: "Understand Big-O notation and complexity analysis." },
+  "module-2": { icon: FiDatabase, color: "#22c55e", difficulty: "Intermediate", prereq: "Module 1", description: "Master brute force and exhaustive search strategies." },
+  "module-3": { icon: FiFilter, color: "#f97316", difficulty: "Intermediate", prereq: "Module 1", description: "Learn divide and conquer algorithm design." },
+  "module-4": { icon: FiFilter, color: "#a855f7", difficulty: "Intermediate", prereq: "Module 1", description: "Explore greedy algorithm strategies." },
+  "module-5": { icon: FiShare2, color: "#3b82f6", difficulty: "Advanced", prereq: "Module 3", description: "Master dynamic programming techniques." },
+  "module-6": { icon: FiRefreshCw, color: "#ec4899", difficulty: "Advanced", prereq: "Module 3", description: "Solve problems using backtracking." },
 };
 
 export default function LearningPath() {
@@ -46,51 +25,143 @@ export default function LearningPath() {
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [userProgress, setUserProgress] = useState({});
   const [lessonDetails, setLessonDetails] = useState({});
+  const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
 
-  // 1. Load User Progress & Assessment results from localStorage
+  // OFFLINE FIRST: Load User Progress & Assessment results
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setUserProgress(parsed.progress || {});
-        setAssessments(parsed.assessments || {});
+    const loadOfflineData = async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || "";
+        const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
+        let parsed = stored ? JSON.parse(stored) : {};
+        let initialProg = parsed.progress || {};
+        let initialAssm = parsed.assessments || {};
+
+        // 1. Explicitly override with IndexedDB (Offline First Source of Truth)
+        await progressDB.iterate((value, key) => {
+            if (!value) return;
+            const realKey = value.lesson_id || key;
+            // Guard against corrupted numeric keys from previous sync bugs
+            if (typeof realKey === 'string' && isNaN(Number(realKey))) {
+                initialProg[realKey] = value.score !== undefined ? value.score : value;
+            }
+        });
+        await assessmentsDB.iterate((value, key) => {
+            if (!value) return;
+            const realKey = value.assessment_key || key;
+            const realVal = value.data || value;
+            // Guard against corrupted numeric keys from previous sync bugs
+            if (typeof realKey === 'string' && isNaN(Number(realKey))) {
+                initialAssm[realKey] = realVal;
+            }
+        });
+
+        setUserProgress(initialProg);
+        setAssessments(initialAssm);
+
+        // 2. Explicitly fetch from the cloud properly (Vercel Fix)
+        if (navigator.onLine && parsed.email && !parsed.isGuest) {
+            try {
+                // Fetch Progress
+                const progRes = await fetch(`${API_BASE}/api/get-progress?email=${parsed.email}`);
+                if (progRes.ok) {
+                    const data = await progRes.json();
+                    const progDataRaw = data.progress || data;
+                    
+                    // ✅ FIX: Normalize Array to Object Mapping
+                    let normalizedProg = {};
+                    if (Array.isArray(progDataRaw)) {
+                        progDataRaw.forEach(item => {
+                            const k = item.lesson_id || item.key;
+                            if (k) normalizedProg[k] = item.score !== undefined ? item.score : (item.data?.score ?? 1);
+                        });
+                    } else if (typeof progDataRaw === 'object' && progDataRaw !== null) {
+                        normalizedProg = progDataRaw;
+                    }
+
+                    for (const [key, val] of Object.entries(normalizedProg)) {
+                        if (typeof key === 'string' && isNaN(Number(key))) {
+                            initialProg[key] = val;
+                            await progressDB.setItem(key, { score: val, isSynced: true });
+                        }
+                    }
+                }
+
+                // Fetch Assessments
+                const assRes = await fetch(`${API_BASE}/api/get-assessments?email=${parsed.email}`);
+                if (assRes.ok) {
+                    const data = await assRes.json();
+                    const assDataRaw = data.assessments || data;
+
+                    // ✅ FIX: Normalize Array to Object Mapping
+                    let normalizedAssm = {};
+                    if (Array.isArray(assDataRaw)) {
+                        assDataRaw.forEach(item => {
+                            const k = item.assessment_key || item.key;
+                            if (k) normalizedAssm[k] = item.data || item;
+                        });
+                    } else if (typeof assDataRaw === 'object' && assDataRaw !== null) {
+                        normalizedAssm = assDataRaw;
+                    }
+
+                    for (const [key, val] of Object.entries(normalizedAssm)) {
+                        if (typeof key === 'string' && isNaN(Number(key))) {
+                            initialAssm[key] = val;
+                            await assessmentsDB.setItem(key, { ...val, isSynced: true });
+                        }
+                    }
+                }
+                
+                setUserProgress({...initialProg});
+                setAssessments({...initialAssm});
+                
+                parsed.progress = initialProg;
+                parsed.assessments = initialAssm;
+                localStorage.setItem("user", JSON.stringify(parsed));
+            } catch (e) {
+                console.warn("Could not fetch latest progress from cloud:", e);
+            }
+        }
+      } catch (e) {
+          console.warn("Error loading offline progress:", e);
       }
-    } catch (e) {
-      // ignore
-    }
+    };
+    loadOfflineData();
   }, []);
 
-  // 2. Fetch Lesson JSONs to find activities
   useEffect(() => {
-    const fetchLessonsData = async () => {
+    const fetchAllData = async () => {
       const details = {};
+      const acts = {};
+      
       for (const module of curriculumIndex) {
+        const mid = module.moduleId.split("-").pop();
+        try {
+          const resAct = await fetch(`/data/activities/module_${mid}.json`);
+          if (resAct.ok) acts[module.moduleId] = await resAct.json();
+        } catch (e) {}
+
         for (const lesson of module.lessons) {
           try {
             const fetchPath = `/data/curriculum/${module.moduleId}/${lesson.lessonId}.json`;
             const res = await fetch(fetchPath);
-            if (res.ok) {
-              details[lesson.lessonId] = await res.json();
-            }
+            if (res.ok) details[lesson.lessonId] = await res.json();
           } catch (e) {
             console.error(`Failed to fetch lesson data for ${lesson.lessonId}`, e);
           }
         }
       }
       setLessonDetails(details);
+      setActivitiesData(acts);
     };
-    fetchLessonsData();
+    fetchAllData();
   }, []);
 
   const toggleModule = (moduleId) => {
     const newExpanded = new Set(expandedModules);
-    if (newExpanded.has(moduleId)) {
-      newExpanded.delete(moduleId);
-    } else {
-      newExpanded.add(moduleId);
-    }
+    if (newExpanded.has(moduleId)) newExpanded.delete(moduleId);
+    else newExpanded.add(moduleId);
     setExpandedModules(newExpanded);
   };
 
@@ -98,57 +169,29 @@ export default function LearningPath() {
     navigate(`/learning-path/${moduleId}/${lessonId}`);
   };
 
-  // ── Assessment helpers ────────────────────────────────────────────────────
+  const hasPreAssessment = (moduleId) => assessments[`${moduleId}_pre_assessment`] !== undefined;
+  const hasPostAssessment = (moduleId) => assessments[`${moduleId}_post_assessment`] !== undefined;
+  const getAssessmentScore = (moduleId, type) => assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
 
-  /** True if the user has completed the pre-assessment for this module */
-  const hasPreAssessment = (moduleId) => {
-    const key = `${moduleId}_pre_assessment`;
-    return assessments[key] !== undefined;
-  };
-
-  /** True if the user has completed the post-assessment for this module */
-  const hasPostAssessment = (moduleId) => {
-    const key = `${moduleId}_post_assessment`;
-    return assessments[key] !== undefined;
-  };
-
-  /** Score label for display */
-  const getAssessmentScore = (moduleId, type) => {
-    const key = `${moduleId}_${type}_assessment`;
-    return assessments[key]?.score ?? null;
-  };
-
-  /**
-   * True if all lessons in the module are completed — this gates the post-assessment.
-   * A lesson is "complete" if it has no activity (just reading counts), or its activity progress >= 1.
-   */
   const isModuleComplete = (moduleId) => {
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
     return module.lessons.every((lesson) => {
       const details = lessonDetails[lesson.lessonId];
       const firstActivityId = details?.activities?.[0]?.id;
-      if (!firstActivityId) return true; // Reading-only lesson always counts as complete
+      if (!firstActivityId) return true;
       return (userProgress[lesson.lessonId] || 0) >= 1;
     });
   };
 
-  // ── Lesson lock computation ────────────────────────────────────────────────
-  // A lesson is locked if:
-  //   (a) The module's pre-assessment hasn't been taken yet, OR
-  //   (b) The previous lesson had an activity and hasn't been passed
   const buildLockMap = () => {
     const lockMap = {};
-
     for (const module of curriculumIndex) {
       const preComplete = hasPreAssessment(module.moduleId);
-      let isNextLocked = !preComplete; // ALL lessons locked until pre-assessment is done
-
+      let isNextLocked = !preComplete; 
       for (const lesson of module.lessons) {
         lockMap[lesson.lessonId] = isNextLocked;
-
         if (!isNextLocked) {
-          // Activity-based gate (only after pre is done)
           const details = lessonDetails[lesson.lessonId];
           const firstActivityId = details?.activities?.[0]?.id;
           const prog = userProgress[lesson.lessonId] || 0;
@@ -158,7 +201,6 @@ export default function LearningPath() {
         }
       }
     }
-
     return lockMap;
   };
 
@@ -167,13 +209,12 @@ export default function LearningPath() {
   return (
     <div className="learning-path-page">
       <DashboardHeader />
-
       <div className="learning-path-container">
         <div className="learning-path-header">
           <h1>Learning Path</h1>
           <p>
             Explore algorithm concepts through structured lessons, virtual explanations,
-            and interactive learning experiences.
+            and interactive learning experiences. Jump into the topic that interests you most!
           </p>
         </div>
 
@@ -190,203 +231,119 @@ export default function LearningPath() {
             const postComplete = hasPostAssessment(module.moduleId);
             const postScore = getAssessmentScore(module.moduleId, "post");
 
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
+            const hasOptimizations = optimizations.length > 0;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
+            const optimizationsLocked = lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
+
             return (
               <div key={module.moduleId}>
-                <div
-                  className="module-card-v2"
-                  onClick={() => toggleModule(module.moduleId)}
-                >
-                  <div
-                    className="module-card-icon"
-                    style={{ backgroundColor: `${iconConfig?.color}15` }}
-                  >
-                    <IconComponent size={32} color={iconConfig?.color} />
+                <div className="module-card-v2" onClick={() => toggleModule(module.moduleId)}>
+                  <div className="module-card-icon" style={{ backgroundColor: `${iconConfig?.color || '#7c5cff'}15` }}>
+                    <IconComponent size={32} color={iconConfig?.color || '#7c5cff'} />
                   </div>
-
                   <div className="module-card-content">
-                    <div className="module-card-header">
-                      <div>
-                        <h3 className="module-card-title">
-                          Module {moduleNum}: {module.title}
-                        </h3>
-                        <p className="module-card-description">
-                          {iconConfig?.description || module.title}
-                        </p>
+                    <div className="module-card-header" style={{ alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                          <h3 className="module-card-title" style={{ margin: 0 }}>
+                            Module {moduleNum}: {module.title}
+                          </h3>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {iconConfig?.difficulty && (
+                                <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', backgroundColor: iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)", color: iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899" }}>
+                                  {iconConfig.difficulty}
+                                </span>
+                            )}
+                            {iconConfig?.prereq && (
+                              <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', backgroundColor: 'rgba(100, 116, 139, 0.1)', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Req: {iconConfig.prereq}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="module-card-description" style={{ marginTop: 0 }}>{iconConfig?.description || module.title}</p>
                       </div>
-                      <FiChevronDown
-                        size={24}
-                        color="#7c5cff"
-                        className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
-                      />
+                      <FiChevronDown size={24} color={iconConfig?.color || "#7c5cff"} className={`module-card-chevron ${isExpanded ? "expanded" : ""}`} style={{ marginTop: '4px' }} />
                     </div>
                   </div>
                 </div>
 
                 {isExpanded && (
                   <div className="module-lessons-dropdown">
-
-                    {/* ── PRE-ASSESSMENT ROW ─────────────────────────────── */}
                     <div className={`assessment-row pre ${preComplete ? "done" : "pending"}`}>
                       <div className="assessment-row-left">
-                        <FiClipboard size={16} />
-                        <span className="assessment-row-label">Pre-Assessment</span>
-                        {preScore !== null && (
-                          <span className="assessment-score-badge">{preScore}%</span>
-                        )}
+                        <FiClipboard size={16} /><span className="assessment-row-label">Pre-Assessment</span>
+                        {preScore !== null && (<span className="assessment-score-badge">{preScore}%</span>)}
                       </div>
                       <div className="assessment-row-right">
                         {preComplete ? (
                           <>
                             <FiCheckCircle color="#22c55e" size={16} />
-                            <button
-                              className="btn-assessment retake"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/assessment/${module.moduleId}/pre`);
-                              }}
-                            >
-                              Retake
-                            </button>
+                            <button className="btn-assessment retake" onClick={(e) => { e.stopPropagation(); navigate(`/assessment/${module.moduleId}/pre`); }}>Retake</button>
                           </>
                         ) : (
-                          <button
-                            className="btn-assessment start"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/assessment/${module.moduleId}/pre`);
-                            }}
-                          >
-                            Take Pre-Assessment
-                          </button>
+                          <button className="btn-assessment start" onClick={(e) => { e.stopPropagation(); navigate(`/assessment/${module.moduleId}/pre`); }}>Take Pre-Assessment</button>
                         )}
                       </div>
                     </div>
 
-                    {/* ── LESSON ROWS ────────────────────────────────────── */}
                     {module.lessons.map((lesson) => {
                       const details = lessonDetails[lesson.lessonId];
                       const firstActivityId = details?.activities?.[0]?.id;
                       const prog = userProgress[lesson.lessonId] || 0;
-                      const lessonDisplay = lesson.lessonId
-                        .replace("lesson-", "")
-                        .replace(/-/g, ".");
+                      const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
                       const isLocked = lockMap[lesson.lessonId];
 
                       return (
-                        <div
-                          key={lesson.lessonId}
-                          className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}
-                        >
+                        <div key={lesson.lessonId} className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}>
                           <div className="lesson-info">
-                            <span className="lesson-number">{lessonDisplay}</span>
-                            <span className="lesson-title">{lesson.title}</span>
+                            <span className="lesson-number">{lessonDisplay}</span><span className="lesson-title">{lesson.title}</span>
                           </div>
-
                           <div className="lesson-actions">
-                            <button
-                              className="btn-read-lesson"
-                              disabled={isLocked}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (!isLocked)
-                                  navigate(
-                                    `/learning-path/${module.moduleId}/${lesson.lessonId}`
-                                  );
-                              }}
-                            >
-                              Read Lesson
-                            </button>
-
-                            <button
-                              className={`btn-start-activity ${!firstActivityId ? "disabled" : ""}`}
-                              disabled={isLocked || !firstActivityId}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (!isLocked && firstActivityId) {
-                                  navigate(
-                                    `/activity/${module.moduleId}/${firstActivityId}`
-                                  );
-                                }
-                              }}
-                            >
+                            <button className="btn-read-lesson" disabled={isLocked} onClick={(e) => { e.stopPropagation(); if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lesson.lessonId}`); }}>Read Lesson</button>
+                            <button className={`btn-start-activity ${!firstActivityId ? "disabled" : ""}`} disabled={isLocked || !firstActivityId} onClick={(e) => { e.stopPropagation(); if (!isLocked && firstActivityId) navigate(`/activity/${module.moduleId}/${firstActivityId}`); }}>
                               {firstActivityId ? "Start Activity" : "No Activity"}
                             </button>
                           </div>
-
-                          <span className="lesson-status-icon">
-                            {isLocked ? (
-                              <FiLock color="#bdbdbd" />
-                            ) : prog >= 1 ? (
-                              <FiCheckCircle color="#22c55e" />
-                            ) : (
-                              <FiCircle color="#7c5cff" />
-                            )}
-                          </span>
+                          <span className="lesson-status-icon">{isLocked ? (<FiLock color="#bdbdbd" />) : prog >= 1 ? (<FiCheckCircle color="#22c55e" />) : (<FiCircle color="#7c5cff" />)}</span>
                         </div>
                       );
                     })}
 
-                    {/* ── POST-ASSESSMENT ROW ────────────────────────────── */}
-                    <div
-                      className={`assessment-row post ${
-                        postComplete ? "done" : moduleComplete ? "pending" : "locked"
-                      }`}
-                    >
+                    {hasOptimizations && (
+                      <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
+                        <div className="lesson-info">
+                          <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
+                          <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
+                        </div>
+                        <div className="lesson-actions">
+                          <button className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`} style={{ backgroundColor: optimizationsLocked ? "" : "#f39c12" }} disabled={optimizationsLocked} onClick={(e) => { e.stopPropagation(); if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`); }}>
+                            Start Challenges
+                          </button>
+                        </div>
+                        <span className="lesson-status-icon">{optimizationsLocked ? (<FiLock color="#bdbdbd" />) : userProgress[`lesson-${moduleNum}-optimizations`] ? (<FiCheckCircle color="#22c55e" />) : (<FiCircle color="#f39c12" />)}</span>
+                      </div>
+                    )}
+
+                    <div className={`assessment-row post ${postComplete ? "done" : moduleComplete ? "pending" : "locked"}`}>
                       <div className="assessment-row-left">
-                        <FiClipboard size={16} />
-                        <span className="assessment-row-label">Post-Assessment</span>
-                        {postScore !== null && (
-                          <span className="assessment-score-badge post">{postScore}%</span>
-                        )}
-                        {!moduleComplete && !postComplete && (
-                          <span className="assessment-gate-note">
-                            (Complete all lessons first)
-                          </span>
-                        )}
+                        <FiClipboard size={16} /><span className="assessment-row-label">Post-Assessment</span>
+                        {postScore !== null && (<span className="assessment-score-badge post">{postScore}%</span>)}
+                        {!moduleComplete && !postComplete && (<span className="assessment-gate-note">(Complete all lessons first)</span>)}
                       </div>
                       <div className="assessment-row-right">
-                        {!moduleComplete && !postComplete ? (
-                          <FiLock color="#bdbdbd" size={16} />
-                        ) : postComplete ? (
-                          <>
-                            <FiCheckCircle color="#22c55e" size={16} />
-                            <button
-                              className="btn-assessment retake"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/assessment/${module.moduleId}/post`);
-                              }}
-                            >
-                              Retake
-                            </button>
-                          </>
+                        {!moduleComplete && !postComplete ? (<FiLock color="#bdbdbd" size={16} />) : postComplete ? (
+                          <><FiCheckCircle color="#22c55e" size={16} /><button className="btn-assessment retake" onClick={(e) => { e.stopPropagation(); navigate(`/assessment/${module.moduleId}/post`); }}>Retake</button></>
                         ) : (
-                          <button
-                            className="btn-assessment start post"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/assessment/${module.moduleId}/post`);
-                            }}
-                          >
-                            Take Post-Assessment
-                          </button>
+                          <button className="btn-assessment start post" onClick={(e) => { e.stopPropagation(); navigate(`/assessment/${module.moduleId}/post`); }}>Take Post-Assessment</button>
                         )}
                       </div>
                     </div>
 
                     <div className="module-dropdown-footer">
-                      <button
-                        className="view-all-lessons"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const first = module.lessons[0]?.lessonId;
-                          if (first && !lockMap[first]) {
-                            handleModuleClick(module.moduleId, first);
-                          }
-                        }}
-                      >
-                        View all lessons in this module
-                        <FiChevronRight />
+                      <button className="view-all-lessons" onClick={(e) => { e.stopPropagation(); const first = module.lessons[0]?.lessonId; if (first && !lockMap[first]) handleModuleClick(module.moduleId, first); }}>
+                        View all lessons in this module <FiChevronRight />
                       </button>
                     </div>
                   </div>

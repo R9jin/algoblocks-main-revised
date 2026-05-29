@@ -216,5 +216,38 @@
         { "call": "out_place(None)", "expected": "[]", "isHidden": false }
       ]
     }
+  ],
+
+  "optimizations": [
+    {
+      "id": "m1_opt_1",
+      "title": "Optimize Duplicate Search",
+      "task": "The current `find_duplicates(arr)` function uses a nested loop to find a duplicate element, which results in an O(n²) time complexity. \n\n**Task Requirement:**\nOptimize the function to find the first duplicate number in linear time.\n\n**Rules:**\n- You may use a Hash Set (or dictionary/array tracking) to store seen elements.\n- Return the first duplicate found.\n- If no duplicates exist, return -1.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m1-1.2.json",
+      "testCasesPool": [
+        { "call": "find_duplicates([1, 2, 3, 2])", "expected": "2", "isHidden": false },
+        { "call": "find_duplicates([5, 10, 15, 20, 15])", "expected": "15", "isHidden": false },
+        { "call": "find_duplicates([1, 2, 3, 4, 5])", "expected": "-1", "isHidden": false },
+        { "call": "find_duplicates([])", "expected": "-1", "isHidden": false },
+        { "call": "find_duplicates([7, 7, 7])", "expected": "7", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m1_opt_2",
+      "title": "Optimize Two Sum",
+      "task": "The provided `two_sum(arr, target)` algorithm checks every possible pair to see if they add up to the target (O(n²)).\n\n**Task Requirement:**\nOptimize the algorithm to find the pair in a single pass.\n\n**Rules:**\n- Use a Hash Map to store the difference needed.\n- Return the values of the two numbers as a list `[a, b]`.\n- If no pair exists, return an empty list `[]`.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m1-1.3.json",
+      "testCasesPool": [
+        { "call": "two_sum([2, 7, 11, 15], 9)", "expected": "[2, 7]", "isHidden": false },
+        { "call": "two_sum([3, 2, 4], 6)", "expected": "[2, 4]", "isHidden": false },
+        { "call": "two_sum([1, 2, 3], 10)", "expected": "[]", "isHidden": false },
+        { "call": "two_sum([3, 3], 6)", "expected": "[3, 3]", "isHidden": false },
+        { "call": "two_sum([], 5)", "expected": "[]", "isHidden": false }
+      ]
+    }
   ]
 }

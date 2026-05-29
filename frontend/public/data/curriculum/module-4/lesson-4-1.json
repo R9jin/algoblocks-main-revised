@@ -1,15 +1,15 @@
 {
   "lessonId": "lesson-4-1",
   "moduleId": "module-4",
-  "title": "Greedy Strategy",
-  "description": "Learn how Greedy Algorithms solve problems by making the best immediate decision at every step.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "30 min",
+  "title": "Greedy Algorithms",
+  "description": "Learn how Greedy Algorithms make locally optimal decisions, why they are efficient, and when greedy reasoning succeeds or fails.",
+  "difficulty": "Beginner",
+  "estimatedTime": "40 min",
   "prerequisites": "Quick Sort",
   "tags": [
     "greedy algorithms",
     "optimization",
-    "decision making"
+    "algorithm strategies"
   ],
   "activities": [
     {
@@ -38,53 +38,151 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Many real-world problems require selecting the best possible option from several choices.\n\nGreedy Algorithms solve these problems by repeatedly choosing the locally optimal decision at every step.\n\nInstead of exploring every possible solution path, greedy methods focus on making the best immediate choice in hopes of reaching an optimal final solution."
+      "content": "Greedy Algorithms solve problems by repeatedly making the best possible choice at the current moment.\n\nInstead of exploring every possible solution, a greedy algorithm immediately selects what appears to be the most beneficial, efficient, or optimal local decision.\n\nAfter making a choice, the algorithm moves forward without reconsidering previous decisions. This often creates fast and memory-efficient solutions."
+    },
+    {
+      "id": "why-greedy-matters",
+      "type": "concept",
+      "title": "Why Greedy Algorithms Matter",
+      "content": "Many real-world systems require fast decision making. Scheduling systems, shortest path algorithms, and optimization systems often cannot afford to test every possible solution.\n\nGreedy Algorithms reduce computational cost by immediately committing to locally optimal decisions instead of performing exhaustive search.",
+      "bullets": [
+        "Decisions are made quickly.",
+        "Unnecessary computation is avoided.",
+        "Memory usage is often lower.",
+        "Many optimization systems rely on greedy reasoning."
+      ]
     },
     {
       "id": "core-idea",
       "type": "concept",
-      "title": "The Greedy Choice Principle",
-      "content": "Greedy Algorithms follow a simple principle: always select the option that appears best at the current moment.\n\nOnce a choice is made, the algorithm does not usually reconsider previous decisions.\n\nThis makes greedy solutions efficient because they avoid unnecessary backtracking or exhaustive searching."
+      "title": "Core Idea of Greedy Algorithms",
+      "content": "A Greedy Algorithm repeatedly evaluates available choices, selects the locally best option, permanently commits to that choice, and continues until the solution is complete.\n\nUnlike Dynamic Programming, greedy methods usually do not revisit decisions, backtrack, or explore every possibility."
     },
     {
       "id": "local-vs-global",
       "type": "deep_dive",
-      "title": "Local Optimization vs Global Optimization",
-      "content": "A locally optimal choice is the best immediate decision available at a specific step.\n\nA globally optimal solution is the best overall solution after all decisions are completed.\n\nGreedy Algorithms assume that repeatedly making locally optimal choices will eventually lead to a globally optimal result.\n\nHowever, this assumption only works correctly for certain problem types."
+      "title": "Local vs Global Optimization",
+      "content": "A locally optimal choice means choosing the best immediate option. A globally optimal solution means achieving the best final overall result.\n\nThe challenge is that local decisions do not always guarantee the globally best solution. Some problems allow greedy reasoning to work correctly, while others do not."
     },
     {
-      "id": "advantages-limitations",
+      "id": "greedy-choice-property",
       "type": "concept",
-      "title": "Advantages and Limitations",
-      "content": "Greedy Algorithms are often simple, fast, and memory efficient.\n\nBecause they avoid exploring all possibilities, they usually perform significantly faster than brute force approaches.\n\nHowever, greedy strategies do not always guarantee the best possible solution. Some problems require more advanced techniques such as Dynamic Programming."
+      "title": "Greedy Choice Property",
+      "content": "A problem can often be solved greedily if it satisfies the Greedy Choice Property.\n\nThis means making locally optimal choices still leads toward a globally optimal solution.\n\nProblems such as Activity Selection, Huffman Coding, and Dijkstra’s Algorithm satisfy this property."
     },
     {
-      "id": "real-world-example",
-      "type": "analogy",
-      "title": "Travel Route Analogy",
-      "content": "Imagine driving toward a destination and always choosing the road that appears fastest at the moment.\n\nAlthough each decision may seem optimal immediately, the overall route may not always be the shortest possible path.\n\nThis reflects how greedy algorithms operate when making local optimization decisions."
+      "id": "optimal-substructure",
+      "type": "concept",
+      "title": "Optimal Substructure",
+      "content": "Optimal Substructure means the optimal solution can be built from optimal solutions to smaller subproblems.\n\nMany greedy algorithms rely on both the Greedy Choice Property and Optimal Substructure."
     },
     {
-      "id": "real-world-connection",
+      "id": "coin-example",
+      "type": "deep_dive",
+      "title": "Coin Change Example",
+      "content": "Suppose we need to make 18 pesos using coins 10, 5, and 1.\n\nA greedy strategy repeatedly selects the largest possible coin.\n\nThe algorithm selects 10, then 5, then three 1-peso coins. This quickly reduces the remaining amount and minimizes unnecessary smaller denominations."
+    },
+    {
+      "id": "why-greedy-fast",
+      "type": "concept",
+      "title": "Why Greedy Algorithms Are Fast",
+      "content": "Greedy Algorithms avoid exhaustive search, backtracking, and testing every combination.\n\nInstead, they immediately commit to decisions. This often produces lower time complexity, lower memory usage, and faster execution.",
+      "chart": {
+        "title": "Greedy algorithm efficiency",
+        "description": "Greedy Algorithms often avoid exhaustive exploration, producing more scalable performance than brute-force search.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(n log n)",
+          "O(2^n)"
+        ]
+      }
+    },
+    {
+      "id": "when-greedy-fails",
+      "type": "deep_dive",
+      "title": "When Greedy Algorithms Fail",
+      "content": "Greedy Algorithms do not always produce optimal solutions.\n\nSuppose the coin values are 1, 3, and 4, and the target amount is 6.\n\nA greedy strategy selects 4 first, then two 1s, producing 3 coins total. However, the optimal solution is 3 + 3, which uses only 2 coins.\n\nThis demonstrates that local optimal choices can sometimes produce globally suboptimal solutions."
+    },
+    {
+      "id": "greedy-vs-dp",
+      "type": "concept",
+      "title": "Greedy Algorithms vs Dynamic Programming",
+      "content": "Greedy Algorithms prioritize efficiency and simplicity by making immediate decisions.\n\nDynamic Programming explores many subproblems and revisits decisions to guarantee optimal solutions.\n\nGreedy methods are usually faster and more memory efficient, while Dynamic Programming often provides stronger correctness guarantees."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "Greedy implementations commonly involve sorting, repeated selection, and immediate commitment to locally optimal choices.",
+      "codeSnippets": [
+        {
+          "title": "Simple greedy coin selection",
+          "language": "python",
+          "code": "coins = [10, 5, 1]\namount = 18\nselected = []\n\nfor coin in coins:\n    while amount >= coin:\n        selected.append(coin)\n        amount -= coin\n\nprint(selected)"
+        },
+        {
+          "title": "Largest-first selection example",
+          "language": "python",
+          "code": "numbers = [3, 8, 2, 9, 5]\nselected = []\n\nwhile numbers:\n    largest = max(numbers)\n    selected.append(largest)\n    numbers.remove(largest)\n\nprint(selected)"
+        }
+      ]
+    },
+    {
+      "id": "applications",
       "type": "real_world_connection",
-      "title": "Greedy Algorithms in Real Systems",
-      "content": "Greedy methods are widely used in scheduling systems, network routing, resource allocation, and compression algorithms.\n\nMany real-world systems rely on greedy decision-making because it produces efficient solutions quickly without excessive computation."
+      "title": "Real-World Applications",
+      "content": "Greedy Algorithms appear in GPS route calculation, network routing, CPU scheduling, compression systems, cloud infrastructure, and optimization systems.\n\nModern systems frequently rely on fast local decision making to process large workloads efficiently."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Misconceptions",
+      "subsections": [
+        {
+          "id": "always-optimal",
+          "title": "Misconception: Greedy Algorithms always find the best solution",
+          "content": "Greedy reasoning only works correctly for certain problem structures."
+        },
+        {
+          "id": "random-shortcuts",
+          "title": "Misconception: Greedy Algorithms are random shortcuts",
+          "content": "Greedy decisions follow carefully designed optimization logic."
+        },
+        {
+          "id": "all-fast",
+          "title": "Misconception: Fast algorithms are always greedy",
+          "content": "Many efficient algorithms use recursion, graph traversal, or Dynamic Programming instead."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Greedy Algorithms solve problems by repeatedly making the best immediate decision available. They are efficient and simple but only guarantee optimal solutions for specific problem types."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Greedy Algorithms make locally optimal decisions.",
+        "Greedy methods usually do not revisit earlier choices.",
+        "Some problems satisfy the Greedy Choice Property.",
+        "Greedy Algorithms are fast and memory efficient.",
+        "Greedy reasoning does not always guarantee optimal solutions.",
+        "Understanding when greedy works is an important algorithmic skill."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Greedy Algorithm",
+      "title": "Programiz - Greedy Algorithm",
       "url": "https://www.programiz.com/dsa/greedy-algorithm"
     },
     {
-      "title": "GeeksforGeeks — Greedy Algorithms",
+      "title": "GeeksforGeeks - Greedy Algorithms",
       "url": "https://www.geeksforgeeks.org/greedy-algorithms/"
+    },
+    {
+      "title": "Wikipedia - Greedy Algorithm",
+      "url": "https://en.wikipedia.org/wiki/Greedy_algorithm"
     }
   ]
 }

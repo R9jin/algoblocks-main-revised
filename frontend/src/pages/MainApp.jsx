@@ -309,9 +309,9 @@ export default function MainApp() {
       hasLoadedInitRef.current = true;
       const proj = location.state.projectToLoad;
       updateTab(activeTabId, {
-        currentLoadedId: proj._id, title: proj.title, saveType: "project"
+        currentLoadedId: proj._id, title: proj.title || proj.name, saveType: "project"
       });
-      setTimeout(() => { workspaceRefs.current[activeTabId].loadTemplate(proj.data); }, 500);
+      setTimeout(() => { workspaceRefs.current[activeTabId].loadTemplate(proj.data || proj.workspace?.blocklyJson); }, 500);
     } else if (location.state?.templatePath) {
       hasLoadedInitRef.current = true;
       setTimeout(async () => {
@@ -330,27 +330,49 @@ export default function MainApp() {
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUser) { setAllTemplates(baseTemplates); return; }
       const user = JSON.parse(storedUser);
 
       if (navigator.onLine) {
         try {
-          const pRes = await fetch(`${API_BASE}/api/projects`);
+          // FIXED: Pass explicit userId parameter so backend responds properly
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`);
           if (pRes.ok) {
-            const cloudProjects = (await pRes.json()).projects || [];
-            for (const cp of cloudProjects) if (cp.owner_id === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true });
+            const pData = await pRes.json();
+            const cloudProjects = pData.projects || pData || [];
+            for (const cp of cloudProjects) {
+               // CHECK BOTH USER ID TYPES
+               if (cp.owner_id === user.email || cp.userId === user.email) {
+                   await projectsDB.setItem(cp._id, { ...cp, synced: true });
+               }
+            }
           }
-          const tRes = await fetch(`${API_BASE}/api/templates`);
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`);
           if (tRes.ok) {
-            const cloudTemplates = (await tRes.json()).templates || [];
-            for (const ct of cloudTemplates) if (ct.owner_id === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true });
+            const tData = await tRes.json();
+            const cloudTemplates = tData.templates || tData || [];
+            for (const ct of cloudTemplates) {
+                // CHECK BOTH USER ID TYPES
+                if (ct.owner_id === user.email || ct.userId === user.email) {
+                    await templatesDB.setItem(ct._id, { ...ct, synced: true });
+                }
+            }
           }
         } catch (e) { console.error("MainApp cloud sync failed:", e); }
       }
+      
       let customItems = [];
-      await projectsDB.iterate((value) => { if (value.owner_id === user.email) customItems.push({ _id: value._id, title: value.title, description: value.description || "Saved Project", category: "My Projects", isSystem: false, saveType: "project", data: value.data, synced: value.synced }); });
-      await templatesDB.iterate((value) => { if (value.owner_id === user.email) customItems.push({ _id: value._id, title: value.title, description: value.description || "Custom template", category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data, synced: value.synced }); });
+      await projectsDB.iterate((value) => { 
+        if (value.owner_id === user.email || value.userId === user.email) {
+            customItems.push({ _id: value._id, title: value.title || value.name, description: value.description || "Saved Project", category: "My Projects", isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson, synced: value.synced }); 
+        }
+      });
+      await templatesDB.iterate((value) => { 
+        if (value.owner_id === user.email || value.userId === user.email) {
+            customItems.push({ _id: value._id, title: value.title || value.name, description: value.description || "Custom template", category: value.category || "Custom Templates", isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson, synced: value.synced }); 
+        }
+      });
 
       const uniqueItemsMap = new Map();
       customItems.forEach(item => uniqueItemsMap.set(item._id, item));
@@ -567,31 +589,21 @@ export default function MainApp() {
     });
   };
 
-  // NEW: Export active workspace to local JSON file
   const handleExportJson = () => {
     if (!activeTab.blocklyJson) {
       showToast("The workspace is empty. Nothing to export!", "error");
       return;
     }
-    
-    // Convert the JSON object to a string
     const jsonString = JSON.stringify(activeTab.blocklyJson, null, 2);
-    
-    // Create a Blob from the JSON string
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    
-    // Create an invisible anchor element to trigger the download
     const downloadAnchorNode = document.createElement("a");
     downloadAnchorNode.href = url;
     downloadAnchorNode.download = `${activeTab.title !== "Untitled Project" ? activeTab.title : "algoblocks_workspace"}.json`;
-    
-    // Append to body, click, and clean up
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
     URL.revokeObjectURL(url);
-    
     showToast("Workspace exported as JSON", "success");
   };
 
@@ -603,14 +615,74 @@ export default function MainApp() {
     });
   };
 
+  // FIXED: Offline-First Flow Implementation
   const submitSave = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const id = saveModal.editingId || `local_${Date.now()}`;
-    const payload = { _id: id, title: saveModal.title, description: saveModal.description, category: saveModal.saveType === 'template' ? saveModal.category : undefined, data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson, owner_id: user.email, synced: false, updatedAt: Date.now() };
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+    
+    // Assign generic ID if it's new
+    const id = saveModal.editingId || (saveModal.saveType === 'template' ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
+    
+    const payload = { 
+        _id: id, 
+        title: saveModal.title, 
+        name: saveModal.title, // Backup 
+        description: saveModal.description, 
+        category: saveModal.saveType === 'template' ? saveModal.category : undefined, 
+        data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson, 
+        workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson }, // Backup
+        owner_id: user.email, 
+        userId: user.email, // FIXED: Secure property for backend
+        synced: false, 
+        updatedAt: Date.now() 
+    };
 
     const db = saveModal.saveType === 'template' ? templatesDB : projectsDB;
+    
+    // 1. Mandatory Local Save (Instant feedback)
     await db.setItem(id, payload);
-    await syncQueueDB.setItem(id, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
+
+    // 2. Educated Decision (Direct MongoDB Push if online)
+    if (navigator.onLine && user.email) {
+        try {
+            const endpoint = saveModal.saveType === 'template' ? '/api/templates/save' : '/api/projects/save';
+            const apiPayload = saveModal.saveType === 'template' 
+              ? { templateId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
+              : { projectId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
+
+            const res = await fetch(`${API_BASE}${endpoint}`, {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(apiPayload)
+            });
+
+            if (res.ok) {
+                const responseData = await res.json();
+                // Get verified DB ID 
+                const realId = responseData.projectId || responseData.templateId || responseData._id || id;
+                
+                payload._id = realId;
+                payload.synced = true;
+
+                if (realId !== id) {
+                    await db.removeItem(id); // Swap local ID for true DB ID
+                }
+                await db.setItem(realId, payload);
+                
+                showToast("Saved directly to cloud!", "success");
+                setSaveModal({ ...saveModal, isOpen: false });
+                if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType });
+                fetchTemplates();
+                return; // 🚀 STOP HERE! Successfully pushed directly to MongoDB!
+            }
+        } catch (err) {
+            console.warn("Direct save failed, gracefully falling back to background queue.", err);
+        }
+    }
+
+    // 3. Fallback: Queue for background sync
+    await syncQueueDB.setItem(`sync_${id}_${Date.now()}`, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
 
     showToast("Saved locally. Background sync queued.");
     setSaveModal({ ...saveModal, isOpen: false });
@@ -629,7 +701,6 @@ export default function MainApp() {
       if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id); else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
 
       showToast(`${itemLabel} deleted locally!`, "success");
-      // Check if deleted item is open in any tabs
       tabs.forEach(t => {
         if (t.currentLoadedId === item._id) {
           workspaceRefs.current[t.id]?.clear();
@@ -641,7 +712,6 @@ export default function MainApp() {
     }
   };
 
-  // Pre-calculations for Rendering
   const filteredTemplates = allTemplates.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase()));
   const groupedTemplates = filteredTemplates.reduce((acc, template) => {
     const category = template.category || "Uncategorized";
@@ -691,7 +761,6 @@ export default function MainApp() {
         </div>
       )}
 
-      {/* NEW: Passed handleExport to WorkspaceHeader */}
       <WorkspaceHeader
         viewMode={activeTab.viewMode} setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })}
         runCode={handleRunCode} handleExport={handleExportJson} handleSaveToDB={openSaveModal}
@@ -736,7 +805,6 @@ export default function MainApp() {
             <span className="toggle-icon">❮</span>
           </button>
 
-          {/* --- TOP TAB BAR --- */}
           <div className="editor-tab-bar">
             {tabs.map(tab => (
               <div key={tab.id} className={`editor-tab ${activeTabId === tab.id ? 'active' : ''}`} onClick={() => setActiveTabId(tab.id)}>
@@ -757,14 +825,12 @@ export default function MainApp() {
           <Split direction="vertical" sizes={bottomPanel ? [65, 35] : [100, 0]} minSize={bottomPanel ? [200, 150] : [200, 0]} gutterSize={bottomPanel ? 8 : 0} className="editor-split-vertical">
 
             <div className="editor-container" style={{ position: 'relative' }}>
-              {/* Render ALL Blockly Workspaces (Hidden if inactive) to preserve state */}
               {tabs.map(tab => (
                 <div key={tab.id} className={activeTabId === tab.id && tab.viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'} style={{ height: '100%' }}>
                   <BlocklyWorkspace ref={el => workspaceRefs.current[tab.id] = el} onChange={(json, py) => handleBlocklyChange(tab.id, json, py)} syntaxError={activeTabId === tab.id ? activeTab.syntaxError : null} />
                 </div>
               ))}
 
-              {/* Single Monaco Editor tied to Active Tab */}
               <div className={activeTab.viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}>
                 <div className="python-header">
                   <span className="python-sync-status">{activeTab.isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
@@ -787,7 +853,6 @@ export default function MainApp() {
               </div>
             </div>
 
-            {/* --- BOTTOM DOCKED PANEL --- */}
             <div className="bottom-docked-panel" style={{ display: bottomPanel ? 'flex' : 'none' }}>
               <div className="panel-header">
                 <span className="panel-title">{bottomPanel === 'console' ? 'Console Panel' : 'Complexity Analysis'}</span>
@@ -905,8 +970,6 @@ export default function MainApp() {
                                             rowGap: '15px'
                                           }}
                                         >
-                                          {/* === ROW 1: TEXT DESCRIPTIONS === */}
-                                          {/* TOP LEFT: TIME TEXT */}
                                           <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                                             <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
                                             <div style={{ width: '100%' }}>
@@ -917,7 +980,6 @@ export default function MainApp() {
                                             </div>
                                           </div>
 
-                                          {/* TOP RIGHT: SPACE TEXT */}
                                           <div style={{ display: 'flex', alignItems: 'flex-start', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                             <img src="/assets/lightbulb-icon.png" alt="Lightbulb" className="tab-icon explanation-icon" style={{ marginLeft: 0, marginRight: '10px', width: '18px', flexShrink: 0 }} />
                                             <div style={{ width: '100%' }}>
@@ -928,13 +990,10 @@ export default function MainApp() {
                                             </div>
                                           </div>
 
-                                          {/* === ROW 2: GRAPHS (LOCKED ALIGNMENT) === */}
-                                          {/* BOTTOM LEFT: TIME GRAPH */}
                                           <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                                             <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
                                           </div>
 
-                                          {/* BOTTOM RIGHT: SPACE GRAPH */}
                                           <div style={{ position: 'relative', width: '100%', height: '100%', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '20px' }}>
                                             <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
                                           </div>

@@ -28,39 +28,43 @@
     },
     {
       "id": "m3_q3",
-      "question": "What is Binary Search?",
+      "type": "code",
+      "code": "def binary_search(arr, target):\n    left, right = 0, len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1",
+      "question": "What is the time complexity of this Binary Search implementation?",
       "options": [
-        "A search algorithm that checks every element from left to right",
-        "A search algorithm that uses a hash function to locate elements",
-        "A search algorithm that repeatedly halves the search space by comparing the target to the middle element of a sorted array",
-        "A search algorithm that works only on unsorted data"
+        "O(n) \u2014 visits every element in the worst case",
+        "O(n\u00b2) \u2014 two pointer variables cause quadratic growth",
+        "O(log n) \u2014 the search space is halved each iteration",
+        "O(1) \u2014 returns immediately when mid matches"
       ],
       "answer": 2,
-      "explanation": "Binary Search exploits the sorted order of an array by eliminating half the remaining elements at each step using a midpoint comparison."
+      "explanation": "Each iteration halves the remaining search space (left\u2013right range). Starting from n elements, after k iterations there are n/2\u1d4f remaining \u2014 so at most log\u2082(n) iterations are needed."
     },
     {
       "id": "m3_q4",
       "question": "What is the time complexity of Binary Search?",
       "options": [
-        "O(n) — linear",
-        "O(n²) — quadratic",
-        "O(1) — constant",
-        "O(log n) — logarithmic"
+        "O(n) \u2014 linear",
+        "O(n\u00b2) \u2014 quadratic",
+        "O(1) \u2014 constant",
+        "O(log n) \u2014 logarithmic"
       ],
       "answer": 3,
       "explanation": "Binary Search is O(log n) because at each step it halves the search space, meaning for n=1,000,000 it needs only about 20 comparisons."
     },
     {
       "id": "m3_q5",
-      "question": "Does Binary Search require a sorted array?",
+      "type": "code",
+      "code": "arr = [1, 3, 5, 7, 9, 11, 13]\ntarget = 6\nresult = binary_search(arr, target)  # returns -1\n\narr2 = [9, 3, 1, 7, 5, 13, 11]  # unsorted\nresult2 = binary_search(arr2, target)  # unpredictable!",
+      "question": "Why does Binary Search on arr2 produce unreliable results?",
       "options": [
-        "No, it works on any order of elements",
-        "Yes, the array must be sorted for Binary Search to produce correct results",
-        "No, but it performs better on sorted arrays",
-        "Yes, but only when searching for the maximum value"
+        "Because arr2 has an odd number of elements",
+        "Because Binary Search requires a sorted array \u2014 the midpoint comparison logic only works correctly when elements are in order",
+        "Because target=6 is not in either array",
+        "Because Binary Search only works with even-length arrays"
       ],
       "answer": 1,
-      "explanation": "Binary Search depends on sorted order to know which half to discard. Applying it to unsorted data produces incorrect and unpredictable results."
+      "explanation": "Binary Search relies on sorted order to decide which half to discard. On unsorted data, discarding a half based on midpoint comparison may eliminate the actual target \u2014 producing incorrect results."
     },
     {
       "id": "m3_q6",
@@ -88,15 +92,17 @@
     },
     {
       "id": "m3_q8",
-      "question": "What is the time complexity of Merge Sort?",
+      "type": "code",
+      "code": "def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])   # T(n/2)\n    right = merge_sort(arr[mid:])  # T(n/2)\n    return merge(left, right)      # O(n)",
+      "question": "What is the time complexity of this Merge Sort and what drives it?",
       "options": [
-        "O(n²) in all cases",
-        "O(n) in the best case",
-        "O(n log n) in all cases",
-        "O(log n) in the worst case"
+        "O(n\u00b2) \u2014 two recursive calls per level",
+        "O(n log n) \u2014 log n levels of recursion, each level doing O(n) merge work",
+        "O(n) \u2014 only the merge step is counted",
+        "O(log n) \u2014 recursion depth is log n"
       ],
-      "answer": 2,
-      "explanation": "Merge Sort is O(n log n) in all cases — the log n comes from the depth of recursive splits, and n from the merging work at each level."
+      "answer": 1,
+      "explanation": "Merge Sort splits into log n levels of recursion. At each level, the merge step processes all n elements total across that level. log n levels \u00d7 O(n) work per level = O(n log n) overall."
     },
     {
       "id": "m3_q9",
@@ -108,7 +114,7 @@
         "Stability is not a property that applies to sorting algorithms"
       ],
       "answer": 1,
-      "explanation": "Merge Sort is stable — when two elements are equal, it preserves their original order from the input, which is important for multi-key sorting scenarios."
+      "explanation": "Merge Sort is stable \u2014 when two elements are equal, it preserves their original order from the input, which is important for multi-key sorting scenarios."
     },
     {
       "id": "m3_q10",
@@ -120,31 +126,33 @@
         "A sorting algorithm that builds the sorted output one element at a time by insertion"
       ],
       "answer": 1,
-      "explanation": "Quick Sort selects a pivot, partitions elements around it, and recursively sorts each partition — achieving O(n log n) average case performance."
+      "explanation": "Quick Sort selects a pivot, partitions elements around it, and recursively sorts each partition \u2014 achieving O(n log n) average case performance."
     },
     {
       "id": "m3_q11",
-      "question": "What is a pivot in Quick Sort?",
+      "type": "code",
+      "code": "def partition(arr, low, high):\n    pivot = arr[low]   # always choose first element as pivot\n    # ... partitioning logic ...\n\n# Called on: arr = [1, 2, 3, 4, 5]  (already sorted)",
+      "question": "What problem does this pivot selection cause on the already-sorted input?",
       "options": [
-        "The index used to calculate the midpoint of the array",
-        "A temporary variable used for swapping two elements",
-        "The element selected to partition the array, where all smaller elements go left and all larger elements go right",
-        "The first element of the merged result"
+        "No problem \u2014 Quick Sort always runs in O(n log n)",
+        "The pivot is always the smallest element, creating maximally unbalanced partitions of size 0 and n-1 each time, degrading to O(n\u00b2)",
+        "Sorted input always gives the best case O(n) for Quick Sort",
+        "The pivot selection makes no difference to performance"
       ],
-      "answer": 2,
-      "explanation": "The pivot is the chosen reference element. After partitioning, the pivot is in its final sorted position, with all smaller values to its left and larger values to its right."
+      "answer": 1,
+      "explanation": "Choosing the first element as pivot on sorted data always selects the minimum \u2014 one partition gets 0 elements and the other gets n-1, making the recursion depth n instead of log n and degrading to O(n\u00b2)."
     },
     {
       "id": "m3_q12",
       "question": "What is the worst-case time complexity of Quick Sort?",
       "options": [
-        "O(n log n) — same as average case",
-        "O(n) — linear",
-        "O(n²) — quadratic, when pivot selection consistently results in unbalanced partitions",
-        "O(log n) — logarithmic"
+        "O(n log n) \u2014 same as average case",
+        "O(n) \u2014 linear",
+        "O(n\u00b2) \u2014 quadratic, when pivot selection consistently results in unbalanced partitions",
+        "O(log n) \u2014 logarithmic"
       ],
       "answer": 2,
-      "explanation": "Quick Sort degrades to O(n²) when the pivot is always the smallest or largest element (e.g., sorted array with first-element pivot), creating maximally unbalanced partitions."
+      "explanation": "Quick Sort degrades to O(n\u00b2) when the pivot is always the smallest or largest element (e.g., sorted array with first-element pivot), creating maximally unbalanced partitions."
     },
     {
       "id": "m3_q13",
@@ -160,27 +168,29 @@
     },
     {
       "id": "m3_q14",
-      "question": "What causes Quick Sort's worst case?",
+      "type": "code",
+      "code": "# Searching in a sorted array of 1,000,000 elements\n\n# Option A: Linear Search\nfor i in range(len(arr)):      # up to 1,000,000 steps\n    if arr[i] == target: return i\n\n# Option B: Binary Search  \nleft, right = 0, len(arr) - 1\nwhile left <= right:           # up to ~20 steps\n    mid = (left + right) // 2\n    ...",
+      "question": "For n=1,000,000, approximately how many steps does each option take?",
       "options": [
-        "When the array has an odd number of elements",
-        "When the pivot is always chosen as the median element",
-        "When the pivot consistently creates maximally unbalanced partitions (e.g., always the smallest or largest element)",
-        "When the array contains no duplicate values"
+        "Option A: ~500,000 steps average; Option B: ~20 steps \u2014 Binary Search is about 25,000x faster",
+        "They take the same number of steps for large inputs",
+        "Option A: 1,000 steps; Option B: 100 steps",
+        "Option B always takes exactly 2 steps regardless of n"
       ],
-      "answer": 2,
-      "explanation": "Worst case occurs when every partition produces one empty side and one side with n-1 elements, effectively degenerating into a linear scan — common when sorting an already-sorted array with a first-element pivot."
+      "answer": 0,
+      "explanation": "Linear Search averages n/2 = 500,000 steps. Binary Search takes at most log\u2082(1,000,000) \u2248 20 steps. This dramatic difference is why O(log n) vs O(n) matters enormously at scale."
     },
     {
       "id": "m3_q15",
-      "question": "Why is O(n log n) superior to O(n²)?",
+      "question": "Why is O(n log n) superior to O(n\u00b2)?",
       "options": [
-        "O(n log n) always uses less memory than O(n²)",
-        "O(n log n) grows much more slowly than O(n²) for large n, making it far more scalable",
+        "O(n log n) always uses less memory than O(n\u00b2)",
+        "O(n log n) grows much more slowly than O(n\u00b2) for large n, making it far more scalable",
         "O(n log n) algorithms are always easier to implement",
-        "O(n²) is actually faster for most real-world input sizes"
+        "O(n\u00b2) is actually faster for most real-world input sizes"
       ],
       "answer": 1,
-      "explanation": "For n=1,000,000: O(n log n) ≈ 20,000,000 operations vs O(n²) = 1,000,000,000,000 operations — O(n log n) is orders of magnitude faster at scale."
+      "explanation": "For n=1,000,000: O(n log n) \u2248 20,000,000 operations vs O(n\u00b2) = 1,000,000,000,000 operations \u2014 O(n log n) is orders of magnitude faster at scale."
     }
   ]
 }

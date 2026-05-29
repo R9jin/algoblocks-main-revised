@@ -309,5 +309,67 @@
         { "call": "subset_sum([10,20,30],0)", "expected": "[]", "isHidden": false }
       ]
     }
+  ],
+"optimizations": [
+    {
+      "id": "m6_opt_1",
+      "title": "Optimize Knapsack (Dynamic Programming)",
+      "task": "The current Knapsack solver uses pure recursion exploring all subsets (O(2ⁿ)).\n\n**Task Requirement:**\nOptimize it using a DP table or memoization to achieve O(n * W) time.",
+      "targetTime": "O(n^2)", 
+      "targetSpace": "O(n^2)",
+      "templateUrl": "/data/optimizations/m6-6.1.json",
+      "testCasesPool": [
+        { "call": "knapsack([10, 20, 30], [60, 100, 120], 50, 3)", "expected": "220", "isHidden": false },
+        { "call": "knapsack([1, 2, 3], [10, 15, 40], 6, 3)", "expected": "65", "isHidden": false },
+        { "call": "knapsack([5, 5, 5], [10, 20, 30], 4, 3)", "expected": "0", "isHidden": false },
+        { "call": "knapsack([10], [50], 10, 1)", "expected": "50", "isHidden": false },
+        { "call": "knapsack([], [], 50, 0)", "expected": "0", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m6_opt_2",
+      "title": "Optimize Coin Change",
+      "task": "The base algorithm uses greedy selection, which fails on certain coin denominations, falling back to an exponential backtracking approach.\n\n**Task Requirement:**\nImplement a Dynamic Programming bottom-up approach to calculate the minimum coins in O(amount * n) time.",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m6-6.2.json",
+      "testCasesPool": [
+        { "call": "coin_change([1, 2, 5], 11)", "expected": "3", "isHidden": false },
+        { "call": "coin_change([2], 3)", "expected": "-1", "isHidden": false },
+        { "call": "coin_change([1], 0)", "expected": "0", "isHidden": false },
+        { "call": "coin_change([1, 4, 5], 8)", "expected": "2", "isHidden": false },
+        { "call": "coin_change([3, 5], 7)", "expected": "-1", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m6_opt_3",
+      "title": "Longest Common Subsequence",
+      "task": "The current string comparison generates all sub-sequences for both strings before comparing them (O(2ⁿ)).\n\n**Task Requirement:**\nOptimize the algorithm using a 2D Dynamic Programming matrix to find the LCS in O(n*m) time.",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
+      "templateUrl": "/data/optimizations/m6-6.3.json",
+      "testCasesPool": [
+        { "call": "lcs('abcde', 'ace')", "expected": "3", "isHidden": false },
+        { "call": "lcs('abc', 'def')", "expected": "0", "isHidden": false },
+        { "call": "lcs('abc', 'abc')", "expected": "3", "isHidden": false },
+        { "call": "lcs('a', 'a')", "expected": "1", "isHidden": false },
+        { "call": "lcs('', 'abc')", "expected": "0", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m6_opt_4",
+      "title": "Climbing Stairs Optimization",
+      "task": "The algorithm computes the number of ways to climb stairs recursively, recalculating the same steps continuously (O(2ⁿ)).\n\n**Task Requirement:**\nOptimize it to O(n) time using Dynamic Programming (or variable caching) to remember the previous two steps.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m6-6.4.json",
+      "testCasesPool": [
+        { "call": "climb_stairs(2)", "expected": "2", "isHidden": false },
+        { "call": "climb_stairs(3)", "expected": "3", "isHidden": false },
+        { "call": "climb_stairs(1)", "expected": "1", "isHidden": false },
+        { "call": "climb_stairs(5)", "expected": "8", "isHidden": false },
+        { "call": "climb_stairs(10)", "expected": "89", "isHidden": false }
+      ]
+    }
   ]
 }

@@ -1,17 +1,25 @@
-from api.database import users_collection
+# api/repositories/user_repo.py
+from database import users_collection
 
 class UserRepository:
     @staticmethod
     def find_by_email(email: str):
-        return users_collection.find_one({"email": email})
+        return users_collection.find_one({"email": email}, {"_id": 0})
 
     @staticmethod
-    def insert(data: dict):
-        return users_collection.insert_one(data)
+    def insert(user_data: dict):
+        return users_collection.insert_one(user_data)
 
     @staticmethod
     def update_progress(email: str, lesson_id: str, score: int):
-        return users_collection.update_one(
+        users_collection.update_one(
             {"email": email},
             {"$set": {f"progress.{lesson_id}": score}}
+        )
+
+    @staticmethod
+    def update_assessment(email: str, assessment_key: str, data: dict):
+        users_collection.update_one(
+            {"email": email},
+            {"$set": {f"assessments.{assessment_key}": data}}
         )

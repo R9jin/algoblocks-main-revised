@@ -216,5 +216,52 @@
         { "call": "rooms([[1,2],[1,2]])", "expected": "2", "isHidden": false }
       ]
     }
+  ],
+  "optimizations": [
+    {
+      "id": "m4_opt_1",
+      "title": "Optimize Bubble Sort",
+      "task": "The current code is a naive Bubble Sort that always runs O(n²).\n\n**Task Requirement:**\nOptimize it to stop early if the array is already sorted, yielding an O(n) best-case time complexity.\n\n**Rules:**\n- Introduce a `swapped` flag.\n- Break out of the loop early if no swaps occurred.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m4-4.1.json",
+      "testCasesPool": [
+        { "call": "smart_sort([5, 1, 4, 2, 8])", "expected": "[1, 2, 4, 5, 8]", "isHidden": false },
+        { "call": "smart_sort([1, 2, 3, 4, 5])", "expected": "[1, 2, 3, 4, 5]", "isHidden": false },
+        { "call": "smart_sort([3, 2, 1])", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "smart_sort([9, 7, 5, 3])", "expected": "[3, 5, 7, 9]", "isHidden": false },
+        { "call": "smart_sort([])", "expected": "[]", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m4_opt_2",
+      "title": "Upgrade to Merge Sort",
+      "task": "The provided code uses Selection Sort (O(n²)).\n\n**Task Requirement:**\nReplace it entirely with a Divide and Conquer sorting strategy (like Merge Sort) to achieve O(n log n).",
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m4-4.2.json",
+      "testCasesPool": [
+        { "call": "fast_sort([38, 27, 43, 3, 9, 82, 10])", "expected": "[3, 9, 10, 27, 38, 43, 82]", "isHidden": false },
+        { "call": "fast_sort([5, 4, 3, 2, 1])", "expected": "[1, 2, 3, 4, 5]", "isHidden": false },
+        { "call": "fast_sort([10, 10, 10])", "expected": "[10, 10, 10]", "isHidden": false },
+        { "call": "fast_sort([-5, 0, 5, -10])", "expected": "[-10, -5, 0, 5]", "isHidden": false },
+        { "call": "fast_sort([])", "expected": "[]", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m4_opt_3",
+      "title": "Optimize Array Merging",
+      "task": "The current code merges two sorted arrays by appending them and calling `sort()` which is O((n+m) log (n+m)).\n\n**Task Requirement:**\nOptimize it to merge the two arrays in a single pass O(n+m) using two pointers.",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m4-4.3.json",
+      "testCasesPool": [
+        { "call": "merge_sorted([1, 3, 5], [2, 4, 6])", "expected": "[1, 2, 3, 4, 5, 6]", "isHidden": false },
+        { "call": "merge_sorted([10, 20], [5, 15, 25])", "expected": "[5, 10, 15, 20, 25]", "isHidden": false },
+        { "call": "merge_sorted([1, 1], [1, 1])", "expected": "[1, 1, 1, 1]", "isHidden": false },
+        { "call": "merge_sorted([], [1, 2])", "expected": "[1, 2]", "isHidden": false },
+        { "call": "merge_sorted([5], [])", "expected": "[5]", "isHidden": false }
+      ]
+    }
   ]
 }

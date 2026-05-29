@@ -8,57 +8,33 @@ import "../styles/AssessmentPage.css";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
-// Draft key: stores in-progress answers, question order, and elapsed time.
-// Separate from the final submitted result so they don't collide.
-const getDraftKey = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
+const getDraftKey  = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
 const getResultKey = (moduleId, type) => `algoblocks_result_${moduleId}_${type}`;
 
 function saveDraft(moduleId, type, payload) {
-  try {
-    localStorage.setItem(getDraftKey(moduleId, type), JSON.stringify(payload));
-  } catch (e) {
-    console.warn("Could not save draft:", e);
-  }
+  try { localStorage.setItem(getDraftKey(moduleId, type), JSON.stringify(payload)); }
+  catch (e) { console.warn("Could not save draft:", e); }
 }
-
 function loadDraft(moduleId, type) {
-  try {
-    const raw = localStorage.getItem(getDraftKey(moduleId, type));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  try { const r = localStorage.getItem(getDraftKey(moduleId, type)); return r ? JSON.parse(r) : null; }
+  catch { return null; }
 }
-
 function clearDraft(moduleId, type) {
-  try {
-    localStorage.removeItem(getDraftKey(moduleId, type));
-  } catch (e) {
-    // ignore
-  }
+  try { localStorage.removeItem(getDraftKey(moduleId, type)); } catch {}
 }
-
 function saveResult(moduleId, type, result) {
   try {
     localStorage.setItem(getResultKey(moduleId, type), JSON.stringify(result));
-    // Also persist into the user object so LearningPath can read it
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const assessments = user.assessments || {};
     assessments[`${moduleId}_${type}_assessment`] = result;
     user.assessments = assessments;
     localStorage.setItem("user", JSON.stringify(user));
-  } catch (e) {
-    console.warn("Could not save result:", e);
-  }
+  } catch (e) { console.warn("Could not save result:", e); }
 }
-
 function loadResult(moduleId, type) {
-  try {
-    const raw = localStorage.getItem(getResultKey(moduleId, type));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  try { const r = localStorage.getItem(getResultKey(moduleId, type)); return r ? JSON.parse(r) : null; }
+  catch { return null; }
 }
 
 // ── Shuffle ──────────────────────────────────────────────────────────────────
@@ -82,27 +58,42 @@ const MODULE_FIRST_LESSON = {
   "module-6": "lesson-6-1",
 };
 
+// ── Code Block component ─────────────────────────────────────────────────────
+function CodeBlock({ code }) {
+  if (!code) return null;
+  return (
+    <div className="question-code-block">
+      <div className="code-block-header">
+        <span className="code-block-label">Python</span>
+      </div>
+      <pre className="code-block-pre">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function AssessmentPage() {
-  const { moduleId, type } = useParams(); // type = "pre" | "post"
+  const { moduleId, type } = useParams();
   const navigate = useNavigate();
 
-  const [questions, setQuestions]           = useState([]);
-  const [moduleTitle, setModuleTitle]       = useState("");
-  const [currentIndex, setCurrentIndex]     = useState(0);
+  const [questions, setQuestions]             = useState([]);
+  const [moduleTitle, setModuleTitle]         = useState("");
+  const [currentIndex, setCurrentIndex]       = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [submitted, setSubmitted]           = useState(false);
-  const [score, setScore]                   = useState(0);
-  const [loading, setLoading]               = useState(true);
-  const [timeElapsed, setTimeElapsed]       = useState(0);
-  const [lastSavedAt, setLastSavedAt]       = useState(null); // timestamp of last auto-save
-  const [hasDraft, setHasDraft]             = useState(false); // whether a draft was restored
-  const [prevResult, setPrevResult]         = useState(null);  // previously submitted result (for resume display)
+  const [submitted, setSubmitted]             = useState(false);
+  const [score, setScore]                     = useState(0);
+  const [loading, setLoading]                 = useState(true);
+  const [timeElapsed, setTimeElapsed]         = useState(0);
+  const [lastSavedAt, setLastSavedAt]         = useState(null);
+  const [hasDraft, setHasDraft]               = useState(false);
+  const [prevResult, setPrevResult]           = useState(null);
 
   const timerRef    = useRef(null);
   const autoSaveRef = useRef(null);
 
-  // ── 1. Load assessment JSON + restore draft / previous result ───────────────
+  // ── Load assessment JSON + restore draft ───────────────────────────────────
   useEffect(() => {
     const load = async () => {
       try {
@@ -110,16 +101,11 @@ export default function AssessmentPage() {
         if (!res.ok) throw new Error("Assessment not found");
         const data = await res.json();
 
-        // Check if there's a previously submitted result
         const existingResult = loadResult(moduleId, type);
-        if (existingResult) {
-          setPrevResult(existingResult);
-        }
+        if (existingResult) setPrevResult(existingResult);
 
-        // Check if there's an in-progress draft
         const draft = loadDraft(moduleId, type);
         if (draft && draft.questionIds) {
-          // Restore the exact question order from the draft
           const idMap = Object.fromEntries(data.questions.map((q) => [q.id, q]));
           const restored = draft.questionIds.map((id) => idMap[id]).filter(Boolean);
           if (restored.length === data.questions.length) {
@@ -134,9 +120,7 @@ export default function AssessmentPage() {
           }
         }
 
-        // Fresh start — shuffle
-        const shuffled = shuffleArray(data.questions);
-        setQuestions(shuffled);
+        setQuestions(shuffleArray(data.questions));
         setModuleTitle(data.moduleTitle);
       } catch (err) {
         console.error("Failed to load assessment:", err);
@@ -147,110 +131,83 @@ export default function AssessmentPage() {
     load();
   }, [moduleId, type]);
 
-  // ── 2. Auto-save draft every 10 seconds while answering ────────────────────
+  // ── Auto-save every 10 seconds ─────────────────────────────────────────────
   useEffect(() => {
     if (submitted || loading || questions.length === 0) return;
-
     autoSaveRef.current = setInterval(() => {
       const draft = {
-        moduleId,
-        type,
+        moduleId, type,
         questionIds: questions.map((q) => q.id),
-        selectedAnswers,
-        currentIndex,
-        timeElapsed,
+        selectedAnswers, currentIndex, timeElapsed,
         savedAt: new Date().toISOString(),
       };
       saveDraft(moduleId, type, draft);
       setLastSavedAt(new Date().toISOString());
     }, 10_000);
-
     return () => clearInterval(autoSaveRef.current);
   }, [submitted, loading, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type]);
 
-  // ── 3. Save draft immediately on every answer selection ────────────────────
-  // (handled directly inside handleSelectAnswer — no effect needed)
-
-  // ── 4. Timer ────────────────────────────────────────────────────────────────
+  // ── Timer ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (submitted || loading || questions.length === 0) return;
-    timerRef.current = setInterval(() => {
-      setTimeElapsed((t) => t + 1);
-    }, 1000);
+    timerRef.current = setInterval(() => setTimeElapsed((t) => t + 1), 1000);
     return () => clearInterval(timerRef.current);
   }, [submitted, loading, questions.length]);
 
-  // ── 5. Save draft on tab close / visibility change ─────────────────────────
+  // ── Save on tab close / visibility change ──────────────────────────────────
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibility = () => {
       if (document.visibilityState === "hidden" && !submitted && questions.length > 0) {
-        const draft = {
-          moduleId,
-          type,
+        saveDraft(moduleId, type, {
+          moduleId, type,
           questionIds: questions.map((q) => q.id),
-          selectedAnswers,
-          currentIndex,
-          timeElapsed,
+          selectedAnswers, currentIndex, timeElapsed,
           savedAt: new Date().toISOString(),
-        };
-        saveDraft(moduleId, type, draft);
+        });
       }
     };
-    const handleBeforeUnload = (e) => {
+    const handleUnload = (e) => {
       if (!submitted && Object.keys(selectedAnswers).length > 0) {
-        const draft = {
-          moduleId,
-          type,
+        saveDraft(moduleId, type, {
+          moduleId, type,
           questionIds: questions.map((q) => q.id),
-          selectedAnswers,
-          currentIndex,
-          timeElapsed,
+          selectedAnswers, currentIndex, timeElapsed,
           savedAt: new Date().toISOString(),
-        };
-        saveDraft(moduleId, type, draft);
-        // Show browser "leave page?" dialog only when answers exist
+        });
         e.preventDefault();
         e.returnValue = "";
       }
     };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("beforeunload", handleUnload);
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("beforeunload", handleUnload);
     };
   }, [submitted, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type]);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
     const s = (secs % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
-
   const getScoreLabel = (s) => {
-    if (s >= 90) return { label: "Excellent!",    color: "#22c55e", icon: "🏆" };
-    if (s >= 75) return { label: "Proficient",    color: "#3b82f6", icon: "🎯" };
-    if (s >= 60) return { label: "Developing",    color: "#f97316", icon: "📈" };
-    return              { label: "Needs Review",  color: "#ef4444", icon: "📚" };
+    if (s >= 90) return { label: "Excellent!",   color: "#22c55e", icon: "🏆" };
+    if (s >= 75) return { label: "Proficient",   color: "#3b82f6", icon: "🎯" };
+    if (s >= 60) return { label: "Developing",   color: "#f97316", icon: "📈" };
+    return             { label: "Needs Review",  color: "#ef4444", icon: "📚" };
   };
 
-  // ── Actions ──────────────────────────────────────────────────────────────────
+  // ── Actions ────────────────────────────────────────────────────────────────
   const handleSelectAnswer = (optionIndex) => {
     if (submitted) return;
-
     const updated = { ...selectedAnswers, [currentIndex]: optionIndex };
     setSelectedAnswers(updated);
-
-    // Immediate draft save on every answer
     const draft = {
-      moduleId,
-      type,
+      moduleId, type,
       questionIds: questions.map((q) => q.id),
-      selectedAnswers: updated,
-      currentIndex,
-      timeElapsed,
+      selectedAnswers: updated, currentIndex, timeElapsed,
       savedAt: new Date().toISOString(),
     };
     saveDraft(moduleId, type, draft);
@@ -262,31 +219,21 @@ export default function AssessmentPage() {
     clearInterval(autoSaveRef.current);
 
     let correct = 0;
-    questions.forEach((q, i) => {
-      if (selectedAnswers[i] === q.answer) correct++;
-    });
+    questions.forEach((q, i) => { if (selectedAnswers[i] === q.answer) correct++; });
 
     const finalScore = Math.round((correct / questions.length) * 100);
     setScore(finalScore);
     setSubmitted(true);
 
     const result = {
-      moduleId,
-      type,
-      score: finalScore,
-      correct,
-      total: questions.length,
-      timeElapsed,
+      moduleId, type, score: finalScore, correct,
+      total: questions.length, timeElapsed,
       completedAt: new Date().toISOString(),
-      // Preserve all previous attempts count
       attempts: (prevResult?.attempts ?? 0) + 1,
     };
-
-    // Persist result + clear draft
     saveResult(moduleId, type, result);
     clearDraft(moduleId, type);
 
-    // Sync to cloud
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       if (user.email) {
@@ -300,17 +247,12 @@ export default function AssessmentPage() {
           }),
         });
       }
-    } catch (err) {
-      console.warn("Could not sync assessment to cloud:", err);
-    }
+    } catch (err) { console.warn("Could not sync to cloud:", err); }
   };
 
   const handleProceed = () => {
-    if (type === "pre") {
-      navigate(`/learning-path/${moduleId}/${MODULE_FIRST_LESSON[moduleId]}`);
-    } else {
-      navigate("/learning-path");
-    }
+    if (type === "pre") navigate(`/learning-path/${moduleId}/${MODULE_FIRST_LESSON[moduleId]}`);
+    else navigate("/learning-path");
   };
 
   const handleRetake = () => {
@@ -333,32 +275,27 @@ export default function AssessmentPage() {
     setQuestions((prev) => shuffleArray(prev));
   };
 
-  // ── Derived values ───────────────────────────────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────────────────
   const isPre           = type === "pre";
   const moduleNum       = moduleId?.split("-").pop();
   const answeredCount   = Object.keys(selectedAnswers).length;
   const currentQuestion = questions[currentIndex];
 
-  // ── Loading / empty guards ───────────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="assessment-page">
-        <DashboardHeader />
-        <div className="assessment-loading">Loading assessment...</div>
-      </div>
-    );
-  }
+  // ── Guards ─────────────────────────────────────────────────────────────────
+  if (loading) return (
+    <div className="assessment-page">
+      <DashboardHeader />
+      <div className="assessment-loading">Loading assessment...</div>
+    </div>
+  );
+  if (questions.length === 0) return (
+    <div className="assessment-page">
+      <DashboardHeader />
+      <div className="assessment-loading">Assessment not available for this module.</div>
+    </div>
+  );
 
-  if (questions.length === 0) {
-    return (
-      <div className="assessment-page">
-        <DashboardHeader />
-        <div className="assessment-loading">Assessment not available for this module.</div>
-      </div>
-    );
-  }
-
-  // ── RESULTS SCREEN ────────────────────────────────────────────────────────────
+  // ── RESULTS SCREEN ─────────────────────────────────────────────────────────
   if (submitted) {
     const { label, color, icon } = getScoreLabel(score);
     const correctCount = Math.round((score / 100) * questions.length);
@@ -396,7 +333,6 @@ export default function AssessmentPage() {
               </div>
             </div>
 
-            {/* Answer Review */}
             <div className="results-review">
               <h3>Answer Review</h3>
               <div className="review-list">
@@ -410,10 +346,18 @@ export default function AssessmentPage() {
                         <span className="review-icon">
                           {correct ? <FiCheck color="#22c55e" /> : <FiX color="#ef4444" />}
                         </span>
-                        <span className="review-question">{q.question}</span>
+                        <span className="review-question">
+                          {q.type === "code" && <span className="review-code-tag">CODE</span>}
+                          {q.question}
+                        </span>
                       </div>
                       {!correct && (
                         <div className="review-answer-detail">
+                          {q.code && (
+                            <div className="review-code-snippet">
+                              <pre>{q.code}</pre>
+                            </div>
+                          )}
                           <span className="your-answer">
                             Your answer: <em>{userAnswer !== undefined ? q.options[userAnswer] : "Not answered"}</em>
                           </span>
@@ -453,12 +397,12 @@ export default function AssessmentPage() {
     );
   }
 
-  // ── QUESTION SCREEN ───────────────────────────────────────────────────────────
+  // ── QUESTION SCREEN ────────────────────────────────────────────────────────
   return (
     <div className="assessment-page">
       <DashboardHeader />
-
       <div className="assessment-wrapper">
+
         {/* Header */}
         <div className="assessment-header">
           <div className="assessment-title-block">
@@ -482,13 +426,11 @@ export default function AssessmentPage() {
           </div>
         </div>
 
-        {/* Draft restore banner */}
+        {/* Draft restored banner */}
         {hasDraft && (
           <div className="draft-banner">
             <span>🔄 Your previous session was restored — {answeredCount} answer{answeredCount !== 1 ? "s" : ""} recovered.</span>
-            <button className="draft-discard-btn" onClick={handleDiscardDraft}>
-              Start Fresh
-            </button>
+            <button className="draft-discard-btn" onClick={handleDiscardDraft}>Start Fresh</button>
           </div>
         )}
 
@@ -515,13 +457,14 @@ export default function AssessmentPage() {
           <aside className="question-navigator">
             <h4>Questions</h4>
             <div className="question-nav-grid">
-              {questions.map((_, i) => (
+              {questions.map((q, i) => (
                 <button
                   key={i}
                   className={`nav-dot ${i === currentIndex ? "active" : ""} ${
                     selectedAnswers[i] !== undefined ? "answered" : ""
-                  }`}
+                  } ${q.type === "code" ? "code-q" : ""}`}
                   onClick={() => setCurrentIndex(i)}
+                  title={q.type === "code" ? "Code analysis question" : ""}
                 >
                   {i + 1}
                 </button>
@@ -531,15 +474,25 @@ export default function AssessmentPage() {
               <span className="legend-dot answered" /> Answered
               <span className="legend-dot active" /> Current
               <span className="legend-dot" /> Unanswered
+              <span className="legend-dot code-q" /> Code Q
             </div>
           </aside>
 
           {/* Question card */}
           <main className="question-main">
             <div className="question-card">
-              <div className="question-counter">
-                Question {currentIndex + 1} of {questions.length}
+              <div className="question-counter-row">
+                <span className="question-counter">Question {currentIndex + 1} of {questions.length}</span>
+                {currentQuestion.type === "code" && (
+                  <span className="code-question-badge">💻 Code Analysis</span>
+                )}
               </div>
+
+              {/* Code block — shown above the question text */}
+              {currentQuestion.type === "code" && currentQuestion.code && (
+                <CodeBlock code={currentQuestion.code} />
+              )}
+
               <h2 className="question-text">{currentQuestion.question}</h2>
 
               <div className="options-list">
@@ -556,7 +509,6 @@ export default function AssessmentPage() {
                 ))}
               </div>
 
-              {/* Navigation */}
               <div className="question-nav-row">
                 <button
                   className="nav-btn"
@@ -565,12 +517,8 @@ export default function AssessmentPage() {
                 >
                   <FiChevronLeft /> Previous
                 </button>
-
                 {currentIndex < questions.length - 1 ? (
-                  <button
-                    className="nav-btn primary"
-                    onClick={() => setCurrentIndex((i) => i + 1)}
-                  >
+                  <button className="nav-btn primary" onClick={() => setCurrentIndex((i) => i + 1)}>
                     Next <FiChevronRight />
                   </button>
                 ) : (
@@ -578,11 +526,7 @@ export default function AssessmentPage() {
                     className="nav-btn submit"
                     onClick={handleSubmit}
                     disabled={answeredCount < questions.length}
-                    title={
-                      answeredCount < questions.length
-                        ? `Answer all ${questions.length} questions to submit`
-                        : ""
-                    }
+                    title={answeredCount < questions.length ? `Answer all ${questions.length} questions to submit` : ""}
                   >
                     <FiAward /> Submit Assessment
                   </button>

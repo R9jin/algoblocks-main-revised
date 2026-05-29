@@ -309,5 +309,52 @@
         { "call": "pivot_track([7])", "expected": "[7]", "isHidden": false }
       ]
     }
+  ],
+  "optimizations": [
+    {
+      "id": "m3_opt_1",
+      "title": "Linear to Binary Search",
+      "task": "The provided algorithm searches for an item in a **sorted** array by checking every element O(n).\n\n**Task Requirement:**\nImplement Binary Search to find the target element in O(log n) time.\n\n**Rules:**\n- Return the index of the target.\n- Return -1 if it is not found.",
+      "targetTime": "O(log n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m3-3.1.json",
+      "testCasesPool": [
+        { "call": "search([1, 3, 5, 7, 9], 7)", "expected": "3", "isHidden": false },
+        { "call": "search([10, 20, 30, 40], 10)", "expected": "0", "isHidden": false },
+        { "call": "search([2, 4, 6], 5)", "expected": "-1", "isHidden": false },
+        { "call": "search([], 1)", "expected": "-1", "isHidden": false },
+        { "call": "search([5], 5)", "expected": "0", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m3_opt_2",
+      "title": "Find Peak Element",
+      "task": "A peak element is an element strictly greater than its neighbors. The current code scans the array linearly O(n).\n\n**Task Requirement:**\nOptimize the algorithm to find any peak element in O(log n) time.\n\n**Rules:**\n- Use a modified binary search.\n- Return the index of the peak element.",
+      "targetTime": "O(log n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m3-3.2.json",
+      "testCasesPool": [
+        { "call": "find_peak([1, 2, 3, 1])", "expected": "2", "isHidden": false },
+        { "call": "find_peak([1, 2, 1, 3, 5, 6, 4])", "expected": "5", "isHidden": false },
+        { "call": "find_peak([1, 2, 3, 4, 5])", "expected": "4", "isHidden": false },
+        { "call": "find_peak([10, 9, 8, 7])", "expected": "0", "isHidden": false },
+        { "call": "find_peak([5])", "expected": "0", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m3_opt_3",
+      "title": "Optimize String Search",
+      "task": "The current string matching loops through every character repeatedly to find a substring (O(n*m)).\n\n**Task Requirement:**\nOptimize it using a single pass approach to achieve O(n).",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m3-3.3.json",
+      "testCasesPool": [
+        { "call": "find_substring('hello world', 'world')", "expected": "6", "isHidden": false },
+        { "call": "find_substring('abcde', 'cd')", "expected": "2", "isHidden": false },
+        { "call": "find_substring('test', 'xyz')", "expected": "-1", "isHidden": false },
+        { "call": "find_substring('aaaa', 'aa')", "expected": "0", "isHidden": false },
+        { "call": "find_substring('', 'a')", "expected": "-1", "isHidden": false }
+      ]
+    }
   ]
 }

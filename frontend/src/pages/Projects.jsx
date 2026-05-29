@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-// Ensure this import matches your localForage exports in db.js
 import { projectsDB, syncQueueDB } from "../db";
 import "../styles/Projects.css";
 
@@ -44,7 +43,7 @@ export default function Projects() {
 
   const loadProjects = async () => {
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUser) {
         setLoading(false);
         return;
@@ -54,11 +53,11 @@ export default function Projects() {
       // --- 1. PULL CLOUD DATA FIRST ---
       if (navigator.onLine) {
         try {
-          const res = await fetch(`${API_BASE}/api/projects`);
+          // FIXED: Pass explicit userId parameter so backend responds properly
+          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`);
           if (res.ok) {
             const data = await res.json();
             
-            // ✅ FIX: Safely extract the array whether backend returns [] or { projects: [] }
             let cloudProjects = [];
             if (data && Array.isArray(data.projects)) {
                 cloudProjects = data.projects;
@@ -67,8 +66,8 @@ export default function Projects() {
             }
 
             for (const cp of cloudProjects) {
-              // Only save projects belonging to this user
-              if (cp.owner_id === user.email) {
+              // FIXED: CHECK BOTH USER ID TYPES
+              if (cp.owner_id === user.email || cp.userId === user.email) {
                 await projectsDB.setItem(cp._id, { ...cp, synced: true });
               }
             }
@@ -81,7 +80,8 @@ export default function Projects() {
       // --- 2. LOAD FROM LOCAL DB ---
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
-        if (value.owner_id === user.email) {
+        // FIXED: CHECK BOTH USER ID TYPES
+        if (value.owner_id === user.email || value.userId === user.email) {
           loadedProjects.push(value);
         }
       });
@@ -104,10 +104,8 @@ export default function Projects() {
 
       // 2. Queue for Cloud Sync Deletion
       if (projectId.startsWith('local_')) {
-        // It was never pushed to the cloud, just remove its pending upload
         await syncQueueDB.removeItem(projectId);
       } else {
-        // It exists on the cloud, queue a DELETE request
         await syncQueueDB.setItem(`delete_${projectId}`, {
           type: 'PROJECT',
           action: 'DELETE',
@@ -166,7 +164,7 @@ export default function Projects() {
                     </button>
                   </div>
                   <div className="project-details">
-                    <h3>{proj.title || "Untitled Project"}</h3>
+                    <h3>{proj.title || proj.name || "Untitled Project"}</h3>
                     <p>{proj.synced ? "Saved to Cloud" : "Local Draft"}</p>
                   </div>
                 </div>

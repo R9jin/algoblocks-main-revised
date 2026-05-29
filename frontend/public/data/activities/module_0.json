@@ -71,8 +71,8 @@
         { "call": "multi()", "expected": "5", "isHidden": false },
         { "call": "multi()", "expected": "5", "isHidden": false },
         { "call": "multi()", "expected": "5", "isHidden": false },
-        { "call": "multi()", "expected": "4", "isHidden": false },
-        { "call": "multi()", "expected": "6", "isHidden": false }
+        { "call": "multi()", "expected": "5", "isHidden": false },
+        { "call": "multi()", "expected": "5", "isHidden": false }
       ]
     }
   ],
@@ -174,31 +174,31 @@
     {
       "id": "m0_l3_a2",
       "title": "Iteration Tracker",
-      "task": "A performance analysis system tracks loop execution counts for optimization evaluation.\n\nTask Requirement:\nCreate a function linear() that simulates iteration from 1 to 100.\n\nRules:\n- Count total iterations\n- Return final count\n\nSample Output:\nlinear() → 100",
+      "task": "A performance analysis system tracks loop execution counts for optimization evaluation.\n\nTask Requirement:\nCreate a function linear(n) that simulates iteration from 1 to n.\n\nRules:\n- Count total iterations\n- Return final count\n- If n ≤ 0, return 0\n\nSample Output:\nlinear(100) → 100",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "linear()", "expected": "100", "isHidden": false },
-        { "call": "linear()", "expected": "100", "isHidden": false },
-        { "call": "linear()", "expected": "100", "isHidden": false },
-        { "call": "linear()", "expected": "99", "isHidden": false },
-        { "call": "linear()", "expected": "101", "isHidden": false }
+        { "call": "linear(100)", "expected": "100", "isHidden": false },
+        { "call": "linear(50)", "expected": "50", "isHidden": false },
+        { "call": "linear(1)", "expected": "1", "isHidden": false },
+        { "call": "linear(0)", "expected": "0", "isHidden": false },
+        { "call": "linear(-5)", "expected": "0", "isHidden": false }
       ]
     },
     {
       "id": "m0_l3_a3",
       "title": "Grid Computation Engine",
-      "task": "A nested iteration system simulates grid-based computation workloads.\n\nTask Requirement:\nCreate a function grid() that simulates a 5x5 nested loop execution.\n\nRules:\n- Outer loop runs 5 times\n- Inner loop runs 5 times\n- Return total iterations\n\nSample Output:\ngrid() → 25",
+      "task": "A nested iteration system simulates grid-based computation workloads.\n\nTask Requirement:\nCreate a function grid(n) that generates a 2D grid filled with 0 values.\n\nRules:\n- Outer loop runs n times\n- Inner loop runs n times\n- Return a 2D array of size n × n\n- If n ≤ 0, return an empty list\n\nSample Output:\ngrid(2) → [[0,0],[0,0]]",
       "targetTime": "O(n^2)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n^2)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "grid()", "expected": "25", "isHidden": false },
-        { "call": "grid()", "expected": "25", "isHidden": false },
-        { "call": "grid()", "expected": "25", "isHidden": false },
-        { "call": "grid()", "expected": "20", "isHidden": false },
-        { "call": "grid()", "expected": "30", "isHidden": false }
+        { "call": "grid(1)", "expected": "[[0]]", "isHidden": false },
+        { "call": "grid(2)", "expected": "[[0,0],[0,0]]", "isHidden": false },
+        { "call": "grid(3)", "expected": "[[0,0,0],[0,0,0],[0,0,0]]", "isHidden": false },
+        { "call": "grid(0)", "expected": "[]", "isHidden": false },
+        { "call": "grid(-1)", "expected": "[]", "isHidden": false }
       ]
     },
     {
@@ -219,16 +219,16 @@
     {
       "id": "m0_l3_a5",
       "title": "Loop vs Arithmetic Engine",
-      "task": "A computation system compares iterative multiplication vs direct arithmetic computation.\n\nTask Requirement:\nCreate a function compare() that simulates 5 × 5 using repeated addition logic.\n\nReturn final computed result.\n\nSample Output:\ncompare() → 25",
+      "task": "A computation system compares iterative multiplication vs direct arithmetic computation.\n\nTask Requirement:\nCreate a function compare(a, b) that computes multiplication using repeated addition.\n\nRules:\n- Multiply a and b using only addition in a loop\n- Do not use the * operator\n- Return final result\n- If either input is not a valid integer, return 'Error'\n\nSample Output:\ncompare(5,5) → 25",
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "compare()", "expected": "25", "isHidden": false },
-        { "call": "compare()", "expected": "25", "isHidden": false },
-        { "call": "compare()", "expected": "25", "isHidden": false },
-        { "call": "compare()", "expected": "24", "isHidden": false },
-        { "call": "compare()", "expected": "26", "isHidden": false }
+        { "call": "compare(5,5)", "expected": "25", "isHidden": false },
+        { "call": "compare(2,3)", "expected": "6", "isHidden": false },
+        { "call": "compare(4,4)", "expected": "16", "isHidden": false },
+        { "call": "compare(0,5)", "expected": "0", "isHidden": false },
+        { "call": "compare('a',5)", "expected": "'Error'", "isHidden": false }
       ]
     }
   ],
@@ -237,7 +237,7 @@
     {
       "id": "m0_l4_a1",
       "title": "Variable Swap System",
-      "task": "A memory manipulation system is required to swap stored values between variables.\n\nTask Requirement:\nCreate a function swap(a, b).\n\nRules:\n- Return values in reversed order\n- If inputs are missing → return 'Error'\n\nSample Output:\nswap(1,2) → [2,1]",
+      "task": "A memory manipulation system is required to swap stored values between variables.\n\nTask Requirement:\nCreate a function swap(a, b).\n\nRules:\n- Return values in reversed order\n- No validation on values\n- Always assume exactly two inputs are provided\n\nSample Output:\nswap(1,2) → [2,1]",
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
@@ -245,8 +245,8 @@
         { "call": "swap(1,2)", "expected": "[2,1]", "isHidden": false },
         { "call": "swap('X','Y')", "expected": "['Y','X']", "isHidden": false },
         { "call": "swap(None,'A')", "expected": "['A',None]", "isHidden": false },
-        { "call": "swap()", "expected": "'Error'", "isHidden": false },
-        { "call": "swap(1)", "expected": "'Error'", "isHidden": false }
+        { "call": "swap(0,0)", "expected": "[0,0]", "isHidden": false },
+        { "call": "swap(-1,5)", "expected": "[5,-1]", "isHidden": false }
       ]
     },
     {
@@ -281,32 +281,32 @@
     },
     {
       "id": "m0_l4_a4",
-      "title": "Scope Resolution Checker",
-      "task": "A runtime environment requires validation of variable existence based on truthiness rules.\n\nTask Requirement:\nCreate a function scope(x).\n\nRules:\n- Truthy → 'exists'\n- Falsy → 'none'\n\nSample Output:\nscope(1) → exists",
+      "title": "String Length Checker",
+      "task": "A text validation system measures the length of input strings for preprocessing.\n\nTask Requirement:\nCreate a function length_check(x).\n\nRules:\n- Return the number of characters in the input string\n- If input is not a string, return 'Error'\n\nSample Output:\nlength_check('hello') → 5",
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "scope(1)", "expected": "'exists'", "isHidden": false },
-        { "call": "scope(5)", "expected": "'exists'", "isHidden": false },
-        { "call": "scope(0)", "expected": "'exists'", "isHidden": false },
-        { "call": "scope(-1)", "expected": "'none'", "isHidden": false },
-        { "call": "scope(None)", "expected": "'none'", "isHidden": false }
+        { "call": "length_check('hello')", "expected": "5", "isHidden": false },
+        { "call": "length_check('AI')", "expected": "2", "isHidden": false },
+        { "call": "length_check('')", "expected": "0", "isHidden": false },
+        { "call": "length_check(123)", "expected": "'Error'", "isHidden": false },
+        { "call": "length_check(None)", "expected": "'Error'", "isHidden": false }
       ]
     },
     {
       "id": "m0_l4_a5",
       "title": "Pointer Navigation Simulator",
-      "task": "A memory pointer system simulates movement across indexed array positions.\n\nTask Requirement:\nCreate a function pointer() that simulates pointer movement logic across an array.\n\nRules:\n- Movement follows sequential index traversal\n- Return final state as list\n\nSample Output:\npointer() → [0,1]",
+      "task": "A memory pointer system simulates movement across indexed array positions.\n\nTask Requirement:\nCreate a function pointer(steps) that simulates pointer movement starting from index 0.\n\nRules:\n- Start at index 0\n- Move forward by 1 step per iteration\n- Return full movement path as a list\n\nSample Output:\npointer(2) → [0,1,2]",
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "pointer()", "expected": "[0,1]", "isHidden": false },
-        { "call": "pointer()", "expected": "[1,2]", "isHidden": false },
-        { "call": "pointer()", "expected": "[2,3]", "isHidden": false },
-        { "call": "pointer()", "expected": "[0,0]", "isHidden": false },
-        { "call": "pointer()", "expected": "[]", "isHidden": false }
+        { "call": "pointer(1)", "expected": "[0,1]", "isHidden": false },
+        { "call": "pointer(2)", "expected": "[0,1,2]", "isHidden": false },
+        { "call": "pointer(3)", "expected": "[0,1,2,3]", "isHidden": false },
+        { "call": "pointer(0)", "expected": "[0]", "isHidden": false },
+        { "call": "pointer(4)", "expected": "[0,1,2,3,4]", "isHidden": false }
       ]
     }
   ]

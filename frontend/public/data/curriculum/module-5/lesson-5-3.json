@@ -2,14 +2,15 @@
   "lessonId": "lesson-5-3",
   "moduleId": "module-5",
   "title": "0/1 Knapsack Problem",
-  "description": "Learn how Dynamic Programming solves optimization problems under strict capacity constraints.",
-  "difficulty": "Advanced",
-  "estimatedTime": "45 min",
+  "description": "Learn how Dynamic Programming solves constrained optimization problems by maximizing value while respecting limited capacity constraints.",
+  "difficulty": "Intermediate",
+  "estimatedTime": "55 min",
   "prerequisites": "Fibonacci Optimization",
   "tags": [
-    "knapsack",
     "dynamic programming",
-    "optimization"
+    "knapsack",
+    "optimization",
+    "dp matrix"
   ],
   "activities": [
     {
@@ -38,53 +39,178 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "The 0/1 Knapsack Problem is one of the most famous optimization problems in computer science.\n\nThe objective is to maximize total value while staying within a limited carrying capacity.\n\nDynamic Programming solves this efficiently by systematically evaluating combinations of decisions."
+      "content": "The 0/1 Knapsack Problem is one of the most famous applications of Dynamic Programming.\n\nThe problem focuses on optimal selection under constraints.\n\nSuppose a bag has a limited carrying capacity. We are given several items, each with a weight and a value.\n\nThe objective is to maximize total value without exceeding the bag's capacity.\n\nEach item can only be selected once, which is why the problem is called 0/1 Knapsack."
     },
     {
-      "id": "problem-overview",
+      "id": "why-knapsack-matters",
       "type": "concept",
-      "title": "Understanding the Knapsack Problem",
-      "content": "Suppose a backpack has limited weight capacity and several items are available.\n\nEach item has both a weight and a value.\n\nThe challenge is to select the combination of items that produces the highest total value without exceeding the capacity limit."
+      "title": "Why the Knapsack Problem Matters",
+      "content": "Many real-world systems involve limited resources and optimization constraints.\n\nExamples include investment planning, cargo loading, budget optimization, server resource allocation, and project selection.\n\nThe challenge is maximizing benefit while respecting capacity limitations.\n\nThe Knapsack Problem models this optimization challenge computationally.",
+      "bullets": [
+        "Demonstrates constrained optimization.",
+        "Teaches decision-making under limitations.",
+        "Introduces Dynamic Programming matrices.",
+        "Appears in many real-world optimization systems."
+      ]
     },
     {
-      "id": "why-brute-force-fails",
+      "id": "problem-setup",
       "type": "deep_dive",
-      "title": "Why Brute Force Becomes Inefficient",
-      "content": "A brute force solution would examine every possible combination of items.\n\nAs the number of items increases, the number of combinations grows exponentially.\n\nThis quickly becomes impractical for large datasets."
+      "title": "Problem Setup",
+      "content": "Suppose we have the following items:\n\nItem A → Weight = 1, Value = 15\nItem B → Weight = 3, Value = 20\nItem C → Weight = 4, Value = 30\n\nKnapsack capacity:\n4\n\nThe objective is to maximize total value without exceeding the weight limit."
     },
     {
-      "id": "dynamic-programming-approach",
+      "id": "why-greedy-fails",
+      "type": "deep_dive",
+      "title": "Why Greedy Selection Fails",
+      "content": "A common beginner instinct is selecting the item with the highest value first.\n\nSuppose we choose item C with value 30.\n\nAlthough this seems attractive locally, selecting items A and B together produces total value 35, which is better.\n\nThis demonstrates that local greedy decisions may fail globally.\n\nDynamic Programming solves this by efficiently exploring multiple combinations."
+    },
+    {
+      "id": "core-dp-idea",
       "type": "concept",
-      "title": "Dynamic Programming Solution",
-      "content": "Dynamic Programming solves the problem using a two-dimensional table.\n\nEach table entry represents the best possible value achievable for a specific capacity and subset of items.\n\nBy reusing previously computed results, the algorithm efficiently constructs the optimal final solution."
+      "title": "Core Dynamic Programming Idea",
+      "content": "Dynamic Programming solves Knapsack by storing solutions to smaller capacity problems.\n\nInstead of repeatedly recalculating combinations, the algorithm remembers previously computed optimal values.\n\nThis allows larger optimal solutions to be built from smaller optimal subproblems."
     },
     {
-      "id": "decision-making",
+      "id": "dp-matrix",
       "type": "deep_dive",
-      "title": "Include or Exclude Decisions",
-      "content": "For every item, the algorithm evaluates two possibilities: include the item or exclude it.\n\nThe algorithm compares both choices and selects the better option while respecting the remaining capacity.\n\nThis repeated decision-making process gradually builds the optimal combination."
+      "title": "Understanding the DP Matrix",
+      "content": "The most important structure in Knapsack Dynamic Programming is the 2D matrix.\n\nRows represent items considered.\n\nColumns represent available knapsack capacities.\n\nEach matrix cell stores the maximum achievable value for that specific subproblem.\n\nThe matrix gradually fills row by row and capacity by capacity."
     },
     {
-      "id": "real-world-connection",
+      "id": "dp-visualization",
+      "type": "concept",
+      "title": "DP Matrix Visualization",
+      "content": "Suppose the capacity is 4.\n\nThe DP table gradually fills using previous optimal values.\n\nEach row introduces a new item, while each column represents increasing capacity.\n\nThis transforms recursive optimization into structured table-based computation."
+    },
+    {
+      "id": "cell-decisions",
+      "type": "deep_dive",
+      "title": "Decision-Making Per DP Cell",
+      "content": "At every matrix cell, the algorithm decides whether to include or exclude the current item.\n\nOption 1 — Exclude the item:\nKeep the previous best value.\n\nOption 2 — Include the item:\nAdd the current item value plus the best value from the remaining capacity.\n\nThe algorithm selects the larger result between these two choices."
+    },
+    {
+      "id": "recurrence-relation",
+      "type": "concept",
+      "title": "Knapsack Recurrence Relation",
+      "content": "The mathematical core of Knapsack Dynamic Programming becomes:\n\ndp[i][w] = max(\n    dp[i-1][w],\n    value[i] + dp[i-1][w-weight[i]]\n)\n\nThis recurrence drives the optimization process by comparing inclusion and exclusion choices."
+    },
+    {
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Example",
+      "content": "Suppose the capacity is 4.\n\nFirst, process item A with weight 1 and value 15.\n\nNext, process item B with weight 3 and value 20.\n\nAt capacity 4, the algorithm compares:\n\nExclude B → value 15\nInclude B → 20 + 15 = 35\n\nThe algorithm chooses 35.\n\nFinally, processing item C shows that value 35 remains optimal.\n\nThe final solution becomes selecting items A and B."
+    },
+    {
+      "id": "pseudocode-pattern",
+      "type": "concept",
+      "title": "Knapsack Pseudocode Pattern",
+      "content": "The algorithm processes every item and every capacity.\n\nIf the item weight fits within the current capacity, the algorithm compares inclusion and exclusion results.\n\nOtherwise, the previous best value is copied.\n\nThis repeated matrix transition is the heart of Knapsack Dynamic Programming."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "Knapsack implementations commonly use a 2D Dynamic Programming matrix to store optimal intermediate results.",
+      "codeSnippets": [
+        {
+          "title": "0/1 Knapsack implementation",
+          "language": "python",
+          "code": "weights = [1, 3, 4]\nvalues = [15, 20, 30]\ncapacity = 4\nn = len(weights)\n\ndp = [[0 for _ in range(capacity + 1)]\nfor _ in range(n + 1)]\n\nfor i in range(1, n + 1):\n    for w in range(capacity + 1):\n        if weights[i - 1] <= w:\n            include = values[i - 1] + \\\n            dp[i - 1][w - weights[i - 1]]\n\n            exclude = dp[i - 1][w]\n\n            dp[i][w] = max(include, exclude)\n        else:\n            dp[i][w] = dp[i - 1][w]\n\nprint(dp[n][capacity])"
+        },
+        {
+          "title": "Simple inclusion vs exclusion example",
+          "language": "python",
+          "code": "include = 20 + 15\nexclude = 30\n\nprint(max(include, exclude))"
+        },
+        {
+          "title": "Create an empty DP matrix",
+          "language": "python",
+          "code": "rows = 4\ncols = 5\n\ndp = [[0 for _ in range(cols)]\nfor _ in range(rows)]\n\nfor row in dp:\n    print(row)"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "The algorithm fills every DP matrix cell once.\n\nIf there are n items and capacity W, the matrix contains n × W subproblems.\n\nThis produces O(n × W) time complexity and O(n × W) space complexity.\n\nDynamic Programming transforms exponential brute-force combinations into scalable polynomial-time optimization.",
+      "chart": {
+        "title": "Knapsack DP optimization",
+        "description": "Dynamic Programming transforms exponential recursive combination search into structured polynomial-time optimization.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(n^2)",
+          "O(2^n)"
+        ]
+      }
+    },
+    {
+      "id": "why-knapsack-uses-dp",
+      "type": "concept",
+      "title": "Why Knapsack Uses Dynamic Programming",
+      "content": "The Knapsack Problem contains overlapping subproblems and optimal substructure.\n\nWithout Dynamic Programming, recursive combinations become exponentially expensive.\n\nDP avoids repeated computation by storing optimal intermediate results.\n\nThis transforms impractical brute-force search into efficient optimization."
+    },
+    {
+      "id": "real-world-applications",
       "type": "real_world_connection",
-      "title": "Optimization Problems in Real Life",
-      "content": "Knapsack-style optimization appears in logistics, cargo loading, budgeting, investment planning, and resource allocation.\n\nCompanies constantly optimize limited resources to maximize efficiency, profit, or performance."
+      "title": "Real-World Applications",
+      "content": "Knapsack optimization appears in cargo loading, investment planning, cloud resource allocation, portfolio management, manufacturing systems, advertisement selection, and budget optimization.\n\nMany business optimization systems use knapsack-style decision modeling."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "greedy-knapsack",
+          "title": "Mistake: Using greedy selection for 0/1 Knapsack",
+          "content": "Greedy selection does not always produce optimal answers for 0/1 Knapsack."
+        },
+        {
+          "id": "fractional-confusion",
+          "title": "Mistake: Confusing 0/1 Knapsack with Fractional Knapsack",
+          "content": "0/1 Knapsack only allows complete selection or rejection of items, while Fractional Knapsack allows partial selection."
+        },
+        {
+          "id": "matrix-meaning",
+          "title": "Mistake: Misunderstanding DP matrix meaning",
+          "content": "Each DP cell represents the best achievable value for a specific subproblem."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "The 0/1 Knapsack Problem demonstrates how Dynamic Programming solves constrained optimization problems efficiently by reusing intermediate results and evaluating inclusion or exclusion decisions systematically."
+      "title": "Key Takeaways",
+      "bullets": [
+        "The 0/1 Knapsack Problem focuses on optimal selection under constraints.",
+        "Each item can either be selected or skipped.",
+        "Greedy selection does not always work correctly.",
+        "Dynamic Programming stores optimal subproblem solutions.",
+        "The DP matrix represents capacities and item decisions.",
+        "Knapsack optimization demonstrates powerful DP reasoning."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Knapsack Problem",
+      "title": "Programiz - 0/1 Knapsack Problem",
       "url": "https://www.programiz.com/dsa/knapsack-problem"
     },
     {
-      "title": "GeeksforGeeks — 0/1 Knapsack Problem",
+      "title": "GeeksforGeeks - 0/1 Knapsack Problem",
       "url": "https://www.geeksforgeeks.org/0-1-knapsack-problem-dp-10/"
+    },
+    {
+      "title": "Wikipedia - Knapsack Problem",
+      "url": "https://en.wikipedia.org/wiki/Knapsack_problem"
+    },
+    {
+      "title": "MIT OpenCourseWare - Dynamic Programming",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
     }
   ]
 }

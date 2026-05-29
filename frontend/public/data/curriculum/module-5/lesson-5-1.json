@@ -2,17 +2,17 @@
   "lessonId": "lesson-5-1",
   "moduleId": "module-5",
   "title": "Dynamic Programming Fundamentals",
-  "description": "Learn how Dynamic Programming solves complex problems efficiently by reusing previously computed results.",
+  "description": "Learn how Dynamic Programming solves overlapping subproblems efficiently by storing and reusing previously computed results.",
   "difficulty": "Intermediate",
-  "estimatedTime": "40 min",
-  "prerequisites": "Activity Selection",
+  "estimatedTime": "50 min",
+  "prerequisites": "Greedy Algorithms",
   "tags": [
     "dynamic programming",
     "memoization",
     "tabulation",
     "optimization"
   ],
-  "activities": [
+   "activities": [
     {
       "id": "m5_l1_a1",
       "title": "Array Caching"
@@ -39,53 +39,190 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Many recursive algorithms repeatedly solve the same subproblems multiple times.\n\nThis repeated computation wastes processing time and significantly reduces efficiency.\n\nDynamic Programming improves performance by storing previously computed results and reusing them whenever the same subproblem appears again."
+      "content": "Dynamic Programming (DP) is an algorithmic technique used to solve problems by reusing previously computed results.\n\nInstead of solving the same subproblem repeatedly, Dynamic Programming stores solutions and reuses them whenever needed.\n\nThis dramatically improves efficiency for problems involving repeated recursive computation, overlapping subproblems, and optimization tasks.\n\nDynamic Programming is one of the most powerful strategies in computer science and appears in AI systems, optimization engines, pathfinding algorithms, financial systems, and game development."
+    },
+    {
+      "id": "why-dp-matters",
+      "type": "concept",
+      "title": "Why Dynamic Programming Matters",
+      "content": "Some recursive algorithms repeatedly solve the same problems many times.\n\nFor example, recursive Fibonacci computation repeatedly recalculates identical Fibonacci values again and again.\n\nFor small inputs, the inefficiency may seem harmless. However, for large inputs, execution time can explode dramatically.\n\nDynamic Programming solves this by remembering already-computed answers and reusing them whenever needed.",
+      "bullets": [
+        "Avoids repeated recursive computation.",
+        "Improves scalability dramatically.",
+        "Reduces unnecessary work.",
+        "Optimizes complex recursive problems."
+      ]
     },
     {
       "id": "core-idea",
       "type": "concept",
-      "title": "The Core Idea of Dynamic Programming",
-      "content": "Dynamic Programming breaks complex problems into smaller overlapping subproblems.\n\nInstead of recalculating solutions repeatedly, the algorithm stores intermediate results in memory.\n\nWhenever the same subproblem is encountered again, the stored answer can be reused immediately."
+      "title": "Core Idea of Dynamic Programming",
+      "content": "Dynamic Programming works using two important concepts: overlapping subproblems and optimal substructure.\n\nThe algorithm stores intermediate answers so repeated subproblems do not need to be recomputed.\n\nLarger optimal solutions are then built from smaller optimal solutions."
     },
     {
       "id": "overlapping-subproblems",
       "type": "deep_dive",
       "title": "Overlapping Subproblems",
-      "content": "A problem contains overlapping subproblems when the same smaller computations appear repeatedly.\n\nTraditional recursive solutions may solve identical subproblems many times unnecessarily.\n\nDynamic Programming avoids this repetition by saving computed answers and reusing them throughout execution."
+      "content": "Overlapping subproblems occur when the same smaller problem appears repeatedly during execution.\n\nSuppose we compute Fibonacci(5). The recursion repeatedly requires Fibonacci(3), Fibonacci(2), and Fibonacci(1).\n\nInstead of recalculating them every time, Dynamic Programming stores previously computed answers and reuses them.\n\nThis reuse eliminates redundant computation."
+    },
+    {
+      "id": "optimal-substructure",
+      "type": "concept",
+      "title": "Optimal Substructure",
+      "content": "Optimal Substructure means the optimal solution to a large problem can be built from optimal solutions to smaller subproblems.\n\nProblems such as shortest path algorithms, sequence matching, and knapsack optimization all rely on this property.\n\nDynamic Programming combines smaller optimal answers to build larger optimal solutions."
+    },
+    {
+      "id": "dp-vs-brute-force",
+      "type": "deep_dive",
+      "title": "Dynamic Programming vs Brute Force",
+      "content": "Brute-force recursive solutions repeatedly expand duplicate branches and recompute identical values.\n\nThis creates exponential growth and massive inefficiency.\n\nDynamic Programming avoids this repetition by caching previous results.\n\nThis transforms slow recursive solutions into scalable algorithms."
+    },
+    {
+      "id": "redundant-computation",
+      "type": "deep_dive",
+      "title": "Understanding Redundant Computation",
+      "content": "Suppose we compute Fib(5).\n\nThe recursion repeatedly computes Fib(3) and Fib(2) multiple times.\n\nThese repeated branches create unnecessary recursive work.\n\nDynamic Programming eliminates duplicate computation by storing answers after they are first solved."
+    },
+    {
+      "id": "memoization",
+      "type": "concept",
+      "title": "Memoization",
+      "content": "Memoization is a top-down Dynamic Programming approach.\n\nThe algorithm starts recursively, stores computed answers, and reuses stored values later.\n\nBefore solving a subproblem, the algorithm first checks whether the answer already exists inside memory.\n\nIf the answer already exists, the stored value is reused immediately."
+    },
+    {
+      "id": "memoization-workflow",
+      "type": "deep_dive",
+      "title": "Memoization Workflow",
+      "content": "The memoization process follows several steps.\n\nThe algorithm first attempts to solve a problem.\n\nBefore computation, it checks the cache.\n\nIf the subproblem was already solved earlier, the stored answer is reused.\n\nOtherwise, the algorithm computes the answer and stores it for future reuse.\n\nThe cache acts as algorithm memory."
+    },
+    {
+      "id": "tabulation",
+      "type": "concept",
+      "title": "Tabulation",
+      "content": "Tabulation is a bottom-up Dynamic Programming approach.\n\nInstead of recursion, the algorithm begins from the smallest subproblems and iteratively builds larger solutions.\n\nValues are progressively filled inside a table structure.\n\nEach new value depends on previously computed entries."
     },
     {
       "id": "memoization-vs-tabulation",
-      "type": "concept",
+      "type": "deep_dive",
       "title": "Memoization vs Tabulation",
-      "content": "Memoization stores results during recursive execution. When a recursive call repeats, the saved value is reused immediately.\n\nTabulation solves subproblems iteratively using tables, usually starting from the smallest cases and gradually building toward the final solution.\n\nBoth techniques reduce redundant computation and improve efficiency significantly."
+      "content": "Memoization uses top-down recursion with caching, while tabulation uses bottom-up iterative table construction.\n\nMemoization commonly uses recursion and stack memory, while tabulation usually avoids recursion entirely.\n\nBoth approaches reuse previously solved subproblems, but they differ in execution style."
     },
     {
-      "id": "real-world-example",
-      "type": "analogy",
-      "title": "Studying for Exams Analogy",
-      "content": "Imagine solving a difficult math problem repeatedly without writing down previous solutions.\n\nEach time the same calculation appears, you would waste time recomputing it.\n\nInstead, keeping notes allows you to reuse earlier work instantly.\n\nDynamic Programming follows this same principle by storing useful intermediate results."
+      "id": "why-dp-powerful",
+      "type": "concept",
+      "title": "Why Dynamic Programming Is Powerful",
+      "content": "Dynamic Programming can dramatically reduce computational complexity.\n\nSome recursive problems improve from exponential complexity such as O(2^n) into linear or polynomial complexity such as O(n) or O(n^2).\n\nThis transforms impractical algorithms into scalable real-world solutions.",
+      "chart": {
+        "title": "Dynamic Programming optimization",
+        "description": "Dynamic Programming reduces repeated recursive computation by reusing previously solved subproblems.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(n)",
+          "O(n^2)",
+          "O(2^n)"
+        ]
+      }
     },
     {
-      "id": "real-world-connection",
+      "id": "common-dp-problems",
+      "type": "concept",
+      "title": "Common Dynamic Programming Problems",
+      "content": "Dynamic Programming is widely used in Fibonacci optimization, shortest path algorithms, sequence matching, matrix chain multiplication, edit distance, coin change optimization, and the 0/1 Knapsack Problem.\n\nThese problems involve repeated subproblem computation and optimization reasoning."
+    },
+    {
+      "id": "general-dp-pattern",
+      "type": "concept",
+      "title": "General Dynamic Programming Pattern",
+      "content": "Many Dynamic Programming algorithms follow a similar structure.\n\nThe algorithm first checks whether a subproblem was already solved.\n\nIf the answer already exists, the stored value is reused.\n\nOtherwise, the algorithm solves smaller subproblems, stores the result, and returns the computed answer."
+    },
+    {
+      "id": "complexity-improvement",
+      "type": "deep_dive",
+      "title": "Complexity Improvement Example",
+      "content": "Without Dynamic Programming, recursive Fibonacci computation may require exponential time.\n\nWith Dynamic Programming, each Fibonacci value is solved only once.\n\nThis dramatically reduces recursion depth, repeated computation, and execution time."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementations",
+      "content": "Dynamic Programming implementations commonly use memoization dictionaries or iterative tables to store previously computed results.",
+      "codeSnippets": [
+        {
+          "title": "Memoized Fibonacci",
+          "language": "python",
+          "code": "memo = {}\n\ndef fib(n):\n    if n in memo:\n        return memo[n]\n\n    if n <= 1:\n        return n\n\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\n\nprint(fib(10))"
+        },
+        {
+          "title": "Tabulation Fibonacci",
+          "language": "python",
+          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    dp = [0] * (n + 1)\n    dp[1] = 1\n\n    for i in range(2, n + 1):\n        dp[i] = dp[i - 1] + dp[i - 2]\n\n    return dp[n]\n\nprint(fib(10))"
+        },
+        {
+          "title": "Simple memoization cache demonstration",
+          "language": "python",
+          "code": "cache = {}\n\ndef square(n):\n    if n in cache:\n        return cache[n]\n\n    cache[n] = n * n\n    return cache[n]\n\nprint(square(5))\nprint(square(5))"
+        }
+      ]
+    },
+    {
+      "id": "real-world-applications",
       "type": "real_world_connection",
-      "title": "Dynamic Programming in Real Applications",
-      "content": "Dynamic Programming is widely used in artificial intelligence, route optimization, financial systems, genetics, and machine learning.\n\nMany advanced optimization problems rely on Dynamic Programming because it dramatically improves efficiency compared to brute force recursion."
+      "title": "Real-World Applications",
+      "content": "Dynamic Programming appears in Google Maps route optimization, DNA sequence matching, robotics, compiler optimization, recommendation systems, AI decision systems, and financial optimization.\n\nMany intelligent systems rely heavily on DP optimization techniques."
     },
     {
-      "id": "summary",
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Misconceptions",
+      "subsections": [
+        {
+          "id": "dp-is-recursion",
+          "title": "Misconception: Dynamic Programming is just recursion",
+          "content": "Recursion is only one implementation approach. The real idea is reusing solved subproblems."
+        },
+        {
+          "id": "memo-tab-different",
+          "title": "Misconception: Memoization and tabulation are different algorithms",
+          "content": "Both are Dynamic Programming techniques. They mainly differ in execution direction."
+        },
+        {
+          "id": "arrays-only",
+          "title": "Misconception: DP always uses arrays",
+          "content": "Dynamic Programming may use arrays, matrices, hash maps, trees, or graphs depending on the problem structure."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
       "type": "summary",
-      "title": "Lesson Summary",
-      "content": "Dynamic Programming improves efficiency by storing and reusing previously computed results. Techniques such as memoization and tabulation eliminate redundant calculations and optimize recursive problem solving."
+      "title": "Key Takeaways",
+      "bullets": [
+        "Dynamic Programming reuses previously computed results.",
+        "DP solves overlapping subproblems efficiently.",
+        "Memoization uses top-down recursion with caching.",
+        "Tabulation uses bottom-up iterative table construction.",
+        "Dynamic Programming dramatically reduces redundant computation.",
+        "DP is widely used in optimization and AI systems."
+      ]
     }
   ],
   "references": [
     {
-      "title": "Programiz — Dynamic Programming",
+      "title": "Programiz - Dynamic Programming",
       "url": "https://www.programiz.com/dsa/dynamic-programming"
     },
     {
-      "title": "GeeksforGeeks — Dynamic Programming",
+      "title": "GeeksforGeeks - Dynamic Programming Introduction",
       "url": "https://www.geeksforgeeks.org/dynamic-programming/"
+    },
+    {
+      "title": "Wikipedia - Dynamic Programming",
+      "url": "https://en.wikipedia.org/wiki/Dynamic_programming"
+    },
+    {
+      "title": "VisuAlgo - Dynamic Programming Visualizations",
+      "url": "https://visualgo.net/en"
     }
   ]
 }

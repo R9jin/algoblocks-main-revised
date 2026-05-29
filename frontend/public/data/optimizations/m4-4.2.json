@@ -1,0 +1,206 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defreturn",
+        "id": "28eed5a7-f2bb-4",
+        "x": 20,
+        "y": 20,
+        "extraState": {
+          "params": [
+            {
+              "name": "total",
+              "id": "total"
+            },
+            {
+              "name": "coins",
+              "id": "coins"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "get_coins"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "variables_set",
+              "id": "43c68808-18bb-4",
+              "fields": {
+                "VAR": {
+                  "id": "count"
+                }
+              },
+              "inputs": {
+                "VALUE": {
+                  "block": {
+                    "type": "math_number",
+                    "id": "dd0fd6fc-46d0-4",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "controls_forEach",
+                  "id": "48693bc4-5a7d-4",
+                  "fields": {
+                    "VAR": {
+                      "id": "coin"
+                    }
+                  },
+                  "inputs": {
+                    "LIST": {
+                      "block": {
+                        "type": "variables_get",
+                        "id": "51380201-802c-4",
+                        "fields": {
+                          "VAR": {
+                            "id": "coins"
+                          }
+                        }
+                      }
+                    },
+                    "DO": {
+                      "block": {
+                        "type": "controls_whileUntil",
+                        "id": "116ee3f0-4a46-4",
+                        "fields": {
+                          "MODE": "WHILE"
+                        },
+                        "inputs": {
+                          "BOOL": {
+                            "block": {
+                              "type": "logic_compare",
+                              "id": "ae3e5b7e-c42d-4",
+                              "fields": {
+                                "OP": "GTE"
+                              },
+                              "inputs": {
+                                "A": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "57f9d279-63d5-4",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "total"
+                                      }
+                                    }
+                                  }
+                                },
+                                "B": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "0788840c-bdc6-4",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "coin"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "DO": {
+                            "block": {
+                              "type": "math_assignment",
+                              "id": "5b8ee3fa-29ee-4",
+                              "fields": {
+                                "VAR": {
+                                  "id": "total"
+                                },
+                                "OP": "MINUS"
+                              },
+                              "inputs": {
+                                "DELTA": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "e9e7d16d-a60a-4",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "coin"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "math_assignment",
+                                  "id": "abec1344-b0c8-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "count"
+                                    },
+                                    "OP": "ADD"
+                                  },
+                                  "inputs": {
+                                    "DELTA": {
+                                      "block": {
+                                        "type": "math_number",
+                                        "id": "6128e490-504e-4",
+                                        "fields": {
+                                          "NUM": 1
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "RETURN": {
+            "block": {
+              "type": "variables_get",
+              "id": "8806a5ae-7299-4",
+              "fields": {
+                "VAR": {
+                  "id": "count"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "count",
+      "id": "count"
+    },
+    {
+      "name": "total",
+      "id": "total"
+    },
+    {
+      "name": "coin",
+      "id": "coin"
+    },
+    {
+      "name": "coins",
+      "id": "coins"
+    }
+  ],
+  "backpack": []
+}
