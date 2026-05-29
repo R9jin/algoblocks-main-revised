@@ -28,17 +28,16 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
-    allow_credentials=True,
+    allow_credentials=False, # FIXED: Changed to False to prevent FastAPI startup crash
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# FIX: Ensure prefixes match exactly what the frontend is calling
+# Ensure prefixes match exactly what the frontend is calling
 app.include_router(auth_router.router, prefix="/api", tags=["Authentication & Submissions"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
-# Note: progress_router is no longer needed in index.py because we merged its routes into auth_router!
 
 @app.get("/api/health")
 async def health_check():
