@@ -1,182 +1,128 @@
-import { useEffect, useState } from "react";
-import DashboardHeader from "../components/DashboardHeader";
-import { submissionsDB } from "../db";
-import "../styles/Dashboard.css"; // Reusing existing dashboard styles for layout
+import { useEffect, useState } from 'react';
 
-export default function ProfilePage() {
-  const [user, setUser] = useState(null);
+// Weights perfectly mapped to analyzer.py's internal ranking scale
+const COMPLEXITY_WEIGHTS = {
+  "O(1)": 1,
+  "O(log n)": 2,
+  "O(√n)": 3,
+  "O(n)": 4,
+  "O(V)": 4.2,           // Specific to Space Complexity tracking in graphs
+  "O(V + E)": 4.5,
+  "O(n log n)": 5,
+  "O(n^2)": 6,
+  "O(n^2 log n)": 6.5,
+  "O(n^3)": 7,
+  "O(2^n)": 8,
+  "O(n!)": 9,
+  "O(n^d)": 9            // Analyzer's generic polynomial fallback
+};
+
+const ProfilePage = ({ userData, userActivities }) => {
   const [metrics, setMetrics] = useState({
     tsr: 0,
     aes: 0,
-    rog: 0,
+    rog: 0
   });
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    if (userActivities && userActivities.length > 0) {
+      calculateMetrics(userActivities);
     }
+  }, [userActivities]);
 
-    const calculateMetrics = async () => {
-      try {
-        let totalPassed = 0;
-        let totalTests = 0;
-        
-        let aesSum = 0;
-        let aesCount = 0;
+  const calculateMetrics = (activities) => {
+    let totalPassed = 0;
+    let totalExecuted = 0;
+    
+    let totalAes = 0;
+    let aesCount = 0;
 
-        const optimizationData = {};
+    let totalRog = 0;
+    let rogCount = 0;
 
-        // Helper to map Big-O notation to weights
-        const getComplexityWeight = (complexity) => {
-          const weights = {
-            "O(1)": 1,
-            "O(log n)": 2,
-            "O(n)": 4, 
-            "O(n log n)": 5,
-            "O(n^2)": 6,
-            "O(n^3)": 7,
-            "O(2^n)": 8,
-            "O(n!)": 9,
-          };
-          // Strip whitespace/formatting to match
-          const cleanComp = complexity?.replace(/\s+/g, ' ').trim() || "O(n^2)";
-          return weights[cleanComp] || 10; 
-        };
+    activities.forEach(activity => {
+      // 1. Calculate Task Success Rate (TSR)
+      const passed = activity.testCasesPassed || 0;
+      const total = activity.testCasesTotal || 0;
+      totalPassed += passed;
+      totalExecuted += total;
 
-        await submissionsDB.iterate((submission) => {
-          const { 
-            type, // "activity" or "optimization"
-            activityId, 
-            passed_tests = 0, 
-            total_tests = 0, 
-            target_complexity, 
-            actual_complexity,
-            timestamp = Date.now()
-          } = submission;
+      // Extract Complexity Data (Supports fallback keys depending on DB schema)
+      const target = activity.targetTime || activity.targetComplexity;
+      const actual = activity.actualTime || activity.timeComplexity || activity.actualComplexity;
+      
+      // ROG Tracking (Tracking their first attempt vs their final optimized attempt)
+      const initial = activity.initialTime || activity.initialComplexity;
+      const final = activity.finalTime || activity.finalComplexity || actual;
 
-          // 1. Task Success Rate (TSR) - All Activities
-          totalPassed += passed_tests;
-          totalTests += total_tests;
+      // 2. Calculate AST-Derived Algorithmic Efficiency Score (AES)
+      if (target && actual) {
+        const wTarget = COMPLEXITY_WEIGHTS[target];
+        const wActual = COMPLEXITY_WEIGHTS[actual];
 
-          // Calculate submission AES
-          let currentAes = 0;
-          if (target_complexity && actual_complexity) {
-            const wTarget = getComplexityWeight(target_complexity);
-            const wActual = getComplexityWeight(actual_complexity);
-            currentAes = (wTarget / wActual) * 100;
-          }
-
-          // 2. Algorithmic Efficiency Score (AES) - Standard Activities
-          if (type === "activity" && currentAes > 0) {
-            aesSum += currentAes;
-            aesCount += 1;
-          }
-
-          // 3. Refactoring Optimization Gain (ROG) - Optimization Activities
-          if (type === "optimization" && currentAes > 0) {
-            if (!optimizationData[activityId]) {
-              optimizationData[activityId] = [];
-            }
-            optimizationData[activityId].push({ aes: currentAes, timestamp });
-          }
-        });
-
-        // Finalize TSR
-        const finalTsr = totalTests > 0 ? (totalPassed / totalTests) * 100 : 0;
-
-        // Finalize AES
-        const finalAes = aesCount > 0 ? (aesSum / aesCount) : 0;
-
-        // Finalize ROG
-        let rogSum = 0;
-        let rogCount = 0;
-
-        Object.values(optimizationData).forEach((attempts) => {
-          if (attempts.length >= 2) {
-            // Sort chronologically
-            attempts.sort((a, b) => a.timestamp - b.timestamp);
-            const initialAes = attempts[0].aes;
-            // Get the best AES achieved after the initial submission
-            const maxFinalAes = Math.max(...attempts.slice(1).map(a => a.aes));
-            
-            rogSum += (maxFinalAes - initialAes);
-            rogCount += 1;
-          }
-        });
-
-        const finalRog = rogCount > 0 ? (rogSum / rogCount) : 0;
-
-        setMetrics({
-          tsr: finalTsr.toFixed(2),
-          aes: finalAes.toFixed(2),
-          rog: finalRog.toFixed(2),
-        });
-
-      } catch (error) {
-        console.error("Error calculating profile metrics:", error);
-      } finally {
-        setLoading(false);
+        if (wTarget && wActual) {
+          // Cap at 100% to prevent inflation if a user writes an O(1) solution for an O(n) task
+          const aes = Math.min(100, (wTarget / wActual) * 100); 
+          totalAes += aes;
+          aesCount++;
+        }
       }
-    };
 
-    calculateMetrics();
-  }, []);
+      // 3. Calculate Refactoring Optimization Gain (ROG)
+      if (target && initial && final) {
+        const wTarget = COMPLEXITY_WEIGHTS[target];
+        const wInitial = COMPLEXITY_WEIGHTS[initial];
+        const wFinal = COMPLEXITY_WEIGHTS[final];
+
+        if (wTarget && wInitial && wFinal) {
+          const aesInitial = Math.min(100, (wTarget / wInitial) * 100);
+          const aesFinal = Math.min(100, (wTarget / wFinal) * 100);
+          
+          // Only calculate gain if the student actually refactored their code (Initial vs Final diff)
+          if (wInitial !== wFinal) {
+            const rog = aesFinal - aesInitial; 
+            totalRog += rog;
+            rogCount++;
+          }
+        }
+      }
+    });
+
+    setMetrics({
+      tsr: totalExecuted > 0 ? ((totalPassed / totalExecuted) * 100).toFixed(1) : 0,
+      aes: aesCount > 0 ? (totalAes / aesCount).toFixed(1) : 0,
+      rog: rogCount > 0 ? (totalRog / rogCount).toFixed(1) : 0,
+    });
+  };
 
   return (
-    <div className="dashboard-layout">
-      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+    <div className="p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-md mt-10">
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">Learner Profile & Metrics</h1>
       
-      <main className="dashboard-main" style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '30px' }}>
-          <h1>My Profile</h1>
-          <p style={{ color: '#5b5675', fontSize: '1.1rem' }}>
-            {user?.name || "Student"} | {user?.email || ""}
-          </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Task Success Rate (TSR) Metric */}
+        <div className="p-5 bg-blue-50 border border-blue-200 rounded-lg flex flex-col justify-between">
+          <h2 className="text-sm font-bold text-blue-700 uppercase tracking-wider mb-2">Task Success Rate (TSR)</h2>
+          <p className="text-4xl font-extrabold text-blue-900">{metrics.tsr}%</p>
+          <p className="text-xs text-blue-600 mt-3 font-medium">Measures logical and functional code correctness across all test cases.</p>
         </div>
 
-        {loading ? (
-          <p>Loading performance metrics...</p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-            
-            {/* Task Success Rate Card */}
-            <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ color: '#2c264a', marginBottom: '10px' }}>Task Success Rate (TSR)</h3>
-              <p style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#4CAF50', margin: '10px 0' }}>
-                {metrics.tsr}%
-              </p>
-              <p style={{ color: '#888', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                Measures the functional correctness of your algorithms based on test case execution across all activities.
-              </p>
-            </div>
+        {/* Algorithmic Efficiency Score (AES) Metric */}
+        <div className="p-5 bg-green-50 border border-green-200 rounded-lg flex flex-col justify-between">
+          <h2 className="text-sm font-bold text-green-700 uppercase tracking-wider mb-2">Efficiency Score (AES)</h2>
+          <p className="text-4xl font-extrabold text-green-900">{metrics.aes}%</p>
+          <p className="text-xs text-green-600 mt-3 font-medium">Measures target bounds vs actual runtime complexity.</p>
+        </div>
 
-            {/* Algorithmic Efficiency Score Card */}
-            <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ color: '#2c264a', marginBottom: '10px' }}>Algorithmic Efficiency (AES)</h3>
-              <p style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2196F3', margin: '10px 0' }}>
-                {metrics.aes}%
-              </p>
-              <p style={{ color: '#888', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                Evaluates your structural optimization by comparing your generated AST complexity against the optimal target.
-              </p>
-            </div>
-
-            {/* Refactoring Optimization Gain Card */}
-            <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ color: '#2c264a', marginBottom: '10px' }}>Optimization Gain (ROG)</h3>
-              <p style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#FF9800', margin: '10px 0' }}>
-                +{metrics.rog}%
-              </p>
-              <p style={{ color: '#888', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                Captures the behavioral improvement and efficiency gained from refactoring algorithms in optimization activities.
-              </p>
-            </div>
-
-          </div>
-        )}
-      </main>
+        {/* Refactoring Optimization Gain (ROG) Metric */}
+        <div className="p-5 bg-purple-50 border border-purple-200 rounded-lg flex flex-col justify-between">
+          <h2 className="text-sm font-bold text-purple-700 uppercase tracking-wider mb-2">Optimization Gain (ROG)</h2>
+          <p className="text-4xl font-extrabold text-purple-900">+{metrics.rog}%</p>
+          <p className="text-xs text-purple-600 mt-3 font-medium">Measures complexity improvement driven by system feedback.</p>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default ProfilePage;
