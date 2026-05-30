@@ -40,7 +40,7 @@ class AuthService:
         if not user or not stored_password or not AuthService.verify_password(req.password, stored_password):
             raise HTTPException(
                 status_code=401, 
-                detail="Invalid credentials. If this is an old test account, please sign up again."
+                detail="Invalid credentials."
             )
 
         # Generate JWT Token

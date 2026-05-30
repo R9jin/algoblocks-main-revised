@@ -10,6 +10,7 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false); // <-- "Stay signed in" state
   
   // Custom Toast State
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
@@ -41,8 +42,15 @@ export default function SignUp() {
       if (response.ok) {
         const data = await response.json();
 
-        localStorage.setItem("authToken", data.token);
-        localStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
+        // Conditionally use localStorage or sessionStorage
+        const activeStorage = rememberMe ? localStorage : sessionStorage;
+        const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+        
+        inactiveStorage.removeItem("authToken");
+        inactiveStorage.removeItem("user");
+
+        activeStorage.setItem("authToken", data.token);
+        activeStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
 
         navigate("/home");
       } else {
@@ -75,9 +83,12 @@ export default function SignUp() {
         syncQueueDB.clear()
       ]);
 
+      // Wipe old tokens completely
       localStorage.removeItem("authToken");
+      sessionStorage.removeItem("authToken");
 
-      localStorage.setItem("user", JSON.stringify({
+      // Guests should always use Session Storage
+      sessionStorage.setItem("user", JSON.stringify({
           email: `guest_${Date.now()}@algoblocks.local`,
           name: "Guest User",
           isGuest: true,
@@ -146,6 +157,21 @@ export default function SignUp() {
                 />
               </div>
             </div>
+            
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+                Stay signed in
+              </label>
+            </div>
+            
             <button type="submit" className="auth-button" disabled={isLoading}>
               {isLoading ? "Signing Up..." : "Sign Up"}
             </button>
