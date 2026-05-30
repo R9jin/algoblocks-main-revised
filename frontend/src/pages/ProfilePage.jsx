@@ -1,223 +1,237 @@
-// frontend/src/pages/ProfilePage.jsx
 import { useEffect, useState } from "react";
-import { FiActivity, FiAward, FiBarChart2, FiBook, FiCheckCircle, FiTrendingUp } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
-import UserHeader from "../components/UserHeader";
-import { assessmentsDB, progressDB, projectsDB } from "../db";
-import "../styles/Dashboard.css";
-import "../styles/ProfilePage.css"; // Added clean styling
+import { FiActivity, FiAward, FiBookOpen, FiCheckCircle, FiCode, FiCpu } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import DashboardHeader from "../components/DashboardHeader";
+import curriculumIndex from "../data/curriculumIndex";
+import { assessmentsDB, progressDB } from "../db";
+import "../styles/ProfilePage.css";
 
 export default function ProfilePage() {
-  const navigate = useNavigate();
-  const [userData, setUserData] = useState(null);
-  const [stats, setStats] = useState({
-    tsr: 0,
-    aes: 0,
-    rog: 0,
-    modulesCompleted: 0,
-    totalAssessments: 0,
-    totalProjects: 0,
+  const [user, setUser] = useState({ name: "User", email: "", progress: {}, assessments: {} });
+  const [metrics, setMetrics] = useState({ 
+      lessonsCompleted: 0, 
+      totalLessons: 0, 
+      overallScore: 0, 
+      assessmentsTaken: 0 
   });
-  const [loading, setLoading] = useState(true);
+  const [moduleMastery, setModuleMastery] = useState([]);
 
+  // 1. Securely load data (Maintains strict JWT Authorization)
   useEffect(() => {
-    const fetchProfileData = async () => {
+    const loadOfflineData = async () => {
       try {
-        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-        if (!storedUser) {
-          navigate("/signin");
-          return;
-        }
-        const parsedUser = JSON.parse(storedUser);
-        setUserData(parsedUser);
-
-        const [allProgress, allAssessments, allProjects] = await Promise.all([
-          getAllFromDB(progressDB),
-          getAllFromDB(assessmentsDB),
-          getAllFromDB(projectsDB),
-        ]);
-
-        const userEmail = parsedUser.email;
-        const userProgress = allProgress.filter(p => p && p.score !== undefined);
-        const userAssessments = allAssessments.filter(a => a && a.score !== undefined);
-        const userProjects = allProjects.filter(p => p && (p.owner_id === userEmail || p.userId === userEmail));
-
-        // METRIC 1: Task Success Rate (TSR)
-        let totalScore = 0;
-        let scoreCount = 0;
-
-        userAssessments.forEach(a => { totalScore += a.score; scoreCount += 1; });
-        userProgress.forEach(p => {
-          if (p.score !== undefined) { totalScore += p.score; scoreCount += 1; }
-        });
-
-        const calculatedTsr = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
-
-        // METRIC 2: Refactoring Optimization Gain (ROG)
-        let improvedAssessments = 0;
-        let totalMultiAttempts = 0;
-
-        userAssessments.forEach(a => {
-          if (a.attempts && a.attempts > 1) {
-             totalMultiAttempts += 1;
-             if (a.score >= 75) improvedAssessments += 1;
-          }
-        });
+        const API_BASE = import.meta.env.VITE_API_URL || "";
+        const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
+        let parsed = stored ? JSON.parse(stored) : { name: "User", email: "", progress: {}, assessments: {} };
         
-        const calculatedRog = totalMultiAttempts > 0 
-          ? Math.round((improvedAssessments / totalMultiAttempts) * 100) 
-          : (calculatedTsr > 80 ? 100 : 0); 
+        let initialProg = parsed.progress || {};
+        let initialAssm = parsed.assessments || {};
 
-        // METRIC 3: Algorithmic Efficiency Score (AES)
-        let aesScore = 0;
-        if (userProjects.length > 0) {
-            let efficiencyPoints = 0;
-            userProjects.forEach(() => { efficiencyPoints += 85; });
-            aesScore = Math.min(100, Math.round(efficiencyPoints / userProjects.length));
-        }
-
-        const modulesCompleted = new Set(userProgress.map(p => {
-           const match = String(p.id || "").match(/module[_-](\d+)/);
-           return match ? match[1] : null;
-        }).filter(Boolean)).size;
-
-        setStats({
-          tsr: calculatedTsr,
-          aes: aesScore,
-          rog: calculatedRog,
-          modulesCompleted: modulesCompleted,
-          totalAssessments: userAssessments.length,
-          totalProjects: userProjects.length,
+        await progressDB.iterate((value, key) => {
+            initialProg[key] = value.score !== undefined ? value.score : value;
+        });
+        await assessmentsDB.iterate((value, key) => {
+            initialAssm[key] = value.data || value;
         });
 
-      } catch (err) {
-        console.error("Error calculating profile statistics:", err);
-      } finally {
-        setLoading(false);
+        setUser({ ...parsed, progress: initialProg, assessments: initialAssm });
+
+        if (navigator.onLine && parsed.email && !parsed.isGuest) {
+            try {
+                const token = localStorage.getItem("authToken");
+                const headers = { "Content-Type": "application/json" };
+                if (token) headers["Authorization"] = `Bearer ${token}`;
+
+                const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+                if (progRes.ok) {
+                    const data = await progRes.json();
+                    const progData = data.progress || data;
+                    for (const [key, val] of Object.entries(progData)) {
+                        initialProg[key] = val;
+                        await progressDB.setItem(key, { score: val, isSynced: true });
+                    }
+                }
+
+                const assmRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
+                if (assmRes.ok) {
+                    const data = await assmRes.json();
+                    const assmData = data.assessments || data;
+                    for (const [key, val] of Object.entries(assmData)) {
+                        initialAssm[key] = val;
+                        await assessmentsDB.setItem(key, { ...val, isSynced: true });
+                    }
+                }
+                
+                const finalUser = { ...parsed, progress: initialProg, assessments: initialAssm };
+                setUser(finalUser);
+                localStorage.setItem("user", JSON.stringify(finalUser));
+            } catch (e) {
+                console.warn("Could not sync latest progress for profile:", e);
+            }
+        }
+      } catch (e) {
+          console.error("Profile data load error:", e);
       }
     };
+    
+    loadOfflineData();
+  }, []);
 
-    fetchProfileData();
-  }, [navigate]);
+  // 2. Calculate Advanced Metrics & Module Mastery
+  useEffect(() => {
+    let tLessons = 0;
+    let cLessons = 0;
+    let tActivities = 0;
+    let scoreSum = 0;
+    
+    // Build array for individual module progress
+    const masteryData = curriculumIndex.map((module) => {
+      const lessonsInModule = module.lessons.length;
+      let completedInModule = 0;
+      tLessons += lessonsInModule;
 
-  const getAllFromDB = async (db) => {
-    const items = [];
-    try {
-        await db.iterate((value, key) => { items.push({ id: key, ...value }); });
-    } catch (e) {
-        console.warn("Failed to iterate DB:", e);
-    }
-    return items;
-  };
+      module.lessons.forEach((lesson) => {
+        tActivities += 1; 
+        const rawScore = user.progress[lesson.lessonId];
+        const val = typeof rawScore === 'object' ? rawScore.score : rawScore;
+        const score = val || 0;
+        
+        if (score >= 1) {
+          cLessons += 1;
+          completedInModule += 1;
+        }
+        scoreSum += score;
+      });
 
-  if (loading || !userData) {
-    return (
-      <div className="dashboard-layout">
-        <UserHeader />
-        <main className="dashboard-content">
-          <div style={{ color: "white", padding: "40px", textAlign: "center" }}>
-            Loading profile statistics...
-          </div>
-        </main>
-      </div>
-    );
-  }
+      return {
+        id: module.moduleId,
+        title: module.title,
+        completed: completedInModule,
+        total: lessonsInModule,
+        percentage: lessonsInModule > 0 ? Math.round((completedInModule / lessonsInModule) * 100) : 0
+      };
+    });
+
+    const assessmentsTaken = Object.keys(user.assessments || {}).filter(k => k.includes('_assessment')).length;
+
+    setMetrics({
+      lessonsCompleted: cLessons,
+      totalLessons: tLessons,
+      totalActivities: tActivities,
+      overallScore: tActivities > 0 ? Math.round((scoreSum / (tActivities * 5)) * 100) : 0, 
+      assessmentsTaken: assessmentsTaken
+    });
+    
+    setModuleMastery(masteryData);
+  }, [user]);
+
+  const initials = user.name ? user.name.charAt(0).toUpperCase() : "U";
 
   return (
-    <div className="dashboard-layout">
-      <UserHeader />
+    <div className="profile-page-v2">
+      <DashboardHeader />
       
-      <main className="dashboard-content">
-        <div className="profile-container">
-          
-          <div className="profile-header-block">
-            <h1 className="profile-welcome-text">Learner Profile</h1>
-            <p className="profile-subtitle-text">Track your algorithmic mastery and coding efficiency.</p>
-          </div>
-
-          {/* User Info Card */}
-          <div className="profile-user-card">
-            <div className="profile-avatar">
-              {userData.name ? userData.name.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div className="profile-user-info">
-              <h2>{userData.name}</h2>
-              <p>{userData.email}</p>
-              <span className="profile-status-badge">Active Learner</span>
-            </div>
-          </div>
-
-          {/* Performance Analytics */}
-          <h2 className="profile-section-title">Performance Analytics</h2>
-          <div className="profile-stats-grid">
-            
-            {/* TSR Card */}
-            <div className="profile-stat-card">
-              <div className="profile-stat-header">
-                <div className="profile-stat-icon blue"><FiCheckCircle size={22} /></div>
-                <h3 className="profile-stat-title">Task Success Rate (TSR)</h3>
-              </div>
-              <div className="profile-stat-value">{stats.tsr}%</div>
-              <p className="profile-stat-subtitle">Average score across all assessments</p>
-              <div className="profile-progress-bar-bg">
-                <div className="profile-progress-bar-fill blue" style={{ width: `${stats.tsr}%` }} />
-              </div>
-            </div>
-
-            {/* AES Card */}
-            <div className="profile-stat-card">
-              <div className="profile-stat-header">
-                <div className="profile-stat-icon green"><FiActivity size={22} /></div>
-                <h3 className="profile-stat-title">Algorithmic Efficiency (AES)</h3>
-              </div>
-              <div className="profile-stat-value">{stats.aes}%</div>
-              <p className="profile-stat-subtitle">Code complexity optimization score</p>
-              <div className="profile-progress-bar-bg">
-                <div className="profile-progress-bar-fill green" style={{ width: `${stats.aes}%` }} />
-              </div>
-            </div>
-
-            {/* ROG Card */}
-            <div className="profile-stat-card">
-              <div className="profile-stat-header">
-                <div className="profile-stat-icon purple"><FiTrendingUp size={22} /></div>
-                <h3 className="profile-stat-title">Refactoring Gain (ROG)</h3>
-              </div>
-              <div className="profile-stat-value">{stats.rog}%</div>
-              <p className="profile-stat-subtitle">Score improvement across attempts</p>
-              <div className="profile-progress-bar-bg">
-                <div className="profile-progress-bar-fill purple" style={{ width: `${stats.rog}%` }} />
-              </div>
-            </div>
-
-          </div>
-
-          {/* Learning Progress Overview */}
-          <h2 className="profile-section-title">Learning Progress</h2>
-          <div className="profile-overview-grid">
-            
-            <div className="profile-overview-card">
-              <div className="overview-icon-container icon-purple"><FiBook /></div>
-              <h3>Modules Completed</h3>
-              <div className="overview-value">{stats.modulesCompleted} / 6</div>
-            </div>
-
-            <div className="profile-overview-card">
-              <div className="overview-icon-container icon-yellow"><FiAward /></div>
-              <h3>Total Assessments</h3>
-              <div className="overview-value">{stats.totalAssessments}</div>
-            </div>
-
-            <div className="profile-overview-card">
-              <div className="overview-icon-container icon-red"><FiBarChart2 /></div>
-              <h3>Saved Projects</h3>
-              <div className="overview-value">{stats.totalProjects}</div>
-            </div>
-
-          </div>
-          
+      <div className="profile-container-v2">
+        {/* 1. Hero Cover Area */}
+        <div className="profile-cover">
+          <div className="cover-pattern"></div>
         </div>
-      </main>
+
+        {/* 2. Main Profile Header */}
+        <div className="profile-header-card">
+          <div className="profile-avatar-wrapper">
+            <div className="profile-avatar-v2">{initials}</div>
+            <div className="avatar-status-badge"></div>
+          </div>
+          
+          <div className="profile-user-details">
+            <div className="user-title-row">
+              <h1>{user.name}</h1>
+              <span className="role-badge"><FiCpu style={{ marginRight: '6px' }}/> Algorithm Scholar</span>
+            </div>
+            <p className="user-email">{user.email}</p>
+          </div>
+
+          <div className="profile-header-actions">
+            <Link to="/learning-path" className="btn-resume-learning">
+              <FiCode size={18} /> Continue Coding
+            </Link>
+          </div>
+        </div>
+
+        {/* 3. Dashboard Grid Layout */}
+        <div className="profile-content-grid">
+          
+          {/* Left Sidebar: Quick Stats */}
+          <aside className="profile-sidebar">
+            <h3 className="sidebar-title">Performance Overview</h3>
+            
+            <div className="stat-box">
+              <div className="stat-icon-wrapper blue"><FiBookOpen /></div>
+              <div className="stat-info">
+                <h4>Lessons Completed</h4>
+                <p><strong>{metrics.lessonsCompleted}</strong> <span className="text-muted">/ {metrics.totalLessons}</span></p>
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <div className="stat-icon-wrapper purple"><FiAward /></div>
+              <div className="stat-info">
+                <h4>Average Score</h4>
+                <p><strong>{metrics.overallScore}%</strong> <span className="text-muted">accuracy</span></p>
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <div className="stat-icon-wrapper green"><FiActivity /></div>
+              <div className="stat-info">
+                <h4>Assessments Taken</h4>
+                <p><strong>{metrics.assessmentsTaken}</strong> <span className="text-muted">assessments passed</span></p>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right Main Content: Module Mastery */}
+          <main className="profile-main-content">
+            <div className="content-header-row">
+              <h2>Module Mastery</h2>
+              <span className="mastery-subtitle">Your progress across the curriculum</span>
+            </div>
+
+            <div className="mastery-list">
+              {moduleMastery.map((mod, index) => {
+                const isComplete = mod.completed === mod.total && mod.total > 0;
+                
+                return (
+                  <div key={mod.id} className={`mastery-card ${isComplete ? 'completed' : ''}`}>
+                    <div className="mastery-card-left">
+                      <div className="mastery-module-number">M{index + 1}</div>
+                      <div className="mastery-details">
+                        <h4>{mod.title}</h4>
+                        <span className="mastery-fraction">{mod.completed} of {mod.total} lessons done</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mastery-card-right">
+                      <div className="progress-bar-container">
+                        <div className="progress-bar-track">
+                          <div 
+                            className={`progress-bar-fill ${isComplete ? 'gold' : ''}`}
+                            style={{ width: `${mod.percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="progress-percentage">{mod.percentage}%</span>
+                      </div>
+                      {isComplete && <FiCheckCircle className="completion-icon" color="#f59e0b" size={24} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </main>
+
+        </div>
+      </div>
     </div>
   );
 }

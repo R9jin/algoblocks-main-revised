@@ -3,7 +3,7 @@
     {
       "id": "m2_l1_a1",
       "title": "Max Finder",
-      "task": "A data analysis system is required to determine the highest value stored inside a numeric dataset.\n\nTask Requirement:\nCreate a function find_max(arr).\n\nRules:\n- Traverse the array one element at a time\n- Assume the first element is the initial maximum value\n- Update the maximum whenever a larger value is found\n- Return the final maximum value\n- If the array is empty, return 'Error'\n- Use only a single pass through the array\n\nSample Output:\nfind_max([32,45,28,47,39]) → 47",
+      "task": "A data analysis system is required to determine the highest value stored inside a numeric dataset.\n\nTask Requirement:\nCreate a function find_max(arr).\n\nRules:\n- Traverse the array one element at a time\n- Assume the first element is the initial maximum value\n- Update the maximum whenever a larger value is found\n- Return the final maximum value\n- If the array is empty, return 'Error'\n\nSample Output:\nfind_max([32,45,28,47,39]) → 47",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -217,13 +217,14 @@
       ]
     }
   ],
+
   "optimizations": [
     {
       "id": "m2_opt_1",
       "title": "Optimize Fibonacci Sequence",
       "task": "The default `fibonacci(n)` function uses naive recursion, leading to an exponential O(2ⁿ) time complexity due to overlapping subproblems.\n\n**Task Requirement:**\nOptimize it to run in O(n) time.\n\n**Rules:**\n- Use Memoization (caching) OR convert it to an iterative approach.\n- Return the nth Fibonacci number (where fib(0)=0, fib(1)=1).",
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m2-2.1.json",
       "testCasesPool": [
         { "call": "fibonacci(5)", "expected": "5", "isHidden": false },

@@ -12,7 +12,7 @@
   align-items: center;
   height: 60vh;
   font-size: 1.1rem;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 /* ── WRAPPER ─────────────────────────────────────────────── */
@@ -35,7 +35,7 @@
 .assessment-tag {
   display: inline-block;
   background: #ede9ff;
-  color: #7c5cff;
+  color: #5A1398;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -122,7 +122,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #7c5cff;
+  color: #5A1398;
   margin: 0 0 1rem;
 }
 
@@ -146,9 +146,9 @@
   transition: all 0.15s ease;
 }
 
-.nav-dot:hover { border-color: #7c5cff; color: #7c5cff; }
-.nav-dot.answered { background: #ede9ff; border-color: #7c5cff; color: #7c5cff; }
-.nav-dot.active { background: #7c5cff; border-color: #7c5cff; color: #fff; }
+.nav-dot:hover { border-color: #5A1398; color: #5A1398; }
+.nav-dot.answered { background: #ede9ff; border-color: #5A1398; color: #5A1398; }
+.nav-dot.active { background: #5A1398; border-color: #5A1398; color: #fff; }
 
 .nav-legend {
   display: flex;
@@ -168,8 +168,8 @@
   margin-right: 5px;
   vertical-align: middle;
 }
-.legend-dot.answered { background: #ede9ff; border-color: #7c5cff; }
-.legend-dot.active { background: #7c5cff; border-color: #7c5cff; }
+.legend-dot.answered { background: #ede9ff; border-color: #5A1398; }
+.legend-dot.active { background: #5A1398; border-color: #5A1398; }
 
 /* ── QUESTION CARD ───────────────────────────────────────── */
 .question-main { flex: 1; }
@@ -221,12 +221,12 @@
 }
 
 .option-btn:hover:not(:disabled) {
-  border-color: #7c5cff;
+  border-color: #5A1398;
   background: #ede9ff;
 }
 
 .option-btn.selected {
-  border-color: #7c5cff;
+  border-color: #5A1398;
   background: #ede9ff;
 }
 
@@ -240,7 +240,7 @@
   height: 26px;
   border-radius: 50%;
   background: #e2deff;
-  color: #7c5cff;
+  color: #5A1398;
   font-size: 0.78rem;
   font-weight: 700;
   flex-shrink: 0;
@@ -248,7 +248,7 @@
 }
 
 .option-btn.selected .option-letter {
-  background: #7c5cff;
+  background: #5A1398;
   color: #fff;
 }
 
@@ -281,12 +281,12 @@
   transition: all 0.15s ease;
 }
 
-.nav-btn:hover:not(:disabled) { border-color: #7c5cff; color: #7c5cff; }
+.nav-btn:hover:not(:disabled) { border-color: #5A1398; color: #5A1398; }
 .nav-btn:disabled { opacity: 0.4; cursor: default; }
 
 .nav-btn.primary {
-  background: #7c5cff;
-  border-color: #7c5cff;
+  background: #5A1398;
+  border-color: #5A1398;
   color: #fff;
 }
 .nav-btn.primary:hover { background: #6344e8; border-color: #6344e8; }
@@ -392,7 +392,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #7c5cff;
+  color: #5A1398;
   margin: 0 0 1rem;
 }
 
@@ -419,7 +419,7 @@
 .review-num {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #7c5cff;
+  color: #5A1398;
   background: #ede9ff;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
@@ -462,13 +462,13 @@
   border-radius: 10px;
   border: 2px solid #e2deff;
   background: #fff;
-  color: #7c5cff;
+  color: #5A1398;
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.btn-retake:hover { border-color: #7c5cff; background: #ede9ff; }
+.btn-retake:hover { border-color: #5A1398; background: #ede9ff; }
 
 .btn-proceed {
   padding: 0.75rem 1.75rem;
@@ -630,16 +630,16 @@
 /* Navigator dot for code questions */
 .nav-dot.code-q {
   border-color: #a78bfa;
-  color: #7c5cff;
+  color: #5A1398;
   background: #f0ebff;
 }
 .nav-dot.code-q.active {
-  background: #7c5cff;
+  background: #5A1398;
   color: #fff;
 }
 .nav-dot.code-q.answered {
   background: #ede9ff;
-  border-color: #7c5cff;
+  border-color: #5A1398;
 }
 
 .legend-dot.code-q {

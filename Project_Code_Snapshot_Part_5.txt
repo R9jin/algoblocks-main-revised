@@ -3305,7 +3305,7 @@ export default function UserHomePage() {
   align-items: center;
   height: 60vh;
   font-size: 1.1rem;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 /* â”€â”€ WRAPPER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -3328,7 +3328,7 @@ export default function UserHomePage() {
 .assessment-tag {
   display: inline-block;
   background: #ede9ff;
-  color: #7c5cff;
+  color: #5A1398;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -3415,7 +3415,7 @@ export default function UserHomePage() {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #7c5cff;
+  color: #5A1398;
   margin: 0 0 1rem;
 }
 
@@ -3439,9 +3439,9 @@ export default function UserHomePage() {
   transition: all 0.15s ease;
 }
 
-.nav-dot:hover { border-color: #7c5cff; color: #7c5cff; }
-.nav-dot.answered { background: #ede9ff; border-color: #7c5cff; color: #7c5cff; }
-.nav-dot.active { background: #7c5cff; border-color: #7c5cff; color: #fff; }
+.nav-dot:hover { border-color: #5A1398; color: #5A1398; }
+.nav-dot.answered { background: #ede9ff; border-color: #5A1398; color: #5A1398; }
+.nav-dot.active { background: #5A1398; border-color: #5A1398; color: #fff; }
 
 .nav-legend {
   display: flex;
@@ -3461,8 +3461,8 @@ export default function UserHomePage() {
   margin-right: 5px;
   vertical-align: middle;
 }
-.legend-dot.answered { background: #ede9ff; border-color: #7c5cff; }
-.legend-dot.active { background: #7c5cff; border-color: #7c5cff; }
+.legend-dot.answered { background: #ede9ff; border-color: #5A1398; }
+.legend-dot.active { background: #5A1398; border-color: #5A1398; }
 
 /* â”€â”€ QUESTION CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .question-main { flex: 1; }
@@ -3514,12 +3514,12 @@ export default function UserHomePage() {
 }
 
 .option-btn:hover:not(:disabled) {
-  border-color: #7c5cff;
+  border-color: #5A1398;
   background: #ede9ff;
 }
 
 .option-btn.selected {
-  border-color: #7c5cff;
+  border-color: #5A1398;
   background: #ede9ff;
 }
 
@@ -3533,7 +3533,7 @@ export default function UserHomePage() {
   height: 26px;
   border-radius: 50%;
   background: #e2deff;
-  color: #7c5cff;
+  color: #5A1398;
   font-size: 0.78rem;
   font-weight: 700;
   flex-shrink: 0;
@@ -3541,7 +3541,7 @@ export default function UserHomePage() {
 }
 
 .option-btn.selected .option-letter {
-  background: #7c5cff;
+  background: #5A1398;
   color: #fff;
 }
 
@@ -3574,12 +3574,12 @@ export default function UserHomePage() {
   transition: all 0.15s ease;
 }
 
-.nav-btn:hover:not(:disabled) { border-color: #7c5cff; color: #7c5cff; }
+.nav-btn:hover:not(:disabled) { border-color: #5A1398; color: #5A1398; }
 .nav-btn:disabled { opacity: 0.4; cursor: default; }
 
 .nav-btn.primary {
-  background: #7c5cff;
-  border-color: #7c5cff;
+  background: #5A1398;
+  border-color: #5A1398;
   color: #fff;
 }
 .nav-btn.primary:hover { background: #6344e8; border-color: #6344e8; }
@@ -3685,7 +3685,7 @@ export default function UserHomePage() {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: #7c5cff;
+  color: #5A1398;
   margin: 0 0 1rem;
 }
 
@@ -3712,7 +3712,7 @@ export default function UserHomePage() {
 .review-num {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #7c5cff;
+  color: #5A1398;
   background: #ede9ff;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
@@ -3755,13 +3755,13 @@ export default function UserHomePage() {
   border-radius: 10px;
   border: 2px solid #e2deff;
   background: #fff;
-  color: #7c5cff;
+  color: #5A1398;
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.btn-retake:hover { border-color: #7c5cff; background: #ede9ff; }
+.btn-retake:hover { border-color: #5A1398; background: #ede9ff; }
 
 .btn-proceed {
   padding: 0.75rem 1.75rem;
@@ -6029,7 +6029,7 @@ html {
   min-width: 50px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #7c5cff;
+  color: #5A1398;
   background: #ede6ff;
   padding: 4px 8px;
   border-radius: 6px;
@@ -6047,7 +6047,7 @@ html {
 }
 
 .module-dropdown-footer .view-all-lessons:hover svg {
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .module-dropdown-footer .view-all-lessons:focus {
@@ -6093,7 +6093,7 @@ html {
   min-width: 50px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #7c5cff;
+  color: #5A1398;
   background: #ede6ff;
   padding: 4px 8px;
   border-radius: 6px;
@@ -6126,7 +6126,7 @@ html {
 
 .btn-read-lesson {
   background: #f0e8ff;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .btn-read-lesson:hover:not(:disabled) {
@@ -6134,7 +6134,7 @@ html {
 }
 
 .btn-start-activity {
-  background: #7c5cff;
+  background: #5A1398;
   color: #ffffff;
 }
 
@@ -6200,7 +6200,7 @@ html {
 }
 
 .assessment-row-left svg {
-  color: #7c5cff;
+  color: #5A1398;
   flex-shrink: 0;
 }
 
@@ -6229,7 +6229,7 @@ html {
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 700;
-  background: #7c5cff;
+  background: #5A1398;
   color: #fff;
 }
 
@@ -6264,7 +6264,7 @@ html {
 }
 
 .btn-assessment.start {
-  background: #7c5cff;
+  background: #5A1398;
   color: #fff;
 }
 
@@ -6286,13 +6286,13 @@ html {
 
 .btn-assessment.retake {
   background: transparent;
-  color: #7c5cff;
+  color: #5A1398;
   border: 1.5px solid #c4b5fd;
 }
 
 .btn-assessment.retake:hover {
   background: #ede9ff;
-  border-color: #7c5cff;
+  border-color: #5A1398;
 }
 
 --- FILE: frontend/src/styles/LessonViewer.css ---
@@ -6338,7 +6338,7 @@ html {
 
 .back-button:hover {
   background: #f5f3ff;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .back-button svg {
@@ -6393,12 +6393,12 @@ html {
 
 .module-title:hover {
   background: #f5f3ff;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .module-title.expanded {
   background: #f5f3ff;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .module-info {
@@ -6412,7 +6412,7 @@ html {
 .module-icon {
   width: 16px;
   height: 16px;
-  color: #7c5cff;
+  color: #5A1398;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -6420,7 +6420,7 @@ html {
 .module-number {
   display: block;
   font-size: 0.8rem;
-  color: #7c5cff;
+  color: #5A1398;
   font-weight: 700;
 }
 
@@ -6464,21 +6464,21 @@ html {
 }
 
 .lesson-item:hover {
-  color: #7c5cff;
+  color: #5A1398;
   background: #f5f3ff;
-  border-left-color: #7c5cff;
+  border-left-color: #5A1398;
 }
 
 .lesson-item.active {
-  color: #7c5cff;
+  color: #5A1398;
   background: #ede6ff;
-  border-left-color: #7c5cff;
+  border-left-color: #5A1398;
   font-weight: 600;
 }
 
 .lesson-number {
   font-weight: 700;
-  color: #7c5cff;
+  color: #5A1398;
   min-width: 28px;
 }
 
@@ -6502,7 +6502,7 @@ html {
 }
 
 .lesson-item.active .lesson-indicator {
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .lesson-item.active .lesson-indicator svg {
@@ -6537,7 +6537,7 @@ html {
 }
 
 .breadcrumb a {
-  color: #7c5cff;
+  color: #5A1398;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
@@ -6573,7 +6573,7 @@ html {
 .lesson-label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #7c5cff;
+  color: #5A1398;
   letter-spacing: 1px;
   margin-bottom: 12px;
 }
@@ -6612,7 +6612,7 @@ html {
 .meta-icon {
   width: 24px;
   height: 24px;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .lesson-meta-card span {
@@ -6713,7 +6713,7 @@ html {
 }
 
 .lesson-bullet-list li::marker {
-  color: #7c5cff;
+  color: #5A1398;
   font-weight: 800;
 }
 
@@ -6851,7 +6851,7 @@ html {
 }
 
 .lesson-resources a {
-  color: #7c5cff;
+  color: #5A1398;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;

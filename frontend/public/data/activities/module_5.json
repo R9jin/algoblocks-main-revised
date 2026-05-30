@@ -290,6 +290,7 @@
       ]
     }
   ],
+
   "optimizations": [
     {
       "id": "m5_opt_1",

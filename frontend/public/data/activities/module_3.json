@@ -310,11 +310,12 @@
       ]
     }
   ],
+
   "optimizations": [
     {
       "id": "m3_opt_1",
       "title": "Linear to Binary Search",
-      "task": "The provided algorithm searches for an item in a **sorted** array by checking every element O(n).\n\n**Task Requirement:**\nImplement Binary Search to find the target element in O(log n) time.\n\n**Rules:**\n- Return the index of the target.\n- Return -1 if it is not found.",
+      "task": "The provided algorithm searches for an item in a sorted array by checking every element O(n).\n\nTask Requirement:\nImplement Binary Search to find the target element in O(log n) time.\n\nRules:\n- Return the index of the target.\n- Return -1 if it is not found.",
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.1.json",
@@ -329,7 +330,7 @@
     {
       "id": "m3_opt_2",
       "title": "Find Peak Element",
-      "task": "A peak element is an element strictly greater than its neighbors. The current code scans the array linearly O(n).\n\n**Task Requirement:**\nOptimize the algorithm to find any peak element in O(log n) time.\n\n**Rules:**\n- Use a modified binary search.\n- Return the index of the peak element.",
+      "task": "A peak element is an element strictly greater than its neighbors. The current code scans the array linearly O(n).\n\nTask Requirement:\nOptimize the algorithm to find any peak element in O(log n) time.\n\nRules:\n- Use a modified binary search.\n- Return the index of the peak element.",
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.2.json",
@@ -344,7 +345,7 @@
     {
       "id": "m3_opt_3",
       "title": "Optimize String Search",
-      "task": "The current string matching loops through every character repeatedly to find a substring (O(n*m)).\n\n**Task Requirement:**\nOptimize it using a single pass approach to achieve O(n).",
+      "task": "The current string matching loops through every character repeatedly to find a substring (O(n*m)).\n\nTask Requirement:\nOptimize it using a single pass approach to achieve O(n).",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.3.json",

@@ -3,7 +3,7 @@
     {
       "id": "m1_l1_a1",
       "title": "Best Case Search",
-      "task": "A search optimization system evaluates the fastest possible lookup scenario inside an array.\n\nTask Requirement:\nCreate a function find_best(arr, target).\n\nRules:\n- Check only the first element of the array\n- If the first element matches the target, return index 0\n- If the array is empty, return -1\n- If the target is not found at index 0, return -1\n- Do not iterate through the array\n\nSample Output:\nfind_best([5,10,15],5) → 0",
+      "task": "A search optimization system evaluates the fastest possible lookup scenario inside an array.\n\nTask Requirement:\nCreate a function find_best(arr, target).\n\nRules:\n- If array is empty, return -1\n- If first element matches target, return 0\n- Otherwise return -1\n\nSample Output:\nfind_best([5,10,15],5) → 0",
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -17,7 +17,7 @@
     {
       "id": "m1_l1_a2",
       "title": "Worst Case Search",
-      "task": "A search evaluation engine analyzes the slowest direct-access lookup scenario within an array.\n\nTask Requirement:\nCreate a function find_worst(arr, target).\n\nRules:\n- Check only the last element of the array\n- If the last element matches the target, return its index\n- If the array is empty, return -1\n- If the target is not found at the last position, return -1\n- Do not scan intermediate elements\n\nSample Output:\nfind_worst([1,2,3],3) → 2",
+      "task": "A search evaluation engine analyzes the slowest direct-access lookup scenario within an array.\n\nTask Requirement:\nCreate a function find_worst(arr, target).\n\nRules:\n- If array is empty, return -1\n- If last element matches target, return its index\n- Otherwise return -1\n\nSample Output:\nfind_worst([1,2,3],3) → 2",
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -31,7 +31,7 @@
     {
       "id": "m1_l1_a3",
       "title": "Constant Time Demo",
-      "task": "A data access system requires constant-time retrieval of values from an array structure.\n\nTask Requirement:\nCreate a function constant(arr).\n\nRules:\n- Return the first element of the array\n- Access the value directly using index 0\n- Do not use loops or iteration\n- If the array is empty, return 'Empty'\n\nSample Output:\nconstant([9,8,7]) → 9",
+      "task": "A data access system requires constant-time retrieval of values from an array structure.\n\nTask Requirement:\nCreate a function constant(arr).\n\nRules:\n- Return first element if exists\n- If array is empty, return 'Empty'\n\nSample Output:\nconstant([9,8,7]) → 9",
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -45,7 +45,7 @@
     {
       "id": "m1_l1_a4",
       "title": "Linear Growth Demo",
-      "task": "A runtime simulation system tracks execution growth based on a single loop structure.\n\nTask Requirement:\nCreate a function linear_growth(n).\n\nRules:\n- Simulate a loop that runs exactly n times\n- Return the total number of iterations performed\n- If n is less than or equal to 0, return 0\n\nSample Output:\nlinear_growth(3) → 3",
+      "task": "A runtime simulation system tracks execution growth based on a single loop structure.\n\nTask Requirement:\nCreate a function linear_growth(n).\n\nRules:\n- If n ≤ 0 return 0\n- Otherwise return n\n\nSample Output:\nlinear_growth(3) → 3",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -59,7 +59,7 @@
     {
       "id": "m1_l1_a5",
       "title": "Quadratic Growth Demo",
-      "task": "A nested loop simulation engine measures execution growth for two-dimensional iteration workloads.\n\nTask Requirement:\nCreate a function quadratic_growth(n).\n\nRules:\n- Use an outer loop that runs from 1 to n\n- Use an inner loop that runs from 1 to n\n- Return the total number of iterations performed\n- The final result should equal n × n\n- If n is less than or equal to 0, return 0\n\nSample Output:\nquadratic_growth(3) → 9",
+      "task": "A nested loop simulation engine measures execution growth for two-dimensional iteration workloads.\n\nTask Requirement:\nCreate a function quadratic_growth(n).\n\nRules:\n- If n ≤ 0 return 0\n- Return n × n using two loops\n\nSample Output:\nquadratic_growth(3) → 9",
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -76,7 +76,7 @@
     {
       "id": "m1_l2_a1",
       "title": "O(1) Lookup",
-      "task": "A direct-access retrieval system fetches values from a list using indexed lookup operations.\n\nTask Requirement:\nCreate a function lookup(arr, index).\n\nRules:\n- Return the value at the given index using direct access\n- If the array is empty, return 'Error'\n- If the index is invalid or out of bounds, return 'Error'\n- Do not iterate through the array\n\nSample Output:\nlookup([1,2,3],1) → 2",
+      "task": "A direct-access retrieval system fetches values from a list using indexed lookup operations.\n\nTask Requirement:\nCreate a function lookup(arr, index).\n\nRules:\n- If array is empty or index invalid, return 'Error'\n- Otherwise return arr[index]\n\nSample Output:\nlookup([1,2,3],1) → 2",
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -90,7 +90,7 @@
     {
       "id": "m1_l2_a2",
       "title": "O(n) Traversal",
-      "task": "A traversal engine processes every element inside a sequential data structure.\n\nTask Requirement:\nCreate a function traverse(arr).\n\nRules:\n- Iterate through all elements of the array\n- Count the total number of elements processed\n- Return the final count\n- If the array is empty or None, return 0\n\nSample Output:\ntraverse([1,2,3]) → 3",
+      "task": "A traversal engine processes every element inside a sequential data structure.\n\nTask Requirement:\nCreate a function traverse(arr).\n\nRules:\n- If input is None or empty, return 0\n- Otherwise count elements while iterating\n\nSample Output:\ntraverse([1,2,3]) → 3",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -104,7 +104,7 @@
     {
       "id": "m1_l2_a3",
       "title": "O(log n) Halving",
-      "task": "A reduction system repeatedly decreases values by dividing them into smaller parts.\n\nTask Requirement:\nCreate a function halve_count(n).\n\nRules:\n- Repeatedly divide n by 2\n- Continue until n becomes 1 or less\n- Count how many valid divisions are performed\n- Return the total number of divisions\n- If n is less than or equal to 0, return 0\n\nSample Output:\nhalve_count(8) → 3",
+      "task": "A reduction system repeatedly decreases values by dividing them into smaller parts.\n\nTask Requirement:\nCreate a function halve_count(n).\n\nRules:\n- If n ≤ 0 return 0\n- Count how many times n can be divided by 2 until reaching 1\n\nSample Output:\nhalve_count(8) → 3",
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -118,7 +118,7 @@
     {
       "id": "m1_l2_a4",
       "title": "O(n²) Pairing",
-      "task": "A pair generation system uses nested iteration to simulate all possible combinations within a range.\n\nTask Requirement:\nCreate a function pairs(n).\n\nRules:\n- Use two loops that both run from 1 to n\n- Count every iteration performed\n- Return the final iteration count\n- The final result should equal n × n\n- If n is less than or equal to 0, return 0\n\nSample Output:\npairs(3) → 9",
+      "task": "A pair generation system uses nested iteration to simulate all possible combinations within a range.\n\nTask Requirement:\nCreate a function pairs(n).\n\nRules:\n- If n ≤ 0 return 0\n- Use two loops and count all iterations\n\nSample Output:\npairs(3) → 9",
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -132,7 +132,7 @@
     {
       "id": "m1_l2_a5",
       "title": "O(n+n) vs O(n)",
-      "task": "A runtime analysis system compares sequential loop execution workloads.\n\nTask Requirement:\nCreate a function double_loop(n).\n\nRules:\n- Run one loop from 1 to n\n- Run a second separate loop from 1 to n\n- Count all iterations across both loops\n- Return the total iteration count\n- If n is less than or equal to 0, return 0\n\nSample Output:\ndouble_loop(5) → 10",
+      "task": "A runtime analysis system compares sequential loop execution workloads.\n\nTask Requirement:\nCreate a function double_loop(n).\n\nRules:\n- If n ≤ 0 return 0\n- Run two separate loops and sum iterations\n\nSample Output:\ndouble_loop(5) → 10",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -149,7 +149,7 @@
     {
       "id": "m1_l3_a1",
       "title": "Array vs Variable",
-      "task": "A computation engine calculates totals using a single accumulator variable during array traversal.\n\nTask Requirement:\nCreate a function running_total(arr).\n\nRules:\n- Iterate through all elements in the array\n- Use a single running total variable\n- Return the final sum of all elements\n- If the input is None or empty, return 0\n\nSample Output:\nrunning_total([1,2,3]) → 6",
+      "task": "A computation engine calculates totals using a single accumulator variable during array traversal.\n\nTask Requirement:\nCreate a function running_total(arr).\n\nRules:\n- If arr is None or empty return 0\n- Otherwise sum all elements\n\nSample Output:\nrunning_total([1,2,3]) → 6",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -163,7 +163,7 @@
     {
       "id": "m1_l3_a2",
       "title": "String Builder Growth",
-      "task": "A string construction system builds text by sequentially combining character elements.\n\nTask Requirement:\nCreate a function build_string(arr).\n\nRules:\n- Concatenate all characters in order\n- Return the length of the final generated string\n- If the array is empty or None, return 0\n\nSample Output:\nbuild_string(['a','b','c']) → 3",
+      "task": "A string construction system builds text by sequentially combining character elements.\n\nTask Requirement:\nCreate a function build_string(arr).\n\nRules:\n- If arr is None or empty return 0\n- Otherwise return length after concatenation\n\nSample Output:\nbuild_string(['a','b','c']) → 3",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -177,7 +177,7 @@
     {
       "id": "m1_l3_a3",
       "title": "2D Array Allocation",
-      "task": "A matrix allocation system calculates storage requirements for square grid structures.\n\nTask Requirement:\nCreate a function matrix_size(n).\n\nRules:\n- Simulate an NxN matrix structure\n- Return the total number of elements inside the matrix\n- The result should equal n × n\n- If n is less than or equal to 0, return 0\n\nSample Output:\nmatrix_size(3) → 9",
+      "task": "A matrix allocation system calculates storage requirements for square grid structures.\n\nTask Requirement:\nCreate a function matrix_size(n).\n\nRules:\n- If n ≤ 0 return 0\n- Return n × n\n\nSample Output:\nmatrix_size(3) → 9",
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -191,7 +191,7 @@
     {
       "id": "m1_l3_a4",
       "title": "In-Place Modification",
-      "task": "A memory optimization system updates array values directly within the original storage structure.\n\nTask Requirement:\nCreate a function in_place(arr).\n\nRules:\n- Double each element inside the same array\n- Modify the original array directly\n- Return the updated array\n- If the input is None or empty, return an empty array\n\nSample Output:\nin_place([1,2,3]) → [2,4,6]",
+      "task": "A memory optimization system updates array values directly within the original storage structure.\n\nTask Requirement:\nCreate a function in_place(arr).\n\nRules:\n- If arr is None or empty return []\n- Otherwise double each element in place\n\nSample Output:\nin_place([1,2,3]) → [2,4,6]",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
@@ -205,7 +205,7 @@
     {
       "id": "m1_l3_a5",
       "title": "Out-of-Place Creation",
-      "task": "A transformation engine generates a new array while preserving the original input structure.\n\nTask Requirement:\nCreate a function out_place(arr).\n\nRules:\n- Create a new array containing doubled values\n- Do not modify the original array\n- Return the newly created array\n- If the input is None or empty, return an empty array\n\nSample Output:\nout_place([1,2,3]) → [2,4,6]",
+      "task": "A transformation engine generates a new array while preserving the original input structure.\n\nTask Requirement:\nCreate a function out_place(arr).\n\nRules:\n- If arr is None or empty return []\n- Otherwise return new doubled array\n\nSample Output:\nout_place([1,2,3]) → [2,4,6]",
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [

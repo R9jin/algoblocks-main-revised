@@ -158,7 +158,7 @@ html {
   min-width: 50px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #7c5cff;
+  color: #5A1398;
   background: #ede6ff;
   padding: 4px 8px;
   border-radius: 6px;
@@ -176,7 +176,7 @@ html {
 }
 
 .module-dropdown-footer .view-all-lessons:hover svg {
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .module-dropdown-footer .view-all-lessons:focus {
@@ -222,7 +222,7 @@ html {
   min-width: 50px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #7c5cff;
+  color: #5A1398;
   background: #ede6ff;
   padding: 4px 8px;
   border-radius: 6px;
@@ -255,7 +255,7 @@ html {
 
 .btn-read-lesson {
   background: #f0e8ff;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .btn-read-lesson:hover:not(:disabled) {
@@ -263,7 +263,7 @@ html {
 }
 
 .btn-start-activity {
-  background: #7c5cff;
+  background: #5A1398;
   color: #ffffff;
 }
 
@@ -329,7 +329,7 @@ html {
 }
 
 .assessment-row-left svg {
-  color: #7c5cff;
+  color: #5A1398;
   flex-shrink: 0;
 }
 
@@ -358,7 +358,7 @@ html {
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 700;
-  background: #7c5cff;
+  background: #5A1398;
   color: #fff;
 }
 
@@ -393,7 +393,7 @@ html {
 }
 
 .btn-assessment.start {
-  background: #7c5cff;
+  background: #5A1398;
   color: #fff;
 }
 
@@ -415,11 +415,11 @@ html {
 
 .btn-assessment.retake {
   background: transparent;
-  color: #7c5cff;
+  color: #5A1398;
   border: 1.5px solid #c4b5fd;
 }
 
 .btn-assessment.retake:hover {
   background: #ede9ff;
-  border-color: #7c5cff;
+  border-color: #5A1398;
 }
