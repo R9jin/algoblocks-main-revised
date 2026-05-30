@@ -120,7 +120,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
 
-  // FIX: This lock prevents Blockly from firing "delete/clear" ghost events during initial load!
   const isReadyRef = useRef(false);
 
   const workspaceRef = useRef(null);
@@ -281,9 +280,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const fetchJsonWithCache = async (cacheKey, url) => {
     try {
-      // Append a timestamp to the URL to forcefully break the Vite cache!
       const res = await fetch(`${url}?t=${new Date().getTime()}`); 
-      
       if (res.ok) {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
@@ -339,8 +336,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const payload = {
       userId: state.userId,
-      moduleId: moduleId, // Safe constant from props
-      activityId: activityId, // Safe constant from props
+      moduleId: moduleId,
+      activityId: activityId,
       type: state.type || "activity",
       status: state.status || "draft",
       score: state.score,
@@ -366,15 +363,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     
     if (navigator.onLine && API_BASE) {
       try {
+        const token = localStorage.getItem("authToken"); // ✅ AUTH BADGE ADDED
         fetch(`${API_BASE}/api/sync-submission`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload), keepalive: true 
+          method: "POST", 
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(payload), 
+          keepalive: true 
         });
       } catch (err) { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
     } else { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
   };
 
-  // Used to capture tab closure events
   useEffect(() => {
     const handleBeforeUnload = () => { triggerFinalSave(); };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -384,7 +383,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   // --- COMPONENT MOUNT/UNMOUNT LIFECYCLE ---
   useEffect(() => {
     let cancelled = false;
-    isReadyRef.current = false; // Lock the workspace!
+    isReadyRef.current = false;
 
     const boot = async () => {
       try {
@@ -407,9 +406,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         try { localSubmission = await submissionsDB.getItem(submissionId); } catch(e){}
 
         let cloudSubmission = null;
-        if (navigator.onLine) {
+        if (navigator.onLine && !user.isGuest) {
             try {
-                const res = await fetch(`${API_BASE}/api/get-submission?email=${user.email}&moduleId=${moduleId}&activityId=${activityId}`);
+                const token = localStorage.getItem("authToken"); // ✅ AUTH BADGE ADDED
+                const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.submission) cloudSubmission = data.submission;
@@ -486,7 +488,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         }
         
         if (!cancelled) {
-            // Unlock the workspace for autosaving ONLY AFTER the blocks have settled
             setTimeout(() => {
                 if (!cancelled) isReadyRef.current = true;
             }, 1500); 
@@ -504,7 +505,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         triggerFinalSave(); 
         if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
     };
-  }, []); // Notice empty array: This code runs EXACTLY ONCE because the wrapper manages the key!
+  }, []);
 
   const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
     if (!latestStateRef.current.userId) return;
@@ -547,9 +548,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
 
     await submissionsDB.setItem(submissionId, payload);
+    const token = localStorage.getItem("authToken");
+
     if (navigator.onLine) {
       try {
-        await fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        await fetch(`${API_BASE}/api/sync-submission`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, // ✅ AUTH BADGE ADDED
+            body: JSON.stringify(payload) 
+        });
         payload.isSynced = true; await submissionsDB.setItem(submissionId, payload);
       } catch (e) { await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
     } else {
@@ -570,7 +577,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (!code || code.trim() === "" || code.trim() === "# Drag blocks to generate Python code") return;
     if (isOnline) {
       try {
-        const response = await fetch(`${API_BASE}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+        const token = localStorage.getItem("authToken");
+        const response = await fetch(`${API_BASE}/api/analyze`, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, // Added Auth just in case
+            body: JSON.stringify({ code }) 
+        });
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
         const data = await response.json();
 
@@ -595,7 +607,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   }, [generatedPython, isOnline]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
-    // ABORT ALL GHOST EVENTS DURING MOUNTING
     if (!isReadyRef.current) return;
 
     latestBlocksJsonRef.current = json;
@@ -678,13 +689,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     localStorage.setItem("user", JSON.stringify(user));
 
     const payload = { email: user.email, lesson_id: lessonId, score: user.progress[lessonId] };
-    
+    const token = localStorage.getItem("authToken");
+
     await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false });
 
     if (navigator.onLine && !user.isGuest) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { 
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) 
+          method: "POST", 
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, // ✅ AUTH BADGE ADDED
+          body: JSON.stringify(payload) 
         });
         if (res.ok) await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true });
         else throw new Error("Sync failed");
@@ -706,13 +720,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     localStorage.setItem("user", JSON.stringify(user));
 
     const payload = { email: user.email, lesson_id: topicId, score: 100, completed: true };
+    const token = localStorage.getItem("authToken");
 
     await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false });
 
     if (navigator.onLine && !user.isGuest) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { 
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) 
+          method: "POST", 
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, // ✅ AUTH BADGE ADDED
+          body: JSON.stringify(payload) 
         });
         if (res.ok) await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true });
         else throw new Error("Sync failed");
@@ -1068,9 +1085,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   );
 };
 
-// =======================================================================
-// EXPORT COMPONENT: Wraps Inner to guarantee 100% reset via `key` Prop
-// =======================================================================
 export default function ActivityApp() {
   const { moduleId, activityId } = useParams();
   return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;
