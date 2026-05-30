@@ -17,13 +17,24 @@ class AuthService:
     @staticmethod
     def login(req: LoginRequest):
         user = UserRepository.find_by_email(req.email)
-
-        # Extract stored password (might be None if they only use Google Auth)
         stored_password = user.get("password") if user else None
 
-        # Securely verify the hashed password
-        if not user or not stored_password or not pwd_context.verify(req.password, stored_password):
+        if not user or not stored_password:
             raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        # --- FIX: Gracefully handle old plaintext accounts ---
+        try:
+            is_valid = pwd_context.verify(req.password, stored_password)
+        except ValueError:
+            # This triggers if the database password isn't a bcrypt hash (an old account)
+            is_valid = False
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=401, 
+                detail="Invalid credentials. If this is an old account, please sign up again."
+            )
+        # -----------------------------------------------------
 
         # Generate JWT Token
         token = create_access_token({"sub": req.email})
