@@ -10,16 +10,25 @@ export default function SignIn() {
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState(""); 
   const [isLoading, setIsLoading] = useState(false); 
+  
+  // Custom Toast State
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  
   const navigate = useNavigate(); 
 
-  // ✅ FIX: Strip trailing slashes to prevent //api/login routing errors on Vercel
   const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
   const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
-  
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
 
-  // Hydrate local IndexedDB from MongoDB Cloud after wiping
-  const syncUserCloudData = async (userEmail) => {
+  // Custom notification trigger
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
+  };
+
+  const syncUserCloudData = async (userEmail, token) => {
     try {
       await Promise.all([
         projectsDB.clear(),
@@ -27,9 +36,14 @@ export default function SignIn() {
         syncQueueDB.clear()
       ]); 
 
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      };
+
       const [projRes, tempRes] = await Promise.all([
-        fetch(`${API_BASE}/api/projects`),
-        fetch(`${API_BASE}/api/templates`)
+        fetch(`${API_BASE}/api/projects`, { headers }),
+        fetch(`${API_BASE}/api/templates`, { headers })
       ]); 
 
       if (projRes.ok) {
@@ -72,24 +86,24 @@ export default function SignIn() {
       const data = await response.json(); 
 
       if (!response.ok) {
-        alert(data.detail || "Invalid email or password"); 
+        showToast(data.detail || "Invalid email or password"); 
         setIsLoading(false);
         return;
       }
 
-      // ✅ FIX: Added progress to localStorage so it persists across logins
+      localStorage.setItem("authToken", data.token);
       localStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
         progress: data.progress || {}
       })); 
 
-      await syncUserCloudData(data.email); 
-
+      await syncUserCloudData(data.email, data.token); 
       navigate("/dashboard"); 
+      
     } catch (error) {
       console.error(error); 
-      alert("Server not reachable. Check backend connection."); 
+      showToast("Server not reachable. Check backend connection."); 
     } finally {
       setIsLoading(false); 
     }
@@ -104,6 +118,8 @@ export default function SignIn() {
         syncQueueDB.clear()
       ]); 
 
+      localStorage.removeItem("authToken");
+
       localStorage.setItem("user", JSON.stringify({
         email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
@@ -114,6 +130,7 @@ export default function SignIn() {
       navigate("/dashboard"); 
     } catch (error) {
       console.error("Guest login failed:", error); 
+      showToast("Failed to initialize guest session.");
     } finally {
       setIsLoading(false); 
     }
@@ -131,23 +148,23 @@ export default function SignIn() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.detail || "Google authentication failed");
+        showToast(data.detail || "Google authentication failed");
         return;
       }
 
-      // ✅ FIX: Added progress to localStorage for Google Logins as well
+      localStorage.setItem("authToken", data.token);
       localStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
         progress: data.progress || {}
       }));
 
-      await syncUserCloudData(data.email);
-
+      await syncUserCloudData(data.email, data.token);
       navigate("/dashboard");
+      
     } catch (error) {
       console.error("Google Authentication error:", error);
-      alert("Server not reachable. Check backend connection.");
+      showToast("Server not reachable. Check backend connection.");
     } finally {
       setIsLoading(false);
     }
@@ -155,12 +172,16 @@ export default function SignIn() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      {/* Custom Toast Anchor */}
+      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
+        {toast.message}
+      </div>
+
       <div className="auth-container">
         <div className="auth-card">
           <h2>Sign In to AlgoBlocks</h2>
           <form onSubmit={handleSubmit}>
             
-            {/* Standard Email/Password Login */}
             <div className="form-group">
               <label>Email</label>
               <div className="auth-input-wrap">
@@ -195,16 +216,14 @@ export default function SignIn() {
               {isLoading ? "Signing In..." : "Sign In"}
             </button> 
 
-            {/* ✅ Beautifully Styled Divider matching existing Auth.css */}
             <div className="social-divider">
               <span>OR</span>
             </div> 
 
-            {/* ✅ Google Login Centered via Class */}
             <div className="google-auth-wrapper">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
-                onError={() => console.error("Google Sign-In Failure Triggered")}
+                onError={() => showToast("Google Sign-In sequence interrupted.")}
                 theme="outline" 
                 size="large"
                 shape="rectangular"
@@ -212,7 +231,6 @@ export default function SignIn() {
               />
             </div>
 
-            {/* ✅ Guest Button utilizing native Auth.css structure */}
             <button
               type="button"
               className="auth-button guest-button"
