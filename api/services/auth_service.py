@@ -3,38 +3,45 @@ from fastapi import HTTPException
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
-from passlib.context import CryptContext
+import bcrypt
 
 from repositories.user_repo import UserRepository
 from models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
 from database import db
 from security import create_access_token
 
-# Setup bcrypt for password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 class AuthService:
+    @staticmethod
+    def hash_password(password: str) -> str:
+        # Generate a salt and securely hash the password
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+        return hashed.decode('utf-8')
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        # Gracefully handle validation (prevents old plaintext passwords from crashing the app)
+        try:
+            return bcrypt.checkpw(
+                plain_password.encode('utf-8'), 
+                hashed_password.encode('utf-8')
+            )
+        except ValueError:
+            return False
+
     @staticmethod
     def login(req: LoginRequest):
         user = UserRepository.find_by_email(req.email)
+
+        # Extract stored password (might be None if they only use Google Auth)
         stored_password = user.get("password") if user else None
 
-        if not user or not stored_password:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-
-        # --- FIX: Gracefully handle old plaintext accounts ---
-        try:
-            is_valid = pwd_context.verify(req.password, stored_password)
-        except ValueError:
-            # This triggers if the database password isn't a bcrypt hash (an old account)
-            is_valid = False
-
-        if not is_valid:
+        # Securely verify the hashed password using the new bcrypt helper
+        if not user or not stored_password or not AuthService.verify_password(req.password, stored_password):
             raise HTTPException(
                 status_code=401, 
-                detail="Invalid credentials. If this is an old account, please sign up again."
+                detail="Invalid credentials. If this is an old test account, please sign up again."
             )
-        # -----------------------------------------------------
 
         # Generate JWT Token
         token = create_access_token({"sub": req.email})
@@ -54,7 +61,7 @@ class AuthService:
             raise HTTPException(status_code=400, detail="Email already registered")
 
         # Hash the password before saving it to the database
-        hashed_password = pwd_context.hash(req.password)
+        hashed_password = AuthService.hash_password(req.password)
 
         UserRepository.insert({
             "name": req.name,

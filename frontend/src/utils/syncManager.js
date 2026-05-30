@@ -9,16 +9,22 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 export const startBackgroundSync = async () => {
   if (!navigator.onLine) return;
 
+  // Retrieve the token for secure backend calls
+  const token = localStorage.getItem("authToken");
+  const headers = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   await syncQueueDB.iterate(async (task, id) => {
     try {
       let endpoint = '';
       let method = task.action === 'DELETE' ? 'DELETE' : 'POST';
       let targetId = task.data._id || task.data.id;
 
-      // Route to the correct endpoint based on task type
       if (task.type === 'TEMPLATE') endpoint = '/api/templates';
       else if (task.type === 'PROJECT') endpoint = '/api/projects';
-      else if (task.type === 'SUBMISSION') endpoint = '/api/update-progress'; // FIX APPLIED HERE
+      else if (task.type === 'SUBMISSION') endpoint = '/api/sync-submission'; // Ensure proper endpoint
       else if (task.type === 'PROGRESS') endpoint = '/api/update-progress';
       else if (task.type === 'ASSESSMENT') endpoint = '/api/update-assessment';
 
@@ -28,14 +34,13 @@ export const startBackgroundSync = async () => {
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers, // <-- FIX: Token is now sent here
         body: method === 'DELETE' ? null : JSON.stringify(task.data),
       });
 
       if (response.ok) {
         const result = await response.json();
         
-        // If it was a new project/template, update the local ID from "local_..." to the MongoDB ObjectId
         if (method === 'POST' && result.id && (task.type === 'TEMPLATE' || task.type === 'PROJECT')) {
           const db = task.type === 'TEMPLATE' ? templatesDB : projectsDB;
           const item = await db.getItem(id);
@@ -52,7 +57,6 @@ export const startBackgroundSync = async () => {
         }
 
         if (task.type === 'PROGRESS') {
-            // Supports both the new draft format and the old lesson_id format
             const progId = task.data.activityId 
                 ? `draft_${task.data.userId}_${task.data.moduleId}_${task.data.activityId}`
                 : task.data.lesson_id;
@@ -69,7 +73,6 @@ export const startBackgroundSync = async () => {
             if (ass) await assessmentsDB.setItem(assKey, { ...ass, isSynced: true });
         }
 
-        // Remove from queue after successful sync
         await syncQueueDB.removeItem(id);
       }
     } catch (err) {
@@ -78,12 +81,9 @@ export const startBackgroundSync = async () => {
   });
 };
 
-// Listen for connection return to auto-trigger sync immediately
 window.addEventListener('online', startBackgroundSync);
-
-// Poll every 30s as a fallback
 setInterval(startBackgroundSync, 30000); 
-startBackgroundSync(); // Run immediately on start
+startBackgroundSync(); 
 
 
 // ==========================================
@@ -92,18 +92,22 @@ startBackgroundSync(); // Run immediately on start
 export const fetchCloudData = async (userEmail) => {
   if (!navigator.onLine || !userEmail) return;
 
+  // Retrieve the token for secure backend calls
+  const token = localStorage.getItem("authToken");
+  const headers = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   try {
     // 1. Fetch Projects from cloud
-    const projRes = await fetch(`${API_BASE}/api/projects?userId=${userEmail}`);
+    const projRes = await fetch(`${API_BASE}/api/projects?userId=${userEmail}`, { headers }); // <-- FIX
     if (projRes.ok) {
       const data = await projRes.json();
-      
-      // FIX: Unwrap the "projects" array from the backend's JSON object
       const projects = data.projects || data; 
       
       if (Array.isArray(projects)) {
         for (const p of projects) {
-          // FIX: Check 'userId' because that is what Python uses in models.py
           if (p.userId === userEmail || p.owner_id === userEmail) { 
             await projectsDB.setItem(p._id, { ...p, synced: true });
           }
@@ -112,7 +116,7 @@ export const fetchCloudData = async (userEmail) => {
     }
 
     // 2. Fetch Templates from cloud
-    const tempRes = await fetch(`${API_BASE}/api/templates`);
+    const tempRes = await fetch(`${API_BASE}/api/templates`, { headers }); // <-- FIX
     if (tempRes.ok) {
       const templates = await tempRes.json();
       for (const t of templates) {
@@ -127,12 +131,12 @@ export const fetchCloudData = async (userEmail) => {
     let updated = false;
 
     try {
-        const progRes = await fetch(`${API_BASE}/api/get-progress?email=${userEmail}`);
+        // <-- FIX: Token included in headers here to clear the 401 Error
+        const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers }); 
         if (progRes.ok) {
             const data = await progRes.json();
             const progressDataRaw = data.progress || data;
             
-            // Normalize Array to Object Mapping
             let normalizedProg = {};
             if (Array.isArray(progressDataRaw)) {
                 progressDataRaw.forEach(item => {
@@ -154,12 +158,12 @@ export const fetchCloudData = async (userEmail) => {
     } catch (e) { console.warn("Could not sync progress"); }
 
     try {
-        const assRes = await fetch(`${API_BASE}/api/get-assessments?email=${userEmail}`);
+        // <-- FIX: Token included in headers here to clear the 401 Error
+        const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
         if (assRes.ok) {
             const data = await assRes.json();
             const assDataRaw = data.assessments || data;
 
-            // Normalize Array to Object Mapping
             let normalizedAssm = {};
             if (Array.isArray(assDataRaw)) {
                 assDataRaw.forEach(item => {
