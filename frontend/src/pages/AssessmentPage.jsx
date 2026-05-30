@@ -286,17 +286,27 @@ export default function AssessmentPage() {
 
     clearDraft(moduleId, type);
 
-    // 2. Cloud Sync (or Queue)
+    // ==========================================
+    // 2. Cloud Sync (or Queue) - FIXED AUTH HEADERS
+    // ==========================================
+    const token = localStorage.getItem("authToken"); // <-- GRAB THE TOKEN
+
     if (navigator.onLine && user.email && !user.isGuest) {
       try {
         const res = await fetch(`${API_BASE}/api/update-assessment`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // <-- INJECT TOKEN HERE
+          },
           body: JSON.stringify({ email: user.email, assessment_key: assessmentKey, data: result })
         });
         const progRes = await fetch(`${API_BASE}/api/update-progress`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // <-- INJECT TOKEN HERE
+          },
           body: JSON.stringify({ email: user.email, lesson_id: assessmentKey, score: finalScore })
         });
 

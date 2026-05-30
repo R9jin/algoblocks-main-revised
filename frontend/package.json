@@ -23,6 +23,7 @@
     "@react-oauth/google": "^0.13.5",
     "blockly": "^12.5.1",
     "dexie": "^4.4.2",
+    "dompurify": "^3.4.7",
     "localforage": "^1.10.0",
     "pyodide": "^0.29.3",
     "react": "^19.2.4",

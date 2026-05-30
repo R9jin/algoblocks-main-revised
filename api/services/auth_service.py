@@ -197,9 +197,21 @@ class AuthService:
         if not user_id or not activity_id:
             return {"status": "ignored"}
 
+        # FIX: Prevent Mass Assignment by explicitly defining allowed fields
+        allowed_fields = [
+            "userId", "moduleId", "activityId", "type", "status", 
+            "score", "maxScore", "passedTestCases", "totalTestCases", 
+            "passed_tests", "total_tests", "testCases", 
+            "target_complexity", "actual_complexity", 
+            "target_space_complexity", "actual_space_complexity", 
+            "workspace", "pythonCode", "timestamp", "submittedAt", "isSynced"
+        ]
+        
+        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
+
         db["submissions"].update_one(
             {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
-            {"$set": payload},
+            {"$set": safe_update_data},
             upsert=True
         )
         return {"status": "success", "message": "Submission synced"}
@@ -224,9 +236,13 @@ class AuthService:
         if not user_id or not module_id:
             return {"status": "ignored"}
 
+        # FIX: Prevent Mass Assignment explicitly defining allowed fields
+        allowed_fields = ["userId", "moduleId", "answers", "score", "completed", "timestamp", "passed"]
+        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
+
         db["assessments"].update_one(
             {"userId": user_id, "moduleId": module_id},
-            {"$set": payload},
+            {"$set": safe_update_data},
             upsert=True
         )
         return {"status": "success", "message": "Assessment synced"}

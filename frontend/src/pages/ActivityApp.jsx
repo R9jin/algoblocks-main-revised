@@ -1,5 +1,6 @@
 // frontend/src/pages/ActivityApp.jsx
 import Editor from "@monaco-editor/react";
+import DOMPurify from "dompurify"; // <-- XSS FIX: Import DOMPurify
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
@@ -35,7 +36,10 @@ const renderFormattedTask = (text) => {
     .replace(/\n/g, "<br/>")
     .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #26004a;">$1</strong>')
     .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>');
-  return <div dangerouslySetInnerHTML={{ __html: formattedHtml }} />;
+  
+  // <-- XSS FIX: Sanitize parsed text before inserting into DOM
+  const cleanHtml = DOMPurify.sanitize(formattedHtml);
+  return <div dangerouslySetInnerHTML={{ __html: cleanHtml }} />;
 };
 
 const getComplexityColor = (complexity) => {
@@ -109,7 +113,10 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       );
     }
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: parsedSec}}></p>;
+    
+    // <-- XSS FIX: Sanitize explanation text (which contains user code variables) before inserting into DOM
+    const cleanSec = DOMPurify.sanitize(parsedSec);
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: cleanSec}}></p>;
   }).filter(Boolean);
 };
 
@@ -363,7 +370,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     
     if (navigator.onLine && API_BASE) {
       try {
-        const token = localStorage.getItem("authToken"); // ✅ AUTH BADGE ADDED
+        const token = localStorage.getItem("authToken"); 
         fetch(`${API_BASE}/api/sync-submission`, {
           method: "POST", 
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -408,7 +415,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         let cloudSubmission = null;
         if (navigator.onLine && !user.isGuest) {
             try {
-                const token = localStorage.getItem("authToken"); // ✅ AUTH BADGE ADDED
+                const token = localStorage.getItem("authToken"); 
                 const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
@@ -554,7 +561,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         await fetch(`${API_BASE}/api/sync-submission`, { 
             method: "POST", 
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, // ✅ AUTH BADGE ADDED
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
             body: JSON.stringify(payload) 
         });
         payload.isSynced = true; await submissionsDB.setItem(submissionId, payload);
@@ -580,7 +587,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const token = localStorage.getItem("authToken");
         const response = await fetch(`${API_BASE}/api/analyze`, { 
             method: "POST", 
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, // Added Auth just in case
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
             body: JSON.stringify({ code }) 
         });
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
@@ -697,7 +704,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { 
           method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, // ✅ AUTH BADGE ADDED
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
           body: JSON.stringify(payload) 
         });
         if (res.ok) await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true });
@@ -728,7 +735,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { 
           method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, // ✅ AUTH BADGE ADDED
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
           body: JSON.stringify(payload) 
         });
         if (res.ok) await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true });

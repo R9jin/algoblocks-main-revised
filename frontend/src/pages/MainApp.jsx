@@ -1,4 +1,5 @@
 // frontend/src/pages/MainApp.jsx
+import DOMPurify from "dompurify"; // <-- XSS FIX: Import DOMPurify
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Split from "react-split";
@@ -130,7 +131,9 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     }
 
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: parsedSec}}></p>;
+    // <-- XSS FIX: Sanitize parsed text before inserting into DOM
+    const cleanSec = DOMPurify.sanitize(parsedSec);
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: cleanSec}}></p>;
   }).filter(Boolean);
 };
 
@@ -336,7 +339,6 @@ export default function MainApp() {
 
       if (navigator.onLine) {
         try {
-          // FIXED: Pass explicit userId parameter so backend responds properly
           const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`);
           if (pRes.ok) {
             const pData = await pRes.json();
@@ -365,7 +367,7 @@ export default function MainApp() {
         if (value.owner_id === user.email || value.userId === user.email) {
             customItems.push({ 
                 _id: value._id, 
-                title: value.title || value.name || "Untitled Project", // FIXED: Fallback prevents crash
+                title: value.title || value.name || "Untitled Project", 
                 description: value.description || "Saved Project", 
                 category: "My Projects", 
                 isSystem: false, 
@@ -379,7 +381,7 @@ export default function MainApp() {
         if (value.owner_id === user.email || value.userId === user.email) {
             customItems.push({ 
                 _id: value._id, 
-                title: value.title || value.name || "Untitled Template", // FIXED: Fallback prevents crash
+                title: value.title || value.name || "Untitled Template", 
                 description: value.description || "Custom template", 
                 category: value.category || "Custom Templates", 
                 isSystem: false, 
@@ -631,7 +633,6 @@ export default function MainApp() {
     });
   };
 
-  // FIXED: Offline-First Flow Implementation
   const submitSave = async () => {
     const userStr = localStorage.getItem("user");
     if (!userStr) return;
@@ -649,7 +650,7 @@ export default function MainApp() {
         data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson, 
         workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson }, // Backup
         owner_id: user.email, 
-        userId: user.email, // FIXED: Secure property for backend
+        userId: user.email, 
         synced: false, 
         updatedAt: Date.now() 
     };
@@ -675,7 +676,6 @@ export default function MainApp() {
 
             if (res.ok) {
                 const responseData = await res.json();
-                // Get verified DB ID 
                 const realId = responseData.projectId || responseData.templateId || responseData._id || id;
                 
                 payload._id = realId;
@@ -728,7 +728,6 @@ export default function MainApp() {
     }
   };
 
-  // FIXED: Prevents TypeError if title is somehow undefined during filter mapping
   const filteredTemplates = allTemplates.filter(t => 
     String(t.title || "").toLowerCase().includes(String(searchTerm || "").toLowerCase())
   );
