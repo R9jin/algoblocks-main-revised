@@ -3,25 +3,38 @@ from fastapi import HTTPException
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
+from passlib.context import CryptContext
 
 from repositories.user_repo import UserRepository
 from models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
 from database import db
+from security import create_access_token
+
+# Setup bcrypt for password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class AuthService:
     @staticmethod
     def login(req: LoginRequest):
         user = UserRepository.find_by_email(req.email)
 
-        if not user or user.get("password") != req.password:
+        # Extract stored password (might be None if they only use Google Auth)
+        stored_password = user.get("password") if user else None
+
+        # Securely verify the hashed password
+        if not user or not stored_password or not pwd_context.verify(req.password, stored_password):
             raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        # Generate JWT Token
+        token = create_access_token({"sub": req.email})
 
         return {
             "status": "success",
             "email": req.email,
             "name": user.get("name"),
             "progress": user.get("progress", {}),
-            "assessments": user.get("assessments", {}) 
+            "assessments": user.get("assessments", {}),
+            "token": token
         }
 
     @staticmethod
@@ -29,18 +42,25 @@ class AuthService:
         if UserRepository.find_by_email(req.email):
             raise HTTPException(status_code=400, detail="Email already registered")
 
+        # Hash the password before saving it to the database
+        hashed_password = pwd_context.hash(req.password)
+
         UserRepository.insert({
             "name": req.name,
             "email": req.email,
-            "password": req.password,
+            "password": hashed_password,
             "progress": {},
             "assessments": {} 
         })
 
+        # Generate JWT Token
+        token = create_access_token({"sub": req.email})
+
         return {
             "status": "success",
             "email": req.email,
-            "name": req.name
+            "name": req.name,
+            "token": token
         }
 
     @staticmethod
@@ -132,12 +152,16 @@ class AuthService:
                 })
                 user = UserRepository.find_by_email(email)
 
+            # Generate JWT Token
+            backend_token = create_access_token({"sub": email})
+
             return {
                 "status": "success",
                 "email": email,
                 "name": user.get("name"),
                 "progress": user.get("progress", {}),
-                "assessments": user.get("assessments", {}) 
+                "assessments": user.get("assessments", {}),
+                "token": backend_token
             }
 
         except ValueError:
@@ -202,7 +226,6 @@ class AuthService:
         if not email:
             return {"status": "ignored"}
             
-        # Fetches all submissions from MongoDB, converts cursor to list, removes ObjectID
         submissions = list(db["submissions"].find({"userId": email}, {"_id": 0}))
         
         return {"status": "success", "submissions": submissions}

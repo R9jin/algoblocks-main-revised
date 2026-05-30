@@ -1,15 +1,15 @@
 # api/models.py
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 from typing import Dict, Any, Optional
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 class SignUpRequest(BaseModel):
-    name: str
-    email: str
-    password: str
+    name: str = Field(..., min_length=2, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
 
 # FIX: Made highly permissive to prevent 422 errors from React state delays
 class ProgressRequest(BaseModel):
