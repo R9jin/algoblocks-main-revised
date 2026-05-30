@@ -36,17 +36,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     const loadLocalData = async () => {
+      // FIX: Check both storages safely
       const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUserStr) {
         setLoading(false);
         return;
       }
-      const storedUser = JSON.parse(storedUserStr);
+      const storedUser = JSON.parse(storedUserStr || "{}");
 
       // --- 1. PULL CLOUD DATA FIRST ---
       if (navigator.onLine) {
         try {
-          // FIXED: Pass explicit userId parameter so backend responds properly
           const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`);
           if (pRes.ok) {
             const pData = await pRes.json();
@@ -56,14 +56,12 @@ export default function Dashboard() {
             else if (Array.isArray(pData)) cloudProjects = pData;
 
             for (const cp of cloudProjects) {
-              // FIXED: CHECK BOTH USER ID TYPES
               if (cp.owner_id === storedUser.email || cp.userId === storedUser.email) {
                 await projectsDB.setItem(cp._id, { ...cp, synced: true });
               }
             }
           }
 
-          // FIXED: Pass explicit userId parameter so backend responds properly
           const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`);
           if (tRes.ok) {
             const tData = await tRes.json();
@@ -73,7 +71,6 @@ export default function Dashboard() {
             else if (Array.isArray(tData)) cloudTemplates = tData;
 
             for (const ct of cloudTemplates) {
-              // FIXED: CHECK BOTH USER ID TYPES
               if (ct.owner_id === storedUser.email || ct.userId === storedUser.email) {
                 await templatesDB.setItem(ct._id, { ...ct, synced: true });
               }
@@ -88,7 +85,6 @@ export default function Dashboard() {
       
       const userProjects = [];
       await projectsDB.iterate((value) => {
-        // FIXED: CHECK BOTH USER ID TYPES
         if (value.owner_id === storedUser.email || value.userId === storedUser.email) {
           userProjects.push(value);
         }
@@ -102,7 +98,6 @@ export default function Dashboard() {
 
       const userTemplates = [];
       await templatesDB.iterate((value) => {
-        // FIXED: CHECK BOTH USER ID TYPES
         if (value.owner_id === storedUser.email || value.userId === storedUser.email) {
           userTemplates.push(value);
         }

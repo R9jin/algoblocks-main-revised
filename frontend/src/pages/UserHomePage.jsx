@@ -15,9 +15,10 @@ export default function UserHomePage() {
 
   // Load the user from the database session on mount
   useEffect(() => {
+    // FIX: Check both storages safely
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      setUser(JSON.parse(storedUser || "{}"));
     } else {
       navigate("/signin"); // Protect the route
     }
@@ -50,7 +51,6 @@ export default function UserHomePage() {
             </p>
 
             <div className="hero-buttons">
-              {/* Changed to navigate straight to dashboard */}
               <button 
                 className="btn-primary" 
                 onClick={() => navigate('/dashboard')}
@@ -83,52 +83,34 @@ export default function UserHomePage() {
           </p>
 
           <div className="cards-grid">
-            <div
-              className="card"
-              onClick={() => navigate("/projects")}
-              style={{ cursor: "pointer" }}
-            >
+            <div className="card" onClick={() => navigate("/projects")} style={{ cursor: "pointer" }}>
               <div className="card-icon">
                 <span className="card-icon-badge">
                   <LuFolder size={24} color="#7F57F9" aria-hidden="true" />
                 </span>
               </div>
               <h3>Open Saved Projects</h3>
-              <p>
-                Resume previous sessions and refine your logic with line-by-line complexity insights.
-              </p>
+              <p>Resume previous sessions and refine your logic with line-by-line complexity insights.</p>
             </div>
 
-            <div
-              className="card"
-              onClick={() => navigate("/learning-path")}
-              style={{ cursor: "pointer" }}
-            >
+            <div className="card" onClick={() => navigate("/learning-path")} style={{ cursor: "pointer" }}>
               <div className="card-icon">
                 <span className="card-icon-badge">
                   <LuBookOpen size={24} color="#7F57F9" aria-hidden="true" />
                 </span>
               </div>
               <h3>Learning Mode</h3>
-              <p>
-                Practice guided tasks with structured hints to strengthen your step-by-step understanding.
-              </p>
+              <p>Practice guided tasks with structured hints to strengthen your step-by-step understanding.</p>
             </div>
 
-            <div
-              className="card"
-              onClick={() => navigate('/workspace')} // Routes directly to workspace now
-              style={{ cursor: "pointer" }}
-            >
+            <div className="card" onClick={() => navigate('/workspace')} style={{ cursor: "pointer" }}>
               <div className="card-icon">
                 <span className="card-icon-badge">
                   <LuChartBar size={24} color="#7F57F9" aria-hidden="true" />
                 </span>
               </div>
               <h3>Performance Feedback</h3>
-              <p>
-                See how edits change Big-O and identify where inefficiencies appear in your solution.
-              </p>
+              <p>See how edits change Big-O and identify where inefficiencies appear in your solution.</p>
             </div>
           </div>
         </section>
@@ -146,18 +128,13 @@ export default function UserHomePage() {
           </div>
 
           <div className="feature-image-container">
-            <img
-              src="/assets/example.png"
-              alt="AlgoBlocks Interface Example"
-              className="feature-example-image"
-            />
+            <img src="/assets/example.png" alt="AlgoBlocks Interface Example" className="feature-example-image" />
           </div>
         </section>
       </main>
 
       <Footer />
 
-      {/* THE LOGOUT POPUP MODAL */}
       {showLogoutModal && (
         <div className="logout-modal-overlay">
           <div className="logout-modal">

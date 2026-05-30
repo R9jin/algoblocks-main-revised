@@ -1,3 +1,4 @@
+// frontend/src/pages/ProfilePage.jsx
 import { useEffect, useState } from "react";
 import { FiActivity, FiAward, FiBookOpen, FiCheckCircle, FiCode, FiCpu } from "react-icons/fi";
 import { Link } from "react-router-dom";
@@ -16,13 +17,13 @@ export default function ProfilePage() {
   });
   const [moduleMastery, setModuleMastery] = useState([]);
 
-  // 1. Securely load data (Maintains strict JWT Authorization)
   useEffect(() => {
     const loadOfflineData = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_URL || "";
         const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
-        let parsed = stored ? JSON.parse(stored) : { name: "User", email: "", progress: {}, assessments: {} };
+        let parsed = JSON.parse(stored || "{}");
+        if (!parsed.email) parsed = { name: "User", email: "", progress: {}, assessments: {} };
         
         let initialProg = parsed.progress || {};
         let initialAssm = parsed.assessments || {};
@@ -38,7 +39,7 @@ export default function ProfilePage() {
 
         if (navigator.onLine && parsed.email && !parsed.isGuest) {
             try {
-                const token = localStorage.getItem("authToken");
+                const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
                 const headers = { "Content-Type": "application/json" };
                 if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -64,7 +65,9 @@ export default function ProfilePage() {
                 
                 const finalUser = { ...parsed, progress: initialProg, assessments: initialAssm };
                 setUser(finalUser);
-                localStorage.setItem("user", JSON.stringify(finalUser));
+                
+                if (localStorage.getItem("user")) localStorage.setItem("user", JSON.stringify(finalUser));
+                if (sessionStorage.getItem("user")) sessionStorage.setItem("user", JSON.stringify(finalUser));
             } catch (e) {
                 console.warn("Could not sync latest progress for profile:", e);
             }
@@ -77,14 +80,12 @@ export default function ProfilePage() {
     loadOfflineData();
   }, []);
 
-  // 2. Calculate Advanced Metrics & Module Mastery
   useEffect(() => {
     let tLessons = 0;
     let cLessons = 0;
     let tActivities = 0;
     let scoreSum = 0;
     
-    // Build array for individual module progress
     const masteryData = curriculumIndex.map((module) => {
       const lessonsInModule = module.lessons.length;
       let completedInModule = 0;
@@ -93,13 +94,31 @@ export default function ProfilePage() {
       module.lessons.forEach((lesson) => {
         tActivities += 1; 
         const rawScore = user.progress[lesson.lessonId];
-        const val = typeof rawScore === 'object' ? rawScore.score : rawScore;
-        const score = val || 0;
+        
+        let score = 0;
+        
+        // Safely extract the score regardless of how it was saved (object, boolean, or number)
+        if (typeof rawScore === 'object' && rawScore !== null) {
+            score = rawScore.score !== undefined ? Number(rawScore.score) : 0;
+        } else if (rawScore === true) {
+            score = 100;
+        } else {
+            score = Number(rawScore) || 0;
+        }
+        
+        // FIX: Normalize old 5-point scale saves to a 100% scale.
+        if (score > 0 && score <= 5) {
+            score = (score / 5) * 100;
+        }
+
+        // Safety cap to strictly prevent > 100% math explosions
+        score = Math.min(score, 100);
         
         if (score >= 1) {
           cLessons += 1;
           completedInModule += 1;
         }
+        
         scoreSum += score;
       });
 
@@ -118,7 +137,8 @@ export default function ProfilePage() {
       lessonsCompleted: cLessons,
       totalLessons: tLessons,
       totalActivities: tActivities,
-      overallScore: tActivities > 0 ? Math.round((scoreSum / (tActivities * 5)) * 100) : 0, 
+      // FIX: Calculate true average out of 100% instead of multiplying by random factors
+      overallScore: tActivities > 0 ? Math.round(scoreSum / tActivities) : 0, 
       assessmentsTaken: assessmentsTaken
     });
     
@@ -132,12 +152,10 @@ export default function ProfilePage() {
       <DashboardHeader />
       
       <div className="profile-container-v2">
-        {/* 1. Hero Cover Area */}
         <div className="profile-cover">
           <div className="cover-pattern"></div>
         </div>
 
-        {/* 2. Main Profile Header */}
         <div className="profile-header-card">
           <div className="profile-avatar-wrapper">
             <div className="profile-avatar-v2">{initials}</div>
@@ -159,10 +177,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* 3. Dashboard Grid Layout */}
         <div className="profile-content-grid">
-          
-          {/* Left Sidebar: Quick Stats */}
           <aside className="profile-sidebar">
             <h3 className="sidebar-title">Performance Overview</h3>
             
@@ -191,7 +206,6 @@ export default function ProfilePage() {
             </div>
           </aside>
 
-          {/* Right Main Content: Module Mastery */}
           <main className="profile-main-content">
             <div className="content-header-row">
               <h2>Module Mastery</h2>

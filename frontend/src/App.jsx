@@ -14,7 +14,8 @@ import { startBackgroundSync } from "./utils/syncManager";
 import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
 
 const ProtectedRoute = ({ children }) => {
-  const user = localStorage.getItem("user");
+  // FIX: Check BOTH localStorage and sessionStorage
+  const user = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!user) {
     return <Navigate to="/signin" replace />;
   }
