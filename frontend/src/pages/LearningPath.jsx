@@ -42,7 +42,6 @@ export default function LearningPath() {
         await progressDB.iterate((value, key) => {
             if (!value) return;
             const realKey = value.lesson_id || key;
-            // Guard against corrupted numeric keys from previous sync bugs
             if (typeof realKey === 'string' && isNaN(Number(realKey))) {
                 initialProg[realKey] = value.score !== undefined ? value.score : value;
             }
@@ -51,7 +50,6 @@ export default function LearningPath() {
             if (!value) return;
             const realKey = value.assessment_key || key;
             const realVal = value.data || value;
-            // Guard against corrupted numeric keys from previous sync bugs
             if (typeof realKey === 'string' && isNaN(Number(realKey))) {
                 initialAssm[realKey] = realVal;
             }
@@ -60,16 +58,20 @@ export default function LearningPath() {
         setUserProgress(initialProg);
         setAssessments(initialAssm);
 
-        // 2. Explicitly fetch from the cloud properly (Vercel Fix)
+        // 2. Explicitly fetch from the cloud properly
         if (navigator.onLine && parsed.email && !parsed.isGuest) {
             try {
+                // ✅ SECURE FETCH SETUP
+                const token = localStorage.getItem("authToken");
+                const headers = { "Content-Type": "application/json" };
+                if (token) headers["Authorization"] = `Bearer ${token}`;
+
                 // Fetch Progress
-                const progRes = await fetch(`${API_BASE}/api/get-progress?email=${parsed.email}`);
+                const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
                 if (progRes.ok) {
                     const data = await progRes.json();
                     const progDataRaw = data.progress || data;
                     
-                    // ✅ FIX: Normalize Array to Object Mapping
                     let normalizedProg = {};
                     if (Array.isArray(progDataRaw)) {
                         progDataRaw.forEach(item => {
@@ -89,12 +91,11 @@ export default function LearningPath() {
                 }
 
                 // Fetch Assessments
-                const assRes = await fetch(`${API_BASE}/api/get-assessments?email=${parsed.email}`);
+                const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
                 if (assRes.ok) {
                     const data = await assRes.json();
                     const assDataRaw = data.assessments || data;
 
-                    // ✅ FIX: Normalize Array to Object Mapping
                     let normalizedAssm = {};
                     if (Array.isArray(assDataRaw)) {
                         assDataRaw.forEach(item => {

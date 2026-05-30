@@ -5,7 +5,7 @@ import jwt
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = os.getenv("JWT_SECRET", "super-secret-thesis-key") # Change this in production
+SECRET_KEY = os.getenv("JWT_SECRET", "algoblocks-super-secure-thesis-key-2026-xyz") # Change this in production
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7 
 

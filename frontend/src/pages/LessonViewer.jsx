@@ -93,10 +93,15 @@ export default function LessonViewer() {
         setUserProgress(initialProg);
         setAssessments(initialAssm);
 
-        // 2. Explicitly fetch from the cloud properly (Vercel Fix)
+        // 2. Explicitly fetch from the cloud properly
         if (navigator.onLine && parsed.email && !parsed.isGuest) {
             try {
-                const progRes = await fetch(`${API_BASE}/api/get-progress?email=${parsed.email}`);
+                // ✅ SECURE FETCH SETUP
+                const token = localStorage.getItem("authToken");
+                const headers = { "Content-Type": "application/json" };
+                if (token) headers["Authorization"] = `Bearer ${token}`;
+
+                const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
                 if (progRes.ok) {
                     const data = await progRes.json();
                     const progData = data.progress || data;
@@ -106,7 +111,7 @@ export default function LessonViewer() {
                     }
                 }
 
-                const assRes = await fetch(`${API_BASE}/api/get-assessments?email=${parsed.email}`);
+                const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
                 if (assRes.ok) {
                     const data = await assRes.json();
                     const assData = data.assessments || data;
