@@ -2,9 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import Dict, Any, List
 
-# CORRECTED IMPORTS: Removed 'api.' prefix since we are running inside the api folder
 from database import db 
-from security import get_current_user 
+from security import get_current_user_email  # FIXED: Correct function name
 
 router = APIRouter()
 
@@ -12,8 +11,7 @@ router = APIRouter()
 # GET PROGRESS
 # -------------------------------------------------------------
 @router.get("/get-progress")
-async def get_progress(current_user: dict = Depends(get_current_user)):
-    user_email = current_user.get("email")
+async def get_progress(user_email: str = Depends(get_current_user_email)): # FIXED: Now expects a string
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
@@ -27,8 +25,7 @@ async def get_progress(current_user: dict = Depends(get_current_user)):
 # GET ASSESSMENTS
 # -------------------------------------------------------------
 @router.get("/get-assessments")
-async def get_assessments(current_user: dict = Depends(get_current_user)):
-    user_email = current_user.get("email")
+async def get_assessments(user_email: str = Depends(get_current_user_email)): # FIXED
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
@@ -44,14 +41,12 @@ async def get_assessments(current_user: dict = Depends(get_current_user)):
 @router.get("/get-all-submissions")
 async def get_all_submissions(
     email: str = Query(..., description="User email"),
-    current_user: dict = Depends(get_current_user)
+    token_email: str = Depends(get_current_user_email) # FIXED
 ):
     """
     Fetches all coding activity submissions for a user securely.
     Verifies token and ensures requested email matches the logged-in user.
     """
-    token_email = current_user.get("email")
-    
     if not token_email or token_email.lower() != email.lower():
         raise HTTPException(status_code=403, detail="Not authorized to access this user's submissions")
 
@@ -66,8 +61,7 @@ async def get_all_submissions(
 # UPDATE PROGRESS
 # -------------------------------------------------------------
 @router.post("/update-progress")
-async def update_progress(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    user_email = current_user.get("email")
+async def update_progress(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)): # FIXED
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
@@ -94,8 +88,7 @@ async def update_progress(payload: dict = Body(...), current_user: dict = Depend
 # UPDATE ASSESSMENT
 # -------------------------------------------------------------
 @router.post("/update-assessment")
-async def update_assessment(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    user_email = current_user.get("email")
+async def update_assessment(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)): # FIXED
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
@@ -121,8 +114,7 @@ async def update_assessment(payload: dict = Body(...), current_user: dict = Depe
 # SYNC SUBMISSION (Handles Python Code & Test Outputs)
 # -------------------------------------------------------------
 @router.post("/sync-submission")
-async def sync_submission(payload: dict = Body(...), current_user: dict = Depends(get_current_user)):
-    user_email = current_user.get("email")
+async def sync_submission(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)): # FIXED
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 

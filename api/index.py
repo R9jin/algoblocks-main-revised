@@ -39,6 +39,9 @@ app.include_router(project_router.router, prefix="/api/projects", tags=["Project
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
 
+# FIXED: Added the missing inclusion for the progress router!
+app.include_router(progress_router.router, prefix="/api", tags=["Progress & Assessments"])
+
 @app.get("/api/health")
 async def health_check():
     try:
