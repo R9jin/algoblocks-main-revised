@@ -7,7 +7,7 @@ import bcrypt
 import logging
 
 from repositories.user_repo import UserRepository
-from models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
+from models import LoginRequest, SignUpRequest
 from database import db
 from security import create_access_token
 
@@ -32,7 +32,7 @@ class AuthService:
             return False
 
     @staticmethod
-    async def signup(request: SignUpRequest):
+    def signup(request: SignUpRequest):
         """Registers a new user and generates an initial JWT token."""
         try:
             existing_user = UserRepository.find_by_email(request.email)
@@ -70,7 +70,7 @@ class AuthService:
             raise HTTPException(status_code=500, detail="Internal server error during sign up")
 
     @staticmethod
-    async def login(request: LoginRequest):
+    def login(request: LoginRequest):
         """Authenticates an existing user via email/password and generates a fresh JWT token."""
         try:
             user = UserRepository.find_by_email(request.email)
@@ -101,10 +101,9 @@ class AuthService:
             raise HTTPException(status_code=500, detail="Internal server error during login")
 
     @staticmethod
-    async def google_login(token: str):
+    def google_login(token: str):
         """Verifies a Google OAuth token, creates an account if needed, and issues a JWT token."""
         try:
-            # Specify the CLIENT_ID of the app that accesses the backend
             idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
 
             if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
@@ -113,21 +112,18 @@ class AuthService:
             user_email = idinfo['email']
             user_name = idinfo.get('name', user_email.split('@')[0])
 
-            # Check if user exists in the database
             user = UserRepository.find_by_email(user_email)
 
-            # If user does not exist, create a new one (without a standard password)
             if not user:
                 user_data = {
                     "email": user_email,
                     "name": user_name,
                     "auth_provider": "google",
-                    "password": None # Google users don't have standard passwords
+                    "password": None 
                 }
                 UserRepository.create_user(user_data)
                 logger.info(f"Created new user via Google Login: {user_email}")
 
-            # Generate the secure internal JWT token using our new strict security rules
             access_token = create_access_token(data={"sub": user_email, "email": user_email})
 
             return {
