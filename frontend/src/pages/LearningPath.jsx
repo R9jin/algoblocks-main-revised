@@ -40,19 +40,19 @@ export default function LearningPath() {
 
         // 1. Explicitly override with IndexedDB (Offline First Source of Truth)
         await progressDB.iterate((value, key) => {
-            if (!value) return;
-            const realKey = value.lesson_id || key;
-            if (typeof realKey === 'string' && isNaN(Number(realKey))) {
-                initialProg[realKey] = value.score !== undefined ? value.score : value;
-            }
+          if (!value) return;
+          const realKey = value.lesson_id || key;
+          if (typeof realKey === 'string' && isNaN(Number(realKey))) {
+            initialProg[realKey] = value.score !== undefined ? value.score : value;
+          }
         });
         await assessmentsDB.iterate((value, key) => {
-            if (!value) return;
-            const realKey = value.assessment_key || key;
-            const realVal = value.data || value;
-            if (typeof realKey === 'string' && isNaN(Number(realKey))) {
-                initialAssm[realKey] = realVal;
-            }
+          if (!value) return;
+          const realKey = value.assessment_key || key;
+          const realVal = value.data || value;
+          if (typeof realKey === 'string' && isNaN(Number(realKey))) {
+            initialAssm[realKey] = realVal;
+          }
         });
 
         setUserProgress(initialProg);
@@ -60,72 +60,72 @@ export default function LearningPath() {
 
         // 2. Explicitly fetch from the cloud properly
         if (navigator.onLine && parsed.email && !parsed.isGuest) {
-            try {
-                // ✅ SECURE FETCH SETUP
-                const token = localStorage.getItem("authToken");
-                const headers = { "Content-Type": "application/json" };
-                if (token) headers["Authorization"] = `Bearer ${token}`;
-
-                // Fetch Progress
-                const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
-                if (progRes.ok) {
-                    const data = await progRes.json();
-                    const progDataRaw = data.progress || data;
-                    
-                    let normalizedProg = {};
-                    if (Array.isArray(progDataRaw)) {
-                        progDataRaw.forEach(item => {
-                            const k = item.lesson_id || item.key;
-                            if (k) normalizedProg[k] = item.score !== undefined ? item.score : (item.data?.score ?? 1);
-                        });
-                    } else if (typeof progDataRaw === 'object' && progDataRaw !== null) {
-                        normalizedProg = progDataRaw;
-                    }
-
-                    for (const [key, val] of Object.entries(normalizedProg)) {
-                        if (typeof key === 'string' && isNaN(Number(key))) {
-                            initialProg[key] = val;
-                            await progressDB.setItem(key, { score: val, isSynced: true });
-                        }
-                    }
-                }
-
-                // Fetch Assessments
-                const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
-                if (assRes.ok) {
-                    const data = await assRes.json();
-                    const assDataRaw = data.assessments || data;
-
-                    let normalizedAssm = {};
-                    if (Array.isArray(assDataRaw)) {
-                        assDataRaw.forEach(item => {
-                            const k = item.assessment_key || item.key;
-                            if (k) normalizedAssm[k] = item.data || item;
-                        });
-                    } else if (typeof assDataRaw === 'object' && assDataRaw !== null) {
-                        normalizedAssm = assDataRaw;
-                    }
-
-                    for (const [key, val] of Object.entries(normalizedAssm)) {
-                        if (typeof key === 'string' && isNaN(Number(key))) {
-                            initialAssm[key] = val;
-                            await assessmentsDB.setItem(key, { ...val, isSynced: true });
-                        }
-                    }
-                }
-                
-                setUserProgress({...initialProg});
-                setAssessments({...initialAssm});
-                
-                parsed.progress = initialProg;
-                parsed.assessments = initialAssm;
-                localStorage.setItem("user", JSON.stringify(parsed));
-            } catch (e) {
-                console.warn("Could not fetch latest progress from cloud:", e);
+          try {
+            const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+            const headers = { "Content-Type": "application/json" };
+            if (token) {
+              headers["Authorization"] = `Bearer ${token}`;
             }
+
+            const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+            if (progRes.ok) {
+              const data = await progRes.json();
+              const progDataRaw = data.progress || data;
+
+              let normalizedProg = {};
+              if (Array.isArray(progDataRaw)) {
+                progDataRaw.forEach(item => {
+                  const k = item.lesson_id || item.key;
+                  if (k) normalizedProg[k] = item.score !== undefined ? item.score : (item.data?.score ?? 1);
+                });
+              } else if (typeof progDataRaw === 'object' && progDataRaw !== null) {
+                normalizedProg = progDataRaw;
+              }
+
+              for (const [key, val] of Object.entries(normalizedProg)) {
+                if (typeof key === 'string' && isNaN(Number(key))) {
+                  initialProg[key] = val;
+                  await progressDB.setItem(key, { score: val, isSynced: true });
+                }
+              }
+            }
+
+            // Fetch Assessments
+            const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
+            if (assRes.ok) {
+              const data = await assRes.json();
+              const assDataRaw = data.assessments || data;
+
+              let normalizedAssm = {};
+              if (Array.isArray(assDataRaw)) {
+                assDataRaw.forEach(item => {
+                  const k = item.assessment_key || item.key;
+                  if (k) normalizedAssm[k] = item.data || item;
+                });
+              } else if (typeof assDataRaw === 'object' && assDataRaw !== null) {
+                normalizedAssm = assDataRaw;
+              }
+
+              for (const [key, val] of Object.entries(normalizedAssm)) {
+                if (typeof key === 'string' && isNaN(Number(key))) {
+                  initialAssm[key] = val;
+                  await assessmentsDB.setItem(key, { ...val, isSynced: true });
+                }
+              }
+            }
+
+            setUserProgress({ ...initialProg });
+            setAssessments({ ...initialAssm });
+
+            parsed.progress = initialProg;
+            parsed.assessments = initialAssm;
+            localStorage.setItem("user", JSON.stringify(parsed));
+          } catch (e) {
+            console.warn("Could not fetch latest progress from cloud:", e);
+          }
         }
       } catch (e) {
-          console.warn("Error loading offline progress:", e);
+        console.warn("Error loading offline progress:", e);
       }
     };
     loadOfflineData();
@@ -135,13 +135,13 @@ export default function LearningPath() {
     const fetchAllData = async () => {
       const details = {};
       const acts = {};
-      
+
       for (const module of curriculumIndex) {
         const mid = module.moduleId.split("-").pop();
         try {
           const resAct = await fetch(`/data/activities/module_${mid}.json`);
           if (resAct.ok) acts[module.moduleId] = await resAct.json();
-        } catch (e) {}
+        } catch (e) { }
 
         for (const lesson of module.lessons) {
           try {
@@ -189,7 +189,7 @@ export default function LearningPath() {
     const lockMap = {};
     for (const module of curriculumIndex) {
       const preComplete = hasPreAssessment(module.moduleId);
-      let isNextLocked = !preComplete; 
+      let isNextLocked = !preComplete;
       for (const lesson of module.lessons) {
         lockMap[lesson.lessonId] = isNextLocked;
         if (!isNextLocked) {
@@ -252,9 +252,9 @@ export default function LearningPath() {
                           </h3>
                           <div style={{ display: 'flex', gap: '6px' }}>
                             {iconConfig?.difficulty && (
-                                <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', backgroundColor: iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)", color: iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899" }}>
-                                  {iconConfig.difficulty}
-                                </span>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', backgroundColor: iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)", color: iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899" }}>
+                                {iconConfig.difficulty}
+                              </span>
                             )}
                             {iconConfig?.prereq && (
                               <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', backgroundColor: 'rgba(100, 116, 139, 0.1)', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>

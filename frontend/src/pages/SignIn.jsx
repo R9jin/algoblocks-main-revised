@@ -99,14 +99,15 @@ export default function SignIn() {
       inactiveStorage.removeItem("authToken");
       inactiveStorage.removeItem("user");
 
-      activeStorage.setItem("authToken", data.token);
+      // FIXED: Use data.access_token and data.user object provided by backend
+      activeStorage.setItem("authToken", data.access_token);
       activeStorage.setItem("user", JSON.stringify({
-        email: data.email,
-        name: data.name,
-        progress: data.progress || {}
+        email: data.user.email,
+        name: data.user.name,
+        progress: data.user.progress || {}
       })); 
 
-      await syncUserCloudData(data.email, data.token); 
+      await syncUserCloudData(data.user.email, data.access_token); 
       navigate("/dashboard"); 
       
     } catch (error) {
@@ -170,14 +171,15 @@ export default function SignIn() {
       inactiveStorage.removeItem("authToken");
       inactiveStorage.removeItem("user");
 
-      activeStorage.setItem("authToken", data.token);
+      // FIXED: Use data.access_token and data.user object provided by backend
+      activeStorage.setItem("authToken", data.access_token);
       activeStorage.setItem("user", JSON.stringify({
-        email: data.email,
-        name: data.name,
-        progress: data.progress || {}
+        email: data.user.email,
+        name: data.user.name,
+        progress: data.user.progress || {}
       }));
 
-      await syncUserCloudData(data.email, data.token);
+      await syncUserCloudData(data.user.email, data.access_token);
       navigate("/dashboard");
       
     } catch (error) {

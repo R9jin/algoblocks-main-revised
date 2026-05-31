@@ -84,10 +84,10 @@ export default function LessonViewer() {
 
         // 1. Explicitly override with IndexedDB (Offline First Source of Truth)
         await progressDB.iterate((value, key) => {
-            initialProg[key] = value.score !== undefined ? value.score : value;
+          initialProg[key] = value.score !== undefined ? value.score : value;
         });
         await assessmentsDB.iterate((value, key) => {
-            initialAssm[key] = value;
+          initialAssm[key] = value;
         });
 
         setUserProgress(initialProg);
@@ -95,44 +95,45 @@ export default function LessonViewer() {
 
         // 2. Explicitly fetch from the cloud properly
         if (navigator.onLine && parsed.email && !parsed.isGuest) {
-            try {
-                // ✅ SECURE FETCH SETUP
-                const token = localStorage.getItem("authToken");
-                const headers = { "Content-Type": "application/json" };
-                if (token) headers["Authorization"] = `Bearer ${token}`;
-
-                const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
-                if (progRes.ok) {
-                    const data = await progRes.json();
-                    const progData = data.progress || data;
-                    for (const [key, val] of Object.entries(progData)) {
-                        initialProg[key] = val;
-                        await progressDB.setItem(key, { score: val, isSynced: true });
-                    }
-                }
-
-                const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
-                if (assRes.ok) {
-                    const data = await assRes.json();
-                    const assData = data.assessments || data;
-                    for (const [key, val] of Object.entries(assData)) {
-                        initialAssm[key] = val;
-                        await assessmentsDB.setItem(key, { ...val, isSynced: true });
-                    }
-                }
-                
-                setUserProgress({...initialProg});
-                setAssessments({...initialAssm});
-                
-                parsed.progress = initialProg;
-                parsed.assessments = initialAssm;
-                localStorage.setItem("user", JSON.stringify(parsed));
-            } catch (e) {
-                console.warn("Could not fetch latest progress from cloud:", e);
+          try {
+            const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+            const headers = { "Content-Type": "application/json" };
+            if (token) {
+              headers["Authorization"] = `Bearer ${token}`;
             }
+
+            const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+            if (progRes.ok) {
+              const data = await progRes.json();
+              const progData = data.progress || data;
+              for (const [key, val] of Object.entries(progData)) {
+                initialProg[key] = val;
+                await progressDB.setItem(key, { score: val, isSynced: true });
+              }
+            }
+
+            const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
+            if (assRes.ok) {
+              const data = await assRes.json();
+              const assData = data.assessments || data;
+              for (const [key, val] of Object.entries(assData)) {
+                initialAssm[key] = val;
+                await assessmentsDB.setItem(key, { ...val, isSynced: true });
+              }
+            }
+
+            setUserProgress({ ...initialProg });
+            setAssessments({ ...initialAssm });
+
+            parsed.progress = initialProg;
+            parsed.assessments = initialAssm;
+            localStorage.setItem("user", JSON.stringify(parsed));
+          } catch (e) {
+            console.warn("Could not fetch latest progress from cloud:", e);
+          }
         }
       } catch (e) {
-          console.warn("Error loading offline progress:", e);
+        console.warn("Error loading offline progress:", e);
       }
     };
     loadOfflineData();
@@ -148,7 +149,7 @@ export default function LessonViewer() {
         try {
           const resAct = await fetch(`/data/activities/module_${mid}.json`);
           if (resAct.ok) acts[module.moduleId] = await resAct.json();
-        } catch (e) {}
+        } catch (e) { }
 
         for (const lessonMeta of module.lessons) {
           try {
@@ -306,7 +307,7 @@ export default function LessonViewer() {
                     {hasOptimizations && (
                       <div onClick={() => { if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`); }}
                         style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px", cursor: optimizationsLocked ? "not-allowed" : "pointer", opacity: optimizationsLocked ? 0.5 : 1, color: "#d35400", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(243, 156, 18, 0.05)" }}>
-                        <span style={{color: "#f39c12", fontSize: "1.1rem"}}>★</span><span>Optimization Challenges</span>
+                        <span style={{ color: "#f39c12", fontSize: "1.1rem" }}>★</span><span>Optimization Challenges</span>
                         <span style={{ marginLeft: "auto" }}>{optimizationsLocked ? <FiLock size={12} /> : userProgress[`lesson-${modNumber}-optimizations`] ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#f39c12" />}</span>
                       </div>
                     )}
@@ -365,14 +366,14 @@ export default function LessonViewer() {
                     {renderChart(section.chart)}
                     {renderCodeSnippets(section.codeSnippets)}
                     {section.subsections?.map((subsection) => (
-                        <div key={subsection.id || subsection.title} className="lesson-subsection">
-                          <h3>{subsection.title}</h3>
-                          {renderParagraphs(subsection.content, "lesson-subsection-content")}
-                          {renderBullets(subsection.bullets)}
-                          {renderChart(subsection.chart)}
-                          {renderCodeSnippets(subsection.codeSnippets)}
-                        </div>
-                      ))}
+                      <div key={subsection.id || subsection.title} className="lesson-subsection">
+                        <h3>{subsection.title}</h3>
+                        {renderParagraphs(subsection.content, "lesson-subsection-content")}
+                        {renderBullets(subsection.bullets)}
+                        {renderChart(subsection.chart)}
+                        {renderCodeSnippets(subsection.codeSnippets)}
+                      </div>
+                    ))}
                   </section>
                 ))}
               </article>
@@ -382,8 +383,8 @@ export default function LessonViewer() {
                   <h2>References</h2>
                   <ul>
                     {lesson.references?.map((reference, index) => (
-                        <li key={index}><a href={reference.url} target="_blank" rel="noreferrer">{reference.title}</a></li>
-                      ))}
+                      <li key={index}><a href={reference.url} target="_blank" rel="noreferrer">{reference.title}</a></li>
+                    ))}
                   </ul>
                 </div>
               )}

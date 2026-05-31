@@ -289,7 +289,7 @@ export default function AssessmentPage() {
     // ==========================================
     // 2. Cloud Sync (or Queue) - FIXED AUTH HEADERS
     // ==========================================
-    const token = localStorage.getItem("authToken"); // <-- GRAB THE TOKEN
+    const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken"); // <-- GRAB THE TOKEN
 
     if (navigator.onLine && user.email && !user.isGuest) {
       try {

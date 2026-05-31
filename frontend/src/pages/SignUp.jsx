@@ -49,8 +49,9 @@ export default function SignUp() {
         inactiveStorage.removeItem("authToken");
         inactiveStorage.removeItem("user");
 
-        activeStorage.setItem("authToken", data.token);
-        activeStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
+        // FIXED: Use data.access_token and data.user mapping
+        activeStorage.setItem("authToken", data.access_token);
+        activeStorage.setItem("user", JSON.stringify({ email: data.user.email, name: data.user.name }));
 
         navigate("/home");
       } else {
