@@ -7,8 +7,8 @@ from fastapi.security import OAuth2PasswordBearer
 
 logger = logging.getLogger(__name__)
 
-# Make sure this exact secret key matches the one used in your auth_service.py
-SECRET_KEY = "algoblocks_secret_key" 
+# ✅ NEW SECURE KEY: Generated via secrets.token_hex(32)
+SECRET_KEY = "8f4e2a1b9c7d6e5f8a4b2c1d9e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f" 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 

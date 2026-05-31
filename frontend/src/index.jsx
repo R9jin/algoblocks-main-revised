@@ -39,7 +39,6 @@ window.fetch = async (...args) => {
         let config = args[1] || {};
         
         // Safely manipulate headers using the native Headers API.
-        // This prevents erasing headers if the app originally passed a Headers object.
         let newHeaders = new Headers(config.headers);
         
         if (!newHeaders.has('Content-Type')) {
@@ -56,14 +55,20 @@ window.fetch = async (...args) => {
     }
     
     try {
-        // CRITICAL FIX: Native fetch MUST be called with the window context. 
-        // Using originalFetch.apply(window, args) prevents the "Illegal invocation" crash.
         const response = await originalFetch.apply(window, args);
         
-        // Handle expired sessions globally
+        // 4. HANDLE EXPIRED SESSIONS
+        // If the backend rejects the token, immediately clear it and force a re-login
+        // This stops the infinite 401 spam loops in the background.
         if (response.status === 401) {
-            console.warn("Global Fetch: 401 Unauthorized detected. Token has expired.");
+            console.warn("Global Fetch: 401 Unauthorized detected. Session expired.");
             localStorage.removeItem('token');
+            localStorage.removeItem('user'); // Clear user data too just in case
+            
+            // Only redirect if they aren't already on the login/signup page
+            if (!window.location.pathname.includes('/signin') && !window.location.pathname.includes('/signup')) {
+                window.location.href = '/signin';
+            }
         }
         
         return response;
