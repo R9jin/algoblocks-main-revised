@@ -6,12 +6,14 @@ import {
   LuFolder,
   LuLayoutDashboard,
   LuLogOut,
+  LuUser
 } from "react-icons/lu";
 
 import { useNavigate } from "react-router-dom";
 
 import "../styles/UserHeader.css";
 
+import { startBackgroundSync } from "../utils/syncManager.js";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 
 export default function UserHeader({ user }) {
@@ -100,12 +102,16 @@ export default function UserHeader({ user }) {
   // LOGOUT HANDLER
   // ================================
 
-  // CHANGE: Single logout flow only
-  const handleLogout = () => {
+  // CHANGE: Single logout flow only with Background Sync Enforcer
+  const handleLogout = async () => {
+
+    // FORCE SYNC ON LOGOUT to push localforage data to MongoDB
+    if (navigator.onLine) {
+      await startBackgroundSync();
+    }
 
     localStorage.removeItem("user");
-
-    sessionStorage.clear();
+    sessionStorage.removeItem("user");
 
     navigate("/signin", {
       replace: true,
@@ -194,6 +200,20 @@ export default function UserHeader({ user }) {
                     {user?.email || ""}
                   </div>
                 </div>
+
+                {/* PROFILE */}
+                <button
+                  type="button"
+                  className="user-dd-item"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate("/profile");
+                  }}
+                  role="menuitem"
+                >
+                  <LuUser size={18} aria-hidden="true" />
+                  {" "}My Profile
+                </button>
 
                 {/* DASHBOARD */}
                 <button

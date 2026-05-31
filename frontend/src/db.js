@@ -2,29 +2,34 @@
 import localforage from 'localforage';
 
 export const projectsDB = localforage.createInstance({
-    name: "AlgoBlocks",
+    name: "AlgoBlocks_Projects",
     storeName: "projects"
 });
 
 export const templatesDB = localforage.createInstance({
-    name: "AlgoBlocks",
+    name: "AlgoBlocks_Templates",
     storeName: "templates"
 });
 
 export const syncQueueDB = localforage.createInstance({
-    name: "AlgoBlocks",
+    name: "AlgoBlocks_SyncQueue",
     storeName: "sync_queue"
 });
 
-// NEW: Activity Submissions and Progress DBs
+// Activity Submissions, Progress, and Assessment DBs
 export const submissionsDB = localforage.createInstance({
-    name: "AlgoBlocks",
+    name: "AlgoBlocks_Submissions",
     storeName: "submissions"
 });
 
 export const progressDB = localforage.createInstance({
-    name: "AlgoBlocks",
+    name: "AlgoBlocks_Progress",
     storeName: "progress"
+});
+
+export const assessmentsDB = localforage.createInstance({
+    name: "AlgoBlocks_Assessments",
+    storeName: "assessments"
 });
 
 // Helper functions for React components to use

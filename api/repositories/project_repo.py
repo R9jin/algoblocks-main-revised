@@ -1,19 +1,27 @@
+# api/repositories/project_repo.py
+from database import projects_collection
 from bson import ObjectId
-from api.database import projects_collection
 
 class ProjectRepository:
     @staticmethod
-    def insert(data: dict):
-        return projects_collection.insert_one(data)
+    def find_by_user(user_id: str):
+        projects = list(projects_collection.find({"userId": user_id}))
+        for proj in projects:
+            proj["_id"] = str(proj["_id"])
+        return projects
 
     @staticmethod
-    def get_all():
-        return list(projects_collection.find({}))
+    def insert(project_data: dict):
+        result = projects_collection.insert_one(project_data)
+        return str(result.inserted_id)
 
     @staticmethod
-    def delete(project_id: str):
-        return projects_collection.delete_one({"_id": ObjectId(project_id)})
+    def update(project_id: str, user_id: str, data: dict):
+        return projects_collection.update_one(
+            {"_id": ObjectId(project_id), "userId": user_id},
+            {"$set": data}
+        )
 
     @staticmethod
-    def update(project_id: str, update_data: dict):
-        return projects_collection.update_one({"_id": ObjectId(project_id)}, {"$set": update_data})
+    def delete(project_id: str, user_id: str):
+        return projects_collection.delete_one({"_id": ObjectId(project_id), "userId": user_id})

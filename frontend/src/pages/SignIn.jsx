@@ -3,57 +3,48 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
 import { FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { progressDB, projectsDB, submissionsDB, syncQueueDB, templatesDB } from "../db";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
-
-// Helper to rebuild user.assessments array safely on login, scoped by email.
-const rebuildAssessments = (email) => {
-  const assessments = {};
-  for (let i = 0; i < localStorage.length; i++) {
-     const key = localStorage.key(i);
-     if (!key) continue;
-     let suffix = null;
-     
-     if (key.startsWith(`algoblocks_result_${email}_`)) {
-         suffix = key.replace(`algoblocks_result_${email}_`, "");
-     } else if (key.startsWith(`algoblocks_result_`) && key.split('_').length === 4) {
-         // Gracefully ingest old unscoped keys
-         suffix = key.replace(`algoblocks_result_`, "");
-     }
-     
-     if (suffix) {
-         try {
-             assessments[`${suffix}_assessment`] = JSON.parse(localStorage.getItem(key));
-         } catch(e) {}
-     }
-  }
-  return assessments;
-};
 
 export default function SignIn() {
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState(""); 
   const [isLoading, setIsLoading] = useState(false); 
+  const [rememberMe, setRememberMe] = useState(false); // <-- "Stay signed in" state
+  
+  // Custom Toast State
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  
   const navigate = useNavigate(); 
 
-  const API_BASE = import.meta.env.VITE_API_URL || ""; 
+  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
 
-  // Hydrate local IndexedDB from MongoDB Cloud after wiping
-  const syncUserCloudData = async (userEmail) => {
+  // Custom notification trigger
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
+  };
+
+  const syncUserCloudData = async (userEmail, token) => {
     try {
-      // ✅ Completely wipe activity tracks when swapping accounts
       await Promise.all([
         projectsDB.clear(),
         templatesDB.clear(),
-        syncQueueDB.clear(),
-        submissionsDB.clear(),
-        progressDB.clear()
+        syncQueueDB.clear()
       ]); 
 
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      };
+
       const [projRes, tempRes] = await Promise.all([
-        fetch(`${API_BASE}/api/projects`),
-        fetch(`${API_BASE}/api/templates`)
+        fetch(`${API_BASE}/api/projects`, { headers }),
+        fetch(`${API_BASE}/api/templates`, { headers })
       ]); 
 
       if (projRes.ok) {
@@ -96,25 +87,31 @@ export default function SignIn() {
       const data = await response.json(); 
 
       if (!response.ok) {
-        alert(data.detail || "Invalid email or password"); 
+        showToast(data.detail || "Invalid email or password"); 
         setIsLoading(false);
         return;
       }
 
-      // ✅ Dynamically rebuild the assessments array so UI doesn't think progress was wiped 
-      localStorage.setItem("user", JSON.stringify({
+      // Conditionally use localStorage or sessionStorage
+      const activeStorage = rememberMe ? localStorage : sessionStorage;
+      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+      
+      inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("user");
+
+      activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {},
-        assessments: rebuildAssessments(data.email)
+        progress: data.progress || {}
       })); 
 
-      await syncUserCloudData(data.email); 
-
+      await syncUserCloudData(data.email, data.token); 
       navigate("/dashboard"); 
+      
     } catch (error) {
       console.error(error); 
-      alert("Server not reachable. Check backend connection."); 
+      showToast("Server not reachable. Check backend connection."); 
     } finally {
       setIsLoading(false); 
     }
@@ -126,24 +123,25 @@ export default function SignIn() {
       await Promise.all([
         projectsDB.clear(),
         templatesDB.clear(),
-        syncQueueDB.clear(),
-        submissionsDB.clear(),
-        progressDB.clear()
+        syncQueueDB.clear()
       ]); 
-      
-      const guestEmail = `guest_${Date.now()}@algoblocks.local`;
 
-      localStorage.setItem("user", JSON.stringify({
-        email: guestEmail,
+      // Wipe old tokens completely
+      localStorage.removeItem("authToken");
+      sessionStorage.removeItem("authToken");
+
+      // Guests should always use Session Storage
+      sessionStorage.setItem("user", JSON.stringify({
+        email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
         isGuest: true,
-        progress: {},
-        assessments: rebuildAssessments(guestEmail)
+        progress: {}
       })); 
 
       navigate("/dashboard"); 
     } catch (error) {
       console.error("Guest login failed:", error); 
+      showToast("Failed to initialize guest session.");
     } finally {
       setIsLoading(false); 
     }
@@ -161,24 +159,30 @@ export default function SignIn() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.detail || "Google authentication failed");
+        showToast(data.detail || "Google authentication failed");
         return;
       }
 
-      // ✅ Rebuild assessment array
-      localStorage.setItem("user", JSON.stringify({
+      // Conditionally use localStorage or sessionStorage
+      const activeStorage = rememberMe ? localStorage : sessionStorage;
+      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+      
+      inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("user");
+
+      activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {},
-        assessments: rebuildAssessments(data.email)
+        progress: data.progress || {}
       }));
 
-      await syncUserCloudData(data.email);
-
+      await syncUserCloudData(data.email, data.token);
       navigate("/dashboard");
+      
     } catch (error) {
       console.error("Google Authentication error:", error);
-      alert("Server not reachable. Check backend connection.");
+      showToast("Server not reachable. Check backend connection.");
     } finally {
       setIsLoading(false);
     }
@@ -186,12 +190,16 @@ export default function SignIn() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      {/* Custom Toast Anchor */}
+      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
+        {toast.message}
+      </div>
+
       <div className="auth-container">
         <div className="auth-card">
           <h2>Sign In to AlgoBlocks</h2>
           <form onSubmit={handleSubmit}>
             
-            {/* Standard Email/Password Login */}
             <div className="form-group">
               <label>Email</label>
               <div className="auth-input-wrap">
@@ -222,20 +230,32 @@ export default function SignIn() {
               </div>
             </div>
             
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+                Stay signed in
+              </label>
+            </div>
+            
             <button type="submit" className="auth-button" disabled={isLoading}>
               {isLoading ? "Signing In..." : "Sign In"}
             </button> 
 
-            {/* ✅ Beautifully Styled Divider matching existing Auth.css */}
             <div className="social-divider">
               <span>OR</span>
             </div> 
 
-            {/* ✅ Google Login Centered via Class */}
             <div className="google-auth-wrapper">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
-                onError={() => console.error("Google Sign-In Failure Triggered")}
+                onError={() => showToast("Google Sign-In sequence interrupted.")}
                 theme="outline" 
                 size="large"
                 shape="rectangular"
@@ -243,7 +263,6 @@ export default function SignIn() {
               />
             </div>
 
-            {/* ✅ Guest Button utilizing native Auth.css structure */}
             <button
               type="button"
               className="auth-button guest-button"

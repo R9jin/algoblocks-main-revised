@@ -1,3 +1,4 @@
+// frontend/src/components/BigOModal.jsx
 import { useState } from "react";
 import "../styles/BigOModal.css";
 import { formatComplexity } from "../utils/formatters";
@@ -22,6 +23,15 @@ const BIG_O_DATA = [
     link: "https://www.khanacademy.org/computing/computer-science/algorithms/binary-search/a/running-time-of-binary-search"
   },
   {
+    complexity: "O(√n)",
+    name: "Square Root Time",
+    color: "good",
+    def: "The execution time grows in proportion to the square root of the input size. It is much slower than logarithmic time but significantly faster than linear time for large datasets.",
+    analogy: "Walking exactly halfway across a square room instead of walking along the entire perimeter.",
+    example: "Checking if a number is prime by looping only up to its square root, or Grover's quantum search algorithm.",
+    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
+  },
+  {
     complexity: "O(n)",
     name: "Linear Time",
     color: "good",
@@ -29,6 +39,15 @@ const BIG_O_DATA = [
     analogy: "Reading a book page by page from start to finish.",
     example: "Linear Search, counting elements, or traversing an array to find the maximum/minimum value.",
     link: "https://www.geeksforgeeks.org/linear-search/"
+  },
+  {
+    complexity: "O(V + E)",
+    name: "Graph Traversal Time",
+    color: "fair",
+    def: "The execution time scales linearly with the size of a graph, depending on both the number of Vertices (nodes) and Edges (connections).",
+    analogy: "Visiting every city on a road map (Vertices) and driving down every connecting highway between them (Edges).",
+    example: "Breadth-First Search (BFS) and Depth-First Search (DFS) algorithms on an adjacency list representation of a graph.",
+    link: "https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/analyzing-graph-algorithms"
   },
   {
     complexity: "O(n log n)",
@@ -40,29 +59,56 @@ const BIG_O_DATA = [
     link: "https://www.khanacademy.org/computing/computer-science/algorithms/merge-sort/a/analysis-of-merge-sort"
   },
   {
+    complexity: "O(n * m)",
+    name: "Multi-Variable Linear Time",
+    color: "bad",
+    def: "The execution time depends on two distinct input sizes (like rows and columns) interacting with each other. Functionally similar to quadratic time if n and m scale together.",
+    analogy: "Painting every single tile on a rectangular floor that is 'n' tiles wide and 'm' tiles long.",
+    example: "Traversing a non-square 2D grid/matrix, or classic 2D Dynamic Programming (like the Longest Common Subsequence).",
+    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
+  },
+  {
     complexity: "O(n²)",
     name: "Quadratic Time",
     color: "bad",
     def: "The execution time grows proportionally to the square of the input size. This typically involves a loop inside of another loop (nested iterations). Performance degrades rapidly as the dataset grows.",
-    analogy: "A networking event where every single person in the room must shake hands with every other person in the room.",
-    example: "Bubble Sort, Insertion Sort, Selection Sort, or traversing a 2D matrix/grid.",
+    analogy: "A networking event where every single person in the room must individually shake hands with every other person in the room.",
+    example: "Bubble Sort, Insertion Sort, Selection Sort, or finding duplicate values using brute-force nested loops.",
     link: "https://www.geeksforgeeks.org/bubble-sort/"
+  },
+  {
+    complexity: "O(n³)",
+    name: "Cubic Time",
+    color: "bad",
+    def: "The execution time grows proportionally to the cube of the input size. Typically caused by three levels of nested loops. This becomes unusably slow even for medium-sized inputs.",
+    analogy: "At that same networking event, every time two people shake hands, a third person is brought over to take a group photo for every possible trio.",
+    example: "Naive matrix multiplication, or finding all possible triplets in an array.",
+    link: "https://www.geeksforgeeks.org/understanding-time-complexity-simple-examples/"
   },
   {
     complexity: "O(2ⁿ)",
     name: "Exponential Time",
     color: "bad",
     def: "The execution time doubles with each new element added to the input. Extremely inefficient and grows astronomically fast. Usually the result of algorithms that blindly explore all possible branches.",
-    analogy: "Trying to crack a combination lock by guessing every single possible combination one by one.",
+    analogy: "Trying to crack a binary combination lock by blindly guessing every single possible combination sequence one by one.",
     example: "Naive recursive calculation of Fibonacci numbers, or solving the Tower of Hanoi problem.",
     link: "https://www.geeksforgeeks.org/exponential-time-complexity/"
+  },
+  {
+    complexity: "O(n^d)",
+    name: "Recursive Branching Time",
+    color: "bad",
+    def: "The execution time grows exponentially relative to a variable depth 'd'. This commonly happens in recursive functions placed inside loops, where the depth of the recursion tree directly determines the mathematical exponent.",
+    analogy: "A nested doll where each doll contains 'n' more identical dolls inside it, and the pattern repeats for 'd' layers deep.",
+    example: "Complex recursive backtracking without memoization, or calculating dynamic sub-problems inside iteration branches.",
+    link: "https://www.geeksforgeeks.org/time-complexity-and-space-complexity/"
   },
   {
     complexity: "O(n!)",
     name: "Factorial Time",
     color: "bad",
-    def: "The execution time grows factorially based on the input size. This is the absolute slowest common complexity. Even with small inputs (like n=15), a modern computer could take years to compute it.",
-    analogy: "Trying to find the best seating arrangement for your friends at a dinner table by making them physically sit in every possible order.",
+    def: "The execution time grows factorially based on the input size. Even with extremely small inputs (like n=15), a modern computer could take years to compute it.",
+    analogy: "Trying to find the best seating arrangement for your friends at a dinner table by making them physically sit in every possible permutation of chairs.",
     example: "Generating all possible permutations of a given string/array, or the brute-force solution to the Traveling Salesperson Problem.",
     link: "https://www.geeksforgeeks.org/factorial-time-complexity/"
   }
@@ -103,7 +149,6 @@ export default function BigOModal({ isOpen, onClose }) {
               <div className="big-o-row-trigger" onClick={() => toggleRow(idx)}>
                 <span className={`o-badge o-${item.color}`}>{formatComplexity(item.complexity)}</span>
                 <span className="o-name">{item.name}</span>
-                {/* Updated chevron to work with the CSS rotation animation */}
                 <span className="o-chevron dropdown-chevron">▶</span>
               </div>
 

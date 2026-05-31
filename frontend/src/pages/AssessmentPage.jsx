@@ -3,19 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { FiAward, FiCheck, FiChevronLeft, FiChevronRight, FiSave, FiX } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import { assessmentsDB, progressDB, syncQueueDB } from "../db";
 import "../styles/AssessmentPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
-const getUserEmail = () => {
-  try { return JSON.parse(localStorage.getItem("user") || "{}").email || "guest"; } 
-  catch { return "guest"; }
-};
-
-// Draft key: stores in-progress answers, question order, and elapsed time.
-const getDraftKey = (moduleId, type) => `algoblocks_draft_${getUserEmail()}_${moduleId}_${type}`;
-const getResultKey = (moduleId, type) => `algoblocks_result_${getUserEmail()}_${moduleId}_${type}`;
+const getDraftKey = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
 
 function saveDraft(moduleId, type, payload) {
   try {
@@ -27,18 +21,7 @@ function saveDraft(moduleId, type, payload) {
 
 function loadDraft(moduleId, type) {
   try {
-    const scopedKey = getDraftKey(moduleId, type);
-    const unScopedKey = `algoblocks_draft_${moduleId}_${type}`;
-    let raw = localStorage.getItem(scopedKey);
-    
-    // Migrate old unscoped draft if it exists
-    if (!raw) {
-        raw = localStorage.getItem(unScopedKey);
-        if (raw) {
-            localStorage.setItem(scopedKey, raw);
-            localStorage.removeItem(unScopedKey);
-        }
-    }
+    const raw = localStorage.getItem(getDraftKey(moduleId, type));
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -50,40 +33,6 @@ function clearDraft(moduleId, type) {
     localStorage.removeItem(getDraftKey(moduleId, type));
   } catch (e) {
     // ignore
-  }
-}
-
-function saveResult(moduleId, type, result) {
-  try {
-    localStorage.setItem(getResultKey(moduleId, type), JSON.stringify(result));
-    // Also persist into the user object so LearningPath can read it immediately
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const assessments = user.assessments || {};
-    assessments[`${moduleId}_${type}_assessment`] = result;
-    user.assessments = assessments;
-    localStorage.setItem("user", JSON.stringify(user));
-  } catch (e) {
-    console.warn("Could not save result:", e);
-  }
-}
-
-function loadResult(moduleId, type) {
-  try {
-    const scopedKey = getResultKey(moduleId, type);
-    const unScopedKey = `algoblocks_result_${moduleId}_${type}`;
-    let raw = localStorage.getItem(scopedKey);
-    
-    // Migrate old unscoped result if it exists
-    if (!raw) {
-        raw = localStorage.getItem(unScopedKey);
-        if (raw) {
-            localStorage.setItem(scopedKey, raw);
-            localStorage.removeItem(unScopedKey);
-        }
-    }
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
   }
 }
 
@@ -108,24 +57,39 @@ const MODULE_FIRST_LESSON = {
   "module-6": "lesson-6-1",
 };
 
+// ── Code Block component ─────────────────────────────────────────────────────
+function CodeBlock({ code }) {
+  if (!code) return null;
+  return (
+    <div className="question-code-block">
+      <div className="code-block-header">
+        <span className="code-block-label">Python</span>
+      </div>
+      <pre className="code-block-pre">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function AssessmentPage() {
   const { moduleId, type } = useParams(); // type = "pre" | "post"
   const navigate = useNavigate();
 
-  const [questions, setQuestions]           = useState([]);
-  const [moduleTitle, setModuleTitle]       = useState("");
-  const [currentIndex, setCurrentIndex]     = useState(0);
+  const [questions, setQuestions] = useState([]);
+  const [moduleTitle, setModuleTitle] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [submitted, setSubmitted]           = useState(false);
-  const [score, setScore]                   = useState(0);
-  const [loading, setLoading]               = useState(true);
-  const [timeElapsed, setTimeElapsed]       = useState(0);
-  const [lastSavedAt, setLastSavedAt]       = useState(null); // timestamp of last auto-save
-  const [hasDraft, setHasDraft]             = useState(false); // whether a draft was restored
-  const [prevResult, setPrevResult]         = useState(null);  // previously submitted result (for resume display)
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [prevResult, setPrevResult] = useState(null);
 
-  const timerRef    = useRef(null);
+  const timerRef = useRef(null);
   const autoSaveRef = useRef(null);
 
   // ── 1. Load assessment JSON + restore draft / previous result ───────────────
@@ -136,16 +100,17 @@ export default function AssessmentPage() {
         if (!res.ok) throw new Error("Assessment not found");
         const data = await res.json();
 
-        // Check if there's a previously submitted result
-        const existingResult = loadResult(moduleId, type);
+        // OFFLINE FIRST: Check IndexedDB for previously submitted result
+        const assessmentKey = `${moduleId}_${type}_assessment`;
+        const existingResult = await assessmentsDB.getItem(assessmentKey);
+        
         if (existingResult) {
           setPrevResult(existingResult);
         }
 
-        // Check if there's an in-progress draft
+        // Check if there's an in-progress draft (local storage)
         const draft = loadDraft(moduleId, type);
         if (draft && draft.questionIds) {
-          // Restore the exact question order from the draft
           const idMap = Object.fromEntries(data.questions.map((q) => [q.id, q]));
           const restored = draft.questionIds.map((id) => idMap[id]).filter(Boolean);
           if (restored.length === data.questions.length) {
@@ -231,7 +196,6 @@ export default function AssessmentPage() {
           savedAt: new Date().toISOString(),
         };
         saveDraft(moduleId, type, draft);
-        // Show browser "leave page?" dialog only when answers exist
         e.preventDefault();
         e.returnValue = "";
       }
@@ -253,10 +217,10 @@ export default function AssessmentPage() {
   };
 
   const getScoreLabel = (s) => {
-    if (s >= 90) return { label: "Excellent!",    color: "#22c55e", icon: "🏆" };
-    if (s >= 75) return { label: "Proficient",    color: "#3b82f6", icon: "🎯" };
-    if (s >= 60) return { label: "Developing",    color: "#f97316", icon: "📈" };
-    return              { label: "Needs Review",  color: "#ef4444", icon: "📚" };
+    if (s >= 90) return { label: "Excellent!", color: "#22c55e", icon: "🏆" };
+    if (s >= 75) return { label: "Proficient", color: "#3b82f6", icon: "🎯" };
+    if (s >= 60) return { label: "Developing", color: "#f97316", icon: "📈" };
+    return { label: "Needs Review", color: "#ef4444", icon: "📚" };
   };
 
   // ── Actions ──────────────────────────────────────────────────────────────────
@@ -266,7 +230,6 @@ export default function AssessmentPage() {
     const updated = { ...selectedAnswers, [currentIndex]: optionIndex };
     setSelectedAnswers(updated);
 
-    // Immediate draft save on every answer
     const draft = {
       moduleId,
       type,
@@ -293,6 +256,7 @@ export default function AssessmentPage() {
     setScore(finalScore);
     setSubmitted(true);
 
+    const assessmentKey = `${moduleId}_${type}_assessment`;
     const result = {
       moduleId,
       type,
@@ -301,35 +265,72 @@ export default function AssessmentPage() {
       total: questions.length,
       timeElapsed,
       completedAt: new Date().toISOString(),
-      // Preserve all previous attempts count
       attempts: (prevResult?.attempts ?? 0) + 1,
     };
 
-    // Persist result + clear draft
-    saveResult(moduleId, type, result);
+    // 1. Offline-First: Save to IndexedDB
+    await assessmentsDB.setItem(assessmentKey, result);
+    await progressDB.setItem(assessmentKey, { score: finalScore });
+
+    // Update local user object for immediate UI reflection
+    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const user = JSON.parse(userStr || "{}");
+    
+    user.assessments = user.assessments || {};
+    user.assessments[assessmentKey] = result;
+    user.progress = user.progress || {};
+    user.progress[assessmentKey] = finalScore;
+    
+    if (localStorage.getItem("user")) localStorage.setItem("user", JSON.stringify(user));
+    if (sessionStorage.getItem("user")) sessionStorage.setItem("user", JSON.stringify(user));
+
     clearDraft(moduleId, type);
 
-    // Sync to cloud
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user.email) {
-        await fetch(`${API_BASE}/api/update-progress`, {
+    // ==========================================
+    // 2. Cloud Sync (or Queue) - FIXED AUTH HEADERS
+    // ==========================================
+    const token = localStorage.getItem("authToken"); // <-- GRAB THE TOKEN
+
+    if (navigator.onLine && user.email && !user.isGuest) {
+      try {
+        const res = await fetch(`${API_BASE}/api/update-assessment`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: user.email,
-            lesson_id: `${moduleId}_${type}_assessment`,
-            score: finalScore,
-          }),
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // <-- INJECT TOKEN HERE
+          },
+          body: JSON.stringify({ email: user.email, assessment_key: assessmentKey, data: result })
         });
+        const progRes = await fetch(`${API_BASE}/api/update-progress`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // <-- INJECT TOKEN HERE
+          },
+          body: JSON.stringify({ email: user.email, lesson_id: assessmentKey, score: finalScore })
+        });
+
+        if (res.ok && progRes.ok) {
+          await assessmentsDB.setItem(assessmentKey, { ...result, isSynced: true });
+          await progressDB.setItem(assessmentKey, { score: finalScore, isSynced: true });
+        } else {
+          throw new Error("Sync failed");
+        }
+      } catch (err) {
+        const syncId = `sync_${Date.now()}`;
+        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, assessment_key: assessmentKey, data: result } });
+        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, lesson_id: assessmentKey, score: finalScore } });
       }
-    } catch (err) {
-      console.warn("Could not sync assessment to cloud:", err);
+    } else if (user.email && !user.isGuest) {
+        const syncId = `sync_${Date.now()}`;
+        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, assessment_key: assessmentKey, data: result } });
+        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, lesson_id: assessmentKey, score: finalScore } });
     }
   };
 
   const handleProceed = () => {
     if (type === "pre") {
+      // Reverted to exactly what you requested: /learning-path/:moduleId/:lessonId
       navigate(`/learning-path/${moduleId}/${MODULE_FIRST_LESSON[moduleId]}`);
     } else {
       navigate("/learning-path");
@@ -357,9 +358,9 @@ export default function AssessmentPage() {
   };
 
   // ── Derived values ───────────────────────────────────────────────────────────
-  const isPre           = type === "pre";
-  const moduleNum       = moduleId?.split("-").pop();
-  const answeredCount   = Object.keys(selectedAnswers).length;
+  const isPre = type === "pre";
+  const moduleNum = moduleId?.split("-").pop();
+  const answeredCount = Object.keys(selectedAnswers).length;
   const currentQuestion = questions[currentIndex];
 
   // ── Loading / empty guards ───────────────────────────────────────────────────
@@ -419,7 +420,6 @@ export default function AssessmentPage() {
               </div>
             </div>
 
-            {/* Answer Review */}
             <div className="results-review">
               <h3>Answer Review</h3>
               <div className="review-list">
@@ -433,10 +433,18 @@ export default function AssessmentPage() {
                         <span className="review-icon">
                           {correct ? <FiCheck color="#22c55e" /> : <FiX color="#ef4444" />}
                         </span>
-                        <span className="review-question">{q.question}</span>
+                        <span className="review-question">
+                          {q.type === "code" && <span className="review-code-tag">CODE</span>}
+                          {q.question}
+                        </span>
                       </div>
                       {!correct && (
                         <div className="review-answer-detail">
+                          {q.code && (
+                            <div className="review-code-snippet">
+                              <pre>{q.code}</pre>
+                            </div>
+                          )}
                           <span className="your-answer">
                             Your answer: <em>{userAnswer !== undefined ? q.options[userAnswer] : "Not answered"}</em>
                           </span>
@@ -482,7 +490,6 @@ export default function AssessmentPage() {
       <DashboardHeader />
 
       <div className="assessment-wrapper">
-        {/* Header */}
         <div className="assessment-header">
           <div className="assessment-title-block">
             <div className="assessment-tag">{isPre ? "PRE-ASSESSMENT" : "POST-ASSESSMENT"}</div>
@@ -505,7 +512,6 @@ export default function AssessmentPage() {
           </div>
         </div>
 
-        {/* Draft restore banner */}
         {hasDraft && (
           <div className="draft-banner">
             <span>🔄 Your previous session was restored — {answeredCount} answer{answeredCount !== 1 ? "s" : ""} recovered.</span>
@@ -515,7 +521,6 @@ export default function AssessmentPage() {
           </div>
         )}
 
-        {/* Previous result banner */}
         {prevResult && !hasDraft && (
           <div className="prev-result-banner">
             <span>
@@ -525,7 +530,6 @@ export default function AssessmentPage() {
           </div>
         )}
 
-        {/* Progress bar */}
         <div className="assessment-progress-bar">
           <div
             className="assessment-progress-fill"
@@ -534,17 +538,17 @@ export default function AssessmentPage() {
         </div>
 
         <div className="assessment-body">
-          {/* Question navigator */}
           <aside className="question-navigator">
             <h4>Questions</h4>
             <div className="question-nav-grid">
-              {questions.map((_, i) => (
+              {questions.map((q, i) => (
                 <button
                   key={i}
                   className={`nav-dot ${i === currentIndex ? "active" : ""} ${
                     selectedAnswers[i] !== undefined ? "answered" : ""
-                  }`}
+                  } ${q.type === "code" ? "code-q" : ""}`}
                   onClick={() => setCurrentIndex(i)}
+                  title={q.type === "code" ? "Code analysis question" : ""}
                 >
                   {i + 1}
                 </button>
@@ -554,15 +558,24 @@ export default function AssessmentPage() {
               <span className="legend-dot answered" /> Answered
               <span className="legend-dot active" /> Current
               <span className="legend-dot" /> Unanswered
+              <span className="legend-dot code-q" /> Code Q
             </div>
           </aside>
 
-          {/* Question card */}
           <main className="question-main">
             <div className="question-card">
-              <div className="question-counter">
-                Question {currentIndex + 1} of {questions.length}
+              <div className="question-counter-row">
+                <span className="question-counter">Question {currentIndex + 1} of {questions.length}</span>
+                {currentQuestion.type === "code" && (
+                  <span className="code-question-badge">💻 Code Analysis</span>
+                )}
               </div>
+
+              {/* Code block — shown above the question text */}
+              {currentQuestion.type === "code" && currentQuestion.code && (
+                <CodeBlock code={currentQuestion.code} />
+              )}
+
               <h2 className="question-text">{currentQuestion.question}</h2>
 
               <div className="options-list">
@@ -579,7 +592,6 @@ export default function AssessmentPage() {
                 ))}
               </div>
 
-              {/* Navigation */}
               <div className="question-nav-row">
                 <button
                   className="nav-btn"

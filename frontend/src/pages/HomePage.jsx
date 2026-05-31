@@ -12,7 +12,7 @@ export default function LandingPage() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
@@ -34,7 +34,7 @@ export default function LandingPage() {
             <div className="hero-buttons">
               {/* Dynamic Call-To-Action based on DB Auth Status */}
               <Link to={user ? "/home" : "/signup"} className="btn-primary">
-                {user ? "Continue Learning" : "Start for Free"}
+                {user ? "Continue Learning" : "Start Now"}
                 <IoArrowForward className="btn-icon-inline" aria-hidden="true" />
               </Link>
               <button className="btn-secondary">

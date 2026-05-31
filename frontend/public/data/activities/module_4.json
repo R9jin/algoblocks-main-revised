@@ -217,11 +217,12 @@
       ]
     }
   ],
+
   "optimizations": [
     {
       "id": "m4_opt_1",
       "title": "Optimize Bubble Sort",
-      "task": "The current code is a naive Bubble Sort that always runs O(n²).\n\n**Task Requirement:**\nOptimize it to stop early if the array is already sorted, yielding an O(n) best-case time complexity.\n\n**Rules:**\n- Introduce a `swapped` flag.\n- Break out of the loop early if no swaps occurred.",
+      "task": "The current code is a naive Bubble Sort that always runs O(n²).\n\nTask Requirement:\nOptimize it to stop early if the array is already sorted, yielding an O(n) best-case time complexity.\n\nRules:\n- Introduce a `swapped` flag.\n- Break out of the loop early if no swaps occurred.",
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m4-4.1.json",
@@ -236,7 +237,7 @@
     {
       "id": "m4_opt_2",
       "title": "Upgrade to Merge Sort",
-      "task": "The provided code uses Selection Sort (O(n²)).\n\n**Task Requirement:**\nReplace it entirely with a Divide and Conquer sorting strategy (like Merge Sort) to achieve O(n log n).",
+      "task": "The provided code uses Selection Sort (O(n²)).\n\nTask Requirement:\nReplace it entirely with a Divide and Conquer sorting strategy (like Merge Sort) to achieve O(n log n).",
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m4-4.2.json",
@@ -251,7 +252,7 @@
     {
       "id": "m4_opt_3",
       "title": "Optimize Array Merging",
-      "task": "The current code merges two sorted arrays by appending them and calling `sort()` which is O((n+m) log (n+m)).\n\n**Task Requirement:**\nOptimize it to merge the two arrays in a single pass O(n+m) using two pointers.",
+      "task": "The current code merges two sorted arrays by appending them and calling `sort()` which is O((n+m) log (n+m)).\n\nTask Requirement:\nOptimize it to merge the two arrays in a single pass O(n+m) using two pointers.",
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m4-4.3.json",

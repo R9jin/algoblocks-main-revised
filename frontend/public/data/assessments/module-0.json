@@ -28,15 +28,17 @@
     },
     {
       "id": "m0_q3",
-      "question": "What is the primary function of the Workspace Canvas?",
+      "type": "code",
+      "code": "arr = [5, 10, 15, 20, 25]\nprint(arr[0])",
+      "question": "What is the time complexity of this code?",
       "options": [
-        "To display execution output and error messages",
-        "To store saved projects in the cloud",
-        "To serve as the main area where blocks are arranged and connected to define program logic",
-        "To visualize memory usage during program execution"
+        "O(1) \u2014 accesses a single element directly by index",
+        "O(n) \u2014 iterates through all elements",
+        "O(log n) \u2014 halves the array each time",
+        "O(n\u00b2) \u2014 uses a nested loop"
       ],
-      "answer": 2,
-      "explanation": "The Workspace Canvas is the central area where learners drag and connect blocks to design and build their algorithmic programs."
+      "answer": 0,
+      "explanation": "Accessing an array element by index is O(1) \u2014 it is a direct memory lookup that takes the same time regardless of array size."
     },
     {
       "id": "m0_q4",
@@ -76,15 +78,17 @@
     },
     {
       "id": "m0_q7",
-      "question": "What programming construct is used for iteration?",
+      "type": "code",
+      "code": "n = 10\nfor i in range(n):\n    print(i)",
+      "question": "What is the time complexity of this loop?",
       "options": [
-        "A conditional (if/else) statement",
-        "A function definition",
-        "A variable assignment",
-        "A loop (for or while)"
+        "O(1) \u2014 prints a fixed number of times",
+        "O(log n) \u2014 loop count halves each iteration",
+        "O(n) \u2014 the loop runs n times, one print per iteration",
+        "O(n\u00b2) \u2014 there are two nested loops"
       ],
-      "answer": 3,
-      "explanation": "Loops (for or while) are the constructs used for iteration, allowing a set of instructions to repeat multiple times."
+      "answer": 2,
+      "explanation": "The loop runs exactly n times, performing O(1) work each iteration, making the total time complexity O(n)."
     },
     {
       "id": "m0_q8",
@@ -112,24 +116,26 @@
     },
     {
       "id": "m0_q10",
-      "question": "What does the Complexity Analyzer evaluate?",
+      "type": "code",
+      "code": "for i in range(n):\n    for j in range(n):\n        print(i, j)",
+      "question": "What is the time complexity of this nested loop?",
       "options": [
-        "The visual appearance of the block arrangement",
-        "The number of variables used in the program",
-        "The time and space complexity of each line of code",
-        "The network speed required to run the program"
+        "O(n) \u2014 two loops but only one runs at a time",
+        "O(n + n) \u2014 outer plus inner loop",
+        "O(n\u00b2) \u2014 outer loop runs n times, inner loop runs n times for each outer iteration",
+        "O(2n) \u2014 double the single loop cost"
       ],
       "answer": 2,
-      "explanation": "The Complexity Analyzer evaluates each line or block of code and assigns a time and space complexity rating, helping learners identify performance bottlenecks."
+      "explanation": "Each of the n outer iterations triggers n inner iterations, giving n \u00d7 n = n\u00b2 total operations \u2014 classic O(n\u00b2) nested loop complexity."
     },
     {
       "id": "m0_q11",
       "question": "What represents constant time complexity?",
       "options": [
-        "O(n) — performance scales linearly with input size",
-        "O(log n) — performance scales logarithmically",
-        "O(n²) — performance scales quadratically",
-        "O(1) — performance does not change regardless of input size"
+        "O(n) \u2014 performance scales linearly with input size",
+        "O(log n) \u2014 performance scales logarithmically",
+        "O(n\u00b2) \u2014 performance scales quadratically",
+        "O(1) \u2014 performance does not change regardless of input size"
       ],
       "answer": 3,
       "explanation": "O(1) means the operation always takes the same amount of time regardless of how large the input is."
@@ -138,25 +144,27 @@
       "id": "m0_q12",
       "question": "What represents linear time complexity?",
       "options": [
-        "O(1) — constant regardless of input",
-        "O(n) — performance grows directly proportional to input size",
-        "O(n²) — performance grows quadratically",
-        "O(log n) — performance grows logarithmically"
+        "O(1) \u2014 constant regardless of input",
+        "O(n) \u2014 performance grows directly proportional to input size",
+        "O(n\u00b2) \u2014 performance grows quadratically",
+        "O(log n) \u2014 performance grows logarithmically"
       ],
       "answer": 1,
-      "explanation": "O(n) means the number of operations grows linearly as the input size increases — doubling the input roughly doubles the execution time."
+      "explanation": "O(n) means the number of operations grows linearly as the input size increases \u2014 doubling the input roughly doubles the execution time."
     },
     {
       "id": "m0_q13",
-      "question": "What does the Memory Visualizer track?",
+      "type": "code",
+      "code": "def greet(name):\n    message = 'Hello, ' + name\n    return message\n\nresult = greet('Alice')",
+      "question": "What is the space complexity of this function?",
       "options": [
-        "The Big-O time complexity of each block",
-        "The network bandwidth consumed during execution",
-        "Changes in variable states, array contents, and the call stack over the course of execution",
-        "The number of blocks used in the workspace"
+        "O(n) \u2014 space grows with the length of the name string",
+        "O(1) \u2014 uses a fixed number of variables regardless of input",
+        "O(n\u00b2) \u2014 allocates a 2D structure",
+        "O(log n) \u2014 space halves each call"
       ],
-      "answer": 2,
-      "explanation": "The Memory Visualizer shows how variable values change, how arrays are modified, and how the call stack grows and shrinks during program execution."
+      "answer": 1,
+      "explanation": "The function creates a fixed number of variables (message, result) regardless of what name is passed \u2014 constant O(1) space usage."
     },
     {
       "id": "m0_q14",
@@ -172,15 +180,17 @@
     },
     {
       "id": "m0_q15",
-      "question": "Why is code execution considered dynamic rather than static?",
+      "type": "code",
+      "code": "total = 0\nfor i in range(n):\n    total += i\nprint(total)",
+      "question": "What are the time and space complexities of this code?",
       "options": [
-        "Because the code is written using drag-and-drop blocks",
-        "Because the program structure is fixed and never changes",
-        "Because the actual behavior, variable values, and execution paths are determined at runtime based on input and state",
-        "Because execution speed depends on the programming language chosen"
+        "Time: O(n\u00b2), Space: O(n)",
+        "Time: O(n), Space: O(1) \u2014 loop runs n times but uses only one extra variable",
+        "Time: O(1), Space: O(1)",
+        "Time: O(n), Space: O(n) \u2014 stores each value"
       ],
-      "answer": 2,
-      "explanation": "Execution is dynamic because the actual values, paths taken through conditionals, and number of iterations are only determined when the program runs with real input data."
+      "answer": 1,
+      "explanation": "The loop runs n times \u2192 O(n) time. Only the variable 'total' is allocated regardless of n \u2192 O(1) space. This is a common pattern: linear time, constant space."
     }
   ]
 }

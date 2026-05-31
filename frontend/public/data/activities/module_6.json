@@ -76,7 +76,6 @@
       ]
     }
   ],
-
   "lesson_2": [
     {
       "id": "m6_l2_a1",
@@ -154,7 +153,6 @@
       ]
     }
   ],
-
   "lesson_3": [
     {
       "id": "m6_l3_a1",
@@ -232,7 +230,6 @@
       ]
     }
   ],
-
   "lesson_4": [
     {
       "id": "m6_l4_a1",
@@ -310,12 +307,12 @@
       ]
     }
   ],
-"optimizations": [
+  "optimizations": [
     {
       "id": "m6_opt_1",
       "title": "Optimize Knapsack (Dynamic Programming)",
       "task": "The current Knapsack solver uses pure recursion exploring all subsets (O(2ⁿ)).\n\n**Task Requirement:**\nOptimize it using a DP table or memoization to achieve O(n * W) time.",
-      "targetTime": "O(n^2)", 
+      "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
       "templateUrl": "/data/optimizations/m6-6.1.json",
       "testCasesPool": [

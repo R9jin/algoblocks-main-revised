@@ -69,6 +69,24 @@ self.onmessage = async (e) => {
     return;
   }
 
+  // ==========================================
+  // AST DOS MITIGATION: Check Payload Size
+  // ==========================================
+  const MAX_CODE_LENGTH = 10000;
+  if (code && code.length > MAX_CODE_LENGTH) {
+    const errorMsg = `Code payload too large. Maximum allowed is ${MAX_CODE_LENGTH} characters.`;
+
+    // Route the error back to the correct frontend listener
+    if (type === 'ANALYZE_CODE') {
+      self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
+    } else if (type === 'PYTHON_TO_BLOCKS') {
+      self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
+    } else {
+      self.postMessage({ type: 'ERROR', data: errorMsg });
+    }
+    return;
+  }
+
   try {
     await initPyodide();
 
@@ -347,7 +365,7 @@ class InfiniteLoopDetector(ast.NodeVisitor):
                             for target in n.targets:
                                 if isinstance(target, ast.Name): modified_vars.add(target.id)
                         elif isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
-                             modified_vars.add(n.target.id)
+                            modified_vars.add(n.target.id)
                 if not condition_vars.intersection(modified_vars):
                     has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
                     if not has_break:
