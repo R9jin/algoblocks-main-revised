@@ -1,184 +1,218 @@
-import { assessmentsDB, progressDB, projectsDB, submissionsDB, syncQueueDB, templatesDB } from "../db";
+// frontend/src/utils/syncManager.js
+import { assessmentsDB, progressDB, submissionsDB, syncQueueDB } from "../db";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE_URL = "http://localhost:8000/api";
 
-// ==========================================
-// BACKGROUND SYNC MANAGER
-// ==========================================
-export const startBackgroundSync = async () => {
-  if (!navigator.onLine) return;
+/**
+ * Helper to securely get the token and build headers
+ */
+const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+        console.warn("SyncManager: No auth token found in localStorage.");
+        return { "Content-Type": "application/json" };
+    }
 
-  // Security & Bug Fix: Fallback to sessionStorage if the user did not check 'Stay signed in'
-  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-  const headers = { "Content-Type": "application/json" };
-  
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
+    return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}` // STRICT JWT REQUIREMENT
+    };
+};
 
-  await syncQueueDB.iterate(async (task, id) => {
+/**
+ * Offline Support: Adds failed or offline requests to the local IndexedDB sync queue
+ */
+const addToSyncQueue = async (url, method, payload, type) => {
     try {
-      let endpoint = '';
-      let method = task.action === 'DELETE' ? 'DELETE' : 'POST';
-      let targetId = task.data._id || task.data.id;
-
-      if (task.type === 'TEMPLATE') endpoint = '/api/templates';
-      else if (task.type === 'PROJECT') endpoint = '/api/projects';
-      else if (task.type === 'SUBMISSION') endpoint = '/api/sync-submission'; 
-      else if (task.type === 'PROGRESS') endpoint = '/api/update-progress';
-      else if (task.type === 'ASSESSMENT') endpoint = '/api/update-assessment';
-
-      const url = (method === 'POST' || ['SUBMISSION', 'PROGRESS', 'ASSESSMENT'].includes(task.type)) 
-          ? `${API_BASE}${endpoint}` 
-          : `${API_BASE}${endpoint}/${targetId}`;
-
-      const response = await fetch(url, {
-        method,
-        headers, 
-        body: method === 'DELETE' ? null : JSON.stringify(task.data),
-      });
-
-      if (response.ok) {
-        await syncQueueDB.removeItem(id);
-      }
+        const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 9);
+        await syncQueueDB.setItem(id, { 
+            url, 
+            method, 
+            payload, 
+            type, 
+            timestamp: Date.now() 
+        });
+        console.log(`[Offline] Saved ${type} to sync queue.`);
     } catch (err) {
-      console.warn("Background sync failed for item:", id, err);
+        console.error("Failed to add to sync queue", err);
     }
-  });
 };
 
-window.addEventListener('online', startBackgroundSync);
-setInterval(startBackgroundSync, 30000); 
-startBackgroundSync(); 
+export const syncManager = {
+    /**
+     * Syncs a specific coding submission to the backend & Local DB
+     */
+    syncSubmission: async (activityId, code, output, isCompleted) => {
+        const payload = {
+            activityId,
+            code,
+            output,
+            isCompleted,
+            timestamp: new Date().toISOString()
+        };
 
-
-// ==========================================
-// FETCH CLOUD DATA (On Login / App Load)
-// ==========================================
-export const fetchCloudData = async (userEmail) => {
-  if (!navigator.onLine || !userEmail) return;
-
-  // Security & Bug Fix: Fallback to sessionStorage if the user did not check 'Stay signed in'
-  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-  const headers = { "Content-Type": "application/json" };
-  
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  try {
-    // 1. Fetch Projects from cloud
-    const projRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(userEmail)}`, { headers }); 
-    if (projRes.ok) {
-      const data = await projRes.json();
-      const projects = data.projects || data; 
-      if (Array.isArray(projects)) {
-        for (const p of projects) {
-          if (p.userId === userEmail || p.owner_id === userEmail) { 
-            await projectsDB.setItem(p._id, { ...p, synced: true });
-          }
+        // 1. ALWAYS save locally first for immediate UI response & offline support
+        try {
+            await submissionsDB.setItem(activityId, payload);
+        } catch (err) {
+            console.error("Failed to save submission locally:", err);
         }
-      }
-    }
 
-    // 2. Fetch Templates from cloud
-    const tempRes = await fetch(`${API_BASE}/api/templates`, { headers });
-    if (tempRes.ok) {
-      const templates = await tempRes.json();
-      for (const t of templates) {
-        if (t.owner_id === userEmail) {
-          await templatesDB.setItem(t._id, { ...t, synced: true });
+        // 2. Check network status
+        if (!navigator.onLine) {
+            await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+            return { status: "offline_saved", message: "Saved locally. Will sync when online." };
         }
-      }
-    }
 
-    // Load Local User state safely
-    const localUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-    const localUser = JSON.parse(localUserStr || "{}");
-    let updated = false;
+        // 3. Attempt server sync
+        try {
+            const response = await fetch(`${API_BASE_URL}/sync-submission`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload)
+            });
 
-    // 3. Fetch Progress
-    try {
-        const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers }); 
-        if (progRes.ok) {
-            const data = await progRes.json();
-            const progressDataRaw = data.progress || data;
+            if (response.status === 401) {
+                console.error("SyncManager: Unauthorized (401). Token may be expired.");
+                await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+                return false;
+            }
+
+            if (!response.ok) throw new Error(`Server returned ${response.status}`);
             
-            let normalizedProg = {};
-            if (Array.isArray(progressDataRaw)) {
-                progressDataRaw.forEach(item => {
-                    const k = item.lesson_id || item.key;
-                    if (k) normalizedProg[k] = item.score !== undefined ? item.score : (item.data?.score ?? 1);
-                });
-            } else if (typeof progressDataRaw === 'object' && progressDataRaw !== null) {
-                normalizedProg = progressDataRaw;
-            }
-
-            for (const [key, val] of Object.entries(normalizedProg)) {
-                if (typeof key === 'string' && isNaN(Number(key))) {
-                    await progressDB.setItem(key, { score: val, isSynced: true });
-                }
-            }
-            localUser.progress = { ...localUser.progress, ...normalizedProg };
-            updated = true;
+            return await response.json();
+        } catch (error) {
+            console.error("Sync Error [Submission]:", error);
+            await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+            return false;
         }
-    } catch (e) { console.warn("Could not sync progress", e); }
+    },
 
-    // 4. Fetch Assessments
-    try {
-        const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
-        if (assRes.ok) {
-            const data = await assRes.json();
-            const assDataRaw = data.assessments || data;
+    /**
+     * Syncs lesson progress to the backend & Local DB
+     */
+    updateProgress: async (lessonId, progressData) => {
+        const payload = {
+            lesson_id: lessonId,
+            ...progressData
+        };
 
-            let normalizedAssm = {};
-            if (Array.isArray(assDataRaw)) {
-                assDataRaw.forEach(item => {
-                    const k = item.assessment_key || item.key;
-                    if (k) normalizedAssm[k] = item.data || item;
-                });
-            } else if (typeof assDataRaw === 'object' && assDataRaw !== null) {
-                normalizedAssm = assDataRaw;
-            }
+        // 1. Save locally
+        try {
+            await progressDB.setItem(lessonId, payload);
+        } catch (err) {}
 
-            for (const [key, val] of Object.entries(normalizedAssm)) {
-                if (typeof key === 'string' && isNaN(Number(key))) {
-                    await assessmentsDB.setItem(key, { ...val, isSynced: true });
-                }
-            }
-            localUser.assessments = { ...localUser.assessments, ...normalizedAssm };
-            updated = true;
+        if (!navigator.onLine) {
+            await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+            return { status: "offline_saved" };
         }
-    } catch (e) { console.warn("Could not sync assessments", e); }
 
-    // 5. Fetch ALL Submissions (Fix for missing Python code)
-    try {
-        const subRes = await fetch(`${API_BASE}/api/get-all-submissions?email=${encodeURIComponent(userEmail)}`, { headers });
-        if (subRes.ok) {
-            const data = await subRes.json();
-            const submissionsRaw = data.submissions || data;
-            
-            if (Array.isArray(submissionsRaw)) {
-                for (const sub of submissionsRaw) {
-                    const key = sub.activityId || sub._id;
-                    if (key) {
-                        await submissionsDB.setItem(key, { ...sub, isSynced: true });
+        try {
+            const response = await fetch(`${API_BASE_URL}/update-progress`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload)
+            });
+
+            if (response.status === 401) {
+                await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+                return false;
+            }
+
+            if (!response.ok) throw new Error("Failed to update progress");
+
+            return await response.json();
+        } catch (error) {
+            console.error("Sync Error [Progress]:", error);
+            await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+            return false;
+        }
+    },
+
+    /**
+     * Syncs assessment scores to the backend & Local DB
+     */
+    updateAssessment: async (assessmentKey, score, passed) => {
+        const payload = {
+            key: assessmentKey,
+            score: score,
+            passed: passed,
+            timestamp: new Date().toISOString()
+        };
+
+        // 1. Save locally
+        try {
+            await assessmentsDB.setItem(assessmentKey, payload);
+        } catch (err) {}
+
+        if (!navigator.onLine) {
+            await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+            return { status: "offline_saved" };
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/update-assessment`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify(payload)
+            });
+
+            if (response.status === 401) {
+                await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+                return false;
+            }
+
+            if (!response.ok) throw new Error("Failed to update assessment");
+
+            return await response.json();
+        } catch (error) {
+            console.error("Sync Error [Assessment]:", error);
+            await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+            return false;
+        }
+    },
+
+    /**
+     * BACKGROUND PROCESSOR: Flushes the offline queue when connection is restored
+     */
+    processSyncQueue: async () => {
+        if (!navigator.onLine) return;
+
+        try {
+            const keys = await syncQueueDB.keys();
+            if (keys.length === 0) return;
+
+            console.log(`SyncManager: Processing ${keys.length} items in background sync queue...`);
+
+            for (const key of keys) {
+                const item = await syncQueueDB.getItem(key);
+                try {
+                    const response = await fetch(item.url, {
+                        method: item.method,
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(item.payload)
+                    });
+
+                    if (response.ok) {
+                        await syncQueueDB.removeItem(key); // Clean up upon success
+                        console.log(`[Sync] Successfully processed queued ${item.type}`);
+                    } else if (response.status === 401) {
+                        console.warn("[Sync] Queue item failed (401 Unauthorized). Halting queue flush.");
+                        break; // Stop processing the queue if token is invalid to avoid 401 spam
                     }
+                } catch (err) {
+                    console.error(`[Sync] Queue item ${key} failed, keeping in queue.`);
                 }
             }
-        }
-    } catch (e) { console.warn("Could not sync submissions", e); }
-
-    // Save state back to whatever storage mechanism is currently active
-    if (updated) {
-        if (localStorage.getItem("user")) {
-            localStorage.setItem("user", JSON.stringify(localUser));
-        } else {
-            sessionStorage.setItem("user", JSON.stringify(localUser));
+        } catch (err) {
+            console.error("Failed to process sync queue", err);
         }
     }
-
-  } catch (error) {
-    console.error("Failed to fetch cloud data:", error);
-  }
 };
+
+// Listen for the browser coming back online to automatically flush the queue
+window.addEventListener("online", () => {
+    console.log("Network restored! Triggering background sync...");
+    syncManager.processSyncQueue();
+});

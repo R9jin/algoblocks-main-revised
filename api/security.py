@@ -1,23 +1,21 @@
-# api/security.py
+import logging
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-import jwt
-import logging
 
 logger = logging.getLogger(__name__)
 
-# Make sure this exact secret key matches the one used in auth_service.py to generate the token
+# Make sure this exact secret key matches the one used in your auth_service.py
 SECRET_KEY = "algoblocks_secret_key" 
 ALGORITHM = "HS256"
 
 # auto_error=True strictly enforces that the Authorization header MUST be present
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login", auto_error=True)
 
-async def get_current_user_email(token: str = Depends(oauth2_scheme)):
+async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
     """
     Strict and secure authentication dependency.
     Requires a valid, unexpired JWT Bearer token. 
-    Under no circumstances does this accept unverified user IDs from the URL.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
