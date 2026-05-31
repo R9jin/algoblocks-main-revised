@@ -5,6 +5,7 @@ from google.auth.transport import requests
 import os
 import bcrypt
 import logging
+from datetime import datetime
 
 from repositories.user_repo import UserRepository
 from models import LoginRequest, SignUpRequest
@@ -40,11 +41,16 @@ class AuthService:
                 raise HTTPException(status_code=400, detail="User already exists")
 
             hashed_pw = AuthService.hash_password(request.password)
+            
+            # Safely get name and created_at
+            name = getattr(request, "name", request.email.split('@')[0])
+            created_at = getattr(request, "created_at", datetime.utcnow().isoformat())
+
             user_data = {
                 "email": request.email,
                 "password": hashed_pw,
-                "created_at": request.created_at,
-                "name": getattr(request, "name", request.email.split('@')[0])
+                "created_at": created_at,
+                "name": name
             }
             
             # Save to database
@@ -59,7 +65,7 @@ class AuthService:
                 "token_type": "bearer",
                 "user": {
                     "email": request.email, 
-                    "name": user_data["name"]
+                    "name": name
                 }
             }
             

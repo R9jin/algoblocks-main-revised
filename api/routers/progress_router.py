@@ -1,3 +1,4 @@
+# api/routers/progress_router.py
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from database import db 
 from security import get_current_user_email
@@ -5,29 +6,30 @@ from security import get_current_user_email
 router = APIRouter()
 
 @router.get("/get-progress")
-async def get_progress(user_email: str = Depends(get_current_user_email)):
+def get_progress(user_email: str = Depends(get_current_user_email)):
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
     try:
+        # Returning raw array to fix the frontend .map() parsing error
         progress_data = list(db["progress"].find({"userId": user_email}, {"_id": 0}))
-        return {"status": "success", "progress": progress_data}
+        return progress_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/get-assessments")
-async def get_assessments(user_email: str = Depends(get_current_user_email)):
+def get_assessments(user_email: str = Depends(get_current_user_email)):
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
     try:
         assessment_data = list(db["assessments"].find({"userId": user_email}, {"_id": 0}))
-        return {"status": "success", "assessments": assessment_data}
+        return assessment_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/get-submission")
-async def get_submission(
+def get_submission(
     activityId: str = Query(..., description="The ID of the activity"),
     moduleId: str = Query(None, description="The ID of the module"),
     user_email: str = Depends(get_current_user_email)
@@ -40,12 +42,12 @@ async def get_submission(
             {"userId": user_email, "activityId": activityId}, 
             {"_id": 0}
         )
-        return {"status": "success", "submission": submission or {}}
+        return submission if submission else {}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.post("/update-progress")
-async def update_progress(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
+def update_progress(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
@@ -67,7 +69,7 @@ async def update_progress(payload: dict = Body(...), user_email: str = Depends(g
         raise HTTPException(status_code=500, detail=f"Failed to update progress: {str(e)}")
 
 @router.post("/update-assessment")
-async def update_assessment(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
+def update_assessment(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
@@ -89,7 +91,7 @@ async def update_assessment(payload: dict = Body(...), user_email: str = Depends
         raise HTTPException(status_code=500, detail=f"Failed to update assessment: {str(e)}")
 
 @router.post("/sync-submission")
-async def sync_submission(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
+def sync_submission(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
     if not user_email:
         raise HTTPException(status_code=401, detail="Invalid user token")
 
