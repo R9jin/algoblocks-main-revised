@@ -10,9 +10,8 @@ export default function SignIn() {
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState(""); 
   const [isLoading, setIsLoading] = useState(false); 
-  const [rememberMe, setRememberMe] = useState(false); // <-- "Stay signed in" state
+  const [rememberMe, setRememberMe] = useState(false);
   
-  // Custom Toast State
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
   
   const navigate = useNavigate(); 
@@ -21,7 +20,6 @@ export default function SignIn() {
   const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
 
-  // Custom notification trigger
   const showToast = (message, type = "error") => {
     setToast({ visible: true, message, type });
     setTimeout(() => {
@@ -86,28 +84,27 @@ export default function SignIn() {
 
       const data = await response.json(); 
 
-      if (!response.ok) {
+      if (!response.ok || data.status !== "success") {
         showToast(data.detail || "Invalid email or password"); 
         setIsLoading(false);
         return;
       }
 
-      // Conditionally use localStorage or sessionStorage
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
       inactiveStorage.removeItem("authToken");
       inactiveStorage.removeItem("user");
 
-      // FIXED: Use data.access_token and data.user object provided by backend
-      activeStorage.setItem("authToken", data.access_token);
+      // FIXED: Adjusted to map the restored backend top-level dictionary
+      activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("user", JSON.stringify({
-        email: data.user.email,
-        name: data.user.name,
-        progress: data.user.progress || {}
+        email: data.email,
+        name: data.name,
+        progress: data.progress || {}
       })); 
 
-      await syncUserCloudData(data.user.email, data.access_token); 
+      await syncUserCloudData(data.email, data.token); 
       navigate("/dashboard"); 
       
     } catch (error) {
@@ -127,11 +124,9 @@ export default function SignIn() {
         syncQueueDB.clear()
       ]); 
 
-      // Wipe old tokens completely
       localStorage.removeItem("authToken");
       sessionStorage.removeItem("authToken");
 
-      // Guests should always use Session Storage
       sessionStorage.setItem("user", JSON.stringify({
         email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
@@ -159,27 +154,26 @@ export default function SignIn() {
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || data.status !== "success") {
         showToast(data.detail || "Google authentication failed");
         return;
       }
 
-      // Conditionally use localStorage or sessionStorage
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
       inactiveStorage.removeItem("authToken");
       inactiveStorage.removeItem("user");
 
-      // FIXED: Use data.access_token and data.user object provided by backend
-      activeStorage.setItem("authToken", data.access_token);
+      // FIXED: Adjusted to map the restored backend top-level dictionary
+      activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("user", JSON.stringify({
-        email: data.user.email,
-        name: data.user.name,
-        progress: data.user.progress || {}
+        email: data.email,
+        name: data.name,
+        progress: data.progress || {}
       }));
 
-      await syncUserCloudData(data.user.email, data.access_token);
+      await syncUserCloudData(data.email, data.token);
       navigate("/dashboard");
       
     } catch (error) {
@@ -192,7 +186,6 @@ export default function SignIn() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      {/* Custom Toast Anchor */}
       <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
         {toast.message}
       </div>
