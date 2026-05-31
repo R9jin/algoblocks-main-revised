@@ -1,4 +1,3 @@
-// frontend/src/utils/syncManager.js
 import { assessmentsDB, progressDB, projectsDB, submissionsDB, syncQueueDB, templatesDB } from "../db";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -9,9 +8,10 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 export const startBackgroundSync = async () => {
   if (!navigator.onLine) return;
 
-  // Retrieve the token for secure backend calls
-  const token = localStorage.getItem("authToken");
+  // Security & Bug Fix: Fallback to sessionStorage if the user did not check 'Stay signed in'
+  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
   const headers = { "Content-Type": "application/json" };
+  
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
@@ -24,7 +24,7 @@ export const startBackgroundSync = async () => {
 
       if (task.type === 'TEMPLATE') endpoint = '/api/templates';
       else if (task.type === 'PROJECT') endpoint = '/api/projects';
-      else if (task.type === 'SUBMISSION') endpoint = '/api/sync-submission'; // Ensure proper endpoint
+      else if (task.type === 'SUBMISSION') endpoint = '/api/sync-submission'; 
       else if (task.type === 'PROGRESS') endpoint = '/api/update-progress';
       else if (task.type === 'ASSESSMENT') endpoint = '/api/update-assessment';
 
@@ -34,45 +34,11 @@ export const startBackgroundSync = async () => {
 
       const response = await fetch(url, {
         method,
-        headers, // <-- FIX: Token is now sent here
+        headers, 
         body: method === 'DELETE' ? null : JSON.stringify(task.data),
       });
 
       if (response.ok) {
-        const result = await response.json();
-        
-        if (method === 'POST' && result.id && (task.type === 'TEMPLATE' || task.type === 'PROJECT')) {
-          const db = task.type === 'TEMPLATE' ? templatesDB : projectsDB;
-          const item = await db.getItem(id);
-          if (item) {
-              await db.removeItem(id);
-              await db.setItem(result.id, { ...item, _id: result.id, synced: true });
-          }
-        }
-
-        if (task.type === 'SUBMISSION') {
-            const submissionId = id.replace('sync_', '');
-            const sub = await submissionsDB.getItem(submissionId);
-            if (sub) await submissionsDB.setItem(submissionId, { ...sub, isSynced: true });
-        }
-
-        if (task.type === 'PROGRESS') {
-            const progId = task.data.activityId 
-                ? `draft_${task.data.userId}_${task.data.moduleId}_${task.data.activityId}`
-                : task.data.lesson_id;
-            
-            if (progId) {
-                const prog = await progressDB.getItem(progId);
-                if (prog) await progressDB.setItem(progId, { ...prog, isSynced: true });
-            }
-        }
-
-        if (task.type === 'ASSESSMENT') {
-            const assKey = task.data.assessment_key;
-            const ass = await assessmentsDB.getItem(assKey);
-            if (ass) await assessmentsDB.setItem(assKey, { ...ass, isSynced: true });
-        }
-
         await syncQueueDB.removeItem(id);
       }
     } catch (err) {
@@ -92,20 +58,20 @@ startBackgroundSync();
 export const fetchCloudData = async (userEmail) => {
   if (!navigator.onLine || !userEmail) return;
 
-  // Retrieve the token for secure backend calls
-  const token = localStorage.getItem("authToken");
+  // Security & Bug Fix: Fallback to sessionStorage if the user did not check 'Stay signed in'
+  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
   const headers = { "Content-Type": "application/json" };
+  
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
   try {
     // 1. Fetch Projects from cloud
-    const projRes = await fetch(`${API_BASE}/api/projects?userId=${userEmail}`, { headers }); // <-- FIX
+    const projRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(userEmail)}`, { headers }); 
     if (projRes.ok) {
       const data = await projRes.json();
       const projects = data.projects || data; 
-      
       if (Array.isArray(projects)) {
         for (const p of projects) {
           if (p.userId === userEmail || p.owner_id === userEmail) { 
@@ -116,7 +82,7 @@ export const fetchCloudData = async (userEmail) => {
     }
 
     // 2. Fetch Templates from cloud
-    const tempRes = await fetch(`${API_BASE}/api/templates`, { headers }); // <-- FIX
+    const tempRes = await fetch(`${API_BASE}/api/templates`, { headers });
     if (tempRes.ok) {
       const templates = await tempRes.json();
       for (const t of templates) {
@@ -126,12 +92,13 @@ export const fetchCloudData = async (userEmail) => {
       }
     }
 
-    // 3. Fetch User Progress and Assessments
-    const localUser = JSON.parse(localStorage.getItem("user") || "{}");
+    // Load Local User state safely
+    const localUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const localUser = JSON.parse(localUserStr || "{}");
     let updated = false;
 
+    // 3. Fetch Progress
     try {
-        // <-- FIX: Token included in headers here to clear the 401 Error
         const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers }); 
         if (progRes.ok) {
             const data = await progRes.json();
@@ -155,10 +122,10 @@ export const fetchCloudData = async (userEmail) => {
             localUser.progress = { ...localUser.progress, ...normalizedProg };
             updated = true;
         }
-    } catch (e) { console.warn("Could not sync progress"); }
+    } catch (e) { console.warn("Could not sync progress", e); }
 
+    // 4. Fetch Assessments
     try {
-        // <-- FIX: Token included in headers here to clear the 401 Error
         const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
         if (assRes.ok) {
             const data = await assRes.json();
@@ -182,10 +149,33 @@ export const fetchCloudData = async (userEmail) => {
             localUser.assessments = { ...localUser.assessments, ...normalizedAssm };
             updated = true;
         }
-    } catch (e) { console.warn("Could not sync assessments"); }
+    } catch (e) { console.warn("Could not sync assessments", e); }
 
+    // 5. Fetch ALL Submissions (Fix for missing Python code)
+    try {
+        const subRes = await fetch(`${API_BASE}/api/get-all-submissions?email=${encodeURIComponent(userEmail)}`, { headers });
+        if (subRes.ok) {
+            const data = await subRes.json();
+            const submissionsRaw = data.submissions || data;
+            
+            if (Array.isArray(submissionsRaw)) {
+                for (const sub of submissionsRaw) {
+                    const key = sub.activityId || sub._id;
+                    if (key) {
+                        await submissionsDB.setItem(key, { ...sub, isSynced: true });
+                    }
+                }
+            }
+        }
+    } catch (e) { console.warn("Could not sync submissions", e); }
+
+    // Save state back to whatever storage mechanism is currently active
     if (updated) {
-        localStorage.setItem("user", JSON.stringify(localUser));
+        if (localStorage.getItem("user")) {
+            localStorage.setItem("user", JSON.stringify(localUser));
+        } else {
+            sessionStorage.setItem("user", JSON.stringify(localUser));
+        }
     }
 
   } catch (error) {
