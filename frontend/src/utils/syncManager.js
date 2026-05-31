@@ -211,6 +211,23 @@ export const syncManager = {
     }
 };
 
+// =====================================================================
+// MISSING EXPORT FIX FOR UserHeader.jsx
+// =====================================================================
+/**
+ * Triggers the background sync interval for processing queued offline requests.
+ * Used globally by components like UserHeader.
+ */
+export const startBackgroundSync = () => {
+    // Run an initial check immediately
+    syncManager.processSyncQueue();
+    
+    // Set up a loop to check the offline queue every 30 seconds
+    setInterval(() => {
+        syncManager.processSyncQueue();
+    }, 30000);
+};
+
 // Listen for the browser coming back online to automatically flush the queue
 window.addEventListener("online", () => {
     console.log("Network restored! Triggering background sync...");
