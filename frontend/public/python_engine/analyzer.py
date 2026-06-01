@@ -242,15 +242,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         res = res.replace(" * log", " log").replace(" * √", " √")
         return res
 
-    def _get_weight(self, poly_dims, log, sqrt, exp, graph):
-        w = 0
-        if exp > 0: w += 100
-        w += graph * 12
-        w += len(poly_dims) * 10
-        w += sqrt * 7
-        w += log * 5
-        return w
-
     def bfs_first_pass(self, tree):
         queue = deque([(tree, None)])
         self.call_graph = {'__main__': set()}
@@ -483,10 +474,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def record_line(self, node, time_override=None, space_override=None, custom_op=None, global_time_override=None, global_space_override=None):
         line_text = self.get_code_snippet(node)
         line_num = getattr(node, 'lineno', -1) 
-        current_log, current_sqrt, current_graph = self.log_loop_depth, getattr(self, 'sqrt_loop_depth', 0), getattr(self, 'graph_depth', 0)
-        
-        override_dims, override_log, override_sqrt, override_graph = [], 0, 0, 0
-        is_recurrence = False
         
         node_type = type(node).__name__
         op_map = {
@@ -500,93 +487,130 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         }
         operation_name = custom_op or op_map.get(node_type, node_type)
 
-        if time_override:
-            if time_override.startswith("T(") or any(x in time_override for x in ["T(n) =", "n!", "2^n", "2T("]): is_recurrence = True
-            else:
-                if "n log n" in time_override: override_dims.append('n'); override_log = 1
-                elif "O(V + E)" in time_override: override_graph = 1
-                elif "O(log n)" in time_override: override_log = 1
-                elif "O(√n)" in time_override: override_sqrt = 1
-                elif "O(n * m)" in time_override: override_dims.extend(['n', 'm'])
-                elif "O(n)" in time_override: override_dims.append('n')
-
-        total_poly_dims = self.active_poly_dims + override_dims
-        total_log, total_sqrt, total_graph = current_log + override_log, current_sqrt + override_sqrt, current_graph + override_graph
         is_dead = getattr(self, 'in_dead_code', False) or time_override == "Dead Code"
-        
-        display_dims, display_log, display_sqrt, display_graph = override_dims, override_log, override_sqrt, override_graph
         is_loop_or_func = isinstance(node, (ast.For, ast.While, ast.FunctionDef, ast.ListComp, ast.SetComp, ast.DictComp))
+        is_recurrence = time_override and (time_override.startswith("T(") or any(x in time_override for x in ["T(n) =", "n!", "2^n", "2T("]))
+        
+        node_dims, node_log, node_sqrt, node_graph = [], 0, 0, 0
         
         if not time_override:
             if self._is_exponential_loop(node):
                 time_override, is_recurrence, self.max_exp = "O(2^n)", True, 1
             elif isinstance(node, ast.For):
                 if not self._is_constant_loop(node):
-                    if self._is_sqrt_loop(node):
-                        display_sqrt = 1
+                    if self._is_sqrt_loop(node): node_sqrt = 1
                     else:
                         iter_name = self._get_iterable_name(node.iter)
                         dim = self._register_and_get_dim(iter_name)
-                        display_dims = [dim]
+                        node_dims = [dim]
             elif isinstance(node, ast.While):
-                if getattr(self, 'in_graph_context', False) and self._is_graph_while_loop(node): display_graph = 1
-                elif self._is_log_loop(node): display_log = 1
-                elif self._is_sqrt_loop(node): display_sqrt = 1
+                if getattr(self, 'in_graph_context', False) and self._is_graph_while_loop(node): node_graph = 1
+                elif self._is_log_loop(node): node_log = 1
+                elif self._is_sqrt_loop(node): node_sqrt = 1
                 elif not self._is_constant_loop(node): 
                     limit_vars = self._get_while_limit_vars(node)
                     if limit_vars:
                         dims = [self._register_and_get_dim(lv) for lv in limit_vars]
-                        dim = dims[0] if dims else 'n'
+                        node_dims = [dims[0]] if dims else ['n']
                     else:
-                        dim = 'n'
-                    display_dims = [dim]
-            if not is_loop_or_func:
-                display_dims = []
-
-        if time_override == "Definition":
-            local_t = global_t = local_s = global_s = "O(1)"
-            t_w = 0
-        elif is_dead:
-            local_t = global_t = local_s = global_s = "Dead Code"
-            t_w = -1
+                        node_dims = ['n']
         else:
-            local_t = self._build_time_str(display_dims, display_log, display_sqrt, 0, display_graph)
-            if time_override and is_recurrence:
-                local_t = time_override
-            elif time_override:
-                local_t = time_override
-                
-            local_s = space_override if space_override else "O(1)"
-            
-            if local_s == "S(placeholder)":
-                global_s = "S(placeholder)"
-            elif global_space_override:
-                global_s = global_space_override
+            if not is_recurrence:
+                if "n log n" in time_override: node_dims.append('n'); node_log = 1
+                elif "O(V + E)" in time_override or "O(V)" in time_override: node_graph = 1
+                elif "O(log n)" in time_override: node_log = 1
+                elif "O(√n)" in time_override: node_sqrt = 1
+                elif "O(n * m)" in time_override: node_dims.extend(['n', 'm'])
+                elif "O(n)" in time_override: node_dims.append('n')
+                elif "O(m)" in time_override: node_dims.append('m')
+
+        # -------------------------------------------------------------
+        # STRICT ISOLATION: Local Time vs Global Time
+        # -------------------------------------------------------------
+        if time_override == "Definition":
+            local_t = "O(1)"
+        elif is_dead:
+            local_t = "Dead Code"
+        elif time_override:
+            local_t = time_override
+        else:
+            local_t = self._build_time_str(node_dims, node_log, node_sqrt, 0, node_graph)
+
+        has_local_cost = bool(node_dims or node_log or node_sqrt or node_graph or (time_override and time_override not in ["O(1)", "Definition", "Dead Code", "T(placeholder)"] and not is_recurrence))
+
+        # Rule: Only propagate global loop weight if the statement executes non-constant time operations
+        # or if the node is fundamentally a block definition (Loop/Function)
+        if is_loop_or_func or has_local_cost:
+            tot_dims = self.active_poly_dims + node_dims
+            tot_log = self.log_loop_depth + node_log
+            tot_sqrt = getattr(self, 'sqrt_loop_depth', 0) + node_sqrt
+            tot_graph = getattr(self, 'graph_depth', 0) + node_graph
+        else:
+            tot_dims = self.active_poly_dims
+            tot_log = self.log_loop_depth
+            tot_sqrt = getattr(self, 'sqrt_loop_depth', 0)
+            tot_graph = getattr(self, 'graph_depth', 0)
+
+        t_w = 0
+        if global_time_override:
+            global_t = global_time_override
+        elif is_dead:
+            global_t = "Dead Code"
+        elif time_override == "Definition":
+            global_t = "O(1)"
+        else:
+            if local_t == "O(1)":
+                global_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph)
+            else:
+                if is_recurrence:
+                    global_t = time_override
+                else:
+                    global_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph)
+        
+        # Calculate robust numerical weight (t_w) to guarantee overwrites for heavy operations
+        if global_t not in ["O(1)", "Dead Code", "Definition"] and not is_recurrence:
+            if "O(n!)" in global_t: t_w = 110
+            elif "O(n^d)" in global_t: t_w = 100
+            elif "2^n" in global_t or "2ⁿ" in global_t: t_w = 100
+            elif "n^3" in global_t or "n³" in global_t: t_w = 30
+            elif "n^2" in global_t or "n²" in global_t: t_w = 20
+            elif "n log n" in global_t: t_w = 15
+            elif "V + E" in global_t or "V" in global_t: t_w = 12
+            elif "O(n)" in global_t or "O(m)" in global_t: t_w = 10
+            elif "√n" in global_t: t_w = 7
+            elif "log n" in global_t: t_w = 5
+        elif is_recurrence:
+            t_w = 200 # Max weight to forcefully overwrite generic expressions
+        elif global_t == "O(1)": 
+            t_w = 1
+        elif global_t == "Definition":
+            t_w = 0
+        elif global_t == "Dead Code":
+            t_w = -1
+
+        local_s = space_override if space_override else "O(1)"
+        if local_s == "S(placeholder)":
+            global_s = "S(placeholder)"
+        elif global_space_override:
+            global_s = global_space_override
+        else:
+            if getattr(self, 'in_accumulation_context', False) and local_s != "O(1)":
+                s_tot_dims = self.active_poly_dims + (['n'] if "O(n)" in local_s else [])
+                global_s = self._build_time_str(s_tot_dims, 0, 0, 0, 0)
             else:
                 global_s = local_s
                 
-            s_w = 0
-            if global_s != "S(placeholder)":
-                if "n^n" in global_s or "n!" in global_s: s_w = 5
-                elif "O(n^d)" in global_s: s_w = 4
-                elif "2^n" in global_s or "2ⁿ" in global_s: s_w = 4
-                elif "n * m" in global_s or "n^2" in global_s or "n²" in global_s: s_w = 2
-                elif "V + E" in global_s or "V" in global_s: s_w = 3
-                elif "log n" in global_s: s_w = 0.5  
-                elif "n" in global_s: s_w = 1        
-            
-            self.max_space_weight = max(getattr(self, 'max_space_weight', 0), s_w)
-            
-            if global_time_override:
-                global_t = global_time_override
-                t_w = self._get_weight(total_poly_dims, total_log, total_sqrt, self.max_exp, total_graph)
-                if "O(n^d)" in global_t: t_w = max(t_w, 100)
-                elif "2^n" in global_t: t_w = max(t_w, 100)
-                elif "n^3" in global_t or "n³" in global_t: t_w = max(t_w, 30)
-                elif "n^2" in global_t or "n²" in global_t: t_w = max(t_w, 20)
-            else:
-                global_t = self._build_time_str(total_poly_dims, total_log, total_sqrt, self.max_exp, total_graph) if not (time_override and is_recurrence) else time_override
-                t_w = self._get_weight(total_poly_dims, total_log, total_sqrt, self.max_exp, total_graph)
+        s_w = 0
+        if global_s != "S(placeholder)":
+            if "n^n" in global_s or "n!" in global_s: s_w = 5
+            elif "O(n^d)" in global_s: s_w = 4
+            elif "2^n" in global_s or "2ⁿ" in global_s: s_w = 4
+            elif "n * m" in global_s or "n^2" in global_s or "n²" in global_s: s_w = 2
+            elif "V + E" in global_s or "V" in global_s: s_w = 3
+            elif "log n" in global_s: s_w = 0.5  
+            elif "n" in global_s: s_w = 1        
+        
+        self.max_space_weight = max(getattr(self, 'max_space_weight', 0), s_w)
 
         hits = self.trace_data.get("line_hits", {}).get(line_num, 0)
         mem_state = {}
@@ -629,9 +653,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not is_dead and time_override != "Definition":
             if t_w > self.max_complexity:
                 self.max_complexity = t_w
-                if t_w < 998:
-                    self.max_poly_str = self._build_time_str(total_poly_dims, 0, 0, 0, 0)
-                    self.max_log, self.max_sqrt, self.max_graph_ve = total_log, total_sqrt, total_graph
+                if t_w < 150: # Exclude recurrences which are mapped to 200
+                    self.max_poly_str = self._build_time_str(tot_dims, 0, 0, 0, 0)
+                    self.max_log = tot_log
+                    self.max_sqrt = tot_sqrt
+                    self.max_graph_ve = tot_graph
                 
     def generic_visit(self, node):
         for field, value in ast.iter_fields(node):
@@ -648,49 +674,51 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(value, ast.AST): self.visit(value)
     
     def visit_Try(self, node):
-        self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override="O(1)")
+        self.record_line(node, time_override="O(1)", space_override="O(1)")
         self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
 
     def visit_With(self, node):
-        self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override="O(1)")
+        self.record_line(node, time_override="O(1)", space_override="O(1)")
         self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
 
     def visit_Lambda(self, node):
-        self.record_line(node, time_override="Definition", space_override="O(1)", global_space_override="O(1)")
+        self.record_line(node, time_override="Definition", space_override="O(1)")
         self.generic_visit(node)
 
     def visit_Yield(self, node):
         self.has_global_accumulation = True
-        self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override="O(1)")
+        self.record_line(node, time_override="O(1)", space_override="O(1)")
         self.generic_visit(node)
 
     def visit_YieldFrom(self, node):
         self.has_global_accumulation = True
-        self.record_line(node, time_override="O(n)", space_override="O(1)", global_space_override="O(1)")
+        self.record_line(node, time_override="O(n)", space_override="O(1)")
         self.generic_visit(node)
 
     def visit_GeneratorExp(self, node):
-        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Generator Expression", global_space_override="O(1)")
+        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Generator Expression")
         self.generic_visit(node)
         
     def visit_IfExp(self, node):
         if self._is_linear_type(node):
-            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Ternary Conditional (Iterable)", global_space_override="O(n)")
+            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Ternary Conditional (Iterable)")
         else:
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Ternary Conditional", global_space_override="O(1)")
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Ternary Conditional")
         self.generic_visit(node)
         
     def visit_JoinedStr(self, node):
-        if self._is_linear_type(node):
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Interpolation (Iterable)", global_space_override="O(n)")
+        is_linear = False
+        for child in ast.walk(node):
+            if isinstance(child, ast.FormattedValue) and self._is_linear_type(child.value):
+                is_linear = True
+                break
+                
+        if is_linear:
+            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="String Interpolation (Iterable)")
         else:
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Interpolation", global_space_override="O(1)")
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Interpolation")
         self.generic_visit(node)
 
-    # ---------------------------------------------------------
-    # NEW FIX: The visit_Compare method has been updated
-    # to recognize inline constant lists as O(1) structures
-    # ---------------------------------------------------------
     def visit_Compare(self, node):
         if any(isinstance(op, (ast.In, ast.NotIn)) for op in node.ops):
             is_hash_map = False
@@ -704,7 +732,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif isinstance(comp, (ast.Set, ast.Dict, ast.SetComp, ast.DictComp)): is_hash_map = True
                 elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Name) and comp.func.id in ['set', 'dict']: is_hash_map = True
                 elif isinstance(comp, (ast.List, ast.Tuple)):
-                    # Check if all elements are constants or simple variable names that represent constants (like int, float)
                     all_const = True
                     for elt in comp.elts:
                         if not isinstance(elt, (ast.Constant, ast.Name)):
@@ -714,11 +741,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         is_constant_collection = True
 
             if is_hash_map:
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Set/Dict)", global_space_override="O(1)")
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Set/Dict)")
             elif is_constant_collection:
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Constant Size)", global_space_override="O(1)")
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Constant Size)")
             else:
-                self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Membership Check (List/Tuple/String)", global_space_override="O(1)")
+                self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Membership Check (List/Tuple/String)")
             
             self.generic_visit(node)
             return
@@ -728,7 +755,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if isinstance(comp, ast.Call) and getattr(getattr(comp, 'func', None), 'id', '') == 'len':
                     self.add_logic_hint(node, "Logic Risk (Off-By-One): Using '<=' with 'len()' often causes an IndexError because arrays are 0-indexed.")
                     
-        self.record_line(node, global_space_override="O(1)")
+        self.record_line(node, time_override=None, space_override=None)
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
@@ -758,7 +785,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_graph_context = self._detect_graph_context(node)
         
         is_dead = node.name not in self.reachable_funcs
-        self.record_line(node, time_override="Dead Code" if is_dead else "Definition", space_override="O(1)", global_space_override="O(1)")
+        self.record_line(node, time_override="Dead Code" if is_dead else "Definition", space_override="O(1)")
         prev_dead = self.in_dead_code; self.in_dead_code = is_dead or prev_dead
         self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
         self.in_dead_code = prev_dead
@@ -861,6 +888,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
         self.custom_functions[node.name] = relation
 
+        lookup = {
+            "T(n) = n * T(n-1)": "O(n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
+            "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
+            "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
+            "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
+            "T(n) = T(n-1) + O(1)": "O(n)", "2T(n/2)": "O(n log n)",
+            "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
+            "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)", 
+            "O(V + E)": "O(V + E)", "O(n * m)": "O(n * m)", "O(2^n)": "O(2^n)", 
+            "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)"
+        }
+
         call_idx = 0
         for i in range(start_idx, len(self._details)):
             is_placeholder = False
@@ -885,12 +924,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 call_idx += 1
                 
             if self._details[i]["operation"] == "Recursive Call":
-                self._details[i]["global_time"] = relation
+                resolved_rel = relation
+                for k, v in lookup.items():
+                    if k in relation:
+                        resolved_rel = v
+                        break
+                self._details[i]["global_time"] = resolved_rel
 
             if str(self._details[i]["local_space"]).startswith("S("):
                 self._details[i]["local_space"] = "O(1)"
             if str(self._details[i]["global_space"]).startswith("S("):
-                self._details[i]["global_space"] = self.custom_space[node.name]
+                self._details[i]["global_space"] = self.custom_space.get(node.name, "O(n)")
                 
             if is_placeholder and "T(placeholder)" in str(self._details[i].get("time_explanation", "")):
                 formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
@@ -906,7 +950,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.has_recursion_in_loop = self.has_slicing = self.has_partitioning = self.has_division = self.has_global_accumulation = False
 
     def visit_If(self, node):
-        self.record_line(node, global_space_override="O(1)")
+        self.record_line(node, time_override=None, space_override=None)
         if hasattr(node, 'test'): self.visit(node.test)
         if len(self.active_poly_dims) > 0: self.conditional_partition_lines.append(getattr(node, 'lineno', float('inf')))
         self.in_if_depth += 1
@@ -952,7 +996,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.loop_stack.append('n')
             
         if self._is_exponential_loop(node):
-            self.max_exp = 1; self.record_line(node, time_override="O(1)", global_time_override="O(2^n)", global_space_override="O(1)")
+            self.max_exp = 1; self.record_line(node, time_override="O(1)", global_time_override="O(2^n)")
             self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
             self.loop_stack.pop()
             return 
@@ -960,9 +1004,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_const = self._is_constant_loop(node)
         is_sqrt = self._is_sqrt_loop(node)
         
+        # FIXED: Record the loop node BEFORE appending its dimension to the active execution stack
+        self.record_line(node, time_override=None, space_override=None)
+        
         if not is_const and not is_sqrt: self.active_poly_dims.append(dim)
-            
-        self.record_line(node, global_space_override="O(1)"); self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1  
+        
+        self.current_depth += 1
+        for child in node.body: self.visit(child)
+        for child in getattr(node, 'orelse', []): self.visit(child)
+        self.current_depth -= 1
         
         if not is_const and not is_sqrt: self.active_poly_dims.pop()
         self.loop_stack.pop()
@@ -972,20 +1022,21 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_log, is_sqrt, is_const = self._is_log_loop(node), self._is_sqrt_loop(node), self._is_constant_loop(node)
         is_graph = self._is_graph_while_loop(node)
         
-        limit_vars = self._get_while_limit_vars(node)
-        if limit_vars:
-            dims = [self._register_and_get_dim(lv) for lv in limit_vars]
-            dim = dims[0] if dims else 'n'
-        else:
-            dim = 'n'
+        # FIXED: Record the loop node BEFORE appending its dimension to the active execution stack
+        self.record_line(node, time_override=None, space_override=None)
 
         if is_graph: self.graph_depth = getattr(self, 'graph_depth', 0) + 1
         elif not is_const:
             if is_log: self.log_loop_depth += 1
             elif is_sqrt: self.sqrt_loop_depth += 1
-            else: self.active_poly_dims.append(dim)
+            else: 
+                limit_vars = self._get_while_limit_vars(node)
+                if limit_vars:
+                    dims = [self._register_and_get_dim(lv) for lv in limit_vars]
+                    dim = dims[0] if dims else 'n'
+                else: dim = 'n'
+                self.active_poly_dims.append(dim)
             
-        self.record_line(node, global_space_override="O(1)")
         if hasattr(node, 'test'): self.visit(node.test)
         self.current_depth += 1; 
         for child in node.body: self.visit(child)
@@ -1035,57 +1086,48 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.has_recursion_in_loop = True  
 
                 if getattr(self, 'in_graph_context', False): 
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Recursive Call", global_space_override="O(V)")
+                    self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call")
                 else: 
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Recursive Call", global_space_override="S(placeholder)")
+                    self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call")
             elif f_id in self.builtin_complexities:
                 if f_id in ['set', 'list', 'dict'] and not getattr(node, 'args', []):
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override="O(1)")
+                    self.record_line(node, time_override="O(1)", space_override="O(1)")
                 elif f_id in ['min', 'max'] and len(getattr(node, 'args', [])) > 1:
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=f"{f_id.capitalize()} (Scalar Comparison)", global_space_override="O(1)")
+                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=f"{f_id.capitalize()} (Scalar Comparison)")
                 else:
                     b = self.builtin_complexities[f_id]
-                    self.record_line(node, time_override=b['time'], space_override=b['space'], global_space_override=b['space'])
+                    self.record_line(node, time_override=b['time'], space_override=b['space'])
             elif f_id == 'print':
                 is_linear = any(self._is_linear_type(arg) for arg in node.args)
-                if is_linear: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print (Iterable)", global_time_override="O(n)", global_space_override="O(1)")
-                else: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print Statement", global_space_override="O(1)")
+                for arg in node.args:
+                    if isinstance(arg, ast.JoinedStr) and any(self._is_linear_type(v.value) for v in arg.values if isinstance(v, ast.FormattedValue)):
+                        is_linear = True
+                
+                if is_linear: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Print (Iterable)")
+                else: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print Statement")
             elif f_id in self.custom_functions:
                 call_comp = self.custom_functions[f_id]
-                lookup = {
-                    "T(n) = n * T(n-1)": "O(n^d)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
-                    "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
-                    "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
-                    "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
-                    "T(n) = T(n-1) + O(1)": "O(n)", "2T(n/2)": "O(n log n)",
-                    "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
-                    "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)", 
-                    "O(V + E)": "O(V + E)", "O(n * m)": "O(n * m)", "O(2^n)": "O(2^n)", 
-                    "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)"
-                }
-                for k, v in lookup.items():
-                    if k in call_comp: call_comp = v; break
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Function Call", global_time_override=call_comp, global_space_override=self.custom_space.get(f_id, "O(1)"))
-            else: self.record_line(node, global_space_override="O(1)")
+                self.record_line(node, time_override=call_comp, space_override=self.custom_space.get(f_id, "O(1)"), custom_op="Function Call")
+            else: self.record_line(node, time_override=None, space_override=None)
         elif isinstance(node.func, ast.Attribute):
             if node.func.attr == 'pop':
                 is_dict = isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'dict'
                 if len(node.args) > 0:
-                    if is_dict: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary", global_space_override="O(1)")
-                    else: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from specific index", global_time_override="O(n)", global_space_override="O(1)")
+                    if is_dict: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
+                    else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
                 else:
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set", global_space_override="O(1)")
+                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
             elif node.func.attr == 'remove':
                 is_set = isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'set'
-                if is_set: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set", global_space_override="O(1)")
-                else: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from List", global_time_override="O(n)", global_space_override="O(1)")
+                if is_set: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
+                else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
             elif node.func.attr == 'copy':
                 is_rec = self.current_function_name in self.call_graph.get(self.current_function_name, set())
                 if is_rec or getattr(self, 'in_accumulation_context', False):
                     self.max_space_weight = max(self.max_space_weight, 2)
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Deep Copy Allocation", global_time_override="O(n)", global_space_override="O(n^2)")
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Deep Copy Allocation")
                 else:
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Shallow Copy", global_time_override="O(n)", global_space_override="O(n)")
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Shallow Copy")
             elif node.func.attr == 'append':
                 is_appending_list = False
                 if node.args:
@@ -1096,21 +1138,21 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 
                 if is_appending_list and len(self.loop_stack) > 0:
                     self.max_space_weight = max(self.max_space_weight, 2)
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append Row", global_time_override="O(1)", global_space_override="O(n^2)")
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Append Row")
                     self.generic_visit(node)
                     self.in_accumulation_context = prev_acc
                     return
                 
-                self.record_line(node, time_override="O(1) amortized", space_override="O(1)", custom_op="Append", global_space_override="O(1)")
+                self.record_line(node, time_override="O(1) amortized", space_override="O(1)", custom_op="Append")
                     
             elif node.func.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
                 b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
-                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize(), global_space_override=b['space'])
+                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize())
             elif node.func.attr in self.builtin_complexities:
                 b = self.builtin_complexities[node.func.attr]
-                self.record_line(node, time_override=b['time'], space_override=b['space'], global_space_override=b['space'])
+                self.record_line(node, time_override=b['time'], space_override=b['space'])
             else: 
-                self.record_line(node, global_space_override="O(1)")
+                self.record_line(node, time_override=None, space_override=None)
         
         self.generic_visit(node)
         self.in_accumulation_context = prev_acc
@@ -1128,142 +1170,93 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         s_ov, t_ov = "O(1)", "O(1)"
         custom_op = None
-        g_space = None
-        g_time = None
         
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Subscript):
             custom_op = "Update"
-            g_space = "O(1)"
-            g_time = "O(1)"
         
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Variable Unpacking/Swap", global_space_override="O(1)")
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Variable Unpacking/Swap")
             self.generic_visit(node)
             return
 
         if getattr(self, 'in_graph_context', False):
             if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): 
-                g_time = "O(V)"
-                g_space = "O(V)"
+                t_ov = "O(V)"
             elif isinstance(node.value, (ast.Tuple, ast.List, ast.Set)):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
-                    g_time = "O(V)"
-                    g_space = "O(V)"
-                else:
-                    g_time = "O(1)"
-                    g_space = "O(1)"
+                    t_ov = "O(V)"
             elif isinstance(node.value, ast.Dict):
                 if any(k is None for k in node.value.keys):
-                    g_time = "O(V)"
-                    g_space = "O(V)"
-                else:
-                    g_time = "O(1)"
-                    g_space = "O(1)"
+                    t_ov = "O(V)"
             elif isinstance(node.value, ast.Call) and isinstance(getattr(node.value.func, 'id', ''), str) and getattr(node.value.func, 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple']: 
-                g_time = "O(V)"
-                g_space = "O(V)"
+                t_ov = "O(V)"
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
-                g_time = "O(V)"
                 custom_op = "List Repetition"
-                g_space = "O(V)"
+                t_ov = "O(V)"
         else:
             if isinstance(node.value, ast.ListComp):
                 is_nested = len(node.value.generators) > 1
                 if isinstance(node.value.elt, ast.ListComp): is_nested = True
-                
                 if isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List): 
                     is_nested = True
                     
                 if is_nested:
-                    g_time = "O(n * m)"
                     self.max_space_weight = max(self.max_space_weight, 2)
-                    self.record_line(node, time_override="O(n * m)", space_override="O(n * m)", custom_op="2D Array Allocation", global_time_override=g_time, global_space_override="O(n * m)")
+                    self.record_line(node, time_override="O(n * m)", space_override="O(n * m)", custom_op="2D Array Allocation")
                     self.generic_visit(node)
                     return
                 else:
-                    g_time = "O(n)"
-                    g_space = "O(n)"
                     t_ov = "O(n)"
                     s_ov = "O(n)"
             elif isinstance(node.value, (ast.SetComp, ast.DictComp)): 
-                g_time = "O(n)"
-                g_space = "O(n)"
                 t_ov = "O(n)"
                 s_ov = "O(n)"
             elif isinstance(node.value, ast.List):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
                     custom_op = "List Init (Unpacking)"
-                    g_time = "O(n)"
-                    g_space = "O(n)"
                     t_ov = "O(n)"
                     s_ov = "O(n)"
                 else:
                     custom_op = "List Init"
-                    g_time = "O(1)"
-                    g_space = "O(1)"
-                    t_ov = "O(1)"
-                    s_ov = "O(1)"
             elif isinstance(node.value, ast.Set):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
                     custom_op = "Set Init (Unpacking)"
-                    g_time = "O(n)"
-                    g_space = "O(n)"
                     t_ov = "O(n)"
                     s_ov = "O(n)"
                 else:
                     custom_op = "Set Init"
-                    g_time = "O(1)"
-                    g_space = "O(1)"
-                    t_ov = "O(1)"
-                    s_ov = "O(1)"
             elif isinstance(node.value, ast.Dict):
                 if any(k is None for k in node.value.keys):
                     custom_op = "Dict Init (Unpacking)"
-                    g_time = "O(n)"
-                    g_space = "O(n)"
                     t_ov = "O(n)"
                     s_ov = "O(n)"
                 else:
                     custom_op = "Dict Init"
-                    g_time = "O(1)"
-                    g_space = "O(1)"
-                    t_ov = "O(1)"
-                    s_ov = "O(1)"
             elif isinstance(node.value, ast.Tuple):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
                     custom_op = "Tuple Init (Unpacking)"
-                    g_time = "O(n)"
-                    g_space = "O(n)"
                     t_ov = "O(n)"
                     s_ov = "O(n)"
                 else:
                     custom_op = "Tuple Init"
-                    g_time = "O(1)"
-                    g_space = "O(1)"
-                    t_ov = "O(1)"
-                    s_ov = "O(1)"
             elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['set', 'list', 'dict', 'deque', 'tuple', 'set2']: 
                 f_name = node.value.func.id
                 f_name = 'set' if f_name == 'set2' else f_name
                 if not getattr(node.value, 'args', []):
                     custom_op = f"{f_name.capitalize()} Init"
-                    g_time, g_space, t_ov, s_ov = "O(1)", "O(1)", "O(1)", "O(1)"
                 else:
                     custom_op = f"{f_name.capitalize()} Build"
-                    g_time, g_space, t_ov, s_ov = "O(n)", "O(n)", "O(n)", "O(n)"
+                    t_ov = "O(n)"
+                    s_ov = "O(n)"
             elif isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and (isinstance(node.value.left, (ast.List, ast.Tuple)) or isinstance(node.value.right, (ast.List, ast.Tuple))): 
                 dim_var = 'n'
                 if isinstance(node.value.left, ast.Name): dim_var = self._register_and_get_dim(node.value.left.id)
                 elif isinstance(node.value.right, ast.Name): dim_var = self._register_and_get_dim(node.value.right.id)
                 custom_op = "List Repetition"
-                g_time = f"O({dim_var})"
-                g_space = f"O({dim_var})"
                 t_ov = f"O({dim_var})"
                 s_ov = f"O({dim_var})"
             elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): 
                 custom_op = "Array Slicing"
-                g_time = "O(n)"
-                g_space = "O(n)"
                 t_ov = "O(n)"
                 s_ov = "O(n)"
             
@@ -1281,17 +1274,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         else:
                             t_ov = "O(n)" if gt != "O(1)" else "O(1)"
                             s_ov = "O(n)" if gs != "O(1)" else "O(1)"
-                        g_time = gt
-                        g_space = gs
                         custom_op = op
                         break
 
             if custom_op is None and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                 custom_op = "Init"
-                g_space = "O(1)"
-                
-            if custom_op is None and g_space is None:
-                g_space = "O(1)"
 
         for child in ast.walk(node.value):
             if isinstance(child, (ast.BinOp, ast.Call)):
@@ -1305,7 +1292,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     for target in node.targets:
                         if isinstance(target, ast.Name): self.variable_complexities[target.id] = "sqrt"
             
-        self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op, global_time_override=g_time, global_space_override=g_space) 
+        self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op) 
         self.generic_visit(node)
 
     def visit_AugAssign(self, node): 
@@ -1322,22 +1309,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if is_geometric:
                 if len(self.loop_stack) > 0:
                     self.max_space_weight = max(self.max_space_weight, 4)
-                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Geometric Expansion", global_time_override="O(2^n)", global_space_override="O(2^n)")
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Geometric Expansion")
                     self.max_exp = 1
                     return
 
         if isinstance(node.target, ast.Name) and self.var_types.get(node.target.id) == 'str' and isinstance(node.op, ast.Add):
             if len(self.loop_stack) > 0:
-                loop_dims = len(self.active_poly_dims)
-                if loop_dims >= 2:
-                    self.max_space_weight = max(self.max_space_weight, 2)
-                    g_space = "O(n^2)"
-                    g_time = "O(n^3)"
-                else:
-                    self.max_space_weight = max(self.max_space_weight, 1)
-                    g_space = "O(n)"
-                    g_time = "O(n^2)"
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Build", global_time_override=g_time, global_space_override=g_space)
+                self.max_space_weight = max(self.max_space_weight, 1)
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Build")
                 return 
 
         for child in ast.walk(node.value):
@@ -1345,7 +1324,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 func_id = getattr(getattr(child, 'func', None), 'id', '')
                 if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'):
                     if isinstance(node.target, ast.Name): self.variable_complexities[node.target.id] = "sqrt"
-        self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override="O(1)")
+                    
+        self.record_line(node, time_override="O(1)", space_override="O(1)")
         self.generic_visit(node)  
 
     def visit_Subscript(self, node):
@@ -1354,20 +1334,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             slice_str = ast.dump(node.slice).lower()
             if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
                 self.has_partitioning = True
-                
-            g_space = "O(n^2)" if getattr(self, 'in_accumulation_context', False) and len(self.active_poly_dims) > 0 else "O(n)"
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Array Slicing", global_time_override="O(n)", global_space_override=g_space)
+            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Array Slicing")
         self.generic_visit(node)  
 
     def visit_BinOp(self, node):
         if isinstance(node.op, (ast.Add, ast.Mult)):
             if self._is_linear_type(node.left) or self._is_linear_type(node.right):
                 if getattr(self, 'in_list_comp_depth', 0) > 0:
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Row Allocation", global_time_override="O(m)", global_space_override="O(m)")
+                    self.record_line(node, time_override="O(m)", space_override="O(m)", custom_op="Row Allocation")
                 else:
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Concatenation / Repetition", global_time_override="O(n)", global_space_override="O(n)")
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Concatenation / Repetition")
             else:
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Binary Operation", global_space_override="O(1)")
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Binary Operation")
                 
         if isinstance(node.op, (ast.Div, ast.FloorDiv, ast.RShift, ast.Mod)): self.has_division = True  
         elif isinstance(node.op, ast.Mult):
@@ -1379,34 +1357,34 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             for child in ast.walk(node):
                 if isinstance(child, (ast.Set, ast.SetComp)): is_set_op = True; break
             if is_set_op:
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Set Operation", global_time_override="O(n)", global_space_override="O(n)")
+                self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Set Operation")
             else:
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Binary Operation", global_space_override="O(1)")
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Binary Operation")
                 
         self.generic_visit(node)  
 
     def visit_Return(self, node): 
-        t_ov, s_ov, gt_ov, gs_ov = "O(1)", "O(1)", None, None
+        t_ov, s_ov = "O(1)", "O(1)"
         custom_op = "Return"
         if node.value:
             if isinstance(node.value, ast.ListComp):
-                t_ov, s_ov, gt_ov, gs_ov = "O(n)", "O(n)", "O(n)", "O(n)"
+                t_ov, s_ov = "O(n)", "O(n)"
                 custom_op = "Return List Comprehension"
             elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice):
-                t_ov, s_ov, gt_ov, gs_ov = "O(n)", "O(n)", "O(n)", "O(n)"
+                t_ov, s_ov = "O(n)", "O(n)"
                 custom_op = "Return Sliced Array"
             elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['sorted', 'list', 'set']:
                 t_ov = "O(n log n)" if getattr(node.value.func, 'id', '') == 'sorted' else "O(n)"
                 s_ov = "O(n)"
-                gt_ov, gs_ov = t_ov, s_ov
-        self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op, global_time_override=gt_ov, global_space_override=gs_ov)
+        self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=custom_op)
         self.generic_visit(node)
 
+    # FIXED: Safely sidestep aggressive Expression overrides.
     def visit_Expr(self, node): 
         if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Comment / Docstring", global_space_override="O(1)")
-        else:
-            self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override="O(1)")
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Comment / Docstring")
+        elif not isinstance(node.value, (ast.Call, ast.ListComp, ast.SetComp, ast.DictComp, ast.Yield, ast.YieldFrom)):
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Expression")
         self.generic_visit(node)      
 
     def get_final_asymptotic_badge(self):
