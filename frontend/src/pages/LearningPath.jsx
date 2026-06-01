@@ -10,6 +10,7 @@ import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, progressDB, submissionsDB } from "../db";
 import "../styles/LearningPath.css";
+import { syncDownFromServer } from "../utils/syncManager";
 
 const moduleIcons = {
   "module-0": { icon: FiUsers, color: "#7c5cff", difficulty: "Beginner", description: "Learn the fundamentals of AlgoBlocks." },
@@ -26,10 +27,17 @@ export default function LearningPath() {
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [userProgress, setUserProgress] = useState({});
   const [assessments, setAssessments] = useState({});
-  const [submissions, setSubmissions] = useState({}); // Tracking actual activities
+  const [submissions, setSubmissions] = useState({}); 
   
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
+
+  const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+  const userEmail = storedUser.email || "";
+
+  const checkActivityDone = (moduleId, actId) => {
+    return submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`];
+  };
 
   // 1. Data Loader
   const loadData = async () => {
@@ -40,7 +48,7 @@ export default function LearningPath() {
 
       await progressDB.iterate((value, key) => { initialProg[key] = value.score !== undefined ? value.score : value; });
       await assessmentsDB.iterate((value, key) => { initialAssm[key] = value.data || value; });
-      await submissionsDB.iterate((value, key) => { initialSubs[key] = value; }); // Populate actual submissions
+      await submissionsDB.iterate((value, key) => { initialSubs[key] = value; }); 
 
       setUserProgress(initialProg);
       setAssessments(initialAssm);
@@ -52,7 +60,8 @@ export default function LearningPath() {
 
   // 2. Initial Setup and Sync Listener
   useEffect(() => {
-    loadData(); // Load immediately
+    loadData(); 
+    syncDownFromServer(); 
     
     // Listen for SyncManager updates in background
     const handleSync = () => loadData();
@@ -107,7 +116,7 @@ export default function LearningPath() {
       const details = lessonDetails[lesson.lessonId];
       const activities = details?.activities || [];
       if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1; 
-      return activities.every(a => submissions[a.id]); // Are all activities submitted?
+      return activities.every(a => checkActivityDone(moduleId, a.id)); 
     });
   };
 
@@ -125,7 +134,7 @@ export default function LearningPath() {
           const activities = details?.activities || [];
           
           if (activities.length > 0) {
-              const allDone = activities.every(a => submissions[a.id]);
+              const allDone = activities.every(a => checkActivityDone(module.moduleId, a.id));
               if (!allDone) isNextLocked = true;
           } else {
               if ((userProgress[lesson.lessonId] || 0) < 1) isNextLocked = true;
@@ -216,7 +225,7 @@ export default function LearningPath() {
                       const details = lessonDetails[lesson.lessonId];
                       const activities = details?.activities || [];
                       const totalActivities = activities.length;
-                      const completedCount = activities.filter(a => submissions[a.id]).length;
+                      const completedCount = activities.filter(a => checkActivityDone(module.moduleId, a.id)).length;
                       
                       const allDone = totalActivities > 0 ? (completedCount === totalActivities) : ((userProgress[lesson.lessonId] || 0) >= 1);
                       const isLocked = lockMap[lesson.lessonId];
@@ -253,8 +262,8 @@ export default function LearningPath() {
                           <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
-                            <span style={{ fontSize: '0.75rem', marginTop: '2px', fontWeight: 'bold', color: optimizations.filter(o => submissions[o.id]).length === optimizations.length ? '#22c55e' : '#d35400' }}>
-                              {optimizations.filter(o => submissions[o.id]).length} / {optimizations.length} Challenges Done
+                            <span style={{ fontSize: '0.75rem', marginTop: '2px', fontWeight: 'bold', color: optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? '#22c55e' : '#d35400' }}>
+                              {optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length} / {optimizations.length} Challenges Done
                             </span>
                           </div>
                         </div>
@@ -263,7 +272,7 @@ export default function LearningPath() {
                             Start Challenges
                           </button>
                         </div>
-                        <span className="lesson-status-icon">{optimizationsLocked ? (<FiLock color="#bdbdbd" />) : optimizations.filter(o => submissions[o.id]).length === optimizations.length ? (<FiCheckCircle color="#22c55e" />) : (<FiCircle color="#f39c12" />)}</span>
+                        <span className="lesson-status-icon">{optimizationsLocked ? (<FiLock color="#bdbdbd" />) : optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? (<FiCheckCircle color="#22c55e" />) : (<FiCircle color="#f39c12" />)}</span>
                       </div>
                     )}
 

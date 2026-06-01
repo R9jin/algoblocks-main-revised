@@ -6,7 +6,7 @@ import DashboardHeader from "../components/DashboardHeader";
 import { assessmentsDB, progressDB, syncQueueDB } from "../db";
 import "../styles/AssessmentPage.css";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
 const getDraftKey = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
@@ -289,7 +289,7 @@ export default function AssessmentPage() {
     // ==========================================
     // 2. Cloud Sync (or Queue) - FIXED AUTH HEADERS
     // ==========================================
-    const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken"); // <-- GRAB THE TOKEN
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken"); 
 
     if (navigator.onLine && user.email && !user.isGuest) {
       try {
@@ -297,7 +297,7 @@ export default function AssessmentPage() {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` // <-- INJECT TOKEN HERE
+            "Authorization": `Bearer ${token}` 
           },
           body: JSON.stringify({ email: user.email, assessment_key: assessmentKey, data: result })
         });
@@ -305,7 +305,7 @@ export default function AssessmentPage() {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` // <-- INJECT TOKEN HERE
+            "Authorization": `Bearer ${token}` 
           },
           body: JSON.stringify({ email: user.email, lesson_id: assessmentKey, score: finalScore })
         });
@@ -330,7 +330,6 @@ export default function AssessmentPage() {
 
   const handleProceed = () => {
     if (type === "pre") {
-      // Reverted to exactly what you requested: /learning-path/:moduleId/:lessonId
       navigate(`/learning-path/${moduleId}/${MODULE_FIRST_LESSON[moduleId]}`);
     } else {
       navigate("/learning-path");

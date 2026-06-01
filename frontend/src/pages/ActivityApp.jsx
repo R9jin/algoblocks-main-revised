@@ -115,7 +115,7 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
 };
 
 const ActivityAppInner = ({ moduleId, activityId }) => {
-  const API_BASE = import.meta.env.VITE_API_URL || "";
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
   const navigate = useNavigate();
 
   const { worker, isEngineReady, resetWorker } = usePyodide();
@@ -220,7 +220,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         
         if (testResolveRef.current) {
-          // Allow Pyodide to flush asynchronous standard output batches before resolving
           setTimeout(() => {
             const flushed = pendingOutputRef.current; 
             pendingOutputRef.current = "";
@@ -394,7 +393,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     
     if (navigator.onLine && API_BASE) {
       try {
-        const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken"); 
+        const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken"); 
         fetch(`${API_BASE}/api/sync-submission`, {
           method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify(payload), keepalive: true 
@@ -436,7 +435,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         let cloudSubmission = null;
         if (navigator.onLine && !user.isGuest && API_BASE) {
             try {
-                const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken"); 
+                const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken"); 
                 const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
@@ -540,7 +539,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
 
     await submissionsDB.setItem(submissionId, payload);
-    const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
 
     if (navigator.onLine && API_BASE) {
       try {
@@ -568,7 +567,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     
     if (isOnline && API_BASE) {
       try {
-        const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+        const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
         const response = await fetch(`${API_BASE}/api/analyze`, { 
             method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify({ code }) 
         });
@@ -667,7 +666,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     localStorage.setItem("user", JSON.stringify(user));
 
     const payload = { email: user.email, lesson_id: lessonId, score: user.progress[lessonId] };
-    const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
 
     await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false });
 
@@ -694,7 +693,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     localStorage.setItem("user", JSON.stringify(user));
 
     const payload = { email: user.email, lesson_id: topicId, score: 100, completed: true };
-    const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
 
     await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false });
 

@@ -226,6 +226,9 @@ export const syncDownFromServer = async () => {
                 for (const item of submissionsList) {
                     if (item.activityId) {
                         await submissionsDB.setItem(item.activityId, item);
+                        if (item.userId && item.moduleId) {
+                             await submissionsDB.setItem(`${item.userId}_${item.moduleId}_${item.activityId}`, item);
+                        }
                     }
                 }
             }
