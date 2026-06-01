@@ -15,7 +15,6 @@ export default function DashboardHeader({
   const navigate = useNavigate();
 
   useEffect(() => {
-    // FIX: Check both storages safely
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser || "{}"));
@@ -48,8 +47,17 @@ export default function DashboardHeader({
 
   const handleLogout = () => {
     setOpen(false);
+    
+    // Clear user data
     localStorage.removeItem("user");
     sessionStorage.removeItem("user");
+    
+    // FIXED: Clear ALL token variations from BOTH storages to prevent leakage
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    localStorage.removeItem("authToken");
+    sessionStorage.removeItem("authToken");
+
     navigate("/signin", { replace: true });
   };
 

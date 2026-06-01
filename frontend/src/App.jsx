@@ -13,6 +13,13 @@ import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 
+// FIXED: Moved lazy loads OUTSIDE the component
+const MainApp = lazy(() => import("./pages/MainApp"));
+const ActivityApp = lazy(() => import("./pages/ActivityApp"));
+const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const LessonViewer = lazy(() => import("./pages/LessonViewer"));
+
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!user) {
@@ -25,12 +32,6 @@ function App() {
   useEffect(() => {
     startBackgroundSync();
   }, []);
-
-  const MainApp = lazy(() => import("./pages/MainApp"));
-  const ActivityApp = lazy(() => import("./pages/ActivityApp"));
-  const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
-  const ProfilePage = lazy(() => import("./pages/ProfilePage"));
-  const LessonViewer = lazy(() => import("./pages/LessonViewer"));
 
   return (
     <PyodideProvider>

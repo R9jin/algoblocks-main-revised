@@ -6,7 +6,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
     : "http://localhost:8000/api";
 
 const getAuthHeaders = () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token");
+    // FIXED: Added sessionStorage.getItem("authToken")
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
     if (!token) return { "Content-Type": "application/json" };
     return {
         "Content-Type": "application/json",

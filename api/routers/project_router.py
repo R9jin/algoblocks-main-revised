@@ -1,10 +1,11 @@
 # api/routers/project_router.py
-from fastapi import APIRouter, Request, Query
+from fastapi import APIRouter, Request, Depends
 from typing import Dict, Optional
 
 from models import SaveProjectRequest
 from services.project_service import ProjectService
 from limiter import limiter
+from security import get_current_user_email
 
 router = APIRouter()
 
@@ -13,23 +14,14 @@ router = APIRouter()
 @limiter.limit("30/minute")
 def get_user_projects(
     request: Request, 
-    userId: Optional[str] = Query(None), 
-    user_id: Optional[str] = Query(None),
-    email: Optional[str] = Query(None)
+    trusted_email: str = Depends(get_current_user_email)
 ):
-    # Try all possible ways the frontend might send the ID
-    uid = userId or user_id or email
-    
-    if not uid:
-        uid = request.query_params.get("userId") or request.query_params.get("email")
-
-    # If the frontend fired too early and there is still no UID,
-    # return an empty list gracefully.
-    if not uid:
+    # Ensure graceful handling if token misses email
+    if not trusted_email:
         return {"status": "success", "projects": []}
         
-    # Get projects from DB
-    projects = ProjectService.get_user_projects(uid)
+    # Get projects from DB safely using the authenticated JWT email
+    projects = ProjectService.get_user_projects(trusted_email)
     
     # Ensure consistent dictionary return so frontend data.projects never breaks
     if isinstance(projects, list):
@@ -39,11 +31,22 @@ def get_user_projects(
 
 @router.post("/save")
 @limiter.limit("20/minute")
-def save_project(request: Request, req: SaveProjectRequest):
+def save_project(
+    request: Request, 
+    req: SaveProjectRequest, 
+    trusted_email: str = Depends(get_current_user_email)
+):
+    # Force the owner_id to be the authenticated user's email
+    req.owner_id = trusted_email
     return ProjectService.save_project(req)
 
 @router.post("/delete")
 @limiter.limit("10/minute")
-def delete_project(request: Request, payload: Dict[str, str]):
+def delete_project(
+    request: Request, 
+    payload: Dict[str, str], 
+    trusted_email: str = Depends(get_current_user_email)
+):
+    # Force the owner checks in the service by injecting trusted email
+    payload["owner_id"] = trusted_email
     return ProjectService.delete_project(payload)
-

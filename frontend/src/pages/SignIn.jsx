@@ -96,12 +96,14 @@ export default function SignIn() {
       inactiveStorage.removeItem("authToken");
       inactiveStorage.removeItem("user");
 
-      // FIXED: Adjusted to map the restored backend top-level dictionary
       activeStorage.setItem("authToken", data.token);
+      
+      // FIXED: Added assessments: data.assessments || {} to ensure offline loading functions properly
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {}
+        progress: data.progress || {},
+        assessments: data.assessments || {}
       })); 
 
       await syncUserCloudData(data.email, data.token); 
@@ -131,7 +133,8 @@ export default function SignIn() {
         email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
         isGuest: true,
-        progress: {}
+        progress: {},
+        assessments: {}
       })); 
 
       navigate("/dashboard"); 
@@ -165,12 +168,14 @@ export default function SignIn() {
       inactiveStorage.removeItem("authToken");
       inactiveStorage.removeItem("user");
 
-      // FIXED: Adjusted to map the restored backend top-level dictionary
       activeStorage.setItem("authToken", data.token);
+      
+      // FIXED: Added assessments: data.assessments || {} to ensure offline loading functions properly
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {}
+        progress: data.progress || {},
+        assessments: data.assessments || {}
       }));
 
       await syncUserCloudData(data.email, data.token);

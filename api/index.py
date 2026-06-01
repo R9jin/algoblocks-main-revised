@@ -13,8 +13,8 @@ from routers import (
     auth_router,
     project_router,
     analyze_router,
-    template_router,
-    progress_router
+    template_router
+    # Removed progress_router to prevent route duplication and conflict
 )
 
 app = FastAPI(
@@ -26,8 +26,15 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
-    allow_credentials=False,
+    # 1. Explicitly allow local development
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://your-main-custom-domain.com" # Put your primary custom domain here if you have one
+    ], 
+    # 2. Dynamically allow ALL Vercel deployments (previews, branches, etc.)
+    allow_origin_regex=r"https://.*\.vercel\.app", 
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -36,7 +43,7 @@ app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
-app.include_router(progress_router.router, prefix="/api", tags=["Progress & Assessments"])
+# Duplicate progress routes removed; auth_router handles them safely with JWT context
 
 @app.get("/api/health")
 async def health_check():
