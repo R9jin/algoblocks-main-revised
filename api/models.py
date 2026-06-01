@@ -35,3 +35,11 @@ class SaveProjectRequest(BaseModel):
     name: Optional[str] = ""
     workspace: Optional[Dict[str, Any]] = {}
     pythonCode: Optional[str] = ""
+
+# --- ADD THIS MISSING CLASS BELOW ---
+class SaveTemplateRequest(BaseModel):
+    category: Optional[str] = ""
+    name: Optional[str] = ""
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: Optional[str] = ""
+    data: Optional[Dict[str, Any]] = {}

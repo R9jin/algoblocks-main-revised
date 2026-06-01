@@ -15,3 +15,9 @@ class TemplateRepository:
         for tpl in templates:
             tpl["_id"] = str(tpl["_id"])
         return templates
+
+    # ADDED: Save method to push to database
+    @staticmethod
+    def save(template_data: dict):
+        result = templates_collection.insert_one(template_data)
+        return str(result.inserted_id)
