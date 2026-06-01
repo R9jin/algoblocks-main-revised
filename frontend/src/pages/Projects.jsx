@@ -53,8 +53,15 @@ export default function Projects() {
       // --- 1. PULL CLOUD DATA FIRST ---
       if (navigator.onLine) {
         try {
-          // FIXED: Pass explicit userId parameter so backend responds properly
-          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`);
+          // FIX: Grab the token and prepare headers
+          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          };
+
+          // FIX: Pass the headers object into the fetch request
+          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
           if (res.ok) {
             const data = await res.json();
             
@@ -66,7 +73,6 @@ export default function Projects() {
             }
 
             for (const cp of cloudProjects) {
-              // FIXED: CHECK BOTH USER ID TYPES
               if (cp.owner_id === user.email || cp.userId === user.email) {
                 await projectsDB.setItem(cp._id, { ...cp, synced: true });
               }
@@ -80,7 +86,6 @@ export default function Projects() {
       // --- 2. LOAD FROM LOCAL DB ---
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
-        // FIXED: CHECK BOTH USER ID TYPES
         if (value.owner_id === user.email || value.userId === user.email) {
           loadedProjects.push(value);
         }
