@@ -29,7 +29,7 @@ def google_auth(request: Request, req: GoogleAuthRequest):
 @router.post("/update-progress")
 @limiter.limit("30/minute")
 def update_progress(request: Request, req: ProgressRequest, trusted_email: str = Depends(get_current_user_email)):
-    req.email = trusted_email # OVERWRITE malicious body email with trusted token email
+    req.email = trusted_email 
     return AuthService.update_progress(req)
 
 @router.get("/get-progress")
@@ -51,7 +51,7 @@ def get_assessments(request: Request, trusted_email: str = Depends(get_current_u
 @router.post("/sync-submission")
 @limiter.limit("30/minute")
 def sync_submission(request: Request, payload: Dict[str, Any] = Body(...), trusted_email: str = Depends(get_current_user_email)):
-    payload["userId"] = trusted_email # Force the userId to be the token owner
+    payload["userId"] = trusted_email 
     return AuthService.sync_submission(payload)
 
 @router.get("/get-submission")

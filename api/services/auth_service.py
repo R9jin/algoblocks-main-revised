@@ -13,37 +13,34 @@ from security import create_access_token
 class AuthService:
     @staticmethod
     def hash_password(password: str) -> str:
-        # Generate a salt and securely hash the password
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
         return hashed.decode('utf-8')
 
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
-        # Gracefully handle validation (prevents old plaintext passwords from crashing the app)
         try:
-            return bcrypt.checkpw(
-                plain_password.encode('utf-8'), 
-                hashed_password.encode('utf-8')
-            )
-        except ValueError:
+            # FIX: Bcrypt strictly requires bytes. Decoding from Mongo provides strings.
+            if isinstance(hashed_password, str):
+                hashed_password = hashed_password.encode('utf-8')
+            if isinstance(plain_password, str):
+                plain_password = plain_password.encode('utf-8')
+                
+            return bcrypt.checkpw(plain_password, hashed_password)
+        except (ValueError, TypeError):
             return False
 
     @staticmethod
     def login(req: LoginRequest):
         user = UserRepository.find_by_email(req.email)
-
-        # Extract stored password (might be None if they only use Google Auth)
         stored_password = user.get("password") if user else None
 
-        # Securely verify the hashed password using the new bcrypt helper
         if not user or not stored_password or not AuthService.verify_password(req.password, stored_password):
             raise HTTPException(
                 status_code=401, 
                 detail="Invalid credentials."
             )
 
-        # Generate JWT Token
         token = create_access_token({"sub": req.email})
 
         return {
@@ -60,7 +57,6 @@ class AuthService:
         if UserRepository.find_by_email(req.email):
             raise HTTPException(status_code=400, detail="Email already registered")
 
-        # Hash the password before saving it to the database
         hashed_password = AuthService.hash_password(req.password)
 
         UserRepository.insert({
@@ -71,7 +67,6 @@ class AuthService:
             "assessments": {} 
         })
 
-        # Generate JWT Token
         token = create_access_token({"sub": req.email})
 
         return {
@@ -83,11 +78,9 @@ class AuthService:
 
     @staticmethod
     def update_progress(req: ProgressRequest):
-        # FIX: Ignore ghost payloads safely
         if not req.email or not req.lesson_id:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
-        # Safely convert incoming score (nulls or strings) into a float
         try:
             score_val = float(req.score) if req.score is not None else 0.0
         except:
@@ -177,7 +170,6 @@ class AuthService:
                 })
                 user = UserRepository.find_by_email(email)
 
-            # Generate JWT Token
             backend_token = create_access_token({"sub": email})
 
             return {
@@ -204,7 +196,6 @@ class AuthService:
         if not user_id or not activity_id:
             return {"status": "ignored"}
 
-        # FIX: Prevent Mass Assignment by explicitly defining allowed fields
         allowed_fields = [
             "userId", "moduleId", "activityId", "type", "status", 
             "score", "maxScore", "passedTestCases", "totalTestCases", 
@@ -243,7 +234,6 @@ class AuthService:
         if not user_id or not module_id:
             return {"status": "ignored"}
 
-        # FIX: Prevent Mass Assignment explicitly defining allowed fields
         allowed_fields = ["userId", "moduleId", "answers", "score", "completed", "timestamp", "passed"]
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
 

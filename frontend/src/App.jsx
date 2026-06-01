@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import { PyodideProvider } from "./context/PyodideContext";
 import Dashboard from "./pages/Dashboard";
@@ -13,7 +13,6 @@ import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 
-// FIXED: Moved lazy loads OUTSIDE the component
 const MainApp = lazy(() => import("./pages/MainApp"));
 const ActivityApp = lazy(() => import("./pages/ActivityApp"));
 const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
@@ -29,9 +28,18 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
+  const location = useLocation();
+
   useEffect(() => {
-    startBackgroundSync();
-  }, []);
+    // FIX: Only trigger background sync if the user is authenticated and NOT on auth pages.
+    // This prevents the sync manager from firing with a null token and triggering a logout interceptor.
+    const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
+    
+    if (user && !isAuthPage) {
+      startBackgroundSync();
+    }
+  }, [location.pathname]);
 
   return (
     <PyodideProvider>
