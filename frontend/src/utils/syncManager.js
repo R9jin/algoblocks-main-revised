@@ -1,10 +1,14 @@
 // frontend/src/utils/syncManager.js
 import { assessmentsDB, progressDB, submissionsDB, syncQueueDB } from "../db";
 
-const API_BASE_URL = "http://localhost:8000/api";
+// CRITICAL FIX: Use environment variables so it works on both Localhost AND Vercel
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+    ? `${import.meta.env.VITE_API_URL}/api` 
+    : "http://localhost:8000/api";
 
 const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
+    // Check both potential token storage keys to be safe
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token");
     if (!token) {
         return { "Content-Type": "application/json" };
     }
@@ -42,6 +46,7 @@ export const syncManager = {
 
         try {
             await submissionsDB.setItem(activityId, payload);
+            window.dispatchEvent(new Event("localDataSynced")); // Notify UI immediately
         } catch (err) {}
 
         if (!navigator.onLine) {
@@ -78,6 +83,7 @@ export const syncManager = {
 
         try {
             await progressDB.setItem(lessonId, payload);
+            window.dispatchEvent(new Event("localDataSynced"));
         } catch (err) {}
 
         if (!navigator.onLine) {
@@ -116,6 +122,7 @@ export const syncManager = {
 
         try {
             await assessmentsDB.setItem(assessmentKey, payload);
+            window.dispatchEvent(new Event("localDataSynced"));
         } catch (err) {}
 
         if (!navigator.onLine) {
@@ -179,19 +186,14 @@ export const syncManager = {
 };
 
 /**
- * -------------------------------------------------------------
- * CRITICAL FIX: Pulls previous data from the server and injects 
- * it into the local UI databases so your progress appears immediately!
- * -------------------------------------------------------------
+ * PULLS cloud data into local IndexedDB
  */
-// frontend/src/utils/syncManager.js
-
 export const syncDownFromServer = async () => {
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
 
-        // 1. Fetch Progress and hydrate LocalForage
+        // 1. Progress
         const progRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
         if (progRes.ok) {
             const data = await progRes.json();
@@ -203,7 +205,7 @@ export const syncDownFromServer = async () => {
             }
         }
 
-        // 2. Fetch Assessments and hydrate LocalForage
+        // 2. Assessments
         const assRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
         if (assRes.ok) {
             const data = await assRes.json();
@@ -215,14 +217,13 @@ export const syncDownFromServer = async () => {
             }
         }
 
-        // 3. NEW: Fetch Submissions and hydrate LocalForage
+        // 3. Submissions (The Fix)
         const subRes = await fetch(`${API_BASE_URL}/get-submissions`, { headers });
         if (subRes.ok) {
             const data = await subRes.json();
             const submissionsList = data.submissions || data;
             if (Array.isArray(submissionsList)) {
                 for (const item of submissionsList) {
-                    // Use activityId as the key for submissionsDB
                     if (item.activityId) {
                         await submissionsDB.setItem(item.activityId, item);
                     }
@@ -230,7 +231,7 @@ export const syncDownFromServer = async () => {
             }
         }
 
-        // Trigger an event so the React UI components know the data has arrived
+        // Inform the UI to re-render
         window.dispatchEvent(new Event("localDataSynced"));
 
     } catch (error) {
@@ -239,13 +240,8 @@ export const syncDownFromServer = async () => {
 };
 
 export const startBackgroundSync = () => {
-    // 1. Immediately fetch the previous progress so the UI works
     syncDownFromServer();
-
-    // 2. Process offline saves
     syncManager.processSyncQueue();
-    
-    // 3. Keep processing in the background
     setInterval(() => {
         syncManager.processSyncQueue();
     }, 30000);
