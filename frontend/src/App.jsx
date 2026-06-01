@@ -11,7 +11,9 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
-import { sharedAnalyzerWorker } from "./workers/analyzerInstance";
+
+// ADDED: Import the new Global Pyodide Provider
+import { PyodideProvider } from "./context/PyodideContext";
 
 const ProtectedRoute = ({ children }) => {
   // FIX: Check BOTH localStorage and sessionStorage
@@ -25,7 +27,8 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   useEffect(() => {
     startBackgroundSync();
-    sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
+    // REMOVED: sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' }); 
+    // The PyodideProvider now handles this automatically on boot.
   }, []);
 
   const MainApp = lazy(() => import("./pages/MainApp"));
@@ -36,7 +39,8 @@ function App() {
   const LessonViewer = lazy(() => import("./pages/LessonViewer"));
 
   return (
-    <>
+    // Wrap the entire application in the PyodideProvider so the worker is persistent
+    <PyodideProvider>
       <OfflineIndicator />
 
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
@@ -94,7 +98,7 @@ function App() {
 
         </Routes>
       </Suspense>
-    </>
+    </PyodideProvider>
   );
 }
 

@@ -1,4 +1,3 @@
-// frontend/src/pages/MainApp.jsx
 import DOMPurify from "dompurify";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -14,6 +13,7 @@ import "../styles/MainApp.css";
 import { formatComplexity } from "../utils/formatters";
 
 import Editor from "@monaco-editor/react";
+import { usePyodide } from "../context/PyodideContext.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
 
 const handleEditorWillMount = (monaco) => {
@@ -134,6 +134,9 @@ export default function MainApp() {
   const location = useLocation();
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
+  // Hook into the global Pyodide Context
+  const { worker, resetWorker } = usePyodide();
+
   const createInitialTab = () => ({
     id: `tab-${Date.now()}`, title: 'Untitled Project', viewMode: 'workspace', blocklyJson: null,
     pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxError: null,
@@ -229,10 +232,7 @@ export default function MainApp() {
         pendingOutputRef.current += data;
         if (outputCountRef.current > 5000) {
           clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-          workerRef.current.terminate();
-          workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-          workerRef.current.postMessage({ type: 'INIT_ENGINE' });
-          initWorker();
+          resetWorker();
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           setConsoleOutput(prev => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
           setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
@@ -254,12 +254,15 @@ export default function MainApp() {
     };
   };
 
+  // Sync context worker to local ref
   useEffect(() => {
-    // Isolated Worker prevents global crashes
-    workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-    workerRef.current.postMessage({ type: 'INIT_ENGINE' });
-    initWorker();
-    
+    if (worker) {
+      workerRef.current = worker;
+      initWorker(); 
+    }
+  }, [worker]);
+
+  useEffect(() => {
     const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
     window.addEventListener("online", handleOnline);
@@ -267,7 +270,6 @@ export default function MainApp() {
     return () => {
       window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline);
       clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-      if (workerRef.current) workerRef.current.terminate();
     };
   }, []);
 
@@ -443,7 +445,7 @@ export default function MainApp() {
           const hint = translatePythonError(data.message);
           updateTab(tabId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
         }
-        return; // Success, completely return out
+        return; 
       } catch (error) { console.warn("Online analysis failed, safely falling back locally.", error); }
     }
     if (workerRef.current) workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
@@ -519,10 +521,7 @@ export default function MainApp() {
 
     workerRef.current.postMessage({ type: 'RUN_CODE', code: activeTab.pythonCode });
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current.terminate(); clearInterval(renderIntervalRef.current);
-      workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-      workerRef.current.postMessage({ type: 'INIT_ENGINE' });
-      initWorker();
+      resetWorker();
       const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
       setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
       setIsEvaluating(false); setIsWaitingForInput(false);
@@ -542,10 +541,7 @@ export default function MainApp() {
         }
       }, 100);
       runTimeoutRef.current = setTimeout(() => {
-        workerRef.current.terminate(); clearInterval(renderIntervalRef.current);
-        workerRef.current = new Worker(new URL('../workers/analyzer.worker.js', import.meta.url), { type: 'module' });
-        workerRef.current.postMessage({ type: 'INIT_ENGINE' });
-        initWorker();
+        resetWorker();
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false); setIsWaitingForInput(false);

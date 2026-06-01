@@ -1,4 +1,3 @@
-// frontend/src/pages/ActivityApp.jsx
 import Editor from "@monaco-editor/react";
 import DOMPurify from "dompurify";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -15,6 +14,7 @@ import "../styles/ActivityApp.css";
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
+import { usePyodide } from "../context/PyodideContext.jsx";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 
 const handleEditorWillMount = (monaco) => {
@@ -120,6 +120,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
 
+  // Hook into the global Pyodide Context
+  const { worker, resetWorker } = usePyodide();
+
   const isReadyRef = useRef(false);
 
   const workspaceRef = useRef(null);
@@ -133,7 +136,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const saveDraftTimeoutRef = useRef(null);
   const latestBlocksJsonRef = useRef(null);
 
-  // New Testing Refs for isolated promise resolution
   const testResolveRef = useRef(null);
   const testRejectRef = useRef(null);
   const outputAccumulatorRef = useRef("");
@@ -221,7 +223,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       else if (type === "RUN_RESULT") {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         
-        // If a test case is actively running, pipe output strictly to the test accumulator
         if (testResolveRef.current) {
           const flushed = pendingOutputRef.current; 
           pendingOutputRef.current = "";
@@ -247,8 +248,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           outputCountRef.current += 1; pendingOutputRef.current += data;
           if (outputCountRef.current > 5000) {
             clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-            workerRef.current.terminate(); workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-            workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+            resetWorker();
             const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
             setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
             setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
@@ -260,9 +260,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         
         if (testRejectRef.current) {
-           workerRef.current.terminate();
-           workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-           workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+           resetWorker();
            testRejectRef.current(new Error("Test cases cannot process manual input. Please remove the input() function."));
            testResolveRef.current = null; testRejectRef.current = null;
         } else {
@@ -286,14 +284,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   };
 
   useEffect(() => {
-    // Isolated Worker prevents global crashes
-    workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-    workerRef.current.postMessage({ type: "INIT_ENGINE" });
-    initWorker();
-    
+    if (worker) {
+      workerRef.current = worker;
+      initWorker(); 
+    }
+  }, [worker]);
+
+  useEffect(() => {
     return () => { 
       clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); 
-      if (workerRef.current) workerRef.current.terminate();
     };
   }, []);
 
@@ -623,11 +622,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     outputCountRef.current = 0; pendingOutputRef.current = "";
     
-    // Safety timeout ensures infinite loops are murdered if the worker logic fails
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current?.terminate(); clearInterval(renderIntervalRef.current);
-      workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-      workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+      resetWorker();
       const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
       setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
       setIsEvaluating(false); setIsWaitingForInput(false);
@@ -643,9 +639,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
 
       runTimeoutRef.current = setTimeout(() => {
-        workerRef.current?.terminate(); clearInterval(renderIntervalRef.current);
-        workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-        workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+        resetWorker();
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false); setIsWaitingForInput(false);
@@ -707,7 +701,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }
   };
 
-  // Safe Execute: Instead of overwriting global onmessage, we use Refs
   const executeTest = async (codeToRun) => {
     return new Promise((resolve, reject) => {
       outputAccumulatorRef.current = "";
@@ -715,9 +708,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       testRejectRef.current = reject;
 
       runTimeoutRef.current = setTimeout(() => {
-        workerRef.current?.terminate();
-        workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-        workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+        resetWorker();
         if (testRejectRef.current) {
           testRejectRef.current(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
           testResolveRef.current = null;
