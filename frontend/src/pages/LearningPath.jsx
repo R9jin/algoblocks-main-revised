@@ -31,6 +31,9 @@ export default function LearningPath() {
   
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
+  
+  // CRITICAL FIX: The loader that stops the "split-second" glitch
+  const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(true);
 
   const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
   const userEmail = storedUser.email || "";
@@ -39,7 +42,6 @@ export default function LearningPath() {
     return submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`];
   };
 
-  // 1. Data Loader
   const loadData = async () => {
     try {
       const initialProg = {};
@@ -53,23 +55,18 @@ export default function LearningPath() {
       setUserProgress(initialProg);
       setAssessments(initialAssm);
       setSubmissions(initialSubs);
-    } catch (e) {
-      console.warn("Error loading local progress:", e);
-    }
+    } catch (e) { }
   };
 
-  // 2. Initial Setup and Sync Listener
   useEffect(() => {
     loadData(); 
     syncDownFromServer(); 
     
-    // Listen for SyncManager updates in background
     const handleSync = () => loadData();
     window.addEventListener("localDataSynced", handleSync);
     return () => window.removeEventListener("localDataSynced", handleSync);
   }, []);
 
-  // 3. Fetch Curriculum details
   useEffect(() => {
     const fetchAllData = async () => {
       const details = {};
@@ -92,6 +89,7 @@ export default function LearningPath() {
       }
       setLessonDetails(details);
       setActivitiesData(acts);
+      setIsLoadingCurriculum(false); // Tell the UI it is safe to render
     };
     fetchAllData();
   }, []);
@@ -107,14 +105,17 @@ export default function LearningPath() {
   const hasPostAssessment = (moduleId) => assessments[`${moduleId}_post_assessment`] !== undefined;
   const getAssessmentScore = (moduleId, type) => assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
 
-  // 4. Robust Completion Checks based on SUBMISSIONS
   const isModuleComplete = (moduleId) => {
+    if (isLoadingCurriculum) return false; // Prevent calculating on empty JSONs
+
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
     
     return module.lessons.every((lesson) => {
       const details = lessonDetails[lesson.lessonId];
-      const activities = details?.activities || [];
+      if (!details) return false;
+
+      const activities = details.activities || [];
       if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1; 
       return activities.every(a => checkActivityDone(moduleId, a.id)); 
     });
@@ -122,6 +123,8 @@ export default function LearningPath() {
 
   const buildLockMap = () => {
     const lockMap = {};
+    if (isLoadingCurriculum) return lockMap;
+
     for (const module of curriculumIndex) {
       const preComplete = hasPreAssessment(module.moduleId);
       let isNextLocked = !preComplete;
@@ -146,6 +149,18 @@ export default function LearningPath() {
   };
 
   const lockMap = buildLockMap();
+
+  // CRITICAL FIX: Only render once everything is 100% loaded
+  if (isLoadingCurriculum) {
+    return (
+      <div className="learning-path-page">
+        <DashboardHeader />
+        <div className="learning-path-container" style={{ textAlign: "center", padding: "100px 20px" }}>
+           <h2>Loading Curriculum Data...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="learning-path-page">

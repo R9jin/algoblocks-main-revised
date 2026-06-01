@@ -1,16 +1,13 @@
 // frontend/src/utils/syncManager.js
 import { assessmentsDB, progressDB, submissionsDB, syncQueueDB } from "../db";
 
-// CRITICAL FIX: Use environment variables so it works on both Localhost AND Vercel
 const API_BASE_URL = import.meta.env.VITE_API_URL
     ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
     : "http://localhost:8000/api";
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token");
-    if (!token) {
-        return { "Content-Type": "application/json" };
-    }
+    if (!token) return { "Content-Type": "application/json" };
     return {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
@@ -20,13 +17,7 @@ const getAuthHeaders = () => {
 const addToSyncQueue = async (url, method, payload, type) => {
     try {
         const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 9);
-        await syncQueueDB.setItem(id, {
-            url,
-            method,
-            payload,
-            type,
-            timestamp: Date.now()
-        });
+        await syncQueueDB.setItem(id, { url, method, payload, type, timestamp: Date.now() });
         console.log(`[Offline] Saved ${type} to sync queue.`);
     } catch (err) {
         console.error("Failed to add to sync queue", err);
@@ -35,17 +26,11 @@ const addToSyncQueue = async (url, method, payload, type) => {
 
 export const syncManager = {
     syncSubmission: async (activityId, code, output, isCompleted) => {
-        const payload = {
-            activityId,
-            code,
-            output,
-            isCompleted,
-            timestamp: new Date().toISOString()
-        };
+        const payload = { activityId, code, output, isCompleted, timestamp: new Date().toISOString() };
 
         try {
             await submissionsDB.setItem(activityId, payload);
-            window.dispatchEvent(new Event("localDataSynced")); // Notify UI immediately
+            window.dispatchEvent(new Event("localDataSynced"));
         } catch (err) { }
 
         if (!navigator.onLine) {
@@ -54,32 +39,21 @@ export const syncManager = {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/sync-submission`, {
-                method: "POST",
-                headers: getAuthHeaders(),
-                body: JSON.stringify(payload)
-            });
-
+            const response = await fetch(`${API_BASE_URL}/sync-submission`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
             if (response.status === 401) {
                 await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
                 return false;
             }
-
             if (!response.ok) throw new Error(`Server returned ${response.status}`);
             return await response.json();
         } catch (error) {
-            console.error("Sync Error [Submission]:", error);
             await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
             return false;
         }
     },
 
     updateProgress: async (lessonId, progressData) => {
-        const payload = {
-            lesson_id: lessonId,
-            ...progressData
-        };
-
+        const payload = { lesson_id: lessonId, ...progressData };
         try {
             await progressDB.setItem(lessonId, payload);
             window.dispatchEvent(new Event("localDataSynced"));
@@ -91,34 +65,21 @@ export const syncManager = {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/update-progress`, {
-                method: "POST",
-                headers: getAuthHeaders(),
-                body: JSON.stringify(payload)
-            });
-
+            const response = await fetch(`${API_BASE_URL}/update-progress`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
             if (response.status === 401) {
                 await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
                 return false;
             }
-
             if (!response.ok) throw new Error("Failed to update progress");
             return await response.json();
         } catch (error) {
-            console.error("Sync Error [Progress]:", error);
             await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
             return false;
         }
     },
 
     updateAssessment: async (assessmentKey, score, passed) => {
-        const payload = {
-            key: assessmentKey,
-            score: score,
-            passed: passed,
-            timestamp: new Date().toISOString()
-        };
-
+        const payload = { key: assessmentKey, score: score, passed: passed, timestamp: new Date().toISOString() };
         try {
             await assessmentsDB.setItem(assessmentKey, payload);
             window.dispatchEvent(new Event("localDataSynced"));
@@ -130,21 +91,14 @@ export const syncManager = {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/update-assessment`, {
-                method: "POST",
-                headers: getAuthHeaders(),
-                body: JSON.stringify(payload)
-            });
-
+            const response = await fetch(`${API_BASE_URL}/update-assessment`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
             if (response.status === 401) {
                 await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
                 return false;
             }
-
             if (!response.ok) throw new Error("Failed to update assessment");
             return await response.json();
         } catch (error) {
-            console.error("Sync Error [Assessment]:", error);
             await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
             return false;
         }
@@ -152,48 +106,28 @@ export const syncManager = {
 
     processSyncQueue: async () => {
         if (!navigator.onLine) return;
-
         try {
             const keys = await syncQueueDB.keys();
             if (keys.length === 0) return;
-
-            console.log(`SyncManager: Processing ${keys.length} items in background sync queue...`);
-
             for (const key of keys) {
                 const item = await syncQueueDB.getItem(key);
                 try {
-                    // Safety check if items saved incorrectly in the queue format
                     if (!item.url || !item.method || !item.payload) {
-                        console.warn(`[Sync] Malformed queue item ${key}, removing.`);
                         await syncQueueDB.removeItem(key);
                         continue;
                     }
-
-                    const response = await fetch(item.url, {
-                        method: item.method,
-                        headers: getAuthHeaders(),
-                        body: JSON.stringify(item.payload)
-                    });
-
+                    const response = await fetch(item.url, { method: item.method, headers: getAuthHeaders(), body: JSON.stringify(item.payload) });
                     if (response.ok) {
                         await syncQueueDB.removeItem(key);
-                        console.log(`[Sync] Successfully processed queued ${item.type}`);
                     } else if (response.status === 401) {
                         break;
                     }
-                } catch (err) {
-                    console.error(`[Sync] Queue item ${key} failed, keeping in queue.`);
-                }
+                } catch (err) { }
             }
-        } catch (err) {
-            console.error("Failed to process sync queue", err);
-        }
+        } catch (err) { }
     }
 };
 
-/**
- * PULLS cloud data into local IndexedDB
- */
 export const syncDownFromServer = async () => {
     try {
         const headers = getAuthHeaders();
@@ -232,32 +166,25 @@ export const syncDownFromServer = async () => {
             const submissionsList = data.submissions || data;
             if (Array.isArray(submissionsList)) {
                 for (const item of submissionsList) {
-                    if (item.activityId) {
-                        await submissionsDB.setItem(item.activityId, item);
-                        if (item.userId && item.moduleId) {
-                            await submissionsDB.setItem(`${item.userId}_${item.moduleId}_${item.activityId}`, item);
+                    // CRITICAL FIX: Normalize submissions too
+                    const normalized = item.data ? { ...item, ...item.data } : item;
+                    if (normalized.activityId) {
+                        await submissionsDB.setItem(normalized.activityId, normalized);
+                        if (normalized.userId && normalized.moduleId) {
+                            await submissionsDB.setItem(`${normalized.userId}_${normalized.moduleId}_${normalized.activityId}`, normalized);
                         }
                     }
                 }
             }
         }
-
-        // Inform the UI to re-render
         window.dispatchEvent(new Event("localDataSynced"));
-
-    } catch (error) {
-        console.error("Failed to sync down from server:", error);
-    }
+    } catch (error) { }
 };
 
 export const startBackgroundSync = () => {
     syncDownFromServer();
     syncManager.processSyncQueue();
-    setInterval(() => {
-        syncManager.processSyncQueue();
-    }, 30000);
+    setInterval(() => { syncManager.processSyncQueue(); }, 30000);
 };
 
-window.addEventListener("online", () => {
-    syncManager.processSyncQueue();
-});
+window.addEventListener("online", () => syncManager.processSyncQueue());

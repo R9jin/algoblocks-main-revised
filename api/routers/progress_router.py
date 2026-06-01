@@ -12,7 +12,6 @@ def get_progress(user_email: str = Depends(get_current_user_email)):
 
     try:
         progress_data = list(db["progress"].find({"userId": user_email}, {"_id": 0}))
-        # Clean corrupted nested fields before returning
         for item in progress_data:
             if "data" in item and isinstance(item["data"], dict):
                 nested = item.pop("data")
@@ -28,7 +27,6 @@ def get_assessments(user_email: str = Depends(get_current_user_email)):
 
     try:
         assessment_data = list(db["assessments"].find({"userId": user_email}, {"_id": 0}))
-        # Clean corrupted nested fields before returning
         for item in assessment_data:
             if "data" in item and isinstance(item["data"], dict):
                 nested = item.pop("data")
@@ -51,11 +49,14 @@ def get_submission(
             {"userId": user_email, "activityId": activityId}, 
             {"_id": 0}
         )
+        # CRITICAL FIX: Unpack single submissions
+        if submission and "data" in submission and isinstance(submission["data"], dict):
+            nested = submission.pop("data")
+            submission.update(nested)
         return submission if submission else {}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
-
 @router.get("/get-submissions")
 def get_all_submissions(user_email: str = Depends(get_current_user_email)):
     if not user_email:
@@ -63,6 +64,11 @@ def get_all_submissions(user_email: str = Depends(get_current_user_email)):
 
     try:
         submissions_data = list(db["submissions"].find({"userId": user_email}, {"_id": 0}))
+        # CRITICAL FIX: Unpack nested submission arrays
+        for item in submissions_data:
+            if "data" in item and isinstance(item["data"], dict):
+                nested = item.pop("data")
+                item.update(nested)
         return submissions_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -77,7 +83,6 @@ def update_progress(payload: dict = Body(...), user_email: str = Depends(get_cur
         if not key:
             raise HTTPException(status_code=400, detail="Missing progress key or lesson_id")
 
-        # Flatten if needed
         actual_data = payload.get("data", payload)
         if isinstance(actual_data, dict) and actual_data is not payload:
             for k, v in payload.items():
@@ -109,7 +114,6 @@ def update_assessment(payload: dict = Body(...), user_email: str = Depends(get_c
         if not key:
             raise HTTPException(status_code=400, detail="Missing assessment key")
 
-        # Flatten if needed
         actual_data = payload.get("data", payload)
         if isinstance(actual_data, dict) and actual_data is not payload:
             for k, v in payload.items():
@@ -137,15 +141,24 @@ def sync_submission(payload: dict = Body(...), user_email: str = Depends(get_cur
         raise HTTPException(status_code=401, detail="Invalid user token")
 
     try:
-        activity_id = payload.get("activityId")
+        # CRITICAL FIX: Ensure incoming queue data isn't nested
+        actual_data = payload.get("data", payload)
+        if isinstance(actual_data, dict) and actual_data is not payload:
+            for k, v in payload.items():
+                if k != "data":
+                    actual_data[k] = v
+        else:
+            actual_data = payload.copy()
+
+        activity_id = actual_data.get("activityId")
         if not activity_id:
             raise HTTPException(status_code=400, detail="Missing activityId in payload")
 
-        payload["userId"] = user_email
+        actual_data["userId"] = user_email
 
         db["submissions"].update_one(
             {"userId": user_email, "activityId": activity_id},
-            {"$set": payload},
+            {"$set": actual_data},
             upsert=True
         )
 
