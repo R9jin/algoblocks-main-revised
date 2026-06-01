@@ -1,4 +1,3 @@
-// frontend/src/pages/SignIn.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
 import { FiLock, FiMail } from "react-icons/fi";
@@ -93,12 +92,16 @@ export default function SignIn() {
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
+      // FIX: Wipe BOTH key variations from the inactive storage to prevent leakage
       inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
       inactiveStorage.removeItem("user");
 
+      // FIX: Save BOTH key variations to active storage so ALL pages pass auth checks
       activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
       
-      // FIXED: Added assessments: data.assessments || {} to ensure offline loading functions properly
+      // Save full user object to ensure offline loading functions properly
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
@@ -126,8 +129,11 @@ export default function SignIn() {
         syncQueueDB.clear()
       ]); 
 
+      // FIX: Wipe ALL token keys
       localStorage.removeItem("authToken");
       sessionStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
 
       sessionStorage.setItem("user", JSON.stringify({
         email: `guest_${Date.now()}@algoblocks.local`,
@@ -165,12 +171,16 @@ export default function SignIn() {
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
+      // FIX: Wipe BOTH key variations from inactive storage
       inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
       inactiveStorage.removeItem("user");
 
+      // FIX: Save BOTH key variations so ALL pages pass auth checks
       activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
       
-      // FIXED: Added assessments: data.assessments || {} to ensure offline loading functions properly
+      // Save full user object to ensure offline loading functions properly
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
