@@ -184,12 +184,14 @@ export const syncManager = {
  * it into the local UI databases so your progress appears immediately!
  * -------------------------------------------------------------
  */
+// frontend/src/utils/syncManager.js
+
 export const syncDownFromServer = async () => {
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
 
-        // Fetch Progress and hydrate LocalForage
+        // 1. Fetch Progress and hydrate LocalForage
         const progRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
         if (progRes.ok) {
             const data = await progRes.json();
@@ -201,7 +203,7 @@ export const syncDownFromServer = async () => {
             }
         }
 
-        // Fetch Assessments and hydrate LocalForage
+        // 2. Fetch Assessments and hydrate LocalForage
         const assRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
         if (assRes.ok) {
             const data = await assRes.json();
@@ -209,6 +211,21 @@ export const syncDownFromServer = async () => {
             if (Array.isArray(assessmentList)) {
                 for (const item of assessmentList) {
                     await assessmentsDB.setItem(item.key || item.assessment_key, item);
+                }
+            }
+        }
+
+        // 3. NEW: Fetch Submissions and hydrate LocalForage
+        const subRes = await fetch(`${API_BASE_URL}/get-submissions`, { headers });
+        if (subRes.ok) {
+            const data = await subRes.json();
+            const submissionsList = data.submissions || data;
+            if (Array.isArray(submissionsList)) {
+                for (const item of submissionsList) {
+                    // Use activityId as the key for submissionsDB
+                    if (item.activityId) {
+                        await submissionsDB.setItem(item.activityId, item);
+                    }
                 }
             }
         }

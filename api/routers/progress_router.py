@@ -45,6 +45,20 @@ def get_submission(
         return submission if submission else {}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    
+# api/routers/progress_router.py
+
+@router.get("/get-submissions")
+def get_all_submissions(user_email: str = Depends(get_current_user_email)):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid user token")
+
+    try:
+        # Fetch all submissions for this user
+        submissions_data = list(db["submissions"].find({"userId": user_email}, {"_id": 0}))
+        return submissions_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.post("/update-progress")
 def update_progress(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
