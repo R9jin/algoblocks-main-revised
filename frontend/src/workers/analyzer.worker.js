@@ -1,5 +1,6 @@
 // frontend/src/workers/analyzer.worker.js
 let pyodide = null;
+let pyodidePromise = null; // Singleton lock to prevent concurrent initialization crashes
 
 // async input control
 let inputResolve = null;
@@ -7,46 +8,50 @@ let isWaitingForInput = false;
 let executionTimeout = null;
 
 async function initPyodide() {
-  if (pyodide) return;
+  if (pyodide) return pyodide;
+  
+  if (!pyodidePromise) {
+    pyodidePromise = (async () => {
+      try {
+        const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
+        const module = await import(/* @vite-ignore */ pyodideUrl);
+        const loadPyodide = module.loadPyodide;
 
-  try {
-    const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
-    const module = await import(/* @vite-ignore */ pyodideUrl);
-    const loadPyodide = module.loadPyodide;
+        const tempPyodide = await loadPyodide();
+        const cacheBuster = "?t=" + Date.now();
 
-    const tempPyodide = await loadPyodide();
+        // FETCH THE NEW DYNAMIC TRACER AND SCRIPTS
+        const [analyzerCode, astCode, nlgCode, tracerCode] = await Promise.all([
+          fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
+          fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
+          fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text()),
+          fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
+        ]);
 
-    const cacheBuster = "?t=" + Date.now();
+        if (nlgCode.includes("<!DOCTYPE html>")) {
+          throw new Error("Service Worker served index.html instead of python files!");
+        }
 
-    // FETCH THE NEW DYNAMIC TRACER
-    const [analyzerCode, astCode, nlgCode, tracerCode] = await Promise.all([
-      fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
-      fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
-      fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text()),
-      fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
-    ]);
+        // WRITE ALL FILES TO VIRTUAL FILE SYSTEM
+        tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
+        tempPyodide.FS.writeFile("blockly_ast.py", astCode);
+        tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
+        tempPyodide.FS.writeFile("dynamic_tracer.py", tracerCode);
 
-    if (nlgCode.includes("<!DOCTYPE html>")) {
-      throw new Error("Service Worker served index.html instead of python files!");
-    }
-
-    // WRITE ALL FILES TO VIRTUAL FILE SYSTEM
-    tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
-    tempPyodide.FS.writeFile("blockly_ast.py", astCode);
-    tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
-    tempPyodide.FS.writeFile("dynamic_tracer.py", tracerCode);
-
-    pyodide = tempPyodide;
-
-  } catch (error) {
-    console.error("Pyodide Engine Crash:", error);
-    pyodide = null;
-    throw error;
+        pyodide = tempPyodide;
+        return tempPyodide;
+      } catch (error) {
+        console.error("Pyodide Engine Crash:", error);
+        pyodidePromise = null; // Reset on failure so it can retry
+        throw error;
+      }
+    })();
   }
+  
+  return await pyodidePromise;
 }
 
 self.onmessage = async (e) => {
-  // Extract testCases for the new RUN_TESTS mode
   const { type, code, data, testCases } = e.data;
 
   if (type === 'INPUT_RESPONSE') {
@@ -76,7 +81,6 @@ self.onmessage = async (e) => {
   if (code && code.length > MAX_CODE_LENGTH) {
     const errorMsg = `Code payload too large. Maximum allowed is ${MAX_CODE_LENGTH} characters.`;
 
-    // Route the error back to the correct frontend listener
     if (type === 'ANALYZE_CODE') {
       self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
     } else if (type === 'PYTHON_TO_BLOCKS') {
@@ -311,113 +315,6 @@ except Exception as e:
 
       clearTimeout(executionTimeout);
       self.postMessage({ type: 'RUN_RESULT', data: "", counts });
-    }
-
-    // ======================
-    // 4. RUN TESTS MODE (CodeChum-Style Automated Eval)
-    // ======================
-    else if (type === 'RUN_TESTS') {
-      if (!testCases || testCases.length === 0) {
-        throw new Error("No test cases provided.");
-      }
-
-      const results = [];
-
-      for (let i = 0; i < testCases.length; i++) {
-        const tc = testCases[i];
-
-        // Pass variables safely to Python scope to avoid string escaping issues
-        pyodide.globals.set("current_test_input", tc.input || "");
-        pyodide.globals.set("user_code", code);
-
-        try {
-          // Execute test case using string IO mocking
-          await pyodide.runPythonAsync(`
-import sys
-import builtins
-import ast
-import traceback
-from io import StringIO
-
-# Reset Stdin/Stdout for CodeChum style testing
-sys.stdin = StringIO(current_test_input)
-sys.stdout = StringIO()
-
-# Ensure standard input behavior bypasses the async override from normal RUN_CODE
-builtins.input = lambda prompt="": sys.stdin.readline().rstrip('\\n')
-
-# Infinite Loop Detector to prevent tests from hanging
-class InfiniteLoopDetector(ast.NodeVisitor):
-    def __init__(self):
-        self.warnings = []
-    def visit_While(self, node):
-        if isinstance(node.test, ast.Constant) and node.test.value is True:
-            has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
-            if not has_break:
-                self.warnings.append("Execution Prevented: Infinite 'while True' loop detected.")
-        else:
-            condition_vars = {n.id for n in ast.walk(node.test) if isinstance(n, ast.Name)}
-            if condition_vars:
-                modified_vars = set()
-                for child in node.body:
-                    for n in ast.walk(child):
-                        if isinstance(n, ast.Assign):
-                            for target in n.targets:
-                                if isinstance(target, ast.Name): modified_vars.add(target.id)
-                        elif isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
-                            modified_vars.add(n.target.id)
-                if not condition_vars.intersection(modified_vars):
-                    has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
-                    if not has_break:
-                        self.warnings.append("Execution Prevented: Loop condition never modified.")
-        self.generic_visit(node)
-
-try:
-    tree = ast.parse(user_code, filename="<user_code>")
-    detector.visit(tree)
-    if detector.warnings:
-        raise Exception("\\n".join(detector.warnings))
-
-    # Execute the code
-    exec(compile(tree, "<user_code>", "exec"), globals())
-except Exception as e:
-    # Print exceptions to stdout so they are caught as failed tests
-    print(f"Error: {e}")
-          `);
-
-          // Extract what was printed during the test
-          const actualOutput = await pyodide.runPythonAsync("sys.stdout.getvalue()");
-
-          // Standardize expected and actual outputs for comparison
-          const cleanExpected = (tc.expectedOutput || "").toString().trim();
-          const cleanActual = (actualOutput || "").toString().trim();
-          const passed = cleanExpected === cleanActual;
-
-          results.push({
-            testIndex: i,
-            passed: passed,
-            expected: cleanExpected,
-            actual: cleanActual,
-            input: tc.input,
-            isHidden: tc.hidden,
-            error: null
-          });
-
-        } catch (execError) {
-          // Fallback if execution outright crashes the pyodide environment
-          results.push({
-            testIndex: i,
-            passed: false,
-            expected: (tc.expectedOutput || "").toString().trim(),
-            actual: null,
-            input: tc.input,
-            isHidden: tc.hidden,
-            error: String(execError)
-          });
-        }
-      }
-
-      self.postMessage({ type: 'TEST_RESULTS', results });
     }
 
   } catch (err) {

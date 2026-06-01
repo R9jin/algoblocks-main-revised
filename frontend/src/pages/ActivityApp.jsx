@@ -1,6 +1,6 @@
 // frontend/src/pages/ActivityApp.jsx
 import Editor from "@monaco-editor/react";
-import DOMPurify from "dompurify"; // <-- XSS FIX: Import DOMPurify
+import DOMPurify from "dompurify";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
@@ -16,7 +16,6 @@ import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
-import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("algoblocks-purple", {
@@ -37,7 +36,6 @@ const renderFormattedTask = (text) => {
     .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #26004a;">$1</strong>')
     .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>');
   
-  // <-- XSS FIX: Sanitize parsed text before inserting into DOM
   const cleanHtml = DOMPurify.sanitize(formattedHtml);
   return <div dangerouslySetInnerHTML={{ __html: cleanHtml }} />;
 };
@@ -113,16 +111,11 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       );
     }
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // <-- XSS FIX: Sanitize explanation text (which contains user code variables) before inserting into DOM
     const cleanSec = DOMPurify.sanitize(parsedSec);
     return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: cleanSec}}></p>;
   }).filter(Boolean);
 };
 
-// =======================================================================
-// INNER COMPONENT: Guarantees 100% memory wipe on URL changes
-// =======================================================================
 const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
@@ -140,19 +133,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const saveDraftTimeoutRef = useRef(null);
   const latestBlocksJsonRef = useRef(null);
 
+  // New Testing Refs for isolated promise resolution
+  const testResolveRef = useRef(null);
+  const testRejectRef = useRef(null);
+  const outputAccumulatorRef = useRef("");
+
   const latestStateRef = useRef({
-    userId: null,
-    json: null,
-    pythonCode: "# Drag blocks to generate Python code",
-    score: 0,
-    passed: 0,
-    testResults: [],
-    actualTime: "O(n^2)",
-    actualSpace: "O(1)",
-    status: "draft",
-    type: "activity",
-    targetTime: "O(n)",
-    targetSpace: "O(1)"
+    userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
+    score: 0, passed: 0, testResults: [], actualTime: "O(n^2)", actualSpace: "O(1)",
+    status: "draft", type: "activity", targetTime: "O(n)", targetSpace: "O(1)"
   });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -217,50 +206,95 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (!workerRef.current) return;
     workerRef.current.onmessage = (event) => {
       const { type, data, counts } = event.data;
+
       if (type === "ANALYZE_RESULT") {
         if (data.status === "success") {
           setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
           const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          setLineExecutions(initialCounts); setSyntaxError(null);
+          setLineExecutions(prev => ({...prev, ...initialCounts})); setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
-      } else if (type === "RUN_RESULT") {
+      } 
+      else if (type === "RUN_RESULT") {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
-        setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
-        if (counts) setLineExecutions(counts);
-        setIsEvaluating(false); setIsWaitingForInput(false);
-      } else if (type === "OUTPUT") {
-        outputCountRef.current += 1; pendingOutputRef.current += data;
-        if (outputCountRef.current > 5000) {
-          clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-          workerRef.current.terminate(); workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-          workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+        
+        // If a test case is actively running, pipe output strictly to the test accumulator
+        if (testResolveRef.current) {
+          const flushed = pendingOutputRef.current; 
+          pendingOutputRef.current = "";
+          outputAccumulatorRef.current += flushed + (data !== undefined && data !== null ? data : "");
+          
+          if (counts) setLineExecutions(prev => { const next = {...prev}; for (const [k, v] of Object.entries(counts)) next[k] = (next[k]||0)+v; return next; });
+          
+          testResolveRef.current(outputAccumulatorRef.current);
+          testResolveRef.current = null;
+          testRejectRef.current = null;
+        } else {
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-          setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
-          setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
+          const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
+          setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
+          if (counts) setLineExecutions(counts);
+          setIsEvaluating(false); setIsWaitingForInput(false);
         }
-      } else if (type === "INPUT_REQUEST") {
+      } 
+      else if (type === "OUTPUT") {
+        if (testResolveRef.current) {
+          outputAccumulatorRef.current += data;
+        } else {
+          outputCountRef.current += 1; pendingOutputRef.current += data;
+          if (outputCountRef.current > 5000) {
+            clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+            workerRef.current.terminate(); workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
+            workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+            const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+            setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+            setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
+          }
+        }
+      } 
+      else if (type === "INPUT_REQUEST") {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        setConsoleOutput((prev) => prev + flushed + data.prompt); setIsWaitingForInput(true);
-      } else if (type === "ERROR") {
+        
+        if (testRejectRef.current) {
+           workerRef.current.terminate();
+           workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
+           workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+           testRejectRef.current(new Error("Test cases cannot process manual input. Please remove the input() function."));
+           testResolveRef.current = null; testRejectRef.current = null;
+        } else {
+           setConsoleOutput((prev) => prev + flushed + data.prompt); setIsWaitingForInput(true);
+        }
+      } 
+      else if (type === "ERROR") {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const hint = translatePythonError(data); setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-        setIsEvaluating(false); setIsWaitingForInput(false);
+        const hint = translatePythonError(data);
+        
+        if (testRejectRef.current) {
+          testRejectRef.current(new Error(data + (hint ? `\n${hint}` : "")));
+          testResolveRef.current = null; testRejectRef.current = null;
+        } else {
+          setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+          setIsEvaluating(false); setIsWaitingForInput(false);
+        }
       }
     };
   };
 
   useEffect(() => {
-    workerRef.current = sharedAnalyzerWorker;
+    // Isolated Worker prevents global crashes
+    workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
+    workerRef.current.postMessage({ type: "INIT_ENGINE" });
     initWorker();
-    return () => { clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); };
+    
+    return () => { 
+      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); 
+      if (workerRef.current) workerRef.current.terminate();
+    };
   }, []);
 
   useEffect(() => {
@@ -333,36 +367,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
   };
 
-  // --- FINAL SAVE MECHANISM (Tied perfectly to this specific Activity ID) ---
   const triggerFinalSave = () => {
     const state = latestStateRef.current;
     if (!state.userId) return;
     
-    // Ignore pure blank ghost states
     if (state.pythonCode === "# Drag blocks to generate Python code" && (!state.json || Object.keys(state.json).length === 0)) return;
 
     const payload = {
-      userId: state.userId,
-      moduleId: moduleId,
-      activityId: activityId,
-      type: state.type || "activity",
-      status: state.status || "draft",
-      score: state.score,
-      maxScore: 5,
-      passedTestCases: state.passed,
-      totalTestCases: totalTests,
-      passed_tests: state.passed,
-      total_tests: totalTests,
-      testCases: state.testResults,
-      target_complexity: state.targetTime || "O(n)",
-      actual_complexity: state.actualTime,
-      target_space_complexity: state.targetSpace || "O(1)",
-      actual_space_complexity: state.actualSpace,
-      workspace: { blocklyJson: state.json || {} },
-      pythonCode: state.pythonCode,
-      timestamp: Date.now(),
-      submittedAt: new Date().toISOString(),
-      isSynced: true
+      userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity",
+      status: state.status || "draft", score: state.score, maxScore: 5, passedTestCases: state.passed,
+      totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests, testCases: state.testResults,
+      target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
+      target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
+      workspace: { blocklyJson: state.json || {} }, pythonCode: state.pythonCode,
+      timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true
     };
 
     const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
@@ -372,10 +390,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken"); 
         fetch(`${API_BASE}/api/sync-submission`, {
-          method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify(payload), 
-          keepalive: true 
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(payload), keepalive: true 
         });
       } catch (err) { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
     } else { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
@@ -387,7 +403,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  // --- COMPONENT MOUNT/UNMOUNT LIFECYCLE ---
   useEffect(() => {
     let cancelled = false;
     isReadyRef.current = false;
@@ -413,7 +428,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         try { localSubmission = await submissionsDB.getItem(submissionId); } catch(e){}
 
         let cloudSubmission = null;
-        if (navigator.onLine && !user.isGuest) {
+        if (navigator.onLine && !user.isGuest && API_BASE) {
             try {
                 const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken"); 
                 const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, {
@@ -437,11 +452,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             finalSubmissionToLoad = cloudSubmission;
             await submissionsDB.setItem(submissionId, cloudSubmission); 
         } else if (!isLocalBlank && !isCloudBlank) {
-            if ((localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0)) {
-                finalSubmissionToLoad = localSubmission;
-            } else {
-                finalSubmissionToLoad = cloudSubmission;
-            }
+            if ((localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0)) finalSubmissionToLoad = localSubmission;
+            else finalSubmissionToLoad = cloudSubmission;
         } else if (!isLocalBlank) {
             finalSubmissionToLoad = localSubmission; 
         }
@@ -457,30 +469,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
             
-            setTimeout(() => {
-                if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0 && !cancelled) {
-                    workspaceRef.current.loadTemplate(json);
-                }
-            }, 400);
+            setTimeout(() => { if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0 && !cancelled) workspaceRef.current.loadTemplate(json); }, 400);
 
-            if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
-                setGeneratedPython(pythonCode);
-            }
+            if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") setGeneratedPython(pythonCode);
             setPassedTests(latestStateRef.current.passed);
-          } catch (e) { 
-             console.error("Failed to load blocks");
-          }
+          } catch (e) { console.error("Failed to load blocks"); }
         } else {
-          // New empty activity, load template if it exists
           if (resolvedActivity.templateUrl) {
             try {
               const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
               latestStateRef.current.json = templateJson;
-              setTimeout(() => {
-                  if (workspaceRef.current?.loadTemplate && !cancelled) {
-                      workspaceRef.current.loadTemplate(templateJson);
-                  }
-              }, 400);
+              setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(templateJson); }, 400);
             } catch (err) {}
           }
         }
@@ -494,11 +493,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           } catch (e) {}
         }
         
-        if (!cancelled) {
-            setTimeout(() => {
-                if (!cancelled) isReadyRef.current = true;
-            }, 1500); 
-        }
+        if (!cancelled) setTimeout(() => { if (!cancelled) isReadyRef.current = true; }, 1500); 
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
         if (!cancelled) navigate("/learning-path", { replace: true });
@@ -506,12 +501,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
     
     boot();
-    
-    return () => { 
-        cancelled = true; 
-        triggerFinalSave(); 
-        if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
-    };
+    return () => { cancelled = true; triggerFinalSave(); if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current); };
   }, []);
 
   const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
@@ -531,38 +521,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
     const payload = {
-      userId: latestStateRef.current.userId, 
-      moduleId: moduleId, 
-      activityId: activityId, 
-      type: latestStateRef.current.type || "activity",
-      status: finalStatus,
-      score: finalScore, 
-      maxScore: 5, 
-      passedTestCases: finalPassed, 
-      totalTestCases: total,   
-      passed_tests: finalPassed,    
-      total_tests: total,      
-      testCases: finalTestResults,
-      target_complexity: latestStateRef.current.targetTime || "O(n)",
-      actual_complexity: actualTime,
-      target_space_complexity: latestStateRef.current.targetSpace || "O(1)",
-      actual_space_complexity: actualSpace,
-      workspace: { blocklyJson: json || {} }, 
-      pythonCode: pythonCode || "# Drag blocks to generate Python code", 
-      timestamp: Date.now(),
-      submittedAt: new Date().toISOString(), 
-      isSynced: false
+      userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity",
+      status: finalStatus, score: finalScore, maxScore: 5, passedTestCases: finalPassed, totalTestCases: total,   
+      passed_tests: finalPassed, total_tests: total, testCases: finalTestResults,
+      target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime,
+      target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace,
+      workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "# Drag blocks to generate Python code", 
+      timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false
     };
 
     await submissionsDB.setItem(submissionId, payload);
     const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
-    if (navigator.onLine) {
+    if (navigator.onLine && API_BASE) {
       try {
         await fetch(`${API_BASE}/api/sync-submission`, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-            body: JSON.stringify(payload) 
+            method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload) 
         });
         payload.isSynced = true; await submissionsDB.setItem(submissionId, payload);
       } catch (e) { await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
@@ -582,13 +556,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "" || code.trim() === "# Drag blocks to generate Python code") return;
-    if (isOnline) {
+    
+    if (isOnline && API_BASE) {
       try {
         const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
         const response = await fetch(`${API_BASE}/api/analyze`, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-            body: JSON.stringify({ code }) 
+            method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify({ code }) 
         });
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
         const data = await response.json();
@@ -598,12 +571,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
           const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          setLineExecutions(initialCounts); setSyntaxError(null);
+          setLineExecutions(prev => ({...prev, ...initialCounts})); setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
         return;
-      } catch (error) { console.warn("Online analysis failed, falling back to local worker.", error); }
+      } catch (error) { console.warn("Online analysis failed, safely falling back to local worker.", error); }
     }
     workerRef.current?.postMessage({ type: "ANALYZE_CODE", code });
   };
@@ -649,12 +622,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     setConsoleOutput((prev) => prev + "\n> Running the program...\n");
 
     outputCountRef.current = 0; pendingOutputRef.current = "";
-    renderIntervalRef.current = setInterval(() => {
-      if (pendingOutputRef.current) { const flushed = pendingOutputRef.current; pendingOutputRef.current = ""; setConsoleOutput((prev) => prev + flushed); }
-    }, 100);
-
-    workerRef.current?.postMessage({ type: "RUN_CODE", code: generatedPython });
-
+    
+    // Safety timeout ensures infinite loops are murdered if the worker logic fails
     runTimeoutRef.current = setTimeout(() => {
       workerRef.current?.terminate(); clearInterval(renderIntervalRef.current);
       workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
@@ -663,6 +632,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
       setIsEvaluating(false); setIsWaitingForInput(false);
     }, 10000);
+
+    workerRef.current?.postMessage({ type: "RUN_CODE", code: generatedPython });
   };
 
   const handleSendInput = (e) => {
@@ -670,10 +641,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: "INPUT_RESPONSE", data: userInput });
       outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
-
-      renderIntervalRef.current = setInterval(() => {
-        if (pendingOutputRef.current) { const flushed = pendingOutputRef.current; pendingOutputRef.current = ""; setConsoleOutput((prev) => prev + flushed); }
-      }, 100);
 
       runTimeoutRef.current = setTimeout(() => {
         workerRef.current?.terminate(); clearInterval(renderIntervalRef.current);
@@ -700,18 +667,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false });
 
-    if (navigator.onLine && !user.isGuest) {
+    if (navigator.onLine && !user.isGuest && API_BASE) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-          body: JSON.stringify(payload) 
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload) 
         });
         if (res.ok) await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true });
         else throw new Error("Sync failed");
-      } catch (error) { 
-        await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
-      }
+      } catch (error) { await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload }); }
     } else if (!user.isGuest) {
       await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
     }
@@ -731,69 +694,37 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false });
 
-    if (navigator.onLine && !user.isGuest) {
+    if (navigator.onLine && !user.isGuest && API_BASE) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-          body: JSON.stringify(payload) 
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload) 
         });
         if (res.ok) await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true });
         else throw new Error("Sync failed");
-      } catch (error) { 
-        await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
-      }
+      } catch (error) { await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload }); }
     } else if (!user.isGuest) {
       await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
     }
   };
 
+  // Safe Execute: Instead of overwriting global onmessage, we use Refs
   const executeTest = async (codeToRun) => {
-    if (isOnline) {
-      try {
-        const response = await fetch(`${API_BASE}/api/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: codeToRun }) });
-        if (!response.ok) throw new Error("FastAPI execution failed");
-        const data = await response.json();
-
-        if (data.counts) {
-          setLineExecutions((prev) => {
-            const next = { ...prev };
-            for (const [key, val] of Object.entries(data.counts)) next[key] = (next[key] || 0) + val;
-            return next;
-          });
-        }
-        if (data.error) { const hint = translatePythonError(data.error); throw new Error(data.error + (hint ? `\n${hint}` : "")); }
-        return data.output !== undefined && data.output !== null ? String(data.output) : "";
-      } catch (error) { console.warn("Online test execution failed, falling back to local...", error); }
-    }
-
     return new Promise((resolve, reject) => {
-      let outputAccumulator = "";
-      const timeout = setTimeout(() => {
+      outputAccumulatorRef.current = "";
+      testResolveRef.current = resolve;
+      testRejectRef.current = reject;
+
+      runTimeoutRef.current = setTimeout(() => {
         workerRef.current?.terminate();
         workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
         workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
-        reject(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
+        if (testRejectRef.current) {
+          testRejectRef.current(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
+          testResolveRef.current = null;
+          testRejectRef.current = null;
+        }
       }, 10000);
 
-      workerRef.current.onmessage = (event) => {
-        const { type, data, counts } = event.data;
-        if (type === "OUTPUT") { outputAccumulator += data; }
-        else if (type === "RUN_RESULT") {
-          clearTimeout(timeout); outputAccumulator += data !== undefined && data !== null ? data : "";
-          if (counts) {
-            setLineExecutions((prev) => {
-              const next = { ...prev };
-              for (const [key, val] of Object.entries(counts)) next[key] = (next[key] || 0) + val;
-              return next;
-            });
-          }
-          initWorker(); resolve(outputAccumulator);
-        } else if (type === "ERROR") {
-          clearTimeout(timeout); initWorker();
-          const hint = translatePythonError(data); reject(new Error(data + (hint ? `\n${hint}` : "")));
-        }
-      };
       workerRef.current.postMessage({ type: "RUN_CODE", code: codeToRun });
     });
   };
@@ -904,15 +835,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
     
     await saveSubmission(
-      latestStateRef.current.json, 
-      generatedPython, 
-      score, 
-      passed, 
-      totalTests, 
-      testResults, 
-      analysisResult.total || "O(n^2)", 
-      analysisResult.space_total || "O(1)",
-      false
+      latestStateRef.current.json, generatedPython, score, passed, totalTests, testResults, 
+      analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false
     );
     
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
@@ -920,7 +844,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, score);
 
-    if (score >= 1) handleSuccess(score, 5);
+    if (score >= 1) handleSuccess(score, 5, functionalPassed, functionalTotal);
   };
 
   const lines = analysisResult?.lines || []; let maxWeight = 0; let bottleneckIndices = [];
