@@ -6,7 +6,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
     : "http://localhost:8000/api";
 
 const getAuthHeaders = () => {
-    // FIXED: Added sessionStorage.getItem("authToken")
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
     if (!token) return { "Content-Type": "application/json" };
     return {
@@ -171,7 +170,8 @@ export const syncDownFromServer = async () => {
         }
 
         // 3. Submissions
-        const subRes = await fetch(`${API_BASE_URL}/get-submissions`, { headers });
+        // FIX: Changed endpoint to /get-all-submissions to match backend router
+        const subRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
         if (subRes.ok) {
             const data = await subRes.json();
             const submissionsList = data.submissions || data;
