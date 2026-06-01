@@ -124,6 +124,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
+  const workerMessageHandler = useRef(null);
   const runTimeoutRef = useRef(null);
   const renderIntervalRef = useRef(null);
   const outputCountRef = useRef(0);
@@ -200,101 +201,98 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 
-  const initWorker = () => {
-    if (!workerRef.current) return;
-    workerRef.current.onmessage = (event) => {
-      const { type, data, counts } = event.data;
+  // Worker Message Handler (using Ref to avoid stale closures)
+  workerMessageHandler.current = (event) => {
+    const { type, data, counts } = event.data;
 
-      if (type === "ANALYZE_RESULT") {
-        if (data.status === "success") {
-          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
-          setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
-          latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
-          const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          setLineExecutions(prev => ({...prev, ...initialCounts})); setSyntaxError(null);
-        } else {
-          const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
-        }
-      } 
-      else if (type === "RUN_RESULT") {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-        
-        if (testResolveRef.current) {
-          setTimeout(() => {
-            const flushed = pendingOutputRef.current; 
-            pendingOutputRef.current = "";
-            outputAccumulatorRef.current += flushed + (data !== undefined && data !== null ? data : "");
-            
-            if (counts) setLineExecutions(prev => { const next = {...prev}; for (const [k, v] of Object.entries(counts)) next[k] = (next[k]||0)+v; return next; });
-            
-            if (testResolveRef.current) {
-                testResolveRef.current(outputAccumulatorRef.current);
-                testResolveRef.current = null;
-                testRejectRef.current = null;
-            }
-          }, 75);
-        } else {
-          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-          const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
-          setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
-          if (counts) setLineExecutions(counts);
-          setIsEvaluating(false); setIsWaitingForInput(false);
-        }
-      } 
-      else if (type === "OUTPUT") {
-        if (testResolveRef.current) {
-          outputAccumulatorRef.current += data;
-        } else {
-          outputCountRef.current += 1; pendingOutputRef.current += data;
-          if (outputCountRef.current > 5000) {
-            clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-            resetWorker();
-            const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-            setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
-            setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
+    if (type === "ANALYZE_RESULT") {
+      if (data.status === "success") {
+        setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
+        setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+        latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
+        const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
+        setLineExecutions(prev => ({...prev, ...initialCounts})); setSyntaxError(null);
+      } else {
+        const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+      }
+    } 
+    else if (type === "RUN_RESULT") {
+      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+      
+      if (testResolveRef.current) {
+        setTimeout(() => {
+          const flushed = pendingOutputRef.current; 
+          pendingOutputRef.current = "";
+          outputAccumulatorRef.current += flushed + (data !== undefined && data !== null ? data : "");
+          
+          if (counts) setLineExecutions(prev => { const next = {...prev}; for (const [k, v] of Object.entries(counts)) next[k] = (next[k]||0)+v; return next; });
+          
+          if (testResolveRef.current) {
+              testResolveRef.current(outputAccumulatorRef.current);
+              testResolveRef.current = null;
+              testRejectRef.current = null;
           }
-        }
-      } 
-      else if (type === "INPUT_REQUEST") {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        }, 75);
+      } else {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        
-        if (testRejectRef.current) {
-           resetWorker();
-           testRejectRef.current(new Error("Test cases cannot process manual input. Please remove the input() function."));
-           testResolveRef.current = null; testRejectRef.current = null;
-        } else {
-           setConsoleOutput((prev) => prev + flushed + data.prompt); setIsWaitingForInput(true);
-        }
-      } 
-      else if (type === "ERROR") {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const hint = translatePythonError(data);
-        
-        if (testRejectRef.current) {
-          testRejectRef.current(new Error(data + (hint ? `\n${hint}` : "")));
-          testResolveRef.current = null; testRejectRef.current = null;
-        } else {
-          setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-          setIsEvaluating(false); setIsWaitingForInput(false);
+        const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
+        setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
+        if (counts) setLineExecutions(counts);
+        setIsEvaluating(false); setIsWaitingForInput(false);
+      }
+    } 
+    else if (type === "OUTPUT") {
+      if (testResolveRef.current) {
+        outputAccumulatorRef.current += data;
+      } else {
+        outputCountRef.current += 1; pendingOutputRef.current += data;
+        if (outputCountRef.current > 5000) {
+          clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+          resetWorker();
+          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+          setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
         }
       }
-    };
+    } 
+    else if (type === "INPUT_REQUEST") {
+      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+      
+      if (testRejectRef.current) {
+         resetWorker();
+         testRejectRef.current(new Error("Test cases cannot process manual input. Please remove the input() function."));
+         testResolveRef.current = null; testRejectRef.current = null;
+      } else {
+         setConsoleOutput((prev) => prev + flushed + data.prompt); setIsWaitingForInput(true);
+      }
+    } 
+    else if (type === "ERROR") {
+      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+      const hint = translatePythonError(data);
+      
+      if (testRejectRef.current) {
+        testRejectRef.current(new Error(data + (hint ? `\n${hint}` : "")));
+        testResolveRef.current = null; testRejectRef.current = null;
+      } else {
+        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+        setIsEvaluating(false); setIsWaitingForInput(false);
+      }
+    }
   };
 
   useEffect(() => {
-    if (worker) {
-      workerRef.current = worker;
-      initWorker(); 
-    }
-  }, [worker]);
+    if (!worker) return;
+    workerRef.current = worker;
 
-  useEffect(() => {
-    if (isEngineReady && generatedPython !== "# Drag blocks to generate Python code") {
-      analyzeCode(generatedPython);
-    }
-  }, [isEngineReady]);
+    const handleMessage = (e) => {
+        if (workerMessageHandler.current) workerMessageHandler.current(e);
+    };
+
+    worker.addEventListener('message', handleMessage);
+    return () => worker.removeEventListener('message', handleMessage);
+  }, [worker]);
 
   useEffect(() => {
     return () => { 
@@ -589,10 +587,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     workerRef.current?.postMessage({ type: "ANALYZE_CODE", code });
   };
 
+  // 1. Single robust useEffect gating Analyze trigger against isEngineReady
   useEffect(() => {
-    const timeoutId = setTimeout(() => analyzeCode(generatedPython), 500);
-    return () => clearTimeout(timeoutId);
-  }, [generatedPython, isOnline]);
+    if (isEngineReady && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
+        const timeoutId = setTimeout(() => analyzeCode(generatedPython), 500);
+        return () => clearTimeout(timeoutId);
+    }
+  }, [generatedPython, isOnline, isEngineReady]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
     if (!isReadyRef.current) return;
