@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 2 OF 5) ---
 
---- TIMESTAMP: 2026-05-28 23:31:05 ---
+--- TIMESTAMP: 2026-06-01 21:20:33 ---
 
 
 --- FILE: frontend/public/data/activities/module_6.json ---
@@ -83,7 +83,6 @@
       ]
     }
   ],
-
   "lesson_2": [
     {
       "id": "m6_l2_a1",
@@ -161,7 +160,6 @@
       ]
     }
   ],
-
   "lesson_3": [
     {
       "id": "m6_l3_a1",
@@ -239,7 +237,6 @@
       ]
     }
   ],
-
   "lesson_4": [
     {
       "id": "m6_l4_a1",
@@ -317,12 +314,12 @@
       ]
     }
   ],
-"optimizations": [
+  "optimizations": [
     {
       "id": "m6_opt_1",
       "title": "Optimize Knapsack (Dynamic Programming)",
       "task": "The current Knapsack solver uses pure recursion exploring all subsets (O(2â¿)).\n\n**Task Requirement:**\nOptimize it using a DP table or memoization to achieve O(n * W) time.",
-      "targetTime": "O(n^2)", 
+      "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
       "templateUrl": "/data/optimizations/m6-6.1.json",
       "testCasesPool": [
@@ -413,15 +410,17 @@
     },
     {
       "id": "m0_q3",
-      "question": "What is the primary function of the Workspace Canvas?",
+      "type": "code",
+      "code": "arr = [5, 10, 15, 20, 25]\nprint(arr[0])",
+      "question": "What is the time complexity of this code?",
       "options": [
-        "To display execution output and error messages",
-        "To store saved projects in the cloud",
-        "To serve as the main area where blocks are arranged and connected to define program logic",
-        "To visualize memory usage during program execution"
+        "O(1) \u2014 accesses a single element directly by index",
+        "O(n) \u2014 iterates through all elements",
+        "O(log n) \u2014 halves the array each time",
+        "O(n\u00b2) \u2014 uses a nested loop"
       ],
-      "answer": 2,
-      "explanation": "The Workspace Canvas is the central area where learners drag and connect blocks to design and build their algorithmic programs."
+      "answer": 0,
+      "explanation": "Accessing an array element by index is O(1) \u2014 it is a direct memory lookup that takes the same time regardless of array size."
     },
     {
       "id": "m0_q4",
@@ -461,15 +460,17 @@
     },
     {
       "id": "m0_q7",
-      "question": "What programming construct is used for iteration?",
+      "type": "code",
+      "code": "n = 10\nfor i in range(n):\n    print(i)",
+      "question": "What is the time complexity of this loop?",
       "options": [
-        "A conditional (if/else) statement",
-        "A function definition",
-        "A variable assignment",
-        "A loop (for or while)"
+        "O(1) \u2014 prints a fixed number of times",
+        "O(log n) \u2014 loop count halves each iteration",
+        "O(n) \u2014 the loop runs n times, one print per iteration",
+        "O(n\u00b2) \u2014 there are two nested loops"
       ],
-      "answer": 3,
-      "explanation": "Loops (for or while) are the constructs used for iteration, allowing a set of instructions to repeat multiple times."
+      "answer": 2,
+      "explanation": "The loop runs exactly n times, performing O(1) work each iteration, making the total time complexity O(n)."
     },
     {
       "id": "m0_q8",
@@ -497,24 +498,26 @@
     },
     {
       "id": "m0_q10",
-      "question": "What does the Complexity Analyzer evaluate?",
+      "type": "code",
+      "code": "for i in range(n):\n    for j in range(n):\n        print(i, j)",
+      "question": "What is the time complexity of this nested loop?",
       "options": [
-        "The visual appearance of the block arrangement",
-        "The number of variables used in the program",
-        "The time and space complexity of each line of code",
-        "The network speed required to run the program"
+        "O(n) \u2014 two loops but only one runs at a time",
+        "O(n + n) \u2014 outer plus inner loop",
+        "O(n\u00b2) \u2014 outer loop runs n times, inner loop runs n times for each outer iteration",
+        "O(2n) \u2014 double the single loop cost"
       ],
       "answer": 2,
-      "explanation": "The Complexity Analyzer evaluates each line or block of code and assigns a time and space complexity rating, helping learners identify performance bottlenecks."
+      "explanation": "Each of the n outer iterations triggers n inner iterations, giving n \u00d7 n = n\u00b2 total operations \u2014 classic O(n\u00b2) nested loop complexity."
     },
     {
       "id": "m0_q11",
       "question": "What represents constant time complexity?",
       "options": [
-        "O(n) â€” performance scales linearly with input size",
-        "O(log n) â€” performance scales logarithmically",
-        "O(nÂ²) â€” performance scales quadratically",
-        "O(1) â€” performance does not change regardless of input size"
+        "O(n) \u2014 performance scales linearly with input size",
+        "O(log n) \u2014 performance scales logarithmically",
+        "O(n\u00b2) \u2014 performance scales quadratically",
+        "O(1) \u2014 performance does not change regardless of input size"
       ],
       "answer": 3,
       "explanation": "O(1) means the operation always takes the same amount of time regardless of how large the input is."
@@ -523,25 +526,27 @@
       "id": "m0_q12",
       "question": "What represents linear time complexity?",
       "options": [
-        "O(1) â€” constant regardless of input",
-        "O(n) â€” performance grows directly proportional to input size",
-        "O(nÂ²) â€” performance grows quadratically",
-        "O(log n) â€” performance grows logarithmically"
+        "O(1) \u2014 constant regardless of input",
+        "O(n) \u2014 performance grows directly proportional to input size",
+        "O(n\u00b2) \u2014 performance grows quadratically",
+        "O(log n) \u2014 performance grows logarithmically"
       ],
       "answer": 1,
-      "explanation": "O(n) means the number of operations grows linearly as the input size increases â€” doubling the input roughly doubles the execution time."
+      "explanation": "O(n) means the number of operations grows linearly as the input size increases \u2014 doubling the input roughly doubles the execution time."
     },
     {
       "id": "m0_q13",
-      "question": "What does the Memory Visualizer track?",
+      "type": "code",
+      "code": "def greet(name):\n    message = 'Hello, ' + name\n    return message\n\nresult = greet('Alice')",
+      "question": "What is the space complexity of this function?",
       "options": [
-        "The Big-O time complexity of each block",
-        "The network bandwidth consumed during execution",
-        "Changes in variable states, array contents, and the call stack over the course of execution",
-        "The number of blocks used in the workspace"
+        "O(n) \u2014 space grows with the length of the name string",
+        "O(1) \u2014 uses a fixed number of variables regardless of input",
+        "O(n\u00b2) \u2014 allocates a 2D structure",
+        "O(log n) \u2014 space halves each call"
       ],
-      "answer": 2,
-      "explanation": "The Memory Visualizer shows how variable values change, how arrays are modified, and how the call stack grows and shrinks during program execution."
+      "answer": 1,
+      "explanation": "The function creates a fixed number of variables (message, result) regardless of what name is passed \u2014 constant O(1) space usage."
     },
     {
       "id": "m0_q14",
@@ -557,15 +562,17 @@
     },
     {
       "id": "m0_q15",
-      "question": "Why is code execution considered dynamic rather than static?",
+      "type": "code",
+      "code": "total = 0\nfor i in range(n):\n    total += i\nprint(total)",
+      "question": "What are the time and space complexities of this code?",
       "options": [
-        "Because the code is written using drag-and-drop blocks",
-        "Because the program structure is fixed and never changes",
-        "Because the actual behavior, variable values, and execution paths are determined at runtime based on input and state",
-        "Because execution speed depends on the programming language chosen"
+        "Time: O(n\u00b2), Space: O(n)",
+        "Time: O(n), Space: O(1) \u2014 loop runs n times but uses only one extra variable",
+        "Time: O(1), Space: O(1)",
+        "Time: O(n), Space: O(n) \u2014 stores each value"
       ],
-      "answer": 2,
-      "explanation": "Execution is dynamic because the actual values, paths taken through conditionals, and number of iterations are only determined when the program runs with real input data."
+      "answer": 1,
+      "explanation": "The loop runs n times \u2192 O(n) time. Only the variable 'total' is allocated regardless of n \u2192 O(1) space. This is a common pattern: linear time, constant space."
     }
   ]
 }
@@ -590,15 +597,17 @@
     },
     {
       "id": "m1_q2",
-      "question": "What is meant by best-case execution?",
+      "type": "code",
+      "code": "def find_first(arr, target):\n    if arr[0] == target:\n        return 0\n    return -1",
+      "question": "This code represents which execution case for a search algorithm?",
       "options": [
-        "The scenario where the algorithm uses the most memory",
-        "The scenario where the algorithm takes the longest time to complete",
-        "The most favorable input arrangement that minimizes the algorithm's execution steps",
-        "The average number of steps taken across all possible inputs"
+        "Worst case \u2014 target is at the last position",
+        "Best case \u2014 target is found immediately at index 0 in O(1)",
+        "Average case \u2014 target is somewhere in the middle",
+        "Space case \u2014 measures memory allocation"
       ],
-      "answer": 2,
-      "explanation": "Best-case execution refers to the input that causes the algorithm to complete in the fewest possible steps â€” for example, finding a search target at the very first position."
+      "answer": 1,
+      "explanation": "Checking only index 0 and returning immediately represents the best case \u2014 the target is found in the first comparison, taking O(1) time."
     },
     {
       "id": "m1_q3",
@@ -610,7 +619,7 @@
         "Any input where the algorithm returns an incorrect result"
       ],
       "answer": 1,
-      "explanation": "Worst-case execution is the upper bound on performance â€” the hardest possible input for the algorithm, such as searching for a target that doesn't exist in an array."
+      "explanation": "Worst-case execution is the upper bound on performance \u2014 the hardest possible input for the algorithm, such as searching for a target that doesn't exist in an array."
     },
     {
       "id": "m1_q4",
@@ -638,27 +647,29 @@
     },
     {
       "id": "m1_q6",
-      "question": "What complexity class is O(log n)?",
+      "type": "code",
+      "code": "n = 64\ncount = 0\nwhile n > 1:\n    n = n // 2\n    count += 1\nprint(count)  # prints 6",
+      "question": "What is the time complexity of this loop?",
       "options": [
-        "Quadratic â€” grows quadratically with input size",
-        "Linear â€” grows proportionally with input size",
-        "Constant â€” does not grow with input size",
-        "Logarithmic â€” grows very slowly, halving the problem at each step"
+        "O(n) \u2014 runs n times",
+        "O(n\u00b2) \u2014 nested iterations",
+        "O(log n) \u2014 n is halved each iteration, so it runs log\u2082(n) times",
+        "O(1) \u2014 fixed number of steps"
       ],
-      "answer": 3,
-      "explanation": "O(log n) is logarithmic complexity. Algorithms in this class typically cut the problem in half at each step, such as Binary Search."
+      "answer": 2,
+      "explanation": "Dividing n by 2 each iteration means the loop runs log\u2082(n) times before n reaches 1 \u2014 the defining pattern of O(log n) complexity."
     },
     {
       "id": "m1_q7",
-      "question": "What complexity class is O(nÂ²)?",
+      "question": "What complexity class is O(n\u00b2)?",
       "options": [
-        "Linear â€” grows proportionally to input size",
-        "Logarithmic â€” grows slowly",
-        "Quadratic â€” grows proportional to the square of the input size",
-        "Exponential â€” doubles with each additional input"
+        "Linear \u2014 grows proportionally to input size",
+        "Logarithmic \u2014 grows slowly",
+        "Quadratic \u2014 grows proportional to the square of the input size",
+        "Exponential \u2014 doubles with each additional input"
       ],
       "answer": 2,
-      "explanation": "O(nÂ²) is quadratic complexity, typically caused by nested loops where the outer and inner loops each iterate n times."
+      "explanation": "O(n\u00b2) is quadratic complexity, typically caused by nested loops where the outer and inner loops each iterate n times."
     },
     {
       "id": "m1_q8",
@@ -674,15 +685,17 @@
     },
     {
       "id": "m1_q9",
-      "question": "Which is slower: O(n log n) or O(nÂ²)?",
+      "type": "code",
+      "code": "# Algorithm A\nfor i in range(n):          # O(n)\n    print(i)\n\n# Algorithm B  \nfor i in range(n):          # O(n)\n    for j in range(n):      # O(n)\n        print(i, j)",
+      "question": "Comparing Algorithm A and B, which is slower and why?",
       "options": [
-        "O(n log n), because logarithms are slow",
-        "They are always equal",
-        "O(nÂ²), because it grows much faster for large values of n",
-        "It cannot be determined without knowing the exact input"
+        "Algorithm A is slower because it runs twice",
+        "They are equal \u2014 both use for loops",
+        "Algorithm B is slower \u2014 it is O(n\u00b2) while Algorithm A is O(n), and O(n\u00b2) grows much faster for large n",
+        "Algorithm A is slower because single loops are less efficient than nested ones"
       ],
       "answer": 2,
-      "explanation": "O(nÂ²) is significantly slower than O(n log n) for large inputs. For example, at n=1000, O(nÂ²) = 1,000,000 operations vs O(n log n) â‰ˆ 10,000."
+      "explanation": "Algorithm A is O(n) and Algorithm B is O(n\u00b2). For n=1000: A runs 1,000 operations vs B's 1,000,000 \u2014 O(n\u00b2) is dramatically slower for large input sizes."
     },
     {
       "id": "m1_q10",
@@ -710,15 +723,17 @@
     },
     {
       "id": "m1_q12",
-      "question": "How does array allocation affect space complexity?",
+      "type": "code",
+      "code": "def build_list(n):\n    result = []\n    for i in range(n):\n        result.append(i * 2)\n    return result",
+      "question": "What is the space complexity of this function?",
       "options": [
-        "It has no effect on space complexity",
-        "Allocating an array of size n adds O(n) to the space complexity",
-        "Arrays always use O(1) space regardless of their size",
-        "Array allocation only affects time complexity, not space"
+        "O(1) \u2014 only one list is created",
+        "O(log n) \u2014 list grows logarithmically",
+        "O(n) \u2014 the result list grows linearly with n, storing one element per iteration",
+        "O(n\u00b2) \u2014 nested structure is allocated"
       ],
-      "answer": 1,
-      "explanation": "Each element in an array requires memory, so allocating an array of size n contributes O(n) to the algorithm's space complexity."
+      "answer": 2,
+      "explanation": "The function allocates a list that grows by one element per iteration, reaching size n at completion \u2014 this is O(n) space complexity."
     },
     {
       "id": "m1_q13",
@@ -734,15 +749,17 @@
     },
     {
       "id": "m1_q14",
-      "question": "What is a computational bottleneck?",
+      "type": "code",
+      "code": "def process(arr):\n    total = 0                    # O(1)\n    for i in range(len(arr)):    # O(n)\n        for j in range(len(arr)):# O(n)\n            total += arr[i] * arr[j]\n    return total",
+      "question": "What is the computational bottleneck in this function?",
       "options": [
-        "A syntax error that prevents the program from compiling",
-        "The part of an algorithm with the highest complexity that dominates overall performance",
-        "A hardware limitation that slows down all programs equally",
-        "A loop that executes exactly once"
+        "Line 1 \u2014 the variable assignment total = 0",
+        "The nested loop on lines 3\u20135 \u2014 it runs n\u00b2 times and dominates the overall O(n\u00b2) complexity",
+        "The return statement \u2014 it executes last",
+        "Line 2 \u2014 the outer loop alone makes it O(n\u00b2)"
       ],
       "answer": 1,
-      "explanation": "A computational bottleneck is the section of code with the highest time or space complexity â€” it dominates the algorithm's overall Big-O rating and is the primary target for optimization."
+      "explanation": "The nested loop is the bottleneck \u2014 it executes n \u00d7 n = n\u00b2 times, dominating over the O(1) assignment. The overall complexity is O(n\u00b2), and this is where optimization efforts should focus."
     },
     {
       "id": "m1_q15",
@@ -754,7 +771,7 @@
         "Whether the algorithm uses loops or recursive functions"
       ],
       "answer": 2,
-      "explanation": "Scalability refers to how an algorithm performs as n grows large. A scalable algorithm (e.g., O(n log n)) remains practical at large input sizes, while an unscalable one (e.g., O(2â¿)) becomes infeasible quickly."
+      "explanation": "Scalability refers to how an algorithm performs as n grows large. A scalable algorithm (e.g., O(n log n)) remains practical at large input sizes, while an unscalable one (e.g., O(2\u207f)) becomes infeasible quickly."
     }
   ]
 }
@@ -782,33 +799,35 @@
       "question": "Why is brute force inefficient for large inputs?",
       "options": [
         "Because it always produces incorrect results for large datasets",
-        "Because the number of operations grows too fast (often O(nÂ²) or worse), making it impractical for large n",
+        "Because the number of operations grows too fast (often O(n\u00b2) or worse), making it impractical for large n",
         "Because it requires special hardware to run correctly",
         "Because it cannot be implemented using block-based programming"
       ],
       "answer": 1,
-      "explanation": "Brute force often has polynomial or exponential time complexity, causing execution time to explode as input size increases â€” making it infeasible for large-scale problems."
+      "explanation": "Brute force often has polynomial or exponential time complexity, causing execution time to explode as input size increases \u2014 making it infeasible for large-scale problems."
     },
     {
       "id": "m2_q3",
-      "question": "What is linear search?",
+      "type": "code",
+      "code": "def search(arr, target):\n    for i in range(len(arr)):\n        if arr[i] == target:\n            return i\n    return -1",
+      "question": "What is the worst-case time complexity of this search function?",
       "options": [
-        "A search algorithm that halves the search space at each step",
-        "A search algorithm that checks each element one by one from left to right until the target is found",
-        "A search algorithm that uses a hash table for constant-time lookup",
-        "A search algorithm that only works on sorted arrays"
+        "O(1) \u2014 returns immediately when found",
+        "O(log n) \u2014 skips half the array each step",
+        "O(n) \u2014 must scan all n elements if target is absent or at the last index",
+        "O(n\u00b2) \u2014 compares every pair of elements"
       ],
-      "answer": 1,
-      "explanation": "Linear search scans elements sequentially from the first to the last, checking each one against the target value."
+      "answer": 2,
+      "explanation": "In the worst case (target not found), the loop iterates through all n elements before returning -1 \u2014 this is O(n) linear search."
     },
     {
       "id": "m2_q4",
       "question": "What is the time complexity of linear search?",
       "options": [
-        "O(1) â€” constant time",
-        "O(log n) â€” logarithmic time",
-        "O(n) â€” linear time",
-        "O(nÂ²) â€” quadratic time"
+        "O(1) \u2014 constant time",
+        "O(log n) \u2014 logarithmic time",
+        "O(n) \u2014 linear time",
+        "O(n\u00b2) \u2014 quadratic time"
       ],
       "answer": 2,
       "explanation": "Linear search is O(n) because in the worst case it must examine every element in the array once."
@@ -823,19 +842,21 @@
         "No, but it produces incorrect results on unsorted data"
       ],
       "answer": 2,
-      "explanation": "Linear search works by sequentially checking each element, so it does not require the data to be sorted â€” unlike Binary Search."
+      "explanation": "Linear search works by sequentially checking each element, so it does not require the data to be sorted \u2014 unlike Binary Search."
     },
     {
       "id": "m2_q6",
-      "question": "What is the worst-case scenario for linear search?",
+      "type": "code",
+      "code": "def find_max(arr):\n    max_val = arr[0]\n    for i in range(1, len(arr)):\n        if arr[i] > max_val:\n            max_val = arr[i]\n    return max_val",
+      "question": "What are the time and space complexities of this function?",
       "options": [
-        "The target is at the first index (index 0)",
-        "The array contains duplicate values",
-        "The target is not in the array, requiring all n elements to be checked",
-        "The array is already sorted in ascending order"
+        "Time: O(n\u00b2), Space: O(n)",
+        "Time: O(log n), Space: O(1)",
+        "Time: O(n), Space: O(1) \u2014 scans all elements once, uses only one extra variable",
+        "Time: O(1), Space: O(n)"
       ],
       "answer": 2,
-      "explanation": "The worst case for linear search is when the target doesn't exist â€” the algorithm must scan all n elements before concluding the target is absent."
+      "explanation": "The loop visits each of the n elements exactly once \u2192 O(n) time. Only max_val is allocated as extra storage regardless of input size \u2192 O(1) space."
     },
     {
       "id": "m2_q7",
@@ -863,15 +884,17 @@
     },
     {
       "id": "m2_q9",
-      "question": "What is the time complexity of Bubble Sort?",
+      "type": "code",
+      "code": "def bubble_sort(arr):\n    n = len(arr)\n    for i in range(n):          # outer: runs n times\n        for j in range(n - 1): # inner: runs n-1 times\n            if arr[j] > arr[j+1]:\n                arr[j], arr[j+1] = arr[j+1], arr[j]",
+      "question": "What is the time complexity of this Bubble Sort implementation?",
       "options": [
-        "O(n log n) in all cases",
-        "O(n) in all cases",
-        "O(nÂ²) in the worst and average case",
-        "O(log n) in the best case"
+        "O(n) \u2014 only the outer loop is counted",
+        "O(n log n) \u2014 inner loop halves each pass",
+        "O(n\u00b2) \u2014 outer loop runs n times and inner loop runs ~n times for each outer iteration",
+        "O(2n) \u2014 two loops added together"
       ],
       "answer": 2,
-      "explanation": "Bubble Sort has O(nÂ²) worst and average case due to its nested loop structure. The best case is O(n) only with an optimized early-exit flag when no swaps occur."
+      "explanation": "Two nested loops each running ~n times gives n \u00d7 n = n\u00b2 comparisons in the worst case \u2014 classic O(n\u00b2) for simple sorting algorithms like Bubble Sort."
     },
     {
       "id": "m2_q10",
@@ -879,11 +902,11 @@
       "options": [
         "O(n) in all cases",
         "O(n log n) in the best case",
-        "O(nÂ²) in all cases, because it always scans the full unsorted portion",
+        "O(n\u00b2) in all cases, because it always scans the full unsorted portion",
         "O(log n) for small arrays"
       ],
       "answer": 2,
-      "explanation": "Selection Sort is always O(nÂ²) â€” even if the array is already sorted, it must still scan the full unsorted portion to confirm the minimum element."
+      "explanation": "Selection Sort is always O(n\u00b2) \u2014 even if the array is already sorted, it must still scan the full unsorted portion to confirm the minimum element."
     },
     {
       "id": "m2_q11",
@@ -895,19 +918,21 @@
         "Nested loops are only used for printing 2D grids, not for sorting"
       ],
       "answer": 1,
-      "explanation": "Simple O(nÂ²) sorts use an outer loop to iterate over positions and an inner loop to find the correct element or make comparisons â€” this double iteration causes the quadratic complexity."
+      "explanation": "Simple O(n\u00b2) sorts use an outer loop to iterate over positions and an inner loop to find the correct element or make comparisons \u2014 this double iteration causes the quadratic complexity."
     },
     {
       "id": "m2_q12",
-      "question": "What does 'in-place sorting' mean?",
+      "type": "code",
+      "code": "# Version A \u2014 in-place\ndef reverse_inplace(arr):\n    left, right = 0, len(arr) - 1\n    while left < right:\n        arr[left], arr[right] = arr[right], arr[left]\n        left += 1\n        right -= 1\n\n# Version B \u2014 out-of-place\ndef reverse_copy(arr):\n    return arr[::-1]",
+      "question": "Comparing space complexity: which version uses less memory and why?",
       "options": [
-        "The algorithm sorts data by transferring it to an external storage device",
-        "The algorithm creates a completely new sorted array, leaving the original unchanged",
-        "The algorithm sorts the array by rearranging elements within the original array using only a constant amount of extra memory",
-        "The algorithm sorts data by using a secondary hash table"
+        "Version B \u2014 slicing is always more memory efficient",
+        "Version A \u2014 it modifies the array in-place using only two pointer variables, O(1) extra space vs Version B's O(n) for the new array",
+        "They are equal \u2014 both operate on the same array",
+        "Version A \u2014 recursion uses less space than slicing"
       ],
-      "answer": 2,
-      "explanation": "In-place sorting rearranges elements within the existing array without requiring significant additional memory, unlike out-of-place algorithms that create a new sorted copy."
+      "answer": 1,
+      "explanation": "Version A swaps in-place using only two integer pointer variables \u2192 O(1) extra space. Version B creates a completely new reversed array \u2192 O(n) extra space."
     },
     {
       "id": "m2_q13",
@@ -919,19 +944,21 @@
         "By using binary search on the unsorted array"
       ],
       "answer": 2,
-      "explanation": "Without sorting, the only reliable way to find the maximum is to scan all elements linearly while maintaining a running maximum â€” a classic O(n) brute force approach."
+      "explanation": "Without sorting, the only reliable way to find the maximum is to scan all elements linearly while maintaining a running maximum \u2014 a classic O(n) brute force approach."
     },
     {
       "id": "m2_q14",
-      "question": "In what scenario is brute force acceptable?",
+      "type": "code",
+      "code": "# Scenario: Check if value exists in a list of 10 items\nsmall_list = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]\nfor item in small_list:\n    if item == 5:\n        print('Found!')\n        break",
+      "question": "Is brute force acceptable here, and what is the time complexity?",
       "options": [
-        "When the input size is very large and performance is critical",
-        "When input size is small enough that even O(nÂ²) or higher completes within acceptable time limits",
-        "When an optimized algorithm is not yet available on the market",
-        "Only when the program runs on specialized hardware"
+        "No \u2014 brute force is never acceptable even for small inputs",
+        "Yes \u2014 the input is small (n=10), so O(n) linear scan completes instantly and simplicity outweighs optimization need",
+        "No \u2014 this should use binary search for O(log n)",
+        "Yes \u2014 but only because the list is already sorted"
       ],
       "answer": 1,
-      "explanation": "Brute force is acceptable for small input sizes where even quadratic or exponential complexity finishes quickly, and simplicity of implementation outweighs performance concerns."
+      "explanation": "For very small fixed inputs like n=10, the O(n) brute force scan finishes in microseconds. The cost of implementing a more complex algorithm far exceeds any performance benefit."
     },
     {
       "id": "m2_q15",
@@ -943,7 +970,7 @@
         "An array that is automatically created by the programming language runtime"
       ],
       "answer": 2,
-      "explanation": "An auxiliary array is a helper data structure used alongside the main data to store intermediate values â€” for example, a seen-values array used to track visited elements in O(n) duplicate detection."
+      "explanation": "An auxiliary array is a helper data structure used alongside the main data to store intermediate values \u2014 for example, a seen-values array used to track visited elements in O(n) duplicate detection."
     }
   ]
 }
@@ -980,39 +1007,43 @@
     },
     {
       "id": "m3_q3",
-      "question": "What is Binary Search?",
+      "type": "code",
+      "code": "def binary_search(arr, target):\n    left, right = 0, len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1",
+      "question": "What is the time complexity of this Binary Search implementation?",
       "options": [
-        "A search algorithm that checks every element from left to right",
-        "A search algorithm that uses a hash function to locate elements",
-        "A search algorithm that repeatedly halves the search space by comparing the target to the middle element of a sorted array",
-        "A search algorithm that works only on unsorted data"
+        "O(n) \u2014 visits every element in the worst case",
+        "O(n\u00b2) \u2014 two pointer variables cause quadratic growth",
+        "O(log n) \u2014 the search space is halved each iteration",
+        "O(1) \u2014 returns immediately when mid matches"
       ],
       "answer": 2,
-      "explanation": "Binary Search exploits the sorted order of an array by eliminating half the remaining elements at each step using a midpoint comparison."
+      "explanation": "Each iteration halves the remaining search space (left\u2013right range). Starting from n elements, after k iterations there are n/2\u1d4f remaining \u2014 so at most log\u2082(n) iterations are needed."
     },
     {
       "id": "m3_q4",
       "question": "What is the time complexity of Binary Search?",
       "options": [
-        "O(n) â€” linear",
-        "O(nÂ²) â€” quadratic",
-        "O(1) â€” constant",
-        "O(log n) â€” logarithmic"
+        "O(n) \u2014 linear",
+        "O(n\u00b2) \u2014 quadratic",
+        "O(1) \u2014 constant",
+        "O(log n) \u2014 logarithmic"
       ],
       "answer": 3,
       "explanation": "Binary Search is O(log n) because at each step it halves the search space, meaning for n=1,000,000 it needs only about 20 comparisons."
     },
     {
       "id": "m3_q5",
-      "question": "Does Binary Search require a sorted array?",
+      "type": "code",
+      "code": "arr = [1, 3, 5, 7, 9, 11, 13]\ntarget = 6\nresult = binary_search(arr, target)  # returns -1\n\narr2 = [9, 3, 1, 7, 5, 13, 11]  # unsorted\nresult2 = binary_search(arr2, target)  # unpredictable!",
+      "question": "Why does Binary Search on arr2 produce unreliable results?",
       "options": [
-        "No, it works on any order of elements",
-        "Yes, the array must be sorted for Binary Search to produce correct results",
-        "No, but it performs better on sorted arrays",
-        "Yes, but only when searching for the maximum value"
+        "Because arr2 has an odd number of elements",
+        "Because Binary Search requires a sorted array \u2014 the midpoint comparison logic only works correctly when elements are in order",
+        "Because target=6 is not in either array",
+        "Because Binary Search only works with even-length arrays"
       ],
       "answer": 1,
-      "explanation": "Binary Search depends on sorted order to know which half to discard. Applying it to unsorted data produces incorrect and unpredictable results."
+      "explanation": "Binary Search relies on sorted order to decide which half to discard. On unsorted data, discarding a half based on midpoint comparison may eliminate the actual target \u2014 producing incorrect results."
     },
     {
       "id": "m3_q6",
@@ -1040,15 +1071,17 @@
     },
     {
       "id": "m3_q8",
-      "question": "What is the time complexity of Merge Sort?",
+      "type": "code",
+      "code": "def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])   # T(n/2)\n    right = merge_sort(arr[mid:])  # T(n/2)\n    return merge(left, right)      # O(n)",
+      "question": "What is the time complexity of this Merge Sort and what drives it?",
       "options": [
-        "O(nÂ²) in all cases",
-        "O(n) in the best case",
-        "O(n log n) in all cases",
-        "O(log n) in the worst case"
+        "O(n\u00b2) \u2014 two recursive calls per level",
+        "O(n log n) \u2014 log n levels of recursion, each level doing O(n) merge work",
+        "O(n) \u2014 only the merge step is counted",
+        "O(log n) \u2014 recursion depth is log n"
       ],
-      "answer": 2,
-      "explanation": "Merge Sort is O(n log n) in all cases â€” the log n comes from the depth of recursive splits, and n from the merging work at each level."
+      "answer": 1,
+      "explanation": "Merge Sort splits into log n levels of recursion. At each level, the merge step processes all n elements total across that level. log n levels \u00d7 O(n) work per level = O(n log n) overall."
     },
     {
       "id": "m3_q9",
@@ -1060,7 +1093,7 @@
         "Stability is not a property that applies to sorting algorithms"
       ],
       "answer": 1,
-      "explanation": "Merge Sort is stable â€” when two elements are equal, it preserves their original order from the input, which is important for multi-key sorting scenarios."
+      "explanation": "Merge Sort is stable \u2014 when two elements are equal, it preserves their original order from the input, which is important for multi-key sorting scenarios."
     },
     {
       "id": "m3_q10",
@@ -1072,31 +1105,33 @@
         "A sorting algorithm that builds the sorted output one element at a time by insertion"
       ],
       "answer": 1,
-      "explanation": "Quick Sort selects a pivot, partitions elements around it, and recursively sorts each partition â€” achieving O(n log n) average case performance."
+      "explanation": "Quick Sort selects a pivot, partitions elements around it, and recursively sorts each partition \u2014 achieving O(n log n) average case performance."
     },
     {
       "id": "m3_q11",
-      "question": "What is a pivot in Quick Sort?",
+      "type": "code",
+      "code": "def partition(arr, low, high):\n    pivot = arr[low]   # always choose first element as pivot\n    # ... partitioning logic ...\n\n# Called on: arr = [1, 2, 3, 4, 5]  (already sorted)",
+      "question": "What problem does this pivot selection cause on the already-sorted input?",
       "options": [
-        "The index used to calculate the midpoint of the array",
-        "A temporary variable used for swapping two elements",
-        "The element selected to partition the array, where all smaller elements go left and all larger elements go right",
-        "The first element of the merged result"
+        "No problem \u2014 Quick Sort always runs in O(n log n)",
+        "The pivot is always the smallest element, creating maximally unbalanced partitions of size 0 and n-1 each time, degrading to O(n\u00b2)",
+        "Sorted input always gives the best case O(n) for Quick Sort",
+        "The pivot selection makes no difference to performance"
       ],
-      "answer": 2,
-      "explanation": "The pivot is the chosen reference element. After partitioning, the pivot is in its final sorted position, with all smaller values to its left and larger values to its right."
+      "answer": 1,
+      "explanation": "Choosing the first element as pivot on sorted data always selects the minimum \u2014 one partition gets 0 elements and the other gets n-1, making the recursion depth n instead of log n and degrading to O(n\u00b2)."
     },
     {
       "id": "m3_q12",
       "question": "What is the worst-case time complexity of Quick Sort?",
       "options": [
-        "O(n log n) â€” same as average case",
-        "O(n) â€” linear",
-        "O(nÂ²) â€” quadratic, when pivot selection consistently results in unbalanced partitions",
-        "O(log n) â€” logarithmic"
+        "O(n log n) \u2014 same as average case",
+        "O(n) \u2014 linear",
+        "O(n\u00b2) \u2014 quadratic, when pivot selection consistently results in unbalanced partitions",
+        "O(log n) \u2014 logarithmic"
       ],
       "answer": 2,
-      "explanation": "Quick Sort degrades to O(nÂ²) when the pivot is always the smallest or largest element (e.g., sorted array with first-element pivot), creating maximally unbalanced partitions."
+      "explanation": "Quick Sort degrades to O(n\u00b2) when the pivot is always the smallest or largest element (e.g., sorted array with first-element pivot), creating maximally unbalanced partitions."
     },
     {
       "id": "m3_q13",
@@ -1112,27 +1147,29 @@
     },
     {
       "id": "m3_q14",
-      "question": "What causes Quick Sort's worst case?",
+      "type": "code",
+      "code": "# Searching in a sorted array of 1,000,000 elements\n\n# Option A: Linear Search\nfor i in range(len(arr)):      # up to 1,000,000 steps\n    if arr[i] == target: return i\n\n# Option B: Binary Search  \nleft, right = 0, len(arr) - 1\nwhile left <= right:           # up to ~20 steps\n    mid = (left + right) // 2\n    ...",
+      "question": "For n=1,000,000, approximately how many steps does each option take?",
       "options": [
-        "When the array has an odd number of elements",
-        "When the pivot is always chosen as the median element",
-        "When the pivot consistently creates maximally unbalanced partitions (e.g., always the smallest or largest element)",
-        "When the array contains no duplicate values"
+        "Option A: ~500,000 steps average; Option B: ~20 steps \u2014 Binary Search is about 25,000x faster",
+        "They take the same number of steps for large inputs",
+        "Option A: 1,000 steps; Option B: 100 steps",
+        "Option B always takes exactly 2 steps regardless of n"
       ],
-      "answer": 2,
-      "explanation": "Worst case occurs when every partition produces one empty side and one side with n-1 elements, effectively degenerating into a linear scan â€” common when sorting an already-sorted array with a first-element pivot."
+      "answer": 0,
+      "explanation": "Linear Search averages n/2 = 500,000 steps. Binary Search takes at most log\u2082(1,000,000) \u2248 20 steps. This dramatic difference is why O(log n) vs O(n) matters enormously at scale."
     },
     {
       "id": "m3_q15",
-      "question": "Why is O(n log n) superior to O(nÂ²)?",
+      "question": "Why is O(n log n) superior to O(n\u00b2)?",
       "options": [
-        "O(n log n) always uses less memory than O(nÂ²)",
-        "O(n log n) grows much more slowly than O(nÂ²) for large n, making it far more scalable",
+        "O(n log n) always uses less memory than O(n\u00b2)",
+        "O(n log n) grows much more slowly than O(n\u00b2) for large n, making it far more scalable",
         "O(n log n) algorithms are always easier to implement",
-        "O(nÂ²) is actually faster for most real-world input sizes"
+        "O(n\u00b2) is actually faster for most real-world input sizes"
       ],
       "answer": 1,
-      "explanation": "For n=1,000,000: O(n log n) â‰ˆ 20,000,000 operations vs O(nÂ²) = 1,000,000,000,000 operations â€” O(n log n) is orders of magnitude faster at scale."
+      "explanation": "For n=1,000,000: O(n log n) \u2248 20,000,000 operations vs O(n\u00b2) = 1,000,000,000,000 operations \u2014 O(n log n) is orders of magnitude faster at scale."
     }
   ]
 }
@@ -1143,21 +1180,196 @@
   "moduleId": "module-4",
   "moduleTitle": "Greedy Algorithms",
   "questions": [
-    { "id": "m4_q1", "question": "What defines a Greedy Algorithm?", "options": ["An algorithm that explores all possible paths before choosing the best", "An algorithm that makes the locally optimal choice at each step without reconsidering previous decisions", "An algorithm that divides the problem into equal halves recursively", "An algorithm that stores previously computed results to avoid recomputation"], "answer": 1, "explanation": "A greedy algorithm makes the best-looking choice at each decision point with the hope that local optima lead to a global optimum." },
-    { "id": "m4_q2", "question": "What is local optimization?", "options": ["Minimizing the total cost across all future steps simultaneously", "Choosing the best option available at the current step without considering future consequences", "Finding the globally optimal solution by exhaustive search", "Dividing resources equally among all steps"], "answer": 1, "explanation": "Local optimization means selecting the best immediate option at each step, as opposed to evaluating the impact on all future steps." },
-    { "id": "m4_q3", "question": "Do greedy algorithms always guarantee a global optimum?", "options": ["Yes, greedy algorithms always find the best possible solution", "No, greedy algorithms can fail to find the global optimum when local choices lead to suboptimal outcomes", "Yes, but only for problems with more than 100 elements", "No, greedy algorithms always produce the worst possible result"], "answer": 1, "explanation": "Greedy algorithms work optimally only for problems with the 'greedy choice property' â€” for others (like 0/1 Knapsack), they can miss the global optimum." },
-    { "id": "m4_q4", "question": "What is the Coin Change problem?", "options": ["Finding the minimum number of coins needed to make a given amount using available denominations", "Finding the maximum value that can be stored in a coin-sized container", "Sorting coins by denomination using a comparison algorithm", "Counting the total number of coins in an unsorted collection"], "answer": 0, "explanation": "The Coin Change problem asks for the fewest coins needed to make exact change for a target amount using available denominations." },
-    { "id": "m4_q5", "question": "What is a canonical coin system?", "options": ["A coin system where coins are sorted in ascending order", "A coin system where greedy selection of the largest denomination always yields the minimum number of coins", "A coin system used only in international currency exchanges", "A coin system where all denominations are powers of two"], "answer": 1, "explanation": "A canonical coin system (like US dollars or Philippine pesos) has the property that greedy coin selection always produces an optimal result." },
-    { "id": "m4_q6", "question": "What is the time complexity of the greedy coin change algorithm?", "options": ["O(nÂ²)", "O(n log n) due to the required sorting step", "O(n) where n is the number of available denominations", "O(1) regardless of input"], "answer": 2, "explanation": "After sorting denominations once, the greedy coin selection loop is O(n) where n is the number of denominations." },
-    { "id": "m4_q7", "question": "What is Activity Selection?", "options": ["Sorting activities by their start time to find the earliest one", "Scheduling the maximum number of non-overlapping activities from a given set", "Finding the activity with the longest duration", "Assigning activities to multiple parallel rooms to minimize total time"], "answer": 1, "explanation": "Activity Selection greedily selects the maximum number of activities that can be performed without overlap â€” the classic interval scheduling problem." },
-    { "id": "m4_q8", "question": "Why sort by end time in Activity Selection?", "options": ["To ensure activities are displayed in chronological order for the user", "Because sorting by end time allows each greedy selection to leave the maximum remaining time for subsequent activities", "Because start time is not available in the input data", "Because end time determines which activity has the highest value"], "answer": 1, "explanation": "Selecting the activity that ends earliest always leaves the most room for future activities â€” sorting by end time enables this greedy choice to be made efficiently." },
-    { "id": "m4_q9", "question": "What is Fractional Knapsack?", "options": ["A knapsack problem where only whole items can be included", "A knapsack problem where items can be split into fractions to maximize total value within a weight capacity", "A knapsack problem solved using dynamic programming tables", "A knapsack problem where items are selected by brute force"], "answer": 1, "explanation": "Fractional Knapsack allows taking fractions of items, enabling greedy selection by value-to-weight ratio to always produce an optimal solution." },
-    { "id": "m4_q10", "question": "How does Fractional Knapsack differ from 0/1 Knapsack?", "options": ["Fractional Knapsack requires dynamic programming; 0/1 does not", "In Fractional Knapsack items can be partially taken; in 0/1 Knapsack each item must be taken entirely or not at all", "0/1 Knapsack is always more efficient than Fractional Knapsack", "They are identical problems solved by the same algorithm"], "answer": 1, "explanation": "0/1 Knapsack requires selecting whole items (hence the 0 or 1), while Fractional allows splitting â€” this key difference makes greedy work for Fractional but not for 0/1." },
-    { "id": "m4_q11", "question": "What sorting metric is used for Fractional Knapsack?", "options": ["Sort by item weight in ascending order", "Sort by item value in descending order", "Sort by value-to-weight ratio in descending order", "Sort by item index for predictable access"], "answer": 2, "explanation": "Items are sorted by value/weight ratio descending so the greedy algorithm always picks the most 'bang per unit of weight' first." },
-    { "id": "m4_q12", "question": "What is an optimal substructure?", "options": ["A problem property where the optimal solution can be built from optimal solutions of its subproblems", "A data structure that automatically optimizes memory usage", "A programming pattern that reduces code duplication", "A property where subproblems always have the same size"], "answer": 0, "explanation": "Optimal substructure means the globally optimal solution incorporates optimal solutions to its sub-problems â€” a requirement for both greedy algorithms and dynamic programming." },
-    { "id": "m4_q13", "question": "What is the greedy choice property?", "options": ["The property that a locally optimal choice at each step can be extended to a globally optimal solution", "The property that all choices must be evaluated before selecting one", "The property that the algorithm must backtrack when a choice leads to failure", "The property that the problem can be solved in constant time"], "answer": 0, "explanation": "The greedy choice property guarantees that making the locally optimal decision at each step leads to the globally optimal solution â€” this is what separates greedy-solvable from non-greedy-solvable problems." },
-    { "id": "m4_q14", "question": "Why is sorting typically required before greedy selection?", "options": ["Because greedy algorithms cannot process unsorted data at all", "Because sorting arranges candidates in priority order so the algorithm can always pick the best available option first", "Because sorting reduces the problem to O(1) complexity", "Because the greedy choice property only holds after data is randomized"], "answer": 1, "explanation": "Sorting establishes a priority order (by end time, ratio, value, etc.) so the greedy algorithm can always select the best remaining candidate without revisiting or comparing all options." },
-    { "id": "m4_q15", "question": "What is the total time complexity of Activity Selection?", "options": ["O(n) after pre-sorted input", "O(nÂ²) due to nested comparison loops", "O(n log n) dominated by the initial sort, followed by a linear O(n) selection pass", "O(log n) using binary search for conflict detection"], "answer": 2, "explanation": "Activity Selection is O(n log n) overall: sorting takes O(n log n), and the greedy selection loop is O(n) â€” the sort dominates the total complexity." }
+    {
+      "id": "m4_q1",
+      "question": "What defines a Greedy Algorithm?",
+      "options": [
+        "An algorithm that explores all possible paths before choosing the best",
+        "An algorithm that makes the locally optimal choice at each step without reconsidering previous decisions",
+        "An algorithm that divides the problem into equal halves recursively",
+        "An algorithm that stores previously computed results to avoid recomputation"
+      ],
+      "answer": 1,
+      "explanation": "A greedy algorithm makes the best-looking choice at each decision point with the hope that local optima lead to a global optimum."
+    },
+    {
+      "id": "m4_q2",
+      "question": "What is local optimization?",
+      "options": [
+        "Minimizing the total cost across all future steps simultaneously",
+        "Choosing the best option available at the current step without considering future consequences",
+        "Finding the globally optimal solution by exhaustive search",
+        "Dividing resources equally among all steps"
+      ],
+      "answer": 1,
+      "explanation": "Local optimization means selecting the best immediate option at each step, as opposed to evaluating the impact on all future steps."
+    },
+    {
+      "id": "m4_q3",
+      "type": "code",
+      "code": "coins = [1, 3, 4]\namount = 6\n# Greedy picks: 4, 1, 1 \u2192 3 coins\n# Optimal:      3, 3   \u2192 2 coins",
+      "question": "What does this example demonstrate about greedy algorithms?",
+      "options": [
+        "Greedy always finds the optimal solution for any coin system",
+        "Greedy fails here because coins [1,3,4] is a non-canonical system \u2014 local optimal choice (4) leads to a suboptimal global result (3 coins vs 2 coins)",
+        "The greedy algorithm produces the correct answer of 2 coins",
+        "This proves greedy is always slower than dynamic programming"
+      ],
+      "answer": 1,
+      "explanation": "This non-canonical coin system breaks the greedy choice property. Picking the largest coin (4) first leads to 3 coins total, while the optimal DP solution uses 3+3=2 coins \u2014 proving greedy doesn't always find the global optimum."
+    },
+    {
+      "id": "m4_q4",
+      "question": "What is the Coin Change problem?",
+      "options": [
+        "Finding the minimum number of coins needed to make a given amount using available denominations",
+        "Finding the maximum value that can be stored in a coin-sized container",
+        "Sorting coins by denomination using a comparison algorithm",
+        "Counting the total number of coins in an unsorted collection"
+      ],
+      "answer": 0,
+      "explanation": "The Coin Change problem asks for the fewest coins needed to make exact change for a target amount using available denominations."
+    },
+    {
+      "id": "m4_q5",
+      "type": "code",
+      "code": "def greedy_coins(amount, denominations):\n    denominations.sort(reverse=True)  # O(d log d)\n    count = 0\n    for coin in denominations:         # O(d)\n        while amount >= coin:          # O(amount/coin)\n            amount -= coin\n            count += 1\n    return count",
+      "question": "What is the dominant time complexity of this greedy coin change function?",
+      "options": [
+        "O(amount) \u2014 the while loop drives the complexity",
+        "O(d log d) \u2014 the sort dominates where d is the number of denominations",
+        "O(d \u00d7 amount) \u2014 nested loops multiply",
+        "O(1) \u2014 greedy algorithms always run in constant time"
+      ],
+      "answer": 1,
+      "explanation": "The sort is O(d log d) where d is the number of denominations. The selection loop is O(d) at most. For typical small coin sets, the sort dominates \u2014 overall O(d log d)."
+    },
+    {
+      "id": "m4_q6",
+      "question": "What is the time complexity of the greedy coin change algorithm?",
+      "options": [
+        "O(n\u00b2)",
+        "O(n log n) due to the required sorting step",
+        "O(n) where n is the number of available denominations",
+        "O(1) regardless of input"
+      ],
+      "answer": 2,
+      "explanation": "After sorting denominations once, the greedy coin selection loop is O(n) where n is the number of denominations."
+    },
+    {
+      "id": "m4_q7",
+      "question": "What is Activity Selection?",
+      "options": [
+        "Sorting activities by their start time to find the earliest one",
+        "Scheduling the maximum number of non-overlapping activities from a given set",
+        "Finding the activity with the longest duration",
+        "Assigning activities to multiple parallel rooms to minimize total time"
+      ],
+      "answer": 1,
+      "explanation": "Activity Selection greedily selects the maximum number of activities that can be performed without overlap \u2014 the classic interval scheduling problem."
+    },
+    {
+      "id": "m4_q8",
+      "type": "code",
+      "code": "activities = [(1,4), (3,5), (0,6), (5,7), (3,9), (5,9), (6,10), (8,11)]\n# sorted by end time: [(1,4),(3,5),(0,6),(5,7),...]\n\nselected = []\nlast_end = 0\nfor start, end in sorted(activities, key=lambda x: x[1]):\n    if start >= last_end:\n        selected.append((start, end))\n        last_end = end",
+      "question": "What is the time complexity and why is sorting by end time critical here?",
+      "options": [
+        "O(n\u00b2) \u2014 comparing every activity pair",
+        "O(n log n) for sorting + O(n) for selection = O(n log n) overall; end-time sort ensures each greedy pick leaves maximum future time",
+        "O(n) \u2014 only one pass through activities is needed",
+        "O(2n) \u2014 sort and selection each take O(n)"
+      ],
+      "answer": 1,
+      "explanation": "Sorting is O(n log n) and the selection pass is O(n), so overall O(n log n). Sorting by end time is essential \u2014 it ensures each selected activity finishes as early as possible, maximizing remaining time for future picks."
+    },
+    {
+      "id": "m4_q9",
+      "question": "What is Fractional Knapsack?",
+      "options": [
+        "A knapsack problem where only whole items can be included",
+        "A knapsack problem where items can be split into fractions to maximize total value within a weight capacity",
+        "A knapsack problem solved using dynamic programming tables",
+        "A knapsack problem where items are selected by brute force"
+      ],
+      "answer": 1,
+      "explanation": "Fractional Knapsack allows taking fractions of items, enabling greedy selection by value-to-weight ratio to always produce an optimal solution."
+    },
+    {
+      "id": "m4_q10",
+      "question": "How does Fractional Knapsack differ from 0/1 Knapsack?",
+      "options": [
+        "Fractional Knapsack requires dynamic programming; 0/1 does not",
+        "In Fractional Knapsack items can be partially taken; in 0/1 Knapsack each item must be taken entirely or not at all",
+        "0/1 Knapsack is always more efficient than Fractional Knapsack",
+        "They are identical problems solved by the same algorithm"
+      ],
+      "answer": 1,
+      "explanation": "0/1 Knapsack requires selecting whole items (hence the 0 or 1), while Fractional allows splitting \u2014 this key difference makes greedy work for Fractional but not for 0/1."
+    },
+    {
+      "id": "m4_q11",
+      "type": "code",
+      "code": "items = [(value=60, weight=10), (value=100, weight=20), (value=120, weight=30)]\ncapacity = 50\n\n# Sort by value/weight ratio descending:\n# item1: 60/10=6.0, item2: 100/20=5.0, item3: 120/30=4.0\n# Take item1 fully (w=10), item2 fully (w=20), item3 partially (20/30)\n# Total value = 60 + 100 + 80 = 240",
+      "question": "What metric drives greedy selection in Fractional Knapsack and what is its time complexity?",
+      "options": [
+        "Sort by weight ascending \u2014 O(n)",
+        "Sort by value descending \u2014 O(n log n)",
+        "Sort by value/weight ratio descending \u2014 O(n log n) for sort + O(n) for selection = O(n log n)",
+        "No sorting needed \u2014 O(n)"
+      ],
+      "answer": 2,
+      "explanation": "Fractional Knapsack sorts items by value-to-weight ratio in descending order to always take the most 'efficient' item first. The sort costs O(n log n) which dominates the O(n) selection pass."
+    },
+    {
+      "id": "m4_q12",
+      "question": "What is an optimal substructure?",
+      "options": [
+        "A problem property where the optimal solution can be built from optimal solutions of its subproblems",
+        "A data structure that automatically optimizes memory usage",
+        "A programming pattern that reduces code duplication",
+        "A property where subproblems always have the same size"
+      ],
+      "answer": 0,
+      "explanation": "Optimal substructure means the globally optimal solution incorporates optimal solutions to its sub-problems \u2014 a requirement for both greedy algorithms and dynamic programming."
+    },
+    {
+      "id": "m4_q13",
+      "question": "What is the greedy choice property?",
+      "options": [
+        "The property that a locally optimal choice at each step can be extended to a globally optimal solution",
+        "The property that all choices must be evaluated before selecting one",
+        "The property that the algorithm must backtrack when a choice leads to failure",
+        "The property that the problem can be solved in constant time"
+      ],
+      "answer": 0,
+      "explanation": "The greedy choice property guarantees that making the locally optimal decision at each step leads to the globally optimal solution \u2014 this is what separates greedy-solvable from non-greedy-solvable problems."
+    },
+    {
+      "id": "m4_q14",
+      "type": "code",
+      "code": "# Greedy Activity Selection\nactivities.sort(key=lambda x: x[1])  # sort by end time\nfor activity in activities:\n    if activity.start >= last_end:\n        select(activity)\n\n# vs. Brute Force\nfor subset in all_subsets(activities):  # 2^n subsets\n    if is_valid(subset):\n        track_max(subset)",
+      "question": "What is the time complexity difference between these two approaches for n=20 activities?",
+      "options": [
+        "They have the same time complexity for small n",
+        "Greedy: O(n log n) \u2248 86 operations; Brute Force: O(2\u207f) = 1,048,576 operations \u2014 greedy is over 12,000x faster",
+        "Greedy: O(n\u00b2) = 400; Brute Force: O(n\u00b3) = 8,000",
+        "Brute Force is faster because it finds the globally optimal solution directly"
+      ],
+      "answer": 1,
+      "explanation": "For n=20: Greedy runs in O(n log n) \u2248 86 operations while Brute Force evaluates all 2\u00b2\u2070 = 1,048,576 subsets. Sorting by end time enables the greedy approach to skip this exponential explosion entirely."
+    },
+    {
+      "id": "m4_q15",
+      "question": "What is the total time complexity of Activity Selection?",
+      "options": [
+        "O(n) after pre-sorted input",
+        "O(n\u00b2) due to nested comparison loops",
+        "O(n log n) dominated by the initial sort, followed by a linear O(n) selection pass",
+        "O(log n) using binary search for conflict detection"
+      ],
+      "answer": 2,
+      "explanation": "Activity Selection is O(n log n) overall: sorting takes O(n log n), and the greedy selection loop is O(n) \u2014 the sort dominates the total complexity."
+    }
   ]
 }
 
@@ -1167,21 +1379,196 @@
   "moduleId": "module-5",
   "moduleTitle": "Dynamic Programming",
   "questions": [
-    { "id": "m5_q1", "question": "What is Dynamic Programming?", "options": ["A programming paradigm that uses blocks instead of text", "An optimization technique that solves complex problems by breaking them into overlapping subproblems and storing their results to avoid recomputation", "A brute-force technique that tries all possibilities systematically", "A divide-and-conquer technique that never stores intermediate results"], "answer": 1, "explanation": "Dynamic Programming solves problems with overlapping subproblems and optimal substructure by caching sub-results (memoization or tabulation) to avoid redundant work." },
-    { "id": "m5_q2", "question": "What is Memoization?", "options": ["Sorting an array before processing it", "A top-down DP approach where recursive calls cache their results in a table to avoid recomputing the same subproblem", "A bottom-up DP approach that fills a table iteratively from base cases upward", "A technique for compressing memory usage in large arrays"], "answer": 1, "explanation": "Memoization is top-down DP: a recursive function checks if a result is already cached before computing it, storing new results for future calls." },
-    { "id": "m5_q3", "question": "What is Tabulation?", "options": ["A top-down recursive approach with caching", "Documenting algorithm steps in a spreadsheet", "A bottom-up DP approach that iteratively fills a table starting from base cases, building up to the target answer", "A technique for sorting data into category tables"], "answer": 2, "explanation": "Tabulation is bottom-up DP: it fills a table iteratively from the smallest subproblems upward, avoiding recursion and stack overflow risks entirely." },
-    { "id": "m5_q4", "question": "Is Memoization top-down or bottom-up?", "options": ["Bottom-up â€” it starts from the base case and builds upward", "Neither â€” memoization avoids the concept of direction", "Top-down â€” it starts from the main problem and recursively breaks it into subproblems, caching results", "Both simultaneously"], "answer": 2, "explanation": "Memoization is top-down: the algorithm starts with the full problem, recursively decomposes it, and stores results as subproblems are solved." },
-    { "id": "m5_q5", "question": "Is Tabulation top-down or bottom-up?", "options": ["Top-down â€” it starts from the full problem and recurses", "Neither â€” tabulation processes problems in random order", "It depends on which direction the table is filled", "Bottom-up â€” it starts from the smallest base cases and iteratively builds toward the answer"], "answer": 3, "explanation": "Tabulation is bottom-up: it begins with base cases (e.g., fib[0]=0, fib[1]=1) and iteratively fills the table up to the target value." },
-    { "id": "m5_q6", "question": "What is the complexity of naive recursive Fibonacci?", "options": ["O(n) â€” linear", "O(n log n) â€” linearithmic", "O(2â¿) â€” exponential, due to massive redundant recomputation of subproblems", "O(nÂ²) â€” quadratic"], "answer": 2, "explanation": "Naive recursive Fibonacci is O(2â¿) because it recomputes the same subproblems exponentially â€” fib(n) calls fib(n-1) and fib(n-2), each of which spawn two more calls, and so on." },
-    { "id": "m5_q7", "question": "What is the complexity of DP-optimized Fibonacci?", "options": ["O(2â¿) â€” same as naive recursion", "O(n log n) â€” due to the caching overhead", "O(n) â€” linear, since each subproblem is computed exactly once", "O(log n) â€” because DP halves the problem"], "answer": 2, "explanation": "With memoization or tabulation, each of the n Fibonacci values is computed exactly once and stored, reducing complexity from O(2â¿) to O(n)." },
-    { "id": "m5_q8", "question": "What are overlapping subproblems?", "options": ["Subproblems that are always independent and never share results", "A property where the same subproblems are encountered and recomputed multiple times during the solution of the main problem", "Subproblems that require sorting before they can be solved", "Subproblems where the answer is always the same regardless of input"], "answer": 1, "explanation": "Overlapping subproblems occur when the recursive decomposition of a problem revisits the same smaller problems multiple times â€” DP eliminates this redundancy by caching results." },
-    { "id": "m5_q9", "question": "What is the 0/1 Knapsack Problem?", "options": ["A problem of making change with minimum coins", "A problem of finding the shortest path in a weighted graph", "A problem of selecting a subset of items with given weights and values to maximize total value without exceeding a weight capacity, where each item is either taken (1) or not (0)", "A problem of sorting items by their value-to-weight ratio"], "answer": 2, "explanation": "0/1 Knapsack asks: given n items each with a weight and value, which items maximize total value while staying within a weight limit? Each item is binary â€” included or excluded." },
-    { "id": "m5_q10", "question": "Are fractional items allowed in 0/1 Knapsack?", "options": ["Yes, items can be split to fill remaining capacity", "Yes, but only for items weighing less than 1 unit", "No, each item must be taken entirely or left entirely â€” no fractions", "Fractional amounts are automatically rounded to whole numbers"], "answer": 2, "explanation": "The '0/1' in the name means each item is a binary choice: take it completely (1) or don't take it at all (0). This is what prevents a simple greedy solution from working." },
-    { "id": "m5_q11", "question": "How does a DP table help in 0/1 Knapsack?", "options": ["It sorts items by value automatically", "It stores the maximum achievable value for every combination of items considered and capacity used, enabling optimal item selection without brute force", "It visualizes the memory usage of the algorithm", "It generates the sorted input required by the greedy approach"], "answer": 1, "explanation": "The DP table dp[i][w] stores the best value achievable using the first i items with weight capacity w â€” filling it bottom-up avoids recomputing sub-decisions." },
-    { "id": "m5_q12", "question": "What is Longest Common Subsequence (LCS)?", "options": ["The longest string that appears contiguously in both input strings", "The longest sequence of characters that appears in the same relative order in both strings, but not necessarily contiguously", "The shortest string needed to encode both inputs", "The string formed by concatenating both inputs and removing duplicates"], "answer": 1, "explanation": "LCS finds the longest sequence present in both strings in the same order â€” unlike substrings, the characters don't need to be adjacent." },
-    { "id": "m5_q13", "question": "Does LCS require letters to be strictly contiguous?", "options": ["Yes, characters must appear consecutively in both strings", "Yes, but only in one of the two strings", "No, the characters must appear in the same relative order but can be non-contiguous", "No, LCS ignores order entirely and just counts shared characters"], "answer": 2, "explanation": "LCS characters must appear in the same relative order in both sequences but can be spread out with gaps between them â€” this makes LCS distinct from Longest Common Substring." },
-    { "id": "m5_q14", "question": "How is the LCS matrix populated?", "options": ["By sorting both strings first, then comparing them linearly", "Cell by cell: if characters match, take the diagonal value + 1; if they don't match, take the maximum of the cell above or to the left", "By finding the midpoint of both strings and expanding outward", "By filling the diagonal first, then propagating values outward"], "answer": 1, "explanation": "The LCS table is filled using the recurrence: if s1[i]==s2[j], dp[i][j]=dp[i-1][j-1]+1; otherwise dp[i][j]=max(dp[i-1][j], dp[i][j-1])." },
-    { "id": "m5_q15", "question": "What is the space-time tradeoff?", "options": ["The tradeoff between writing faster code and writing more readable code", "The tradeoff where using more memory to store precomputed results can reduce execution time, or vice versa", "The tradeoff between using loops and recursion", "The tradeoff between time to develop an algorithm and time to run it"], "answer": 1, "explanation": "Space-time tradeoff means spending extra memory (e.g., a DP cache or lookup table) to save computation time â€” DP is the classic example of accepting O(n) or O(nÂ²) space to avoid exponential recomputation." }
+    {
+      "id": "m5_q1",
+      "question": "What is Dynamic Programming?",
+      "options": [
+        "A programming paradigm that uses blocks instead of text",
+        "An optimization technique that solves complex problems by breaking them into overlapping subproblems and storing their results to avoid recomputation",
+        "A brute-force technique that tries all possibilities systematically",
+        "A divide-and-conquer technique that never stores intermediate results"
+      ],
+      "answer": 1,
+      "explanation": "Dynamic Programming solves problems with overlapping subproblems and optimal substructure by caching sub-results (memoization or tabulation) to avoid redundant work."
+    },
+    {
+      "id": "m5_q2",
+      "type": "code",
+      "code": "cache = {}\ndef fib_memo(n):\n    if n in cache:\n        return cache[n]        # O(1) lookup\n    if n <= 1:\n        return n\n    cache[n] = fib_memo(n-1) + fib_memo(n-2)\n    return cache[n]",
+      "question": "What technique is this and what is its time complexity compared to naive recursion?",
+      "options": [
+        "Tabulation \u2014 O(n\u00b2) due to the dictionary overhead",
+        "Memoization (top-down DP) \u2014 O(n) because each subproblem is computed once and cached, vs O(2\u207f) for naive recursion",
+        "Greedy \u2014 O(log n) because the cache halves the problem each time",
+        "Memoization \u2014 still O(2\u207f) because recursive calls are not eliminated"
+      ],
+      "answer": 1,
+      "explanation": "This is top-down memoization. The cache ensures each of the n unique subproblems (fib(0) through fib(n)) is computed exactly once \u2014 reducing time from O(2\u207f) to O(n) while using O(n) space for the cache."
+    },
+    {
+      "id": "m5_q3",
+      "question": "What is Tabulation?",
+      "options": [
+        "A top-down recursive approach with caching",
+        "Documenting algorithm steps in a spreadsheet",
+        "A bottom-up DP approach that iteratively fills a table starting from base cases, building up to the target answer",
+        "A technique for sorting data into category tables"
+      ],
+      "answer": 2,
+      "explanation": "Tabulation is bottom-up DP: it fills a table iteratively from the smallest subproblems upward, avoiding recursion and stack overflow risks entirely."
+    },
+    {
+      "id": "m5_q4",
+      "question": "Is Memoization top-down or bottom-up?",
+      "options": [
+        "Bottom-up \u2014 it starts from the base case and builds upward",
+        "Neither \u2014 memoization avoids the concept of direction",
+        "Top-down \u2014 it starts from the main problem and recursively breaks it into subproblems, caching results",
+        "Both simultaneously"
+      ],
+      "answer": 2,
+      "explanation": "Memoization is top-down: the algorithm starts with the full problem, recursively decomposes it, and stores results as subproblems are solved."
+    },
+    {
+      "id": "m5_q5",
+      "type": "code",
+      "code": "def fib_tabulation(n):\n    if n <= 1:\n        return n\n    dp = [0] * (n + 1)   # allocate table of size n+1\n    dp[0], dp[1] = 0, 1\n    for i in range(2, n + 1):\n        dp[i] = dp[i-1] + dp[i-2]\n    return dp[n]",
+      "question": "What is the time and space complexity of this tabulation approach?",
+      "options": [
+        "Time: O(2\u207f), Space: O(n)",
+        "Time: O(n log n), Space: O(1)",
+        "Time: O(n) \u2014 one loop iteration per value; Space: O(n) \u2014 dp array stores n+1 values",
+        "Time: O(n), Space: O(1) \u2014 no extra storage needed"
+      ],
+      "answer": 2,
+      "explanation": "The loop runs n times computing each Fibonacci value once \u2192 O(n) time. The dp array allocates n+1 slots \u2192 O(n) space. This is the standard bottom-up tabulation tradeoff."
+    },
+    {
+      "id": "m5_q6",
+      "question": "What is the complexity of naive recursive Fibonacci?",
+      "options": [
+        "O(n) \u2014 linear",
+        "O(n log n) \u2014 linearithmic",
+        "O(2\u207f) \u2014 exponential, due to massive redundant recomputation of subproblems",
+        "O(n\u00b2) \u2014 quadratic"
+      ],
+      "answer": 2,
+      "explanation": "Naive recursive Fibonacci is O(2\u207f) because it recomputes the same subproblems exponentially \u2014 fib(n) calls fib(n-1) and fib(n-2), each of which spawn two more calls, and so on."
+    },
+    {
+      "id": "m5_q7",
+      "question": "What is the complexity of DP-optimized Fibonacci?",
+      "options": [
+        "O(2\u207f) \u2014 same as naive recursion",
+        "O(n log n) \u2014 due to the caching overhead",
+        "O(n) \u2014 linear, since each subproblem is computed exactly once",
+        "O(log n) \u2014 because DP halves the problem"
+      ],
+      "answer": 2,
+      "explanation": "With memoization or tabulation, each of the n Fibonacci values is computed exactly once and stored, reducing complexity from O(2\u207f) to O(n)."
+    },
+    {
+      "id": "m5_q8",
+      "type": "code",
+      "code": "def fib_naive(n):           # called on fib(5)\n    if n <= 1: return n\n    return fib_naive(n-1) + fib_naive(n-2)\n\n# Call tree for fib(5):\n# fib(5) \u2192 fib(4) + fib(3)\n# fib(4) \u2192 fib(3) + fib(2)   \u2190 fib(3) computed AGAIN\n# fib(3) \u2192 fib(2) + fib(1)   \u2190 fib(2) computed AGAIN",
+      "question": "What problem does this call tree reveal and what DP property does it violate?",
+      "options": [
+        "No problem \u2014 each call computes a different value",
+        "Overlapping subproblems \u2014 fib(3) and fib(2) are recomputed multiple times, exactly the redundancy DP eliminates through caching",
+        "Optimal substructure violation \u2014 Fibonacci cannot be solved with DP",
+        "Stack overflow \u2014 recursion is too deep for any input"
+      ],
+      "answer": 1,
+      "explanation": "The call tree shows fib(3) computed at least twice and fib(2) at least three times for fib(5) alone. This redundant recomputation of overlapping subproblems is what makes naive recursion O(2\u207f) \u2014 and exactly what memoization/tabulation eliminates."
+    },
+    {
+      "id": "m5_q9",
+      "question": "What is the 0/1 Knapsack Problem?",
+      "options": [
+        "A problem of making change with minimum coins",
+        "A problem of finding the shortest path in a weighted graph",
+        "A problem of selecting a subset of items with given weights and values to maximize total value without exceeding a weight capacity, where each item is either taken (1) or not (0)",
+        "A problem of sorting items by their value-to-weight ratio"
+      ],
+      "answer": 2,
+      "explanation": "0/1 Knapsack asks: given n items each with a weight and value, which items maximize total value while staying within a weight limit? Each item is binary \u2014 included or excluded."
+    },
+    {
+      "id": "m5_q10",
+      "question": "Are fractional items allowed in 0/1 Knapsack?",
+      "options": [
+        "Yes, items can be split to fill remaining capacity",
+        "Yes, but only for items weighing less than 1 unit",
+        "No, each item must be taken entirely or left entirely \u2014 no fractions",
+        "Fractional amounts are automatically rounded to whole numbers"
+      ],
+      "answer": 2,
+      "explanation": "The '0/1' in the name means each item is a binary choice: take it completely (1) or don't take it at all (0). This is what prevents a simple greedy solution from working."
+    },
+    {
+      "id": "m5_q11",
+      "type": "code",
+      "code": "def knapsack_01(weights, values, capacity):\n    n = len(weights)\n    dp = [[0]*(capacity+1) for _ in range(n+1)]  # (n+1) \u00d7 (capacity+1) table\n    for i in range(1, n+1):\n        for w in range(capacity+1):\n            if weights[i-1] <= w:\n                dp[i][w] = max(dp[i-1][w],\n                               values[i-1] + dp[i-1][w-weights[i-1]])\n            else:\n                dp[i][w] = dp[i-1][w]\n    return dp[n][capacity]",
+      "question": "What are the time and space complexities of this 0/1 Knapsack DP solution?",
+      "options": [
+        "Time: O(n\u00b2), Space: O(n)",
+        "Time: O(n \u00d7 capacity), Space: O(n \u00d7 capacity) \u2014 the nested loop fills an (n+1)\u00d7(capacity+1) table",
+        "Time: O(2\u207f), Space: O(n \u00d7 capacity)",
+        "Time: O(n log n), Space: O(capacity)"
+      ],
+      "answer": 1,
+      "explanation": "The nested loops fill every cell of the (n+1)\u00d7(capacity+1) DP table once \u2192 O(n \u00d7 capacity) time. The table itself takes O(n \u00d7 capacity) space. This is the classic pseudo-polynomial complexity of 0/1 Knapsack."
+    },
+    {
+      "id": "m5_q12",
+      "question": "What is Longest Common Subsequence (LCS)?",
+      "options": [
+        "The longest string that appears contiguously in both input strings",
+        "The longest sequence of characters that appears in the same relative order in both strings, but not necessarily contiguously",
+        "The shortest string needed to encode both inputs",
+        "The string formed by concatenating both inputs and removing duplicates"
+      ],
+      "answer": 1,
+      "explanation": "LCS finds the longest sequence present in both strings in the same order \u2014 unlike substrings, the characters don't need to be adjacent."
+    },
+    {
+      "id": "m5_q13",
+      "question": "Does LCS require letters to be strictly contiguous?",
+      "options": [
+        "Yes, characters must appear consecutively in both strings",
+        "Yes, but only in one of the two strings",
+        "No, the characters must appear in the same relative order but can be non-contiguous",
+        "No, LCS ignores order entirely and just counts shared characters"
+      ],
+      "answer": 2,
+      "explanation": "LCS characters must appear in the same relative order in both sequences but can be spread out with gaps between them \u2014 this makes LCS distinct from Longest Common Substring."
+    },
+    {
+      "id": "m5_q14",
+      "type": "code",
+      "code": "def lcs(s1, s2):\n    m, n = len(s1), len(s2)\n    dp = [[0]*(n+1) for _ in range(m+1)]\n    for i in range(1, m+1):\n        for j in range(1, n+1):\n            if s1[i-1] == s2[j-1]:\n                dp[i][j] = dp[i-1][j-1] + 1   # match\n            else:\n                dp[i][j] = max(dp[i-1][j], dp[i][j-1])  # no match\n    return dp[m][n]\n\nlcs('ABCBDAB', 'BDCAB')  # returns 4",
+      "question": "What are the time and space complexities of this LCS implementation?",
+      "options": [
+        "Time: O(m + n), Space: O(1)",
+        "Time: O(m \u00d7 n), Space: O(m \u00d7 n) \u2014 both driven by the (m+1)\u00d7(n+1) DP table",
+        "Time: O(m \u00d7 n), Space: O(m + n)",
+        "Time: O(2^(m+n)), Space: O(m \u00d7 n)"
+      ],
+      "answer": 1,
+      "explanation": "The two nested loops each run m and n times respectively, filling every cell of the (m+1)\u00d7(n+1) matrix \u2192 O(m\u00d7n) time. The matrix itself is stored in memory \u2192 O(m\u00d7n) space."
+    },
+    {
+      "id": "m5_q15",
+      "question": "What is the space-time tradeoff?",
+      "options": [
+        "The tradeoff between writing faster code and writing more readable code",
+        "The tradeoff where using more memory to store precomputed results can reduce execution time, or vice versa",
+        "The tradeoff between using loops and recursion",
+        "The tradeoff between time to develop an algorithm and time to run it"
+      ],
+      "answer": 1,
+      "explanation": "Space-time tradeoff means spending extra memory (e.g., a DP cache or lookup table) to save computation time \u2014 DP is the classic example of accepting O(n) or O(n\u00b2) space to avoid exponential recomputation."
+    }
   ]
 }
 
@@ -1191,21 +1578,196 @@
   "moduleId": "module-6",
   "moduleTitle": "Backtracking",
   "questions": [
-    { "id": "m6_q1", "question": "What is Backtracking?", "options": ["An algorithm that always moves forward without revisiting choices", "A brute-force technique that randomly shuffles the search order", "A systematic search algorithm that builds a solution incrementally and abandons a partial solution as soon as it determines it cannot lead to a valid complete solution", "A technique for sorting elements using a recursive pivot"], "answer": 2, "explanation": "Backtracking explores a solution space incrementally and prunes branches early ('backtracks') when a partial solution violates constraints â€” avoiding unnecessary full exploration." },
-    { "id": "m6_q2", "question": "What does pruning mean in algorithms?", "options": ["Removing duplicate elements from an array", "Eliminating branches of the search tree that cannot possibly lead to a valid solution, reducing unnecessary computation", "Sorting the input before processing it", "Reducing the recursion depth by converting to iteration"], "answer": 1, "explanation": "Pruning cuts off parts of the search space early when constraints are already violated, dramatically reducing the number of states the algorithm needs to explore." },
-    { "id": "m6_q3", "question": "How does backtracking differ from brute force?", "options": ["Backtracking is always faster because it sorts data first", "They are identical â€” backtracking is just a formal name for brute force", "Backtracking uses pruning to abandon invalid partial solutions early, while pure brute force generates and evaluates all complete candidates", "Brute force uses recursion; backtracking does not"], "answer": 2, "explanation": "Pure brute force generates every complete candidate before checking validity. Backtracking checks validity incrementally and abandons branches as soon as a constraint is violated â€” often far more efficient." },
-    { "id": "m6_q4", "question": "What is a permutation?", "options": ["A selection of elements where order does not matter", "An arrangement of all elements of a set in a specific order, where every arrangement is considered distinct", "A subset of elements chosen without replacement", "A sorted version of the original sequence"], "answer": 1, "explanation": "A permutation is an ordered arrangement of elements. For n distinct items, there are n! possible permutations â€” order matters." },
-    { "id": "m6_q5", "question": "What is a combination?", "options": ["An ordered selection of k elements from a set of n", "An arrangement where every element must appear exactly once", "An unordered selection of k elements from a set of n, where only which elements are chosen matters, not the order", "A sorted subsequence of the original array"], "answer": 2, "explanation": "A combination selects k elements from n without regard to order. C(n,k) = n! / (k! Ã— (n-k)!) gives the count of distinct combinations." },
-    { "id": "m6_q6", "question": "What is the N-Queens problem?", "options": ["Placing N queens on an NÃ—N chessboard such that no two queens attack each other", "Finding the shortest path through an NÃ—N grid", "Sorting N queens by their row position", "Counting the number of ways to fill an NÃ—N grid with 0s and 1s"], "answer": 0, "explanation": "N-Queens places N queens on an NÃ—N board so no two queens share the same row, column, or diagonal â€” a classic constraint satisfaction problem solved with backtracking." },
-    { "id": "m6_q7", "question": "How do you validate safety in N-Queens?", "options": ["Check that no two queens occupy the same row, same column, or same diagonal", "Verify that queens are placed in increasing row order", "Ensure no two queens are on adjacent cells (including diagonals)", "Check that the total number of queens equals NÂ²"], "answer": 0, "explanation": "A queen placement is safe if no previously placed queen shares the same column, upper-left diagonal, or upper-right diagonal with the new queen." },
-    { "id": "m6_q8", "question": "What occurs when a constraint is violated in backtracking?", "options": ["The algorithm terminates immediately with no result", "The algorithm randomly tries a different path", "The algorithm backtracks by undoing the last choice and trying the next available alternative", "The algorithm skips to the next complete solution candidate"], "answer": 2, "explanation": "When a constraint is violated, backtracking reverses the most recent choice (undo/unchoose), restoring the previous state and exploring the next alternative option." },
-    { "id": "m6_q9", "question": "What is state tracking?", "options": ["Recording the current configuration of choices made so far, enabling the algorithm to undo them when backtracking", "A technique for measuring how long the algorithm has been running", "Counting the number of recursive calls made during execution", "Logging every comparison performed during the search"], "answer": 0, "explanation": "State tracking maintains the current partial solution (e.g., a path array or boolean 'used' array) so it can be correctly restored when the algorithm backtracks from an invalid path." },
-    { "id": "m6_q10", "question": "How is a maze solved using backtracking?", "options": ["By computing the shortest path using Dijkstra's algorithm", "By trying each direction (up, down, left, right) recursively, marking cells as visited, and backtracking (unmark) when a dead end is reached", "By sorting all possible paths by length and selecting the shortest", "By using binary search to locate the exit cell"], "answer": 1, "explanation": "Backtracking maze solving explores available moves recursively, marks visited cells to prevent loops, and unmarks them when backtracking from dead ends until the exit is found." },
-    { "id": "m6_q11", "question": "Why mark a cell as visited in pathfinding?", "options": ["To display the path visually to the user", "To prevent the algorithm from revisiting the same cell and entering an infinite loop", "To record the optimal path for later replay", "To indicate the cell contains a wall or obstacle"], "answer": 1, "explanation": "Marking cells as visited prevents the algorithm from cycling back to already-explored cells, which would cause infinite recursion or incorrect repeated exploration." },
-    { "id": "m6_q12", "question": "What causes an infinite loop in a recursive maze solver?", "options": ["Using too many variables in the recursive function", "The recursion depth exceeding the stack size", "Failing to mark cells as visited, allowing the algorithm to revisit the same cells repeatedly and cycle infinitely", "Choosing the wrong starting position in the maze"], "answer": 2, "explanation": "Without marking visited cells, the solver keeps returning to previously explored cells, creating cycles that never terminate â€” the visited flag breaks these cycles." },
-    { "id": "m6_q13", "question": "What serves as the base case in backtracking?", "options": ["When all elements have been compared at least once", "When the recursion depth reaches the maximum stack size", "When a complete valid solution is found (e.g., all queens placed, path reaches exit, all elements assigned)", "When the first invalid constraint is detected"], "answer": 2, "explanation": "The base case is when a valid complete solution has been constructed â€” at this point the algorithm records or prints the solution and returns, stopping further recursion on that branch." },
-    { "id": "m6_q14", "question": "What is the Subset Sum problem?", "options": ["Finding the maximum sum achievable using all elements in an array", "Finding a subset of numbers from an array that adds up to exactly a target value X", "Sorting an array so that the sum of each adjacent pair is minimized", "Finding which element appears most frequently in the array"], "answer": 1, "explanation": "Subset Sum asks: is there a subset of the given numbers that adds to exactly the target T? Backtracking explores include/exclude decisions for each element, pruning when the running sum exceeds T." },
-    { "id": "m6_q15", "question": "Why is backtracking considered an advanced problem-solving technique?", "options": ["Because it requires specialized hardware to run efficiently", "Because it combines recursive state-space exploration with constraint-based pruning, requiring careful design of the choose, explore, unchoose pattern", "Because it always produces exponential time complexity with no improvement over brute force", "Because it can only be applied to graph problems"], "answer": 1, "explanation": "Backtracking requires understanding recursion, state management, constraint formulation, and the choose-explore-unchoose pattern â€” making it conceptually more demanding than straightforward iterative approaches." }
+    {
+      "id": "m6_q1",
+      "question": "What is Backtracking?",
+      "options": [
+        "An algorithm that always moves forward without revisiting choices",
+        "A brute-force technique that randomly shuffles the search order",
+        "A systematic search algorithm that builds a solution incrementally and abandons a partial solution as soon as it determines it cannot lead to a valid complete solution",
+        "A technique for sorting elements using a recursive pivot"
+      ],
+      "answer": 2,
+      "explanation": "Backtracking explores a solution space incrementally and prunes branches early ('backtracks') when a partial solution violates constraints \u2014 avoiding unnecessary full exploration."
+    },
+    {
+      "id": "m6_q2",
+      "type": "code",
+      "code": "def permutations(arr, path=[]):\n    if len(path) == len(arr):\n        print(path)      # base case: complete permutation\n        return\n    for i in range(len(arr)):\n        if arr[i] not in path:\n            path.append(arr[i])       # choose\n            permutations(arr, path)   # explore\n            path.pop()                # unchoose (backtrack)",
+      "question": "What is the time complexity of generating all permutations and what is the base case?",
+      "options": [
+        "O(n\u00b2) \u2014 nested loop; base case is when path is empty",
+        "O(n!) \u2014 n choices for first position, n-1 for second, etc.; base case is when path length equals array length",
+        "O(2\u207f) \u2014 binary choices; base case is when arr is empty",
+        "O(n log n) \u2014 like merge sort; base case is a single element"
+      ],
+      "answer": 1,
+      "explanation": "Generating all permutations has O(n!) complexity \u2014 n choices for position 1, n-1 for position 2, down to 1 for the last. The base case is when path.length == arr.length, meaning a complete valid permutation has been built."
+    },
+    {
+      "id": "m6_q3",
+      "question": "How does backtracking differ from brute force?",
+      "options": [
+        "Backtracking is always faster because it sorts data first",
+        "They are identical \u2014 backtracking is just a formal name for brute force",
+        "Backtracking uses pruning to abandon invalid partial solutions early, while pure brute force generates and evaluates all complete candidates",
+        "Brute force uses recursion; backtracking does not"
+      ],
+      "answer": 2,
+      "explanation": "Pure brute force generates every complete candidate before checking validity. Backtracking checks validity incrementally and abandons branches as soon as a constraint is violated \u2014 often far more efficient."
+    },
+    {
+      "id": "m6_q4",
+      "question": "What is a permutation?",
+      "options": [
+        "A selection of elements where order does not matter",
+        "An arrangement of all elements of a set in a specific order, where every arrangement is considered distinct",
+        "A subset of elements chosen without replacement",
+        "A sorted version of the original sequence"
+      ],
+      "answer": 1,
+      "explanation": "A permutation is an ordered arrangement of elements. For n distinct items, there are n! possible permutations \u2014 order matters."
+    },
+    {
+      "id": "m6_q5",
+      "type": "code",
+      "code": "def subsets(arr, index=0, current=[]):\n    print(current)               # record current subset\n    for i in range(index, len(arr)):\n        current.append(arr[i])   # include arr[i]\n        subsets(arr, i+1, current)\n        current.pop()            # exclude arr[i] (backtrack)\n\nsubsets([1, 2, 3])  # prints: [], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]",
+      "question": "How many subsets does this generate for an array of size n, and what is the time complexity?",
+      "options": [
+        "n subsets, O(n) time",
+        "n! subsets, O(n!) time",
+        "2\u207f subsets, O(2\u207f) time \u2014 each element has two choices: included or excluded",
+        "n\u00b2 subsets, O(n\u00b2) time"
+      ],
+      "answer": 2,
+      "explanation": "For each element there are two choices: include or exclude. With n elements, this gives 2\u207f possible subsets. The recursive backtracking visits each subset exactly once \u2192 O(2\u207f) time complexity."
+    },
+    {
+      "id": "m6_q6",
+      "question": "What is the N-Queens problem?",
+      "options": [
+        "Placing N queens on an N\u00d7N chessboard such that no two queens attack each other",
+        "Finding the shortest path through an N\u00d7N grid",
+        "Sorting N queens by their row position",
+        "Counting the number of ways to fill an N\u00d7N grid with 0s and 1s"
+      ],
+      "answer": 0,
+      "explanation": "N-Queens places N queens on an N\u00d7N board so no two queens share the same row, column, or diagonal \u2014 a classic constraint satisfaction problem solved with backtracking."
+    },
+    {
+      "id": "m6_q7",
+      "question": "How do you validate safety in N-Queens?",
+      "options": [
+        "Check that no two queens occupy the same row, same column, or same diagonal",
+        "Verify that queens are placed in increasing row order",
+        "Ensure no two queens are on adjacent cells (including diagonals)",
+        "Check that the total number of queens equals N\u00b2"
+      ],
+      "answer": 0,
+      "explanation": "A queen placement is safe if no previously placed queen shares the same column, upper-left diagonal, or upper-right diagonal with the new queen."
+    },
+    {
+      "id": "m6_q8",
+      "type": "code",
+      "code": "def is_safe(board, row, col, n):\n    # Check same column\n    for i in range(row):\n        if board[i][col] == 1:\n            return False\n    # Check upper-left diagonal\n    i, j = row-1, col-1\n    while i >= 0 and j >= 0:\n        if board[i][j] == 1: return False\n        i -= 1; j -= 1\n    # Check upper-right diagonal  \n    i, j = row-1, col+1\n    while i >= 0 and j < n:\n        if board[i][j] == 1: return False\n        i -= 1; j += 1\n    return True",
+      "question": "What happens in the N-Queens solver when is_safe() returns False?",
+      "options": [
+        "The algorithm terminates immediately with no solution",
+        "The algorithm places the queen anyway and continues",
+        "The algorithm backtracks \u2014 skips this column placement, tries the next column, and if all columns fail, returns to the previous row to try a different column",
+        "The algorithm restarts from the beginning with a different board size"
+      ],
+      "answer": 2,
+      "explanation": "When is_safe() returns False, the constraint is violated and the algorithm backtracks: it skips the current column, tries the next one, and if all columns in the current row fail, it returns (backtracks) to the previous row to undo that placement and try alternatives."
+    },
+    {
+      "id": "m6_q9",
+      "question": "What is state tracking?",
+      "options": [
+        "Recording the current configuration of choices made so far, enabling the algorithm to undo them when backtracking",
+        "A technique for measuring how long the algorithm has been running",
+        "Counting the number of recursive calls made during execution",
+        "Logging every comparison performed during the search"
+      ],
+      "answer": 0,
+      "explanation": "State tracking maintains the current partial solution (e.g., a path array or boolean 'used' array) so it can be correctly restored when the algorithm backtracks from an invalid path."
+    },
+    {
+      "id": "m6_q10",
+      "question": "How is a maze solved using backtracking?",
+      "options": [
+        "By computing the shortest path using Dijkstra's algorithm",
+        "By trying each direction (up, down, left, right) recursively, marking cells as visited, and backtracking (unmark) when a dead end is reached",
+        "By sorting all possible paths by length and selecting the shortest",
+        "By using binary search to locate the exit cell"
+      ],
+      "answer": 1,
+      "explanation": "Backtracking maze solving explores available moves recursively, marks visited cells to prevent loops, and unmarks them when backtracking from dead ends until the exit is found."
+    },
+    {
+      "id": "m6_q11",
+      "type": "code",
+      "code": "# BROKEN maze solver \u2014 no visited tracking\ndef solve_broken(maze, r, c):\n    if r == EXIT_ROW and c == EXIT_COL:\n        return True\n    # Try all 4 directions \u2014 no visited check!\n    for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:\n        if solve_broken(maze, r+dr, c+dc):\n            return True\n    return False\n\n# FIXED solver\ndef solve_fixed(maze, r, c, visited):\n    if r == EXIT_ROW and c == EXIT_COL:\n        return True\n    visited[r][c] = True             # mark before recursing\n    for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:\n        nr, nc = r+dr, c+dc\n        if not visited[nr][nc]:\n            if solve_fixed(maze, nr, nc, visited):\n                return True\n    visited[r][c] = False            # unmark on backtrack\n    return False",
+      "question": "Why does the broken version cause infinite recursion while the fixed version does not?",
+      "options": [
+        "The broken version uses too many direction variables",
+        "The broken version never marks cells as visited, allowing it to move back to already-explored cells and cycle forever; the fixed version marks/unmarks cells to prevent revisiting",
+        "The fixed version uses more memory, making it slower but correct",
+        "The broken version's base case is wrong \u2014 it never reaches EXIT"
+      ],
+      "answer": 1,
+      "explanation": "Without the visited array, the solver can move right then immediately left then right again, cycling infinitely. Marking cells as True before recursing prevents revisiting; unmarking on backtrack (False) allows other valid paths to use those cells."
+    },
+    {
+      "id": "m6_q12",
+      "question": "What causes an infinite loop in a recursive maze solver?",
+      "options": [
+        "Using too many variables in the recursive function",
+        "The recursion depth exceeding the stack size",
+        "Failing to mark cells as visited, allowing the algorithm to revisit the same cells repeatedly and cycle infinitely",
+        "Choosing the wrong starting position in the maze"
+      ],
+      "answer": 2,
+      "explanation": "Without marking visited cells, the solver keeps returning to previously explored cells, creating cycles that never terminate \u2014 the visited flag breaks these cycles."
+    },
+    {
+      "id": "m6_q13",
+      "question": "What serves as the base case in backtracking?",
+      "options": [
+        "When all elements have been compared at least once",
+        "When the recursion depth reaches the maximum stack size",
+        "When a complete valid solution is found (e.g., all queens placed, path reaches exit, all elements assigned)",
+        "When the first invalid constraint is detected"
+      ],
+      "answer": 2,
+      "explanation": "The base case is when a valid complete solution has been constructed \u2014 at this point the algorithm records or prints the solution and returns, stopping further recursion on that branch."
+    },
+    {
+      "id": "m6_q14",
+      "type": "code",
+      "code": "def subset_sum(arr, index, target, current):\n    if target == 0:\n        print(current)   # found a valid subset!\n        return\n    if index == len(arr) or target < 0:\n        return           # pruning: overshoot or exhausted\n    # Include arr[index]\n    subset_sum(arr, index+1, target-arr[index],\n               current+[arr[index]])\n    # Exclude arr[index]\n    subset_sum(arr, index+1, target, current)",
+      "question": "What is the role of 'target < 0' in this Subset Sum backtracking solution?",
+      "options": [
+        "It's an error \u2014 target should never go below zero",
+        "It handles negative numbers in the input array",
+        "It is a pruning condition \u2014 if the remaining target goes negative, the current path already overshoots the goal so the branch is abandoned immediately without exploring further",
+        "It checks if the array index has gone out of bounds"
+      ],
+      "answer": 2,
+      "explanation": "The 'target < 0' check is pruning \u2014 once the running sum exceeds the target, no further additions can fix it (assuming positive numbers). Returning immediately abandons this dead-end branch, avoiding unnecessary recursive calls and improving performance over pure brute force."
+    },
+    {
+      "id": "m6_q15",
+      "question": "Why is backtracking considered an advanced problem-solving technique?",
+      "options": [
+        "Because it requires specialized hardware to run efficiently",
+        "Because it combines recursive state-space exploration with constraint-based pruning, requiring careful design of the choose, explore, unchoose pattern",
+        "Because it always produces exponential time complexity with no improvement over brute force",
+        "Because it can only be applied to graph problems"
+      ],
+      "answer": 1,
+      "explanation": "Backtracking requires understanding recursion, state management, constraint formulation, and the choose-explore-unchoose pattern \u2014 making it conceptually more demanding than straightforward iterative approaches."
+    }
   ]
 }
 
@@ -6752,6 +7314,369 @@ const curriculumIndex = [
     {
       "name": "num",
       "id": "num"
+    }
+  ],
+  "backpack": []
+}
+
+--- FILE: frontend/public/data/optimizations/m2-2.1.json ---
+
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "procedures_defreturn",
+        "id": "f60ca8f7-8bcb-4",
+        "x": 20,
+        "y": 20,
+        "extraState": {
+          "params": [
+            {
+              "name": "arr",
+              "id": "arr"
+            },
+            {
+              "name": "target",
+              "id": "target"
+            }
+          ]
+        },
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "two_sum"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "controls_for",
+              "id": "7529c43c-e6da-4",
+              "fields": {
+                "VAR": {
+                  "id": "i"
+                }
+              },
+              "inputs": {
+                "FROM": {
+                  "block": {
+                    "type": "math_number",
+                    "id": "d93971d0-5214-4",
+                    "fields": {
+                      "NUM": 0
+                    }
+                  }
+                },
+                "TO": {
+                  "block": {
+                    "type": "lists_length",
+                    "id": "30f83578-a58f-4",
+                    "inputs": {
+                      "VALUE": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "2f691d4e-7155-4",
+                          "fields": {
+                            "VAR": {
+                              "id": "arr"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "BY": {
+                  "block": {
+                    "type": "math_number",
+                    "id": "fa2d979f-06fe-4",
+                    "fields": {
+                      "NUM": 1
+                    }
+                  }
+                },
+                "DO": {
+                  "block": {
+                    "type": "controls_for",
+                    "id": "6115a75e-5929-4",
+                    "fields": {
+                      "VAR": {
+                        "id": "j"
+                      }
+                    },
+                    "inputs": {
+                      "FROM": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "080840e5-7b4e-4",
+                          "fields": {
+                            "NUM": 0
+                          }
+                        }
+                      },
+                      "TO": {
+                        "block": {
+                          "type": "lists_length",
+                          "id": "9894ed5e-15d7-4",
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "90d2e6b3-7dd0-4",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "arr"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "BY": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "83a9e233-6bc3-4",
+                          "fields": {
+                            "NUM": 1
+                          }
+                        }
+                      },
+                      "DO": {
+                        "block": {
+                          "type": "controls_if",
+                          "id": "4a824839-52f4-4",
+                          "inputs": {
+                            "IF0": {
+                              "block": {
+                                "type": "logic_operation",
+                                "id": "c53c54f6-b1d8-4",
+                                "fields": {
+                                  "OP": "AND"
+                                },
+                                "inputs": {
+                                  "A": {
+                                    "block": {
+                                      "type": "logic_compare",
+                                      "id": "e28dfdfe-3569-4",
+                                      "fields": {
+                                        "OP": "NEQ"
+                                      },
+                                      "inputs": {
+                                        "A": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "f1126414-d11f-4",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "i"
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "B": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "e80914d5-5f2d-4",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "j"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "B": {
+                                    "block": {
+                                      "type": "logic_compare",
+                                      "id": "27851637-58b2-4",
+                                      "fields": {
+                                        "OP": "EQ"
+                                      },
+                                      "inputs": {
+                                        "A": {
+                                          "block": {
+                                            "type": "math_arithmetic",
+                                            "id": "b4a35e05-13a1-4",
+                                            "fields": {
+                                              "OP": "ADD"
+                                            },
+                                            "inputs": {
+                                              "A": {
+                                                "block": {
+                                                  "type": "lists_getIndex",
+                                                  "id": "1d38bfa5-b22f-4",
+                                                  "fields": {
+                                                    "MODE": "GET",
+                                                    "WHERE": "FROM_START"
+                                                  },
+                                                  "inputs": {
+                                                    "VALUE": {
+                                                      "block": {
+                                                        "type": "variables_get",
+                                                        "id": "63e3e941-6662-4",
+                                                        "fields": {
+                                                          "VAR": {
+                                                            "id": "arr"
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "AT": {
+                                                      "block": {
+                                                        "type": "variables_get",
+                                                        "id": "29207387-711b-4",
+                                                        "fields": {
+                                                          "VAR": {
+                                                            "id": "i"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "B": {
+                                                "block": {
+                                                  "type": "lists_getIndex",
+                                                  "id": "e656f729-c56f-4",
+                                                  "fields": {
+                                                    "MODE": "GET",
+                                                    "WHERE": "FROM_START"
+                                                  },
+                                                  "inputs": {
+                                                    "VALUE": {
+                                                      "block": {
+                                                        "type": "variables_get",
+                                                        "id": "28f6df3c-4783-4",
+                                                        "fields": {
+                                                          "VAR": {
+                                                            "id": "arr"
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "AT": {
+                                                      "block": {
+                                                        "type": "variables_get",
+                                                        "id": "c3f71160-16bb-4",
+                                                        "fields": {
+                                                          "VAR": {
+                                                            "id": "j"
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "B": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "bec2176f-4bb2-4",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "target"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "DO0": {
+                              "block": {
+                                "type": "procedure_return_value",
+                                "id": "a18d9883-52c4-4",
+                                "inputs": {
+                                  "VALUE": {
+                                    "block": {
+                                      "type": "lists_create_with",
+                                      "id": "45c1a53c-09b0-4",
+                                      "extraState": {
+                                        "itemCount": 2
+                                      },
+                                      "inputs": {
+                                        "ADD0": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "ec295fab-577c-4",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "i"
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "ADD1": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "d41d55a8-9fe5-4",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "j"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "RETURN": {
+            "block": {
+              "type": "lists_create_with",
+              "id": "4ff0316a-fac8-4",
+              "extraState": {
+                "itemCount": 0
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "i",
+      "id": "i"
+    },
+    {
+      "name": "arr",
+      "id": "arr"
+    },
+    {
+      "name": "j",
+      "id": "j"
+    },
+    {
+      "name": "target",
+      "id": "target"
     }
   ],
   "backpack": []

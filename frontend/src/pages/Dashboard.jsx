@@ -36,7 +36,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     const loadLocalData = async () => {
-      // FIX: Check both storages safely
       const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUserStr) {
         setLoading(false);
@@ -47,7 +46,15 @@ export default function Dashboard() {
       // --- 1. PULL CLOUD DATA FIRST ---
       if (navigator.onLine) {
         try {
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`);
+          // FIX: Grab the token and prepare headers
+          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          };
+
+          // FIX: Pass the headers object into the fetch request
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`, { headers });
           if (pRes.ok) {
             const pData = await pRes.json();
             
@@ -62,7 +69,8 @@ export default function Dashboard() {
             }
           }
 
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`);
+          // FIX: Pass the headers object into the fetch request
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`, { headers });
           if (tRes.ok) {
             const tData = await tRes.json();
             
@@ -82,7 +90,6 @@ export default function Dashboard() {
       }
 
       // --- 2. FETCH FROM LOCAL DB ---
-      
       const userProjects = [];
       await projectsDB.iterate((value) => {
         if (value.owner_id === storedUser.email || value.userId === storedUser.email) {

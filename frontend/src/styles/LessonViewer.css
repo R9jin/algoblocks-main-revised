@@ -39,7 +39,7 @@
 
 .back-button:hover {
   background: #f5f3ff;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .back-button svg {
@@ -94,12 +94,12 @@
 
 .module-title:hover {
   background: #f5f3ff;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .module-title.expanded {
   background: #f5f3ff;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .module-info {
@@ -113,7 +113,7 @@
 .module-icon {
   width: 16px;
   height: 16px;
-  color: #7c5cff;
+  color: #5A1398;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -121,7 +121,7 @@
 .module-number {
   display: block;
   font-size: 0.8rem;
-  color: #7c5cff;
+  color: #5A1398;
   font-weight: 700;
 }
 
@@ -165,21 +165,21 @@
 }
 
 .lesson-item:hover {
-  color: #7c5cff;
+  color: #5A1398;
   background: #f5f3ff;
-  border-left-color: #7c5cff;
+  border-left-color: #5A1398;
 }
 
 .lesson-item.active {
-  color: #7c5cff;
+  color: #5A1398;
   background: #ede6ff;
-  border-left-color: #7c5cff;
+  border-left-color: #5A1398;
   font-weight: 600;
 }
 
 .lesson-number {
   font-weight: 700;
-  color: #7c5cff;
+  color: #5A1398;
   min-width: 28px;
 }
 
@@ -203,7 +203,7 @@
 }
 
 .lesson-item.active .lesson-indicator {
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .lesson-item.active .lesson-indicator svg {
@@ -238,7 +238,7 @@
 }
 
 .breadcrumb a {
-  color: #7c5cff;
+  color: #5A1398;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
@@ -274,7 +274,7 @@
 .lesson-label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #7c5cff;
+  color: #5A1398;
   letter-spacing: 1px;
   margin-bottom: 12px;
 }
@@ -313,7 +313,7 @@
 .meta-icon {
   width: 24px;
   height: 24px;
-  color: #7c5cff;
+  color: #5A1398;
 }
 
 .lesson-meta-card span {
@@ -414,7 +414,7 @@
 }
 
 .lesson-bullet-list li::marker {
-  color: #7c5cff;
+  color: #5A1398;
   font-weight: 800;
 }
 
@@ -552,7 +552,7 @@
 }
 
 .lesson-resources a {
-  color: #7c5cff;
+  color: #5A1398;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;

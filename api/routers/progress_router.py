@@ -1,65 +1,53 @@
-# api/routers/progress_router.py
-from fastapi import APIRouter, HTTPException, Body
-from database import db  # Removed api.
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from api.database import db # Adjust import based on your actual db instance
+from api.security import get_current_user # Adjust based on your auth implementation
 
-router = APIRouter()
+router = APIRouter(prefix="/api/progress", tags=["Progress"])
 
-@router.post("/sync-submission")
-async def sync_submission(payload: dict = Body(...)):
-    user_id = payload.get("userId")
-    module_id = payload.get("moduleId")
-    activity_id = payload.get("activityId")
+# Define exactly what the frontend should send
+class AssessmentPayload(BaseModel):
+    module_id: str
+    score: int
+    total_questions: int
+    passed: bool
 
-    if not user_id or not activity_id:
-        raise HTTPException(status_code=400, detail="Missing userId or activityId")
+@router.post("/assessment")
+async def save_assessment(payload: AssessmentPayload, current_user: dict = Depends(get_current_user)):
+    try:
+        # 1. Prepare the query to find the specific user and module
+        query = {
+            "user_id": current_user["_id"],  # Or current_user.id depending on your auth model
+            "module_id": payload.module_id
+        }
 
-    db["submissions"].update_one(
-        {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
-        {"$set": payload},
-        upsert=True
-    )
-    return {"status": "success", "message": "Submission synced"}
+        # 2. Prepare the data to update or insert
+        update_data = {
+            "$set": {
+                "score": payload.score,
+                "total_questions": payload.total_questions,
+                "passed": payload.passed,
+                "updated_at": "ISODate()" # Or a datetime.utcnow()
+            }
+        }
 
-@router.get("/get-submission")
-async def get_submission(email: str, activityId: str, moduleId: str = None):
-    query = {"userId": email, "activityId": activityId}
-    if moduleId:
-        query["moduleId"] = moduleId
-        
-    submission = db["submissions"].find_one(query, {"_id": 0})
-    return {"status": "success", "submission": submission}
+        # 3. CRITICAL: Await the database call and use upsert=True
+        result = await db.assessments.update_one(
+            query, 
+            update_data, 
+            upsert=True  # Creates the document if it doesn't exist!
+        )
 
-@router.post("/sync-assessment")
-async def sync_assessment(payload: dict = Body(...)):
-    user_id = payload.get("userId")
-    module_id = payload.get("moduleId")
+        return {
+            "success": True, 
+            "message": "Assessment saved to MongoDB successfully.",
+            "matched_count": result.matched_count,
+            "modified_count": result.modified_count
+        }
 
-    if not user_id or not module_id:
-        raise HTTPException(status_code=400, detail="Missing userId or moduleId")
-
-    db["assessments"].update_one(
-        {"userId": user_id, "moduleId": module_id},
-        {"$set": payload},
-        upsert=True
-    )
-    return {"status": "success", "message": "Assessment synced"}
-
-@router.get("/get-assessment")
-async def get_assessment(email: str, moduleId: str):
-    assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
-    return {"status": "success", "assessment": assessment}
-
-@router.post("/update-progress")
-async def update_progress(payload: dict = Body(...)):
-    email = payload.get("email")
-    lesson_id = payload.get("lesson_id")
-    
-    if not email or not lesson_id:
-         raise HTTPException(status_code=400, detail="Missing email or lesson_id")
-         
-    db["progress"].update_one(
-        {"email": email, "lesson_id": lesson_id},
-        {"$set": payload},
-        upsert=True
-    )
-    return {"status": "success"}
+    except Exception as e:
+        # If something breaks, throw a 500 so it doesn't silently fail with a 200 OK
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database insertion failed: {str(e)}"
+        )

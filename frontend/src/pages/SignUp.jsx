@@ -10,9 +10,8 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false); // <-- "Stay signed in" state
+  const [rememberMe, setRememberMe] = useState(false);
   
-  // Custom Toast State
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
   
   const navigate = useNavigate();
@@ -39,29 +38,26 @@ export default function SignUp() {
         body: JSON.stringify({ name, email, password }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
 
-        // Conditionally use localStorage or sessionStorage
+      if (response.ok && data.status === "success") {
         const activeStorage = rememberMe ? localStorage : sessionStorage;
         const inactiveStorage = rememberMe ? sessionStorage : localStorage;
         
         inactiveStorage.removeItem("authToken");
         inactiveStorage.removeItem("user");
 
+        // FIXED: Adjusted to map the restored backend top-level dictionary
         activeStorage.setItem("authToken", data.token);
         activeStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
 
         navigate("/home");
       } else {
-        const errorData = await response.json();
-        
         let errorMessage = "Sign up failed. Please try again.";
-        if (typeof errorData.detail === "string") {
-            errorMessage = errorData.detail;
-        } else if (Array.isArray(errorData.detail)) {
-            // Join multiple validation errors cleanly for the toast
-            errorMessage = errorData.detail.map(err => err.msg).join(" | ");
+        if (typeof data.detail === "string") {
+            errorMessage = data.detail;
+        } else if (Array.isArray(data.detail)) {
+            errorMessage = data.detail.map(err => err.msg).join(" | ");
         }
         
         showToast(errorMessage);
@@ -83,11 +79,9 @@ export default function SignUp() {
         syncQueueDB.clear()
       ]);
 
-      // Wipe old tokens completely
       localStorage.removeItem("authToken");
       sessionStorage.removeItem("authToken");
 
-      // Guests should always use Session Storage
       sessionStorage.setItem("user", JSON.stringify({
           email: `guest_${Date.now()}@algoblocks.local`,
           name: "Guest User",
@@ -106,7 +100,6 @@ export default function SignUp() {
 
   return (
     <>
-      {/* Custom Toast Anchor */}
       <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
         {toast.message}
       </div>

@@ -24,6 +24,9 @@ class GoogleAuthRequest(BaseModel):
 class AssessmentRequest(BaseModel):
     email: Optional[str] = ""
     assessment_key: Optional[str] = ""
+    key: Optional[str] = ""
+    score: Optional[Any] = 0
+    passed: Optional[bool] = False
     data: Optional[Dict[str, Any]] = {}
 
 class SaveProjectRequest(BaseModel):

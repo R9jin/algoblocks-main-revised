@@ -1,4 +1,3 @@
-// frontend/src/pages/SignIn.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
 import { FiLock, FiMail } from "react-icons/fi";
@@ -10,9 +9,8 @@ export default function SignIn() {
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState(""); 
   const [isLoading, setIsLoading] = useState(false); 
-  const [rememberMe, setRememberMe] = useState(false); // <-- "Stay signed in" state
+  const [rememberMe, setRememberMe] = useState(false);
   
-  // Custom Toast State
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
   
   const navigate = useNavigate(); 
@@ -21,7 +19,6 @@ export default function SignIn() {
   const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
 
-  // Custom notification trigger
   const showToast = (message, type = "error") => {
     setToast({ visible: true, message, type });
     setTimeout(() => {
@@ -86,24 +83,30 @@ export default function SignIn() {
 
       const data = await response.json(); 
 
-      if (!response.ok) {
+      if (!response.ok || data.status !== "success") {
         showToast(data.detail || "Invalid email or password"); 
         setIsLoading(false);
         return;
       }
 
-      // Conditionally use localStorage or sessionStorage
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
+      // FIX: Wipe BOTH key variations from the inactive storage to prevent leakage
       inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
       inactiveStorage.removeItem("user");
 
+      // FIX: Save BOTH key variations to active storage so ALL pages pass auth checks
       activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {}
+        progress: data.progress || {},
+        assessments: data.assessments || {}
       })); 
 
       await syncUserCloudData(data.email, data.token); 
@@ -126,16 +129,18 @@ export default function SignIn() {
         syncQueueDB.clear()
       ]); 
 
-      // Wipe old tokens completely
+      // FIX: Wipe ALL token keys
       localStorage.removeItem("authToken");
       sessionStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
 
-      // Guests should always use Session Storage
       sessionStorage.setItem("user", JSON.stringify({
         email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
         isGuest: true,
-        progress: {}
+        progress: {},
+        assessments: {}
       })); 
 
       navigate("/dashboard"); 
@@ -158,23 +163,29 @@ export default function SignIn() {
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || data.status !== "success") {
         showToast(data.detail || "Google authentication failed");
         return;
       }
 
-      // Conditionally use localStorage or sessionStorage
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
+      // FIX: Wipe BOTH key variations from inactive storage
       inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
       inactiveStorage.removeItem("user");
 
+      // FIX: Save BOTH key variations so ALL pages pass auth checks
       activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {}
+        progress: data.progress || {},
+        assessments: data.assessments || {}
       }));
 
       await syncUserCloudData(data.email, data.token);
@@ -190,7 +201,6 @@ export default function SignIn() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      {/* Custom Toast Anchor */}
       <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
         {toast.message}
       </div>

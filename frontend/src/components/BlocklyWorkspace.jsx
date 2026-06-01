@@ -1017,13 +1017,15 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
           Blockly.Events.enable();
         }
 
-        // --- ADDED: Force state sync after blocks are generated ---
-        // This ensures the newly converted blocks are pushed to React's save state
+        // --- FIXED: Preserve original code instead of overwriting ---
         setTimeout(() => {
           if (workspace.current) {
             const currentJson = Blockly.serialization.workspaces.save(workspace.current);
-            const code = pythonGenerator.workspaceToCode(workspace.current);
-            if (onChangeRef.current) onChangeRef.current(currentJson, code);
+            
+            // Do NOT call workspaceToCode() here! It causes a lossy round-trip 
+            // that destroys the user's handwritten Python formatting and syntax.
+            // Instead, pass the original `pythonCode` back to the state:
+            if (onChangeRef.current) onChangeRef.current(currentJson, pythonCode);
           }
         }, 100);
         // ----------------------------------------------------------

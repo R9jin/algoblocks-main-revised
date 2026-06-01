@@ -1,6 +1,6 @@
 // frontend/src/pages/ActivityApp.jsx
 import Editor from "@monaco-editor/react";
-import DOMPurify from "dompurify"; // <-- XSS FIX: Import DOMPurify
+import DOMPurify from "dompurify";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
@@ -15,8 +15,8 @@ import "../styles/ActivityApp.css";
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
+import { usePyodide } from "../context/PyodideContext.jsx";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
-import { sharedAnalyzerWorker } from "../workers/analyzerInstance.js";
 
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("algoblocks-purple", {
@@ -36,10 +36,7 @@ const renderFormattedTask = (text) => {
     .replace(/\n/g, "<br/>")
     .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #26004a;">$1</strong>')
     .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>');
-  
-  // <-- XSS FIX: Sanitize parsed text before inserting into DOM
-  const cleanHtml = DOMPurify.sanitize(formattedHtml);
-  return <div dangerouslySetInnerHTML={{ __html: cleanHtml }} />;
+  return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formattedHtml) }} />;
 };
 
 const getComplexityColor = (complexity) => {
@@ -113,25 +110,22 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       );
     }
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // <-- XSS FIX: Sanitize explanation text (which contains user code variables) before inserting into DOM
-    const cleanSec = DOMPurify.sanitize(parsedSec);
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: cleanSec}}></p>;
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></p>;
   }).filter(Boolean);
 };
 
-// =======================================================================
-// INNER COMPONENT: Guarantees 100% memory wipe on URL changes
-// =======================================================================
 const ActivityAppInner = ({ moduleId, activityId }) => {
+  // Fix 1: Ensure API_BASE matches MainApp.jsx fallback logic so worker is correctly engaged
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
 
-  const isReadyRef = useRef(false);
+  const { worker, isEngineReady, resetWorker } = usePyodide();
 
+  const isReadyRef = useRef(false);
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
+  const workerMessageHandler = useRef(null);
   const runTimeoutRef = useRef(null);
   const renderIntervalRef = useRef(null);
   const outputCountRef = useRef(0);
@@ -140,19 +134,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const saveDraftTimeoutRef = useRef(null);
   const latestBlocksJsonRef = useRef(null);
 
+  const testResolveRef = useRef(null);
+  const testRejectRef = useRef(null);
+  const outputAccumulatorRef = useRef("");
+
   const latestStateRef = useRef({
-    userId: null,
-    json: null,
-    pythonCode: "# Drag blocks to generate Python code",
-    score: 0,
-    passed: 0,
-    testResults: [],
-    actualTime: "O(n^2)",
-    actualSpace: "O(1)",
-    status: "draft",
-    type: "activity",
-    targetTime: "O(n)",
-    targetSpace: "O(1)"
+    userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
+    score: 0, passed: 0, testResults: [], actualTime: "O(n^2)", actualSpace: "O(1)",
+    status: "draft", type: "activity", targetTime: "O(n)", targetSpace: "O(1)"
   });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -213,54 +202,102 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 
-  const initWorker = () => {
-    if (!workerRef.current) return;
-    workerRef.current.onmessage = (event) => {
-      const { type, data, counts } = event.data;
-      if (type === "ANALYZE_RESULT") {
-        if (data.status === "success") {
-          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
-          setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
-          latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
-          const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          setLineExecutions(initialCounts); setSyntaxError(null);
-        } else {
-          const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
-        }
-      } else if (type === "RUN_RESULT") {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+  workerMessageHandler.current = (event) => {
+    const { type, data, counts } = event.data;
+
+    if (type === "ANALYZE_RESULT") {
+      if (data.status === "success") {
+        setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
+        setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+        latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
+        const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
+        setLineExecutions(prev => ({ ...prev, ...initialCounts })); setSyntaxError(null);
+      } else {
+        const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+      }
+    }
+    else if (type === "RUN_RESULT") {
+      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+
+      if (testResolveRef.current) {
+        setTimeout(() => {
+          const flushed = pendingOutputRef.current;
+          pendingOutputRef.current = "";
+          outputAccumulatorRef.current += flushed + (data !== undefined && data !== null ? data : "");
+
+          if (counts) setLineExecutions(prev => { const next = { ...prev }; for (const [k, v] of Object.entries(counts)) next[k] = (next[k] || 0) + v; return next; });
+
+          if (testResolveRef.current) {
+            testResolveRef.current(outputAccumulatorRef.current);
+            testResolveRef.current = null;
+            testRejectRef.current = null;
+          }
+        }, 75);
+      } else {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
         setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
         if (counts) setLineExecutions(counts);
         setIsEvaluating(false); setIsWaitingForInput(false);
-      } else if (type === "OUTPUT") {
+      }
+    }
+    else if (type === "OUTPUT") {
+      if (testResolveRef.current) {
+        outputAccumulatorRef.current += data;
+      } else {
         outputCountRef.current += 1; pendingOutputRef.current += data;
         if (outputCountRef.current > 5000) {
           clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-          workerRef.current.terminate(); workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-          workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+          resetWorker();
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
           setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
         }
-      } else if (type === "INPUT_REQUEST") {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+      }
+    }
+    else if (type === "INPUT_REQUEST") {
+      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+
+      if (testRejectRef.current) {
+        resetWorker();
+        testRejectRef.current(new Error("Test cases cannot process manual input. Please remove the input() function."));
+        testResolveRef.current = null; testRejectRef.current = null;
+      } else {
         setConsoleOutput((prev) => prev + flushed + data.prompt); setIsWaitingForInput(true);
-      } else if (type === "ERROR") {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const hint = translatePythonError(data); setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+      }
+    }
+    else if (type === "ERROR") {
+      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+      const hint = translatePythonError(data);
+
+      if (testRejectRef.current) {
+        testRejectRef.current(new Error(data + (hint ? `\n${hint}` : "")));
+        testResolveRef.current = null; testRejectRef.current = null;
+      } else {
+        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
-    };
+    }
   };
 
   useEffect(() => {
-    workerRef.current = sharedAnalyzerWorker;
-    initWorker();
-    return () => { clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); };
+    if (!worker) return;
+    workerRef.current = worker;
+
+    const handleMessage = (e) => {
+      if (workerMessageHandler.current) workerMessageHandler.current(e);
+    };
+
+    worker.addEventListener('message', handleMessage);
+    return () => worker.removeEventListener('message', handleMessage);
+  }, [worker]);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -287,12 +324,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const fetchJsonWithCache = async (cacheKey, url) => {
     try {
-      const res = await fetch(`${url}?t=${new Date().getTime()}`); 
+      const res = await fetch(`${url}?t=${new Date().getTime()}`);
       if (res.ok) {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-          const json = await res.json(); 
-          try { await templatesDB.setItem(cacheKey, json); } catch (e) { } 
+          const json = await res.json();
+          try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
           return json;
         } else { throw new Error("Response is not JSON format"); }
       } else { throw new Error(`HTTP error ${res.status}`); }
@@ -300,7 +337,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     try { const cached = await templatesDB.getItem(cacheKey); if (cached) return cached; } catch (e) { }
     throw new Error(`Fetch failed for ${url} and no cache available.`);
   };
-  
+
   const resolveActivityFromModule = async () => {
     const mid = String(moduleId).replace(/[^0-9]/g, "");
     if (!mid) throw new Error("Invalid moduleId");
@@ -333,49 +370,31 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
   };
 
-  // --- FINAL SAVE MECHANISM (Tied perfectly to this specific Activity ID) ---
   const triggerFinalSave = () => {
     const state = latestStateRef.current;
     if (!state.userId) return;
-    
-    // Ignore pure blank ghost states
+
     if (state.pythonCode === "# Drag blocks to generate Python code" && (!state.json || Object.keys(state.json).length === 0)) return;
 
     const payload = {
-      userId: state.userId,
-      moduleId: moduleId,
-      activityId: activityId,
-      type: state.type || "activity",
-      status: state.status || "draft",
-      score: state.score,
-      maxScore: 5,
-      passedTestCases: state.passed,
-      totalTestCases: totalTests,
-      passed_tests: state.passed,
-      total_tests: totalTests,
-      testCases: state.testResults,
-      target_complexity: state.targetTime || "O(n)",
-      actual_complexity: state.actualTime,
-      target_space_complexity: state.targetSpace || "O(1)",
-      actual_space_complexity: state.actualSpace,
-      workspace: { blocklyJson: state.json || {} },
-      pythonCode: state.pythonCode,
-      timestamp: Date.now(),
-      submittedAt: new Date().toISOString(),
-      isSynced: true
+      userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity",
+      status: state.status || "draft", score: state.score, maxScore: 5, passedTestCases: state.passed,
+      totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests, testCases: state.testResults,
+      target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
+      target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
+      workspace: { blocklyJson: state.json || {} }, pythonCode: state.pythonCode,
+      timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true
     };
 
     const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
     submissionsDB.setItem(finalSubId, { ...payload, isSynced: false });
-    
+
     if (navigator.onLine && API_BASE) {
       try {
-        const token = localStorage.getItem("authToken"); 
+        const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
         fetch(`${API_BASE}/api/sync-submission`, {
-          method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify(payload), 
-          keepalive: true 
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(payload), keepalive: true
         });
       } catch (err) { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
     } else { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
@@ -387,7 +406,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  // --- COMPONENT MOUNT/UNMOUNT LIFECYCLE ---
   useEffect(() => {
     let cancelled = false;
     isReadyRef.current = false;
@@ -397,91 +415,75 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const resolvedActivity = await resolveActivityFromModule();
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
-        
+
         latestStateRef.current.type = resolvedActivity.type;
         latestStateRef.current.targetTime = resolvedActivity.targetTimeComplexity;
         latestStateRef.current.targetSpace = resolvedActivity.targetSpaceComplexity;
 
         const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
         if (!storedUser) { navigate("/learning-path", { replace: true }); return; }
-        
+
         const user = JSON.parse(storedUser);
         latestStateRef.current.userId = user.email;
         const submissionId = `${user.email}_${moduleId}_${activityId}`;
 
         let localSubmission = null;
-        try { localSubmission = await submissionsDB.getItem(submissionId); } catch(e){}
+        try { localSubmission = await submissionsDB.getItem(submissionId); } catch (e) { }
 
         let cloudSubmission = null;
-        if (navigator.onLine && !user.isGuest) {
-            try {
-                const token = localStorage.getItem("authToken"); 
-                const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.submission) cloudSubmission = data.submission;
-                }
-            } catch(e){}
+        if (navigator.onLine && !user.isGuest && API_BASE) {
+          try {
+            const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
+            const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, {
+              headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.submission) cloudSubmission = data.submission;
+            }
+          } catch (e) { }
         }
 
         let finalSubmissionToLoad = null;
         const localCode = localSubmission?.pythonCode || "";
         const cloudCode = cloudSubmission?.pythonCode || "";
-        
+
         const isLocalBlank = !localCode || localCode === "# Drag blocks to generate Python code";
         const isCloudBlank = !cloudCode || cloudCode === "# Drag blocks to generate Python code";
 
         if (isLocalBlank && !isCloudBlank) {
-            finalSubmissionToLoad = cloudSubmission;
-            await submissionsDB.setItem(submissionId, cloudSubmission); 
+          finalSubmissionToLoad = cloudSubmission;
+          await submissionsDB.setItem(submissionId, cloudSubmission);
         } else if (!isLocalBlank && !isCloudBlank) {
-            if ((localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0)) {
-                finalSubmissionToLoad = localSubmission;
-            } else {
-                finalSubmissionToLoad = cloudSubmission;
-            }
+          if ((localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0)) finalSubmissionToLoad = localSubmission;
+          else finalSubmissionToLoad = cloudSubmission;
         } else if (!isLocalBlank) {
-            finalSubmissionToLoad = localSubmission; 
+          finalSubmissionToLoad = localSubmission;
         }
 
         if (finalSubmissionToLoad && finalSubmissionToLoad.activityId === activityId && !cancelled) {
           try {
-            const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {}; 
+            const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {};
             const pythonCode = finalSubmissionToLoad.pythonCode;
-            
+
             latestStateRef.current.json = json;
             latestStateRef.current.pythonCode = pythonCode;
             latestStateRef.current.score = finalSubmissionToLoad.score || 0;
             latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
-            
-            setTimeout(() => {
-                if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0 && !cancelled) {
-                    workspaceRef.current.loadTemplate(json);
-                }
-            }, 400);
 
-            if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") {
-                setGeneratedPython(pythonCode);
-            }
+            setTimeout(() => { if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0 && !cancelled) workspaceRef.current.loadTemplate(json); }, 400);
+
+            if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") setGeneratedPython(pythonCode);
             setPassedTests(latestStateRef.current.passed);
-          } catch (e) { 
-             console.error("Failed to load blocks");
-          }
+          } catch (e) { console.error("Failed to load blocks"); }
         } else {
-          // New empty activity, load template if it exists
           if (resolvedActivity.templateUrl) {
             try {
               const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
               latestStateRef.current.json = templateJson;
-              setTimeout(() => {
-                  if (workspaceRef.current?.loadTemplate && !cancelled) {
-                      workspaceRef.current.loadTemplate(templateJson);
-                  }
-              }, 400);
-            } catch (err) {}
+              setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(templateJson); }, 400);
+            } catch (err) { }
           }
         }
 
@@ -491,27 +493,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests);
             if (savedOut) setConsoleOutput(savedOut);
             if (savedPassed !== undefined) setPassedTests(savedPassed);
-          } catch (e) {}
+          } catch (e) { }
         }
-        
+
         if (!cancelled) {
-            setTimeout(() => {
-                if (!cancelled) isReadyRef.current = true;
-            }, 1500); 
+          isReadyRef.current = true;
         }
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
         if (!cancelled) navigate("/learning-path", { replace: true });
       }
     };
-    
+
     boot();
-    
-    return () => { 
-        cancelled = true; 
-        triggerFinalSave(); 
-        if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
-    };
+    return () => { cancelled = true; triggerFinalSave(); if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current); };
   }, []);
 
   const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
@@ -531,38 +526,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
     const payload = {
-      userId: latestStateRef.current.userId, 
-      moduleId: moduleId, 
-      activityId: activityId, 
-      type: latestStateRef.current.type || "activity",
-      status: finalStatus,
-      score: finalScore, 
-      maxScore: 5, 
-      passedTestCases: finalPassed, 
-      totalTestCases: total,   
-      passed_tests: finalPassed,    
-      total_tests: total,      
-      testCases: finalTestResults,
-      target_complexity: latestStateRef.current.targetTime || "O(n)",
-      actual_complexity: actualTime,
-      target_space_complexity: latestStateRef.current.targetSpace || "O(1)",
-      actual_space_complexity: actualSpace,
-      workspace: { blocklyJson: json || {} }, 
-      pythonCode: pythonCode || "# Drag blocks to generate Python code", 
-      timestamp: Date.now(),
-      submittedAt: new Date().toISOString(), 
-      isSynced: false
+      userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity",
+      status: finalStatus, score: finalScore, maxScore: 5, passedTestCases: finalPassed, totalTestCases: total,
+      passed_tests: finalPassed, total_tests: total, testCases: finalTestResults,
+      target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime,
+      target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace,
+      workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "# Drag blocks to generate Python code",
+      timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false
     };
 
     await submissionsDB.setItem(submissionId, payload);
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
 
-    if (navigator.onLine) {
+    if (navigator.onLine && API_BASE) {
       try {
-        await fetch(`${API_BASE}/api/sync-submission`, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-            body: JSON.stringify(payload) 
+        await fetch(`${API_BASE}/api/sync-submission`, {
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload)
         });
         payload.isSynced = true; await submissionsDB.setItem(submissionId, payload);
       } catch (e) { await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
@@ -574,21 +553,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const handleWorkspaceAutoSave = (json, pythonCode) => {
     if (!isReadyRef.current) return;
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
-    
-    saveDraftTimeoutRef.current = setTimeout(async () => { 
-      await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true); 
+
+    saveDraftTimeoutRef.current = setTimeout(async () => {
+      await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true);
     }, 1500);
   };
 
   const analyzeCode = async (code) => {
     if (!code || code.trim() === "" || code.trim() === "# Drag blocks to generate Python code") return;
-    if (isOnline) {
+
+    if (isOnline && API_BASE) {
       try {
-        const token = localStorage.getItem("authToken");
-        const response = await fetch(`${API_BASE}/api/analyze`, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-            body: JSON.stringify({ code }) 
+        const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
+        const response = await fetch(`${API_BASE}/api/analyze`, {
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify({ code })
         });
         if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
         const data = await response.json();
@@ -598,28 +576,30 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
           latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
           const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          setLineExecutions(initialCounts); setSyntaxError(null);
+          setLineExecutions(prev => ({ ...prev, ...initialCounts })); setSyntaxError(null);
         } else {
           const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
         }
         return;
-      } catch (error) { console.warn("Online analysis failed, falling back to local worker.", error); }
+      } catch (error) { console.warn("Online analysis failed, safely falling back to local worker.", error); }
     }
     workerRef.current?.postMessage({ type: "ANALYZE_CODE", code });
   };
 
   useEffect(() => {
-    const timeoutId = setTimeout(() => analyzeCode(generatedPython), 500);
-    return () => clearTimeout(timeoutId);
-  }, [generatedPython, isOnline]);
+    if (isEngineReady && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
+      const timeoutId = setTimeout(() => analyzeCode(generatedPython), 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [generatedPython, isOnline, isEngineReady]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
     if (!isReadyRef.current) return;
 
     latestBlocksJsonRef.current = json;
-    const oldCode = (generatedPython || "").trim(); 
+    const oldCode = (generatedPython || "").trim();
     const newCode = (pythonCode || "").trim();
-    
+
     latestStateRef.current.json = json;
     latestStateRef.current.pythonCode = pythonCode;
 
@@ -649,20 +629,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     setConsoleOutput((prev) => prev + "\n> Running the program...\n");
 
     outputCountRef.current = 0; pendingOutputRef.current = "";
-    renderIntervalRef.current = setInterval(() => {
-      if (pendingOutputRef.current) { const flushed = pendingOutputRef.current; pendingOutputRef.current = ""; setConsoleOutput((prev) => prev + flushed); }
-    }, 100);
-
-    workerRef.current?.postMessage({ type: "RUN_CODE", code: generatedPython });
 
     runTimeoutRef.current = setTimeout(() => {
-      workerRef.current?.terminate(); clearInterval(renderIntervalRef.current);
-      workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-      workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+      resetWorker();
       const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
       setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
       setIsEvaluating(false); setIsWaitingForInput(false);
     }, 10000);
+
+    workerRef.current?.postMessage({ type: "RUN_CODE", code: generatedPython });
   };
 
   const handleSendInput = (e) => {
@@ -671,14 +646,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       workerRef.current.postMessage({ type: "INPUT_RESPONSE", data: userInput });
       outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
 
-      renderIntervalRef.current = setInterval(() => {
-        if (pendingOutputRef.current) { const flushed = pendingOutputRef.current; pendingOutputRef.current = ""; setConsoleOutput((prev) => prev + flushed); }
-      }, 100);
-
       runTimeoutRef.current = setTimeout(() => {
-        workerRef.current?.terminate(); clearInterval(renderIntervalRef.current);
-        workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-        workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
+        resetWorker();
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
         setIsEvaluating(false); setIsWaitingForInput(false);
@@ -696,22 +665,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     localStorage.setItem("user", JSON.stringify(user));
 
     const payload = { email: user.email, lesson_id: lessonId, score: user.progress[lessonId] };
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
 
     await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false });
 
-    if (navigator.onLine && !user.isGuest) {
+    if (navigator.onLine && !user.isGuest && API_BASE) {
       try {
-        const res = await fetch(`${API_BASE}/api/update-progress`, { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-          body: JSON.stringify(payload) 
+        const res = await fetch(`${API_BASE}/api/update-progress`, {
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload)
         });
         if (res.ok) await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true });
         else throw new Error("Sync failed");
-      } catch (error) { 
-        await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
-      }
+      } catch (error) { await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload }); }
     } else if (!user.isGuest) {
       await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
     }
@@ -727,73 +692,38 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     localStorage.setItem("user", JSON.stringify(user));
 
     const payload = { email: user.email, lesson_id: topicId, score: 100, completed: true };
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
 
     await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false });
 
-    if (navigator.onLine && !user.isGuest) {
+    if (navigator.onLine && !user.isGuest && API_BASE) {
       try {
-        const res = await fetch(`${API_BASE}/api/update-progress`, { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, 
-          body: JSON.stringify(payload) 
+        const res = await fetch(`${API_BASE}/api/update-progress`, {
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload)
         });
         if (res.ok) await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true });
         else throw new Error("Sync failed");
-      } catch (error) { 
-        await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
-      }
+      } catch (error) { await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload }); }
     } else if (!user.isGuest) {
       await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
     }
   };
 
   const executeTest = async (codeToRun) => {
-    if (isOnline) {
-      try {
-        const response = await fetch(`${API_BASE}/api/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: codeToRun }) });
-        if (!response.ok) throw new Error("FastAPI execution failed");
-        const data = await response.json();
-
-        if (data.counts) {
-          setLineExecutions((prev) => {
-            const next = { ...prev };
-            for (const [key, val] of Object.entries(data.counts)) next[key] = (next[key] || 0) + val;
-            return next;
-          });
-        }
-        if (data.error) { const hint = translatePythonError(data.error); throw new Error(data.error + (hint ? `\n${hint}` : "")); }
-        return data.output !== undefined && data.output !== null ? String(data.output) : "";
-      } catch (error) { console.warn("Online test execution failed, falling back to local...", error); }
-    }
-
     return new Promise((resolve, reject) => {
-      let outputAccumulator = "";
-      const timeout = setTimeout(() => {
-        workerRef.current?.terminate();
-        workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url), { type: "module" });
-        workerRef.current.postMessage({ type: "INIT_ENGINE" }); initWorker();
-        reject(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
+      outputAccumulatorRef.current = "";
+      testResolveRef.current = resolve;
+      testRejectRef.current = reject;
+
+      runTimeoutRef.current = setTimeout(() => {
+        resetWorker();
+        if (testRejectRef.current) {
+          testRejectRef.current(new Error("Infinite Loop detected. Execution timed out after 10 seconds."));
+          testResolveRef.current = null;
+          testRejectRef.current = null;
+        }
       }, 10000);
 
-      workerRef.current.onmessage = (event) => {
-        const { type, data, counts } = event.data;
-        if (type === "OUTPUT") { outputAccumulator += data; }
-        else if (type === "RUN_RESULT") {
-          clearTimeout(timeout); outputAccumulator += data !== undefined && data !== null ? data : "";
-          if (counts) {
-            setLineExecutions((prev) => {
-              const next = { ...prev };
-              for (const [key, val] of Object.entries(counts)) next[key] = (next[key] || 0) + val;
-              return next;
-            });
-          }
-          initWorker(); resolve(outputAccumulator);
-        } else if (type === "ERROR") {
-          clearTimeout(timeout); initWorker();
-          const hint = translatePythonError(data); reject(new Error(data + (hint ? `\n${hint}` : "")));
-        }
-      };
       workerRef.current.postMessage({ type: "RUN_CODE", code: codeToRun });
     });
   };
@@ -826,7 +756,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       });
     }
   };
-  
+
   const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const runTestCases = async () => {
@@ -849,7 +779,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     setBottomPanel("console"); setConsoleOutput("\n> --- Running Test Cases ---\n\n"); setPassedTests(0);
 
-    let passed = 0; let functionalPassed = 0; let functionalTotal = 0; 
+    let passed = 0; let functionalPassed = 0; let functionalTotal = 0;
     let fullOutput = "\n> --- Running Test Cases ---\n";
 
     for (let i = 0; i < totalTests; i++) {
@@ -889,9 +819,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     let score = 0;
     if (functionalPassed === 0) score = 0;
-    else if (functionalPassed < functionalTotal) score = Math.max(1, Math.floor((functionalPassed / functionalTotal) * 2)); 
+    else if (functionalPassed < functionalTotal) score = Math.max(1, Math.floor((functionalPassed / functionalTotal) * 2));
     else if (functionalPassed === functionalTotal) {
-      score = 3; 
+      score = 3;
       const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
       const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(n)");
       const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
@@ -902,25 +832,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }
 
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
-    
+
     await saveSubmission(
-      latestStateRef.current.json, 
-      generatedPython, 
-      score, 
-      passed, 
-      totalTests, 
-      testResults, 
-      analysisResult.total || "O(n^2)", 
-      analysisResult.space_total || "O(1)",
-      false
+      latestStateRef.current.json, generatedPython, score, passed, totalTests, testResults,
+      analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false
     );
-    
+
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
-    
+
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, score);
 
-    if (score >= 1) handleSuccess(score, 5);
+    if (score >= 1) handleSuccess(score, 5, functionalPassed, functionalTotal);
   };
 
   const lines = analysisResult?.lines || []; let maxWeight = 0; let bottleneckIndices = [];
@@ -992,7 +915,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                                 return (
                                   <tr key={idx} style={{ backgroundColor: hits > 0 ? "rgba(255, 255, 255, 0.03)" : "transparent" }}>
                                     <td style={{ color: "#888", textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.05)" }}>{lineNum}</td>
-                                    <td style={{ fontFamily: "'Fira Code', monospace", whiteSpace: "pre", color: "#000000", paddingLeft: "15px" }}>{lineText || " "}</td>
+                                    <td style={{ fontFamily: "'Fira Code', monospace", whiteSpace: "pre", color: "#EBE4FF", paddingLeft: "15px" }}>{lineText || " "}</td>
                                     <td style={{ textAlign: "center", fontWeight: "bold", color: hits > 0 ? "#00b8a3" : "#555" }}>{hits > 0 ? hits : "-"}</td>
                                     <td style={{ paddingRight: "20px" }}>{hits > 0 && maxExecutions > 0 && (<div style={{ height: "8px", width: `${(hits / maxExecutions) * 100}%`, backgroundColor: hits === maxExecutions ? "#f39c12" : "#00b8a3", borderRadius: "4px", transition: "width 0.5s ease-out", boxShadow: hits === maxExecutions ? "0 0 8px rgba(243, 156, 18, 0.5)" : "none" }} />)}</td>
                                   </tr>
@@ -1022,13 +945,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                               const isBottleneck = actualBottleneckIndices.includes(i); const timeColor = getComplexityColor(timeComplexity); const spaceColor = getComplexityColor(spaceComplexity); const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
                               const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
 
+                              // Fix 2: Changed text color to #000000 and added the dropdown-chevron to the Space Complexity column.
                               return (
                                 <React.Fragment key={i}>
                                   <tr className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`} onClick={() => toggleLine(i)} style={{ cursor: "pointer", borderLeft: isBottleneck ? "4px solid #ff375f" : isEfficient ? "4px solid #2ecc71" : expandedLines[i] ? `3px solid ${timeColor}` : "none", backgroundColor: isBottleneck ? "rgba(255, 55, 95, 0.12)" : isEfficient ? "rgba(46, 204, 113, 0.12)" : "transparent" }}>
                                     <td className="code-cell" style={{ color: "#000000", paddingLeft: line.indent ? `${line.indent * 15 + 20}px` : "20px" }}>{line.lineOfCode || line.code}</td>
-                                    <td className="operation-cell" style={{ color: "#000000", display: "flex", alignItems: "center", gap: "8px" }}>{line.operation || "-"}{isBottleneck && <span style={{ backgroundColor: "#ff375f", color: "white", fontSize: "0.7rem", fontWeight: "bold", padding: "3px 8px", borderRadius: "12px", textTransform: "uppercase", marginLeft: "10px", boxShadow: "0 0 8px rgba(255, 55, 95, 0.6)" }}>Bottleneck</span>}{isEfficient && <span style={{ backgroundColor: "#2ecc71", color: "white", fontSize: "0.7rem", fontWeight: "bold", padding: "3px 8px", borderRadius: "12px", textTransform: "uppercase", marginLeft: "10px", boxShadow: "0 0 8px rgba(46, 204, 113, 0.6)" }}>Efficient</span>}</td>
+                                    <td className="operation-cell" style={{ color: "#000000", display: "flex", alignItems: "center", gap: "8px" }}>
+                                      {line.operation || "-"}
+                                      {isBottleneck && <span className="bottleneck-badge" style={{ backgroundColor: "#ff375f", color: "white", fontSize: "0.7rem", fontWeight: "bold", padding: "3px 8px", borderRadius: "12px", textTransform: "uppercase", marginLeft: "10px", boxShadow: "0 0 8px rgba(255, 55, 95, 0.6)" }}>Bottleneck</span>}
+                                      {isEfficient && <span style={{ backgroundColor: "#2ecc71", color: "white", fontSize: "0.7rem", fontWeight: "bold", padding: "3px 8px", borderRadius: "12px", textTransform: "uppercase", marginLeft: "10px", boxShadow: "0 0 8px rgba(46, 204, 113, 0.6)" }}>Efficient</span>}
+                                    </td>
                                     <td className="complexity-cell" style={{ color: timeColor, fontWeight: "bold" }}>{formatComplexity(timeComplexity)}</td>
-                                    <td className="complexity-cell" style={{ color: spaceColor, fontWeight: "bold" }}>{formatComplexity(spaceComplexity)}</td>
+                                    <td className="complexity-cell" style={{ color: spaceColor, fontWeight: "bold" }}>{formatComplexity(spaceComplexity)} <span className="dropdown-chevron" style={{ transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block', transition: 'transform 0.2s', marginLeft: '6px' }}>v</span></td>
                                   </tr>
                                   {expandedLines[i] && (
                                     <tr className="explanation-row">
