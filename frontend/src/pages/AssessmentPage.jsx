@@ -227,7 +227,7 @@ export default function AssessmentPage() {
   const handleSelectAnswer = (optionIndex) => {
     if (submitted) return;
 
-    const updated = { ...selectedAnswers, [currentIndex]: optionIndex };
+    const updated = { ...selectedAnswers, [currentIndex] : optionIndex };
     setSelectedAnswers(updated);
 
     const draft = {
@@ -287,7 +287,7 @@ export default function AssessmentPage() {
     clearDraft(moduleId, type);
 
     // ==========================================
-    // 2. Cloud Sync (or Queue) - FIXED AUTH HEADERS
+    // 2. Cloud Sync (or Queue) 
     // ==========================================
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken"); 
 
@@ -299,7 +299,8 @@ export default function AssessmentPage() {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}` 
           },
-          body: JSON.stringify({ email: user.email, assessment_key: assessmentKey, data: result })
+          // FIX: Flatten the payload. No nested 'data' key!
+          body: JSON.stringify({ email: user.email, key: assessmentKey, assessment_key: assessmentKey, ...result })
         });
         const progRes = await fetch(`${API_BASE}/api/update-progress`, {
           method: "POST",
@@ -307,7 +308,7 @@ export default function AssessmentPage() {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}` 
           },
-          body: JSON.stringify({ email: user.email, lesson_id: assessmentKey, score: finalScore })
+          body: JSON.stringify({ email: user.email, key: assessmentKey, lesson_id: assessmentKey, score: finalScore })
         });
 
         if (res.ok && progRes.ok) {
@@ -318,13 +319,14 @@ export default function AssessmentPage() {
         }
       } catch (err) {
         const syncId = `sync_${Date.now()}`;
-        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, assessment_key: assessmentKey, data: result } });
-        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, lesson_id: assessmentKey, score: finalScore } });
+        // FIX: Flatten queue payload to match
+        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, key: assessmentKey, assessment_key: assessmentKey, ...result } });
+        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, key: assessmentKey, lesson_id: assessmentKey, score: finalScore } });
       }
     } else if (user.email && !user.isGuest) {
         const syncId = `sync_${Date.now()}`;
-        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, assessment_key: assessmentKey, data: result } });
-        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, lesson_id: assessmentKey, score: finalScore } });
+        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, key: assessmentKey, assessment_key: assessmentKey, ...result } });
+        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, key: assessmentKey, lesson_id: assessmentKey, score: finalScore } });
     }
   };
 
