@@ -52,6 +52,7 @@ class PatternSignals:
     nested_loops: bool = False
     
     has_recursion: bool = False
+    indirect_recursion: bool = False
     recursion_branching: Optional[str] = None  
     has_backtracking_risk: bool = False
     has_memoization: bool = False
@@ -154,11 +155,15 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             current_fn = getattr(self.ctx, "current_function_name", None)
             indirect_fns = getattr(self.ctx, "indirect_recursive_funcs", set())
             
-            if func_name == current_fn or func_name in indirect_fns:
+            if func_name == current_fn:
                 self.signals.has_recursion = True
                 self.signals.memory_signals.recursive_stack_risk = True
                 if self._in_loop:
                     self.signals.recursion_in_loop = True
+            elif func_name in indirect_fns:
+                self.signals.indirect_recursion = True
+                self.signals.has_recursion = True
+                self.signals.memory_signals.recursive_stack_risk = True
 
         self.generic_visit(node)
 
@@ -359,66 +364,66 @@ class EducationalInsightGenerator:
         if family == "constant":
             if is_amortized:
                 return EducationalInsightGenerator._random_choice([
-                    "This is Amortized Constant Time. Think of it like a monthly subscription: most days you use it for free, but once a month you pay a larger bill. In code, Python occasionally has to copy an array to a larger memory block when you append, but mostly it's instant.",
+                    "This is Amortized Constant Time. Think of it like a monthly subscription: most days you use it for free, but once a month you pay a larger bill. In code, Python occasionally has to copy an array to a larger memory block when you append, but mostly it happens instantly.",
                     "This operates in Amortized O(1) Time. While adding an item is usually instant, Python arrays occasionally fill up and need to be resized behind the scenes. However, on average, the time it takes is extremely fast and flat."
                 ])
             return EducationalInsightGenerator._random_choice([
-                "This is Constant Time O(1). Think of this like looking up an address in a GPS—no matter how big the city is, you go straight to your destination instantly. The computer takes the exact same number of steps regardless of how much data you have.",
-                "This runs in Constant Time. It means the speed doesn't change whether you have ten items or ten million items. It's an instant, direct operation like checking a specific key in a dictionary or grabbing the first item in a list."
+                "This is Constant Time O(1). Think of this like looking up an address in a GPS. No matter how big the city is, you go straight to your destination instantly. The computer takes the exact same number of steps regardless of how much data you process.",
+                "This runs in Constant Time. It means the speed remains perfectly flat whether you evaluate ten items or ten million items. It represents an instant, direct operation like checking a specific key in a dictionary or grabbing the first item in a list."
             ])
         elif family == "linear":
             return EducationalInsightGenerator._random_choice([
-                "This scales Linearly O(n). Imagine reading a book from cover to cover. If the book is twice as thick, it takes twice as long to read. The algorithm has to touch or check every single item in your data at least once.",
-                "This exhibits Linear Time. The relationship is a straight line: as your data grows, the time it takes grows by the exact same amount. It usually happens when you loop through a list from start to finish."
+                "This scales Linearly O(n). Imagine reading a book from cover to cover. If the book is twice as thick, it takes twice as long to read. The algorithm is forced to systematically touch or check every single item in your data at least once.",
+                "This exhibits Linear Time. The mathematical relationship is a straight line. As your data grows, the time it takes grows by the exact same proportional amount. This usually happens when you iterate through a collection from start to finish."
             ])
         elif family == "root":
             return EducationalInsightGenerator._random_choice([
-                "This runs in Square Root Time O(sqrt n). It's much faster than checking everything. Imagine if to find a word in a book, you only ever had to read up to the page number equal to the square root of the total pages. It saves the computer a massive amount of unnecessary checking.",
-                "This uses a Square Root boundary. By recognizing mathematical patterns (like in prime number checking), the algorithm stops early. It grows slower than a standard loop, making it very efficient for math-heavy problems."
+                "This runs in Square Root Time O(sqrt n). It is significantly faster than checking everything. Imagine if, to find a word in a book, you only ever had to read up to the page number equal to the square root of the total pages. It saves the computer a massive amount of unnecessary iteration.",
+                "This uses a Square Root boundary. By recognizing mathematical properties naturally capping the search space, the algorithm stops early. It grows much slower than a standard loop, making it highly efficient for numeric problems."
             ])
         elif family == "logarithmic":
             return EducationalInsightGenerator._random_choice([
-                "This is Logarithmic Time O(log n), which is incredibly fast for large datasets. Imagine trying to find a word in a dictionary: you open it to the middle, check if your word is earlier or later, and throw half the book away. You repeat this until you find the word.",
-                "This scales Logarithmically. Because the algorithm halves the remaining data at every single step, it can handle billions of items almost instantly. It's the hallmark of an efficient search."
+                "This is Logarithmic Time O(log n), which is incredibly fast for large datasets. Imagine trying to find a specific page in a dictionary. You open it to the middle, check if your page is earlier or later, and completely discard half the book. You repeat this until you find the target.",
+                "This scales Logarithmically. Because the algorithm systematically halves the remaining data at every single step, it can process billions of items almost instantly. This is the hallmark of an optimized search structure."
             ])
         elif family == "linearithmic":
             return EducationalInsightGenerator._random_choice([
-                "This is Linearithmic Time O(n log n). Think of it like sorting a messy deck of cards by splitting the deck into smaller piles (the 'log n' part), organizing them, and merging them back together (the 'n' part). It is the standard speed limit for the best general-purpose sorting algorithms.",
-                "This operation runs in O(n log n) Time. It's slightly slower than linear time, but far faster than nested loops. It represents a highly optimized 'Divide and Conquer' strategy, commonly seen in Merge Sort or Quick Sort."
+                "This is Linearithmic Time O(n log n). Think of it like sorting a messy deck of cards by splitting the deck into smaller piles, organizing them, and merging them back together. It acts as the standard theoretical speed limit for general-purpose sorting algorithms.",
+                "This operation runs in O(n log n) Time. It is slightly slower than pure linear time, but far superior to nested loops. It represents a highly optimized divide and conquer strategy."
             ])
         elif family == "polynomial":
             return EducationalInsightGenerator._random_choice([
-                "This exhibits Polynomial Growth, like O(n^2). Imagine a handshake puzzle: if 10 people are in a room and everyone must shake hands with everyone else, the number of handshakes explodes. In code, this usually means a loop running inside another loop.",
-                "This scales Quadratically or Polynomially. While it works fine for small lists, doubling your data size will make the code four times slower. Nested loops or comparing every item to every other item causes this steep slowdown."
+                "This exhibits Polynomial Growth, such as O(n^2). Imagine a handshake puzzle where 100 people are in a room and everyone must shake hands with everyone else. The total number of handshakes explodes quickly. In code, this signifies a loop running continuously inside another loop.",
+                "This scales Quadratically or Polynomially. While it functions fine for small lists, doubling your data size will force the computer to work four times as hard. Comparing every single item to every other item inevitably triggers this steep computational slowdown."
             ])
         elif family == "exponential":
             return EducationalInsightGenerator._random_choice([
-                "This suffers from Exponential Growth O(2^n). Think of a rumor spreading where every person tells two new people. Adding just one single item to your input forces the computer to do double the work. It is very dangerous for large inputs.",
-                "This is Exponential Time. The algorithm is likely calculating the same overlapping problems repeatedly without saving the answers (like a naive Fibonacci sequence). The processing time doubles constantly, eventually freezing the program."
+                "This suffers from Exponential Growth O(2^n). Think of a rumor spreading where every person tells two new people. Adding just one single item to your input forces the computer to do double the total amount of work. It is extremely dangerous for large inputs.",
+                "This is Exponential Time. The algorithm is calculating the exact same overlapping mathematical problems repeatedly without saving the answers. The processing time doubles constantly, eventually freezing the execution environment entirely."
             ])
         elif family == "recursive_branching":
             return EducationalInsightGenerator._random_choice([
-                "This runs in Recursive Branching Time O(n^d). Because a recursive function is being called from inside a standard loop, it acts like a Russian Nesting Doll that branches out horizontally and vertically. It creates a massive, sprawling execution tree.",
-                "This creates a complex Recursive Branching pattern. Instead of a single clean line of recursion, the loop forces the function to spawn multiple new paths at every single depth level, slowing down the system significantly."
+                "This runs in Recursive Branching Time O(n^d). Because a recursive function is being called from inside a standard loop, it acts like a system that branches out both horizontally and vertically. It rapidly creates a massive, sprawling execution tree.",
+                "This creates a complex Recursive Branching pattern. Instead of a single clean line of recursion, the iteration forces the function to spawn multiple complete new paths at every depth level, slowing down the processor significantly."
             ])
         elif family == "super_exponential":
             return EducationalInsightGenerator._random_choice([
-                "This exhibits Super Exponential Growth O(n^n). This is the absolute worst-case scenario. Imagine everyone in a massive stadium inviting a number of friends equal to the stadium's total capacity, and everyone doing this repeatedly. The system will crash on very small inputs.",
-                "This scales Super-Exponentially. The algorithm is multiplying its workload to the power of its own input size. It is a sign of an unoptimized brute-force branching strategy that will freeze the computer almost immediately."
+                "This exhibits Super Exponential Growth O(n^n). This represents an absolute worst-case processing scenario. The algorithm is multiplying its workload to the power of its own input size, ensuring the system will stall on very small initial values.",
+                "This scales Super-Exponentially. The mathematical branching occurring here is incredibly hostile to the CPU. It is a sign of an unoptimized brute-force strategy that will freeze the computer almost immediately."
             ])
         elif family == "factorial":
             return EducationalInsightGenerator._random_choice([
-                "This requires Factorial Time O(n!). Imagine trying to figure out the best seating arrangement for 15 friends by physically forcing them to sit in every single possible combination of chairs. A modern computer could take years to finish.",
-                "This is Factorial Time, often caused by calculating every possible mathematical permutation of a dataset. It is an extreme brute-force method that will fail to complete on anything larger than a handful of items."
+                "This requires Factorial Time O(n!). Imagine trying to figure out the absolute best seating arrangement for 15 friends by physically forcing them to sit in every single possible combination of chairs. A modern computer could take years to verify them all.",
+                "This evaluates to Factorial Time. This is generally caused by calculating every possible mathematical permutation of a dataset. It is an extreme brute-force methodology that will fail to complete on anything larger than a handful of input elements."
             ])
         elif family == "graph":
             return EducationalInsightGenerator._random_choice([
-                "This scales based on Graph Topology O(V + E). Imagine visiting a new city: the time it takes to explore depends on how many specific places you want to visit (Vertices) and how many roads connect them (Edges).",
-                "This operation navigates a Graph or Network. The speed depends directly on the density of the network—checking a highly interconnected grid will naturally take longer than checking a straight, simple path."
+                "This scales based on Graph Topology O(V + E). Imagine visiting a new city. The time it takes to explore depends strictly on how many specific places you want to visit and how many roads connect them.",
+                "This operation navigates a Graph or Network structure. The operational speed depends directly on the structural density of the network. Exploring a highly interconnected web will naturally require more computational steps than walking a straight path."
             ])
         else:
             return (
-                "The mathematical scaling here is dynamic. The core takeaway is that the time it takes to finish will shift based on the specific shape and volume of the data you pass into it."
+                "The mathematical scaling observed here is dynamic. The core takeaway is that the execution timeline will shift heavily based on the specific shape, density, and volume of the initial data structure passed into it."
             )
 
     @staticmethod
@@ -426,109 +431,114 @@ class EducationalInsightGenerator:
         family = info.family
         lower_s = global_s.lower()
         
-        core_rule = "When checking Global Space, we don't just add up every line. We look at the 'high-water mark'—the absolute maximum amount of memory the algorithm needs to hold onto at its peak. "
+        core_rule = "When checking Global Space, we do not just add up every single allocation line. We look at the 'high-water mark', representing the absolute maximum amount of memory the algorithm needs to hold onto at its peak depth. "
         
         if "placeholder" in lower_s or family == "unknown":
             return EducationalInsightGenerator._random_choice([
-                core_rule + "The exact memory used here changes depending on what happens during runtime, so the analyzer cannot pin it to a strict mathematical formula.",
-                core_rule + "Because this memory allocation shifts dynamically based on hidden conditions, the strict Big O space boundary cannot be guaranteed statically."
+                core_rule + "The exact memory required here fluctuates depending on dynamic runtime conditions, meaning the analyzer cannot reliably lock it to a static mathematical formula.",
+                core_rule + "Because this memory allocation shifts fluidly based on data contents, the strict spatial boundary cannot be entirely guaranteed statically."
             ])
         elif "o(1)" in lower_s or family == "constant":
             return EducationalInsightGenerator._random_choice([
-                core_rule + "The memory usage here is Constant O(1). The algorithm cleverly reshuffles data 'in-place' or only creates a few small tracker variables. It does not hog extra RAM, making it very safe.",
-                core_rule + "This operates with a Constant Space footprint. No matter how massive the input dataset gets, the algorithm won't ask the computer for larger chunks of memory."
+                core_rule + "The memory usage here evaluates to Constant O(1). The algorithm cleverly reshuffles data in-place or only creates a few small tracker variables. It does not hoard extra system RAM, making it structurally very safe.",
+                core_rule + "This operates with a Constant Space footprint. No matter how massive the input dataset grows, the algorithm will not demand continuously larger chunks of memory from the operating system."
             ])
         elif "log" in lower_s:
             return EducationalInsightGenerator._random_choice([
-                core_rule + "The memory scales Logarithmically. This usually happens during efficient recursion. Because the algorithm splits the problem in half, the 'call stack' of saved states never gets very deep, saving a lot of RAM.",
-                core_rule + "This uses Logarithmic Space. The system only has to remember a very small, highly compressed trace of its steps, making it incredibly space-efficient even for huge datasets."
+                core_rule + "The memory scales Logarithmically. This pattern frequently occurs during highly efficient recursion. Because the algorithm halves the problem space continuously, the call stack of saved states never gets very deep, preserving vital RAM.",
+                core_rule + "This leverages Logarithmic Space. The system only has to cache a very small, highly compressed trace of its progress, making it incredibly space-efficient even when processing massive data."
             ])
         elif family == "linear" or "o(n)" in lower_s:
             if "in-place" in (getattr(ctx, "hint_text", "") or ""):
                 return (
-                    core_rule + "While it technically scales linearly, the practical memory used is quite low because the algorithm prefers to modify the existing data rather than creating a massive duplicate copy."
+                    core_rule + "While it technically scales linearly in theory, the practical memory used is exceptionally low because the algorithm prefers to directly modify the existing data rather than spawning massive separate duplicates."
                 )
             return EducationalInsightGenerator._random_choice([
-                core_rule + "The memory grows Linearly O(n). For every piece of data you add to the input, the algorithm has to build a matching slot in memory to store a copy, a dictionary, or a sequence.",
-                core_rule + "This requires Linear Space. If your input size doubles, the algorithm will ask the computer for double the RAM to store its final output list or recursive tracking path."
+                core_rule + "The memory demands grow Linearly O(n). For every piece of data you append to the input, the algorithm is forced to build a matching slot in memory to house a list, a dictionary, or a sequential element.",
+                core_rule + "This requires Linear Space. If your total input size doubles, the algorithm will automatically instruct the computer to reserve double the RAM in order to store its final structure or recursive tracking sequence."
             ])
         elif re.search(r'\b[ve]\b', lower_s) or family == "graph":
             return EducationalInsightGenerator._random_choice([
-                core_rule + "The memory relies on the Graph's layout. To avoid walking in circles infinitely, the code has to keep a notebook (memory) of every specific node it has already visited.",
-                core_rule + "This scales based on Network density. The algorithm actively maintains a queue of locations waiting to be explored, requiring space proportional to the graph."
+                core_rule + "The memory directly mirrors the Graph layout. To safely avoid walking in infinite loops, the code maintains a registry of every single specific node it has already encountered.",
+                core_rule + "This scales based on spatial Network density. The algorithm actively maintains an expanding queue of locations waiting to be explored, mandating space proportional to the graph breadth."
             ])
         elif family in ["exponential", "super_exponential", "recursive_branching"] or "2^n" in lower_s or "n^n" in lower_s:
             return EducationalInsightGenerator._random_choice([
-                core_rule + "The memory usage is actively exploding. The algorithm is generating rapidly doubling copies of itself or its data, threatening to crash the system by running out of RAM.",
-                core_rule + "This forces an Exponential memory footprint. Maintaining this rapidly expanding state is highly dangerous and will exhaust available system memory extremely quickly."
+                core_rule + "The memory footprint is actively exploding. The algorithm is spawning rapidly doubling copies of itself or its data, gravely threatening to crash the execution context by running entirely out of RAM.",
+                core_rule + "This commands an Exponential memory payload. Attempting to maintain this rapidly expanding state is highly dangerous and will exhaust available system memory incredibly fast."
             ])
         elif family == "polynomial" or "n^2" in lower_s or "n * m" in lower_s or "n²" in lower_s:
             return EducationalInsightGenerator._random_choice([
-                core_rule + "The space required scales Polynomially. The algorithm is building large, multi-dimensional structures like a 2D matrix or a dynamically expanding grid. This eats up RAM much faster than a simple list.",
-                core_rule + "This exhibits Quadratic or Polynomial space growth. By nesting data inside other data, the memory consumed outpaces the base input size, placing heavy stress on the computer."
+                core_rule + "The spatial requirements scale Polynomially. The algorithm is actively constructing large, multi-dimensional structures like a 2D matrix or a dynamically expanding grid. This consumes available RAM significantly faster than a one-dimensional list.",
+                core_rule + "This exhibits Quadratic or Polynomial space inflation. By nesting data deeply inside other data, the memory consumed heavily outpaces the base input size, placing substantial continuous stress on the computer."
             ])
         else:
             return (
-                core_rule + "The peak memory signature is dynamic. The system will have to constantly ask for fresh blocks of RAM to track its progress as it runs."
+                core_rule + "The peak memory signature is fully dynamic. The system will be forced to constantly ask the runtime environment for fresh blocks of RAM to accurately map its progress."
             )
 
     def _build_execution_context_phrase(self, sig: PatternSignals) -> str:
         options = []
         if getattr(self.ctx, "has_recursion_in_loop", False) or sig.recursion_in_loop:
             options = [
-                "the function triggers a recursive call from inside a standard loop, resulting in an explosive, multi-branching tree",
-                "a loop actively forces the program to dive into self-referential recursion repeatedly, multiplying the workload"
+                "the function triggers a recursive call from inside a standard looping construct, generating an explosive and multi-branching tree",
+                "an iterative loop actively forces the program to dive into self-referential recursion repeatedly, massively multiplying the workload"
             ]
         elif sig.nested_loops:
             options = [
-                "the algorithm forces an inner loop to run completely from start to finish for every single step of the outer loop",
-                "the code relies on nested iteration, multiplying the operations together rather than adding them"
+                "the algorithm mandates that an inner loop runs completely from start to finish for every single step of the outer loop boundary",
+                "the code fully relies on nested iteration, multiplying the internal operations together rather than evaluating them linearly"
             ]
         elif sig.loop_depth >= 1:
             options = [
-                "the logic relies on a loop to process elements in a linear, step-by-step sequence",
-                "the algorithm systematically walks through the collection one item at a time"
+                "the primary logic utilizes a loop to systematically process elements in a linear, step-by-step sequence",
+                "the algorithm systematically traverses through the entire collection one item at a time"
             ]
         elif sig.membership_in_loop:
             options = [
-                "the loop is forced to actively scan through a collection over and over to check if specific items exist",
-                "the code repeatedly searches a list for a value while already inside a repetitive loop"
+                "the loop is mathematically forced to actively scan through a collection from the beginning repeatedly to check if specific items exist",
+                "the code repeatedly searches a linear list for a value while it is already embedded inside a repetitive loop"
             ]
         elif sig.comprehension_expansion:
             options = [
-                "Python uses a comprehension to dynamically unpack and build an entire collection behind the scenes",
-                "a single line of code is actually hiding a full loop that generates a new list or dictionary"
+                "Python leverages a syntactic comprehension to dynamically unpack and build an entire collection heavily behind the scenes",
+                "a single line of execution is actually masking a full internal loop that is actively generating a new structural list or dictionary"
             ]
         elif sig.has_recursion:
             if getattr(self.ctx, "has_memoization", False) or sig.has_memoization:
                 options = [
-                    "the recursive function checks a saved cache first, preventing it from wasting time calculating the same answers twice",
-                    "the algorithm uses memoization to remember past work, cutting off massive branches of the recursive tree"
+                    "the recursive function intelligently checks a saved cache first, completely preventing it from wasting time calculating the exact same numeric answers twice",
+                    "the algorithm applies memoization to physically remember past work, effectively amputating massive redundant branches from the recursive tree"
+                ]
+            elif sig.indirect_recursion:
+                options = [
+                    "two or more distinct functions call each other in a cyclic pattern, bouncing control back and forth to simulate standard recursion",
+                    "a cyclic indirect recursion chain occurs, driving the depth of the call stack downward through mutual function invocations"
                 ]
             elif sig.recursion_branching == "multi":
                 options = [
-                    "the function calls itself multiple times per step, causing the execution path to violently branch out like a tree",
-                    "multiple recursive calls force the program to split its attention, rapidly multiplying the total amount of work"
+                    "the function invokes itself multiple times per single step, causing the core execution path to violently branch out identically to a tree",
+                    "multiple recursive call paths force the running program to split its computational attention, rapidly multiplying the aggregate workload"
                 ]
             else:
                 options = [
-                    "the function relies on a single path of self-reference, diving deeper into the call stack until it hits a base case",
-                    "the code calls itself sequentially, drilling down to the bottom of the problem before bubbling back up"
+                    "the function adheres to a singular line of self-reference, continuously diving deeper into the call stack until hitting a definitive base case",
+                    "the code invokes itself cleanly and sequentially, drilling downwards to the absolute base of the problem before bubbling back to the surface"
                 ]
         elif sig.graph_traversal:
             options = [
-                "the algorithm navigates outward like a spiderweb, exploring connected nodes and tracking its path",
-                "the code uses a traversal technique to hop between linked data points in a network"
+                "the algorithm navigates progressively outward like a spiderweb, exploring all connected sub-nodes while safely tracking its traversal path",
+                "the code properly invokes a standard traversal technique to hop logically between specifically linked data points inside a complex network"
             ]
         elif sig.has_comment_block:
             options = [
-                "the interpreter briefly processes a block of documentation text",
-                "the execution passes over a static string annotation"
+                "the interpreter briefly processes a block of static documentation text with zero functional overhead",
+                "the execution cleanly passes over a static string annotation without evaluating operational logic"
             ]
         else:
             options = [
-                "the execution flows straight down through standard instructions without triggering any loops or recursion",
-                "the code operates directly on the data without repeating itself"
+                "the execution flow cascades completely straight down through standard instructions without triggering any loops or deep recursion",
+                "the targeted code operates explicitly on the provided data without repeating itself cyclically"
             ]
         return random.choice(options)
 
@@ -536,56 +546,58 @@ class EducationalInsightGenerator:
         ginfo = self._classify_big_o(global_t)
         
         snippet_refs = [
-            f"Looking at `{code_snippet}`", 
-            f"Breaking down this block", 
-            f"Analyzing `{code_snippet}`"
+            f"Looking closely at `{code_snippet}`", 
+            f"Breaking down this specific computational block", 
+            f"When analyzing `{code_snippet}`"
         ]
-        snippet_ref = random.choice(snippet_refs) if code_snippet else "Reviewing this segment"
+        snippet_ref = random.choice(snippet_refs) if code_snippet else "Reviewing this exact segment"
         
         context_phrase = self._build_execution_context_phrase(sig)
         educational_growth = self.explainer.explain_time_growth(ginfo, is_amortized=sig.complexity_signals.amortized_operation)
         
         insights = []
         if sig.memory_signals.geometric_capacity_growth:
-            insights.append("Notice that the variable is being multiplied or added to itself repeatedly inside a loop. This forces the computer to continuously reallocate massive chunks of memory, turning a simple loop into an incredibly slow exponential operation.")
+            insights.append("Notice carefully that the variable is being multiplied or added to itself repeatedly inside an active loop. This action commands the computer to continuously reallocate massive, doubling chunks of memory, turning what looks like a simple loop into an incredibly slow exponential operation.")
         elif sig.memory_signals.string_concatenation_in_loop:
-            insights.append("A common trap: appending to a string inside a loop with `+` forces Python to create a brand new string from scratch every time. This degrades speed dramatically, making it O(n^2) overall.")
+            insights.append("A very common architectural trap: appending directly to a string inside a loop with the addition operator physically forces Python to create a brand new string from scratch on every single cycle. This degrades speed dramatically, frequently culminating in O(n^2) performance.")
         elif sig.complexity_signals.f_string_usage:
-            insights.append("Using modern f-strings or `.join()` is a great practice. It builds the string efficiently in one go, rather than creating multiple slow, temporary copies in memory.")
+            insights.append("Implementing modern f-strings or `.join()` is an exceptionally great practice here. It effectively calculates and builds the full string efficiently in one final pass, rather than forcing the processor to create multiple slow, intermediate copies in system memory.")
 
         if sig.complexity_signals.aggregation_in_loop:
-            insights.append("Be careful: using functions like `sum()`, `max()`, or `min()` inside a loop means Python has to invisibly scan the entire list over and over again, easily causing O(n^2) slowdowns.")
+            insights.append("A note of caution: utilizing aggregation functions like `sum()`, `max()`, or `min()` directly inside a loop means Python must invisibly scan the entire sub-list over and over again from the beginning, easily causing severe quadratic O(n^2) slowdowns.")
         if sig.complexity_signals.bitwise_operations:
-            insights.append("Bitwise operators are incredibly fast. Because they manipulate binary numbers directly at the CPU hardware level, they bypass almost all high-level language overhead.")
+            insights.append("Bitwise operators are remarkably fast. Because they manipulate structural binary numbers directly at the absolute CPU hardware level, they effectively bypass almost all inherent high-level language translation overhead.")
         if sig.complexity_signals.boolean_short_circuit:
-            insights.append("This logic benefits from 'short-circuiting'. If the first part of an `and` / `or` check provides the definitive answer, Python completely skips evaluating the rest of the line, saving time.")
+            insights.append("This conditional logic benefits strongly from short-circuiting. If the first leading segment of an `and` / `or` evaluation provides the definitive boolean answer, Python completely abandons evaluating the rest of the line, immediately saving precious execution time.")
 
         if sig.recursion_in_loop:
-            insights.append("Warning: Combining loops and recursion creates a complex branching tree that slows down drastically as numbers get larger. Standard iteration is almost always safer.")
+            insights.append("Architectural Warning: Combining dense loops and recursion naturally spawns a complex, mathematically branching tree that bogs down drastically as input numbers get even slightly larger. Replacing this with standard flat iteration or caching is almost always safer.")
+        if sig.indirect_recursion:
+            insights.append("Indirect recursion forces the system into a potentially unbounded cyclic dependency. Be highly cautious to ensure that a base case exists in at least one of the ping-ponging functions to prevent immediate stack overflow crashes.")
         if sig.complexity_signals.inefficient_list_pop:
-            insights.append("Using `.pop(0)` on a standard list is surprisingly slow. Python has to manually shift every other item in the list one space to the left. Consider importing `collections.deque` instead.")
+            insights.append("Targeting `.pop(0)` on a standard Python list is surprisingly slow under the hood. Python is forced to manually drag and shift every other remaining item in the list one specific space to the left. Consider importing and utilizing `collections.deque` instead for instant execution.")
         if sig.complexity_signals.inefficient_list_insert:
-            insights.append("Inserting an item at the start of a list forces Python to push all existing items back to make room. This is a heavy, slow operation for large lists.")
+            insights.append("Mechanically inserting an item at the exact start of a populated list commands Python to systematically push all existing elements back one slot to make the necessary room. This behaves as a very heavy, linear operation for massive arrays.")
         if sig.complexity_signals.repeated_sort:
-            insights.append("Sorting a list is a heavy operation (usually O(n log n)). Placing a sort function inside a loop forces the computer to do that heavy lifting repeatedly, causing severe lag.")
+            insights.append("Sorting a collection is an inherently heavy operation, frequently bottlenecking at O(n log n). Placing a sort algorithm loosely inside a loop forces the CPU to repeat that heavy lifting unnecessarily, inducing extreme runtime lag.")
         if sig.complexity_signals.set_mathematical_ops:
-            insights.append("Set math (like unions or intersections) is highly optimized in Python. It compares collections much faster than trying to write manual loops to check for duplicates.")
+            insights.append("Native Set mathematics, such as unions or clean intersections, are highly optimized directly in Python's core layer. It processes and evaluates collections exponentially faster than attempting to write manual nested loops to check for duplication.")
         if sig.complexity_signals.dict_lookup_constant:
-            insights.append("Using `.get()` on a dictionary is excellent practice. It provides a safe, instant O(1) lookup without risking a program crash if the key doesn't exist.")
+            insights.append("Utilizing the `.get()` syntax on a dictionary is universally excellent practice. It yields a fundamentally safe, instant O(1) mathematical lookup without risking a hard program crash if the specific key string does not happen to exist.")
         if sig.has_backtracking_risk:
-            insights.append("By mutating state and making recursive calls, this algorithm behaves like it is exploring a maze and 'backtracking' when it hits a dead end. This is powerful, but scales poorly on large boards.")
+            insights.append("By systematically mutating environmental state and making recursive jumps, this algorithm functions essentially like it is blindly exploring a maze and 'backtracking' whenever it strikes a logical dead end. While exceptionally powerful, this fundamentally scales very poorly on large systemic boards.")
         if sig.has_early_exits:
-            insights.append("The use of `break` or `return` here is a great optimization. It allows the algorithm to stop working the exact second it finds the answer, rather than blindly finishing the loop.")
+            insights.append("The presence of a `break` or `return` interrupt here stands as a fantastic functional optimization. It grants the running algorithm permission to completely halt working the exact millisecond it discovers the answer, rather than pointlessly finishing out the remainder of the iteration.")
 
         insight_text = "\n\n" + " ".join(insights) if insights else ""
         
         dynamic_note = ""
         if hits > 0:
-            dynamic_note = f"\n\n*Runtime Check:* When we ran this code, the profiler noted this specific line executed {hits} times."
+            dynamic_note = f"\n\nRuntime Check: When the profiler ran this code natively, it confirmed that this exact line executed a total of {hits} times."
 
         return (
-            f"{snippet_ref}, we can observe that {context_phrase}. "
-            f"Because of this, the total time complexity evaluates to {ginfo.raw}.\n\n"
+            f"{snippet_ref}, we can explicitly observe that {context_phrase}. "
+            f"As a direct consequence of this structure, the total time complexity evaluates to {ginfo.raw}.\n\n"
             f"{educational_growth}"
             f"{insight_text}"
             f"{dynamic_note}"
@@ -596,38 +608,38 @@ class EducationalInsightGenerator:
         linfo = self._classify_big_o(local_s)
         
         snippet_refs = [
-            f"From a memory perspective, looking at `{code_snippet}`", 
-            f"Evaluating the RAM usage here",
-            f"Looking at how `{code_snippet}` handles memory"
+            f"Strictly from a memory perspective, looking at `{code_snippet}`", 
+            f"Evaluating the specific RAM allocation protocols here",
+            f"Analyzing precisely how `{code_snippet}` handles memory allocation"
         ]
-        snippet_ref = random.choice(snippet_refs) if code_snippet else "Reviewing the allocation strategies,"
+        snippet_ref = random.choice(snippet_refs) if code_snippet else "Reviewing the overarching allocation strategies,"
         
         educational_growth = self.explainer.explain_space_growth(global_s, ginfo, self.ctx)
         
         insights = []
         if sig.complexity_signals.amortized_operation:
-            insights.append(f"Locally, appending a single item only takes {local_s} space. But Globally, as the loop runs, the list grows into a much larger {global_s} structure.")
+            insights.append(f"Locally, pushing a single solitary item only commands {local_s} physical space. However, on a Global scale, as the loop completes its iterations, the list swells linearly into a much more demanding {global_s} structural footprint.")
         elif local_s != global_s and local_s == "O(1)":
-            insights.append(f"This specific line only needs {local_s} space to do its job. However, the overarching algorithm's peak memory usage is {global_s}.")
+            insights.append(f"This highly localized action only truly requires {local_s} footprint to finalize its immediate job. Nevertheless, the overarching architectural algorithm's absolute peak memory dependency rests at {global_s}.")
 
         if sig.memory_signals.geometric_capacity_growth:
-            insights.append("Doubling a string or list inside a loop doesn't just waste time—it aggressively eats up RAM. The memory required doubles every loop, quickly approaching a dangerous O(2^n) capacity limit.")
+            insights.append("Attempting to double a string or a list inside a tight loop does not just waste processor time, it aggressively cannibalizes RAM. The exact physical memory required duplicates on every loop cycle, hurtling quickly toward a devastating O(2^n) capacity threshold.")
         if sig.memory_signals.allocates_2d_lists:
-            insights.append("Creating nested arrays (like a grid or a matrix) requires significantly more contiguous memory blocks than a standard flat list.")
+            insights.append("Instantiating nested array layouts like a mathematical grid or a matrix matrix mandates significantly denser contiguous memory block reservations than generating a standard flat, one-dimensional array.")
         elif sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
-            insights.append("Generating new lists means the computer has to reserve fresh blocks of memory to store the incoming data elements.")
+            insights.append("Actively spawning brand new lists dictates that the operational computer must hunt for and deliberately reserve completely fresh blank blocks of internal memory to permanently house the newly incoming data elements.")
         if sig.memory_signals.allocates_sets or sig.memory_signals.uses_set_comprehension:
-            insights.append("Sets are amazing for fast lookups, but they achieve this by building a 'hash table' under the hood. This table intentionally leaves empty memory gaps, meaning a Set takes up more RAM than a List of the same size.")
+            insights.append("Sets are astonishingly capable tools for achieving instantaneous lookups, but they perform this magic by generating an invisible hash table directly under the hood. This table architecture intentionally leaves blank memory gaps to prevent collisions, meaning a Set definitively occupies more raw RAM than a standard List of the exact same elemental length.")
         if sig.memory_signals.performs_slicing:
-            insights.append("A common Python trap: slicing a list (like `arr[:]`) doesn't just point to the original list—it creates a complete, separate duplicate in memory. Be careful doing this inside loops.")
+            insights.append("A classically dangerous Python trap: slicing a full list syntactically using brackets does not simply establish a lightweight reference pointer to the original sequence, it forcibly instantiates a complete, separate duplicate array inside memory. It is highly advised to avoid executing this directly within loops.")
         if sig.memory_signals.recursive_stack_risk:
-            insights.append("Every time a recursive function calls itself, Python saves a 'frame' of the current state to memory. If the recursion goes thousands of levels deep, Python will crash with a 'RecursionError' to protect system RAM.")
+            insights.append("During every singular moment a recursive function calls itself, the core Python runtime engine saves an entire frame slice of the current internal state directly to active memory. If the sequence plunges thousands of levels deeply, Python will defensively crash with a RecursionError just to protect critical system RAM from fully exhausting.")
         if sig.memory_signals.efficient_deque_pop:
-            insights.append("Using a `deque` is a fantastic memory optimization for queues. It allows the system to clean up memory from the front of the line instantly without shifting data around.")
+            insights.append("Importing and operating on a `deque` operates as a phenomenally effective memory optimization tactic for list-like queues. It gracefully permits the system to immediately clean and discard memory off the absolute front of the line instantaneously, fully devoid of demanding data shifting protocols.")
         if sig.memory_signals.set_and_dict_updates:
-            insights.append("As you add more items to a Set or Dictionary, Python occasionally has to pause, grab a larger block of memory, and completely rebuild the hash table to keep lookups fast.")
+            insights.append("As you progressively populate more elements into a Set or Dictionary, Python must periodically pause execution, forcefully acquire a mathematically larger internal block of vacant memory, and meticulously rewrite the entire hash table from scratch to ensure future lookups remain blisteringly fast.")
         if sig.memory_signals.caches_results:
-            insights.append("Caching is a classic trade-off: you are intentionally sacrificing space (saving answers to a dictionary) to buy massive improvements in time (skipping redundant math).")
+            insights.append("Caching is the fundamental definition of the classic computational trade-off. You are willfully choosing to strategically sacrifice raw spatial capacity by securely saving previously calculated answers to a dictionary to successfully purchase massive, systemic improvements in sheer processing time by entirely bypassing redundant mathematical executions.")
 
         insight_text = "\n\n" + " ".join(insights) if insights else ""
         
@@ -635,11 +647,11 @@ class EducationalInsightGenerator:
         if mem_state:
             largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
             if largest and largest[1]['size'] > 1:
-                dynamic_note = f"\n\n*Runtime Diagnostic:* The profiler confirmed that the variable `{largest[0]}` grew to hold {largest[1]['size']} elements during execution."
+                dynamic_note = f"\n\nRuntime Diagnostic: The internal system profiler actively confirmed that the target variable `{largest[0]}` aggressively scaled up to physically hold {largest[1]['size']} elements during live code execution."
 
         return (
-            f"{snippet_ref}, this specific operation takes up an instantaneous footprint of {linfo.raw}. "
-            f"Ultimately, it contributes to an algorithm peak memory bound of {ginfo.raw}.\n\n"
+            f"{snippet_ref}, this extremely specific functional operation consumes an instantaneous localized footprint of {linfo.raw}. "
+            f"Ultimately, it heavily contributes to driving the overarching algorithm's peak memory boundary to {ginfo.raw}.\n\n"
             f"{educational_growth}"
             f"{insight_text}"
             f"{dynamic_note}"
@@ -649,48 +661,50 @@ class EducationalInsightGenerator:
         parts: List[str] = []
         
         if getattr(self.ctx, "has_recursion_in_loop", False) or sig.recursion_in_loop:
-            parts.append("Super-Exponential Iteration via Loop-Driven Recursive Branching.")
+            parts.append("Super-Exponential Computational Iteration initiated via Loop-Driven Recursive Branching.")
         elif sig.nested_loops:
-            parts.append("Multiplicative Repetition Scaling via Nested Loops.")
+            parts.append("Aggressive Multiplicative Repetition Scaling generated via Nested Logical Loops.")
             
         if getattr(self.ctx, "has_global_accumulation", False):
-            parts.append("Persistent Data Accumulation via Iteration.")
+            parts.append("Persistent Linear Data Accumulation triggered via Standard Iteration.")
 
         if sig.complexity_signals.aggregation_in_loop:
-            parts.append("Hidden Multiplicative Strain via Loop-Embedded Aggregations (`sum`, `max`).")
+            parts.append("Heavily Obscured Multiplicative Strain caused via Loop-Embedded Native Aggregations.")
         if sig.complexity_signals.bitwise_operations:
-            parts.append("Hyper-Optimized Constant Processing via Bitwise Math.")
+            parts.append("Hyper-Optimized Constant Hardware Processing executed via Raw Bitwise Mathematics.")
         if sig.complexity_signals.boolean_short_circuit:
-            parts.append("Evaluation Bypass Optimization via Boolean Short-Circuiting.")
+            parts.append("Pristine Evaluation Bypass Optimization achieved via Logical Boolean Short-Circuiting.")
             
         if sig.comprehension_expansion:
-            parts.append("Implicit Data Traversal via Syntactical Comprehension.")
-        if sig.has_recursion and not sig.recursion_in_loop:
+            parts.append("Implicit Accelerated Data Traversal executed via Compact Syntactical Comprehension.")
+        if sig.indirect_recursion:
+            parts.append("Cyclic Computational Execution instantiated via Indirect Mutual Recursion Dependencies.")
+        elif sig.has_recursion and not sig.recursion_in_loop:
             if sig.recursion_branching == "multi":
-                parts.append("Exponential Capacity Generation via Multi-Branch Recursion.")
+                parts.append("Hostile Exponential Capacity Generation triggered via Deep Multi-Branch Recursion.")
             else:
-                parts.append("Self-Referential Stack Utilization via Deep Recursion.")
+                parts.append("Extensive Self-Referential Stack Utilization occurring via Linear Depth Recursion.")
         if sig.has_memoization:
-            parts.append("Dynamic Programming Acceleration via Dictionary Caching.")
+            parts.append("Premium Dynamic Programming Acceleration securely achieved via Dictionary Caching.")
         if sig.has_backtracking_risk:
-            parts.append("Algorithmic State Backtracking via Recursive Mutation.")
+            parts.append("Complex Algorithmic State Backtracking heavily reliant upon Systemic Recursive Mutation.")
         if sig.graph_traversal:
-            parts.append("Structural Network Navigation via Graph Traversal.")
+            parts.append("Highly Structural Network Navigation facilitated via Dedicated Graph Traversal.")
         if sig.complexity_signals.membership_in_list:
-            parts.append("Suboptimal Sequential Scanning via List Membership Checks.")
+            parts.append("Markedly Suboptimal Sequential Scanning triggered via Linear List Membership Checks.")
         if sig.complexity_signals.set_mathematical_ops:
-            parts.append("Optimized Collection Transformation via Set Theory.")
+            parts.append("Exceptionally Optimized Collection Transformation executed via Applied Set Theory.")
         if sig.complexity_signals.dict_lookup_constant:
-            parts.append("Defensive Algorithmic Structuring via Dictionary `.get()`.")
+            parts.append("Highly Defensive Algorithmic Structuring natively secured via Dictionary Parsing.")
         if sig.memory_signals.performs_slicing:
-            parts.append("Volatile Spatial Exhaustion via Array Duplication Slicing.")
+            parts.append("Dangerously Volatile Spatial Exhaustion enacted via Array Duplication Slicing.")
         if sig.inline_ternary:
-            parts.append("Syntactic Execution Simplification via Inline Conditionals.")
+            parts.append("Rapid Syntactic Execution Simplification accomplished via Clean Inline Conditionals.")
         if sig.memory_signals.allocates_2d_lists:
-            parts.append("Heavy Matrix Spatial Construction via Multi-Dimensional Allocation.")
+            parts.append("Intensive Heavy Matrix Spatial Construction fueled via Multi-Dimensional Allocation.")
             
         if "n!" in global_t.lower() or "n^n" in global_t.lower() or "n^d" in global_t.lower():
-            parts.append("Combinatorial Mathematical Explosion via Hostile Systemic Expansion.")
+            parts.append("Massive Combinatorial Mathematical Explosion forced via Hostile Systemic Expansion.")
 
         if parts:
             return "\n\nArchitectural Patterns Detected:\n" + "\n".join(f"- {p}" for p in parts)
@@ -699,13 +713,13 @@ class EducationalInsightGenerator:
     def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, hits=0, mem_state=None):
         if is_dead and hits == 0:
             t_desc = (
-                f"The target sequence `{code_snippet}` is classified as Dead Code. Because the logic "
-                f"mechanically forbids execution flow from traversing this block, it contributes zero actionable overhead, "
-                f"resolving effectively to an O(1) runtime penalty."
+                f"The targeted structural sequence `{code_snippet}` is strictly classified as unreachable Dead Code. Because the fundamental logic "
+                f"mechanically explicitly forbids execution flow from traversing inside this specific block, it actively contributes zero actionable processing overhead, "
+                f"resolving its impact effectively to an immaculate O(1) runtime penalty."
             )
             s_desc = (
-                "Due to the structural impossibility of triggering this block, the engine never requests memory allocations "
-                "for it. The spatial footprint remains completely unaltered."
+                "Due cleanly to the rigid structural impossibility of ever triggering this block, the engine definitively never requests memory allocations "
+                "for it. The spatial footprint remains completely unblemished and unaltered."
             )
             return t_desc, s_desc
 
@@ -726,25 +740,25 @@ class EducationalInsightGenerator:
         
         if "loop" in op_lower:
             templates = [
-                f"\n\nBottleneck Warning: The primary reason this algorithm evaluates to {final_time} is the massive volume of repetitions forced by this {op_lower}.",
-                f"\n\nBottleneck Warning: This {op_lower} forces the computer to cycle over data repeatedly, creating the structural drag that pulls performance down to {final_time}."
+                f"\n\nBottleneck Warning: The definitive primary reason this algorithm evaluates so highly to {final_time} is the massive volume of repetitions explicitly forced by this {op_lower}.",
+                f"\n\nBottleneck Warning: This specific {op_lower} forces the operating computer to systematically cycle over data repeatedly, actively creating the structural computational drag that pulls sheer performance down to {final_time}."
             ]
         elif "recur" in op_lower or "call" in op_lower:
             templates = [
-                f"\n\nBottleneck Warning: The sheer amount of branching logic generated by this {op_lower} is the main culprit anchoring the algorithm's speed to {final_time}.",
-                f"\n\nBottleneck Warning: Because this {op_lower} creates overlapping sub-problems without remembering past answers, it forces redundant math that causes a {final_time} delay."
+                f"\n\nBottleneck Warning: The sheer, unmitigated amount of branching logic actively generated by this {op_lower} acts as the main systemic culprit heavily anchoring the algorithm's absolute speed to {final_time}.",
+                f"\n\nBottleneck Warning: Because this exactly constructed {op_lower} creates overlapping sub-problems without correctly remembering past answers, it forces a massive cascade of redundant mathematical operations causing a severe {final_time} delay."
             ]
         elif "comprehension" in op_lower:
             templates = [
-                f"\n\nBottleneck Warning: Do not be fooled by its one-line elegance. Expanding this {op_lower} requires hidden iteration, defining the {final_time} runtime ceiling."
+                f"\n\nBottleneck Warning: Do not be computationally fooled by its one-line elegance. Physically expanding this {op_lower} heavily requires hidden, intensive iteration, solidly defining the exact {final_time} runtime performance ceiling."
             ]
         elif "sort" in op_lower:
             templates = [
-                f"\n\nBottleneck Warning: Sorting data is a mathematically heavy task. Relying on this {op_lower} operation acts as a barrier, preventing the algorithm from running faster than {final_time}."
+                f"\n\nBottleneck Warning: Algorithmically sorting pure data is a fundamentally mathematical heavy task. Strictly relying on this {op_lower} operation acts as a massive execution barrier, fully preventing the algorithm from running any faster than {final_time}."
             ]
         else:
             templates = [
-                f"\n\nBottleneck Warning: The most computationally intensive work happens entirely within this {op_lower}, dictating the final {final_time} time complexity."
+                f"\n\nBottleneck Warning: The absolute most computationally intensive, heaviest lifting work definitively happens entirely within this {op_lower}, ruthlessly dictating the final systemic {final_time} mathematical time complexity."
             ]
         return random.choice(templates)
 
@@ -753,21 +767,21 @@ class EducationalInsightGenerator:
         
         if "recur" in op_lower or "call" in op_lower:
             templates = [
-                f"\n\nSpace Bottleneck Warning: Every single jump in this {op_lower} adds a new required block of memory to the call stack, driving the peak memory up to {final_space}.",
-                f"\n\nSpace Bottleneck Warning: The algorithm hoards memory until the deepest level of the {op_lower} is reached. This is what causes the {final_space} peak footprint."
+                f"\n\nSpace Bottleneck Warning: Every single isolated functional jump deep inside this {op_lower} mandatorily adds a completely new required block of memory explicitly to the call stack, violently driving the peak system memory directly up to {final_space}.",
+                f"\n\nSpace Bottleneck Warning: The core algorithm greedily hoards physical memory until the deepest structural level of the {op_lower} is successfully reached. This exact behavior is precisely what systematically causes the massive {final_space} peak footprint."
             ]
         elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower or "expansion" in op_lower:
             templates = [
-                f"\n\nSpace Bottleneck Warning: Actively forcing the computer to carve out fresh memory blocks for new arrays via this {op_lower} is what defines the {final_space} spatial constraints.",
-                f"\n\nSpace Bottleneck Warning: Rather than shuffling data in-place, this {op_lower} physically clones structures, ensuring the overall memory requirements escalate to {final_space}."
+                f"\n\nSpace Bottleneck Warning: Actively mandating the local computer to brutally carve out fresh memory blocks for sprawling new arrays via this exact {op_lower} is what cleanly defines the {final_space} severe spatial constraints.",
+                f"\n\nSpace Bottleneck Warning: Rather than intelligently shuffling data lightly in-place, this {op_lower} physically forcefully clones memory structures entirely, absolutely ensuring the overarching systemic memory requirements escalate to {final_space}."
             ]
         elif "slice" in op_lower or "string" in op_lower or "concat" in op_lower:
             templates = [
-                f"\n\nSpace Bottleneck Warning: Because slicing and standard string building creates total duplicate clones rather than just simple pointers, this {op_lower} balloons the peak spatial limits to {final_space}."
+                f"\n\nSpace Bottleneck Warning: Because basic array slicing and standard string building forcefully creates total duplicate memory clones rather than relying on just simple, elegant reference pointers, this {op_lower} violently balloons the peak absolute spatial limits directly to {final_space}."
             ]
         else:
             templates = [
-                f"\n\nSpace Bottleneck Warning: The sheer density of intermediate data that must be held in RAM because of this {op_lower} is what causes the overall capacity values to reach {final_space}."
+                f"\n\nSpace Bottleneck Warning: The sheer systemic density of newly generated intermediate data that must strictly be held actively in RAM exactly because of this {op_lower} is what brutally causes the overall capacity evaluation values to definitively reach {final_space}."
             ]
         return random.choice(templates)
 
@@ -776,20 +790,20 @@ class EducationalInsightGenerator:
         
         if "log" in time_lower:
             templates = [
-                f"\n\nAlgorithmic Mastery: Splitting the problem space logarithmically is a brilliant optimization. By discarding half the unneeded data at every step, this {operation.lower()} boasts hyper-scalable {global_time} execution speeds.",
-                f"\n\nAlgorithmic Mastery: Excellent 'Divide and Conquer' synthesis. Because this {operation.lower()} avoids checking every single item linearly, it guarantees a phenomenal {global_time} performance curve even on massive inputs."
+                f"\n\nAlgorithmic Mastery: Systematically splitting the deep problem space logarithmically is a truly brilliant mathematical optimization. By proactively discarding half the unneeded data blindly at every step, this deeply refined {operation.lower()} absolutely boasts hyper-scalable {global_time} pristine execution speeds.",
+                f"\n\nAlgorithmic Mastery: Excellent implementation of the classic Divide and Conquer synthesis. Because this precisely coded {operation.lower()} wonderfully avoids checking every single item linearly, it guarantees a phenomenal {global_time} performance curve even on truly massive, heavy inputs."
             ]
         elif "√" in time_lower or "sqrt" in time_lower:
             templates = [
-                f"\n\nAlgorithmic Mastery: Phenomenal optimization. By successfully identifying that you only need to check factors up to the square root, this {operation.lower()} bypasses staggering amounts of useless iterations, locking in {global_time} speeds."
+                f"\n\nAlgorithmic Mastery: Phenomenal logical optimization. By successfully recognizing the mathematical fact that you legitimately only need to verify factors actively up to the numeric square root, this {operation.lower()} intelligently bypasses staggering amounts of useless cyclic iterations, cleanly locking in blazing {global_time} speeds."
             ]
         elif "1" in time_lower:
             templates = [
-                f"\n\nAlgorithmic Mastery: Pristine execution. By grabbing values instantly through hashed keys or direct index pointers, this {operation.lower()} completely avoids any repetitive scanning, executing at a perfect {global_time}."
+                f"\n\nAlgorithmic Mastery: Pristine operational execution. By intelligently grabbing target values absolutely instantly through hashed memory keys or explicitly direct index pointers, this refined {operation.lower()} completely avoids any form of repetitive sequential scanning, elegantly executing at a mathematically perfect {global_time} rating."
             ]
         else:
             templates = [
-                f"\n\nAlgorithmic Mastery: The logic inside this {operation.lower()} is exceptionally well-structured. By sidestepping redundant cycles, it maintains a lean and highly optimal {global_time} speed."
+                f"\n\nAlgorithmic Mastery: The internal processing logic embedded deeply inside this {operation.lower()} is exceptionally well-structured mathematically. By cleanly sidestepping bloated redundant execution cycles, it successfully maintains an incredibly lean and highly optimal {global_time} processing speed."
             ]
         return random.choice(templates)
 
