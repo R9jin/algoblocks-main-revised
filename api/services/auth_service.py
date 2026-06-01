@@ -102,10 +102,17 @@ class AuthService:
 
     @staticmethod
     def update_assessment(req: AssessmentRequest):
-        if not req.email or not req.assessment_key:
+        actual_key = req.assessment_key or req.key
+        if not req.email or not actual_key:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
-        UserRepository.update_assessment(req.email, req.assessment_key, req.data or {})
+        save_data = req.data or {}
+        if req.score is not None:
+            save_data['score'] = req.score
+        if req.passed is not None:
+            save_data['passed'] = req.passed
+            
+        UserRepository.update_assessment(req.email, actual_key, save_data)
         user = UserRepository.find_by_email(req.email)
         return {
             "status": "success",

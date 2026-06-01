@@ -143,6 +143,11 @@ export const syncDownFromServer = async () => {
                     const normalized = item.data ? { ...item, ...item.data } : item;
                     await progressDB.setItem(normalized.key || normalized.lesson_id, normalized);
                 }
+            } else if (typeof progressList === 'object' && progressList !== null) {
+                for (const [key, val] of Object.entries(progressList)) {
+                    const normalized = typeof val === 'object' && val !== null ? (val.data ? { ...val, ...val.data } : val) : { score: val };
+                    await progressDB.setItem(key, normalized);
+                }
             }
         }
 
@@ -156,6 +161,11 @@ export const syncDownFromServer = async () => {
                     const normalized = item.data ? { ...item, ...item.data } : item;
                     await assessmentsDB.setItem(normalized.key || normalized.assessment_key, normalized);
                 }
+            } else if (typeof assessmentList === 'object' && assessmentList !== null) {
+                for (const [key, val] of Object.entries(assessmentList)) {
+                    const normalized = typeof val === 'object' && val !== null ? (val.data ? { ...val, ...val.data } : val) : val;
+                    await assessmentsDB.setItem(key, normalized);
+                }
             }
         }
 
@@ -166,7 +176,6 @@ export const syncDownFromServer = async () => {
             const submissionsList = data.submissions || data;
             if (Array.isArray(submissionsList)) {
                 for (const item of submissionsList) {
-                    // CRITICAL FIX: Normalize submissions too
                     const normalized = item.data ? { ...item, ...item.data } : item;
                     if (normalized.activityId) {
                         await submissionsDB.setItem(normalized.activityId, normalized);
