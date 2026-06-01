@@ -11,8 +11,12 @@ def get_progress(user_email: str = Depends(get_current_user_email)):
         raise HTTPException(status_code=401, detail="Invalid user token")
 
     try:
-        # Returning raw array to fix the frontend .map() parsing error
         progress_data = list(db["progress"].find({"userId": user_email}, {"_id": 0}))
+        # Clean corrupted nested fields before returning
+        for item in progress_data:
+            if "data" in item and isinstance(item["data"], dict):
+                nested = item.pop("data")
+                item.update(nested)
         return progress_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -24,6 +28,11 @@ def get_assessments(user_email: str = Depends(get_current_user_email)):
 
     try:
         assessment_data = list(db["assessments"].find({"userId": user_email}, {"_id": 0}))
+        # Clean corrupted nested fields before returning
+        for item in assessment_data:
+            if "data" in item and isinstance(item["data"], dict):
+                nested = item.pop("data")
+                item.update(nested)
         return assessment_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -53,7 +62,6 @@ def get_all_submissions(user_email: str = Depends(get_current_user_email)):
         raise HTTPException(status_code=401, detail="Invalid user token")
 
     try:
-        # Fetch all submissions for this user
         submissions_data = list(db["submissions"].find({"userId": user_email}, {"_id": 0}))
         return submissions_data
     except Exception as e:
@@ -69,14 +77,14 @@ def update_progress(payload: dict = Body(...), user_email: str = Depends(get_cur
         if not key:
             raise HTTPException(status_code=400, detail="Missing progress key or lesson_id")
 
-        # Fallback check: If the frontend sent nested data, flatten it
+        # Flatten if needed
         actual_data = payload.get("data", payload)
-        if isinstance(actual_data, dict):
+        if isinstance(actual_data, dict) and actual_data is not payload:
             for k, v in payload.items():
                 if k != "data":
                     actual_data[k] = v
         else:
-            actual_data = payload
+            actual_data = payload.copy()
 
         actual_data["key"] = key
         actual_data["userId"] = user_email
@@ -101,14 +109,14 @@ def update_assessment(payload: dict = Body(...), user_email: str = Depends(get_c
         if not key:
             raise HTTPException(status_code=400, detail="Missing assessment key")
 
-        # Fallback check: If the frontend sent nested data, flatten it
+        # Flatten if needed
         actual_data = payload.get("data", payload)
-        if isinstance(actual_data, dict):
+        if isinstance(actual_data, dict) and actual_data is not payload:
             for k, v in payload.items():
                 if k != "data":
                     actual_data[k] = v
         else:
-            actual_data = payload
+            actual_data = payload.copy()
 
         actual_data["key"] = key
         actual_data["userId"] = user_email

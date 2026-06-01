@@ -2,12 +2,11 @@
 import { assessmentsDB, progressDB, submissionsDB, syncQueueDB } from "../db";
 
 // CRITICAL FIX: Use environment variables so it works on both Localhost AND Vercel
-const API_BASE_URL = import.meta.env.VITE_API_URL 
-    ? `${import.meta.env.VITE_API_URL}/api` 
+const API_BASE_URL = import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
     : "http://localhost:8000/api";
 
 const getAuthHeaders = () => {
-    // Check both potential token storage keys to be safe
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token");
     if (!token) {
         return { "Content-Type": "application/json" };
@@ -21,12 +20,12 @@ const getAuthHeaders = () => {
 const addToSyncQueue = async (url, method, payload, type) => {
     try {
         const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 9);
-        await syncQueueDB.setItem(id, { 
-            url, 
-            method, 
-            payload, 
-            type, 
-            timestamp: Date.now() 
+        await syncQueueDB.setItem(id, {
+            url,
+            method,
+            payload,
+            type,
+            timestamp: Date.now()
         });
         console.log(`[Offline] Saved ${type} to sync queue.`);
     } catch (err) {
@@ -47,7 +46,7 @@ export const syncManager = {
         try {
             await submissionsDB.setItem(activityId, payload);
             window.dispatchEvent(new Event("localDataSynced")); // Notify UI immediately
-        } catch (err) {}
+        } catch (err) { }
 
         if (!navigator.onLine) {
             await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
@@ -84,7 +83,7 @@ export const syncManager = {
         try {
             await progressDB.setItem(lessonId, payload);
             window.dispatchEvent(new Event("localDataSynced"));
-        } catch (err) {}
+        } catch (err) { }
 
         if (!navigator.onLine) {
             await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
@@ -123,7 +122,7 @@ export const syncManager = {
         try {
             await assessmentsDB.setItem(assessmentKey, payload);
             window.dispatchEvent(new Event("localDataSynced"));
-        } catch (err) {}
+        } catch (err) { }
 
         if (!navigator.onLine) {
             await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
@@ -163,6 +162,13 @@ export const syncManager = {
             for (const key of keys) {
                 const item = await syncQueueDB.getItem(key);
                 try {
+                    // Safety check if items saved incorrectly in the queue format
+                    if (!item.url || !item.method || !item.payload) {
+                        console.warn(`[Sync] Malformed queue item ${key}, removing.`);
+                        await syncQueueDB.removeItem(key);
+                        continue;
+                    }
+
                     const response = await fetch(item.url, {
                         method: item.method,
                         headers: getAuthHeaders(),
@@ -173,7 +179,7 @@ export const syncManager = {
                         await syncQueueDB.removeItem(key);
                         console.log(`[Sync] Successfully processed queued ${item.type}`);
                     } else if (response.status === 401) {
-                        break; 
+                        break;
                     }
                 } catch (err) {
                     console.error(`[Sync] Queue item ${key} failed, keeping in queue.`);
@@ -197,10 +203,11 @@ export const syncDownFromServer = async () => {
         const progRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
         if (progRes.ok) {
             const data = await progRes.json();
-            const progressList = data.progress || data; 
+            const progressList = data.progress || data;
             if (Array.isArray(progressList)) {
                 for (const item of progressList) {
-                    await progressDB.setItem(item.key || item.lesson_id, item);
+                    const normalized = item.data ? { ...item, ...item.data } : item;
+                    await progressDB.setItem(normalized.key || normalized.lesson_id, normalized);
                 }
             }
         }
@@ -209,15 +216,16 @@ export const syncDownFromServer = async () => {
         const assRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
         if (assRes.ok) {
             const data = await assRes.json();
-            const assessmentList = data.assessments || data; 
+            const assessmentList = data.assessments || data;
             if (Array.isArray(assessmentList)) {
                 for (const item of assessmentList) {
-                    await assessmentsDB.setItem(item.key || item.assessment_key, item);
+                    const normalized = item.data ? { ...item, ...item.data } : item;
+                    await assessmentsDB.setItem(normalized.key || normalized.assessment_key, normalized);
                 }
             }
         }
 
-        // 3. Submissions (The Fix)
+        // 3. Submissions
         const subRes = await fetch(`${API_BASE_URL}/get-submissions`, { headers });
         if (subRes.ok) {
             const data = await subRes.json();
@@ -227,7 +235,7 @@ export const syncDownFromServer = async () => {
                     if (item.activityId) {
                         await submissionsDB.setItem(item.activityId, item);
                         if (item.userId && item.moduleId) {
-                             await submissionsDB.setItem(`${item.userId}_${item.moduleId}_${item.activityId}`, item);
+                            await submissionsDB.setItem(`${item.userId}_${item.moduleId}_${item.activityId}`, item);
                         }
                     }
                 }

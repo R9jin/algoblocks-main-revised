@@ -105,7 +105,9 @@ export default function AssessmentPage() {
         const existingResult = await assessmentsDB.getItem(assessmentKey);
         
         if (existingResult) {
-          setPrevResult(existingResult);
+          // Normalize locally corrupted nested data to fix the blank UI
+          const normalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
+          setPrevResult(normalized);
         }
 
         // Check if there's an in-progress draft (local storage)
@@ -290,25 +292,38 @@ export default function AssessmentPage() {
     // 2. Cloud Sync (or Queue) 
     // ==========================================
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken"); 
+    
+    const API_TARGET = `${API_BASE.replace(/\/$/, '')}/api`;
+
+    // FIX: Format exactly how syncManager expects it
+    const queuePayloadAssm = {
+        url: `${API_TARGET}/update-assessment`,
+        method: "POST",
+        payload: { email: user.email, key: assessmentKey, assessment_key: assessmentKey, ...result },
+        type: "assessment",
+        timestamp: Date.now()
+    };
+    
+    const queuePayloadProg = {
+        url: `${API_TARGET}/update-progress`,
+        method: "POST",
+        payload: { email: user.email, key: assessmentKey, lesson_id: assessmentKey, score: finalScore },
+        type: "progress",
+        timestamp: Date.now()
+    };
 
     if (navigator.onLine && user.email && !user.isGuest) {
       try {
-        const res = await fetch(`${API_BASE}/api/update-assessment`, {
+        const res = await fetch(`${API_TARGET}/update-assessment`, {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
-          },
-          // FIX: Flatten the payload. No nested 'data' key!
-          body: JSON.stringify({ email: user.email, key: assessmentKey, assessment_key: assessmentKey, ...result })
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(queuePayloadAssm.payload)
         });
-        const progRes = await fetch(`${API_BASE}/api/update-progress`, {
+        
+        const progRes = await fetch(`${API_TARGET}/update-progress`, {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
-          },
-          body: JSON.stringify({ email: user.email, key: assessmentKey, lesson_id: assessmentKey, score: finalScore })
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(queuePayloadProg.payload)
         });
 
         if (res.ok && progRes.ok) {
@@ -319,14 +334,13 @@ export default function AssessmentPage() {
         }
       } catch (err) {
         const syncId = `sync_${Date.now()}`;
-        // FIX: Flatten queue payload to match
-        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, key: assessmentKey, assessment_key: assessmentKey, ...result } });
-        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, key: assessmentKey, lesson_id: assessmentKey, score: finalScore } });
+        await syncQueueDB.setItem(`${syncId}_assm`, queuePayloadAssm);
+        await syncQueueDB.setItem(`${syncId}_prog`, queuePayloadProg);
       }
     } else if (user.email && !user.isGuest) {
         const syncId = `sync_${Date.now()}`;
-        await syncQueueDB.setItem(`${syncId}_assm`, { type: 'ASSESSMENT', action: 'POST', data: { email: user.email, key: assessmentKey, assessment_key: assessmentKey, ...result } });
-        await syncQueueDB.setItem(`${syncId}_prog`, { type: 'PROGRESS', action: 'POST', data: { email: user.email, key: assessmentKey, lesson_id: assessmentKey, score: finalScore } });
+        await syncQueueDB.setItem(`${syncId}_assm`, queuePayloadAssm);
+        await syncQueueDB.setItem(`${syncId}_prog`, queuePayloadProg);
     }
   };
 
