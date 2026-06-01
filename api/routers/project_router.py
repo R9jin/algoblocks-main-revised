@@ -36,8 +36,8 @@ def save_project(
     req: SaveProjectRequest, 
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # Force the owner_id to be the authenticated user's email
-    req.owner_id = trusted_email
+    # FIX: Use userId to match SaveProjectRequest and ProjectService
+    req.userId = trusted_email
     return ProjectService.save_project(req)
 
 @router.post("/delete")
@@ -47,6 +47,6 @@ def delete_project(
     payload: Dict[str, str], 
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # Force the owner checks in the service by injecting trusted email
-    payload["owner_id"] = trusted_email
+    # FIX: Inject userId instead of owner_id
+    payload["userId"] = trusted_email
     return ProjectService.delete_project(payload)

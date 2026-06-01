@@ -130,6 +130,17 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   }).filter(Boolean);
 };
 
+// HELPER: Centralized Token & User Retrieval
+const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+const getUser = () => {
+    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+};
+const getAuthHeaders = () => {
+    const token = getToken();
+    return token ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` } : { "Content-Type": "application/json" };
+};
+
 export default function MainApp() {
   const location = useLocation();
   const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -309,13 +320,15 @@ export default function MainApp() {
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
-      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-      if (!storedUser) { setAllTemplates(baseTemplates); return; }
-      const user = JSON.parse(storedUser);
+      const user = getUser();
+      if (!user) { setAllTemplates(baseTemplates); return; }
 
       if (navigator.onLine && API_BASE) {
         try {
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`);
+          // FIX: Add auth headers to fetch requests to prevent silent 401s
+          const headers = getAuthHeaders();
+          
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
           if (pRes.ok) {
             const pData = await pRes.json();
             const cloudProjects = pData.projects || pData || [];
@@ -325,7 +338,7 @@ export default function MainApp() {
                }
             }
           }
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`);
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`, { headers });
           if (tRes.ok) {
             const tData = await tRes.json();
             const cloudTemplates = tData.templates || tData || [];
@@ -427,7 +440,7 @@ export default function MainApp() {
     if (isOnline && API_BASE) {
       try {
         const response = await fetch(`${API_BASE}/api/analyze`, {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code })
+          method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ code })
         });
         if (!response.ok) throw new Error("FastAPI analyze failed");
         const data = await response.json();
@@ -550,7 +563,17 @@ export default function MainApp() {
   };
 
   const openSaveModal = () => {
-    if (!activeTab.blocklyJson) { showToast("The workspace is empty. Nothing to save!", "error"); return; }
+    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) { 
+        showToast("The workspace is empty. Nothing to save!", "error"); 
+        return; 
+    }
+    
+    // FIX: Pre-check if user is logged in before opening the modal
+    if (!getUser()) {
+        showToast("You must be logged in to save.", "error");
+        return;
+    }
+
     setSaveModal({
       isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
       title: activeTab.title !== "Untitled Project" ? activeTab.title : "", description: "", category: "Custom Templates", saveType: activeTab.saveType
@@ -581,9 +604,12 @@ export default function MainApp() {
   };
 
   const submitSave = async () => {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return;
-    const user = JSON.parse(userStr);
+    // FIX: Get user explicitly handling both Session and Local storage
+    const user = getUser();
+    if (!user) {
+        showToast("Error: You must be logged in to save.", "error");
+        return;
+    }
     
     const id = saveModal.editingId || (saveModal.saveType === 'template' ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
     
@@ -605,8 +631,11 @@ export default function MainApp() {
               ? { templateId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
               : { projectId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
 
+            // FIX: Add strictly defined auth headers
             const res = await fetch(`${API_BASE}${endpoint}`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(apiPayload)
+                method: 'POST', 
+                headers: getAuthHeaders(), 
+                body: JSON.stringify(apiPayload)
             });
 
             if (res.ok) {
@@ -622,6 +651,8 @@ export default function MainApp() {
                 if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType });
                 fetchTemplates();
                 return;
+            } else {
+                console.warn(`Server returned ${res.status}, falling back to local queue`);
             }
         } catch (err) { console.warn("Direct save failed, gracefully falling back to background queue.", err); }
     }
