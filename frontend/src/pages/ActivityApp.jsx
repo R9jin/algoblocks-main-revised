@@ -115,7 +115,8 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
 };
 
 const ActivityAppInner = ({ moduleId, activityId }) => {
-  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  // Fix 1: Ensure API_BASE matches MainApp.jsx fallback logic so worker is correctly engaged
+  const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
 
   const { worker, isEngineReady, resetWorker } = usePyodide();
@@ -201,7 +202,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 
-  // Worker Message Handler (using Ref to avoid stale closures)
   workerMessageHandler.current = (event) => {
     const { type, data, counts } = event.data;
 
@@ -496,7 +496,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           } catch (e) { }
         }
 
-        // Ensure immediate readyness for workspace
         if (!cancelled) {
           isReadyRef.current = true;
         }
@@ -587,7 +586,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     workerRef.current?.postMessage({ type: "ANALYZE_CODE", code });
   };
 
-  // 1. Single robust useEffect gating Analyze trigger against isEngineReady
   useEffect(() => {
     if (isEngineReady && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
       const timeoutId = setTimeout(() => analyzeCode(generatedPython), 500);
@@ -947,17 +945,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                               const isBottleneck = actualBottleneckIndices.includes(i); const timeColor = getComplexityColor(timeComplexity); const spaceColor = getComplexityColor(spaceComplexity); const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
                               const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
 
+                              // Fix 2: Changed text color to #000000 and added the dropdown-chevron to the Space Complexity column.
                               return (
                                 <React.Fragment key={i}>
                                   <tr className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`} onClick={() => toggleLine(i)} style={{ cursor: "pointer", borderLeft: isBottleneck ? "4px solid #ff375f" : isEfficient ? "4px solid #2ecc71" : expandedLines[i] ? `3px solid ${timeColor}` : "none", backgroundColor: isBottleneck ? "rgba(255, 55, 95, 0.12)" : isEfficient ? "rgba(46, 204, 113, 0.12)" : "transparent" }}>
-                                    <td className="code-cell" style={{ color: "#EBE4FF", paddingLeft: line.indent ? `${line.indent * 15 + 20}px` : "20px" }}>{line.lineOfCode || line.code}</td>
-                                    <td className="operation-cell" style={{ color: "#EBE4FF", display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <td className="code-cell" style={{ color: "#000000", paddingLeft: line.indent ? `${line.indent * 15 + 20}px` : "20px" }}>{line.lineOfCode || line.code}</td>
+                                    <td className="operation-cell" style={{ color: "#000000", display: "flex", alignItems: "center", gap: "8px" }}>
                                       {line.operation || "-"}
-                                      {isBottleneck && <span style={{ backgroundColor: "#ff375f", color: "white", fontSize: "0.7rem", fontWeight: "bold", padding: "3px 8px", borderRadius: "12px", textTransform: "uppercase", marginLeft: "10px", boxShadow: "0 0 8px rgba(255, 55, 95, 0.6)" }}>Bottleneck</span>}
+                                      {isBottleneck && <span className="bottleneck-badge" style={{ backgroundColor: "#ff375f", color: "white", fontSize: "0.7rem", fontWeight: "bold", padding: "3px 8px", borderRadius: "12px", textTransform: "uppercase", marginLeft: "10px", boxShadow: "0 0 8px rgba(255, 55, 95, 0.6)" }}>Bottleneck</span>}
                                       {isEfficient && <span style={{ backgroundColor: "#2ecc71", color: "white", fontSize: "0.7rem", fontWeight: "bold", padding: "3px 8px", borderRadius: "12px", textTransform: "uppercase", marginLeft: "10px", boxShadow: "0 0 8px rgba(46, 204, 113, 0.6)" }}>Efficient</span>}
                                     </td>
                                     <td className="complexity-cell" style={{ color: timeColor, fontWeight: "bold" }}>{formatComplexity(timeComplexity)}</td>
-                                    <td className="complexity-cell" style={{ color: spaceColor, fontWeight: "bold" }}>{formatComplexity(spaceComplexity)}</td>
+                                    <td className="complexity-cell" style={{ color: spaceColor, fontWeight: "bold" }}>{formatComplexity(spaceComplexity)} <span className="dropdown-chevron" style={{ transform: expandedLines[i] ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block', transition: 'transform 0.2s', marginLeft: '6px' }}>v</span></td>
                                   </tr>
                                   {expandedLines[i] && (
                                     <tr className="explanation-row">
