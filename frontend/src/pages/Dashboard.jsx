@@ -46,8 +46,8 @@ export default function Dashboard() {
     }
     const storedUser = JSON.parse(storedUserStr);
 
-    // Pull Fresh Cloud Data
-    if (navigator.onLine && API_BASE) {
+    // Pull Fresh Cloud Data (Removed restrictive API_BASE check)
+    if (navigator.onLine) {
       try {
         const token = getToken();
         const headers = { "Content-Type": "application/json", ...(token && { "Authorization": `Bearer ${token}` }) };
@@ -104,7 +104,8 @@ export default function Dashboard() {
 
   // 2. Background function to sweep unsynced items and push to MongoDB
   const syncOfflineItems = useCallback(async () => {
-    if (!navigator.onLine || !API_BASE) return;
+    // FIX: Removed the API_BASE check that blocked the sync process
+    if (!navigator.onLine) return;
     
     const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
     const token = getToken();
@@ -114,17 +115,20 @@ export default function Dashboard() {
     const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
     let syncedSomething = false;
 
-    // Sweep Projects
-    await projectsDB.iterate(async (proj, key) => {
-      if (!proj.synced && (proj.owner_id === user.email || proj.userId === user.email)) {
-        try {
+    // FIX: Safely loop projects instead of uncontrolled iterate
+    try {
+      const pKeys = await projectsDB.keys();
+      for (const key of pKeys) {
+        const proj = await projectsDB.getItem(key);
+        if (proj && !proj.synced && (proj.owner_id === user.email || proj.userId === user.email)) {
           const apiPayload = { 
               projectId: key.startsWith('local_') ? null : key, 
               userId: user.email, 
-              name: proj.title || proj.name, 
+              name: proj.title || proj.name || "Untitled Project", 
               workspace: { blocklyJson: proj.data || proj.workspace?.blocklyJson }, 
               pythonCode: proj.pythonCode || "" 
           };
+          
           const res = await fetch(`${API_BASE}/api/projects/save`, { method: 'POST', headers, body: JSON.stringify(apiPayload) });
           
           if (res.ok) {
@@ -134,22 +138,27 @@ export default function Dashboard() {
             if (newId !== key) await projectsDB.removeItem(key); // Cleanup local temp ID
             syncedSomething = true;
           }
-        } catch (e) { console.warn("Background sync failed for project:", key); }
+        }
       }
-    });
+    } catch (err) {
+      console.warn("Background sync failed for projects:", err);
+    }
 
-    // Sweep Templates
-    await templatesDB.iterate(async (temp, key) => {
-      if (!temp.synced && (temp.owner_id === user.email || temp.userId === user.email)) {
-        try {
+    // FIX: Safely loop templates instead of uncontrolled iterate
+    try {
+      const tKeys = await templatesDB.keys();
+      for (const key of tKeys) {
+        const temp = await templatesDB.getItem(key);
+        if (temp && !temp.synced && (temp.owner_id === user.email || temp.userId === user.email)) {
           const apiPayload = { 
               templateId: key.startsWith('local_') ? null : key, 
               userId: user.email, 
-              name: temp.title || temp.name, 
-              description: temp.description || temp.desc, 
-              category: temp.category, 
+              name: temp.title || temp.name || "Untitled Template", 
+              description: temp.description || temp.desc || "", 
+              category: temp.category || "Custom Templates", 
               workspace: { blocklyJson: temp.data || temp.workspace?.blocklyJson } 
           };
+          
           const res = await fetch(`${API_BASE}/api/templates/save`, { method: 'POST', headers, body: JSON.stringify(apiPayload) });
           
           if (res.ok) {
@@ -159,11 +168,13 @@ export default function Dashboard() {
             if (newId !== key) await templatesDB.removeItem(key); // Cleanup local temp ID
             syncedSomething = true;
           }
-        } catch (e) { console.warn("Background sync failed for template:", key); }
+        }
       }
-    });
+    } catch (err) {
+      console.warn("Background sync failed for templates:", err);
+    }
 
-    // If items were successfully pushed to MongoDB, reload the UI to update the "Cloud Synced" badges
+    // Update the UI if backgrounds saves worked
     if (syncedSomething) {
       loadLocalData();
     }
