@@ -4,57 +4,63 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 const PyodideContext = createContext(null);
 
 export const PyodideProvider = ({ children }) => {
-    const workerRef = useRef(null);
+    const [worker, setWorker] = useState(null);
     const [isEngineReady, setIsEngineReady] = useState(false);
+    const workerInitialized = useRef(false);
 
     const initGlobalWorker = () => {
-        if (workerRef.current) return;
+        if (workerInitialized.current) return;
+        workerInitialized.current = true;
 
-        // Initialize the worker once globally
-        workerRef.current = new Worker(
+        const newWorker = new Worker(
             new URL("../workers/analyzer.worker.js", import.meta.url),
             { type: "module" }
         );
 
-        // Boot Pyodide
-        workerRef.current.postMessage({ type: "INIT_ENGINE" });
+        newWorker.postMessage({ type: "INIT_ENGINE" });
 
-        // Global listeners can be attached here if needed
-        const handleGlobalMessage = (event) => {
+        newWorker.addEventListener("message", (event) => {
             if (event.data.type === "ENGINE_READY") {
                 setIsEngineReady(true);
             }
-        };
-        workerRef.current.addEventListener("message", handleGlobalMessage);
+        });
+
+        setWorker(newWorker);
     };
 
-    // Re-instantiate worker safely if it needs hard reset due to an unrecoverable crash
     const resetWorker = () => {
-        if (workerRef.current) {
-            workerRef.current.terminate();
-        }
-        setIsEngineReady(false);
-        workerRef.current = new Worker(
-            new URL("../workers/analyzer.worker.js", import.meta.url),
-            { type: "module" }
-        );
-        workerRef.current.postMessage({ type: "INIT_ENGINE" });
+        setWorker((prevWorker) => {
+            if (prevWorker) prevWorker.terminate();
 
-        workerRef.current.addEventListener("message", (event) => {
-            if (event.data.type === "ENGINE_READY") setIsEngineReady(true);
+            setIsEngineReady(false);
+            const newWorker = new Worker(
+                new URL("../workers/analyzer.worker.js", import.meta.url),
+                { type: "module" }
+            );
+
+            newWorker.postMessage({ type: "INIT_ENGINE" });
+
+            newWorker.addEventListener("message", (event) => {
+                if (event.data.type === "ENGINE_READY") setIsEngineReady(true);
+            });
+
+            return newWorker;
         });
     };
 
     useEffect(() => {
         initGlobalWorker();
         return () => {
-            // Global cleanup only if app terminates completely
-            if (workerRef.current) workerRef.current.terminate();
+            setWorker((prevWorker) => {
+                if (prevWorker) prevWorker.terminate();
+                return null;
+            });
+            workerInitialized.current = false;
         };
     }, []);
 
     return (
-        <PyodideContext.Provider value={{ worker: workerRef.current, isEngineReady, resetWorker }}>
+        <PyodideContext.Provider value={{ worker, isEngineReady, resetWorker }}>
             {children}
         </PyodideContext.Provider>
     );

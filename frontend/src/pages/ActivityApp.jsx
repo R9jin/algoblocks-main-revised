@@ -1,3 +1,4 @@
+// frontend/src/pages/ActivityApp.jsx
 import Editor from "@monaco-editor/react";
 import DOMPurify from "dompurify";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -35,9 +36,7 @@ const renderFormattedTask = (text) => {
     .replace(/\n/g, "<br/>")
     .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #26004a;">$1</strong>')
     .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>');
-  
-  const cleanHtml = DOMPurify.sanitize(formattedHtml);
-  return <div dangerouslySetInnerHTML={{ __html: cleanHtml }} />;
+  return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formattedHtml) }} />;
 };
 
 const getComplexityColor = (complexity) => {
@@ -111,8 +110,7 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       );
     }
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    const cleanSec = DOMPurify.sanitize(parsedSec);
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: cleanSec}}></p>;
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(parsedSec)}}></p>;
   }).filter(Boolean);
 };
 
@@ -120,11 +118,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
 
-  // Hook into the global Pyodide Context
-  const { worker, resetWorker } = usePyodide();
+  const { worker, isEngineReady, resetWorker } = usePyodide();
 
   const isReadyRef = useRef(false);
-
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
@@ -224,15 +220,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
         
         if (testResolveRef.current) {
-          const flushed = pendingOutputRef.current; 
-          pendingOutputRef.current = "";
-          outputAccumulatorRef.current += flushed + (data !== undefined && data !== null ? data : "");
-          
-          if (counts) setLineExecutions(prev => { const next = {...prev}; for (const [k, v] of Object.entries(counts)) next[k] = (next[k]||0)+v; return next; });
-          
-          testResolveRef.current(outputAccumulatorRef.current);
-          testResolveRef.current = null;
-          testRejectRef.current = null;
+          // Allow Pyodide to flush asynchronous standard output batches before resolving
+          setTimeout(() => {
+            const flushed = pendingOutputRef.current; 
+            pendingOutputRef.current = "";
+            outputAccumulatorRef.current += flushed + (data !== undefined && data !== null ? data : "");
+            
+            if (counts) setLineExecutions(prev => { const next = {...prev}; for (const [k, v] of Object.entries(counts)) next[k] = (next[k]||0)+v; return next; });
+            
+            if (testResolveRef.current) {
+                testResolveRef.current(outputAccumulatorRef.current);
+                testResolveRef.current = null;
+                testRejectRef.current = null;
+            }
+          }, 75);
         } else {
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
@@ -289,6 +290,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       initWorker(); 
     }
   }, [worker]);
+
+  useEffect(() => {
+    if (isEngineReady && generatedPython !== "# Drag blocks to generate Python code") {
+      analyzeCode(generatedPython);
+    }
+  }, [isEngineReady]);
 
   useEffect(() => {
     return () => { 
@@ -492,7 +499,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           } catch (e) {}
         }
         
-        if (!cancelled) setTimeout(() => { if (!cancelled) isReadyRef.current = true; }, 1500); 
+        // Ensure immediate readyness for workspace
+        if (!cancelled) {
+          isReadyRef.current = true;
+        }
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
         if (!cancelled) navigate("/learning-path", { replace: true });

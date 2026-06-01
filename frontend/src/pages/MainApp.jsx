@@ -1,3 +1,4 @@
+// frontend/src/pages/MainApp.jsx
 import DOMPurify from "dompurify";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -125,8 +126,7 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     }
 
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    const cleanSec = DOMPurify.sanitize(parsedSec);
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: cleanSec}}></p>;
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(parsedSec)}}></p>;
   }).filter(Boolean);
 };
 
@@ -135,7 +135,7 @@ export default function MainApp() {
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
   // Hook into the global Pyodide Context
-  const { worker, resetWorker } = usePyodide();
+  const { worker, isEngineReady, resetWorker } = usePyodide();
 
   const createInitialTab = () => ({
     id: `tab-${Date.now()}`, title: 'Untitled Project', viewMode: 'workspace', blocklyJson: null,
@@ -254,7 +254,6 @@ export default function MainApp() {
     };
   };
 
-  // Sync context worker to local ref
   useEffect(() => {
     if (worker) {
       workerRef.current = worker;
@@ -465,10 +464,11 @@ export default function MainApp() {
   };
 
   useEffect(() => {
-    if (!activeTab.isEditingCode) return;
-    const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 500);
-    return () => clearTimeout(timeoutId);
-  }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId]);
+    if (isEngineReady && activeTab.pythonCode !== "# Drag blocks to generate Python code" && activeTab.isEditingCode) {
+      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
 
   const handleSyncToBlocks = async () => {
     if (workspaceRefs.current[activeTabId] && activeTab.pythonCode) {

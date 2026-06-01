@@ -687,9 +687,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Interpolation", global_space_override="O(1)")
         self.generic_visit(node)
 
+    # ---------------------------------------------------------
+    # NEW FIX: The visit_Compare method has been updated
+    # to recognize inline constant lists as O(1) structures
+    # ---------------------------------------------------------
     def visit_Compare(self, node):
         if any(isinstance(op, (ast.In, ast.NotIn)) for op in node.ops):
             is_hash_map = False
+            is_constant_collection = False
+
             for comp in node.comparators:
                 if isinstance(comp, ast.Name):
                     t = self.var_types.get(comp.id)
@@ -697,9 +703,20 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     elif any(k in comp.id.lower() for k in ['memo', 'cache', 'visit', 'set', 'map', 'dp']): is_hash_map = True
                 elif isinstance(comp, (ast.Set, ast.Dict, ast.SetComp, ast.DictComp)): is_hash_map = True
                 elif isinstance(comp, ast.Call) and isinstance(getattr(comp, 'func', None), ast.Name) and comp.func.id in ['set', 'dict']: is_hash_map = True
-            
+                elif isinstance(comp, (ast.List, ast.Tuple)):
+                    # Check if all elements are constants or simple variable names that represent constants (like int, float)
+                    all_const = True
+                    for elt in comp.elts:
+                        if not isinstance(elt, (ast.Constant, ast.Name)):
+                            all_const = False
+                            break
+                    if all_const:
+                        is_constant_collection = True
+
             if is_hash_map:
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Set/Dict)", global_space_override="O(1)")
+            elif is_constant_collection:
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Constant Size)", global_space_override="O(1)")
             else:
                 self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Membership Check (List/Tuple/String)", global_space_override="O(1)")
             
