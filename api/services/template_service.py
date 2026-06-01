@@ -11,3 +11,32 @@ class TemplateService:
     def get_all_templates():
         templates = TemplateRepository.find_all()
         return {"status": "success", "templates": templates}
+
+    # ADDED/UPDATED: Method to handle saving/updating a template
+    @staticmethod
+    def save_template(req):
+        # Convert pydantic model to dict, exclude unset so we don't push nulls unnecessarily
+        template_data = req.dict(exclude_unset=True) if hasattr(req, "dict") else dict(req)
+        
+        # Ensure owner_id is set so frontend sync catches it
+        if template_data.get("userId") and not template_data.get("owner_id"):
+            template_data["owner_id"] = template_data["userId"]
+            
+        template_id = template_data.pop("templateId", None)
+        
+        if template_id:
+            # Update existing
+            updated_id = TemplateRepository.update(template_id, template_data)
+            return {
+                "status": "success", 
+                "message": "Template updated successfully", 
+                "templateId": updated_id
+            }
+        else:
+            # Insert new
+            inserted_id = TemplateRepository.save(template_data)
+            return {
+                "status": "success", 
+                "message": "Template saved successfully", 
+                "templateId": inserted_id
+            }

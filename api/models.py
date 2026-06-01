@@ -35,3 +35,15 @@ class SaveProjectRequest(BaseModel):
     name: Optional[str] = ""
     workspace: Optional[Dict[str, Any]] = {}
     pythonCode: Optional[str] = ""
+
+# --- ADDED: Missing fields (templateId, userId, owner_id, description) ---
+class SaveTemplateRequest(BaseModel):
+    templateId: Optional[str] = None
+    userId: Optional[str] = ""
+    owner_id: Optional[str] = ""
+    name: Optional[str] = ""
+    description: Optional[str] = ""
+    category: Optional[str] = ""
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: Optional[str] = ""
+    data: Optional[Dict[str, Any]] = {}

@@ -1,5 +1,5 @@
 // frontend/src/pages/Dashboard.jsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { projectsDB, templatesDB } from "../db";
@@ -28,105 +28,171 @@ const SYSTEM_TEMPLATES = {
   ]
 };
 
+// Helper: Centralized Token Retrieval
+const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [recentProjects, setRecentProjects] = useState([]);
   const [userTemplatesGrouped, setUserTemplatesGrouped] = useState({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadLocalData = async () => {
-      const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-      if (!storedUserStr) {
-        setLoading(false);
-        return;
-      }
-      const storedUser = JSON.parse(storedUserStr || "{}");
-
-      // --- 1. PULL CLOUD DATA FIRST ---
-      if (navigator.onLine) {
-        try {
-          // FIX: Grab the token and prepare headers
-          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-          const headers = {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          };
-
-          // FIX: Pass the headers object into the fetch request
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`, { headers });
-          if (pRes.ok) {
-            const pData = await pRes.json();
-            
-            let cloudProjects = [];
-            if (pData && Array.isArray(pData.projects)) cloudProjects = pData.projects;
-            else if (Array.isArray(pData)) cloudProjects = pData;
-
-            for (const cp of cloudProjects) {
-              if (cp.owner_id === storedUser.email || cp.userId === storedUser.email) {
-                await projectsDB.setItem(cp._id, { ...cp, synced: true });
-              }
-            }
-          }
-
-          // FIX: Pass the headers object into the fetch request
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`, { headers });
-          if (tRes.ok) {
-            const tData = await tRes.json();
-            
-            let cloudTemplates = [];
-            if (tData && Array.isArray(tData.templates)) cloudTemplates = tData.templates;
-            else if (Array.isArray(tData)) cloudTemplates = tData;
-
-            for (const ct of cloudTemplates) {
-              if (ct.owner_id === storedUser.email || ct.userId === storedUser.email) {
-                await templatesDB.setItem(ct._id, { ...ct, synced: true });
-              }
-            }
-          }
-        } catch (fetchErr) {
-          console.error("Failed to sync cloud data:", fetchErr);
-        }
-      }
-
-      // --- 2. FETCH FROM LOCAL DB ---
-      const userProjects = [];
-      await projectsDB.iterate((value) => {
-        if (value.owner_id === storedUser.email || value.userId === storedUser.email) {
-          userProjects.push(value);
-        }
-      });
-
-      setRecentProjects(
-        userProjects
-          .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-          .slice(0, 5)
-      );
-
-      const userTemplates = [];
-      await templatesDB.iterate((value) => {
-        if (value.owner_id === storedUser.email || value.userId === storedUser.email) {
-          userTemplates.push(value);
-        }
-      });
-
-      const grouped = {};
-      userTemplates.forEach((t) => {
-        const category = t.category || "Custom Templates";
-        if (!grouped[category]) grouped[category] = [];
-        grouped[category].push({
-            ...t,
-            name: t.title || t.name, 
-            desc: t.description || t.desc
-        });
-      });
-
-      setUserTemplatesGrouped(grouped);
+  // 1. Core function to load data to UI
+  const loadLocalData = useCallback(async () => {
+    const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!storedUserStr) {
       setLoading(false);
+      return;
+    }
+    const storedUser = JSON.parse(storedUserStr);
+
+    // Pull Fresh Cloud Data (Removed restrictive API_BASE check)
+    if (navigator.onLine) {
+      try {
+        const token = getToken();
+        const headers = { "Content-Type": "application/json", ...(token && { "Authorization": `Bearer ${token}` }) };
+
+        const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`, { headers });
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
+          for (const cp of cloudProjects) {
+            if (cp.owner_id === storedUser.email || cp.userId === storedUser.email) {
+              await projectsDB.setItem(cp._id, { ...cp, synced: true });
+            }
+          }
+        }
+
+        const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`, { headers });
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
+          for (const ct of cloudTemplates) {
+            if (ct.owner_id === storedUser.email || ct.userId === storedUser.email) {
+              await templatesDB.setItem(ct._id, { ...ct, synced: true });
+            }
+          }
+        }
+      } catch (fetchErr) {
+        console.error("Failed to sync cloud data down:", fetchErr);
+      }
+    }
+
+    // Refresh UI from local DB
+    const userProjects = [];
+    await projectsDB.iterate((value) => {
+      if (value.owner_id === storedUser.email || value.userId === storedUser.email) userProjects.push(value);
+    });
+
+    setRecentProjects(userProjects.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 5));
+
+    const userTemplates = [];
+    await templatesDB.iterate((value) => {
+      if (value.owner_id === storedUser.email || value.userId === storedUser.email) userTemplates.push(value);
+    });
+
+    const grouped = {};
+    userTemplates.forEach((t) => {
+      const category = t.category || "Custom Templates";
+      if (!grouped[category]) grouped[category] = [];
+      grouped[category].push({ ...t, name: t.title || t.name, desc: t.description || t.desc });
+    });
+
+    setUserTemplatesGrouped(grouped);
+    setLoading(false);
+  }, []);
+
+  // 2. Background function to sweep unsynced items and push to MongoDB
+  const syncOfflineItems = useCallback(async () => {
+    // FIX: Removed the API_BASE check that blocked the sync process
+    if (!navigator.onLine) return;
+    
+    const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const token = getToken();
+    if (!storedUserStr || !token) return;
+    
+    const user = JSON.parse(storedUserStr);
+    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+    let syncedSomething = false;
+
+    // FIX: Safely loop projects instead of uncontrolled iterate
+    try {
+      const pKeys = await projectsDB.keys();
+      for (const key of pKeys) {
+        const proj = await projectsDB.getItem(key);
+        if (proj && !proj.synced && (proj.owner_id === user.email || proj.userId === user.email)) {
+          const apiPayload = { 
+              projectId: key.startsWith('local_') ? null : key, 
+              userId: user.email, 
+              name: proj.title || proj.name || "Untitled Project", 
+              workspace: { blocklyJson: proj.data || proj.workspace?.blocklyJson }, 
+              pythonCode: proj.pythonCode || "" 
+          };
+          
+          const res = await fetch(`${API_BASE}/api/projects/save`, { method: 'POST', headers, body: JSON.stringify(apiPayload) });
+          
+          if (res.ok) {
+            const resData = await res.json();
+            const newId = resData.projectId || resData._id || key;
+            await projectsDB.setItem(newId, { ...proj, _id: newId, synced: true });
+            if (newId !== key) await projectsDB.removeItem(key); // Cleanup local temp ID
+            syncedSomething = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Background sync failed for projects:", err);
+    }
+
+    // FIX: Safely loop templates instead of uncontrolled iterate
+    try {
+      const tKeys = await templatesDB.keys();
+      for (const key of tKeys) {
+        const temp = await templatesDB.getItem(key);
+        if (temp && !temp.synced && (temp.owner_id === user.email || temp.userId === user.email)) {
+          const apiPayload = { 
+              templateId: key.startsWith('local_') ? null : key, 
+              userId: user.email, 
+              name: temp.title || temp.name || "Untitled Template", 
+              description: temp.description || temp.desc || "", 
+              category: temp.category || "Custom Templates", 
+              workspace: { blocklyJson: temp.data || temp.workspace?.blocklyJson } 
+          };
+          
+          const res = await fetch(`${API_BASE}/api/templates/save`, { method: 'POST', headers, body: JSON.stringify(apiPayload) });
+          
+          if (res.ok) {
+            const resData = await res.json();
+            const newId = resData.templateId || resData._id || key;
+            await templatesDB.setItem(newId, { ...temp, _id: newId, synced: true });
+            if (newId !== key) await templatesDB.removeItem(key); // Cleanup local temp ID
+            syncedSomething = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Background sync failed for templates:", err);
+    }
+
+    // Update the UI if backgrounds saves worked
+    if (syncedSomething) {
+      loadLocalData();
+    }
+  }, [loadLocalData]);
+
+  // 3. Effect lifecycle
+  useEffect(() => {
+    // Initial Load & Sync check
+    loadLocalData().then(() => syncOfflineItems());
+
+    // Listen for internet connection restoration
+    const handleOnline = () => {
+      syncOfflineItems();
     };
 
-    loadLocalData();
-  }, []); 
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [loadLocalData, syncOfflineItems]);
 
   const handleItemClick = (item) => {
     const confirmMsg = item.isSystem
@@ -139,13 +205,7 @@ export default function Dashboard() {
       navigate("/workspace", { state: { templatePath: item.path } });
     } else {
       navigate("/workspace", {
-        state: {
-          projectToLoad: {
-            title: item.name,
-            data: item.data,
-            _id: item._id
-          }
-        }
+        state: { projectToLoad: { title: item.name, data: item.data, _id: item._id } }
       });
     }
   };
@@ -176,11 +236,7 @@ export default function Dashboard() {
               <div key={catKey} className="algorithm-column">
                 <h3 className="column-title">{catKey.toUpperCase()}</h3>
                 {items.map((temp) => (
-                  <div
-                    key={temp.name}
-                    className="algorithm-card"
-                    onClick={() => handleItemClick(temp)}
-                  >
+                  <div key={temp.name} className="algorithm-card" onClick={() => handleItemClick(temp)}>
                     <div className="card-header">
                       <img src={temp.icon} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
@@ -199,11 +255,7 @@ export default function Dashboard() {
               <div key={category} className="algorithm-column">
                 <h3 className="column-title">{category.toUpperCase()}</h3>
                 {items.map((temp) => (
-                  <div
-                    key={temp._id}
-                    className="algorithm-card custom-template-card"
-                    onClick={() => handleItemClick(temp)}
-                  >
+                  <div key={temp._id} className="algorithm-card custom-template-card" onClick={() => handleItemClick(temp)}>
                     <div className="card-header">
                       <img src={temp.icon || "/assets/folder-icon.png"} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
@@ -228,13 +280,7 @@ export default function Dashboard() {
           ) : (
             <div className="recent-projects-list">
               {recentProjects.map((proj) => (
-                <div
-                  key={proj._id}
-                  className="recent-project-item"
-                  onClick={() =>
-                    navigate("/workspace", { state: { projectToLoad: proj } })
-                  }
-                >
+                <div key={proj._id} className="recent-project-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                   <div className="project-item-info">
                     <div className="project-item-title">{proj.title || proj.name}</div>
                     <div className="project-item-meta">
@@ -242,9 +288,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div
-                    className={`project-item-status ${proj.synced ? "synced" : "local"}`}
-                  >
+                  <div className={`project-item-status ${proj.synced ? "synced" : "local"}`}>
                     {proj.synced ? "Cloud Synced" : "Local Only"}
                   </div>
                 </div>
