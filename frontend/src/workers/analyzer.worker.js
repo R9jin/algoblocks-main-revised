@@ -1,8 +1,7 @@
 // frontend/src/workers/analyzer.worker.js
 let pyodide = null;
-let pyodidePromise = null; // Singleton lock to prevent concurrent initialization crashes
+let pyodidePromise = null; 
 
-// async input control
 let inputResolve = null;
 let isWaitingForInput = false;
 let executionTimeout = null;
@@ -20,7 +19,6 @@ async function initPyodide() {
         const tempPyodide = await loadPyodide();
         const cacheBuster = "?t=" + Date.now();
 
-        // FETCH THE NEW DYNAMIC TRACER AND SCRIPTS
         const [analyzerCode, astCode, nlgCode, tracerCode] = await Promise.all([
           fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
           fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
@@ -32,7 +30,6 @@ async function initPyodide() {
           throw new Error("Service Worker served index.html instead of python files!");
         }
 
-        // WRITE ALL FILES TO VIRTUAL FILE SYSTEM
         tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
         tempPyodide.FS.writeFile("blockly_ast.py", astCode);
         tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
@@ -42,7 +39,7 @@ async function initPyodide() {
         return tempPyodide;
       } catch (error) {
         console.error("Pyodide Engine Crash:", error);
-        pyodidePromise = null; // Reset on failure so it can retry
+        pyodidePromise = null; 
         throw error;
       }
     })();
@@ -74,17 +71,11 @@ self.onmessage = async (e) => {
     return;
   }
 
-  // ==========================================
-  // AST DOS MITIGATION: Check Payload Size
-  // ==========================================
   const MAX_CODE_LENGTH = 10000;
   if (code && code.length > MAX_CODE_LENGTH) {
     const errorMsg = `Code payload too large. Maximum allowed is ${MAX_CODE_LENGTH} characters.`;
-
     if (type === 'ANALYZE_CODE') {
       self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
-    } else if (type === 'PYTHON_TO_BLOCKS') {
-      self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
     } else {
       self.postMessage({ type: 'ERROR', data: errorMsg });
     }
@@ -103,6 +94,7 @@ self.onmessage = async (e) => {
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
 import sys
+import ast
 
 # CLEAR CACHE FOR HOT RELOADING
 if 'analyzer' in sys.modules:
@@ -112,15 +104,101 @@ if 'semantic_nlg' in sys.modules:
 if 'dynamic_tracer' in sys.modules:
     del sys.modules['dynamic_tracer']
 
+# --- DEEP STACK LINTER ---
+def gather_custom_lint_errors(code_str):
+    errs = []
+    lines = code_str.split('\\n')
+    
+    stack = []
+    pairs = {'(': ')', '[': ']', '{': '}'}
+    
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if not s or s.startswith('#'):
+            continue
+            
+        # 1. Missing Colon Checker
+        if s.startswith(('def ', 'if ', 'elif ', 'else', 'for ', 'while ', 'class ', 'try', 'except', 'finally')):
+            s_no_comment = s.split('#')[0].strip()
+            if not s_no_comment.endswith(':') and not s_no_comment.endswith(('(', '[', '{', ',', '\\\\')):
+                errs.append({"line": i+1, "message": "expected ':'"})
+                
+        # 2. Unbalanced Bracket Checker
+        in_str = False
+        str_char = ''
+        escape = False
+        for char in line:
+            if escape:
+                escape = False
+                continue
+            if char == '\\\\':
+                escape = True
+                continue
+                
+            if char in '"\\'' and not in_str:
+                in_str = True
+                str_char = char
+            elif char == str_char and in_str:
+                in_str = False
+            
+            if not in_str:
+                if char in pairs:
+                    stack.append((char, i+1))
+                elif char in pairs.values():
+                    if not stack:
+                        errs.append({"line": i+1, "message": f"unmatched '{char}'"})
+                    else:
+                        top, _ = stack.pop()
+                        if pairs[top] != char:
+                            errs.append({"line": i+1, "message": f"closing '{char}' does not match opening '{top}'"})
+                            
+    for char, l in stack:
+         errs.append({"line": l, "message": f"unclosed '{char}'"})
+
+    return errs
+
 try:
     from analyzer import analyze_source_code
     output_dict = analyze_source_code(user_code)
+    
+    # --- INTERCEPT THE SWALLOWED ERROR ---
+    # analyzer.py gracefully catches SyntaxErrors. We must intercept it 
+    # to run our deep-stack checker and append the multiple errors.
+    if isinstance(output_dict, dict) and output_dict.get("status") == "error":
+        custom_errs = gather_custom_lint_errors(user_code)
+        
+        real_line = output_dict.get("line", 1)
+        real_msg = output_dict.get("message", "Syntax Error")
+        
+        all_errors = [{"line": real_line, "message": real_msg}]
+        
+        for ce in custom_errs:
+            if not any(existing['line'] == ce['line'] for existing in all_errors):
+                all_errors.append(ce)
+                
+        all_errors.sort(key=lambda x: x['line'])
+        output_dict["multiple_errors"] = all_errors
+
     output = json.dumps(output_dict)
-except Exception as init_err:
+    
+except Exception as e:
+    # Failsafe if the analyzer actually crashes
+    custom_errs = gather_custom_lint_errors(user_code)
+    real_line = getattr(e, 'lineno', 1) or 1
+    real_msg = str(e)
+    
+    all_errors = [{"line": real_line, "message": real_msg}]
+    for ce in custom_errs:
+        if not any(existing['line'] == ce['line'] for existing in all_errors):
+            all_errors.append(ce)
+            
+    all_errors.sort(key=lambda x: x['line'])
+    
     output = json.dumps({
         "status": "error",
-        "message": f"Analyzer Initialization Error: {str(init_err)}",
-        "line": -1
+        "multiple_errors": all_errors,
+        "line": real_line,
+        "message": real_msg
     })
 
 output
@@ -158,7 +236,7 @@ output
     }
 
     // ======================
-    // 3. RUN MODE (Interactive / Standard Run)
+    // 3. RUN MODE
     // ======================
     else if (type === 'RUN_CODE') {
 

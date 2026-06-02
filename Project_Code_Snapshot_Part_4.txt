@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 4 OF 5) ---
 
---- TIMESTAMP: 2026-06-02 11:52:33 ---
+--- TIMESTAMP: 2026-06-02 15:10:27 ---
 
 
 --- FILE: frontend/public/templates/search/exponential_search.json ---
@@ -10705,8 +10705,9 @@ export default function UserHeader({ user }) {
 
 --- FILE: frontend/src/components/WorkspaceHeader.jsx ---
 
-// frontend\src\components\WorkspaceHeader.jsx
+// frontend/src/components/WorkspaceHeader.jsx
 
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function WorkspaceHeader({
@@ -10717,10 +10718,17 @@ export default function WorkspaceHeader({
   currentProjectId,       
   currentProjectTitle,    
   handleUpdateDB,          
-  handleExport            // NEW: Added handleExport prop
+  handleExport,
+  handleImport            // NEW: handleImport prop
 }) {
 
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  // Programmatically trigger the hidden file input
+  const onImportClick = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <header className="workspace-header">
@@ -10750,9 +10758,22 @@ export default function WorkspaceHeader({
       </div>
 
       <div className="header-right">
-        {/* NEW: Export JSON Button */}
+        {/* Hidden file input for importing JSON */}
+        <input 
+          type="file" 
+          accept=".json" 
+          style={{ display: 'none' }} 
+          ref={fileInputRef}
+          onChange={handleImport}
+        />
+        
+        {/* NEW: Import JSON Button */}
+        <button onClick={onImportClick} className="action-btn" style={{ backgroundColor: '#00cec9', color: 'white', marginRight: '10px' }}>
+          Import JSON
+        </button>
+
         <button onClick={handleExport} className="action-btn" style={{ backgroundColor: '#6C5CE7', color: 'white', marginRight: '10px' }}>
-          Export JSON
+           Export JSON
         </button>
 
         <button onClick={runCode} className="action-btn btn-run">
@@ -14762,7 +14783,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   }).filter(Boolean);
 };
 
-// HELPER: Centralized Token & User Retrieval
 const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 const getUser = () => {
     const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -14777,12 +14797,11 @@ export default function MainApp() {
   const location = useLocation();
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
-  // Hook into the global Pyodide Context
   const { worker, isEngineReady, resetWorker } = usePyodide();
 
   const createInitialTab = () => ({
     id: `tab-${Date.now()}`, title: 'Untitled Project', viewMode: 'workspace', blocklyJson: null,
-    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxError: null,
+    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [], 
     analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project"
   });
@@ -14802,15 +14821,15 @@ export default function MainApp() {
   const [activeComplexityTab, setActiveComplexityTab] = useState("local");
   const [expandedLines, setExpandedLines] = useState({});
 
+  const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
+
   const [allTemplates, setAllTemplates] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
-
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
   const [saveModal, setSaveModal] = useState({
     isOpen: false, isEditMetadataOnly: false, editingId: null, editingData: null,
     title: "", description: "", category: "Custom Templates", saveType: "project"
   });
-
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
 
   const workspaceRefs = useRef({});
@@ -14835,14 +14854,12 @@ export default function MainApp() {
   };
 
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
-
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const initWorker = () => {
     if (!workerRef.current) return;
     workerRef.current.onmessage = (event) => {
       const { type, data, counts } = event.data;
-
       if (type === 'ANALYZE_RESULT') {
         const targetId = analyzingTabId.current;
         if (data.status === "success") {
@@ -14852,11 +14869,21 @@ export default function MainApp() {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
             lineExecutions: prev => ({...prev, ...initialCounts}),
-            syntaxError: null
+            syntaxErrors: []
           });
+          setIsErrorDropdownOpen(false);
         } else {
-          const hint = translatePythonError(data.message);
-          updateTab(targetId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
+          // --- DEEP STACK FIX: Process multiple errors simultaneously ---
+          if (data.multiple_errors && data.multiple_errors.length > 0) {
+            const mappedErrors = data.multiple_errors.map(err => {
+              const hint = translatePythonError(err.message);
+              return { line: err.line, message: `${err.message}. ${hint}` };
+            });
+            updateTab(targetId, { syntaxErrors: mappedErrors });
+          } else {
+            const hint = translatePythonError(data.message);
+            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${hint}` }] });
+          }
         }
       }
       else if (type === 'RUN_RESULT') {
@@ -14917,14 +14944,12 @@ export default function MainApp() {
     };
   }, []);
 
-  // --- FIXED: Ensures Blockly resizes properly when sidebar toggles ---
   useEffect(() => {
     if (workspaceRefs.current[activeTabId] && activeTab?.viewMode === 'workspace') {
       setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 50);
-      setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 300); // Safety fallback timeout after CSS transitions
+      setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 300);
     }
   }, [activeTabId, activeTab?.viewMode, isSidebarVisible]);
-  // ------------------------------------------------------------------
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === 'output') consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -15007,7 +15032,6 @@ export default function MainApp() {
             }); 
         }
       });
-
       const uniqueItemsMap = new Map();
       customItems.forEach(item => uniqueItemsMap.set(item._id, item));
       setAllTemplates([...baseTemplates, ...Array.from(uniqueItemsMap.values())]);
@@ -15052,10 +15076,9 @@ export default function MainApp() {
 
       const newTabState = {
         id: targetId, title: item.title, viewMode: 'workspace', blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
-        isEditingCode: false, syntaxError: null, analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
+        isEditingCode: false, syntaxErrors: [], analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
         lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : (item.saveType || "project")
       };
-
       if (isClean) setTabs(prev => prev.map(t => t.id === targetId ? newTabState : t));
       else { setTabs(prev => [...prev, newTabState]); setActiveTabId(targetId); }
 
@@ -15078,18 +15101,18 @@ export default function MainApp() {
         });
         if (!response.ok) throw new Error("FastAPI analyze failed");
         const data = await response.json();
-
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           updateTab(tabId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
-            lineExecutions: prev => ({...prev, ...initialCounts}), syntaxError: null
+            lineExecutions: prev => ({...prev, ...initialCounts}), syntaxErrors: [] 
           });
+          setIsErrorDropdownOpen(false);
         } else {
           const hint = translatePythonError(data.message);
-          updateTab(tabId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
+          updateTab(tabId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${hint}` }] });
         }
         return;
       } catch (error) { console.warn("Online analysis failed, safely falling back locally.", error); }
@@ -15103,16 +15126,16 @@ export default function MainApp() {
 
     const oldCode = (tab.pythonCode || "").trim();
     const newCode = (pythonCode || "").trim();
-
     if (!tab.isEditingCode && oldCode !== newCode) {
       analyzeCode(tabId, pythonCode);
     }
     updateTab(tabId, { blocklyJson: json, pythonCode: newCode });
   };
 
+  // Increased debounce from 500 to 800ms to stop UI flickering while typing
   useEffect(() => {
     if (isEngineReady && activeTab.pythonCode !== "# Drag blocks to generate Python code" && activeTab.isEditingCode) {
-      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 500);
+      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 800);
       return () => clearTimeout(timeoutId);
     }
   }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
@@ -15137,7 +15160,7 @@ export default function MainApp() {
           updateTab(activeTabId, {
             pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
             analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
-            analysisTime: "0.0", lineExecutions: {}, syntaxError: null,
+            analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project"
           });
           setBottomPanel(null); setExpandedLines({});
@@ -15160,14 +15183,12 @@ export default function MainApp() {
     setConsoleOutput(prev => prev + "\n> Running the program...\n");
 
     outputCountRef.current = 0; pendingOutputRef.current = "";
-
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed);
       }
     }, 100);
-
     workerRef.current.postMessage({ type: 'RUN_CODE', code: activeTab.pythonCode });
     runTimeoutRef.current = setTimeout(() => {
       resetWorker();
@@ -15182,14 +15203,12 @@ export default function MainApp() {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
       outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
-
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
           setConsoleOutput(prev => prev + flushed);
         }
       }, 100);
-
       runTimeoutRef.current = setTimeout(() => {
         resetWorker();
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
@@ -15229,6 +15248,30 @@ export default function MainApp() {
     downloadAnchorNode.remove();
     URL.revokeObjectURL(url);
     showToast("Workspace exported as JSON", "success");
+  };
+
+  const handleImportJson = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+        if (workspaceRefs.current[activeTabId]) {
+          workspaceRefs.current[activeTabId].loadTemplate(json);
+          updateTab(activeTabId, {
+            title: file.name.replace(".json", ""),
+            saveType: "project"
+          });
+          showToast("Workspace imported successfully", "success");
+        }
+      } catch (err) {
+        showToast("Invalid JSON file", "error");
+      }
+      event.target.value = '';
+    };
+    reader.readAsText(file);
   };
 
   const handleEditItem = (e, item) => {
@@ -15320,7 +15363,6 @@ export default function MainApp() {
   };
 
   const filteredTemplates = allTemplates.filter(t => String(t.title || "").toLowerCase().includes(String(searchTerm || "").toLowerCase()));
-
   const groupedTemplates = filteredTemplates.reduce((acc, template) => {
     const category = template.category || "Uncategorized";
     if (!acc[category]) acc[category] = [];
@@ -15329,7 +15371,6 @@ export default function MainApp() {
 
   const lines = activeTab.analysisResult?.lines || [];
   let maxWeight = 0; let bottleneckIndices = [];
-
   lines.forEach((line, index) => {
     const weight = getComplexityWeight(activeComplexityTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)"));
     if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
@@ -15388,7 +15429,7 @@ export default function MainApp() {
 
       <WorkspaceHeader
         viewMode={activeTab.viewMode} setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })}
-        runCode={handleRunCode} handleExport={handleExportJson} handleSaveToDB={openSaveModal}
+        runCode={handleRunCode} handleExport={handleExportJson} handleImport={handleImportJson} handleSaveToDB={openSaveModal}
         currentProjectId={activeTab.currentLoadedId} currentProjectTitle={activeTab.title}
         handleUpdateDB={openSaveModal} isEvaluating={isEvaluating}
       />
@@ -15442,32 +15483,63 @@ export default function MainApp() {
             <button className="new-tab-btn" onClick={createNewTab}>+</button>
           </div>
 
-          <Split direction="vertical" sizes={bottomPanel ? [65, 35] : [100, 0]} minSize={bottomPanel ? [200, 150] : [200, 0]} gutterSize={bottomPanel ? 8 : 0} className="editor-split-vertical">
-            <div className="editor-container" style={{ position: 'relative' }}>
-              {tabs.map(tab => (
-                <div key={tab.id} className={activeTabId === tab.id && tab.viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'} style={{ height: '100%' }}>
-                  <BlocklyWorkspace ref={el => workspaceRefs.current[tab.id] = el} onChange={(json, py) => handleBlocklyChange(tab.id, json, py)} syntaxError={activeTabId === tab.id ? activeTab.syntaxError : null} />
-                </div>
-              ))}
-
+          <div className="editor-split-vertical">
+            {/* Added flex: 1 and height: 100% here so the container expands */}
+            <div className="editor-container" style={{ flex: 1, height: '100%', position: 'relative' }}>
+              
+              {/* Added flex: 1 here as well */}
+              <div className={activeTab.viewMode === 'workspace' ? 'workspace-view d-flex' : 'workspace-view d-none'} style={{ flex: 1, height: '100%', width: '100%' }}>
+                {tabs.map(tab => (
+                  <div key={tab.id} className={activeTabId === tab.id ? 'd-block' : 'd-none'} style={{width: '100%', height: '100%'}}>
+                    <BlocklyWorkspace
+                      ref={el => workspaceRefs.current[tab.id] = el}
+                      initialXml={tab.blocklyJson}
+                      onCodeChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
+                    />
+                  </div>
+                ))}
+              </div>
+              
               <div className={activeTab.viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}>
                 <div className="python-header">
                   <span className="python-sync-status">{activeTab.isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
                   <button onClick={handleSyncToBlocks} disabled={!activeTab.isEditingCode} className={`python-sync-btn ${activeTab.isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks </button>
                 </div>
+                
                 <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-                  {activeTab.syntaxError && (
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Syntax Error on line {activeTab.syntaxError.line}: {activeTab.syntaxError.message}</span>
-                      <button onClick={() => updateTab(activeTabId, { syntaxError: null })} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
-                    </div>
-                  )}
                   <Editor
                     height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount}
                     value={activeTab.pythonCode}
-                    onChange={(value) => { updateTab(activeTabId, { pythonCode: value || "", isEditingCode: true, syntaxError: null }); }}
+                    onChange={(value) => { updateTab(activeTabId, { pythonCode: value || "", isEditingCode: true, syntaxErrors: [] }); }}
                     options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, wordWrap: "on", padding: { top: 16 } }}
                   />
+                  
+                  {/* NEW ERROR DROPDOWN */}
+                  {activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0 && (
+                    <div className="floating-error-container">
+                      {isErrorDropdownOpen && (
+                        <div className="error-dropdown-menu">
+                          <div className="error-dropdown-header">
+                            Detected Issues ({activeTab.syntaxErrors.length})
+                          </div>
+                          <div className="error-dropdown-list">
+                            {activeTab.syntaxErrors.map((err, idx) => (
+                              <div key={idx} className="error-dropdown-item">
+                                <span className="error-line-badge">Line {err.line}</span>
+                                <span className="error-message">{err.message}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <button 
+                        className={`floating-error-btn ${isErrorDropdownOpen ? 'open' : ''}`}
+                        onClick={() => setIsErrorDropdownOpen(!isErrorDropdownOpen)}
+                      >
+                        âš ï¸ {activeTab.syntaxErrors.length} Error{activeTab.syntaxErrors.length > 1 ? 's' : ''}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -15607,7 +15679,7 @@ export default function MainApp() {
                 )}
               </div>
             </div>
-          </Split>
+          </div>
           <footer className="workspace-footer">
             <div className="footer-left">
               <button className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button>

@@ -147,7 +147,7 @@ export default function MainApp() {
 
   const createInitialTab = () => ({
     id: `tab-${Date.now()}`, title: 'Untitled Project', viewMode: 'workspace', blocklyJson: null,
-    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxError: null,
+    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [], 
     analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project"
   });
@@ -166,6 +166,8 @@ export default function MainApp() {
   const [consoleTab, setConsoleTab] = useState("output");
   const [activeComplexityTab, setActiveComplexityTab] = useState("local");
   const [expandedLines, setExpandedLines] = useState({});
+
+  const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
 
   const [allTemplates, setAllTemplates] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -213,11 +215,21 @@ export default function MainApp() {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
             lineExecutions: prev => ({...prev, ...initialCounts}),
-            syntaxError: null
+            syntaxErrors: []
           });
+          setIsErrorDropdownOpen(false);
         } else {
-          const hint = translatePythonError(data.message);
-          updateTab(targetId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
+          // --- DEEP STACK FIX: Process multiple errors simultaneously ---
+          if (data.multiple_errors && data.multiple_errors.length > 0) {
+            const mappedErrors = data.multiple_errors.map(err => {
+              const hint = translatePythonError(err.message);
+              return { line: err.line, message: `${err.message}. ${hint}` };
+            });
+            updateTab(targetId, { syntaxErrors: mappedErrors });
+          } else {
+            const hint = translatePythonError(data.message);
+            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${hint}` }] });
+          }
         }
       }
       else if (type === 'RUN_RESULT') {
@@ -410,7 +422,7 @@ export default function MainApp() {
 
       const newTabState = {
         id: targetId, title: item.title, viewMode: 'workspace', blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
-        isEditingCode: false, syntaxError: null, analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
+        isEditingCode: false, syntaxErrors: [], analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
         lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : (item.saveType || "project")
       };
       if (isClean) setTabs(prev => prev.map(t => t.id === targetId ? newTabState : t));
@@ -441,11 +453,12 @@ export default function MainApp() {
           updateTab(tabId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
-            lineExecutions: prev => ({...prev, ...initialCounts}), syntaxError: null
+            lineExecutions: prev => ({...prev, ...initialCounts}), syntaxErrors: [] 
           });
+          setIsErrorDropdownOpen(false);
         } else {
           const hint = translatePythonError(data.message);
-          updateTab(tabId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
+          updateTab(tabId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${hint}` }] });
         }
         return;
       } catch (error) { console.warn("Online analysis failed, safely falling back locally.", error); }
@@ -465,9 +478,10 @@ export default function MainApp() {
     updateTab(tabId, { blocklyJson: json, pythonCode: newCode });
   };
 
+  // Increased debounce from 500 to 800ms to stop UI flickering while typing
   useEffect(() => {
     if (isEngineReady && activeTab.pythonCode !== "# Drag blocks to generate Python code" && activeTab.isEditingCode) {
-      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 500);
+      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 800);
       return () => clearTimeout(timeoutId);
     }
   }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
@@ -492,7 +506,7 @@ export default function MainApp() {
           updateTab(activeTabId, {
             pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
             analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
-            analysisTime: "0.0", lineExecutions: {}, syntaxError: null,
+            analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project"
           });
           setBottomPanel(null); setExpandedLines({});
@@ -815,32 +829,63 @@ export default function MainApp() {
             <button className="new-tab-btn" onClick={createNewTab}>+</button>
           </div>
 
-          <Split direction="vertical" sizes={bottomPanel ? [65, 35] : [100, 0]} minSize={bottomPanel ? [200, 150] : [200, 0]} gutterSize={bottomPanel ? 8 : 0} className="editor-split-vertical">
-            <div className="editor-container" style={{ position: 'relative' }}>
-              {tabs.map(tab => (
-                <div key={tab.id} className={activeTabId === tab.id && tab.viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'} style={{ height: '100%' }}>
-                  <BlocklyWorkspace ref={el => workspaceRefs.current[tab.id] = el} onChange={(json, py) => handleBlocklyChange(tab.id, json, py)} syntaxError={activeTabId === tab.id ? activeTab.syntaxError : null} />
-                </div>
-              ))}
-
+          <div className="editor-split-vertical">
+            {/* Added flex: 1 and height: 100% here so the container expands */}
+            <div className="editor-container" style={{ flex: 1, height: '100%', position: 'relative' }}>
+              
+              {/* Added flex: 1 here as well */}
+              <div className={activeTab.viewMode === 'workspace' ? 'workspace-view d-flex' : 'workspace-view d-none'} style={{ flex: 1, height: '100%', width: '100%' }}>
+                {tabs.map(tab => (
+                  <div key={tab.id} className={activeTabId === tab.id ? 'd-block' : 'd-none'} style={{width: '100%', height: '100%'}}>
+                    <BlocklyWorkspace
+                      ref={el => workspaceRefs.current[tab.id] = el}
+                      initialXml={tab.blocklyJson}
+                      onCodeChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
+                    />
+                  </div>
+                ))}
+              </div>
+              
               <div className={activeTab.viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}>
                 <div className="python-header">
                   <span className="python-sync-status">{activeTab.isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
                   <button onClick={handleSyncToBlocks} disabled={!activeTab.isEditingCode} className={`python-sync-btn ${activeTab.isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks </button>
                 </div>
+                
                 <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-                  {activeTab.syntaxError && (
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Syntax Error on line {activeTab.syntaxError.line}: {activeTab.syntaxError.message}</span>
-                      <button onClick={() => updateTab(activeTabId, { syntaxError: null })} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
-                    </div>
-                  )}
                   <Editor
                     height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount}
                     value={activeTab.pythonCode}
-                    onChange={(value) => { updateTab(activeTabId, { pythonCode: value || "", isEditingCode: true, syntaxError: null }); }}
+                    onChange={(value) => { updateTab(activeTabId, { pythonCode: value || "", isEditingCode: true, syntaxErrors: [] }); }}
                     options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, wordWrap: "on", padding: { top: 16 } }}
                   />
+                  
+                  {/* NEW ERROR DROPDOWN */}
+                  {activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0 && (
+                    <div className="floating-error-container">
+                      {isErrorDropdownOpen && (
+                        <div className="error-dropdown-menu">
+                          <div className="error-dropdown-header">
+                            Detected Issues ({activeTab.syntaxErrors.length})
+                          </div>
+                          <div className="error-dropdown-list">
+                            {activeTab.syntaxErrors.map((err, idx) => (
+                              <div key={idx} className="error-dropdown-item">
+                                <span className="error-line-badge">Line {err.line}</span>
+                                <span className="error-message">{err.message}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <button 
+                        className={`floating-error-btn ${isErrorDropdownOpen ? 'open' : ''}`}
+                        onClick={() => setIsErrorDropdownOpen(!isErrorDropdownOpen)}
+                      >
+                        ⚠️ {activeTab.syntaxErrors.length} Error{activeTab.syntaxErrors.length > 1 ? 's' : ''}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -980,7 +1025,7 @@ export default function MainApp() {
                 )}
               </div>
             </div>
-          </Split>
+          </div>
           <footer className="workspace-footer">
             <div className="footer-left">
               <button className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button>

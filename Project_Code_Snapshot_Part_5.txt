@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 5 OF 5) ---
 
---- TIMESTAMP: 2026-06-02 11:52:33 ---
+--- TIMESTAMP: 2026-06-02 15:10:27 ---
 
 
 --- FILE: frontend/src/pages/ProfilePage.jsx ---
@@ -6089,7 +6089,7 @@ body {
 
 /* VERTICAL SPLIT PANE & CONTAINERS */
 .editor-split-vertical {
-  display: flex; flex-direction: column; height: calc(100% - 88px); /* minus tab bar and footer */
+  display: flex; flex-direction: column; height: calc(100% - 88px);
 }
 
 .editor-container {
@@ -6106,19 +6106,11 @@ body {
 .python-sync-btn.disabled { background: #4a4a4a; cursor: not-allowed; }
 
 /* BOTTOM DOCKED PANEL */
-.bottom-docked-panel {
-  background: #1F1443;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
+.bottom-docked-panel { background: #1F1443; color: white; display: flex; flex-direction: column; overflow: hidden; }
 .panel-header { display: flex; justify-content: space-between; padding: 6px 15px; border-bottom: 1px solid #111; background: #1C1236; align-items: center;}
 .panel-title { font-weight: bold; font-size: 0.8rem; letter-spacing: 1px; color: #aaa; text-transform: uppercase; }
 .panel-close-btn { background: none; color: #777; border: none; cursor: pointer; font-size: 1.1rem; }
 .panel-close-btn:hover { color: white; }
-
 .panel-body { flex: 1; overflow-y: auto; padding: 10px 20px 20px 20px; display: flex; flex-direction: column;}
 
 /* FOOTER */
@@ -6183,6 +6175,108 @@ body {
 .d-none { display: none !important; }
 .d-flex { display: flex !important; }
 .d-block { display: block !important; }
+
+/* =========================================
+   FLOATING ERROR DROPDOWN
+   ========================================= */
+.floating-error-container {
+  position: absolute;
+  bottom: 20px;
+  right: 25px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.floating-error-btn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.floating-error-btn:hover {
+  background-color: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(231, 76, 60, 0.5);
+}
+
+.floating-error-btn.open {
+  border-radius: 0 0 12px 12px;
+  transform: translateY(0);
+}
+
+.error-dropdown-menu {
+  background-color: #2A1B54;
+  border: 1px solid #e74c3c;
+  border-radius: 12px 12px 0 0;
+  width: 350px;
+  max-height: 250px;
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.2s ease-out;
+}
+
+.error-dropdown-header {
+  background-color: #e74c3c;
+  color: white;
+  padding: 10px 15px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-dropdown-list {
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.error-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: rgba(231, 76, 60, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid #e74c3c;
+}
+
+.error-line-badge {
+  background-color: #e74c3c;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.error-message {
+  color: #EBE4FF;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 --- FILE: frontend/src/styles/MemoryVisualizer.css ---
 
@@ -8287,9 +8381,8 @@ window.addEventListener("online", () => syncManager.processSyncQueue());
 
 // frontend/src/workers/analyzer.worker.js
 let pyodide = null;
-let pyodidePromise = null; // Singleton lock to prevent concurrent initialization crashes
+let pyodidePromise = null; 
 
-// async input control
 let inputResolve = null;
 let isWaitingForInput = false;
 let executionTimeout = null;
@@ -8307,7 +8400,6 @@ async function initPyodide() {
         const tempPyodide = await loadPyodide();
         const cacheBuster = "?t=" + Date.now();
 
-        // FETCH THE NEW DYNAMIC TRACER AND SCRIPTS
         const [analyzerCode, astCode, nlgCode, tracerCode] = await Promise.all([
           fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
           fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
@@ -8319,7 +8411,6 @@ async function initPyodide() {
           throw new Error("Service Worker served index.html instead of python files!");
         }
 
-        // WRITE ALL FILES TO VIRTUAL FILE SYSTEM
         tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
         tempPyodide.FS.writeFile("blockly_ast.py", astCode);
         tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
@@ -8329,7 +8420,7 @@ async function initPyodide() {
         return tempPyodide;
       } catch (error) {
         console.error("Pyodide Engine Crash:", error);
-        pyodidePromise = null; // Reset on failure so it can retry
+        pyodidePromise = null; 
         throw error;
       }
     })();
@@ -8361,17 +8452,11 @@ self.onmessage = async (e) => {
     return;
   }
 
-  // ==========================================
-  // AST DOS MITIGATION: Check Payload Size
-  // ==========================================
   const MAX_CODE_LENGTH = 10000;
   if (code && code.length > MAX_CODE_LENGTH) {
     const errorMsg = `Code payload too large. Maximum allowed is ${MAX_CODE_LENGTH} characters.`;
-
     if (type === 'ANALYZE_CODE') {
       self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
-    } else if (type === 'PYTHON_TO_BLOCKS') {
-      self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: { status: 'error', message: errorMsg } });
     } else {
       self.postMessage({ type: 'ERROR', data: errorMsg });
     }
@@ -8390,6 +8475,7 @@ self.onmessage = async (e) => {
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
 import sys
+import ast
 
 # CLEAR CACHE FOR HOT RELOADING
 if 'analyzer' in sys.modules:
@@ -8399,15 +8485,85 @@ if 'semantic_nlg' in sys.modules:
 if 'dynamic_tracer' in sys.modules:
     del sys.modules['dynamic_tracer']
 
+# --- DEEP STACK LINTER ---
+# Bypasses Python's single-error limit to find multiple syntax issues at once
+def gather_custom_lint_errors(code_str):
+    errs = []
+    lines = code_str.split('\\n')
+    
+    stack = []
+    pairs = {'(': ')', '[': ']', '{': '}'}
+    
+    for i, line in enumerate(lines):
+        s = line.strip()
+        
+        # 1. Missing Colon Checker
+        if s.startswith(('def ', 'if ', 'elif ', 'else', 'for ', 'while ', 'class ', 'try', 'except', 'finally')):
+            s_no_comment = s.split('#')[0].strip()
+            if not s_no_comment.endswith(':') and not s_no_comment.endswith(('(', '[', '{', ',', '\\\\')):
+                errs.append({"line": i+1, "message": "expected ':'"})
+                
+        # 2. Unbalanced Bracket Checker
+        in_str = False
+        str_char = ''
+        escape = False
+        for char in line:
+            if escape:
+                escape = False
+                continue
+            if char == '\\\\':
+                escape = True
+                continue
+                
+            if char in '"\\'' and not in_str:
+                in_str = True
+                str_char = char
+            elif char == str_char and in_str:
+                in_str = False
+            
+            if not in_str:
+                if char in pairs:
+                    stack.append((char, i+1))
+                elif char in pairs.values():
+                    if not stack:
+                        errs.append({"line": i+1, "message": f"unexpected EOF while parsing (unmatched {char})"})
+                    else:
+                        top, _ = stack.pop()
+                        if pairs[top] != char:
+                            errs.append({"line": i+1, "message": f"invalid syntax (mismatched {top} and {char})"})
+                            
+    for char, l in stack:
+         errs.append({"line": l, "message": f"unexpected EOF while parsing (unclosed {char})"})
+
+    return errs
+
 try:
     from analyzer import analyze_source_code
     output_dict = analyze_source_code(user_code)
     output = json.dumps(output_dict)
-except Exception as init_err:
+except Exception as e:
+    # Gather custom errors to "stack" them
+    custom_errs = gather_custom_lint_errors(user_code)
+    
+    # Always include the real compiler error
+    real_line = getattr(e, 'lineno', 1) or 1
+    real_msg = str(e)
+    
+    all_errors = [{"line": real_line, "message": real_msg}]
+    
+    # Append custom ones if they don't overlap the exact line
+    for ce in custom_errs:
+        if not any(existing['line'] == ce['line'] for existing in all_errors):
+            all_errors.append(ce)
+            
+    # Sort by line number
+    all_errors.sort(key=lambda x: x['line'])
+    
     output = json.dumps({
         "status": "error",
-        "message": f"Analyzer Initialization Error: {str(init_err)}",
-        "line": -1
+        "multiple_errors": all_errors,
+        "line": real_line,
+        "message": real_msg
     })
 
 output
@@ -8445,7 +8601,7 @@ output
     }
 
     // ======================
-    // 3. RUN MODE (Interactive / Standard Run)
+    // 3. RUN MODE
     // ======================
     else if (type === 'RUN_CODE') {
 
