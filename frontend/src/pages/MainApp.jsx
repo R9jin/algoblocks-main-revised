@@ -125,18 +125,18 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     }
 
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(parsedSec)}}></p>;
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></p>;
   }).filter(Boolean);
 };
 
 const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 const getUser = () => {
-    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-    return userStr ? JSON.parse(userStr) : null;
+  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
 };
 const getAuthHeaders = () => {
-    const token = getToken();
-    return token ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` } : { "Content-Type": "application/json" };
+  const token = getToken();
+  return token ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` } : { "Content-Type": "application/json" };
 };
 
 export default function MainApp() {
@@ -147,7 +147,7 @@ export default function MainApp() {
 
   const createInitialTab = () => ({
     id: `tab-${Date.now()}`, title: 'Untitled Project', viewMode: 'workspace', blocklyJson: null,
-    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [], 
+    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
     analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project"
   });
@@ -214,7 +214,7 @@ export default function MainApp() {
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
-            lineExecutions: prev => ({...prev, ...initialCounts}),
+            lineExecutions: prev => ({ ...prev, ...initialCounts }),
             syntaxErrors: []
           });
           setIsErrorDropdownOpen(false);
@@ -240,7 +240,7 @@ export default function MainApp() {
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
         if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
-        
+
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
@@ -275,7 +275,7 @@ export default function MainApp() {
   useEffect(() => {
     if (worker) {
       workerRef.current = worker;
-      initWorker(); 
+      initWorker();
     }
   }, [worker]);
 
@@ -339,9 +339,9 @@ export default function MainApp() {
             const pData = await pRes.json();
             const cloudProjects = pData.projects || pData || [];
             for (const cp of cloudProjects) {
-               if (cp.owner_id === user.email || cp.userId === user.email) {
-                   await projectsDB.setItem(cp._id, { ...cp, synced: true });
-               }
+              if (cp.owner_id === user.email || cp.userId === user.email) {
+                await projectsDB.setItem(cp._id, { ...cp, synced: true });
+              }
             }
           }
           const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`, { headers });
@@ -349,33 +349,33 @@ export default function MainApp() {
             const tData = await tRes.json();
             const cloudTemplates = tData.templates || tData || [];
             for (const ct of cloudTemplates) {
-                if (ct.owner_id === user.email || ct.userId === user.email) {
-                    await templatesDB.setItem(ct._id, { ...ct, synced: true });
-                }
+              if (ct.owner_id === user.email || ct.userId === user.email) {
+                await templatesDB.setItem(ct._id, { ...ct, synced: true });
+              }
             }
           }
         } catch (e) { console.error("MainApp cloud sync failed:", e); }
       }
-      
+
       let customItems = [];
-      await projectsDB.iterate((value) => { 
+      await projectsDB.iterate((value) => {
         if (value.owner_id === user.email || value.userId === user.email) {
-            customItems.push({ 
-                _id: value._id, title: value.title || value.name || "Untitled Project", 
-                description: value.description || "Saved Project", category: "My Projects", 
-                isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson, 
-                synced: value.synced 
-            }); 
+          customItems.push({
+            _id: value._id, title: value.title || value.name || "Untitled Project",
+            description: value.description || "Saved Project", category: "My Projects",
+            isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson,
+            synced: value.synced
+          });
         }
       });
-      await templatesDB.iterate((value) => { 
+      await templatesDB.iterate((value) => {
         if (value.owner_id === user.email || value.userId === user.email) {
-            customItems.push({ 
-                _id: value._id, title: value.title || value.name || "Untitled Template", 
-                description: value.description || "Custom template", category: value.category || "Custom Templates", 
-                isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson, 
-                synced: value.synced 
-            }); 
+          customItems.push({
+            _id: value._id, title: value.title || value.name || "Untitled Template",
+            description: value.description || "Custom template", category: value.category || "Custom Templates",
+            isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson,
+            synced: value.synced
+          });
         }
       });
       const uniqueItemsMap = new Map();
@@ -453,7 +453,7 @@ export default function MainApp() {
           updateTab(tabId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
-            lineExecutions: prev => ({...prev, ...initialCounts}), syntaxErrors: [] 
+            lineExecutions: prev => ({ ...prev, ...initialCounts }), syntaxErrors: []
           });
           setIsErrorDropdownOpen(false);
         } else {
@@ -472,10 +472,15 @@ export default function MainApp() {
 
     const oldCode = (tab.pythonCode || "").trim();
     const newCode = (pythonCode || "").trim();
-    if (!tab.isEditingCode && oldCode !== newCode) {
-      analyzeCode(tabId, pythonCode);
+
+    if (!tab.isEditingCode) {
+      if (oldCode !== newCode) {
+        analyzeCode(tabId, pythonCode);
+      }
+      updateTab(tabId, { blocklyJson: json, pythonCode: newCode });
+    } else {
+      updateTab(tabId, { blocklyJson: json });
     }
-    updateTab(tabId, { blocklyJson: json, pythonCode: newCode });
   };
 
   // Increased debounce from 500 to 800ms to stop UI flickering while typing
@@ -565,14 +570,14 @@ export default function MainApp() {
   };
 
   const openSaveModal = () => {
-    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) { 
-        showToast("The workspace is empty. Nothing to save!", "error");
-        return; 
+    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) {
+      showToast("The workspace is empty. Nothing to save!", "error");
+      return;
     }
-    
+
     if (!getUser()) {
-        showToast("You must be logged in to save.", "error");
-        return;
+      showToast("You must be logged in to save.", "error");
+      return;
     }
 
     setSaveModal({
@@ -599,7 +604,6 @@ export default function MainApp() {
   const handleImportJson = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -608,7 +612,8 @@ export default function MainApp() {
           workspaceRefs.current[activeTabId].loadTemplate(json);
           updateTab(activeTabId, {
             title: file.name.replace(".json", ""),
-            saveType: "project"
+            saveType: "project",
+            isEditingCode: false // Force unlock so the imported blocks generate Python code
           });
           showToast("Workspace imported successfully", "success");
         }
@@ -631,51 +636,51 @@ export default function MainApp() {
   const submitSave = async () => {
     const user = getUser();
     if (!user) {
-        showToast("Error: You must be logged in to save.", "error");
-        return;
+      showToast("Error: You must be logged in to save.", "error");
+      return;
     }
-    
+
     const id = saveModal.editingId || (saveModal.saveType === 'template' ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
-    const payload = { 
-        _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description, 
-        category: saveModal.saveType === 'template' ? saveModal.category : undefined, 
-        data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson, 
-        workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
-        owner_id: user.email, userId: user.email, synced: false, updatedAt: Date.now() 
+    const payload = {
+      _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description,
+      category: saveModal.saveType === 'template' ? saveModal.category : undefined,
+      data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson,
+      workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
+      owner_id: user.email, userId: user.email, synced: false, updatedAt: Date.now()
     };
 
     const db = saveModal.saveType === 'template' ? templatesDB : projectsDB;
     await db.setItem(id, payload);
 
     if (navigator.onLine && user.email && API_BASE) {
-        try {
-            const endpoint = saveModal.saveType === 'template' ? '/api/templates/save' : '/api/projects/save';
-            const apiPayload = saveModal.saveType === 'template' 
-              ? { templateId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
-              : { projectId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
+      try {
+        const endpoint = saveModal.saveType === 'template' ? '/api/templates/save' : '/api/projects/save';
+        const apiPayload = saveModal.saveType === 'template'
+          ? { templateId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
+          : { projectId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
 
-            const res = await fetch(`${API_BASE}${endpoint}`, {
-                method: 'POST', 
-                headers: getAuthHeaders(), 
-                body: JSON.stringify(apiPayload)
-            });
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(apiPayload)
+        });
 
-            if (res.ok) {
-                const responseData = await res.json();
-                const realId = responseData.projectId || responseData.templateId || responseData._id || id;
-                payload._id = realId; payload.synced = true;
-                if (realId !== id) await db.removeItem(id); 
-                await db.setItem(realId, payload);
-                
-                showToast("Saved directly to cloud!", "success");
-                setSaveModal({ ...saveModal, isOpen: false });
-                if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType });
-                fetchTemplates();
-                return;
-            } else {
-                console.warn(`Server returned ${res.status}, falling back to local queue`);
-            }
-        } catch (err) { console.warn("Direct save failed, gracefully falling back to background queue.", err); }
+        if (res.ok) {
+          const responseData = await res.json();
+          const realId = responseData.projectId || responseData.templateId || responseData._id || id;
+          payload._id = realId; payload.synced = true;
+          if (realId !== id) await db.removeItem(id);
+          await db.setItem(realId, payload);
+
+          showToast("Saved directly to cloud!", "success");
+          setSaveModal({ ...saveModal, isOpen: false });
+          if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType });
+          fetchTemplates();
+          return;
+        } else {
+          console.warn(`Server returned ${res.status}, falling back to local queue`);
+        }
+      } catch (err) { console.warn("Direct save failed, gracefully falling back to background queue.", err); }
     }
 
     await syncQueueDB.setItem(`sync_${id}_${Date.now()}`, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
@@ -694,8 +699,8 @@ export default function MainApp() {
     try {
       if (item.saveType === 'template') await templatesDB.removeItem(item._id);
       else await projectsDB.removeItem(item._id);
-      
-      if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id); 
+
+      if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id);
       else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
 
       showToast(`${itemLabel} deleted locally!`, "success");
@@ -729,7 +734,7 @@ export default function MainApp() {
 
   return (
     <div className="workspace-app-container">
-      
+
       {/* CSS Block to cleanly hide the sidebar without breaking react-split widths */}
       <style>{`
         .workspace-split.sidebar-hidden .templates-sidebar {
@@ -832,26 +837,26 @@ export default function MainApp() {
           <div className="editor-split-vertical">
             {/* Added flex: 1 and height: 100% here so the container expands */}
             <div className="editor-container" style={{ flex: 1, height: '100%', position: 'relative' }}>
-              
+
               {/* Added flex: 1 here as well */}
-              <div className={activeTab.viewMode === 'workspace' ? 'workspace-view d-flex' : 'workspace-view d-none'} style={{ flex: 1, height: '100%', width: '100%' }}>
+              <div className={activeTab.viewMode === 'workspace' ?
+                'workspace-view d-flex' : 'workspace-view d-none'} style={{ flex: 1, height: '100%', width: '100%' }}>
                 {tabs.map(tab => (
-                  <div key={tab.id} className={activeTabId === tab.id ? 'd-block' : 'd-none'} style={{width: '100%', height: '100%'}}>
+                  <div key={tab.id} className={activeTabId === tab.id ? 'd-block' : 'd-none'} style={{ width: '100%', height: '100%' }}>
                     <BlocklyWorkspace
                       ref={el => workspaceRefs.current[tab.id] = el}
-                      initialXml={tab.blocklyJson}
-                      onCodeChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
+                      onChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
                     />
                   </div>
                 ))}
               </div>
-              
+
               <div className={activeTab.viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}>
                 <div className="python-header">
                   <span className="python-sync-status">{activeTab.isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
                   <button onClick={handleSyncToBlocks} disabled={!activeTab.isEditingCode} className={`python-sync-btn ${activeTab.isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks </button>
                 </div>
-                
+
                 <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
                   <Editor
                     height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount}
@@ -859,7 +864,7 @@ export default function MainApp() {
                     onChange={(value) => { updateTab(activeTabId, { pythonCode: value || "", isEditingCode: true, syntaxErrors: [] }); }}
                     options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, wordWrap: "on", padding: { top: 16 } }}
                   />
-                  
+
                   {/* NEW ERROR DROPDOWN */}
                   {activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0 && (
                     <div className="floating-error-container">
@@ -878,7 +883,7 @@ export default function MainApp() {
                           </div>
                         </div>
                       )}
-                      <button 
+                      <button
                         className={`floating-error-btn ${isErrorDropdownOpen ? 'open' : ''}`}
                         onClick={() => setIsErrorDropdownOpen(!isErrorDropdownOpen)}
                       >

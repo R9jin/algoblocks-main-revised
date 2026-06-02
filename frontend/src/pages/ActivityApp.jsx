@@ -890,10 +890,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
-  const handleSuccess = (score, maxScore, funcPassed, funcTotal) => {
+  // ----- FIX APPLIED HERE: Changed to async and added immediate topic sync -----
+  const handleSuccess = async (score, maxScore, funcPassed, funcTotal) => {
     const currentIndex = lessonActivitiesResolved.findIndex(a => a.id === activityId);
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
+
+    if (funcPassed === funcTotal) {
+      await completeFullTopic(activityId);
+    }
 
     let promptMsg = "";
     if (score === 5) {
@@ -1079,7 +1084,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, score);
 
-    if (score >= 1) handleSuccess(score, 5, functionalPassed, functionalTotal);
+    // ----- FIX APPLIED HERE: Added await -----
+    if (score >= 1) await handleSuccess(score, 5, functionalPassed, functionalTotal);
   };
 
   const lines = analysisResult?.lines || [];

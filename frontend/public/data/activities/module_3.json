@@ -1,360 +1,566 @@
 {
   "lesson_1": [
     {
-      "id": "m3_l1_a1",
-      "title": "Halving an Array",
-      "task": "A data segmentation engine is required to divide arrays into two equal execution partitions.\n\nTask Requirement:\nCreate a function halve_array(arr) that splits the input array into two parts at the midpoint using floor(len(arr)/2).\n\nRules:\n- Left half contains elements before midpoint\n- Right half contains remaining elements\n- Must preserve original order\n- Return format: [leftHalf, rightHalf]\n- If the array is empty, return [[],[]]\n\nSample Output:\nhalve_array([1,2,3,4]) → [[1,2],[3,4]]",
+      "id": "m2_l1_a1",
+      "title": "Brute Force: Maximum Value",
+      "task": [
+        "Brute force algorithms solve problems through systematic, exhaustive checking. To find a maximum value reliably in an unsorted array, the algorithm must directly inspect every single element against a running baseline.",
+        "",
+        "Algorithm Steps:",
+        "1. Assume the very first element is the largest by storing it in a variable.",
+        "2. Traverse through every remaining element sequentially.",
+        "3. Compare each element to the stored baseline. If an element is larger, update the baseline.",
+        "",
+        "Instructions:",
+        "1. Open the Functions tab and create `find_max(arr)`.",
+        "2. Check if the array is empty. If it is, return the string `'Error'`.",
+        "3. Create a variable `max_val` and assign it the value of `arr[0]`.",
+        "4. Use a loop to iterate over `arr`.",
+        "5. Inside the loop, insert an `if` construct: if the current item is `>` than `max_val`, assign `max_val` to the current item.",
+        "6. Return `max_val` outside the loop.",
+        "7. Observe the Complexity tab. The structural pass identifies the single traversal and assigns an O(n) Time Complexity.",
+        "",
+        "Sample Output:",
+        "find_max([32, 45, 28, 47, 39]) → 47"
+      ],
       "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "halve_array([1,2,3,4])", "expected": "[[1,2],[3,4]]", "isHidden": false },
-        { "call": "halve_array([10,20,30])", "expected": "[[10],[20,30]]", "isHidden": false },
-        { "call": "halve_array([5])", "expected": "[[5],[]]", "isHidden": false },
-        { "call": "halve_array([])", "expected": "[[],[]]", "isHidden": false },
-        { "call": "halve_array([1,2,3,4,5])", "expected": "[[1,2],[3,4,5]]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_l1_a2",
-      "title": "Find Midpoint",
-      "task": "A computation system requires calculation of midpoint indices for range partitioning operations.\n\nTask Requirement:\nCreate a function midpoint(l, r) that returns the midpoint using floor((l + r) / 2).\n\nRules:\n- Input consists of two integers l and r\n- Output must be a single integer\n- Use integer division behavior\n\nSample Output:\nmidpoint(0,9) → 4",
-      "targetTime": "O(1)",
       "targetSpace": "O(1)",
-      "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "midpoint(0,9)", "expected": "4", "isHidden": false },
-        { "call": "midpoint(1,5)", "expected": "3", "isHidden": false },
-        { "call": "midpoint(2,2)", "expected": "2", "isHidden": false },
-        { "call": "midpoint(0,0)", "expected": "0", "isHidden": false },
-        { "call": "midpoint(3,10)", "expected": "6", "isHidden": false }
+        { "call": "find_max([32, 45, 28, 47, 39])", "expected": "47", "isHidden": false },
+        { "call": "find_max([-10, -5, -20])", "expected": "-5", "isHidden": false },
+        { "call": "find_max([100])", "expected": "100", "isHidden": false },
+        { "call": "find_max([])", "expected": "'Error'", "isHidden": false },
+        { "call": "find_max([1, 1, 1, 1])", "expected": "1", "isHidden": false }
       ]
     },
     {
-      "id": "m3_l1_a3",
-      "title": "Recursive Countdown",
-      "task": "A recursive execution engine simulates reverse sequential processing for system tasks.\n\nTask Requirement:\nCreate a function countdown(n) that returns a list counting down from n to 1.\n\nRules:\n- Must use recursive logic\n- Each recursive call decreases n by 1\n- If n ≤ 0 return ['Abort']\n- Output must preserve descending order\n\nSample Output:\ncountdown(3) → [3,2,1]",
+      "id": "m2_l1_a2",
+      "title": "Brute Force: Minimum Value",
+      "task": [
+        "A brute force solution helps establish a reliable correctness baseline before moving to optimizations. Finding the minimum uses the exact same exhaustive checking approach as finding the maximum, with inverted comparative logic.",
+        "",
+        "Algorithm Steps:",
+        "1. Assume the first element is the smallest.",
+        "2. Check every other element sequentially.",
+        "3. If an element is strictly smaller than your current minimum, update the minimum tracker.",
+        "",
+        "Instructions:",
+        "1. Create `find_min(arr)`.",
+        "2. If the array is empty, return `'Error'`.",
+        "3. Initialize `min_val` to the first element.",
+        "4. Loop through the array. If the current item is `<` than `min_val`, update it.",
+        "5. Return the final `min_val`.",
+        "",
+        "Sample Output:",
+        "find_min([3, 1, 9, 2]) → 1"
+      ],
       "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "countdown(3)", "expected": "[3,2,1]", "isHidden": false },
-        { "call": "countdown(5)", "expected": "[5,4,3,2,1]", "isHidden": false },
-        { "call": "countdown(1)", "expected": "[1]", "isHidden": false },
-        { "call": "countdown(0)", "expected": "['Abort']", "isHidden": false },
-        { "call": "countdown(-5)", "expected": "['Abort']", "isHidden": false }
+        { "call": "find_min([3, 1, 9, 2])", "expected": "1", "isHidden": false },
+        { "call": "find_min([10, 20, 30, 40])", "expected": "10", "isHidden": false },
+        { "call": "find_min([-5, -10, 0, 5])", "expected": "-10", "isHidden": false },
+        { "call": "find_min([])", "expected": "'Error'", "isHidden": false },
+        { "call": "find_min([99])", "expected": "99", "isHidden": false }
       ]
     },
     {
-      "id": "m3_l1_a4",
-      "title": "Recursive Factorial",
-      "task": "A mathematical computation module is required to compute factorial values using recursive function calls.\n\nTask Requirement:\nCreate a function factorial(n) that returns n! recursively.\n\nRules:\n- Base case: factorial(0) = 1\n- Base case: factorial(1) = 1\n- Must use recursion\n- Multiply current n with factorial(n - 1)\n\nSample Output:\nfactorial(5) → 120",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
+      "id": "m2_l1_a3",
+      "title": "Exhaustive Pair Search",
+      "task": [
+        "By exposing the full search space, brute force allows us to systematically verify every possible candidate combination. This algorithm checks every possible pair in an array to see if they aggregate to a target sum.",
+        "",
+        "Algorithm Steps:",
+        "1. Select the first element via an outer loop.",
+        "2. Add it to every subsequent element using an inner loop.",
+        "3. If the sum matches the target, return True.",
+        "4. Repeat until the search space is exhausted. If no pairs match, return False.",
+        "",
+        "Instructions:",
+        "1. Create `has_pair_sum(arr, target)`.",
+        "2. Construct an outer loop with index `i` from `0` to the length of `arr`.",
+        "3. Inside it, nest an inner loop with index `j` from `i + 1` to the length of `arr`.",
+        "4. If `arr[i] + arr[j] == target`, return `True`.",
+        "5. Outside both loops, return `False`.",
+        "6. Check the static analyzer. The nested iteration dictates an O(n²) Time Complexity.",
+        "",
+        "Sample Output:",
+        "has_pair_sum([2, 4, 7, 11], 13) → True"
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "factorial(5)", "expected": "120", "isHidden": false },
-        { "call": "factorial(4)", "expected": "24", "isHidden": false },
-        { "call": "factorial(3)", "expected": "6", "isHidden": false },
-        { "call": "factorial(0)", "expected": "1", "isHidden": false },
-        { "call": "factorial(1)", "expected": "1", "isHidden": false }
+        { "call": "has_pair_sum([2, 4, 7, 11], 13)", "expected": "True", "isHidden": false },
+        { "call": "has_pair_sum([1, 2, 3, 4], 10)", "expected": "False", "isHidden": false },
+        { "call": "has_pair_sum([5, 5, 5], 10)", "expected": "True", "isHidden": false },
+        { "call": "has_pair_sum([10], 10)", "expected": "False", "isHidden": false },
+        { "call": "has_pair_sum([], 5)", "expected": "False", "isHidden": false }
       ]
     },
     {
-      "id": "m3_l1_a5",
-      "title": "Recursive Sum",
-      "task": "A numeric aggregation system computes cumulative sums using recursive evaluation.\n\nTask Requirement:\nCreate a function sum_recursive(n) that returns the sum from 1 to n.\n\nRules:\n- Must use recursion\n- Add current n to sum_recursive(n - 1)\n- If n ≤ 0 return 0\n- Final result must be a single integer\n\nSample Output:\nsum_recursive(5) → 15",
+      "id": "m2_l1_a4",
+      "title": "Conditional Counting",
+      "task": [
+        "Instead of extracting a single target, algorithms often exhaustively count how many items fit a specific condition. This linear brute-force pattern evaluates conditions sequentially and maintains a running state.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize a counter to 0.",
+        "2. Examine each item in the collection.",
+        "3. Apply a modulo operation. If the remainder of the item divided by 2 is 0 (even), increment the counter.",
+        "4. Return the counter.",
+        "",
+        "Instructions:",
+        "1. Create `count_evens(arr)`.",
+        "2. Initialize a variable `count` to 0.",
+        "3. Use an iterative construct to traverse `arr`.",
+        "4. Using the modulo block (`%`), check if `item % 2 == 0`.",
+        "5. If the condition evaluates to true, increment `count` by 1.",
+        "6. Return `count`.",
+        "",
+        "Sample Output:",
+        "count_evens([1, 2, 3, 4, 5, 6]) → 3"
+      ],
       "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "sum_recursive(5)", "expected": "15", "isHidden": false },
-        { "call": "sum_recursive(10)", "expected": "55", "isHidden": false },
-        { "call": "sum_recursive(3)", "expected": "6", "isHidden": false },
-        { "call": "sum_recursive(0)", "expected": "0", "isHidden": false },
-        { "call": "sum_recursive(-2)", "expected": "0", "isHidden": false }
+        { "call": "count_evens([1, 2, 3, 4, 5, 6])", "expected": "3", "isHidden": false },
+        { "call": "count_evens([2, 4, 6, 8])", "expected": "4", "isHidden": false },
+        { "call": "count_evens([1, 3, 5])", "expected": "0", "isHidden": false },
+        { "call": "count_evens([])", "expected": "0", "isHidden": false },
+        { "call": "count_evens([0])", "expected": "1", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m2_l1_a5",
+      "title": "Algorithmic Short-Circuiting",
+      "task": [
+        "A primary optimization in brute force scanning is the capability to terminate execution the exact moment a solution is found, bypassing unnecessary work. This is known as short-circuiting or early return.",
+        "",
+        "Algorithm Steps:",
+        "1. Traverse the elements sequentially.",
+        "2. As soon as an element satisfies the condition (e.g., less than 0), return that element immediately.",
+        "3. If the traversal concludes without satisfying the condition, return a default fallback value.",
+        "",
+        "Instructions:",
+        "1. Create `first_negative(arr)`.",
+        "2. Loop through `arr`.",
+        "3. If the current `item` is `< 0`, immediately `return item`.",
+        "4. Outside the loop construct, return `0`.",
+        "5. Note that the static analyzer assumes the loop runs fully in the worst case, keeping the structural complexity at O(n).",
+        "",
+        "Sample Output:",
+        "first_negative([5, 3, -2, 8, -1]) → -2"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "first_negative([5, 3, -2, 8, -1])", "expected": "-2", "isHidden": false },
+        { "call": "first_negative([10, 20, 30])", "expected": "0", "isHidden": false },
+        { "call": "first_negative([-5, -10])", "expected": "-5", "isHidden": false },
+        { "call": "first_negative([])", "expected": "0", "isHidden": false },
+        { "call": "first_negative([0, 0, -1])", "expected": "-1", "isHidden": false }
       ]
     }
   ],
-
   "lesson_2": [
     {
-      "id": "m3_l2_a1",
-      "title": "Binary Search",
-      "task": "A search optimization system is required to locate values in sorted datasets using logarithmic search reduction.\n\nTask Requirement:\nCreate a function binary_search(arr, target) that performs binary search.\n\nRules:\n- Array is sorted in ascending order\n- Repeatedly check the middle element\n- Eliminate half of the remaining search space every iteration\n- Return index of target if found\n- Return -1 if not found\n\nSample Output:\nbinary_search([10,20,30],30) → 2",
-      "targetTime": "O(log n)",
+      "id": "m2_l2_a1",
+      "title": "Standard Linear Search",
+      "task": [
+        "Linear Search operates on unsorted arrays by checking elements one by one until the target is found. It guarantees a match if one exists but runs in O(n) Time Complexity.",
+        "",
+        "Algorithm Steps:",
+        "1. Start at the first position of the array.",
+        "2. Compare the current element to the target.",
+        "3. If it matches, immediately stop and return the current index.",
+        "4. If the traversal finishes without a match, return -1.",
+        "",
+        "Instructions:",
+        "1. Create `linear_search(arr, target)`.",
+        "2. Use a loop with an index variable `i` spanning from 0 to the length of `arr`.",
+        "3. If `arr[i] == target`, execute `return i`.",
+        "4. Return `-1` outside the loop.",
+        "",
+        "Sample Output:",
+        "linear_search([3, 8, 5, 11, 2], 11) → 3"
+      ],
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
-      "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "binary_search([10,20,30,40,50],30)", "expected": "2", "isHidden": false },
-        { "call": "binary_search([1,2,3,4],1)", "expected": "0", "isHidden": false },
-        { "call": "binary_search([5,10,15],15)", "expected": "2", "isHidden": false },
-        { "call": "binary_search([],5)", "expected": "-1", "isHidden": false },
-        { "call": "binary_search([7],7)", "expected": "0", "isHidden": false }
+        { "call": "linear_search([3, 8, 5, 11, 2], 11)", "expected": "3", "isHidden": false },
+        { "call": "linear_search([10, 20, 30], 40)", "expected": "-1", "isHidden": false },
+        { "call": "linear_search([7, 7, 7], 7)", "expected": "0", "isHidden": false },
+        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": false },
+        { "call": "linear_search([1], 1)", "expected": "0", "isHidden": false }
       ]
     },
     {
-      "id": "m3_l2_a2",
-      "title": "Missing Target Binary",
-      "task": "A validation search system checks existence of elements inside sorted datasets.\n\nTask Requirement:\nCreate a function binary_missing(arr, target).\n\nRules:\n- Use binary search logic\n- Return index if found\n- Return -1 if not found\n- Array is sorted in ascending order\n\nSample Output:\nbinary_missing([1,2,3],4) → -1",
-      "targetTime": "O(log n)",
+      "id": "m2_l2_a2",
+      "title": "Complete Traversal Search",
+      "task": [
+        "When a target appears multiple times and an aggregate count is required, short-circuiting cannot be utilized. The algorithm must process the entire data structure.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize a counter to zero.",
+        "2. Traverse the entire array from start to finish.",
+        "3. For every item that equals the target, increment the counter.",
+        "4. Return the total count.",
+        "",
+        "Instructions:",
+        "1. Create `count_occurrences(arr, target)`.",
+        "2. Initialize `count = 0`.",
+        "3. Iterate through `arr`.",
+        "4. If `item == target`, increment `count` by 1.",
+        "5. Return `count`.",
+        "",
+        "Sample Output:",
+        "count_occurrences([1, 2, 2, 3], 2) → 2"
+      ],
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
-      "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "binary_missing([1,2,3],4)", "expected": "-1", "isHidden": false },
-        { "call": "binary_missing([10,20,30],15)", "expected": "-1", "isHidden": false },
-        { "call": "binary_missing([5,6,7],7)", "expected": "2", "isHidden": false },
-        { "call": "binary_missing([],1)", "expected": "-1", "isHidden": false },
-        { "call": "binary_missing([9],9)", "expected": "0", "isHidden": false }
+        { "call": "count_occurrences([1, 2, 2, 3], 2)", "expected": "2", "isHidden": false },
+        { "call": "count_occurrences([5, 5, 5, 5], 5)", "expected": "4", "isHidden": false },
+        { "call": "count_occurrences([1, 2, 3], 4)", "expected": "0", "isHidden": false },
+        { "call": "count_occurrences([], 1)", "expected": "0", "isHidden": false },
+        { "call": "count_occurrences([9], 9)", "expected": "1", "isHidden": false }
       ]
     },
     {
-      "id": "m3_l2_a3",
-      "title": "First Occurrence Binary",
-      "task": "A duplicate-aware search system identifies the first occurrence of target values in sorted datasets.\n\nTask Requirement:\nCreate a function binary_first(arr, target).\n\nRules:\n- Use binary search logic\n- Return smallest index of target\n- Must handle duplicate values correctly\n- Return -1 if target does not exist\n\nSample Output:\nbinary_first([1,2,2,2,3],2) → 1",
-      "targetTime": "O(log n)",
+      "id": "m2_l2_a3",
+      "title": "Overwriting Match State",
+      "task": [
+        "To locate the final occurrence of a target in a linear scan, the algorithm updates a tracking variable upon every match rather than executing an early return.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize `last_index` to -1 (indicating no match).",
+        "2. Loop through the array using index positions.",
+        "3. Whenever `arr[i] == target`, overwrite `last_index` with `i`.",
+        "4. Return `last_index` after the traversal completes.",
+        "",
+        "Instructions:",
+        "1. Create `last_occurrence(arr, target)`.",
+        "2. Set `last_index = -1`.",
+        "3. Loop `i` from `0` to the length of `arr`.",
+        "4. If `arr[i] == target`, reassign `last_index = i`.",
+        "5. Return `last_index`.",
+        "",
+        "Sample Output:",
+        "last_occurrence([1, 2, 2, 3, 2, 4], 2) → 4"
+      ],
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
-      "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "binary_first([1,2,2,2,3],2)", "expected": "1", "isHidden": false },
-        { "call": "binary_first([5,5,5,6],5)", "expected": "0", "isHidden": false },
-        { "call": "binary_first([1,2,3],3)", "expected": "2", "isHidden": false },
-        { "call": "binary_first([],1)", "expected": "-1", "isHidden": false },
-        { "call": "binary_first([7,7],7)", "expected": "0", "isHidden": false }
+        { "call": "last_occurrence([1, 2, 2, 3, 2, 4], 2)", "expected": "4", "isHidden": false },
+        { "call": "last_occurrence([5, 5, 5], 5)", "expected": "2", "isHidden": false },
+        { "call": "last_occurrence([1, 2, 3], 4)", "expected": "-1", "isHidden": false },
+        { "call": "last_occurrence([9, 1, 1], 9)", "expected": "0", "isHidden": false },
+        { "call": "last_occurrence([], 1)", "expected": "-1", "isHidden": false }
       ]
     },
     {
-      "id": "m3_l2_a4",
-      "title": "Last Occurrence Binary",
-      "task": "A duplicate-aware search system identifies the last occurrence of target values in sorted datasets.\n\nTask Requirement:\nCreate a function binary_last(arr, target).\n\nRules:\n- Use binary search logic\n- Return largest index of target\n- Must handle duplicate values correctly\n- Return -1 if target does not exist\n\nSample Output:\nbinary_last([1,2,2,2,3],2) → 3",
-      "targetTime": "O(log n)",
+      "id": "m2_l2_a4",
+      "title": "Bounded Linear Search",
+      "task": [
+        "Search algorithms can be constrained to evaluate only specific sub-sections of memory. This prevents processing irrelevant data segments, though worst-case complexity remains O(n).",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize a loop starting from a `start` index and terminating at an `end` index.",
+        "2. Compare elements within these defined boundaries.",
+        "3. If `arr[i] == target`, return `i`.",
+        "4. Return -1 if no match exists within the boundary.",
+        "",
+        "Instructions:",
+        "1. Create `search_in_range(arr, target, start, end)`.",
+        "2. Structure an indexed loop utilizing the `start` and `end` parameters as explicit limits.",
+        "3. If `arr[i] == target`, return `i`.",
+        "4. Return `-1` outside the iterative construct.",
+        "",
+        "Sample Output:",
+        "search_in_range([10, 20, 30, 40, 50], 40, 1, 4) → 3"
+      ],
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
-      "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "binary_last([1,2,2,2,3],2)", "expected": "3", "isHidden": false },
-        { "call": "binary_last([5,5,5,6],5)", "expected": "2", "isHidden": false },
-        { "call": "binary_last([1,2,3],3)", "expected": "2", "isHidden": false },
-        { "call": "binary_last([],1)", "expected": "-1", "isHidden": false },
-        { "call": "binary_last([7,7],7)", "expected": "1", "isHidden": false }
+        { "call": "search_in_range([10, 20, 30, 40, 50], 40, 1, 4)", "expected": "3", "isHidden": false },
+        { "call": "search_in_range([10, 20, 30, 40, 50], 10, 2, 5)", "expected": "-1", "isHidden": false },
+        { "call": "search_in_range([5, 5, 5], 5, 1, 2)", "expected": "1", "isHidden": false },
+        { "call": "search_in_range([], 1, 0, 0)", "expected": "-1", "isHidden": false },
+        { "call": "search_in_range([1, 2, 3], 2, 0, 3)", "expected": "1", "isHidden": false }
       ]
     },
     {
-      "id": "m3_l2_a5",
-      "title": "Step Counter",
-      "task": "A performance tracking system simulates binary search execution and counts iteration steps until completion.\n\nTask Requirement:\nCreate a function binary_steps(arr, target).\n\nRules:\n- Count each binary search iteration\n- Increase step count every midpoint evaluation\n- Return number of steps taken until target is found\n- If array is empty, return 0\n\nSample Output:\nbinary_steps([1,2,3],2) → 2",
-      "targetTime": "O(log n)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
+      "id": "m2_l2_a5",
+      "title": "Multi-Target Spatial Allocation",
+      "task": [
+        "If multiple instances of a target must be recorded, the algorithm must dynamically allocate memory to store indices. This process transitions the space complexity from O(1) to O(n).",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize an auxiliary dynamic array.",
+        "2. Traverse the input array. Upon matching a target, append its index to the auxiliary array.",
+        "3. Return the auxiliary array.",
+        "",
+        "Instructions:",
+        "1. Create `multi_search(arr, target)`.",
+        "2. Initialize `results` to an empty list `[]`.",
+        "3. Loop `i` from `0` to the length of `arr`.",
+        "4. If `arr[i] == target`, append `i` to `results`.",
+        "5. Return `results`.",
+        "6. Confirm the system evaluates the out-of-place creation as an O(n) Space operation.",
+        "",
+        "Sample Output:",
+        "multi_search([1, 5, 1, 8, 1], 1) → [0, 2, 4]"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "binary_steps([1,2,3,4,5],3)", "expected": "2", "isHidden": false },
-        { "call": "binary_steps([10,20,30,40],20)", "expected": "2", "isHidden": false },
-        { "call": "binary_steps([5,6,7],7)", "expected": "2", "isHidden": false },
-        { "call": "binary_steps([],1)", "expected": "0", "isHidden": false },
-        { "call": "binary_steps([9],9)", "expected": "0", "isHidden": false }
+        { "call": "multi_search([1, 5, 1, 8, 1], 1)", "expected": "[0, 2, 4]", "isHidden": false },
+        { "call": "multi_search([2, 4, 6], 5)", "expected": "[]", "isHidden": false },
+        { "call": "multi_search([3, 3], 3)", "expected": "[0, 1]", "isHidden": false },
+        { "call": "multi_search([], 1)", "expected": "[]", "isHidden": false },
+        { "call": "multi_search([0], 0)", "expected": "[0]", "isHidden": false }
       ]
     }
   ],
-
   "lesson_3": [
     {
-      "id": "m3_l3_a1",
-      "title": "Merge Step",
-      "task": "A sorting subsystem requires merging two pre-sorted arrays into a single ordered sequence.\n\nTask Requirement:\nCreate a function merge(arr1, arr2) that merges two sorted arrays in ascending order.\n\nRules:\n- Must preserve ascending order\n- Compare elements from both arrays sequentially\n- Must not mutate original arrays\n- Return a single merged array\n\nSample Output:\nmerge([1,2],[3,4]) → [1,2,3,4]",
-      "targetTime": "O(n + m)",
-      "targetSpace": "O(n + m)",
-      "randomizeTestCases": true,
+      "id": "m2_l3_a1",
+      "title": "Bubble Sort Mechanics (Ascending)",
+      "task": [
+        "Bubble Sort is an elementary sorting algorithm. It functions by iterating through a dataset, comparing adjacent elements, and swapping them if they reside in the incorrect order. This progressively forces the largest elements to 'bubble' to the end.",
+        "",
+        "Algorithm Steps:",
+        "1. Execute an outer loop over the array to manage passes.",
+        "2. Execute an inner loop to sequentially compare adjacent indices `j` and `j+1`.",
+        "3. If `arr[j]` is strictly greater than `arr[j+1]`, execute an in-place swap.",
+        "4. Repeat until sorted.",
+        "",
+        "Instructions:",
+        "1. Create `bubble_sort_asc(arr)`.",
+        "2. Construct an outer loop indexing `i` from 0 to array length.",
+        "3. Nest an inner loop indexing `j` from 0 to `array length - 1`.",
+        "4. If `arr[j] > arr[j+1]`, assign them swapped values.",
+        "5. Return the sorted `arr`.",
+        "6. Observe the Complexity tab. The structural pass identifies nested iteration and evaluates the algorithm as O(n²) Time.",
+        "",
+        "Sample Output:",
+        "bubble_sort_asc([5, 2, 8, 1]) → [1, 2, 5, 8]"
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "merge([1,5,9],[2,3,8])", "expected": "[1,2,3,5,8,9]", "isHidden": false },
-        { "call": "merge([1,2],[3,4])", "expected": "[1,2,3,4]", "isHidden": false },
-        { "call": "merge([10],[1])", "expected": "[1,10]", "isHidden": false },
-        { "call": "merge([],[])", "expected": "[]", "isHidden": false },
-        { "call": "merge([1],[1])", "expected": "[1,1]", "isHidden": false }
+        { "call": "bubble_sort_asc([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
+        { "call": "bubble_sort_asc([3, 3, 1, 2])", "expected": "[1, 2, 3, 3]", "isHidden": false },
+        { "call": "bubble_sort_asc([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
+        { "call": "bubble_sort_asc([1])", "expected": "[1]", "isHidden": false },
+        { "call": "bubble_sort_asc([])", "expected": "[]", "isHidden": false }
       ]
     },
     {
-      "id": "m3_l3_a2",
-      "title": "Array Splitter",
-      "task": "A preprocessing system wraps datasets into controlled container structures for pipeline processing.\n\nTask Requirement:\nCreate a function split(arr) that returns the array wrapped inside another list.\n\nRules:\n- No modification of original array\n- Output format must be [arr]\n- If array is empty, return []\n\nSample Output:\nsplit([1,2]) → [[1,2]]",
+      "id": "m2_l3_a2",
+      "title": "Selection Sort Mechanics (Ascending)",
+      "task": [
+        "Selection Sort divides the array into sorted and unsorted partitions. It minimizes swaps by sequentially scanning the unsorted partition for the absolute minimum element, then executing a single swap to place it correctly.",
+        "",
+        "Algorithm Steps:",
+        "1. Iterate via an outer loop `i`. Assume index `i` holds the minimum.",
+        "2. Scan all elements strictly to the right of `i` using an inner loop.",
+        "3. If a smaller element is detected, update the minimum index tracker.",
+        "4. Upon completing the inner scan, swap the newly found minimum element with index `i`.",
+        "",
+        "Instructions:",
+        "1. Create `selection_sort_asc(arr)`.",
+        "2. Loop `i` from 0 to `length of arr`. Inside, set `min_idx = i`.",
+        "3. Nested loop: `j` from `i + 1` to `length of arr`. If `arr[j] < arr[min_idx]`, update `min_idx = j`.",
+        "4. Outside the inner loop, swap `arr[i]` and `arr[min_idx]`.",
+        "5. Return `arr`.",
+        "",
+        "Sample Output:",
+        "selection_sort_asc([5, 2, 8, 1]) → [1, 2, 5, 8]"
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "selection_sort_asc([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
+        { "call": "selection_sort_asc([10, -2, 5])", "expected": "[-2, 5, 10]", "isHidden": false },
+        { "call": "selection_sort_asc([4, 4, 2])", "expected": "[2, 4, 4]", "isHidden": false },
+        { "call": "selection_sort_asc([7])", "expected": "[7]", "isHidden": false },
+        { "call": "selection_sort_asc([])", "expected": "[]", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m2_l3_a3",
+      "title": "Inverted Comparative Logic",
+      "task": [
+        "Sorting algorithms dictate ordering through relational operators. To sort data in descending order, the algorithm must invert the logical check applied to adjacent or subset comparisons.",
+        "",
+        "Algorithm Steps:",
+        "1. Utilize the established Bubble Sort structure.",
+        "2. Compare adjacent elements. If the left element is strictly smaller than the right, execute a swap.",
+        "3. This forces the smallest elements to propagate toward the terminal indices.",
+        "",
+        "Instructions:",
+        "1. Create `bubble_sort_desc(arr)`.",
+        "2. Structure the O(n²) nested iteration logic.",
+        "3. Formulate the conditional to trigger if `arr[j] < arr[j+1]`.",
+        "4. Swap elements if the condition validates, and return the mutated array.",
+        "",
+        "Sample Output:",
+        "bubble_sort_desc([1, 2, 3]) → [3, 2, 1]"
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "bubble_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
+        { "call": "bubble_sort_desc([5, 8, 2, 9])", "expected": "[9, 8, 5, 2]", "isHidden": false },
+        { "call": "bubble_sort_desc([2, 2, 1])", "expected": "[2, 2, 1]", "isHidden": false },
+        { "call": "bubble_sort_desc([-1, -5, 0])", "expected": "[0, -1, -5]", "isHidden": false },
+        { "call": "bubble_sort_desc([])", "expected": "[]", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m2_l3_a4",
+      "title": "Maximum Selection Search",
+      "task": [
+        "Selection Sort can equivalently establish descending order by locating the maximum candidate within the unsorted partition during its linear scan.",
+        "",
+        "Algorithm Steps:",
+        "1. Iterate via outer loop `i`. Treat `i` as the index of the maximum value.",
+        "2. Scan all elements to the right. If a larger value is identified, update the maximum index tracker.",
+        "3. Swap the absolute maximum element into index `i`.",
+        "",
+        "Instructions:",
+        "1. Create `selection_sort_desc(arr)`.",
+        "2. Construct the requisite nested structure. Initialize `max_idx = i`.",
+        "3. Inside the inner loop, verify if `arr[j] > arr[max_idx]`. If true, set `max_idx = j`.",
+        "4. Execute the swap procedure between `arr[i]` and `arr[max_idx]`.",
+        "5. Return the array.",
+        "",
+        "Sample Output:",
+        "selection_sort_desc([1, 2, 3]) → [3, 2, 1]"
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "selection_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
+        { "call": "selection_sort_desc([10, 50, 20])", "expected": "[50, 20, 10]", "isHidden": false },
+        { "call": "selection_sort_desc([4, 4, 6])", "expected": "[6, 4, 4]", "isHidden": false },
+        { "call": "selection_sort_desc([9])", "expected": "[9]", "isHidden": false },
+        { "call": "selection_sort_desc([])", "expected": "[]", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m2_l3_a5",
+      "title": "Sorting Mechanism: Single Pass Evaluation",
+      "task": [
+        "To internalize the mechanics of Bubble Sort, it is beneficial to isolate and analyze a single operational pass. A single linear iteration guarantees the absolute largest integer will propagate to the final index.",
+        "",
+        "Algorithm Steps:",
+        "1. Remove the outer execution loop entirely.",
+        "2. Maintain the inner loop to scan the array exactly once.",
+        "3. Execute adjacent comparisons and perform swaps.",
+        "",
+        "Instructions:",
+        "1. Create `single_pass(arr)`.",
+        "2. Loop `j` from 0 to `length of arr - 1`.",
+        "3. If `arr[j] > arr[j+1]`, swap them.",
+        "4. Return `arr`. Notice how removing the outer loop drops the complexity back down to O(n) Linear Time.",
+        "",
+        "Sample Output:",
+        "single_pass([5, 2, 8, 1]) → [2, 5, 1, 8]"
+      ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
-      "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "split([1,2,3,4])", "expected": "[[1,2,3,4]]", "isHidden": false },
-        { "call": "split([5,6,7])", "expected": "[[5,6,7]]", "isHidden": false },
-        { "call": "split([1])", "expected": "[[1]]", "isHidden": false },
-        { "call": "split([])", "expected": "[]", "isHidden": false },
-        { "call": "split([1,2])", "expected": "[[1,2]]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_l3_a3",
-      "title": "Merge Sort Ascending",
-      "task": "A divide-and-conquer sorting engine is required to recursively sort datasets in ascending order.\n\nTask Requirement:\nCreate a function merge_sort(arr).\n\nRules:\n- Must use merge sort algorithm\n- Recursively split arrays into smaller partitions\n- Merge partitions back in ascending order\n- Return fully sorted array\n\nSample Output:\nmerge_sort([3,2,1]) → [1,2,3]",
-      "targetTime": "O(n log n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "merge_sort([38,27,43,3,9,82,10])", "expected": "[3,9,10,27,38,43,82]", "isHidden": false },
-        { "call": "merge_sort([5,1,5,2])", "expected": "[1,2,5,5]", "isHidden": false },
-        { "call": "merge_sort([10,9,8])", "expected": "[8,9,10]", "isHidden": false },
-        { "call": "merge_sort([])", "expected": "[]", "isHidden": false },
-        { "call": "merge_sort([1])", "expected": "[1]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_l3_a4",
-      "title": "Merge Sort Descending",
-      "task": "A sorting subsystem is required to sort datasets in descending order using modified merge logic.\n\nTask Requirement:\nCreate a function merge_sort_desc(arr).\n\nRules:\n- Must use merge sort algorithm\n- Recursively split arrays into partitions\n- Merge partitions back in descending order\n- Return fully sorted array\n\nSample Output:\nmerge_sort_desc([1,2,3]) → [3,2,1]",
-      "targetTime": "O(n log n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "merge_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
-        { "call": "merge_sort_desc([5,1,4])", "expected": "[5,4,1]", "isHidden": false },
-        { "call": "merge_sort_desc([7,7,7])", "expected": "[7,7,7]", "isHidden": false },
-        { "call": "merge_sort_desc([])", "expected": "[]", "isHidden": false },
-        { "call": "merge_sort_desc([9])", "expected": "[9]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_l3_a5",
-      "title": "Merge Strings",
-      "task": "A lexical ordering engine is required to sort string datasets in alphabetical order.\n\nTask Requirement:\nCreate a function merge_strings(arr).\n\nRules:\n- Sort strings lexicographically\n- Must preserve stable ordering\n- Use merge sort style merging logic\n- Return sorted string array\n\nSample Output:\nmerge_strings(['b','a']) → ['a','b']",
-      "targetTime": "O(n log n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "merge_strings(['c','a','b'])", "expected": "['a','b','c']", "isHidden": false },
-        { "call": "merge_strings(['z','x','y'])", "expected": "['x','y','z']", "isHidden": false },
-        { "call": "merge_strings(['apple','banana'])", "expected": "['apple','banana']", "isHidden": false },
-        { "call": "merge_strings([])", "expected": "[]", "isHidden": false },
-        { "call": "merge_strings(['a'])", "expected": "['a']", "isHidden": false }
+        { "call": "single_pass([5, 2, 8, 1])", "expected": "[2, 5, 1, 8]", "isHidden": false },
+        { "call": "single_pass([10, 1, 2])", "expected": "[1, 2, 10]", "isHidden": false },
+        { "call": "single_pass([3, 2, 1])", "expected": "[2, 1, 3]", "isHidden": false },
+        { "call": "single_pass([1, 2])", "expected": "[1, 2]", "isHidden": false },
+        { "call": "single_pass([])", "expected": "[]", "isHidden": false }
       ]
     }
   ],
-
-  "lesson_4": [
-    {
-      "id": "m3_l4_a1",
-      "title": "Partition Step",
-      "task": "A quicksort preprocessing system partitions arrays around a pivot for recursive sorting.\n\nTask Requirement:\nCreate a function partition(arr) that uses the first element as pivot.\n\nRules:\n- Elements less than pivot go to the left array\n- Elements greater than pivot go to the right array\n- Pivot remains in the middle\n- Return format: [left,pivot,right]\n- If array is empty, return []\n\nSample Output:\npartition([3,2,1]) → [[2,1],3,[]]",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "partition([3,2,1])", "expected": "[[2,1],3,[]]", "isHidden": false },
-        { "call": "partition([5,1,4,2])", "expected": "[[1,4,2],5,[]]", "isHidden": false },
-        { "call": "partition([10,20,5])", "expected": "[[5],10,[20]]", "isHidden": false },
-        { "call": "partition([])", "expected": "[]", "isHidden": false },
-        { "call": "partition([7])", "expected": "[[],7,[]]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_l4_a2",
-      "title": "Choose First Pivot",
-      "task": "A pivot selection system extracts the first element as pivot for recursive sorting algorithms.\n\nTask Requirement:\nCreate a function pivot_first(arr).\n\nRules:\n- First element becomes pivot\n- Remaining elements returned as array\n- Return format: [pivot, remaining]\n- If array is empty, return []\n\nSample Output:\npivot_first([3,2]) → [3,[2]]",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "pivot_first([3,2,1])", "expected": "[3,[2,1]]", "isHidden": false },
-        { "call": "pivot_first([5,1,4])", "expected": "[5,[1,4]]", "isHidden": false },
-        { "call": "pivot_first([10])", "expected": "[10,[]]", "isHidden": false },
-        { "call": "pivot_first([])", "expected": "[]", "isHidden": false },
-        { "call": "pivot_first([7,7])", "expected": "[7,[7]]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_l4_a3",
-      "title": "Quick Sort Ascending",
-      "task": "A divide-and-conquer sorting engine sorts arrays using recursive pivot partitioning.\n\nTask Requirement:\nCreate a function quick_sort(arr).\n\nRules:\n- Must use quick sort algorithm\n- Select a pivot during recursion\n- Partition values into left and right groups\n- Sort in ascending order\n- Return fully sorted array\n\nSample Output:\nquick_sort([3,2,1]) → [1,2,3]",
-      "targetTime": "O(n log n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "quick_sort([10,7,8,9,1,5])", "expected": "[1,5,7,8,9,10]", "isHidden": false },
-        { "call": "quick_sort([3,2,1])", "expected": "[1,2,3]", "isHidden": false },
-        { "call": "quick_sort([1,2,3])", "expected": "[1,2,3]", "isHidden": false },
-        { "call": "quick_sort([])", "expected": "[]", "isHidden": false },
-        { "call": "quick_sort([5,5,5])", "expected": "[5,5,5]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_l4_a4",
-      "title": "Quick Sort Descending",
-      "task": "A sorting engine is required to sort arrays in descending order using modified quicksort comparison logic.\n\nTask Requirement:\nCreate a function quick_sort_desc(arr).\n\nRules:\n- Must use quick sort algorithm\n- Reverse comparison ordering\n- Larger values must appear first\n- Return fully sorted array\n\nSample Output:\nquick_sort_desc([1,2,3]) → [3,2,1]",
-      "targetTime": "O(n log n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "quick_sort_desc([1,2,3])", "expected": "[3,2,1]", "isHidden": false },
-        { "call": "quick_sort_desc([5,1,4])", "expected": "[5,4,1]", "isHidden": false },
-        { "call": "quick_sort_desc([7,7,7])", "expected": "[7,7,7]", "isHidden": false },
-        { "call": "quick_sort_desc([])", "expected": "[]", "isHidden": false },
-        { "call": "quick_sort_desc([9])", "expected": "[9]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_l4_a5",
-      "title": "Pivot Tracker",
-      "task": "A recursion tracing system records pivot selections during quicksort execution for analysis.\n\nTask Requirement:\nCreate a function pivot_track(arr) that records pivots in order of recursive selection.\n\nRules:\n- Track pivot at every recursive step\n- Preserve pivot execution order\n- Return list of pivots encountered\n- If array is empty, return []\n\nSample Output:\npivot_track([3,2,1]) → [3,2,1]",
-      "targetTime": "O(n log n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "pivot_track([3,2,1])", "expected": "[3,2,1]", "isHidden": false },
-        { "call": "pivot_track([5,1,4])", "expected": "[5,1,4]", "isHidden": false },
-        { "call": "pivot_track([10,20,30])", "expected": "[10,20,30]", "isHidden": false },
-        { "call": "pivot_track([])", "expected": "[]", "isHidden": false },
-        { "call": "pivot_track([7])", "expected": "[7]", "isHidden": false }
-      ]
-    }
-  ],
-
   "optimizations": [
     {
-      "id": "m3_opt_1",
-      "title": "Linear to Binary Search",
-      "task": "The provided algorithm searches for an item in a sorted array by checking every element O(n).\n\nTask Requirement:\nImplement Binary Search to find the target element in O(log n) time.\n\nRules:\n- Return the index of the target.\n- Return -1 if it is not found.",
-      "targetTime": "O(log n)",
-      "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m3-3.1.json",
+      "id": "m2_opt_1",
+      "title": "Optimization Task: Two Sum Iteration",
+      "task": [
+        "The pre-loaded `two_sum` function is functionally valid but utilizes an unoptimized brute-force protocol with nested iterations.",
+        "",
+        "Task Requirement:",
+        "Refactor the code structure to resolve the search in a single O(n) pass by utilizing O(n) auxiliary space.",
+        "",
+        "Optimization Guidelines:",
+        "1. Examine the Complexity tab to locate the O(n²) Global Time bottleneck generated by the redundant `for i` and `for j` nested evaluation.",
+        "2. Remove the internal loop construct and its associated conditional statement entirely.",
+        "3. Allocate a secondary parameter (e.g., an empty dictionary or hash map structure) before the loop initialization to map previously parsed integers.",
+        "4. During execution of the primary loop, calculate the difference between the target sum and the current integer.",
+        "5. Verify if the calculated difference resides in the allocated storage map. Output the valid pair immediately upon detection.",
+        "6. In instances devoid of matches, integrate the current integer into the storage map and proceed with execution flow."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m2-2.1.json",
       "testCasesPool": [
-        { "call": "search([1, 3, 5, 7, 9], 7)", "expected": "3", "isHidden": false },
-        { "call": "search([10, 20, 30, 40], 10)", "expected": "0", "isHidden": false },
-        { "call": "search([2, 4, 6], 5)", "expected": "-1", "isHidden": false },
-        { "call": "search([], 1)", "expected": "-1", "isHidden": false },
-        { "call": "search([5], 5)", "expected": "0", "isHidden": false }
+        { "call": "two_sum([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
+        { "call": "two_sum([3, 2, 4], 6)", "expected": "[1, 2]", "isHidden": false },
+        { "call": "two_sum([3, 3], 6)", "expected": "[0, 1]", "isHidden": false },
+        { "call": "two_sum([1, 2, 3], 10)", "expected": "[]", "isHidden": false },
+        { "call": "two_sum([], 5)", "expected": "[]", "isHidden": false }
       ]
     },
     {
-      "id": "m3_opt_2",
-      "title": "Find Peak Element",
-      "task": "A peak element is an element strictly greater than its neighbors. The current code scans the array linearly O(n).\n\nTask Requirement:\nOptimize the algorithm to find any peak element in O(log n) time.\n\nRules:\n- Use a modified binary search.\n- Return the index of the peak element.",
-      "targetTime": "O(log n)",
-      "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m3-3.2.json",
-      "testCasesPool": [
-        { "call": "find_peak([1, 2, 3, 1])", "expected": "2", "isHidden": false },
-        { "call": "find_peak([1, 2, 1, 3, 5, 6, 4])", "expected": "5", "isHidden": false },
-        { "call": "find_peak([1, 2, 3, 4, 5])", "expected": "4", "isHidden": false },
-        { "call": "find_peak([10, 9, 8, 7])", "expected": "0", "isHidden": false },
-        { "call": "find_peak([5])", "expected": "0", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m3_opt_3",
-      "title": "Optimize String Search",
-      "task": "The current string matching loops through every character repeatedly to find a substring (O(n*m)).\n\nTask Requirement:\nOptimize it using a single pass approach to achieve O(n).",
+      "id": "m2_opt_2",
+      "title": "Space Optimization: Linear Search Allocation",
+      "task": [
+        "The pre-loaded `linear_search` algorithm correctly identifies the target but incurs unnecessary memory allocation by storing matches in an auxiliary list.",
+        "",
+        "Task Requirement:",
+        "Refactor the algorithm to eliminate dynamic array growth and return the match directly, maintaining O(1) Constant Space.",
+        "",
+        "Optimization Guidelines:",
+        "1. Consult the 'Global Space' attribute inside the real-time analyzer. The system attributes O(n) bounds due to the instantiation of the `found_items` list.",
+        "2. Inspect the conditional branch within the traversal loop. The function assigns auxiliary memory through the list append procedure instead of terminating the execution.",
+        "3. De-allocate and remove the specific code blocks orchestrating the list creation and appending operations.",
+        "4. Replace the list storage behavior with a direct `return` statement that yields the matched item `x` immediately upon detection.",
+        "5. Observe the dynamic AST diagnostic feedback adjusting the spatial requirement to an optimal O(1) parameter."
+      ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m3-3.3.json",
+      "templateUrl": "/data/optimizations/m2-2.2.json",
       "testCasesPool": [
-        { "call": "find_substring('hello world', 'world')", "expected": "6", "isHidden": false },
-        { "call": "find_substring('abcde', 'cd')", "expected": "2", "isHidden": false },
-        { "call": "find_substring('test', 'xyz')", "expected": "-1", "isHidden": false },
-        { "call": "find_substring('aaaa', 'aa')", "expected": "0", "isHidden": false },
-        { "call": "find_substring('', 'a')", "expected": "-1", "isHidden": false }
+        { "call": "linear_search([10, 20, 30], 20)", "expected": "20", "isHidden": false },
+        { "call": "linear_search([5, 8, 2], 5)", "expected": "5", "isHidden": false },
+        { "call": "linear_search([7, 7, 7], 7)", "expected": "7", "isHidden": false },
+        { "call": "linear_search([1, 2, 3], 4)", "expected": "-1", "isHidden": false },
+        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": false }
+      ]
+    },
+    {
+      "id": "m2_opt_3",
+      "title": "Space Optimization: In-Place Bubble Sort",
+      "task": [
+        "The pre-loaded `bubble_sort` algorithm executes the correct sorting logic but wastes memory by generating structural duplicates during iteration.",
+        "",
+        "Task Requirement:",
+        "Refactor the algorithm to manipulate the array In-Place, reducing the spatial requirement to O(1) Constant Space.",
+        "",
+        "Optimization Guidelines:",
+        "1. Analyze the Space Complexity metric. The system assigns an O(n) evaluation due to the repetitive out-of-place cloning of the array via `arr.copy()`.",
+        "2. Isolate the block responsible for creating `temp_arr` inside the primary loop and delete it entirely.",
+        "3. Transition the inner iteration target and swap logic so that all modifications process data directly against the natively passed `arr`.",
+        "4. Ensure the variables involved in the swap operation explicitly reference the original array indices.",
+        "5. Verify the real-time analyzer registers the structural modifications and successfully reduces the Space Complexity to O(1) Constant Space."
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m2-2.3.json",
+      "testCasesPool": [
+        { "call": "bubble_sort([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
+        { "call": "bubble_sort([3, 3, 1, 2])", "expected": "[1, 2, 3, 3]", "isHidden": false },
+        { "call": "bubble_sort([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
+        { "call": "bubble_sort([1])", "expected": "[1]", "isHidden": false },
+        { "call": "bubble_sort([])", "expected": "[]", "isHidden": false }
       ]
     }
   ]
