@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 5 OF 5) ---
 
---- TIMESTAMP: 2026-06-02 15:10:27 ---
+--- TIMESTAMP: 2026-06-02 15:21:08 ---
 
 
 --- FILE: frontend/src/pages/ProfilePage.jsx ---
@@ -7974,21 +7974,34 @@ export const translatePythonError = (rawErrorMessage) => {
     const msg = String(rawErrorMessage);
     let hint = "";
 
+    // ==========================================
+    // SYNTAX & BRACKETS (Expanded)
+    // ==========================================
     if (msg.includes("EOL while scanning string literal") || msg.includes("unterminated string literal")) {
       hint = "You forgot to close a quotation mark at the end of a string (e.g., missing a ' or \").";
     } 
     else if (msg.includes("unexpected EOF while parsing") || msg.includes("unexpected EOF")) {
-      hint = "The code ended unexpectedly. You are likely missing a closing parenthesis ')', bracket ']', or brace '}'.";
+      hint = "You are missing a closing parenthesis ')', bracket ']', or brace '}'.";
     } 
     else if (msg.includes("expected ':'") || msg.includes("expected a ':'")) {
-      hint = "You forgot a colon (:) at the end of your 'if', 'for', 'while', or 'def' statement.";
+      hint = "You forgot a colon (:) at the end of your 'if', 'for', 'while', 'class', or 'def' statement.";
     } 
+    else if (msg.includes("invalid character in identifier")) {
+      hint = "You might have accidentally pasted a hidden character or 'smart quote' from a document. Try retyping the line manually.";
+    }
+    else if (msg.includes("positional argument follows keyword argument")) {
+      hint = "When calling a function, regular arguments (like `5`) must come before keyword arguments (like `x=5`).";
+    }
     else if (msg.includes("invalid syntax")) {
-      hint = "Check for missing colons (:), unclosed parentheses/quotes, or misspelled/misplaced keywords nearby.";
+      if (msg.includes("mismatched")) {
+         hint = "You closed a bracket with the wrong type (e.g. closing a '(' with a ']').";
+      } else {
+         hint = "Check for missing colons (:), unclosed parentheses/quotes, missing commas between arguments, or misspelled keywords nearby.";
+      }
     } 
   
     // ==========================================
-    // INDENTATION & WHITESPACE
+    // INDENTATION & WHITESPACE (Expanded)
     // ==========================================
     else if (msg.includes("TabError") || msg.includes("inconsistent use of tabs and spaces")) {
       hint = "You mixed tabs and spaces for indentation. Python strictly requires using either all spaces or all tabs (spaces are highly recommended).";
@@ -7996,6 +8009,9 @@ export const translatePythonError = (rawErrorMessage) => {
     else if (msg.includes("IndentationError") || msg.includes("expected an indented block")) {
       hint = "Check your spacing! Code inside loops, conditionals, and functions must be indented consistently.";
     } 
+    else if (msg.includes("unindent does not match any outer indentation level")) {
+      hint = "Your indentation is misaligned. Make sure you are deleting spaces in multiples of 4 (or matching the exact spacing of the lines above).";
+    }
     
     // ==========================================
     // VARIABLES, NAMES & SCOPE
@@ -8003,32 +8019,32 @@ export const translatePythonError = (rawErrorMessage) => {
     else if (msg.includes("NameError") || msg.includes("is not defined")) {
       const match = msg.match(/name '([^']+)' is not defined/);
       const varName = match ? match[1] : "a variable";
-      hint = `Python doesn't know what '${varName}' is. Did you forget to define it, spell it wrong, or forget quotation marks around a string?`;
+      hint = `Python doesn't know what '${varName}' is. Did you forget to define it, misspell it, or forget quotation marks around a string?`;
     } 
     else if (msg.includes("UnboundLocalError")) {
       const match = msg.match(/local variable '([^']+)' referenced before assignment/);
       const varName = match ? match[1] : "a variable";
-      hint = `You are trying to use or modify the variable '${varName}' inside a function before giving it a value. If it's a global variable, you might need the 'global' keyword.`;
+      hint = `You are trying to use or modify the variable '${varName}' inside a function before giving it a value. If it's a global variable, you might need to use the 'global' keyword.`;
     }
     
     // ==========================================
     // TYPES & COMPATIBILITY
     // ==========================================
     else if (msg.includes("TypeError: unsupported operand")) {
-      hint = "You are trying to perform a math operation on incompatible data types (like adding text to a number).";
+      hint = "You are trying to perform a math operation on incompatible data types (like adding text to a number, or a list to an integer).";
     } 
     else if (msg.includes("TypeError: can only concatenate str") || msg.includes("must be str, not int")) {
-      hint = "You cannot directly combine text and numbers. Try wrapping your number in str() first.";
+      hint = "You cannot directly combine text and numbers using '+'. Try wrapping your number in str() first, e.g., str(5).";
     } 
     else if (msg.includes("TypeError") && msg.includes("object is not callable")) {
       const match = msg.match(/'([^']+)' object is not callable/);
-      const objName = match ? match[1] : "An";
-      hint = `${objName} is not a function, but you are trying to call it like one by putting parentheses '()' after it.`;
+      const objName = match ? match[1] : "An object";
+      hint = `You are treating a '${objName}' like a function by putting parentheses '()' after it. For example, if 'x = 5', doing 'x()' causes this error.`;
     }
     else if (msg.includes("TypeError") && msg.includes("object is not iterable")) {
       const match = msg.match(/'([^']+)' object is not iterable/);
-      const objName = match ? match[1] : "An";
-      hint = `You are trying to loop over or unpack a ${objName}, but it's a single value (like an integer), not a collection (like a list or string).`;
+      const objName = match ? match[1] : "An object";
+      hint = `You are trying to loop over or unpack a '${objName}', but it's a single value (like an integer), not a collection (like a list or string).`;
     }
     else if (msg.includes("TypeError") && msg.includes("does not support item assignment")) {
       hint = "You are trying to change a specific item inside an immutable object (like a string or a tuple). You cannot modify strings directly; you must create a new one.";
@@ -8042,8 +8058,11 @@ export const translatePythonError = (rawErrorMessage) => {
     }
   
     // ==========================================
-    // ATTRIBUTES & METHODS
+    // ATTRIBUTES & METHODS (Expanded)
     // ==========================================
+    else if (msg.includes("AttributeError") && msg.includes("'NoneType' object has no attribute")) {
+      hint = "You are trying to use a method on a variable that is currently 'None' (null). This often happens if a previous function returned nothing (None) but you expected an object or list.";
+    }
     else if (msg.includes("AttributeError")) {
       const match = msg.match(/'([^']+)' object has no attribute '([^']+)'/);
       if (match) {
@@ -8054,21 +8073,24 @@ export const translatePythonError = (rawErrorMessage) => {
     }
   
     // ==========================================
-    // LISTS, DICTIONARIES & TUPLES
+    // LISTS, DICTIONARIES & TUPLES (Expanded)
     // ==========================================
     else if (msg.includes("IndexError: list index out of range")) {
-      hint = "You are trying to access a position in a list that doesn't exist. Remember, list positions start counting at 0, not 1!";
+      hint = "You are trying to access a position in a list that doesn't exist. Remember, list positions start counting at 0! Try using 'len(my_list) - 1' for the last item.";
     } 
     else if (msg.includes("KeyError")) {
       const match = msg.match(/KeyError: (.*)/);
       const keyName = match ? match[1] : "a key";
-      hint = `You tried to look up the key ${keyName} in a dictionary, but that key hasn't been added yet.`;
+      hint = `You tried to look up the key ${keyName} in a dictionary, but it hasn't been added yet. Consider using 'my_dict.get(key)' which safely returns None if missing.`;
     } 
     else if (msg.includes("ValueError: too many values to unpack")) {
       hint = "You are trying to assign multiple variables at once (unpacking), but there are more values on the right side than variables on the left.";
     }
     else if (msg.includes("ValueError: not enough values to unpack")) {
       hint = "You are trying to assign multiple variables at once (unpacking), but there aren't enough values on the right side for all the variables on the left.";
+    }
+    else if (msg.includes("ValueError: list.remove(x): x not in list")) {
+      hint = "You tried to remove an item from a list, but that item doesn't exist in the list. Check if it's there first using 'if x in my_list:'.";
     }
     
     // ==========================================
@@ -8080,23 +8102,26 @@ export const translatePythonError = (rawErrorMessage) => {
     else if (msg.includes("ValueError: invalid literal for int()")) {
       const match = msg.match(/invalid literal for int\(\) with base \d+: '([^']+)'/);
       const badVal = match ? match[1] : "the text";
-      hint = `You tried to convert '${badVal}' into an integer, but it isn't a valid whole number.`;
+      hint = `You tried to convert '${badVal}' into an integer, but it isn't a valid whole number. Make sure the string only contains digits.`;
     } 
     
     // ==========================================
-    // IMPORTS & MODULES
+    // IMPORTS, MODULES & FILES (Expanded)
     // ==========================================
     else if (msg.includes("ModuleNotFoundError") || msg.includes("No module named")) {
       const match = msg.match(/No module named '([^']+)'/);
       const modName = match ? match[1] : "a module";
-      hint = `Python cannot find the library '${modName}'. Check your spelling, or ensure it is supported in this environment.`;
+      hint = `Python cannot find the library '${modName}'. Check your spelling, or ensure it is supported in this Pyodide environment.`;
     }
     else if (msg.includes("ImportError")) {
       hint = "You are trying to import a specific function or class from a library, but it doesn't exist in that library. Check your spelling.";
     }
+    else if (msg.includes("FileNotFoundError") || msg.includes("No such file or directory")) {
+      hint = "Python cannot find the file you are trying to open. Check that the file name is spelled correctly and that it exists in the current directory.";
+    }
   
     // ==========================================
-    // ADVANCED: RECURSION & MEMORY
+    // ADVANCED: RECURSION, ITERATORS & ASSERTIONS (Expanded)
     // ==========================================
     else if (msg.includes("RecursionError") || msg.includes("maximum recursion depth exceeded")) {
       hint = "Your function called itself too many times! Check your 'base case' to ensure the recursion eventually stops.";
@@ -8104,10 +8129,15 @@ export const translatePythonError = (rawErrorMessage) => {
     else if (msg.includes("MemoryError")) {
       hint = "Your program ran out of memory. This usually happens if you create an infinitely growing list or string.";
     }
+    else if (msg.includes("AssertionError")) {
+      hint = "An 'assert' statement failed. This means a condition you expected to be True turned out to be False.";
+    }
+    else if (msg.includes("StopIteration")) {
+      hint = "You called 'next()' on an iterator, but there are no more items left to generate.";
+    }
   
-    // Fallback: If we couldn't match the error exactly, let the raw error show through but encourage debugging.
     if (!hint) {
-       return ""; // Alternatively, return a generic: `ðŸ’¡ Hint: Try copying this error and checking lines nearby for typos.`
+       return ""; 
     }
   
     return `ðŸ’¡ Hint: ${hint}`;
@@ -8486,7 +8516,6 @@ if 'dynamic_tracer' in sys.modules:
     del sys.modules['dynamic_tracer']
 
 # --- DEEP STACK LINTER ---
-# Bypasses Python's single-error limit to find multiple syntax issues at once
 def gather_custom_lint_errors(code_str):
     errs = []
     lines = code_str.split('\\n')
@@ -8496,7 +8525,9 @@ def gather_custom_lint_errors(code_str):
     
     for i, line in enumerate(lines):
         s = line.strip()
-        
+        if not s or s.startswith('#'):
+            continue
+            
         # 1. Missing Colon Checker
         if s.startswith(('def ', 'if ', 'elif ', 'else', 'for ', 'while ', 'class ', 'try', 'except', 'finally')):
             s_no_comment = s.split('#')[0].strip()
@@ -8526,37 +8557,52 @@ def gather_custom_lint_errors(code_str):
                     stack.append((char, i+1))
                 elif char in pairs.values():
                     if not stack:
-                        errs.append({"line": i+1, "message": f"unexpected EOF while parsing (unmatched {char})"})
+                        errs.append({"line": i+1, "message": f"unmatched '{char}'"})
                     else:
                         top, _ = stack.pop()
                         if pairs[top] != char:
-                            errs.append({"line": i+1, "message": f"invalid syntax (mismatched {top} and {char})"})
+                            errs.append({"line": i+1, "message": f"closing '{char}' does not match opening '{top}'"})
                             
     for char, l in stack:
-         errs.append({"line": l, "message": f"unexpected EOF while parsing (unclosed {char})"})
+         errs.append({"line": l, "message": f"unclosed '{char}'"})
 
     return errs
 
 try:
     from analyzer import analyze_source_code
     output_dict = analyze_source_code(user_code)
-    output = json.dumps(output_dict)
-except Exception as e:
-    # Gather custom errors to "stack" them
-    custom_errs = gather_custom_lint_errors(user_code)
     
-    # Always include the real compiler error
+    # --- INTERCEPT THE SWALLOWED ERROR ---
+    # analyzer.py gracefully catches SyntaxErrors. We must intercept it 
+    # to run our deep-stack checker and append the multiple errors.
+    if isinstance(output_dict, dict) and output_dict.get("status") == "error":
+        custom_errs = gather_custom_lint_errors(user_code)
+        
+        real_line = output_dict.get("line", 1)
+        real_msg = output_dict.get("message", "Syntax Error")
+        
+        all_errors = [{"line": real_line, "message": real_msg}]
+        
+        for ce in custom_errs:
+            if not any(existing['line'] == ce['line'] for existing in all_errors):
+                all_errors.append(ce)
+                
+        all_errors.sort(key=lambda x: x['line'])
+        output_dict["multiple_errors"] = all_errors
+
+    output = json.dumps(output_dict)
+    
+except Exception as e:
+    # Failsafe if the analyzer actually crashes
+    custom_errs = gather_custom_lint_errors(user_code)
     real_line = getattr(e, 'lineno', 1) or 1
     real_msg = str(e)
     
     all_errors = [{"line": real_line, "message": real_msg}]
-    
-    # Append custom ones if they don't overlap the exact line
     for ce in custom_errs:
         if not any(existing['line'] == ce['line'] for existing in all_errors):
             all_errors.append(ce)
             
-    # Sort by line number
     all_errors.sort(key=lambda x: x['line'])
     
     output = json.dumps({

@@ -35,7 +35,6 @@ const handleEditorWillMount = (monaco) => {
 const renderFormattedTask = (text) => {
   if (!text) return null;
 
-  // FIX: Seamlessly handle the Array-based Training Wheels structure or the older String structure
   if (Array.isArray(text)) {
     return (
       <div className="activity-task-description">
@@ -73,8 +72,8 @@ const getComplexityColor = (complexity) => {
   if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f";
   if (comp.includes("n log n")) return "#e67e22";
   if (comp.includes("o(v") || comp.includes("o(e")) return "#d35400";
-  if (comp.includes("o(n^2)") || comp.includes("o(nÂ²)") || comp.includes("o(n*m)")) return "#e74c3c";
-  if (comp.includes("o(n^3)") || comp.includes("o(nÂ³)")) return "#c0392b";
+  if (comp.includes("o(n^2)") || comp.includes("o(n²)") || comp.includes("o(n*m)")) return "#e74c3c";
+  if (comp.includes("o(n^3)") || comp.includes("o(n³)")) return "#c0392b";
   if (comp.includes("2^n") || comp.includes("n!")) return "#8e44ad";
   return "#95a5a6";
 };
@@ -82,9 +81,9 @@ const getComplexityColor = (complexity) => {
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
   if (comp.includes("o(1)") || comp === "1") return 1;
-  if (comp.includes("n^2") || comp.includes("nÂ²") || comp.includes("n2")) return 5;
-  if (comp.includes("n^3") || comp.includes("nÂ³") || comp.includes("n3")) return 6;
-  if (comp.includes("2^n") || comp.includes("2â ¿") || comp.includes("2n")) return 7;
+  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n2")) return 5;
+  if (comp.includes("n^3") || comp.includes("n³") || comp.includes("n3")) return 6;
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("2n")) return 7;
   if (comp.includes("n!")) return 8;
   if (comp.includes("nlogn")) return 4;
   if (comp.includes("logn")) return 2;
@@ -196,7 +195,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null
   });
   const [isEditingCode, setIsEditingCode] = useState(false);
-  const [syntaxError, setSyntaxError] = useState(null);
+  
+  // DEEP STACK ERROR STATE
+  const [syntaxErrors, setSyntaxErrors] = useState([]);
+  const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
+
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [expandedLines, setExpandedLines] = useState({});
   const [panelHeight, setPanelHeight] = useState(300);
@@ -252,10 +255,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
         setLineExecutions(prev => ({ ...prev, ...initialCounts }));
-        setSyntaxError(null);
+        
+        // DEEP STACK FIX: Clear errors on success
+        setSyntaxErrors([]);
+        setIsErrorDropdownOpen(false);
       } else {
-        const hint = translatePythonError(data.message);
-        setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+        // DEEP STACK FIX: Process multiple errors simultaneously
+        if (data.multiple_errors && data.multiple_errors.length > 0) {
+          const mappedErrors = data.multiple_errors.map(err => {
+            const hint = translatePythonError(err.message);
+            return { line: err.line, message: `${err.message}. ${hint}` };
+          });
+          setSyntaxErrors(mappedErrors);
+        } else {
+          const hint = translatePythonError(data.message);
+          setSyntaxErrors([{ line: data.line, message: `${data.message}. ${hint}` }]);
+        }
       }
     } else if (type === "RUN_RESULT") {
       clearTimeout(runTimeoutRef.current);
@@ -695,18 +710,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         await saveSubmission(json, pythonCode, null, null, totalTests, null, latestStateRef.current.actualTime, latestStateRef.current.actualSpace, true);
       }
     }, 1500);
-
-    if (pythonCode && pythonCode !== "# Drag blocks to generate Python code" && isOnline && workerRef.current) {
-      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: pythonCode });
-    }
   };
 
+  // DEEP STACK FIX: Debounce Analyzer calls to stop flickering
   useEffect(() => {
     if (!isReadyRef.current) return;
-    if (isOnline && isEngineReady && workerRef.current && generatedPython !== "# Drag blocks to generate Python code") {
-      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
+    if (isOnline && isEngineReady && workerRef.current && generatedPython !== "# Drag blocks to generate Python code" && isEditingCode) {
+      const timeoutId = setTimeout(() => {
+        workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
+      }, 800);
+      return () => clearTimeout(timeoutId);
     }
-  }, [generatedPython, isOnline, isEngineReady]);
+  }, [generatedPython, isEditingCode, isOnline, isEngineReady]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
     if (!isReadyRef.current) return;
@@ -1128,20 +1143,59 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
           <div className="editor-container" style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
             <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ display: viewMode === "workspace" ? "block" : "none", height: "100%" }}>
-              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={syntaxError} />
+              <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={null} />
             </div>
             <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"} style={{ display: viewMode === "python" ? "flex" : "none", flexDirection: "column", height: "100%", background: "#1C1236" }}>
-              <div className="python-header" style={{ padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)" }}><span className="python-sync-status" style={{ color: "#EBE4FF", fontSize: "0.85rem" }}>{isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span><button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? "active" : "disabled"}`} style={{ padding: "5px 12px", borderRadius: "4px", cursor: isEditingCode ? "pointer" : "not-allowed", backgroundColor: isEditingCode ? "#6C5CE7" : "#444", color: "white", border: "none" }}>Sync to Blocks</button></div>
+              <div className="python-header" style={{ padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)" }}>
+                <span className="python-sync-status" style={{ color: "#EBE4FF", fontSize: "0.85rem" }}>{isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
+                <button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? "active" : "disabled"}`} style={{ padding: "5px 12px", borderRadius: "4px", cursor: isEditingCode ? "pointer" : "not-allowed", backgroundColor: isEditingCode ? "#6C5CE7" : "#444", color: "white", border: "none" }}>Sync to Blocks</button>
+              </div>
+              
+              {/* DEEP STACK: Floating Dropdown Editor Wrapper */}
               <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
-                {syntaxError && (<div style={{ position: "absolute", top: 0, left: 0, right: 0, backgroundColor: "rgba(231, 76, 60, 0.9)", color: "white", padding: "6px 15px", zIndex: 10, fontSize: "0.85rem", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}><span>Syntax Error on line {syntaxError.line}: {syntaxError.message}</span><button onClick={() => setSyntaxError(null)} style={{ background: "transparent", color: "white", border: "none", cursor: "pointer", fontWeight: "bold" }}>X</button></div>)}
-                <Editor height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount} value={generatedPython} onChange={(value) => {
-                  const newCode = value || "";
-                  setGeneratedPython(newCode);
-                  setIsEditingCode(true);
-                  if (syntaxError) setSyntaxError(null);
-                  latestStateRef.current.pythonCode = newCode;
-                  handleWorkspaceAutoSave(latestStateRef.current.json, newCode);
-                }} options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} />
+                <Editor 
+                  height="100%" 
+                  language="python" 
+                  theme="algoblocks-purple" 
+                  beforeMount={handleEditorWillMount} 
+                  value={generatedPython} 
+                  onChange={(value) => {
+                    const newCode = value || "";
+                    setGeneratedPython(newCode);
+                    setIsEditingCode(true);
+                    setSyntaxErrors([]); // DEEP STACK: Clear errors immediately on typing
+                    latestStateRef.current.pythonCode = newCode;
+                    handleWorkspaceAutoSave(latestStateRef.current.json, newCode);
+                  }} 
+                  options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} 
+                />
+
+                {/* DEEP STACK: Floating Error Dropdown */}
+                {syntaxErrors && syntaxErrors.length > 0 && (
+                  <div className="floating-error-container">
+                    {isErrorDropdownOpen && (
+                      <div className="error-dropdown-menu">
+                        <div className="error-dropdown-header">
+                          Detected Issues ({syntaxErrors.length})
+                        </div>
+                        <div className="error-dropdown-list">
+                          {syntaxErrors.map((err, idx) => (
+                            <div key={idx} className="error-dropdown-item">
+                              <span className="error-line-badge">Line {err.line}</span>
+                              <span className="error-message">{err.message}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <button 
+                      className={`floating-error-btn ${isErrorDropdownOpen ? 'open' : ''}`}
+                      onClick={() => setIsErrorDropdownOpen(!isErrorDropdownOpen)}
+                    >
+                      ⚠️ {syntaxErrors.length} Error{syntaxErrors.length > 1 ? 's' : ''}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1172,7 +1226,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                               const timeColor = getComplexityColor(timeComplexity);
                               const spaceColor = getComplexityColor(spaceComplexity);
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
-                              const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("âˆšn") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
+                              const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
                               return (
                                 <React.Fragment key={i}>
                                   <tr className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`} onClick={() => toggleLine(i)} style={{ cursor: "pointer", borderLeft: isBottleneck ? "4px solid #ff375f" : isEfficient ? "4px solid #2ecc71" : expandedLines[i] ? `3px solid ${timeColor}` : "none", backgroundColor: isBottleneck ? "rgba(255, 55, 95, 0.12)" : isEfficient ? "rgba(46, 204, 113, 0.12)" : "transparent" }}>
