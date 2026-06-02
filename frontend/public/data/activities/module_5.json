@@ -1,356 +1,709 @@
 {
-  "lesson_1": [
-    {
-      "id": "m5_l1_a1",
-      "title": "Array Caching",
-      "task": "A dynamic programming cache system is generating sequence values using a Fibonacci-like recurrence.\n\nSystem Requirement:\nConstruct an array where each index i follows:\narr[i] = arr[i-1] + arr[i-2]\nstarting from base values [0,1].\n\nBehavior Rules:\n- Initialize sequence with [0,1]\n- Continue building until n-th index\n- Maintain full sequence order\n\nOutput Requirement:\nReturn the complete generated array.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "cache_seq(4)", "expected": "[0,1,1,2,3]", "isHidden": false },
-        { "call": "cache_seq(6)", "expected": "[0,1,1,2,3,5,8]", "isHidden": false },
-        { "call": "cache_seq(0)", "expected": "[0]", "isHidden": false },
-        { "call": "cache_seq(1)", "expected": "[0,1]", "isHidden": false },
-        { "call": "cache_seq(-3)", "expected": "[]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l1_a2",
-      "title": "Cache Lookup",
-      "task": "A memoization retrieval engine is querying precomputed sequence values.\n\nSystem Requirement:\nGiven a cached sequence and an index, retrieve the stored value if it exists.\n\nBehavior Rules:\n- If index exists in cache, return value at that index\n- If cache is empty or index is invalid, return -1\n\nOutput Requirement:\nReturn integer value from cache or error indicator.",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "testCasesPool": [
-        { "call": "cache_lookup([0,1,1,2,3],3)", "expected": "2", "isHidden": false },
-        { "call": "cache_lookup([0,1,1,2,3],4)", "expected": "3", "isHidden": false },
-        { "call": "cache_lookup([0,1],1)", "expected": "1", "isHidden": false },
-        { "call": "cache_lookup([],2)", "expected": "-1", "isHidden": false },
-        { "call": "cache_lookup([0],0)", "expected": "0", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l1_a3",
-      "title": "Top-Down Blueprint",
-      "task": "A recursive computation engine is executing Fibonacci using memoization (top-down DP).\n\nSystem Requirement:\nCompute Fibonacci numbers using recursion with cached subproblem results.\n\nBehavior Rules:\n- Use recursive decomposition\n- Store computed values in cache\n- Avoid recomputation of states\n\nOutput Requirement:\nReturn Fibonacci(n).",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "top_down_fib(5)", "expected": "5", "isHidden": false },
-        { "call": "top_down_fib(8)", "expected": "21", "isHidden": false },
-        { "call": "top_down_fib(10)", "expected": "55", "isHidden": false },
-        { "call": "top_down_fib(0)", "expected": "0", "isHidden": false },
-        { "call": "top_down_fib(1)", "expected": "1", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l1_a4",
-      "title": "Bottom-Up Build",
-      "task": "A tabulation engine is constructing Fibonacci values iteratively.\n\nSystem Requirement:\nBuild a DP array from base cases upward until n is reached.\n\nBehavior Rules:\n- Start from known base values\n- Iteratively compute next states\n- Store all intermediate values\n\nOutput Requirement:\nReturn full DP array.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "bottom_up_fib(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
-        { "call": "bottom_up_fib(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
-        { "call": "bottom_up_fib(3)", "expected": "[0,1,1,2]", "isHidden": false },
-        { "call": "bottom_up_fib(0)", "expected": "[0]", "isHidden": false },
-        { "call": "bottom_up_fib(1)", "expected": "[0,1]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l1_a5",
-      "title": "Execution Comparison",
-      "task": "A performance analyzer compares naive recursion vs memoized recursion execution cost.\n\nSystem Requirement:\nCompare computational efficiency between naive and cached Fibonacci implementations.\n\nBehavior Rules:\n- Evaluate execution complexity difference\n- Determine which method is more efficient\n\nOutput Requirement:\nReturn qualitative comparison result.",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "testCasesPool": [
-        { "call": "compare_fib(5)", "expected": "difference_positive", "isHidden": false },
-        { "call": "compare_fib(6)", "expected": "difference_positive", "isHidden": false },
-        { "call": "compare_fib(7)", "expected": "difference_positive", "isHidden": false },
-        { "call": "compare_fib(2)", "expected": "equal", "isHidden": false },
-        { "call": "compare_fib(0)", "expected": "equal", "isHidden": false }
-      ]
-    }
-  ],
-
-  "lesson_2": [
-    {
-      "id": "m5_l2_a1",
-      "title": "Naive Fibonacci",
-      "task": "A recursive computation system is executing Fibonacci without optimization.\n\nSystem Requirement:\nCompute Fibonacci using pure recursion without caching.\n\nBehavior Rules:\n- No memoization allowed\n- Direct recursive breakdown only\n\nOutput Requirement:\nReturn Fibonacci(n).",
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "fib_naive(5)", "expected": "5", "isHidden": false },
-        { "call": "fib_naive(8)", "expected": "21", "isHidden": false },
-        { "call": "fib_naive(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_naive(0)", "expected": "0", "isHidden": false },
-        { "call": "fib_naive(1)", "expected": "1", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l2_a2",
-      "title": "Memoized Fibonacci",
-      "task": "A dynamic programming optimizer is reducing redundant recursive calls.\n\nSystem Requirement:\nCompute Fibonacci using memoization to store intermediate results.\n\nBehavior Rules:\n- Store computed states in cache\n- Reuse stored results instead of recomputation\n\nOutput Requirement:\nReturn Fibonacci(n).",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "fib_memo(5)", "expected": "5", "isHidden": false },
-        { "call": "fib_memo(8)", "expected": "21", "isHidden": false },
-        { "call": "fib_memo(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_memo(0)", "expected": "0", "isHidden": false },
-        { "call": "fib_memo(1)", "expected": "1", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l2_a3",
-      "title": "Tabulated Fibonacci",
-      "task": "A bottom-up dynamic programming system is constructing Fibonacci sequences iteratively.\n\nSystem Requirement:\nBuild Fibonacci sequence using tabulation (iterative DP array).\n\nBehavior Rules:\n- Initialize base values\n- Iteratively fill DP table\n\nOutput Requirement:\nReturn full Fibonacci array.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "fib_table(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
-        { "call": "fib_table(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
-        { "call": "fib_table(3)", "expected": "[0,1,1,2]", "isHidden": false },
-        { "call": "fib_table(0)", "expected": "[0]", "isHidden": false },
-        { "call": "fib_table(1)", "expected": "[0,1]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l2_a4",
-      "title": "Space-Optimized Fibonacci",
-      "task": "A memory-efficient system is computing Fibonacci using constant space optimization.\n\nSystem Requirement:\nCompute Fibonacci using only two tracking variables.\n\nBehavior Rules:\n- Maintain only last two states\n- Do not store full sequence\n\nOutput Requirement:\nReturn Fibonacci(n).",
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "testCasesPool": [
-        { "call": "fib_opt(5)", "expected": "5", "isHidden": false },
-        { "call": "fib_opt(8)", "expected": "21", "isHidden": false },
-        { "call": "fib_opt(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_opt(0)", "expected": "0", "isHidden": false },
-        { "call": "fib_opt(1)", "expected": "1", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l2_a5",
-      "title": "Sequence Generator",
-      "task": "A sequence generation engine is producing Fibonacci series outputs.\n\nSystem Requirement:\nGenerate full Fibonacci sequence up to index n.\n\nBehavior Rules:\n- Start from [0,1]\n- Extend sequence iteratively\n\nOutput Requirement:\nReturn full sequence array.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "fib_seq(5)", "expected": "[0,1,1,2,3,5]", "isHidden": false },
-        { "call": "fib_seq(8)", "expected": "[0,1,1,2,3,5,8,13,21]", "isHidden": false },
-        { "call": "fib_seq(3)", "expected": "[0,1,1,2]", "isHidden": false },
-        { "call": "fib_seq(0)", "expected": "[0]", "isHidden": false },
-        { "call": "fib_seq(1)", "expected": "[0,1]", "isHidden": false }
-      ]
-    }
-  ],
-
-  "lesson_3": [
-    {
-      "id": "m5_l3_a1",
-      "title": "Knapsack Grid Init",
-      "task": "A dynamic programming grid is being initialized for knapsack computation.\n\nSystem Requirement:\nCreate a 2D DP table initialized with zeros for given dimensions.\n\nBehavior Rules:\n- Create matrix of size n x m\n- Fill all cells with 0\n\nOutput Requirement:\nReturn initialized matrix.",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n^2)",
-      "testCasesPool": [
-        { "call": "knap_init(2,3)", "expected": "[[0,0,0],[0,0,0]]", "isHidden": false },
-        { "call": "knap_init(1,5)", "expected": "[[0,0,0,0,0]]", "isHidden": false },
-        { "call": "knap_init(3,2)", "expected": "[[0,0],[0,0],[0,0]]", "isHidden": false },
-        { "call": "knap_init(0,5)", "expected": "[]", "isHidden": false },
-        { "call": "knap_init(2,0)", "expected": "[[],[]]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l3_a2",
-      "title": "Include/Exclude Choice",
-      "task": "A decision optimization engine evaluates knapsack choices using include/exclude logic.\n\nSystem Requirement:\nCompute maximum value using binary decision (take or skip item).\n\nBehavior Rules:\n- Each item can be included or excluded\n- Maximize total value under constraints\n\nOutput Requirement:\nReturn maximum achievable value.",
-      "targetTime": "O(n*W)",
-      "targetSpace": "O(n*W)",
-      "testCasesPool": [
-        { "call": "knap_choice([1,2],[10,20],2)", "expected": "20", "isHidden": false },
-        { "call": "knap_choice([1,2,3],[10,15,40],5)", "expected": "65", "isHidden": false },
-        { "call": "knap_choice([5],[100],4)", "expected": "0", "isHidden": false },
-        { "call": "knap_choice([],[],10)", "expected": "0", "isHidden": false },
-        { "call": "knap_choice([1],[10],0)", "expected": "0", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l3_a3",
-      "title": "Knapsack Matrix",
-      "task": "A full dynamic programming knapsack solver is computing optimal item selection.\n\nSystem Requirement:\nBuild DP table to compute maximum value under weight constraint.\n\nBehavior Rules:\n- Use bottom-up DP table\n- Evaluate include/exclude transitions\n\nOutput Requirement:\nReturn maximum knapsack value.",
-      "targetTime": "O(n*W)",
-      "targetSpace": "O(n*W)",
-      "testCasesPool": [
-        { "call": "knapsack([1,2,3],[10,15,40],5)", "expected": "55", "isHidden": false },
-        { "call": "knapsack([2,3,4,5],[3,4,5,6],5)", "expected": "7", "isHidden": false },
-        { "call": "knapsack([10,20],[100,200],5)", "expected": "0", "isHidden": false },
-        { "call": "knapsack([1,1],[10,20],0)", "expected": "0", "isHidden": false },
-        { "call": "knapsack([],[],10)", "expected": "0", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l3_a4",
-      "title": "Traceback Items",
-      "task": "A DP reconstruction engine is identifying selected items from knapsack computation.\n\nSystem Requirement:\nBacktrack through DP decisions to determine chosen item indices.\n\nBehavior Rules:\n- Trace selected decisions from DP table\n- Collect item indices in order of selection\n\nOutput Requirement:\nReturn list of selected indices.",
-      "targetTime": "O(n*W)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "knap_trace([1,2,3],[10,15,40],5)", "expected": "[1,2]", "isHidden": false },
-        { "call": "knap_trace([2,3,4],[3,4,5],5)", "expected": "[1]", "isHidden": false },
-        { "call": "knap_trace([5],[10],5)", "expected": "[0]", "isHidden": false },
-        { "call": "knap_trace([],[],5)", "expected": "[]", "isHidden": false },
-        { "call": "knap_trace([1],[10],0)", "expected": "[]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l3_a5",
-      "title": "Capacity Tracker",
-      "task": "A DP monitoring system tracks remaining capacity across computation stages.\n\nSystem Requirement:\nTrack remaining capacity after each decision stage in DP computation.\n\nBehavior Rules:\n- Update capacity per iteration step\n- Store all intermediate states\n\nOutput Requirement:\nReturn array of capacity values per step.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "capacity_track([1,2,3],5)", "expected": "[5,4,2,0]", "isHidden": false },
-        { "call": "capacity_track([2,2],4)", "expected": "[4,2,0]", "isHidden": false },
-        { "call": "capacity_track([5],5)", "expected": "[5,0]", "isHidden": false },
-        { "call": "capacity_track([],5)", "expected": "[5]", "isHidden": false },
-        { "call": "capacity_track([1],0)", "expected": "[0]", "isHidden": false }
-      ]
-    }
-  ],
-
-  "lesson_4": [
-    {
-      "id": "m5_l4_a1",
-      "title": "LCS Grid Init",
-      "task": "A dynamic programming system is initializing a Longest Common Subsequence matrix.\n\nSystem Requirement:\nCreate a 2D matrix for LCS computation initialized with base values.\n\nBehavior Rules:\n- Matrix dimensions depend on string lengths\n- Initialize all cells to 0\n\nOutput Requirement:\nReturn initialized LCS matrix.",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n^2)",
-      "testCasesPool": [
-        { "call": "lcs_init('A','B')", "expected": "[[0,0],[0,0]]", "isHidden": false },
-        { "call": "lcs_init('ABC','AB')", "expected": "5x4_matrix", "isHidden": false },
-        { "call": "lcs_init('A','')", "expected": "[[0]]", "isHidden": false },
-        { "call": "lcs_init('','')", "expected": "[[0]]", "isHidden": false },
-        { "call": "lcs_init('XYZ','XYZ')", "expected": "4x4_matrix", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l4_a2",
-      "title": "Character Match Logic",
-      "task": "A DP transition system evaluates character matches for LCS computation.\n\nSystem Requirement:\nCompare two characters and compute DP transition value.\n\nBehavior Rules:\n- If characters match, return 1\n- Otherwise return max(left, top) state\n\nOutput Requirement:\nReturn computed DP cell value.",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "testCasesPool": [
-        { "call": "lcs_match('A','A')", "expected": "1", "isHidden": false },
-        { "call": "lcs_match('A','B')", "expected": "0", "isHidden": false },
-        { "call": "lcs_match('C','C')", "expected": "1", "isHidden": false },
-        { "call": "lcs_match('A','')", "expected": "0", "isHidden": false },
-        { "call": "lcs_match('','A')", "expected": "0", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l4_a3",
-      "title": "Full LCS Table",
-      "task": "A DP system computes the length of the Longest Common Subsequence using a full matrix approach.\n\nSystem Requirement:\nBuild LCS DP table and compute final LCS length.\n\nBehavior Rules:\n- Fill DP table bottom-up\n- Use standard LCS recurrence relation\n\nOutput Requirement:\nReturn LCS length.",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n^2)",
-      "testCasesPool": [
-        { "call": "lcs_length('ABCBDAB','BDCAB')", "expected": "4", "isHidden": false },
-        { "call": "lcs_length('AGGTAB','GXTXAYB')", "expected": "4", "isHidden": false },
-        { "call": "lcs_length('AAAA','AA')", "expected": "2", "isHidden": false },
-        { "call": "lcs_length('','ABC')", "expected": "0", "isHidden": false },
-        { "call": "lcs_length('XYZ','ABC')", "expected": "0", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l4_a4",
-      "title": "Reconstruct LCS String",
-      "task": "A reconstruction engine is rebuilding the actual Longest Common Subsequence from a computed DP table.\n\nSystem Requirement:\nBacktrack through DP matrix to construct LCS string.\n\nBehavior Rules:\n- Follow DP backtracking rules\n- Build sequence in correct order\n\nOutput Requirement:\nReturn reconstructed LCS string.",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n^2)",
-      "testCasesPool": [
-        { "call": "lcs_string('ABCBDAB','BDCAB')", "expected": "BCAB", "isHidden": false },
-        { "call": "lcs_string('AGGTAB','GXTXAYB')", "expected": "GTAB", "isHidden": false },
-        { "call": "lcs_string('AAAA','AA')", "expected": "AA", "isHidden": false },
-        { "call": "lcs_string('','ABC')", "expected": "", "isHidden": false },
-        { "call": "lcs_string('XYZ','ABC')", "expected": "", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_l4_a5",
-      "title": "Backtrack Steps",
-      "task": "A DP analyzer is measuring the number of steps taken during LCS backtracking.\n\nSystem Requirement:\nSimulate backtracking process and count total traversal steps.\n\nBehavior Rules:\n- Count every move during reconstruction\n- Include diagonal, up, and left transitions\n\nOutput Requirement:\nReturn total step count.",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n^2)",
-      "testCasesPool": [
-        { "call": "lcs_backtrack('ABC','AC')", "expected": "3", "isHidden": false },
-        { "call": "lcs_backtrack('A','A')", "expected": "1", "isHidden": false },
-        { "call": "lcs_backtrack('ABCDE','ACE')", "expected": "5", "isHidden": false },
-        { "call": "lcs_backtrack('','')", "expected": "0", "isHidden": false },
-        { "call": "lcs_backtrack('ABC','XYZ')", "expected": "3", "isHidden": false }
-      ]
-    }
-  ],
-
-  "optimizations": [
-    {
-      "id": "m5_opt_1",
-      "title": "Optimize Graph Traversal",
-      "task": "The given code uses an adjacency matrix resulting in O(V²) traversal time.\n\n**Task Requirement:**\nConvert the logic to handle an Adjacency List to achieve O(V + E) time complexity.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m5-5.1.json",
-      "testCasesPool": [
-        { "call": "bfs_traversal({'A': ['B', 'C'], 'B': ['D'], 'C': [], 'D': []}, 'A')", "expected": "['A', 'B', 'C', 'D']", "isHidden": false },
-        { "call": "bfs_traversal({'1': ['2'], '2': ['3'], '3': []}, '1')", "expected": "['1', '2', '3']", "isHidden": false },
-        { "call": "bfs_traversal({'X': []}, 'X')", "expected": "['X']", "isHidden": false },
-        { "call": "bfs_traversal({'A': ['B'], 'B': ['A']}, 'A')", "expected": "['A', 'B']", "isHidden": false },
-        { "call": "bfs_traversal({}, 'A')", "expected": "[]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_opt_2",
-      "title": "Optimize Tree Depth Check",
-      "task": "The provided code calculates the maximum depth of a binary tree but re-evaluates nodes unnecessarily, causing exponential growth in large trees.\n\n**Task Requirement:**\nOptimize the depth calculation using a standard O(n) post-order traversal.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m5-5.2.json",
-      "testCasesPool": [
-        { "call": "max_depth({'val': 1, 'left': {'val': 2, 'left': None, 'right': None}, 'right': None})", "expected": "2", "isHidden": false },
-        { "call": "max_depth({'val': 1, 'left': None, 'right': None})", "expected": "1", "isHidden": false },
-        { "call": "max_depth(None)", "expected": "0", "isHidden": false },
-        { "call": "max_depth({'val': 1, 'left': {'val': 2, 'left': {'val': 3, 'left': None, 'right': None}, 'right': None}, 'right': None})", "expected": "3", "isHidden": false },
-        { "call": "max_depth({'val': 1, 'left': None, 'right': {'val': 2, 'left': None, 'right': {'val': 3, 'left': None, 'right': None}}})", "expected": "3", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_opt_3",
-      "title": "Valid BST Check",
-      "task": "The current algorithm verifies a Binary Search Tree by doing a full array extraction and sorting it, taking O(n log n).\n\n**Task Requirement:**\nOptimize it to check validity in a single pass O(n) by tracking the valid min/max boundaries as you traverse.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m5-5.3.json",
-      "testCasesPool": [
-        { "call": "is_valid_bst({'val': 2, 'left': {'val': 1}, 'right': {'val': 3}})", "expected": "True", "isHidden": false },
-        { "call": "is_valid_bst({'val': 5, 'left': {'val': 1}, 'right': {'val': 4}})", "expected": "False", "isHidden": false },
-        { "call": "is_valid_bst(None)", "expected": "True", "isHidden": false },
-        { "call": "is_valid_bst({'val': 2, 'left': {'val': 2}, 'right': None})", "expected": "False", "isHidden": false },
-        { "call": "is_valid_bst({'val': 10, 'left': {'val': 5}, 'right': {'val': 15}})", "expected": "True", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m5_opt_4",
-      "title": "Level Order Traversal",
-      "task": "The current approach finds all nodes at a specific level by restarting traversal from the root every time (O(n²)).\n\n**Task Requirement:**\nOptimize the traversal to use a Queue to visit nodes level-by-level in O(n) time.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m5-5.4.json",
-      "testCasesPool": [
-        { "call": "level_order({'val': 1, 'left': {'val': 2}, 'right': {'val': 3}})", "expected": "[[1], [2, 3]]", "isHidden": false },
-        { "call": "level_order({'val': 1, 'left': None, 'right': None})", "expected": "[[1]]", "isHidden": false },
-        { "call": "level_order(None)", "expected": "[]", "isHidden": false },
-        { "call": "level_order({'val': 1, 'left': {'val': 2}, 'right': None})", "expected": "[[1], [2]]", "isHidden": false },
-        { "call": "level_order({'val': 1, 'left': None, 'right': {'val': 2}})", "expected": "[[1], [2]]", "isHidden": false }
-      ]
-    }
-  ]
+  "module_4": {
+    "lesson_1": [
+      {
+        "id": "m4_l1_a1",
+        "title": "Largest Element Selection",
+        "task": [
+          "Greedy algorithms solve problems by making the best obvious choice at each step. To reach a target number as quickly as possible, the greedy choice is to pick the largest numbers first.",
+          "",
+          "Algorithm Steps:",
+          "1. Sort the array from largest to smallest (descending order).",
+          "2. Loop through the array. Add the current number to a `total` variable.",
+          "3. Save the number in a `result` list.",
+          "4. Stop the loop if your `total` is greater than or equal to the `target`.",
+          "5. Return the `result` list.",
+          "",
+          "Instructions:",
+          "1. Create the function `greedy_collect(arr, target)`.",
+          "2. Write the sorting and looping logic.",
+          "3. Check the Complexity tab. The sorting step gives this an O(n log n) Time Complexity.",
+          "",
+          "Sample Output:",
+          "greedy_collect([2, 8, 4, 5], 10) → [8, 5]"
+        ],
+        "targetTime": "O(n log n)",
+        "targetSpace": "O(n)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "greedy_collect([2, 8, 4, 5], 10)", "expected": "[8, 5]", "isHidden": false },
+          { "call": "greedy_collect([1, 10, 5, 20], 25)", "expected": "[20, 10]", "isHidden": false },
+          { "call": "greedy_collect([3, 3, 3], 6)", "expected": "[3, 3]", "isHidden": false },
+          { "call": "greedy_collect([100, 50, 10], 50)", "expected": "[100]", "isHidden": false },
+          { "call": "greedy_collect([1, 2, 3], 10)", "expected": "[3, 2, 1]", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m4_l1_a2",
+        "title": "Maximum Quantity Selection",
+        "task": [
+          "If your goal is to collect as many items as possible without going over a weight limit, the greedy choice changes. You must pick the smallest items first so you have room for more.",
+          "",
+          "Algorithm Steps:",
+          "1. Sort the array from smallest to largest (ascending order).",
+          "2. Loop through the array. For each item, subtract its value from your `capacity`.",
+          "3. Keep a `count` of how many items you successfully take.",
+          "4. If the next item is bigger than your remaining `capacity`, stop the loop.",
+          "5. Return the `count`.",
+          "",
+          "Instructions:",
+          "1. Create `max_elements(arr, capacity)`.",
+          "2. Sort the array and write the counting loop.",
+          "3. Return the maximum count of items you can fit.",
+          "",
+          "Sample Output:",
+          "max_elements([5, 2, 1, 8, 3], 7) → 3"
+        ],
+        "targetTime": "O(n log n)",
+        "targetSpace": "O(1)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "max_elements([5, 2, 1, 8, 3], 7)", "expected": "3", "isHidden": false },
+          { "call": "max_elements([10, 20, 30], 15)", "expected": "1", "isHidden": false },
+          { "call": "max_elements([1, 1, 1, 1], 4)", "expected": "4", "isHidden": false },
+          { "call": "max_elements([50, 40, 30], 10)", "expected": "0", "isHidden": false },
+          { "call": "max_elements([], 10)", "expected": "0", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m4_l1_a3",
+        "title": "Fractional Knapsack",
+        "task": [
+          "In the Fractional Knapsack problem, items have both a `value` and a `weight`. To get the most value out of your bag, the greedy trick is to sort items by their 'value-to-weight' ratio.",
+          "",
+          "Algorithm Steps:",
+          "1. Pair up the values and weights. Find the ratio (`value / weight`) for each item.",
+          "2. Sort the items from highest ratio to lowest ratio.",
+          "3. Loop through the items. If an item fits completely in the bag, take it all.",
+          "4. If it only partially fits, take whatever fraction fits: `(remaining capacity / weight) * value`, add it to your total, and stop.",
+          "",
+          "Instructions:",
+          "1. Create `fractional_knapsack(values, weights, capacity)`.",
+          "2. Sort by the ratio and write the greedy loop.",
+          "3. Return the total value as a decimal (float).",
+          "",
+          "Sample Output:",
+          "fractional_knapsack([60, 100, 120], [10, 20, 30], 50) → 240.0"
+        ],
+        "targetTime": "O(n log n)",
+        "targetSpace": "O(n)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "fractional_knapsack([60, 100, 120], [10, 20, 30], 50)", "expected": "240.0", "isHidden": false },
+          { "call": "fractional_knapsack([50, 40, 90, 120], [5, 20, 15, 30], 50)", "expected": "300.0", "isHidden": false },
+          { "call": "fractional_knapsack([10, 20, 30], [5, 10, 15], 10)", "expected": "20.0", "isHidden": false },
+          { "call": "fractional_knapsack([100], [50], 10)", "expected": "20.0", "isHidden": false },
+          { "call": "fractional_knapsack([], [], 50)", "expected": "0.0", "isHidden": false }
+        ]
+      }
+    ],
+    "lesson_2": [
+      {
+        "id": "m4_l2_a1",
+        "title": "Greedy Coin Dispenser",
+        "task": [
+          "The Coin Change problem asks you to give exact change using the fewest number of coins. For standard money (like USD or PHP), the greedy strategy works perfectly: always give the largest coin possible.",
+          "",
+          "Algorithm Steps:",
+          "1. Use a `coins` list sorted from largest to smallest (like `[25, 10, 5, 1]`).",
+          "2. Create an empty `result` list.",
+          "3. Loop through the coins. Use a `while` loop to check if the current coin is less than or equal to the remaining `amount`.",
+          "4. If it fits, add the coin to the `result` list and subtract its value from the `amount`.",
+          "",
+          "Instructions:",
+          "1. Create `coin_change_list(amount, coins)`.",
+          "2. Write the loops to subtract coins until the amount is zero.",
+          "3. Return the final list of coins.",
+          "",
+          "Sample Output:",
+          "coin_change_list(36, [25, 10, 5, 1]) → [25, 10, 1]"
+        ],
+        "targetTime": "O(amount)",
+        "targetSpace": "O(amount)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "coin_change_list(36, [25, 10, 5, 1])", "expected": "[25, 10, 1]", "isHidden": false },
+          { "call": "coin_change_list(47, [20, 10, 5, 1])", "expected": "[20, 20, 5, 1, 1]", "isHidden": false },
+          { "call": "coin_change_list(4, [10, 5, 1])", "expected": "[1, 1, 1, 1]", "isHidden": false },
+          { "call": "coin_change_list(0, [25, 10, 5, 1])", "expected": "[]", "isHidden": false },
+          { "call": "coin_change_list(10, [25, 10, 5])", "expected": "[10]", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m4_l2_a2",
+        "title": "Fast Minimum Coin Count",
+        "task": [
+          "Instead of making a list of coins, you can speed up the algorithm to just return the total *count* of coins. We can avoid slow subtraction by using division math.",
+          "",
+          "Algorithm Steps:",
+          "1. Create a `count` variable starting at `0`.",
+          "2. Loop through the `coins` array.",
+          "3. Use integer division (`total // coin`) to see exactly how many times the coin fits. Add this number to your `count`.",
+          "4. Update your total using the modulo operator (`total %= coin`) to find the leftover remainder.",
+          "5. Return the final `count`.",
+          "",
+          "Instructions:",
+          "1. Create `min_coin_count(total, coins)`.",
+          "2. Replace iterative subtraction with division and modulo math.",
+          "3. Notice how this changes the time limit to an ultra-fast O(n).",
+          "",
+          "Sample Output:",
+          "min_coin_count(47, [20, 10, 5, 1]) → 5"
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(1)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "min_coin_count(47, [20, 10, 5, 1])", "expected": "5", "isHidden": false },
+          { "call": "min_coin_count(36, [25, 10, 5, 1])", "expected": "3", "isHidden": false },
+          { "call": "min_coin_count(99, [50, 20, 10, 5, 1])", "expected": "6", "isHidden": false },
+          { "call": "min_coin_count(0, [10, 5, 1])", "expected": "0", "isHidden": false },
+          { "call": "min_coin_count(7, [10, 5, 1])", "expected": "3", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m4_l2_a3",
+        "title": "Exact Change Checker",
+        "task": [
+          "Sometimes, the greedy method fails if the coin values are weird (like 10, 5, and 2). Write a function to check if the greedy strategy actually reaches exactly zero.",
+          "",
+          "Algorithm Steps:",
+          "1. Run the same greedy math logic (division and modulo) against the target `total`.",
+          "2. After looping through all the coins, check the leftover remainder.",
+          "3. If the remainder is `0`, return `True`. If there is still money left over, return `False`.",
+          "",
+          "Instructions:",
+          "1. Create `can_make_change(total, coins)`.",
+          "2. Do not use any extra lists so the space complexity stays at O(1).",
+          "3. Return the True/False result.",
+          "",
+          "Sample Output:",
+          "can_make_change(13, [10, 5, 2]) → False"
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(1)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "can_make_change(13, [10, 5, 2])", "expected": "False", "isHidden": false },
+          { "call": "can_make_change(12, [10, 5, 1])", "expected": "True", "isHidden": false },
+          { "call": "can_make_change(7, [5, 3])", "expected": "False", "isHidden": false },
+          { "call": "can_make_change(20, [15, 10])", "expected": "False", "isHidden": false },
+          { "call": "can_make_change(0, [10, 5, 1])", "expected": "True", "isHidden": false }
+        ]
+      }
+    ],
+    "lesson_3": [
+      {
+        "id": "m4_l3_a1",
+        "title": "Sort Events by End Time",
+        "task": [
+          "The Activity Selection algorithm helps you attend the maximum number of events without scheduling conflicts. The greedy secret is to always pick the event that finishes the earliest. The first step is sorting.",
+          "",
+          "Algorithm Steps:",
+          "1. You will be given a list of events. Each event is a pair of numbers: `[start_time, end_time]`.",
+          "2. Sort the entire list based on the `end_time` (the number at index 1) from smallest to largest.",
+          "3. Return the sorted list.",
+          "",
+          "Instructions:",
+          "1. Create `sort_by_end(events)`.",
+          "2. Use Python's built-in sorting logic (like a `lambda` function) to target index `1`.",
+          "",
+          "Sample Output:",
+          "sort_by_end([[3, 5], [1, 4], [0, 6]]) → [[1, 4], [3, 5], [0, 6]]"
+        ],
+        "targetTime": "O(n log n)",
+        "targetSpace": "O(n)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "sort_by_end([[3, 5], [1, 4], [0, 6]])", "expected": "[[1, 4], [3, 5], [0, 6]]", "isHidden": false },
+          { "call": "sort_by_end([[5, 9], [1, 2], [3, 4]])", "expected": "[[1, 2], [3, 4], [5, 9]]", "isHidden": false },
+          { "call": "sort_by_end([[10, 20], [5, 15]])", "expected": "[[5, 15], [10, 20]]", "isHidden": false },
+          { "call": "sort_by_end([[1, 3]])", "expected": "[[1, 3]]", "isHidden": false },
+          { "call": "sort_by_end([])", "expected": "[]", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m4_l3_a2",
+        "title": "Activity Selection Scheduler",
+        "task": [
+          "Now implement the main greedy loop for Activity Selection. Since the events are already sorted by finish time, you just need to pick the ones that don't overlap.",
+          "",
+          "Algorithm Steps:",
+          "1. Create a `count` variable starting at `0`, and a `last_finish` variable starting at `-1`.",
+          "2. Loop through the pre-sorted `events`.",
+          "3. Check if the current event's `start` time is greater than or equal to `last_finish`. If it is, the event fits in your schedule!",
+          "4. Increase your `count` by 1, and update `last_finish` to be the current event's `end` time.",
+          "5. Return the total `count`.",
+          "",
+          "Instructions:",
+          "1. Create `max_events(events)`.",
+          "2. Write the O(n) loop to count the non-overlapping events.",
+          "",
+          "Sample Output:",
+          "max_events([[1, 4], [3, 5], [5, 7], [8, 9]]) → 3"
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(1)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "max_events([[1, 4], [3, 5], [5, 7], [8, 9]])", "expected": "3", "isHidden": false },
+          { "call": "max_events([[1, 2], [2, 3], [3, 4]])", "expected": "3", "isHidden": false },
+          { "call": "max_events([[1, 5], [2, 6], [3, 7]])", "expected": "1", "isHidden": false },
+          { "call": "max_events([[10, 20]])", "expected": "1", "isHidden": false },
+          { "call": "max_events([])", "expected": "0", "isHidden": false }
+        ]
+      }
+    ],
+    "optimizations": [
+      {
+        "id": "m4_opt_1",
+        "title": "Optimization: Fix the Loop Sorting Bug",
+        "task": [
+          "The starter code for `greedy_collect` gives the right answer, but it has a massive speed bug: it sorts the array inside the loop over and over again.",
+          "",
+          "Task Requirement:",
+          "Fix the code by moving the sorting step outside of the loop. This will drop the time complexity down to a much faster O(n log n).",
+          "",
+          "Optimization Guidelines:",
+          "1. Look at the Complexity tab to see the slow O(n² log n) Time result. This is caused by running `sorted(arr)` during every single loop cycle.",
+          "2. Move the sorting code so it only runs once, before the loop starts.",
+          "3. Change the `for item in arr:` loop so it reads from your new, pre-sorted list instead.",
+          "4. Check the analyzer again to make sure the Global Time changes to O(n log n)."
+        ],
+        "targetTime": "O(n log n)",
+        "targetSpace": "O(n)",
+        "templateUrl": "/data/optimizations/m4-4.1.json",
+        "testCasesPool": [
+          { "call": "greedy_collect([5, 2, 8, 1], 10)", "expected": "[1, 2, 5, 8]", "isHidden": false },
+          { "call": "greedy_collect([10, 50, 20], 30)", "expected": "[10, 20]", "isHidden": false },
+          { "call": "greedy_collect([3, 3, 3], 5)", "expected": "[3, 3]", "isHidden": false },
+          { "call": "greedy_collect([100], 50)", "expected": "[100]", "isHidden": false },
+          { "call": "greedy_collect([], 10)", "expected": "[]", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m4_opt_2",
+        "title": "Optimization: Use Fast Math, Not Loops",
+        "task": [
+          "The starter `get_coins` algorithm uses a `while` loop to subtract coin values one by one. If you need to give $1,000,000 in $1 coins, that loop will run a million times, which is too slow.",
+          "",
+          "Task Requirement:",
+          "Rewrite the code to use division (`//`) and modulo (`%`) math instead of the slow `while` loop. This guarantees an ultra-fast O(n) Time Complexity.",
+          "",
+          "Optimization Guidelines:",
+          "1. Look at the code and delete the `while total >= coin:` loop completely.",
+          "2. Inside the main `for` loop, use floor division (`total // coin`) to find out exactly how many coins fit, and add that number to `count`.",
+          "3. Use the modulo operator (`total % coin`) to update the leftover `total` balance.",
+          "4. Check the analyzer to ensure the code now runs in strict O(n) time."
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(1)",
+        "templateUrl": "/data/optimizations/m4-4.2.json",
+        "testCasesPool": [
+          { "call": "get_coins(36, [25, 10, 5, 1])", "expected": "3", "isHidden": false },
+          { "call": "get_coins(47, [20, 10, 5, 1])", "expected": "5", "isHidden": false },
+          { "call": "get_coins(99, [50, 25, 10, 5, 1])", "expected": "8", "isHidden": false },
+          { "call": "get_coins(0, [10, 5, 1])", "expected": "0", "isHidden": false },
+          { "call": "get_coins(8, [10, 5, 1])", "expected": "4", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m4_opt_3",
+        "title": "Optimization: Switch to Greedy Scheduling",
+        "task": [
+          "The starter `schedule_events` function uses basic recursion to test every possible combination of 'taking' or 'skipping' an event. This O(2ⁿ) approach will crash the program on large datasets.",
+          "",
+          "Task Requirement:",
+          "Delete the recursive code entirely. Solve the problem using the Greedy Activity Selection method (sorting by end time) to make the code run in O(n log n) time.",
+          "",
+          "Optimization Guidelines:",
+          "1. Remove all the recursive `schedule_events()` calls, `skip`/`take` variables, and the `idx` parameter.",
+          "2. Add a step to sort the `events` list by their finish time.",
+          "3. Create simple tracking variables like `count = 0` and `last_finish = -1`.",
+          "4. Write a simple `for` loop to go through the sorted events. If an event's start time is `>= last_finish`, increase your count and update `last_finish`.",
+          "5. Verify that the dynamic analyzer changes the Time Complexity from Exponential down to O(n log n)."
+        ],
+        "targetTime": "O(n log n)",
+        "targetSpace": "O(1)",
+        "templateUrl": "/data/optimizations/m4-4.3.json",
+        "testCasesPool": [
+          { "call": "schedule_events([[1, 4], [3, 5], [0, 6], [5, 7], [3, 9], [5, 9], [6, 10], [8, 11]], 0, 0)", "expected": "4", "isHidden": false },
+          { "call": "schedule_events([[1, 2], [2, 3], [3, 4]], 0, 0)", "expected": "3", "isHidden": false },
+          { "call": "schedule_events([[10, 20], [5, 15]], 0, 0)", "expected": "1", "isHidden": false },
+          { "call": "schedule_events([[1, 5], [2, 6], [3, 7], [4, 8]], 0, 0)", "expected": "1", "isHidden": false },
+          { "call": "schedule_events([], 0, 0)", "expected": "0", "isHidden": false }
+        ]
+      }
+    ]
+  },
+  "module_5": {
+    "lesson_1": [
+      {
+        "id": "m5_l1_a1",
+        "title": "Top-Down Cache (Memoization)",
+        "task": [
+          "Dynamic Programming speeds up code by saving answers you already figured out. The top-down method (Memoization) uses a dictionary (a cache) to remember answers so the computer doesn't do the same math twice.",
+          "",
+          "Algorithm Steps:",
+          "1. Receive a number `n` and a dictionary called `cache`.",
+          "2. Check if `n` is already saved as a key in the `cache`. If it is, return the saved answer immediately.",
+          "3. If it is not in the cache, calculate the answer (for this exercise, just do `n * 2`).",
+          "4. Save the calculated answer into `cache[n]` and return it.",
+          "",
+          "Instructions:",
+          "1. Create `memoized_calc(n, cache)`.",
+          "2. Write the `if/else` logic to check the dictionary before doing any math.",
+          "3. Skipping repeated math makes the time complexity a super-fast O(1).",
+          "",
+          "Sample Output:",
+          "memoized_calc(5, {5: 10}) → 10"
+        ],
+        "targetTime": "O(1)",
+        "targetSpace": "O(1)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "memoized_calc(5, {5: 10})", "expected": "10", "isHidden": false },
+          { "call": "memoized_calc(4, {})", "expected": "8", "isHidden": false },
+          { "call": "memoized_calc(10, {10: 20})", "expected": "20", "isHidden": false },
+          { "call": "memoized_calc(0, {})", "expected": "0", "isHidden": false },
+          { "call": "memoized_calc(7, {7: 14})", "expected": "14", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m5_l1_a2",
+        "title": "Bottom-Up List (Tabulation)",
+        "task": [
+          "The bottom-up method (Tabulation) builds a list (or table) starting from the smallest problem all the way up to the final answer `n`.",
+          "",
+          "Algorithm Steps:",
+          "1. Given a number `n`, create a list named `dp`. Make its size `n + 1` and fill it completely with `0`s.",
+          "2. Set your starting base case by changing the value at index 1 to 1: `dp[1] = 1`.",
+          "3. Return the new `dp` list.",
+          "",
+          "Instructions:",
+          "1. Create `init_dp_table(n)`.",
+          "2. Use list math (like `[0] * (n + 1)`) to quickly build the table.",
+          "3. Set index 1 and return the list. Creating this list takes O(n) time and O(n) space.",
+          "",
+          "Sample Output:",
+          "init_dp_table(3) → [0, 1, 0, 0]"
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(n)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "init_dp_table(3)", "expected": "[0, 1, 0, 0]", "isHidden": false },
+          { "call": "init_dp_table(1)", "expected": "[0, 1]", "isHidden": false },
+          { "call": "init_dp_table(5)", "expected": "[0, 1, 0, 0, 0, 0]", "isHidden": false },
+          { "call": "init_dp_table(2)", "expected": "[0, 1, 0]", "isHidden": false },
+          { "call": "init_dp_table(4)", "expected": "[0, 1, 0, 0, 0]", "isHidden": false }
+        ]
+      }
+    ],
+    "lesson_2": [
+      {
+        "id": "m5_l2_a1",
+        "title": "Slow Recursive Fibonacci",
+        "task": [
+          "The Fibonacci sequence is easy to write with basic recursion. But without Dynamic Programming, the computer solves the exact same math problems over and over again.",
+          "",
+          "Algorithm Steps:",
+          "1. Check the base case: If `n <= 1`, return `n`.",
+          "2. Call the function again for `n - 1` and `n - 2`.",
+          "3. Add the two recursive answers together and return the sum.",
+          "",
+          "Instructions:",
+          "1. Create `fib_naive(n)`.",
+          "2. Write the basic recursion.",
+          "3. Watch the analyzer show you that the time limit is an extremely slow O(2^n).",
+          "",
+          "Sample Output:",
+          "fib_naive(5) → 5"
+        ],
+        "targetTime": "O(2^n)",
+        "targetSpace": "O(n)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "fib_naive(5)", "expected": "5", "isHidden": false },
+          { "call": "fib_naive(6)", "expected": "8", "isHidden": false },
+          { "call": "fib_naive(2)", "expected": "1", "isHidden": false },
+          { "call": "fib_naive(1)", "expected": "1", "isHidden": false },
+          { "call": "fib_naive(0)", "expected": "0", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m5_l2_a2",
+        "title": "Fast Bottom-Up Fibonacci",
+        "task": [
+          "Stop the slow recursion by building the Fibonacci sequence from the bottom up using a list (Tabulation).",
+          "",
+          "Algorithm Steps:",
+          "1. If `n <= 1`, return `n`.",
+          "2. Create a `dp` list of size `n + 1` filled with `0`s.",
+          "3. Set the base case `dp[1] = 1`.",
+          "4. Write a loop from `2` up to `n`. In the loop, do `dp[i] = dp[i-1] + dp[i-2]`.",
+          "5. Return `dp[n]`.",
+          "",
+          "Instructions:",
+          "1. Create `fib_tab(n)`.",
+          "2. Write the list and the loop.",
+          "3. This calculates each step exactly once, dropping the Time Complexity to a fast O(n).",
+          "",
+          "Sample Output:",
+          "fib_tab(5) → 5"
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(n)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "fib_tab(5)", "expected": "5", "isHidden": false },
+          { "call": "fib_tab(10)", "expected": "55", "isHidden": false },
+          { "call": "fib_tab(1)", "expected": "1", "isHidden": false },
+          { "call": "fib_tab(7)", "expected": "13", "isHidden": false },
+          { "call": "fib_tab(0)", "expected": "0", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m5_l2_a3",
+        "title": "Space-Saving Fibonacci",
+        "task": [
+          "You only need the last two numbers to find the next Fibonacci number. We can delete the big list and just use two simple variables to save memory.",
+          "",
+          "Algorithm Steps:",
+          "1. If `n <= 1`, return `n`.",
+          "2. Create two variables: `prev2 = 0` and `prev1 = 1`.",
+          "3. Loop from `2` up to `n`. Find the `current` number by adding `prev1 + prev2`.",
+          "4. Update your variables for the next round: set `prev2 = prev1` and `prev1 = current`.",
+          "5. Return `prev1` at the end.",
+          "",
+          "Instructions:",
+          "1. Create `fib_optimized(n)`.",
+          "2. Use the two-variable trick inside the loop.",
+          "3. This makes your code use almost no extra memory, hitting an O(1) Space limit.",
+          "",
+          "Sample Output:",
+          "fib_optimized(6) → 8"
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(1)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "fib_optimized(6)", "expected": "8", "isHidden": false },
+          { "call": "fib_optimized(10)", "expected": "55", "isHidden": false },
+          { "call": "fib_optimized(2)", "expected": "1", "isHidden": false },
+          { "call": "fib_optimized(0)", "expected": "0", "isHidden": false },
+          { "call": "fib_optimized(8)", "expected": "21", "isHidden": false }
+        ]
+      }
+    ],
+    "lesson_3": [
+      {
+        "id": "m5_l3_a1",
+        "title": "Knapsack Grid Setup",
+        "task": [
+          "The 0/1 Knapsack problem uses a 2D grid (a list of lists) to track items and weights. Your first step is to build this grid filled with zeros.",
+          "",
+          "Algorithm Steps:",
+          "1. You are given `n` (the number of items) and `capacity` (the bag's max weight).",
+          "2. Create a 2D matrix called `dp`. It needs to have `n + 1` rows and `capacity + 1` columns.",
+          "3. Fill every cell in the grid with `0`.",
+          "4. Return the `dp` grid.",
+          "",
+          "Instructions:",
+          "1. Create `build_knapsack_matrix(n, capacity)`.",
+          "2. Use nested loops to create the rows and columns properly.",
+          "",
+          "Sample Output:",
+          "build_knapsack_matrix(2, 2) → [[0, 0, 0], [0, 0, 0], [0, 0, 0]]"
+        ],
+        "targetTime": "O(n^2)",
+        "targetSpace": "O(n^2)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "build_knapsack_matrix(2, 2)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
+          { "call": "build_knapsack_matrix(1, 1)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
+          { "call": "build_knapsack_matrix(3, 2)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
+          { "call": "build_knapsack_matrix(0, 5)", "expected": "[[0, 0, 0, 0, 0, 0]]", "isHidden": false },
+          { "call": "build_knapsack_matrix(2, 0)", "expected": "[[0], [0], [0]]", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m5_l3_a2",
+        "title": "0/1 Knapsack Solver",
+        "task": [
+          "Now fill out the 0/1 Knapsack grid. For each cell, check if taking the item gives a higher value than skipping it.",
+          "",
+          "Algorithm Steps:",
+          "1. Build the grid full of zeros. Loop through the rows (`i`) and columns (`w`).",
+          "2. Check if the item's weight fits: `weights[i-1] <= w`.",
+          "3. If it fits, calculate the value of 'taking' it: `values[i-1] + dp[i-1][w - weights[i-1]]`.",
+          "4. Calculate the value of 'skipping' it: `dp[i-1][w]`.",
+          "5. Put the max of those two values into your cell. If the item doesn't fit at all, just copy the 'skipping' value into the cell.",
+          "6. Return the very last cell: `dp[n][capacity]`.",
+          "",
+          "Instructions:",
+          "1. Create `knapsack(weights, values, capacity)`.",
+          "2. Write the loops and the max-value check.",
+          "",
+          "Sample Output:",
+          "knapsack([1, 3, 4], [15, 20, 30], 4) → 35"
+        ],
+        "targetTime": "O(n^2)",
+        "targetSpace": "O(n^2)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "knapsack([1, 3, 4], [15, 20, 30], 4)", "expected": "35", "isHidden": false },
+          { "call": "knapsack([10, 20, 30], [60, 100, 120], 50)", "expected": "220", "isHidden": false },
+          { "call": "knapsack([5, 5, 5], [10, 20, 30], 4)", "expected": "0", "isHidden": false },
+          { "call": "knapsack([10], [50], 10)", "expected": "50", "isHidden": false },
+          { "call": "knapsack([], [], 50)", "expected": "0", "isHidden": false }
+        ]
+      }
+    ],
+    "lesson_4": [
+      {
+        "id": "m5_l4_a1",
+        "title": "LCS Grid Setup",
+        "task": [
+          "To find the Longest Common Subsequence (LCS) between two strings, you first need to build a 2D grid filled with zeros.",
+          "",
+          "Algorithm Steps:",
+          "1. Find the lengths of the two strings: `m = len(str1)` and `n = len(str2)`.",
+          "2. Create a 2D `dp` list that has `m + 1` rows and `n + 1` columns.",
+          "3. Fill every cell in the grid with `0`.",
+          "4. Return the `dp` grid.",
+          "",
+          "Instructions:",
+          "1. Create `build_lcs_matrix(str1, str2)`.",
+          "2. Use nested loops to make the grid exactly the right size.",
+          "",
+          "Sample Output:",
+          "build_lcs_matrix('A', 'B') → [[0, 0], [0, 0]]"
+        ],
+        "targetTime": "O(n^2)",
+        "targetSpace": "O(n^2)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "build_lcs_matrix('A', 'B')", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
+          { "call": "build_lcs_matrix('AB', 'C')", "expected": "[[0, 0], [0, 0], [0, 0]]", "isHidden": false },
+          { "call": "build_lcs_matrix('', 'A')", "expected": "[[0, 0]]", "isHidden": false },
+          { "call": "build_lcs_matrix('A', '')", "expected": "[[0], [0]]", "isHidden": false },
+          { "call": "build_lcs_matrix('AB', 'CD')", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m5_l4_a2",
+        "title": "Longest Common Subsequence Logic",
+        "task": [
+          "Fill the LCS grid. If the letters match, add 1 to the diagonal cell. If they don't match, carry over the best score from the top or left cell.",
+          "",
+          "Algorithm Steps:",
+          "1. Create the grid full of zeros. Loop `i` through the rows, and `j` through the columns.",
+          "2. Check if the letters match: `str1[i-1] == str2[j-1]`.",
+          "3. If they match, set the cell to the diagonal value plus one: `dp[i][j] = dp[i-1][j-1] + 1`.",
+          "4. If they do not match, set the cell to the maximum of the cell above it (`dp[i-1][j]`) or the cell to its left (`dp[i][j-1]`).",
+          "5. Return the value in the very last cell.",
+          "",
+          "Instructions:",
+          "1. Create `lcs(str1, str2)`.",
+          "2. Write the nested loops and the letter matching rules.",
+          "",
+          "Sample Output:",
+          "lcs('ABC', 'AC') → 2"
+        ],
+        "targetTime": "O(n^2)",
+        "targetSpace": "O(n^2)",
+        "randomizeTestCases": true,
+        "testCasesPool": [
+          { "call": "lcs('ABC', 'AC')", "expected": "2", "isHidden": false },
+          { "call": "lcs('ABCBDAB', 'BDCAB')", "expected": "4", "isHidden": false },
+          { "call": "lcs('ABCD', 'EFGH')", "expected": "0", "isHidden": false },
+          { "call": "lcs('A', 'A')", "expected": "1", "isHidden": false },
+          { "call": "lcs('', 'ABC')", "expected": "0", "isHidden": false }
+        ]
+      }
+    ],
+    "optimizations": [
+      {
+        "id": "m5_opt_1",
+        "title": "Optimization: Delete the Fibonacci List",
+        "task": [
+          "The starter `fibonacci` code runs fast, but it uses too much memory. It saves every single number in a long list, pushing the Space Complexity up to O(n).",
+          "",
+          "Task Requirement:",
+          "Rewrite the code so it stops using a list. Use two simple variables to keep track of just the last two numbers. This drops the Space limit to an optimal O(1).",
+          "",
+          "Optimization Guidelines:",
+          "1. Look at the analyzer. The O(n) Space warning comes from creating the `dp` list.",
+          "2. Delete the list creation line entirely.",
+          "3. Create two variables (`prev2 = 0` and `prev1 = 1`) before your loop starts.",
+          "4. Inside the loop, find the `current` number by adding the two variables, then shift them forward.",
+          "5. Watch the analyzer change the Space Complexity to a tiny O(1)."
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(1)",
+        "templateUrl": "/data/optimizations/m5-5.1.json",
+        "testCasesPool": [
+          { "call": "fibonacci(5)", "expected": "5", "isHidden": false },
+          { "call": "fibonacci(10)", "expected": "55", "isHidden": false },
+          { "call": "fibonacci(1)", "expected": "1", "isHidden": false },
+          { "call": "fibonacci(0)", "expected": "0", "isHidden": false },
+          { "call": "fibonacci(7)", "expected": "13", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m5_opt_2",
+        "title": "Optimization: Add a Dictionary Cache",
+        "task": [
+          "The starter `climb_stairs` function uses basic recursion. This makes the program extremely slow (O(2ⁿ)) because it repeats the exact same math over and over again.",
+          "",
+          "Task Requirement:",
+          "Fix the code by adding a dictionary cache (Memoization). Tell the computer to check the dictionary before doing any math so it only solves each step once.",
+          "",
+          "Optimization Guidelines:",
+          "1. Create an empty dictionary called `cache` inside the function's parameters, or use a global one.",
+          "2. At the top of the code, write an `if` statement: if `n` is already saved in the `cache`, return it right away.",
+          "3. If it's not saved yet, don't return the math directly. First, save the answer into `cache[n]`, and then return it.",
+          "4. Check the analyzer to ensure the Time Complexity drops from a slow Exponential to a fast O(n)."
+        ],
+        "targetTime": "O(n)",
+        "targetSpace": "O(n)",
+        "templateUrl": "/data/optimizations/m5-5.2.json",
+        "testCasesPool": [
+          { "call": "climb_stairs(5)", "expected": "8", "isHidden": false },
+          { "call": "climb_stairs(10)", "expected": "89", "isHidden": false },
+          { "call": "climb_stairs(2)", "expected": "2", "isHidden": false },
+          { "call": "climb_stairs(1)", "expected": "1", "isHidden": false },
+          { "call": "climb_stairs(4)", "expected": "5", "isHidden": false }
+        ]
+      },
+      {
+        "id": "m5_opt_3",
+        "title": "Optimization: Switch to a DP Grid",
+        "task": [
+          "The starter `knapsack_recursive` code uses basic recursion to test 'taking' or 'skipping' items. This causes an O(2ⁿ) time crash on big lists of items.",
+          "",
+          "Task Requirement:",
+          "Change the code from slow recursion to Bottom-Up Tabulation. Build a 2D grid (matrix) to solve the problem step-by-step so it runs in O(n²) time.",
+          "",
+          "Optimization Guidelines:",
+          "1. Delete all the recursive function calls and `if` statements.",
+          "2. Create a 2D `dp` grid filled with `0`s, making it the size of the items and capacity.",
+          "3. Write two loops (`i` for rows, `w` for columns) to go through the grid.",
+          "4. Inside the loop, check if taking the item is better than skipping it using the grid values (just like the lesson taught).",
+          "5. Ensure the analyzer confirms your new loops are running in O(n²) time."
+        ],
+        "targetTime": "O(n^2)",
+        "targetSpace": "O(n^2)",
+        "templateUrl": "/data/optimizations/m5-5.3.json",
+        "testCasesPool": [
+          { "call": "knapsack([10, 20, 30], [60, 100, 120], 50)", "expected": "220", "isHidden": false },
+          { "call": "knapsack([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
+          { "call": "knapsack([5, 5, 5], [10, 20, 30], 4)", "expected": "0", "isHidden": false },
+          { "call": "knapsack([10], [50], 10)", "expected": "50", "isHidden": false },
+          { "call": "knapsack([], [], 50)", "expected": "0", "isHidden": false }
+        ]
+      }
+    ]
+  }
 }

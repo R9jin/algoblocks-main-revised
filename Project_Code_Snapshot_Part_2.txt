@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 2 OF 5) ---
 
---- TIMESTAMP: 2026-06-02 20:17:35 ---
+--- TIMESTAMP: 2026-06-02 23:32:39 ---
 
 
 --- FILE: frontend/public/data/activities/module_6.json ---
@@ -9,370 +9,338 @@
   "lesson_1": [
     {
       "id": "m6_l1_a1",
-      "title": "The Choose Step",
-      "task": "A recursive path-building system is constructing candidate solutions step-by-step during backtracking exploration.\n\nTask Requirement:\nCreate a function choose(arr) that iterates through the given input array and appends each element into a result array in the same order.\n\nRules:\n- Elements must not be modified\n- Preserve original ordering\n- Do not skip or filter values\n- Return the final constructed array\n\nSample Output:\nchoose([1,2,3]) â†’ [1,2,3]",
-      "targetTime": "O(n)",
+      "title": "The Backtracking Pattern (Binary Strings)",
+      "task": [
+        "Backtracking is like exploring a maze. You make a choice, go as far as you can, and if you hit a dead end, you 'backtrack' (undo your choice) and try another path. Let's use this to generate all binary strings of length n.",
+        "",
+        "Algorithm Steps:",
+        "1. Create a helper function that takes the `current_string`.",
+        "2. Base Case: If the length of `current_string` equals `n`, add it to a `results` list and stop (return).",
+        "3. Make Choice 1: Append '0' to the string and call the helper function again (recurse).",
+        "4. Make Choice 2: Append '1' to the string and call the helper function again.",
+        "5. Return the `results` list.",
+        "",
+        "Instructions:",
+        "1. Create `binary_strings(n)`.",
+        "2. Write the recursive helper function inside it.",
+        "3. Watch the analyzer assign an O(2^n) Time Complexity, because every step creates 2 new branches.",
+        "",
+        "Sample Output:",
+        "binary_strings(2) â†’ ['00', '01', '10', '11']"
+      ],
+      "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "choose([1,2,3])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "choose([5])", "expected": "[5]", "isHidden": false },
-        { "call": "choose([])", "expected": "[]", "isHidden": false },
-        { "call": "choose([None])", "expected": "[None]", "isHidden": false },
-        { "call": "choose([1, None, 3])", "expected": "[1, None, 3]", "isHidden": false }
+        { "call": "binary_strings(1)", "expected": "['0', '1']", "isHidden": false },
+        { "call": "binary_strings(2)", "expected": "['00', '01', '10', '11']", "isHidden": false },
+        { "call": "binary_strings(3)", "expected": "['000', '001', '010', '011', '100', '101', '110', '111']", "isHidden": false },
+        { "call": "binary_strings(0)", "expected": "['']", "isHidden": false },
+        { "call": "len(binary_strings(4))", "expected": "16", "isHidden": false }
       ]
     },
     {
       "id": "m6_l1_a2",
-      "title": "The Unchoose Step",
-      "task": "A backtracking engine must reverse the most recent recursive decision to restore the previous search state.\n\nTask Requirement:\nCreate a function unchoose(arr) that removes the most recently added element from the path.\n\nRules:\n- Remove only the last element\n- If array is empty, return unchanged array\n- Preserve remaining element order\n\nSample Output:\nunchoose([1,2,3]) â†’ [1,2]",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "unchoose([1,2,3])", "expected": "[1, 2]", "isHidden": false },
-        { "call": "unchoose([5])", "expected": "[]", "isHidden": false },
-        { "call": "unchoose([])", "expected": "[]", "isHidden": false },
-        { "call": "unchoose([1, None])", "expected": "[1]", "isHidden": false },
-        { "call": "unchoose([None])", "expected": "[]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l1_a3",
-      "title": "State Validation",
-      "task": "A recursive validation subsystem checks whether the current search state satisfies all constraints before continuing exploration.\n\nTask Requirement:\nCreate a function validate(arr) that verifies all values are zero or positive.\n\nRules:\n- Return true only if no negative values exist\n- Empty arrays are considered valid\n- Return false immediately when a negative value is found\n\nSample Output:\nvalidate([1,2,3]) â†’ true",
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "validate([1,2,3])", "expected": "true", "isHidden": false },
-        { "call": "validate([0,5])", "expected": "true", "isHidden": false },
-        { "call": "validate([-1,2])", "expected": "false", "isHidden": false },
-        { "call": "validate([])", "expected": "true", "isHidden": false },
-        { "call": "validate([1,-5,3])", "expected": "false", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l1_a4",
-      "title": "Recursive Exploration",
-      "task": "A binary recursion engine explores every possible branching path by selecting between two choices at each depth level.\n\nTask Requirement:\nCreate a function explore(n) that recursively generates all binary strings of length n.\n\nRules:\n- Each position branches into '0' and '1'\n- Emit completed strings only when length equals n\n- If n = 0 return ['']\n- If n < 0 return []\n\nSample Output:\nexplore(2) â†’ ['00','01','10','11']",
+      "title": "Subset Generation",
+      "task": [
+        "To find all possible subsets of a list, you make a simple choice for every single item: you either 'take it' or you 'skip it'.",
+        "",
+        "Algorithm Steps:",
+        "1. Create a helper function that tracks the `index` and the `current_path`.",
+        "2. Base Case: If `index` reaches the end of the array, save a copy of `current_path` to your results and return.",
+        "3. Choice 1 (Take): Append the item at `arr[index]` to the path, recurse to `index + 1`, then pop the item off (this is the rollback!).",
+        "4. Choice 2 (Skip): Recurse to `index + 1` without adding the item.",
+        "",
+        "Instructions:",
+        "1. Create `generate_subsets(arr)`.",
+        "2. Write the take/skip recursive logic and remember the `.pop()` rollback step.",
+        "",
+        "Sample Output:",
+        "generate_subsets([1, 2]) â†’ [[1, 2], [1], [2], []]"
+      ],
       "targetTime": "O(2^n)",
-      "targetSpace": "O(2^n)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "explore(2)", "expected": "['00', '01', '10', '11']", "isHidden": false },
-        { "call": "explore(1)", "expected": "['0', '1']", "isHidden": false },
-        { "call": "explore(3)", "expected": "['000', '001', '010', '011', '100', '101', '110', '111']", "isHidden": false },
-        { "call": "explore(0)", "expected": "['']", "isHidden": false },
-        { "call": "explore(-1)", "expected": "[]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l1_a5",
-      "title": "Base Case Print",
-      "task": "A recursive tracing system only outputs completed paths when the recursion depth reaches the required target depth.\n\nTask Requirement:\nCreate a function base_case(arr, depth) that returns the current constructed path only when its length matches the target depth.\n\nRules:\n- If path length equals depth, return the path\n- If path length exceeds depth, trim excess elements\n- If path length is smaller than depth, return []\n\nSample Output:\nbase_case([1,2],2) â†’ [1,2]",
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "base_case([1,2], 2)", "expected": "[1, 2]", "isHidden": false },
-        { "call": "base_case([5], 1)", "expected": "[5]", "isHidden": false },
-        { "call": "base_case([], 0)", "expected": "[]", "isHidden": false },
-        { "call": "base_case([1], 2)", "expected": "[]", "isHidden": false },
-        { "call": "base_case([1,2,3], 2)", "expected": "[1, 2]", "isHidden": false }
+        { "call": "len(generate_subsets([1, 2]))", "expected": "4", "isHidden": false },
+        { "call": "len(generate_subsets([1, 2, 3]))", "expected": "8", "isHidden": false },
+        { "call": "len(generate_subsets([1]))", "expected": "2", "isHidden": false },
+        { "call": "generate_subsets([])", "expected": "[[]]", "isHidden": false },
+        { "call": "len(generate_subsets([1, 2, 3, 4]))", "expected": "16", "isHidden": false }
       ]
     }
   ],
   "lesson_2": [
     {
       "id": "m6_l2_a1",
-      "title": "Print Permutations",
-      "task": "A permutation generator recursively explores every possible ordering of elements within a dataset.\n\nTask Requirement:\nCreate a function permute(arr) that generates all possible permutations of the given list.\n\nRules:\n- Each element must appear exactly once per permutation\n- Different ordering counts as a unique permutation\n- Empty array returns [[]]\n\nSample Output:\npermute(['A','B']) â†’ [['A','B'],['B','A']]",
+      "title": "Permutations (Order Matters)",
+      "task": [
+        "Permutations are all the possible ways to order a list. Because you can't reuse numbers you've already picked, you need a way to track what is currently in your path.",
+        "",
+        "Algorithm Steps:",
+        "1. Create a helper function with `current_path`.",
+        "2. Base Case: If the path length equals the array length, save a copy of the path.",
+        "3. Loop through every number in the array.",
+        "4. If the number is already in `current_path`, skip it (`continue`).",
+        "5. Otherwise, append the number, call the helper function, and then `.pop()` the number (rollback) so you can try the next one.",
+        "",
+        "Instructions:",
+        "1. Create `get_permutations(arr)`.",
+        "2. Write the loop and rollback logic.",
+        "3. Notice the Time Complexity is O(n!) because the choices decrease by 1 each step (n * n-1 * n-2...).",
+        "",
+        "Sample Output:",
+        "get_permutations([1, 2]) â†’ [[1, 2], [2, 1]]"
+      ],
       "targetTime": "O(n!)",
-      "targetSpace": "O(n!)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "permute(['A','B'])", "expected": "[['A','B'], ['B','A']]", "isHidden": false },
-        { "call": "permute(['A'])", "expected": "[['A']]", "isHidden": false },
-        { "call": "permute([])", "expected": "[[]]", "isHidden": false },
-        { "call": "permute(['A','B','C'])", "expected": "6", "isHidden": false },
-        { "call": "permute([1,2])", "expected": "[[1,2],[2,1]]", "isHidden": false }
+        { "call": "get_permutations([1, 2])", "expected": "[[1, 2], [2, 1]]", "isHidden": false },
+        { "call": "len(get_permutations([1, 2, 3]))", "expected": "6", "isHidden": false },
+        { "call": "get_permutations([5])", "expected": "[[5]]", "isHidden": false },
+        { "call": "get_permutations([])", "expected": "[[]]", "isHidden": false },
+        { "call": "len(get_permutations([1, 2, 3, 4]))", "expected": "24", "isHidden": false }
       ]
     },
     {
       "id": "m6_l2_a2",
-      "title": "Track Used Elements",
-      "task": "A recursive permutation engine maintains state tracking to ensure no element is reused during the same search path.\n\nTask Requirement:\nCreate a function track(arr) that validates whether element usage tracking can be maintained correctly.\n\nRules:\n- All arrays are considered trackable\n- Empty arrays are valid\n- Return true for all valid inputs\n\nSample Output:\ntrack([1,2,3]) â†’ true",
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "track([1,2,3])", "expected": "true", "isHidden": false },
-        { "call": "track([1])", "expected": "true", "isHidden": false },
-        { "call": "track([])", "expected": "true", "isHidden": false },
-        { "call": "track([None])", "expected": "true", "isHidden": false },
-        { "call": "track([1,1])", "expected": "true", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l2_a3",
-      "title": "Subsets Generation",
-      "task": "A recursive branching engine generates all possible inclusion and exclusion combinations from a dataset.\n\nTask Requirement:\nCreate a function subsets(arr) that generates every subset of the input array.\n\nRules:\n- Include empty subset and full subset\n- Preserve recursive exploration ordering\n- Empty array returns [[]]\n\nSample Output:\nsubsets(['A','B']) â†’ [[],['A'],['A','B'],['B']]",
+      "title": "Combinations (Order Doesn't Matter)",
+      "task": [
+        "Combinations don't care about order ([1, 2] is the same as [2, 1]). To avoid grabbing backwards duplicates, you must force the loop to only pick numbers moving forward.",
+        "",
+        "Algorithm Steps:",
+        "1. Create a helper function that takes `start_index` and `current_path`.",
+        "2. Base Case: If the path length equals `k`, save a copy and return.",
+        "3. Loop `i` from `start_index` to the end of the array.",
+        "4. Append `arr[i]`, call the helper with `i + 1` (forcing it to look forward), then `.pop()`.",
+        "",
+        "Instructions:",
+        "1. Create `get_combinations(arr, k)`.",
+        "2. Ensure you pass `i + 1` into the recursive call so it never looks backwards.",
+        "",
+        "Sample Output:",
+        "get_combinations([1, 2, 3], 2) â†’ [[1, 2], [1, 3], [2, 3]]"
+      ],
       "targetTime": "O(2^n)",
-      "targetSpace": "O(2^n)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "subsets(['A','B'])", "expected": "[[],['A'],['A','B'],['B']]", "isHidden": false },
-        { "call": "subsets(['A'])", "expected": "[[],['A']]", "isHidden": false },
-        { "call": "subsets([])", "expected": "[[]]", "isHidden": false },
-        { "call": "subsets([1,2])", "expected": "4", "isHidden": false },
-        { "call": "subsets([None])", "expected": "[[],[None]]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l2_a4",
-      "title": "Length-K Combinations",
-      "task": "A combinatorial search engine generates all unique selections of size k from a dataset.\n\nTask Requirement:\nCreate a function combine(arr, k) that generates all combinations of size k.\n\nRules:\n- Order does not matter\n- Duplicate combinations must not exist\n- Return [] when k exceeds array size\n\nSample Output:\ncombine([1,2,3],2) â†’ [[1,2],[1,3],[2,3]]",
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(2^n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "combine([1,2,3],2)", "expected": "[[1,2],[1,3],[2,3]]", "isHidden": false },
-        { "call": "combine(['A','B'],1)", "expected": "[['A'],['B']]", "isHidden": false },
-        { "call": "combine([],1)", "expected": "[]", "isHidden": false },
-        { "call": "combine([1,2,3],1)", "expected": "3", "isHidden": false },
-        { "call": "combine([1],2)", "expected": "[]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l2_a5",
-      "title": "Keypad Letters",
-      "task": "A recursive keypad decoder generates all possible letter combinations from numeric phone keypad mappings.\n\nTask Requirement:\nCreate a function keypad(digits) that generates all possible letter combinations.\n\nRules:\n- Each digit maps to multiple letters\n- One letter must be chosen per digit\n- Empty string returns []\n- Unsupported digits return []\n\nSample Output:\nkeypad('23') â†’ ['ad','ae','af','bd','be','bf','cd','ce','cf']",
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(2^n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "keypad('23')", "expected": "['ad','ae','af','bd','be','bf','cd','ce','cf']", "isHidden": false },
-        { "call": "keypad('2')", "expected": "['a','b','c']", "isHidden": false },
-        { "call": "keypad('')", "expected": "[]", "isHidden": false },
-        { "call": "keypad('0')", "expected": "[]", "isHidden": false },
-        { "call": "keypad('99')", "expected": "[]", "isHidden": false }
+        { "call": "get_combinations([1, 2, 3], 2)", "expected": "[[1, 2], [1, 3], [2, 3]]", "isHidden": false },
+        { "call": "get_combinations([1, 2, 3, 4], 1)", "expected": "[[1], [2], [3], [4]]", "isHidden": false },
+        { "call": "len(get_combinations([1, 2, 3, 4, 5], 3))", "expected": "10", "isHidden": false },
+        { "call": "get_combinations([5, 6], 2)", "expected": "[[5, 6]]", "isHidden": false },
+        { "call": "get_combinations([1, 2], 3)", "expected": "[]", "isHidden": false }
       ]
     }
   ],
   "lesson_3": [
     {
       "id": "m6_l3_a1",
-      "title": "Is Safe Row/Column",
-      "task": "An N-Queens validation system checks whether queen placements conflict within rows or columns.\n\nTask Requirement:\nCreate a function safe_rowcol(arr, value) that determines whether the placement is valid.\n\nRules:\n- Return false if a row or column conflict exists\n- Empty states are considered valid\n- Return true only when no conflicts exist\n\nSample Output:\nsafe_rowcol([],0) â†’ true",
+      "title": "Chessboard Safety Check",
+      "task": [
+        "Before placing a chess Queen, you must verify the spot is safe. It cannot share a column or diagonal with another Queen. (We don't need to check rows because we only place one Queen per row).",
+        "",
+        "Algorithm Steps:",
+        "1. You are given a 2D `board`, a `row`, and a `col`.",
+        "2. Loop through all rows above the current `row` in the same `col`. If you see a `1`, return `False`.",
+        "3. Check the upper-left diagonal. Use a loop moving up and left. If you see a `1`, return `False`.",
+        "4. Check the upper-right diagonal. Use a loop moving up and right. If you see a `1`, return `False`.",
+        "5. If no Queens are found, return `True`.",
+        "",
+        "Instructions:",
+        "1. Create `is_safe(board, row, col)`.",
+        "2. Write the three while-loops to check straight up, up-left, and up-right.",
+        "",
+        "Sample Output:",
+        "is_safe([[1, 0], [0, 0]], 1, 1) â†’ False"
+      ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "safe_rowcol([0,1],1)", "expected": "false", "isHidden": false },
-        { "call": "safe_rowcol([0,0],1)", "expected": "false", "isHidden": false },
-        { "call": "safe_rowcol([1,0],1)", "expected": "false", "isHidden": false },
-        { "call": "safe_rowcol([],0)", "expected": "true", "isHidden": false },
-        { "call": "safe_rowcol([0],0)", "expected": "true", "isHidden": false }
+        { "call": "is_safe([[1, 0, 0], [0, 0, 0], [0, 0, 0]], 1, 1)", "expected": "False", "isHidden": false },
+        { "call": "is_safe([[0, 1, 0], [0, 0, 0], [0, 0, 0]], 1, 0)", "expected": "True", "isHidden": false },
+        { "call": "is_safe([[0, 0, 1], [0, 0, 0], [0, 0, 0]], 1, 1)", "expected": "False", "isHidden": false },
+        { "call": "is_safe([[0, 0, 0], [0, 0, 0], [0, 0, 0]], 0, 0)", "expected": "True", "isHidden": false },
+        { "call": "is_safe([[1, 0], [0, 0]], 1, 0)", "expected": "False", "isHidden": false }
       ]
     },
     {
       "id": "m6_l3_a2",
-      "title": "Diagonal Safety Check",
-      "task": "A chessboard validation engine detects diagonal attacks between queens placed on a board.\n\nTask Requirement:\nCreate a function safe_diag(arr) that checks for diagonal conflicts.\n\nRules:\n- Return false if any two queens attack diagonally\n- Empty or single-element boards are valid\n- Return true only when no diagonal conflicts exist\n\nSample Output:\nsafe_diag([[0]]) â†’ true",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "safe_diag([[0,1],[1,0]])", "expected": "false", "isHidden": false },
-        { "call": "safe_diag([[0,0],[0,0]])", "expected": "true", "isHidden": false },
-        { "call": "safe_diag([[1,0],[0,1]])", "expected": "false", "isHidden": false },
-        { "call": "safe_diag([[0]])", "expected": "true", "isHidden": false },
-        { "call": "safe_diag([])", "expected": "true", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l3_a3",
-      "title": "Place and Remove",
-      "task": "A recursive backtracking engine temporarily modifies board states during exploration and restores them afterward.\n\nTask Requirement:\nCreate a function place_remove(arr) that simulates placing and removing values while preserving the original state.\n\nRules:\n- Final returned state must match original input\n- Empty arrays remain unchanged\n- Preserve element ordering\n\nSample Output:\nplace_remove([0,0]) â†’ [0,0]",
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "place_remove([0,0])", "expected": "[0,0]", "isHidden": false },
-        { "call": "place_remove([1,0])", "expected": "[1,0]", "isHidden": false },
-        { "call": "place_remove([0,1])", "expected": "[0,1]", "isHidden": false },
-        { "call": "place_remove([])", "expected": "[]", "isHidden": false },
-        { "call": "place_remove([1])", "expected": "[1]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l3_a4",
-      "title": "Board Initialization",
-      "task": "A board generation subsystem initializes empty grid structures for recursive chess placement algorithms.\n\nTask Requirement:\nCreate a function board(n) that generates an N x N grid filled with zeros.\n\nRules:\n- Each row must contain exactly n zeros\n- Return [] when n â‰¤ 0\n- Preserve square matrix structure\n\nSample Output:\nboard(2) â†’ [[0,0],[0,0]]",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n^2)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "board(2)", "expected": "[[0,0],[0,0]]", "isHidden": false },
-        { "call": "board(1)", "expected": "[[0]]", "isHidden": false },
-        { "call": "board(3)", "expected": "[[0,0,0],[0,0,0],[0,0,0]]", "isHidden": false },
-        { "call": "board(0)", "expected": "[]", "isHidden": false },
-        { "call": "board(-1)", "expected": "[]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l3_a5",
-      "title": "Full N-Queens Solver",
-      "task": "A recursive search engine computes all valid queen placement configurations on an N x N chessboard.\n\nTask Requirement:\nCreate a function n_queens(n) that returns the number of valid N-Queens solutions.\n\nRules:\n- Queens must not attack horizontally, vertically, or diagonally\n- Return 0 when no valid solutions exist\n- If n < 0 return 0\n\nSample Output:\nn_queens(4) â†’ 2",
+      "title": "N-Queens Solver",
+      "task": [
+        "Use your safety check to place Queens row by row. If a row has no safe spots, you backtrack (undo) and move the Queen from the previous row.",
+        "",
+        "Algorithm Steps:",
+        "1. Create a recursive helper function `solve(row, board)`.",
+        "2. Base Case: If `row` equals `n`, you placed all queens! Add 1 to your solution count and return.",
+        "3. Loop `col` from 0 to `n-1`. Check if `is_safe(board, row, col)` is True.",
+        "4. If safe, set `board[row][col] = 1`, call `solve(row + 1, board)`, and then set `board[row][col] = 0` (Rollback!).",
+        "",
+        "Instructions:",
+        "1. Create `count_nqueens(n)`.",
+        "2. Build an `n x n` board of zeros. Write the solver and return the total count of valid board layouts.",
+        "",
+        "Sample Output:",
+        "count_nqueens(4) â†’ 2"
+      ],
       "targetTime": "O(n!)",
       "targetSpace": "O(n^2)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "n_queens(4)", "expected": "2", "isHidden": false },
-        { "call": "n_queens(5)", "expected": "10", "isHidden": false },
-        { "call": "n_queens(1)", "expected": "1", "isHidden": false },
-        { "call": "n_queens(2)", "expected": "0", "isHidden": false },
-        { "call": "n_queens(-5)", "expected": "0", "isHidden": false }
+        { "call": "count_nqueens(4)", "expected": "2", "isHidden": false },
+        { "call": "count_nqueens(1)", "expected": "1", "isHidden": false },
+        { "call": "count_nqueens(2)", "expected": "0", "isHidden": false },
+        { "call": "count_nqueens(3)", "expected": "0", "isHidden": false },
+        { "call": "count_nqueens(5)", "expected": "10", "isHidden": false }
       ]
     }
   ],
   "lesson_4": [
     {
       "id": "m6_l4_a1",
-      "title": "Move Directions",
-      "task": "A grid traversal system converts directional commands into coordinate movement vectors.\n\nTask Requirement:\nCreate a function move(direction) that converts movement commands into coordinate deltas.\n\nRules:\n- 'U' â†’ (0,-1)\n- 'D' â†’ (0,1)\n- 'L' â†’ (-1,0)\n- 'R' â†’ (1,0)\n- Invalid directions return 'invalid'\n\nSample Output:\nmove('U') â†’ (0,-1)",
+      "title": "Maze Boundary & Wall Check",
+      "task": [
+        "Before moving your robot in a maze, you must verify the new step is safe. It cannot be outside the grid edges, and it cannot be a wall (represented by 0).",
+        "",
+        "Algorithm Steps:",
+        "1. You are given a `maze` (a 2D list), and the target `row` and `col`.",
+        "2. Check if `row` is less than 0 or greater than/equal to the maze length.",
+        "3. Check if `col` is less than 0 or greater than/equal to the maze width.",
+        "4. Check if `maze[row][col] == 0` (it's a wall).",
+        "5. If any of these are true, return `False`. Otherwise, return `True`.",
+        "",
+        "Instructions:",
+        "1. Create `is_valid_move(maze, row, col)`.",
+        "2. Write the boundary and wall conditional checks.",
+        "",
+        "Sample Output:",
+        "is_valid_move([[1, 0], [1, 1]], 0, 1) â†’ False"
+      ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "move('U')", "expected": "(0,-1)", "isHidden": false },
-        { "call": "move('D')", "expected": "(0,1)", "isHidden": false },
-        { "call": "move('L')", "expected": "(-1,0)", "isHidden": false },
-        { "call": "move('R')", "expected": "(1,0)", "isHidden": false },
-        { "call": "move('X')", "expected": "invalid", "isHidden": false }
+        { "call": "is_valid_move([[1, 0], [1, 1]], 0, 1)", "expected": "False", "isHidden": false },
+        { "call": "is_valid_move([[1, 0], [1, 1]], 1, 1)", "expected": "True", "isHidden": false },
+        { "call": "is_valid_move([[1]], -1, 0)", "expected": "False", "isHidden": false },
+        { "call": "is_valid_move([[1, 1], [1, 1]], 2, 0)", "expected": "False", "isHidden": false },
+        { "call": "is_valid_move([[1, 1], [1, 1]], 0, 0)", "expected": "True", "isHidden": false }
       ]
     },
     {
       "id": "m6_l4_a2",
-      "title": "Boundary Check",
-      "task": "A maze navigation system validates whether coordinates remain inside the playable grid boundaries.\n\nTask Requirement:\nCreate a function boundary(x, y, n) that checks if a coordinate lies inside an N x N grid.\n\nRules:\n- Coordinates must remain within valid bounds\n- Return true only for valid positions\n- Out-of-range coordinates return false\n\nSample Output:\nboundary(2,2,5) â†’ true",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "title": "Recursive Maze Solver",
+      "task": [
+        "To solve a maze, move to a valid spot, mark it as 'visited', try all 4 directions, and if you hit a dead end, un-mark the spot and turn around (backtrack).",
+        "",
+        "Algorithm Steps:",
+        "1. Create `solve_maze(maze, row, col, visited)`.",
+        "2. Base Case: If `row` and `col` reach the bottom-right corner, return `True`.",
+        "3. Check if the move is valid and not already in `visited`.",
+        "4. If valid, mark `visited[row][col] = True`.",
+        "5. Recursively call the function for Up, Down, Left, and Right. If any return `True`, return `True`.",
+        "6. If all fail, rollback: `visited[row][col] = False` and return `False`.",
+        "",
+        "Instructions:",
+        "1. Write the recursive pathfinder. Return `True` if a path to the end exists.",
+        "",
+        "Sample Output:",
+        "solve_maze([[1, 0], [1, 1]], 0, 0, [[False, False], [False, False]]) â†’ True"
+      ],
+      "targetTime": "O(4^n)",
+      "targetSpace": "O(n^2)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "boundary(0,0,5)", "expected": "false", "isHidden": false },
-        { "call": "boundary(2,2,5)", "expected": "true", "isHidden": false },
-        { "call": "boundary(-1,0,5)", "expected": "false", "isHidden": false },
-        { "call": "boundary(0,-1,5)", "expected": "false", "isHidden": false },
-        { "call": "boundary(6,6,5)", "expected": "false", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l4_a3",
-      "title": "Wall Check",
-      "task": "A pathfinding engine evaluates whether a grid cell represents a blocked obstacle during traversal.\n\nTask Requirement:\nCreate a function wall(value) that checks whether the given cell is a wall.\n\nRules:\n- Value 1 represents a wall\n- All other values represent open space\n- Return true only for walls\n\nSample Output:\nwall(1) â†’ true",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "wall(1)", "expected": "true", "isHidden": false },
-        { "call": "wall(0)", "expected": "false", "isHidden": false },
-        { "call": "wall(2)", "expected": "false", "isHidden": false },
-        { "call": "wall(-1)", "expected": "false", "isHidden": false },
-        { "call": "wall(None)", "expected": "false", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l4_a4",
-      "title": "Path Tracking",
-      "task": "A recursive traversal engine records visited nodes in the exact order they were explored.\n\nTask Requirement:\nCreate a function track_path(arr) that returns the sequence of visited nodes.\n\nRules:\n- Preserve visitation order exactly\n- Do not modify values\n- Empty arrays return []\n\nSample Output:\ntrack_path([1,2,3]) â†’ [1,2,3]",
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "track_path([1,2,3])", "expected": "[1,2,3]", "isHidden": false },
-        { "call": "track_path([1])", "expected": "[1]", "isHidden": false },
-        { "call": "track_path([])", "expected": "[]", "isHidden": false },
-        { "call": "track_path([1,None])", "expected": "[1,None]", "isHidden": false },
-        { "call": "track_path([None])", "expected": "[None]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_l4_a5",
-      "title": "Subset Sum Solver",
-      "task": "A recursive subset search engine attempts to find a combination of values whose total exactly matches a target sum.\n\nTask Requirement:\nCreate a function subset_sum(arr, target) that returns one valid subset whose sum equals the target.\n\nRules:\n- Return any one valid subset\n- If no valid subset exists, return []\n- Preserve deterministic recursive search ordering\n\nSample Output:\nsubset_sum([3,34,4,12,5,2],9) â†’ [4,5]",
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "randomizeTestCases": true,
-      "testCasesPool": [
-        { "call": "subset_sum([3,34,4,12,5,2],9)", "expected": "[4,5]", "isHidden": false },
-        { "call": "subset_sum([1,2,3],3)", "expected": "[3]", "isHidden": false },
-        { "call": "subset_sum([1,2,3],10)", "expected": "[]", "isHidden": false },
-        { "call": "subset_sum([],5)", "expected": "[]", "isHidden": false },
-        { "call": "subset_sum([10,20,30],0)", "expected": "[]", "isHidden": false }
+        { "call": "solve_maze([[1, 0], [1, 1]], 0, 0, [[False, False], [False, False]])", "expected": "True", "isHidden": false },
+        { "call": "solve_maze([[1, 0], [0, 1]], 0, 0, [[False, False], [False, False]])", "expected": "False", "isHidden": false },
+        { "call": "solve_maze([[1, 1, 1], [0, 0, 1], [1, 1, 1]], 0, 0, [[False, False, False], [False, False, False], [False, False, False]])", "expected": "True", "isHidden": false },
+        { "call": "solve_maze([[1]], 0, 0, [[False]])", "expected": "True", "isHidden": false },
+        { "call": "solve_maze([[0, 0], [0, 0]], 0, 0, [[False, False], [False, False]])", "expected": "False", "isHidden": false }
       ]
     }
   ],
   "optimizations": [
     {
       "id": "m6_opt_1",
-      "title": "Optimize Knapsack (Dynamic Programming)",
-      "task": "The current Knapsack solver uses pure recursion exploring all subsets (O(2â¿)).\n\n**Task Requirement:**\nOptimize it using a DP table or memoization to achieve O(n * W) time.",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n^2)",
+      "title": "Optimization: In-Place Permutations",
+      "task": [
+        "The starter `get_permutations` code works, but it creates a brand new `path` list and uses an extra `used` tracking list. This wastes memory and forces the Space Complexity to O(n).",
+        "",
+        "Task Requirement:",
+        "Delete the extra lists. Solve the problem by swapping the numbers directly inside the original array to save memory, dropping the Space limit to an optimal O(1).",
+        "",
+        "Optimization Guidelines:",
+        "1. Check the analyzer. The O(n) Space warning comes from creating and copying lists.",
+        "2. Remove the `path.append()` and `path.pop()` code entirely.",
+        "3. Write a loop that swaps the element at `arr[start]` with `arr[i]`.",
+        "4. Call the recursive function for `start + 1`.",
+        "5. Swap them back immediately after the function call (this is the rollback!).",
+        "6. Watch the analyzer change the Space Complexity to a tiny O(1)."
+      ],
+      "targetTime": "O(n!)",
+      "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m6-6.1.json",
       "testCasesPool": [
-        { "call": "knapsack([10, 20, 30], [60, 100, 120], 50, 3)", "expected": "220", "isHidden": false },
-        { "call": "knapsack([1, 2, 3], [10, 15, 40], 6, 3)", "expected": "65", "isHidden": false },
-        { "call": "knapsack([5, 5, 5], [10, 20, 30], 4, 3)", "expected": "0", "isHidden": false },
-        { "call": "knapsack([10], [50], 10, 1)", "expected": "50", "isHidden": false },
-        { "call": "knapsack([], [], 50, 0)", "expected": "0", "isHidden": false }
+        { "call": "len(get_permutations([1, 2, 3]))", "expected": "6", "isHidden": false },
+        { "call": "len(get_permutations([1, 2]))", "expected": "2", "isHidden": false },
+        { "call": "len(get_permutations([5]))", "expected": "1", "isHidden": false },
+        { "call": "len(get_permutations([]))", "expected": "1", "isHidden": false },
+        { "call": "len(get_permutations([1, 2, 3, 4]))", "expected": "24", "isHidden": false }
       ]
     },
     {
       "id": "m6_opt_2",
-      "title": "Optimize Coin Change",
-      "task": "The base algorithm uses greedy selection, which fails on certain coin denominations, falling back to an exponential backtracking approach.\n\n**Task Requirement:**\nImplement a Dynamic Programming bottom-up approach to calculate the minimum coins in O(amount * n) time.",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n)",
+      "title": "Optimization: Fix the Memory Crash (Maze)",
+      "task": [
+        "The starter `solve_maze` code works, but it creates a brand new copy of the 2D `visited` grid on every single step using `visited.copy()`. This hogs massive amounts of memory and creates an O(nÂ²) space bottleneck.",
+        "",
+        "Task Requirement:",
+        "Pass one single `visited` grid and use Rollback to undo your steps, dropping the Space Complexity back to O(1) auxiliary space.",
+        "",
+        "Optimization Guidelines:",
+        "1. Delete the `new_visited = visited.copy()` line.",
+        "2. Mark the single grid directly: `visited[r][c] = True`.",
+        "3. Call the recursive function to explore.",
+        "4. If it fails, add the rollback step: `visited[r][c] = False` so the cell can be used by other paths.",
+        "5. Check the analyzer to ensure the Space drops to O(1)."
+      ],
+      "targetTime": "O(4^n)",
+      "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m6-6.2.json",
       "testCasesPool": [
-        { "call": "coin_change([1, 2, 5], 11)", "expected": "3", "isHidden": false },
-        { "call": "coin_change([2], 3)", "expected": "-1", "isHidden": false },
-        { "call": "coin_change([1], 0)", "expected": "0", "isHidden": false },
-        { "call": "coin_change([1, 4, 5], 8)", "expected": "2", "isHidden": false },
-        { "call": "coin_change([3, 5], 7)", "expected": "-1", "isHidden": false }
+        { "call": "solve_maze([[1, 0], [1, 1]], 0, 0, [[False, False], [False, False]])", "expected": "True", "isHidden": false },
+        { "call": "solve_maze([[1, 0], [0, 1]], 0, 0, [[False, False], [False, False]])", "expected": "False", "isHidden": false },
+        { "call": "solve_maze([[1, 1], [1, 1]], 0, 0, [[False, False], [False, False]])", "expected": "True", "isHidden": false },
+        { "call": "solve_maze([[1]], 0, 0, [[False]])", "expected": "True", "isHidden": false },
+        { "call": "solve_maze([[0, 0], [0, 0]], 0, 0, [[False, False], [False, False]])", "expected": "False", "isHidden": false }
       ]
     },
     {
       "id": "m6_opt_3",
-      "title": "Longest Common Subsequence",
-      "task": "The current string comparison generates all sub-sequences for both strings before comparing them (O(2â¿)).\n\n**Task Requirement:**\nOptimize the algorithm using a 2D Dynamic Programming matrix to find the LCS in O(n*m) time.",
-      "targetTime": "O(n^2)",
-      "targetSpace": "O(n^2)",
+      "title": "Optimization: Stop the Exponential Crash",
+      "task": [
+        "The starter `subset_sum` checks if any combination of numbers adds up to a target. It uses pure backtracking, which tests every possible combination (O(2â¿)) and crashes on large lists.",
+        "",
+        "Task Requirement:",
+        "Add a dictionary cache (Memoization) so the computer remembers paths it already checked, speeding the code up to O(n).",
+        "",
+        "Optimization Guidelines:",
+        "1. Add a `cache` dictionary parameter to the function.",
+        "2. Check if the current state (a tuple like `(index, target)`) is already saved in the cache. If it is, return it.",
+        "3. Whenever you find an answer (True or False), save it into the cache before returning it.",
+        "4. Watch the analyzer change the Time Complexity graph from a steep Exponential curve down to O(n)."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m6-6.3.json",
       "testCasesPool": [
-        { "call": "lcs('abcde', 'ace')", "expected": "3", "isHidden": false },
-        { "call": "lcs('abc', 'def')", "expected": "0", "isHidden": false },
-        { "call": "lcs('abc', 'abc')", "expected": "3", "isHidden": false },
-        { "call": "lcs('a', 'a')", "expected": "1", "isHidden": false },
-        { "call": "lcs('', 'abc')", "expected": "0", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m6_opt_4",
-      "title": "Climbing Stairs Optimization",
-      "task": "The algorithm computes the number of ways to climb stairs recursively, recalculating the same steps continuously (O(2â¿)).\n\n**Task Requirement:**\nOptimize it to O(n) time using Dynamic Programming (or variable caching) to remember the previous two steps.",
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m6-6.4.json",
-      "testCasesPool": [
-        { "call": "climb_stairs(2)", "expected": "2", "isHidden": false },
-        { "call": "climb_stairs(3)", "expected": "3", "isHidden": false },
-        { "call": "climb_stairs(1)", "expected": "1", "isHidden": false },
-        { "call": "climb_stairs(5)", "expected": "8", "isHidden": false },
-        { "call": "climb_stairs(10)", "expected": "89", "isHidden": false }
+        { "call": "subset_sum([3, 34, 4, 12, 5, 2], 9, 0, {})", "expected": "True", "isHidden": false },
+        { "call": "subset_sum([1, 2, 3], 10, 0, {})", "expected": "False", "isHidden": false },
+        { "call": "subset_sum([10, 20, 30], 50, 0, {})", "expected": "True", "isHidden": false },
+        { "call": "subset_sum([5, 5, 5], 15, 0, {})", "expected": "True", "isHidden": false },
+        { "call": "subset_sum([], 5, 0, {})", "expected": "False", "isHidden": false }
       ]
     }
   ]
