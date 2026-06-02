@@ -1,26 +1,23 @@
 // frontend/src/components/LogoutConfirmModal.jsx
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
-import "../styles/LogoutConfirmModal.css"; // Import the clean CSS
+import "../styles/LogoutConfirmModal.css";
 
 export default function LogoutConfirmModal({ isOpen, onClose, onLogoutClick }) {
-  const navigate = useNavigate();
-
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    onClose();
-    
     if (onLogoutClick) {
       onLogoutClick();
     } else {
-      localStorage.removeItem("user");
+      // Fallback if no specific logout function is passed
+      localStorage.clear();
       sessionStorage.clear();
-      navigate("/signin", { replace: true }); // Secure redirect
+      
+      // HARD REDIRECT to landing page immediately
+      window.location.replace("/");
     }
   };
 
-  // createPortal forces the modal to render outside the parent's HTML structure
   return createPortal(
     <div className="logout-modal-overlay">
       <div className="logout-modal-content">

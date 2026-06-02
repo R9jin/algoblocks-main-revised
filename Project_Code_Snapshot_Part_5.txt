@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 5 OF 5) ---
 
---- TIMESTAMP: 2026-06-01 21:20:33 ---
+--- TIMESTAMP: 2026-06-02 11:52:33 ---
 
 
 --- FILE: frontend/src/pages/ProfilePage.jsx ---
@@ -321,8 +321,15 @@ export default function Projects() {
       // --- 1. PULL CLOUD DATA FIRST ---
       if (navigator.onLine) {
         try {
-          // FIXED: Pass explicit userId parameter so backend responds properly
-          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`);
+          // FIX: Grab the token and prepare headers
+          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          };
+
+          // FIX: Pass the headers object into the fetch request
+          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
           if (res.ok) {
             const data = await res.json();
             
@@ -334,7 +341,6 @@ export default function Projects() {
             }
 
             for (const cp of cloudProjects) {
-              // FIXED: CHECK BOTH USER ID TYPES
               if (cp.owner_id === user.email || cp.userId === user.email) {
                 await projectsDB.setItem(cp._id, { ...cp, synced: true });
               }
@@ -348,7 +354,6 @@ export default function Projects() {
       // --- 2. LOAD FROM LOCAL DB ---
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
-        // FIXED: CHECK BOTH USER ID TYPES
         if (value.owner_id === user.email || value.userId === user.email) {
           loadedProjects.push(value);
         }
@@ -447,7 +452,6 @@ export default function Projects() {
 
 --- FILE: frontend/src/pages/SignIn.jsx ---
 
-// frontend/src/pages/SignIn.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
 import { FiLock, FiMail } from "react-icons/fi";
@@ -542,15 +546,21 @@ export default function SignIn() {
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
+      // FIX: Wipe BOTH key variations from the inactive storage to prevent leakage
       inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
       inactiveStorage.removeItem("user");
 
-      // FIXED: Adjusted to map the restored backend top-level dictionary
+      // FIX: Save BOTH key variations to active storage so ALL pages pass auth checks
       activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {}
+        progress: data.progress || {},
+        assessments: data.assessments || {}
       })); 
 
       await syncUserCloudData(data.email, data.token); 
@@ -573,14 +583,18 @@ export default function SignIn() {
         syncQueueDB.clear()
       ]); 
 
+      // FIX: Wipe ALL token keys
       localStorage.removeItem("authToken");
       sessionStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
 
       sessionStorage.setItem("user", JSON.stringify({
         email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
         isGuest: true,
-        progress: {}
+        progress: {},
+        assessments: {}
       })); 
 
       navigate("/dashboard"); 
@@ -611,15 +625,21 @@ export default function SignIn() {
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
+      // FIX: Wipe BOTH key variations from inactive storage
       inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
       inactiveStorage.removeItem("user");
 
-      // FIXED: Adjusted to map the restored backend top-level dictionary
+      // FIX: Save BOTH key variations so ALL pages pass auth checks
       activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
-        progress: data.progress || {}
+        progress: data.progress || {},
+        assessments: data.assessments || {}
       }));
 
       await syncUserCloudData(data.email, data.token);
@@ -942,20 +962,23 @@ export default function UserHomePage() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // Load the user from the database session on mount
   useEffect(() => {
-    // FIX: Check both storages safely
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser || "{}"));
     } else {
-      navigate("/signin"); // Protect the route
+      navigate("/"); // Protect the route
     }
   }, [navigate]);
 
   const confirmLogout = () => {
-    setShowLogoutModal(false);
-    navigate("/home");
+    // 1. Nuke all stored auth data completely
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 2. HARD REDIRECT FIRST. DO NOT UPDATE REACT STATE (do not call setShowLogoutModal(false))
+    // This prevents protected routes from intercepting the transition.
+    window.location.replace("/");
   };
 
   if (!user) return null;
@@ -964,7 +987,6 @@ export default function UserHomePage() {
     <div className="landing-container user-homepage">
       <UserHeader user={user} onLogoutClick={() => setShowLogoutModal(true)} />
       <main className="landing-main">
-        {/* Hero Section */}
         <section className="hero home-hero">
           <div className="home-hero-copy">
             <p className="welcome-text">Welcome Back, {user.name}!</p>
@@ -1004,7 +1026,6 @@ export default function UserHomePage() {
           </div>
         </section>
 
-        {/* Feature Cards Section */}
         <section className="feature-cards">
           <h2>Your Learning Hub</h2>
           <p className="section-subtitle">
@@ -1044,7 +1065,6 @@ export default function UserHomePage() {
           </div>
         </section>
 
-        {/* Everything You Need Section */}
         <section className="features-list">
           <div className="features-content">
             <h2>Everything You Need, in One Place</h2>
@@ -1071,7 +1091,7 @@ export default function UserHomePage() {
             <p>Are you sure you want to logout?</p>
             <div className="logout-modal-actions">
               <button className="logout-btn" onClick={confirmLogout}>Confirm</button>
-              <button className="logout-btn" onClick={() => setShowLogoutModal(false)}>Cancel</button>
+              <button className="logout-btn logout-btn-cancel" onClick={() => setShowLogoutModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
@@ -8070,7 +8090,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
     : "http://localhost:8000/api";
 
 const getAuthHeaders = () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token");
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
     if (!token) return { "Content-Type": "application/json" };
     return {
         "Content-Type": "application/json",
@@ -8234,7 +8254,8 @@ export const syncDownFromServer = async () => {
         }
 
         // 3. Submissions
-        const subRes = await fetch(`${API_BASE_URL}/get-submissions`, { headers });
+        // FIX: Changed endpoint to /get-all-submissions to match backend router
+        const subRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
         if (subRes.ok) {
             const data = await subRes.json();
             const submissionsList = data.submissions || data;

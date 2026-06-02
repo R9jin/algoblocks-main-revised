@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 4 OF 5) ---
 
---- TIMESTAMP: 2026-06-01 21:20:33 ---
+--- TIMESTAMP: 2026-06-02 11:52:33 ---
 
 
 --- FILE: frontend/public/templates/search/exponential_search.json ---
@@ -7705,7 +7705,7 @@
 
 // frontend/src/App.jsx
 import { lazy, Suspense, useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import { PyodideProvider } from "./context/PyodideContext";
 import Dashboard from "./pages/Dashboard";
@@ -7718,34 +7718,51 @@ import SignUp from "./pages/SignUp";
 import UserHomePage from "./pages/UserHomePage";
 import { startBackgroundSync } from "./utils/syncManager";
 
+const MainApp = lazy(() => import("./pages/MainApp"));
+const ActivityApp = lazy(() => import("./pages/ActivityApp"));
+const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const LessonViewer = lazy(() => import("./pages/LessonViewer"));
+
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!user) {
-    return <Navigate to="/signin" replace />;
+    // FIXED: Let PublicRoute handle the landing page, kills the /signin race condition
+    return <Navigate to="/" replace />; 
+  }
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 };
 
 function App() {
-  useEffect(() => {
-    startBackgroundSync();
-  }, []);
+  const location = useLocation();
 
-  const MainApp = lazy(() => import("./pages/MainApp"));
-  const ActivityApp = lazy(() => import("./pages/ActivityApp"));
-  const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
-  const ProfilePage = lazy(() => import("./pages/ProfilePage"));
-  const LessonViewer = lazy(() => import("./pages/LessonViewer"));
+  useEffect(() => {
+    const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
+    
+    if (user && !isAuthPage) {
+      startBackgroundSync();
+    }
+  }, [location.pathname]);
 
   return (
     <PyodideProvider>
       <OfflineIndicator />
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+          <Route path="/signin" element={<PublicRoute><SignIn /></PublicRoute>} />
+          <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />
           <Route path="/learning-path/:moduleId/:lessonId" element={<ProtectedRoute><LessonViewer /></ProtectedRoute>} />
@@ -9874,6 +9891,7 @@ export default ConfirmModal;
 
 --- FILE: frontend/src/components/DashboardHeader.jsx ---
 
+// frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuFolder, LuLayoutDashboard, LuLogOut, LuUser } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
@@ -9891,7 +9909,6 @@ export default function DashboardHeader({
   const navigate = useNavigate();
 
   useEffect(() => {
-    // FIX: Check both storages safely
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser || "{}"));
@@ -9923,10 +9940,11 @@ export default function DashboardHeader({
   }, []);
 
   const handleLogout = () => {
-    setOpen(false);
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("user");
-    navigate("/signin", { replace: true });
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // HARD REDIRECT to landing page
+    window.location.replace("/");
   };
 
   return (
@@ -10019,41 +10037,50 @@ export default function Footer() {
 
 --- FILE: frontend/src/components/Header.jsx ---
 
-// frontend\src\components\Header.jsx
-import { useEffect, useState } from "react";
-import { IoArrowForward } from 'react-icons/io5';
+// frontend/src/components/Header.jsx
 import { Link } from "react-router-dom";
 
 export default function Header() {
-  const [user, setUser] = useState(null);
 
-  // Check if a user is logged in from the database session
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+  const handleGuestLogin = () => {
+    // Generate a random guest identity
+    const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
+    const guestUser = {
+      _id: guestId,
+      name: "Guest Explorer",
+      email: `${guestId}@guest.local`,
+      isGuest: true, // Flag to identify guest users across the app
+      progress: {},
+      assessments: {}
+    };
+    
+    const guestToken = `guest_token_${Date.now()}`;
+    
+    // Store in localStorage to authenticate the session
+    localStorage.setItem("user", JSON.stringify(guestUser));
+    localStorage.setItem("token", guestToken);
+    localStorage.setItem("authToken", guestToken);
+    
+    // Hard redirect to immediately bypass any lingering React state
+    window.location.href = "/dashboard";
+  };
 
   return (
     <nav className="landing-nav">
       <div className="logo-container">
-        <img src="./assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
-        <h1 className="logo-text">ALGOBLOCKS</h1>
+        <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
+        <h1 className="logo-text" style={{ color: "#EBE4FF" }}>ALGOBLOCKS</h1>
       </div>
 
       <div className="nav-links">
-        {user ? (
-          <Link to={user ? "/dashboard" : "/signup"} className="btn-primary">
-            {user ? "Continue Learning" : "Start Now"}
-            <IoArrowForward className="btn-icon-inline" aria-hidden="true" />
-          </Link>
-        ) : (
-          <>
-            <Link to="/signin" className="nav-btn signin">Sign In</Link>
-            <Link to="/signup" className="nav-btn signup">Start Learning</Link>
-          </>
-        )}
+        <Link to="/signin" className="nav-btn signin">Sign In</Link>
+        <button 
+          onClick={handleGuestLogin} 
+          className="nav-btn signup" 
+          style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
+        >
+          Try as Guest
+        </button>
       </div>
     </nav>
   );
@@ -10063,27 +10090,24 @@ export default function Header() {
 
 // frontend/src/components/LogoutConfirmModal.jsx
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
-import "../styles/LogoutConfirmModal.css"; // Import the clean CSS
+import "../styles/LogoutConfirmModal.css";
 
 export default function LogoutConfirmModal({ isOpen, onClose, onLogoutClick }) {
-  const navigate = useNavigate();
-
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    onClose();
-    
     if (onLogoutClick) {
       onLogoutClick();
     } else {
-      localStorage.removeItem("user");
+      // Fallback if no specific logout function is passed
+      localStorage.clear();
       sessionStorage.clear();
-      navigate("/signin", { replace: true }); // Secure redirect
+      
+      // HARD REDIRECT to landing page immediately
+      window.location.replace("/");
     }
   };
 
-  // createPortal forces the modal to render outside the parent's HTML structure
   return createPortal(
     <div className="logout-modal-overlay">
       <div className="logout-modal-content">
@@ -10551,69 +10575,34 @@ export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(
 --- FILE: frontend/src/components/UserHeader.jsx ---
 
 // frontend/src/components/UserHeader.jsx
-
 import { useEffect, useMemo, useRef, useState } from "react";
-
 import {
   LuFolder,
   LuLayoutDashboard,
   LuLogOut,
   LuUser
 } from "react-icons/lu";
-
 import { useNavigate } from "react-router-dom";
-
 import "../styles/UserHeader.css";
-
 import { startBackgroundSync } from "../utils/syncManager.js";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 
 export default function UserHeader({ user }) {
-
-  // ================================
-  // STATE
-  // ================================
-
   const [open, setOpen] = useState(false);
-
-  // CHANGE: Modal visibility handled ONLY here
   const [showLogout, setShowLogout] = useState(false);
-
   const menuRef = useRef(null);
-
   const navigate = useNavigate();
 
-  // ================================
-  // USER INITIALS
-  // ================================
-
   const initials = useMemo(() => {
-
-    const parts = (user?.name || "User")
-      .trim()
-      .split(/\s+/);
-
+    const parts = (user?.name || "User").trim().split(/\s+/);
     const a = parts[0]?.[0] || "U";
-
-    const b =
-      parts.length > 1
-        ? parts[parts.length - 1][0]
-        : "";
-
+    const b = parts.length > 1 ? parts[parts.length - 1][0] : "";
     return (a + b).toUpperCase();
-
   }, [user?.name]);
 
-  // ================================
-  // CLOSE MENU EVENTS
-  // ================================
-
   useEffect(() => {
-
     const onDocClick = (e) => {
-
       if (!menuRef.current) return;
-
       if (!menuRef.current.contains(e.target)) {
         setOpen(false);
       }
@@ -10625,88 +10614,45 @@ export default function UserHeader({ user }) {
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      onDocClick
-    );
-
-    document.addEventListener(
-      "keydown",
-      onEsc
-    );
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onEsc);
 
     return () => {
-
-      document.removeEventListener(
-        "mousedown",
-        onDocClick
-      );
-
-      document.removeEventListener(
-        "keydown",
-        onEsc
-      );
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onEsc);
     };
-
   }, []);
 
-  // ================================
-  // LOGOUT HANDLER
-  // ================================
-
-  // CHANGE: Single logout flow only with Background Sync Enforcer
-  const handleLogout = async () => {
-
-    // FORCE SYNC ON LOGOUT to push localforage data to MongoDB
+  const handleLogout = () => {
     if (navigator.onLine) {
-      await startBackgroundSync();
+      startBackgroundSync().catch(console.error);
     }
-
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("user");
-
-    navigate("/signin", {
-      replace: true,
-    });
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("/");
   };
 
   return (
     <>
       <nav className="landing-nav">
-
-        {/* ================================ */}
-        {/* LOGO */}
-        {/* ================================ */}
-
         <div
           className="logo-container"
           onClick={() => navigate("/")}
           style={{ cursor: "pointer" }}
         >
-
           <img
             src="/assets/algoblocks_logo.png"
             alt="AlgoBlocks Logo"
             className="logo-img"
           />
-
-          <h1 className="logo-text user-header-logo-text">
+          {/* Enforced light color for dark backgrounds */}
+          <h1 className="logo-text user-header-logo-text" style={{ color: "#EBE4FF" }}>
             ALGOBLOCKS
           </h1>
         </div>
 
-        {/* ================================ */}
-        {/* RIGHT NAV */}
-        {/* ================================ */}
-
         <div className="nav-links">
-
-          <div
-            className="user-menu"
-            ref={menuRef}
-          >
-
-            {/* AVATAR BUTTON */}
+          <div className="user-menu" ref={menuRef}>
             <button
               type="button"
               className="user-menu-btn"
@@ -10714,126 +10660,37 @@ export default function UserHeader({ user }) {
               aria-haspopup="menu"
               aria-expanded={open}
             >
-
-              <span
-                className="user-avatar"
-                aria-hidden="true"
-              >
+              <span className="user-avatar" aria-hidden="true">
                 {initials}
               </span>
-
             </button>
 
-            {/* ================================ */}
-            {/* DROPDOWN */}
-            {/* ================================ */}
-
             {open && (
-              <div
-                className="user-dropdown"
-                role="menu"
-              >
-
-                {/* USER INFO */}
+              <div className="user-dropdown" role="menu">
                 <div className="user-dropdown-head">
-
-                  <div
-                    className="dropdown-avatar"
-                    aria-hidden="true"
-                  >
+                  <div className="dropdown-avatar" aria-hidden="true">
                     {initials}
                   </div>
-
                   <div className="user-name">
                     {user?.name || "User"}
                   </div>
-
                   <div className="user-email">
                     {user?.email || ""}
                   </div>
                 </div>
 
-                {/* PROFILE */}
-                <button
-                  type="button"
-                  className="user-dd-item"
-                  onClick={() => {
-                    setOpen(false);
-                    navigate("/profile");
-                  }}
-                  role="menuitem"
-                >
-                  <LuUser size={18} aria-hidden="true" />
-                  {" "}My Profile
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/profile"); }} role="menuitem">
+                  <LuUser size={18} aria-hidden="true" /> My Profile
                 </button>
-
-                {/* DASHBOARD */}
-                <button
-                  type="button"
-                  className="user-dd-item"
-                  onClick={() => {
-
-                    setOpen(false);
-
-                    navigate("/dashboard");
-                  }}
-                  role="menuitem"
-                >
-
-                  <LuLayoutDashboard
-                    size={18}
-                    aria-hidden="true"
-                  />
-
-                  {" "}Go to Dashboard
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/dashboard"); }} role="menuitem">
+                  <LuLayoutDashboard size={18} aria-hidden="true" /> Go to Dashboard
                 </button>
-
-                {/* PROJECTS */}
-                <button
-                  type="button"
-                  className="user-dd-item"
-                  onClick={() => {
-
-                    setOpen(false);
-
-                    navigate("/projects");
-                  }}
-                  role="menuitem"
-                >
-
-                  <LuFolder
-                    size={18}
-                    aria-hidden="true"
-                  />
-
-                  {" "}Projects
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
+                  <LuFolder size={18} aria-hidden="true" /> Projects
                 </button>
-
                 <div className="user-dd-divider" />
-
-                {/* SIGN OUT */}
-                <button
-                  type="button"
-                  className="user-dd-item danger"
-                  onClick={(e) => {
-
-                    e.stopPropagation();
-
-                    setOpen(false);
-
-                    // CHANGE: ONLY opens modal
-                    setShowLogout(true);
-
-                  }}
-                  role="menuitem"
-                >
-
-                  <LuLogOut
-                    size={18}
-                    aria-hidden="true"
-                  />
-
-                  {" "}Sign Out
+                <button type="button" className="user-dd-item danger" onClick={(e) => { e.stopPropagation(); setOpen(false); setShowLogout(true); }} role="menuitem">
+                  <LuLogOut size={18} aria-hidden="true" /> Sign Out
                 </button>
               </div>
             )}
@@ -10841,20 +10698,7 @@ export default function UserHeader({ user }) {
         </div>
       </nav>
 
-      {/* ================================ */}
-      {/* LOGOUT MODAL */}
-      {/* ================================ */}
-
-      <LogoutConfirmModal
-        isOpen={showLogout}
-
-        onClose={() =>
-          setShowLogout(false)
-        }
-
-        // CHANGE: Single logout source
-        onLogoutClick={handleLogout}
-      />
+      <LogoutConfirmModal isOpen={showLogout} onClose={() => setShowLogout(false)} onLogoutClick={handleLogout} />
     </>
   );
 }
@@ -11532,7 +11376,7 @@ td {
 
 --- FILE: frontend/src/index.jsx ---
 
-/*frontend/src/index.jsx*/
+// frontend/src/index.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -11546,54 +11390,68 @@ import './index.css';
 const originalFetch = window.fetch;
 
 window.fetch = async (...args) => {
-    let url = "";
-    if (typeof args[0] === 'string') url = args[0];
-    else if (args[0] instanceof URL) url = args[0].toString();
-    else if (args[0] && typeof args[0] === 'object' && 'url' in args[0]) url = args[0].url;
+  let url = "";
+  if (typeof args[0] === 'string') url = args[0];
+  else if (args[0] instanceof URL) url = args[0].toString();
+  else if (args[0] && typeof args[0] === 'object' && 'url' in args[0]) url = args[0].url;
 
-    // 1. Intercept /api/run locally for Pyodide
-    if (url.includes('/api/run')) {
-        return new Response(JSON.stringify({ 
-            status: "success", message: "Execution handled by browser." 
-        }), { status: 200, headers: { 'Content-Type': 'application/json' }});
-    }
+  // 1. Intercept /api/run locally for Pyodide
+  if (url.includes('/api/run')) {
+    return new Response(JSON.stringify({ status: "success", message: "Execution handled by browser." }), { status: 200, headers: { 'Content-Type': 'application/json' }});
+  }
 
-    // 2. Inject Tokens
-    if (url.includes('/api')) {
-        let config = args[1] || {};
-        let newHeaders = new Headers(config.headers);
-        
-        if (!newHeaders.has('Content-Type')) newHeaders.set('Content-Type', 'application/json');
-        
-        const token = localStorage.getItem('token');
-        if (token) newHeaders.set('Authorization', `Bearer ${token}`);
-        
-        config.headers = newHeaders;
-        args[1] = config;
-    }
-    
-    try {
-        const response = await originalFetch.apply(window, args);
-        
-        // 3. Handle Expired Sessions
-        // ONLY trigger if the request was not a login/signup attempt
-        if (response.status === 401 && !url.includes('/login') && !url.includes('/signup') && !url.includes('/google-login')) {
-            console.warn("Global Fetch: 401 Unauthorized detected. Session expired.");
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            
-            // Only redirect if NOT already on an auth page
-            const currentPath = window.location.pathname;
-            if (currentPath !== '/' && !currentPath.includes('/signin') && !currentPath.includes('/signup')) {
-                window.location.href = '/signin';
-            }
+  // 2. Inject Tokens
+  if (url.includes('/api')) {
+    let config = args[1] || {};
+    let newHeaders = new Headers(config.headers);
+
+    if (!newHeaders.has('Content-Type')) newHeaders.set('Content-Type', 'application/json');
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('authToken');
+    if (token) newHeaders.set('Authorization', `Bearer ${token}`);
+
+    config.headers = newHeaders;
+    args[1] = config;
+  }
+
+  try {
+    const response = await originalFetch.apply(window, args);
+
+    // 3. Handle Expired Sessions
+    // ONLY trigger if the request was not a login/signup attempt
+    if (response.status === 401 && !url.includes('/login') && !url.includes('/signup') && !url.includes('/google-login')) {
+      
+      // FIX: Check if the user is a guest. If so, ignore the 401 kick-out.
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+      let isGuest = false;
+      try {
+        if (storedUser) isGuest = JSON.parse(storedUser).isGuest;
+      } catch (e) {}
+
+      if (!isGuest) {
+        console.warn("Global Fetch: 401 Unauthorized detected. Session expired.");
+
+        // Wipe everything completely
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // Only redirect if NOT already on an auth page
+        const currentPath = window.location.pathname;
+
+        if (currentPath !== '/' && !currentPath.includes('/signin') && !currentPath.includes('/signup')) {
+          // Go straight to landing page
+          window.location.href = '/';
         }
-        
-        return response;
-    } catch (error) {
-        console.error("Global Fetch Error:", error);
-        throw error;
+      } else {
+        console.warn("Guest attempted to access protected backend resource. 401 Ignored.");
+      }
     }
+
+    return response;
+  } catch (error) {
+    console.error("Global Fetch Error:", error);
+    throw error;
+  }
 };
 
 registerSW({ immediate: true });
@@ -11614,38 +11472,65 @@ import DOMPurify from "dompurify";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
-
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
 import ComplexityGraph from "../components/ComplexityGraph.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
-
+import { usePyodide } from "../context/PyodideContext.jsx";
+import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
 
-import { usePyodide } from "../context/PyodideContext.jsx";
-import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
-
 const handleEditorWillMount = (monaco) => {
   monaco.editor.defineTheme("algoblocks-purple", {
-    base: "vs-dark", inherit: true, rules: [],
+    base: "vs-dark",
+    inherit: true,
+    rules: [],
     colors: {
-      "editor.background": "#1C1236", "editor.foreground": "#EBE4FF",
-      "editorLineNumber.foreground": "#6C5CE7", "editor.lineHighlightBackground": "#2D234A",
-      "editorCursor.foreground": "#FFFFFF", "editor.selectionBackground": "#6C5CE755",
+      "editor.background": "#1C1236",
+      "editor.foreground": "#EBE4FF",
+      "editorLineNumber.foreground": "#6C5CE7",
+      "editor.lineHighlightBackground": "#2D234A",
+      "editorCursor.foreground": "#FFFFFF",
+      "editor.selectionBackground": "#6C5CE755",
       "editor.inactiveSelectionBackground": "#6C5CE733",
     },
   });
 };
 
 const renderFormattedTask = (text) => {
-  if (!text || typeof text !== "string") return null;
+  if (!text) return null;
+
+  // FIX: Seamlessly handle the Array-based Training Wheels structure or the older String structure
+  if (Array.isArray(text)) {
+    return (
+      <div className="activity-task-description">
+        {text.map((line, idx) => {
+          const formattedLine = line
+            .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #26004a;">$1</strong>')
+            .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>');
+            
+          return (
+            <p 
+              key={idx} 
+              style={{ minHeight: line === "" ? "1rem" : "auto", margin: "4px 0", color: '#1e293b', fontSize: '0.9rem', lineHeight: '1.6' }} 
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formattedLine) }} 
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (typeof text !== "string") return null;
+
   const formattedHtml = text
     .replace(/\n/g, "<br/>")
     .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #26004a;">$1</strong>')
     .replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>');
+
   return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formattedHtml) }} />;
 };
 
@@ -11655,39 +11540,38 @@ const getComplexityColor = (complexity) => {
   if (comp.includes("log n") && !comp.includes("n log")) return "#3498db";
   if (comp.includes("o(n)") && !comp.includes("log")) return "#f1c40f";
   if (comp.includes("n log n")) return "#e67e22";
-  if (comp.includes("n^2") || comp.includes("nÂ²")) return "#e74c3c";
-  if (comp.includes("2^n") || comp.includes("2â¿") || comp.includes("n!")) return "#9b59b6";
+  if (comp.includes("o(v") || comp.includes("o(e")) return "#d35400";
+  if (comp.includes("o(n^2)") || comp.includes("o(nÃ‚Â²)") || comp.includes("o(n*m)")) return "#e74c3c";
+  if (comp.includes("o(n^3)") || comp.includes("o(nÃ‚Â³)")) return "#c0392b";
+  if (comp.includes("2^n") || comp.includes("n!")) return "#8e44ad";
   return "#95a5a6";
 };
 
 const getComplexityWeight = (complexity) => {
-  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
-  if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
-  if (comp.includes("2^n") || comp.includes("2â¿") || comp.includes("t(n-1)+t(n-2)")) return 8;
-  if (comp.includes("n^3") || comp.includes("nÂ³")) return 7;
-  if (comp.includes("n^2") || comp.includes("nÂ²") || comp.includes("t(n-1)+o(n)")) return 6;
-  if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 5;
-  if (comp.includes("v+e")) return 4.5;
-  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;
-  if (comp.includes("âˆšn") || comp.includes("sqrt")) return 3;
-  if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
-  if (comp.includes("o(1)")) return 1;
+  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+  if (comp.includes("o(1)") || comp === "1") return 1;
+  if (comp.includes("n^2") || comp.includes("nÃ‚Â²") || comp.includes("n2")) return 5;
+  if (comp.includes("n^3") || comp.includes("nÃ‚Â³") || comp.includes("n3")) return 6;
+  if (comp.includes("2^n") || comp.includes("2Ã¢ Â¿") || comp.includes("2n")) return 7;
+  if (comp.includes("n!")) return 8;
+  if (comp.includes("nlogn")) return 4;
+  if (comp.includes("logn")) return 2;
+  if (comp.includes("o(n)") || comp === "n") return 3;
   return 0;
 };
 
-const formatExplanation = (text, isBottleneck, isLocalTab) => {
-  if (!text) return null;
-  const sections = text.split(/\n\n+/);
+const formatExplanation = (text, isBottleneck, isLocal) => {
+  if (!text) return "No explanation available.";
+  const sections = text.split(/(TIME BOTTLENECK:|SPACE BOTTLENECK:|ALGORITHM MASTERY:|Runtime Observation:)/g);
   return sections.map((sec, idx) => {
     const trimmedSec = sec.trim();
-    if (!trimmedSec) return null;
-    if (trimmedSec.startsWith("Architectural Insights:")) {
-      const lines = trimmedSec.split("\n").slice(1);
+    if (trimmedSec === "TIME BOTTLENECK:" || trimmedSec === "SPACE BOTTLENECK:" || trimmedSec === "ALGORITHM MASTERY:" || trimmedSec === "Runtime Observation:") return null;
+    if (trimmedSec.startsWith("-")) {
+      const items = trimmedSec.split("\n").map(i => i.replace(/^- /, ""));
       return (
-        <div key={idx} style={{ marginTop: '12px', marginBottom: '12px', padding: '10px 14px', backgroundColor: 'rgba(52, 152, 219, 0.08)', borderLeft: '4px solid #3498db', borderRadius: '0 6px 6px 0' }}>
-          <strong style={{ display: 'block', color: '#2980b9', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Architectural Insights</strong>
-          <ul style={{ margin: 0, paddingLeft: '20px', color: '#1e293b', fontSize: '0.85rem', lineHeight: '1.5' }}>
-            {lines.map((l, i) => <li key={i}>{l.replace("- ", "")}</li>)}
+        <div key={idx} style={{ marginTop: '8px' }}>
+          <ul style={{ margin: 0, paddingLeft: '20px', color: '#1e293b', fontSize: '0.85rem' }}>
+            {items.map((item, i) => <li key={i} style={{ marginBottom: '4px' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')) }}></li>)}
           </ul>
         </div>
       );
@@ -11725,12 +11609,9 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
 };
 
 const ActivityAppInner = ({ moduleId, activityId }) => {
-  // Fix 1: Ensure API_BASE matches MainApp.jsx fallback logic so worker is correctly engaged
   const API_BASE = import.meta.env.VITE_API_URL || "";
   const navigate = useNavigate();
-
   const { worker, isEngineReady, resetWorker } = usePyodide();
-
   const isReadyRef = useRef(false);
   const workspaceRef = useRef(null);
   const consoleEndRef = useRef(null);
@@ -11743,15 +11624,22 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const isDragging = useRef(false);
   const saveDraftTimeoutRef = useRef(null);
   const latestBlocksJsonRef = useRef(null);
-
   const testResolveRef = useRef(null);
   const testRejectRef = useRef(null);
   const outputAccumulatorRef = useRef("");
-
   const latestStateRef = useRef({
-    userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
-    score: 0, passed: 0, testResults: [], actualTime: "O(n^2)", actualSpace: "O(1)",
-    status: "draft", type: "activity", targetTime: "O(n)", targetSpace: "O(1)"
+    userId: null,
+    json: null,
+    pythonCode: "# Drag blocks to generate Python code",
+    score: 0,
+    passed: 0,
+    testResults: [],
+    actualTime: "O(n^2)",
+    actualSpace: "O(1)",
+    status: "draft",
+    type: "activity",
+    targetTime: "O(n)",
+    targetSpace: "O(1)"
   });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -11762,6 +11650,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [viewMode, setViewMode] = useState("workspace");
   const [passedTests, setPassedTests] = useState(0);
   const [isLeftPanelVisible, setIsLeftPanelVisible] = useState(true);
+  const [isRightPanelVisible, setIsRightPanelVisible] = useState(true);
   const [expandedTests, setExpandedTests] = useState({});
   const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleTab, setConsoleTab] = useState("output");
@@ -11771,29 +11660,34 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const [lineExecutions, setLineExecutions] = useState({});
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null
+  });
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [syntaxError, setSyntaxError] = useState(null);
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [expandedLines, setExpandedLines] = useState({});
   const [panelHeight, setPanelHeight] = useState(300);
-
   const [activityDataResolved, setActivityDataResolved] = useState(null);
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
+
+  useEffect(() => {
+    if (workspaceRef.current && viewMode === 'workspace') {
+      setTimeout(() => { workspaceRef.current.resize(); }, 50);
+      setTimeout(() => { workspaceRef.current.resize(); }, 300);
+    }
+  }, [viewMode, isLeftPanelVisible, isRightPanelVisible]);
 
   const processedTestCases = useMemo(() => {
     if (!activityDataResolved) return [];
     const originalTests = activityDataResolved.testCasesList || [];
     const visibleTests = originalTests.filter(tc => !tc.isHidden);
     const hiddenTests = originalTests.filter(tc => tc.isHidden);
-
     const timeTarget = activityDataResolved.targetTimeComplexity || "O(n)";
     const spaceTarget = activityDataResolved.targetSpaceComplexity || "O(n)";
-
     const timeTest = { isComplexityTest: true, title: "Time Complexity Check", target: timeTarget, call: "Static Code Analysis", expected: `<= ${timeTarget}`, isHidden: false };
     const spaceTest = { isComplexityTest: true, title: "Space Complexity Check", target: spaceTarget, call: "Static Code Analysis", expected: `<= ${spaceTarget}`, isHidden: false };
-
     return [...visibleTests, timeTest, spaceTest, ...hiddenTests];
   }, [activityDataResolved]);
 
@@ -11809,109 +11703,117 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Saving drafts locally.", "error"); };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   workerMessageHandler.current = (event) => {
     const { type, data, counts } = event.data;
-
     if (type === "ANALYZE_RESULT") {
       if (data.status === "success") {
         setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
         setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
-        latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
-        const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-        setLineExecutions(prev => ({ ...prev, ...initialCounts })); setSyntaxError(null);
+        latestStateRef.current.actualTime = data.total;
+        latestStateRef.current.actualSpace = data.space_total || "O(1)";
+        const initialCounts = {};
+        (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
+        setLineExecutions(prev => ({ ...prev, ...initialCounts }));
+        setSyntaxError(null);
       } else {
-        const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
+        const hint = translatePythonError(data.message);
+        setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
       }
-    }
-    else if (type === "RUN_RESULT") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-
+    } else if (type === "RUN_RESULT") {
+      clearTimeout(runTimeoutRef.current);
+      clearInterval(renderIntervalRef.current);
       if (testResolveRef.current) {
         setTimeout(() => {
           const flushed = pendingOutputRef.current;
           pendingOutputRef.current = "";
           outputAccumulatorRef.current += flushed + (data !== undefined && data !== null ? data : "");
-
-          if (counts) setLineExecutions(prev => { const next = { ...prev }; for (const [k, v] of Object.entries(counts)) next[k] = (next[k] || 0) + v; return next; });
-
-          if (testResolveRef.current) {
-            testResolveRef.current(outputAccumulatorRef.current);
-            testResolveRef.current = null;
-            testRejectRef.current = null;
-          }
-        }, 75);
+          if (counts) setLineExecutions(prev => { const next = { ...prev }; Object.keys(counts).forEach(k => next[k] = Math.max(next[k] || 0, counts[k])); return next; });
+          if (testResolveRef.current) testResolveRef.current(outputAccumulatorRef.current);
+          testResolveRef.current = null;
+          testRejectRef.current = null;
+        }, 50);
       } else {
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-        const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
+        const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
-        if (counts) setLineExecutions(counts);
-        setIsEvaluating(false); setIsWaitingForInput(false);
+        if (counts) setLineExecutions(prev => { const next = { ...prev }; Object.keys(counts).forEach(k => next[k] = Math.max(next[k] || 0, counts[k])); return next; });
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
       }
-    }
-    else if (type === "OUTPUT") {
-      if (testResolveRef.current) {
-        outputAccumulatorRef.current += data;
-      } else {
-        outputCountRef.current += 1; pendingOutputRef.current += data;
-        if (outputCountRef.current > 5000) {
-          clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-          resetWorker();
-          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-          setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
-          setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
-        }
-      }
-    }
-    else if (type === "INPUT_REQUEST") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-
-      if (testRejectRef.current) {
+    } else if (type === "OUTPUT") {
+      outputCountRef.current += 1;
+      pendingOutputRef.current += data;
+      if (outputCountRef.current > 5000) {
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
         resetWorker();
-        testRejectRef.current(new Error("Test cases cannot process manual input. Please remove the input() function."));
-        testResolveRef.current = null; testRejectRef.current = null;
-      } else {
-        setConsoleOutput((prev) => prev + flushed + data.prompt); setIsWaitingForInput(true);
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
+        const floodMsg = "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n";
+        if (testRejectRef.current) {
+          testRejectRef.current(new Error(floodMsg));
+          testResolveRef.current = null;
+          testRejectRef.current = null;
+        } else {
+          setConsoleOutput((prev) => prev + flushed + floodMsg);
+          setIsEvaluating(false);
+          setIsWaitingForInput(false);
+        }
+        outputCountRef.current = 0;
+      } else if (!renderIntervalRef.current && !testResolveRef.current) {
+        renderIntervalRef.current = setInterval(() => {
+          if (pendingOutputRef.current) {
+            setConsoleOutput((prev) => prev + pendingOutputRef.current);
+            pendingOutputRef.current = "";
+          }
+        }, 100);
       }
-    }
-    else if (type === "ERROR") {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
-      const hint = translatePythonError(data);
-
+    } else if (type === "INPUT_REQUEST") {
+      clearTimeout(runTimeoutRef.current);
+      clearInterval(renderIntervalRef.current);
+      const flushed = pendingOutputRef.current;
+      pendingOutputRef.current = "";
+      setConsoleOutput((prev) => prev + flushed + data.prompt);
+      setIsWaitingForInput(true);
+    } else if (type === "ERROR") {
+      clearTimeout(runTimeoutRef.current);
+      clearInterval(renderIntervalRef.current);
       if (testRejectRef.current) {
-        testRejectRef.current(new Error(data + (hint ? `\n${hint}` : "")));
-        testResolveRef.current = null; testRejectRef.current = null;
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
+        outputAccumulatorRef.current += flushed;
+        testRejectRef.current(new Error(data));
+        testResolveRef.current = null;
+        testRejectRef.current = null;
       } else {
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
+        const hint = translatePythonError(data);
         setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
-        setIsEvaluating(false); setIsWaitingForInput(false);
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
       }
     }
   };
 
   useEffect(() => {
-    if (!worker) return;
-    workerRef.current = worker;
-
-    const handleMessage = (e) => {
-      if (workerMessageHandler.current) workerMessageHandler.current(e);
-    };
-
-    worker.addEventListener('message', handleMessage);
-    return () => worker.removeEventListener('message', handleMessage);
+    if (worker) {
+      workerRef.current = worker;
+      workerRef.current.onmessage = workerMessageHandler.current;
+    }
   }, [worker]);
 
   useEffect(() => {
-    return () => {
-      clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (consoleEndRef.current && consoleTab === "output") { consoleEndRef.current.scrollIntoView({ behavior: "smooth" }); }
+    if (consoleEndRef.current && consoleTab === "output") {
+      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [consoleOutput, isWaitingForInput, consoleTab]);
 
   useEffect(() => {
@@ -11922,15 +11824,27 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
     const handleMouseUp = () => {
       if (!isDragging.current) return;
-      isDragging.current = false; document.body.style.cursor = "default"; document.body.style.userSelect = "auto";
+      isDragging.current = false;
+      document.body.style.cursor = "default";
+      document.body.style.userSelect = "auto";
     };
-    document.addEventListener("mousemove", handleMouseMove); document.addEventListener("mouseup", handleMouseUp);
-    return () => { document.removeEventListener("mousemove", handleMouseMove); document.removeEventListener("mouseup", handleMouseUp); };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
   }, []);
 
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
-  const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
+
+  const handleDragStart = (e) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = "ns-resize";
+    document.body.style.userSelect = "none";
+  };
 
   const fetchJsonWithCache = async (cacheKey, url) => {
     try {
@@ -11941,59 +11855,96 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           const json = await res.json();
           try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
           return json;
-        } else { throw new Error("Response is not JSON format"); }
-      } else { throw new Error(`HTTP error ${res.status}`); }
-    } catch (e) { console.warn(`Network fetch failed for ${url}, falling back to cache.`, e); }
-    try { const cached = await templatesDB.getItem(cacheKey); if (cached) return cached; } catch (e) { }
+        } else {
+          throw new Error("Response is not JSON format");
+        }
+      } else {
+        throw new Error(`HTTP error ${res.status}`);
+      }
+    } catch (e) {
+      console.warn(`Network fetch failed for ${url}, falling back to cache.`, e);
+    }
+    try {
+      const cached = await templatesDB.getItem(cacheKey);
+      if (cached) return cached;
+    } catch (e) { }
     throw new Error(`Fetch failed for ${url} and no cache available.`);
   };
 
   const resolveActivityFromModule = async () => {
     const mid = String(moduleId).replace(/[^0-9]/g, "");
     if (!mid) throw new Error("Invalid moduleId");
-
     const activitiesUrl = `/data/activities/module_${mid}.json`;
     const activitiesJson = await fetchJsonWithCache(`activities:module_${mid}`, activitiesUrl);
 
-    let foundActivity = null; let foundLessonKey = null; let activitiesInLesson = [];
+    let foundActivity = null;
+    let foundLessonKey = null;
+    let activitiesInLesson = [];
+
     for (const [lessonKey, list] of Object.entries(activitiesJson || {})) {
       if (!Array.isArray(list)) continue;
       const matched = list.find((a) => a && a.id === activityId);
-      if (matched) { foundActivity = matched; foundLessonKey = lessonKey; activitiesInLesson = list; break; }
+      if (matched) {
+        foundActivity = matched;
+        foundLessonKey = lessonKey;
+        activitiesInLesson = list;
+        break;
+      }
     }
+
     if (!foundActivity) throw new Error("Activity not found in module activities JSON");
 
     const lessonNum = foundLessonKey.replace("lesson_", "");
     const formattedLessonId = `lesson-${mid}-${lessonNum}`;
+    setTopicIdResolved(formattedLessonId);
+    setLessonActivitiesResolved(activitiesInLesson);
 
-    setTopicIdResolved(formattedLessonId); setLessonActivitiesResolved(activitiesInLesson);
-
-    const testCasesList = (foundActivity.testCasesPool || []).map((tc) => ({ call: tc.call, expected: tc.expected, isHidden: !!tc.isHidden }));
+    const testCasesList = (foundActivity.testCasesPool || []).map((tc) => ({
+      call: tc.call,
+      expected: tc.expected,
+      isHidden: !!tc.isHidden
+    }));
 
     return {
-      id: foundActivity.id, title: foundActivity.title || foundLessonKey, task: foundActivity.task,
+      id: foundActivity.id,
+      title: foundActivity.title || foundLessonKey,
+      task: foundActivity.task,
       type: foundActivity.type || (foundLessonKey === "optimizations" ? "optimization" : "activity"),
       difficulty: foundActivity.difficulty || (foundLessonKey === "optimizations" ? "Advanced" : "Easy"),
       targetTimeComplexity: foundActivity.targetTime || foundActivity.targetTimeComplexity || "O(n)",
       targetSpaceComplexity: foundActivity.targetSpace || foundActivity.targetSpaceComplexity || "O(n)",
-      testCasesList, templateUrl: foundActivity.templateUrl || null
+      testCasesList,
+      templateUrl: foundActivity.templateUrl || null
     };
   };
 
   const triggerFinalSave = () => {
     const state = latestStateRef.current;
     if (!state.userId) return;
-
     if (state.pythonCode === "# Drag blocks to generate Python code" && (!state.json || Object.keys(state.json).length === 0)) return;
 
     const payload = {
-      userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity",
-      status: state.status || "draft", score: state.score, maxScore: 5, passedTestCases: state.passed,
-      totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests, testCases: state.testResults,
-      target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
-      target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
-      workspace: { blocklyJson: state.json || {} }, pythonCode: state.pythonCode,
-      timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true
+      userId: state.userId,
+      moduleId: moduleId,
+      activityId: activityId,
+      type: state.type || "activity",
+      status: state.status || "draft",
+      score: state.score,
+      maxScore: 5,
+      passedTestCases: state.passed,
+      totalTestCases: totalTests,
+      passed_tests: state.passed,
+      total_tests: totalTests,
+      testCases: state.testResults,
+      target_complexity: state.targetTime || "O(n)",
+      actual_complexity: state.actualTime,
+      target_space_complexity: state.targetSpace || "O(1)",
+      actual_space_complexity: state.actualSpace,
+      workspace: { blocklyJson: state.json || {} },
+      pythonCode: state.pythonCode,
+      timestamp: Date.now(),
+      submittedAt: new Date().toISOString(),
+      isSynced: true
     };
 
     const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
@@ -12003,11 +11954,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
         fetch(`${API_BASE}/api/sync-submission`, {
-          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify(payload), keepalive: true
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(payload),
+          keepalive: true
         });
-      } catch (err) { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
-    } else { syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
+      } catch (err) {
+        syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+      }
+    } else {
+      syncQueueDB.setItem(`sync_${finalSubId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+    }
   };
 
   useEffect(() => {
@@ -12025,18 +11982,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const resolvedActivity = await resolveActivityFromModule();
         if (cancelled) return;
         setActivityDataResolved(resolvedActivity);
-
         latestStateRef.current.type = resolvedActivity.type;
         latestStateRef.current.targetTime = resolvedActivity.targetTimeComplexity;
         latestStateRef.current.targetSpace = resolvedActivity.targetSpaceComplexity;
 
         const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-        if (!storedUser) { navigate("/learning-path", { replace: true }); return; }
+        if (!storedUser) {
+          navigate("/learning-path", { replace: true });
+          return;
+        }
 
         const user = JSON.parse(storedUser);
         latestStateRef.current.userId = user.email;
-        const submissionId = `${user.email}_${moduleId}_${activityId}`;
 
+        const submissionId = `${user.email}_${moduleId}_${activityId}`;
         let localSubmission = null;
         try { localSubmission = await submissionsDB.getItem(submissionId); } catch (e) { }
 
@@ -12057,7 +12016,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         let finalSubmissionToLoad = null;
         const localCode = localSubmission?.pythonCode || "";
         const cloudCode = cloudSubmission?.pythonCode || "";
-
         const isLocalBlank = !localCode || localCode === "# Drag blocks to generate Python code";
         const isCloudBlank = !cloudCode || cloudCode === "# Drag blocks to generate Python code";
 
@@ -12075,24 +12033,28 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           try {
             const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {};
             const pythonCode = finalSubmissionToLoad.pythonCode;
-
             latestStateRef.current.json = json;
             latestStateRef.current.pythonCode = pythonCode;
             latestStateRef.current.score = finalSubmissionToLoad.score || 0;
             latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
 
-            setTimeout(() => { if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0 && !cancelled) workspaceRef.current.loadTemplate(json); }, 400);
-
+            setTimeout(() => {
+              if (workspaceRef.current?.loadTemplate && Object.keys(json).length > 0 && !cancelled) workspaceRef.current.loadTemplate(json);
+            }, 400);
             if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") setGeneratedPython(pythonCode);
             setPassedTests(latestStateRef.current.passed);
-          } catch (e) { console.error("Failed to load blocks"); }
+          } catch (e) {
+            console.error("Failed to load blocks");
+          }
         } else {
           if (resolvedActivity.templateUrl) {
             try {
               const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
               latestStateRef.current.json = templateJson;
-              setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(templateJson); }, 400);
+              setTimeout(() => {
+                if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(templateJson);
+              }, 400);
             } catch (err) { }
           }
         }
@@ -12109,6 +12071,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         if (!cancelled) {
           isReadyRef.current = true;
         }
+
       } catch (e) {
         console.error("Activity bootstrap failed:", e);
         if (!cancelled) navigate("/learning-path", { replace: true });
@@ -12116,7 +12079,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     };
 
     boot();
-    return () => { cancelled = true; triggerFinalSave(); if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current); };
+
+    return () => {
+      cancelled = true;
+      triggerFinalSave();
+      if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
+    };
   }, []);
 
   const saveSubmission = async (json, pythonCode, score = null, passed = null, total = totalTests, testResults = null, actualTime = "O(n^2)", actualSpace = "O(1)", isDraft = false) => {
@@ -12136,94 +12104,109 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
     const payload = {
-      userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity",
-      status: finalStatus, score: finalScore, maxScore: 5, passedTestCases: finalPassed, totalTestCases: total,
-      passed_tests: finalPassed, total_tests: total, testCases: finalTestResults,
-      target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime,
-      target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace,
-      workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "# Drag blocks to generate Python code",
-      timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false
+      userId: latestStateRef.current.userId,
+      moduleId: moduleId,
+      activityId: activityId,
+      type: latestStateRef.current.type || "activity",
+      status: finalStatus,
+      score: finalScore,
+      maxScore: 5,
+      passedTestCases: finalPassed,
+      totalTestCases: total,
+      passed_tests: finalPassed,
+      total_tests: total,
+      testCases: finalTestResults,
+      target_complexity: latestStateRef.current.targetTime || "O(n)",
+      actual_complexity: actualTime,
+      target_space_complexity: latestStateRef.current.targetSpace || "O(1)",
+      actual_space_complexity: actualSpace,
+      workspace: { blocklyJson: json || {} },
+      pythonCode: pythonCode || "",
+      timestamp: Date.now(),
+      submittedAt: new Date().toISOString(),
+      isSynced: false
     };
 
-    await submissionsDB.setItem(submissionId, payload);
-    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
+    try {
+      await submissionsDB.setItem(submissionId, payload);
+      window.dispatchEvent(new Event("localDataSynced"));
+    } catch (e) { }
 
-    if (navigator.onLine && API_BASE) {
-      try {
-        await fetch(`${API_BASE}/api/sync-submission`, {
-          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload)
+    if (!navigator.onLine) {
+      await syncQueueDB.setItem(`sync_${submissionId}_${Date.now()}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
+      if (API_BASE) {
+        const response = await fetch(`${API_BASE}/api/sync-submission`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({ ...payload, isSynced: true }),
         });
-        payload.isSynced = true; await submissionsDB.setItem(submissionId, payload);
-      } catch (e) { await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload }); }
-    } else {
-      await syncQueueDB.setItem(`sync_${submissionId}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
+        if (response.ok) {
+          await submissionsDB.setItem(submissionId, { ...payload, isSynced: true });
+        } else {
+          throw new Error("Server rejected submission");
+        }
+      }
+    } catch (err) {
+      await syncQueueDB.setItem(`sync_${submissionId}_${Date.now()}`, { type: 'SUBMISSION', action: 'UPSERT', data: payload });
     }
   };
 
   const handleWorkspaceAutoSave = (json, pythonCode) => {
-    if (!isReadyRef.current) return;
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
-
     saveDraftTimeoutRef.current = setTimeout(async () => {
-      await saveSubmission(json, pythonCode, null, null, totalTests, null, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", true);
+      if (pythonCode && pythonCode !== "# Drag blocks to generate Python code" && Object.keys(json || {}).length > 0) {
+        await saveSubmission(json, pythonCode, null, null, totalTests, null, latestStateRef.current.actualTime, latestStateRef.current.actualSpace, true);
+      }
     }, 1500);
-  };
 
-  const analyzeCode = async (code) => {
-    if (!code || code.trim() === "" || code.trim() === "# Drag blocks to generate Python code") return;
-
-    if (isOnline && API_BASE) {
-      try {
-        const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
-        const response = await fetch(`${API_BASE}/api/analyze`, {
-          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify({ code })
-        });
-        if (!response.ok) throw new Error("FastAPI analyze endpoint failed");
-        const data = await response.json();
-
-        if (data.status === "success") {
-          setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
-          setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
-          latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
-          const initialCounts = {}; (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-          setLineExecutions(prev => ({ ...prev, ...initialCounts })); setSyntaxError(null);
-        } else {
-          const hint = translatePythonError(data.message); setSyntaxError({ line: data.line, message: `${data.message}. ${hint}` });
-        }
-        return;
-      } catch (error) { console.warn("Online analysis failed, safely falling back to local worker.", error); }
+    if (pythonCode && pythonCode !== "# Drag blocks to generate Python code" && isOnline && workerRef.current) {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: pythonCode });
     }
-    workerRef.current?.postMessage({ type: "ANALYZE_CODE", code });
   };
 
   useEffect(() => {
-    if (isEngineReady && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
-      const timeoutId = setTimeout(() => analyzeCode(generatedPython), 500);
-      return () => clearTimeout(timeoutId);
+    if (!isReadyRef.current) return;
+    if (isOnline && isEngineReady && workerRef.current && generatedPython !== "# Drag blocks to generate Python code") {
+      workerRef.current.postMessage({ type: 'ANALYZE_CODE', code: generatedPython });
     }
   }, [generatedPython, isOnline, isEngineReady]);
 
   const handleWorkspaceChange = async (json, pythonCode) => {
     if (!isReadyRef.current) return;
-
     latestBlocksJsonRef.current = json;
     const oldCode = (generatedPython || "").trim();
     const newCode = (pythonCode || "").trim();
-
     latestStateRef.current.json = json;
     latestStateRef.current.pythonCode = pythonCode;
-
     handleWorkspaceAutoSave(json, pythonCode);
-    if (!isEditingCode && oldCode !== newCode) { setGeneratedPython(pythonCode); setLineExecutions({}); }
+    if (!isEditingCode && oldCode !== newCode) {
+      setGeneratedPython(pythonCode);
+      setLineExecutions({});
+    }
   };
 
   const handleSyncToBlocks = async () => {
     if (workspaceRef.current && generatedPython) {
       try {
         await workspaceRef.current.loadFromPython(generatedPython);
-        setIsEditingCode(false); setViewMode("workspace");
+        setIsEditingCode(false);
+        setViewMode("workspace");
       } catch (e) {
-        setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", cancelText: "Ok", isDanger: true, onConfirmAction: closeModal, onCancelAction: closeModal });
+        setModalConfig({
+          isOpen: true,
+          title: "Sync Error",
+          message: "Cannot sync to blocks until syntax errors are fixed.",
+          confirmText: "Close",
+          cancelText: "Ok",
+          isDanger: true,
+          onConfirmAction: closeModal,
+          onCancelAction: closeModal
+        });
       }
     }
   };
@@ -12231,20 +12214,30 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const handleActivityRun = async () => {
     if (isEvaluating) return;
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console");
+      setConsoleTab("output");
+      return;
     }
 
-    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
-    setIsEvaluating(true); setLineExecutions({}); setBottomPanel("console"); setConsoleTab("output");
+    clearTimeout(runTimeoutRef.current);
+    clearInterval(renderIntervalRef.current);
+    setIsEvaluating(true);
+    setLineExecutions({});
+    setBottomPanel("console");
+    setConsoleTab("output");
     setConsoleOutput((prev) => prev + "\n> Running the program...\n");
 
-    outputCountRef.current = 0; pendingOutputRef.current = "";
+    outputCountRef.current = 0;
+    pendingOutputRef.current = "";
 
     runTimeoutRef.current = setTimeout(() => {
       resetWorker();
-      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+      const flushed = pendingOutputRef.current;
+      pendingOutputRef.current = "";
       setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-      setIsEvaluating(false); setIsWaitingForInput(false);
+      setIsEvaluating(false);
+      setIsWaitingForInput(false);
     }, 10000);
 
     workerRef.current?.postMessage({ type: "RUN_CODE", code: generatedPython });
@@ -12254,13 +12247,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: "INPUT_RESPONSE", data: userInput });
-      outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
+      outputCountRef.current = 0;
+      setUserInput("");
+      setIsWaitingForInput(false);
 
       runTimeoutRef.current = setTimeout(() => {
         resetWorker();
-        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+        const flushed = pendingOutputRef.current;
+        pendingOutputRef.current = "";
         setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
-        setIsEvaluating(false); setIsWaitingForInput(false);
+        setIsEvaluating(false);
+        setIsWaitingForInput(false);
       }, 10000);
     }
   };
@@ -12282,11 +12279,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (navigator.onLine && !user.isGuest && API_BASE) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, {
-          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload)
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(payload)
         });
         if (res.ok) await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true });
         else throw new Error("Sync failed");
-      } catch (error) { await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload }); }
+      } catch (error) {
+        await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
+      }
     } else if (!user.isGuest) {
       await syncQueueDB.setItem(`sync_prog_${lessonId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
     }
@@ -12309,11 +12310,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (navigator.onLine && !user.isGuest && API_BASE) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, {
-          method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify(payload)
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify(payload)
         });
         if (res.ok) await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true });
         else throw new Error("Sync failed");
-      } catch (error) { await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload }); }
+      } catch (error) {
+        await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
+      }
     } else if (!user.isGuest) {
       await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, { type: 'PROGRESS', action: 'UPSERT', data: payload });
     }
@@ -12345,24 +12350,45 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     let promptMsg = "";
     if (score === 5) {
-      promptMsg = `Perfect execution! You earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!\n\nReady for the next challenge?`;
+      promptMsg = `Perfect execution!\nYou earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!\n\nReady for the next challenge?`;
     } else if (funcPassed < funcTotal) {
-      promptMsg = `Keep trying! You earned a score of ${score}/${maxScore}.\n\nYou passed ${funcPassed}/${funcTotal} functional test cases. Some hidden test cases or edge cases failed.\n\nReady to proceed or want to try fixing it?`;
+      promptMsg = `Keep trying!\nYou earned a score of ${score}/${maxScore}.\n\nYou passed ${funcPassed}/${funcTotal} functional test cases.\nSome hidden test cases or edge cases failed.\n\nReady to proceed or want to try fixing it?`;
     } else if (score === 4) {
-      promptMsg = `Great job! You earned a Silver Medal (4/5).\n\nYou passed all functional tests, but mastered only one of the Time or Space complexities.\nCan you optimize it further to get the Gold?\n\nReady to proceed?`;
+      promptMsg = `Great job!\nYou earned a Silver Medal (4/5).\n\nYou passed all functional tests, but mastered only one of the Time or Space complexities.\nCan you optimize it further to get the Gold?\n\nReady to proceed?`;
     } else {
-      promptMsg = `Good effort! You earned a Bronze Medal (${score}/5).\n\nYour code works and passed all functional tests! However, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster or leaner to get the Gold Medal?\n\nReady to proceed?`;
+      promptMsg = `Good effort!\nYou earned a Bronze Medal (${score}/5).\n\nYour code works and passed all functional tests!\nHowever, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster or leaner to get the Gold Medal?\n\nReady to proceed?`;
     }
 
     if (!isLast && nextActivity) {
       setModalConfig({
-        isOpen: true, title: "Activity Completed!", message: promptMsg, confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false,
-        onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal,
+        isOpen: true,
+        title: "Activity Completed!",
+        message: promptMsg,
+        confirmText: "Next Activity",
+        cancelText: "Stay Here",
+        isDanger: false,
+        onConfirmAction: () => {
+          closeModal();
+          navigate(`/activity/${moduleId}/${nextActivity.id}`);
+        },
+        onCancelAction: closeModal,
       });
     } else {
       setModalConfig({
-        isOpen: true, title: "Section Completed!", message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to unlock the next topic.`, confirmText: "Finish", cancelText: "Stay Here", isDanger: false,
-        onConfirmAction: async () => { closeModal(); if (topicIdResolved) { await completeFullTopic(topicIdResolved); } navigate("/learning-path"); }, onCancelAction: closeModal,
+        isOpen: true,
+        title: "Section Completed!",
+        message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to unlock the next topic.`,
+        confirmText: "Finish",
+        cancelText: "Stay Here",
+        isDanger: false,
+        onConfirmAction: async () => {
+          closeModal();
+          if (topicIdResolved) {
+            await completeFullTopic(topicIdResolved);
+          }
+          navigate("/learning-path");
+        },
+        onCancelAction: closeModal,
       });
     }
   };
@@ -12372,36 +12398,53 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const runTestCases = async () => {
     if (isEvaluating) return;
     if (!processedTestCases.length) return;
-
     if (!generatedPython || generatedPython.trim() === "" || generatedPython === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console");
+      setConsoleTab("output");
+      return;
     }
 
-    setIsEvaluating(true); setLineExecutions({}); setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n"); setBottomPanel("console"); setConsoleTab("output");
+    setIsEvaluating(true);
+    setLineExecutions({});
+    setConsoleOutput("Running pre-flight checks (Detecting infinite loops)...\n");
+    setBottomPanel("console");
+    setConsoleTab("output");
 
-    try { await executeTest(generatedPython); }
-    catch (failure) {
+    try {
+      await executeTest(generatedPython);
+    } catch (failure) {
       const errorMsg = `Test Execution Prevented:\n\n${failure.error || failure.message}`;
-      setConsoleOutput(errorMsg); setBottomPanel("console"); setIsEvaluating(false);
+      setConsoleOutput(errorMsg);
+      setBottomPanel("console");
+      setIsEvaluating(false);
       localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: errorMsg, passedTests: 0 }));
       return;
     }
 
-    setBottomPanel("console"); setConsoleOutput("\n> --- Running Test Cases ---\n\n"); setPassedTests(0);
+    setBottomPanel("console");
+    setConsoleOutput("\n> --- Running Test Cases ---\n\n");
+    setPassedTests(0);
 
-    let passed = 0; let functionalPassed = 0; let functionalTotal = 0;
+    let passed = 0;
+    let functionalPassed = 0;
+    let functionalTotal = 0;
     let fullOutput = "\n> --- Running Test Cases ---\n";
 
     for (let i = 0; i < totalTests; i++) {
       const tc = processedTestCases[i];
+
       if (tc.isComplexityTest) {
         const actualVal = tc.title.includes("Time") ? analysisResult.total : analysisResult.space_total;
-        const actualWeight = getComplexityWeight(actualVal); const targetWeight = getComplexityWeight(tc.target);
+        const actualWeight = getComplexityWeight(actualVal);
+        const targetWeight = getComplexityWeight(tc.target);
         const testPassed = actualWeight > 0 && actualWeight <= targetWeight;
-        if (testPassed) passed++;
 
-        fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n   Metric: ${tc.title}\n   Expected: <= ${formatComplexity(tc.target)}\n   Actual: ${formatComplexity(actualVal)}\n\n`;
-        setConsoleOutput(fullOutput); setPassedTests(passed); continue;
+        if (testPassed) passed++;
+        fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n  Metric: ${tc.title}\n  Expected: <= ${formatComplexity(tc.target)}\n  Actual: ${formatComplexity(actualVal)}\n\n`;
+        setConsoleOutput(fullOutput);
+        setPassedTests(passed);
+        continue;
       }
 
       functionalTotal++;
@@ -12409,20 +12452,47 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       const taskId = activityDataResolved?.id || "";
       const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
       let codeToRun = "";
+
       if (isFunctionCall && !isIntroLevel) codeToRun = generatedPython + `\n\ntry:\n    assert ${tc.call} == ${tc.expected}\n    print("TEST_PASSED_FLAG")\nexcept:\n    print("TEST_ERROR_FLAG")`;
       else codeToRun = `${generatedPython}\n${tc.call || ""}`;
 
       try {
-        const rawOutput = await executeTest(codeToRun); const actualOutput = rawOutput.trim();
+        const rawOutput = await executeTest(codeToRun);
+        const actualOutput = rawOutput.trim();
         const expected = String(tc.expected).replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n").trim();
+
         let testPassed = false;
-        if (isFunctionCall && !isIntroLevel) { if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; functionalPassed++; testPassed = true; } }
-        else { if (actualOutput.trim() === expected) { passed++; functionalPassed++; testPassed = true; } }
+        if (isFunctionCall && !isIntroLevel) {
+          if (actualOutput.includes("TEST_PASSED_FLAG")) {
+            passed++;
+            functionalPassed++;
+            testPassed = true;
+          }
+        } else {
+          if (actualOutput.trim() === expected) {
+            passed++;
+            functionalPassed++;
+            testPassed = true;
+          }
+        }
 
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
-        if (!testPassed) { if (tc.isHidden) { fullOutput += `   [Hidden Test Case] Expected values and inputs are omitted.\n`; } else { fullOutput += `   Expected: ${expected}\n   Actual: ${actualOutput}\n`; } }
-        fullOutput += "\n"; setConsoleOutput(fullOutput); setPassedTests(passed);
-      } catch (err) { fullOutput += `Test ${i + 1}: ERROR\n   Message: ${err.message}\n\n`; setConsoleOutput(fullOutput); }
+        if (!testPassed) {
+          if (tc.isHidden) {
+            fullOutput += `  [Hidden Test Case] Expected values and inputs are omitted.\n`;
+          } else {
+            fullOutput += `  Expected: ${expected}\n  Actual: ${actualOutput}\n`;
+          }
+        }
+        fullOutput += "\n";
+
+        setConsoleOutput(fullOutput);
+        setPassedTests(passed);
+
+      } catch (err) {
+        fullOutput += `Test ${i + 1}: ERROR\n  Message: ${err.message}\n\n`;
+        setConsoleOutput(fullOutput);
+      }
     }
 
     setIsEvaluating(false);
@@ -12441,53 +12511,89 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       if (actualSpaceWeight > 0 && actualSpaceWeight <= targetSpaceWeight) score += 1;
     }
 
-    const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
+    const testResults = processedTestCases.map((tc, idx) => ({
+      id: `tc_${idx}`,
+      status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed"
+    }));
 
     await saveSubmission(
-      latestStateRef.current.json, generatedPython, score, passed, totalTests, testResults,
-      analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false
+      latestStateRef.current.json,
+      generatedPython,
+      score,
+      passed,
+      totalTests,
+      testResults,
+      analysisResult.total || "O(n^2)",
+      analysisResult.space_total || "O(1)",
+      false
     );
 
     localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
-
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, score);
 
     if (score >= 1) handleSuccess(score, 5, functionalPassed, functionalTotal);
   };
 
-  const lines = analysisResult?.lines || []; let maxWeight = 0; let bottleneckIndices = [];
+  const lines = analysisResult?.lines || [];
+  let maxWeight = 0;
+  let bottleneckIndices = [];
+
   lines.forEach((line, index) => {
     const targetComplexity = activeTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)";
     const weight = getComplexityWeight(targetComplexity);
-    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; } else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
+    if (weight > maxWeight) {
+      maxWeight = weight;
+      bottleneckIndices = [index];
+    } else if (weight === maxWeight && weight > 0) {
+      bottleneckIndices.push(index);
+    }
   });
-
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
   return (
     <div className="activity-app-container">
+      {/* CSS Block to cleanly hide sidebars without breaking react-split widths */}
+      <style>{`
+        .activity-main-layout.left-hidden .activity-left-panel { display: none !important; width: 0 !important; }
+        .activity-main-layout.left-hidden .gutter.gutter-horizontal:first-of-type { display: none !important; }
+        .activity-main-layout.right-hidden .activity-right-panel { display: none !important; width: 0 !important; }
+        .activity-main-layout.right-hidden .gutter.gutter-horizontal:last-of-type { display: none !important; }
+        .activity-main-layout.left-hidden .activity-center-panel,
+        .activity-main-layout.right-hidden .activity-center-panel { flex: 1 !important; width: auto !important; }
+        .sidebar-toggle-btn.right-panel-toggle { left: auto; right: 0; border-radius: 4px 0 0 4px; }
+      `}</style>
+
       {toast.show && (<div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`} style={{ position: "absolute", top: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 9999 }}>{toast.message}</div>)}
+
       <header className="activity-topbar">
         <div className="activity-back-btn" onClick={() => navigate("/learning-path")}><img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard</div>
         <div className="activity-toggle-group"><button className={`activity-toggle-btn ${viewMode === "workspace" ? "active" : ""}`} onClick={() => setViewMode("workspace")}>Workspace</button><button className={`activity-toggle-btn ${viewMode === "python" ? "active" : ""}`} onClick={() => setViewMode("python")}>Python Code</button></div>
         <div className="activity-actions" style={{ display: "flex", gap: "10px" }}><button className="activity-action-btn" onClick={handleActivityRun} style={{ backgroundColor: "#2D234A", border: "1px solid #6C5CE7", color: "#EBE4FF", opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? "not-allowed" : "pointer" }} title="Run code in console without submitting to test cases">{isEvaluating ? "..." : "Run Code"}</button><button className="activity-action-btn run-btn" onClick={runTestCases} style={{ opacity: isEvaluating ? 0.7 : 1, cursor: isEvaluating ? "not-allowed" : "pointer" }}>{isEvaluating ? "..." : "Run Tests"}</button></div>
       </header>
 
-      <Split className={`activity-main-layout ${!isLeftPanelVisible ? "left-hidden" : ""}`} sizes={[25, 50, 25]} minSize={[isLeftPanelVisible ? 250 : 0, 400, 250]} gutterSize={8}>
+      <Split className={`activity-main-layout ${!isLeftPanelVisible ? "left-hidden" : ""} ${!isRightPanelVisible ? "right-hidden" : ""}`} sizes={[25, 50, 25]} minSize={[isLeftPanelVisible ? 250 : 0, 400, isRightPanelVisible ? 250 : 0]} gutterSize={8}>
         <aside className="activity-left-panel">
           {lessonActivitiesResolved.length > 0 && (<div className="activity-selector-container"><label className="activity-selector-label"><img src="/assets/learning-icon.png" alt="List" style={{ width: "16px", height: "16px" }} /> Lesson Outline</label><select className="activity-selector-dropdown" value={activityId} onChange={(e) => navigate(`/activity/${moduleId}/${e.target.value}`)}>{lessonActivitiesResolved.map((act, index) => (<option key={act.id} value={act.id}>{index + 1}. {act.title}</option>))}</select></div>)}
           <div className="activity-panel-header" style={{ paddingTop: "15px" }}><h2><img src="/assets/console-icon.png" alt="Icon" style={{ width: "24px" }} /> Description</h2></div>
           <div className="activity-panel-content">
             <div className="activity-task-header" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px", marginTop: "10px" }}><h2 style={{ margin: 0, fontSize: "1.4rem", color: "#2b005c", fontWeight: "bold" }}>{activityDataResolved?.title || "Loading..."}</h2><span style={{ padding: "4px 10px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "bold", backgroundColor: activityDataResolved?.difficulty === "Easy" ? "rgba(0, 184, 163, 0.15)" : activityDataResolved?.difficulty === "Medium" ? "rgba(255, 192, 30, 0.15)" : "rgba(255, 55, 95, 0.15)", color: activityDataResolved?.difficulty === "Easy" ? "#00b8a3" : activityDataResolved?.difficulty === "Medium" ? "#ffc01e" : "#ff375f" }}>{activityDataResolved?.difficulty || "Easy"}</span></div>
-            <div className="activity-card" style={{ lineHeight: "1.7", fontSize: "0.95rem", backgroundColor: "transparent", border: "none", padding: "0", color: "#2f2f2f" }}>{renderFormattedTask(activityDataResolved?.task || "Loading activity...")}</div>
+            <div className="activity-card" style={{ lineHeight: "1.7", fontSize: "0.95rem", backgroundColor: "transparent", border: "none", padding: "0", color: "#2f2f2f" }}>
+              {renderFormattedTask(activityDataResolved?.task || "Loading activity...")}
+            </div>
           </div>
         </aside>
 
         <main className="workspace-main activity-center-panel">
-          <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}><span className="toggle-icon">{isLeftPanelVisible ? "<" : ">"}</span></button>
+          <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title={isLeftPanelVisible ? "Hide Instructions" : "Show Instructions"}>
+            <span className="toggle-icon">{isLeftPanelVisible ? "<" : ">"}</span>
+          </button>
+          <button className={`sidebar-toggle-btn right-panel-toggle ${!isRightPanelVisible ? "closed" : ""}`} onClick={() => setIsRightPanelVisible(!isRightPanelVisible)} title={isRightPanelVisible ? "Hide Test Cases" : "Show Test Cases"}>
+            <span className="toggle-icon">{isRightPanelVisible ? ">" : "<"}</span>
+          </button>
+
           <div className="editor-container" style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
             <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ display: viewMode === "workspace" ? "block" : "none", height: "100%" }}>
               <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={syntaxError} />
@@ -12496,7 +12602,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               <div className="python-header" style={{ padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)" }}><span className="python-sync-status" style={{ color: "#EBE4FF", fontSize: "0.85rem" }}>{isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span><button onClick={handleSyncToBlocks} disabled={!isEditingCode} className={`python-sync-btn ${isEditingCode ? "active" : "disabled"}`} style={{ padding: "5px 12px", borderRadius: "4px", cursor: isEditingCode ? "pointer" : "not-allowed", backgroundColor: isEditingCode ? "#6C5CE7" : "#444", color: "white", border: "none" }}>Sync to Blocks</button></div>
               <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
                 {syntaxError && (<div style={{ position: "absolute", top: 0, left: 0, right: 0, backgroundColor: "rgba(231, 76, 60, 0.9)", color: "white", padding: "6px 15px", zIndex: 10, fontSize: "0.85rem", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}><span>Syntax Error on line {syntaxError.line}: {syntaxError.message}</span><button onClick={() => setSyntaxError(null)} style={{ background: "transparent", color: "white", border: "none", cursor: "pointer", fontWeight: "bold" }}>X</button></div>)}
-                <Editor height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount} value={generatedPython} onChange={(value) => { const newCode = value || ""; setGeneratedPython(newCode); setIsEditingCode(true); if (syntaxError) setSyntaxError(null); latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(latestStateRef.current.json, newCode); }} options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} />
+                <Editor height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount} value={generatedPython} onChange={(value) => {
+                  const newCode = value || "";
+                  setGeneratedPython(newCode);
+                  setIsEditingCode(true);
+                  if (syntaxError) setSyntaxError(null);
+                  latestStateRef.current.pythonCode = newCode;
+                  handleWorkspaceAutoSave(latestStateRef.current.json, newCode);
+                }} options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, smoothScrolling: true, cursorBlinking: "smooth", formatOnPaste: true, suggestOnTriggerCharacters: true, wordWrap: "on", padding: { top: 16 } }} />
               </div>
             </div>
           </div>
@@ -12507,40 +12620,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               <div className="panel-header"><span className="panel-title">{bottomPanel === "console" ? "Console Panel" : "Complexity Analysis"}</span><button onClick={() => setBottomPanel(null)} className="panel-close-btn">X</button></div>
               <div className="panel-body" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
                 {bottomPanel === "console" ? (
-                  <div className="console-content-wrapper" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-                    <div className="complexity-tabs" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px", marginBottom: "0", paddingTop: "5px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div className="tab-btn-group"><button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === "output" ? "active" : ""}`}>Terminal Output</button><button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === "executions" ? "active" : ""}`}>Line Executions</button></div>
-                      {consoleTab === "output" && (<button onClick={() => setConsoleOutput("Ready to run...\n")} style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.4)", borderRadius: "6px", padding: "5px 14px", fontSize: "0.85rem", fontWeight: "bold", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto" }} title="Clear Terminal Output">Clear Console</button>)}
-                    </div>
-                    <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
-                      {consoleTab === "output" ? (
-                        <div className="console-container" style={{ height: "100%" }}><pre className="console-output">{consoleOutput}</pre>{isWaitingForInput && (<div className="console-input-line"><span className="console-cursor">â¯</span><input autoFocus value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={handleSendInput} className="console-input-field" placeholder="Type here and press Enter..." /></div>)}<div ref={consoleEndRef} /></div>
-                      ) : (
-                        <div className="complexity-table-wrapper" style={{ height: "100%", margin: 0, border: "none" }}>
-                          <table className="complexity-table">
-                            <thead><tr><th style={{ width: "60px", textAlign: "center" }}>Line</th><th>Source Code</th><th style={{ width: "100px", textAlign: "center" }}>Hits</th><th style={{ width: "30%" }}>Frequency</th></tr></thead>
-                            <tbody>
-                              {pythonLines.map((lineText, idx) => {
-                                const lineNum = idx + 1; const hits = lineExecutions[lineNum] || 0;
-                                return (
-                                  <tr key={idx} style={{ backgroundColor: hits > 0 ? "rgba(255, 255, 255, 0.03)" : "transparent" }}>
-                                    <td style={{ color: "#888", textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.05)" }}>{lineNum}</td>
-                                    <td style={{ fontFamily: "'Fira Code', monospace", whiteSpace: "pre", color: "#EBE4FF", paddingLeft: "15px" }}>{lineText || " "}</td>
-                                    <td style={{ textAlign: "center", fontWeight: "bold", color: hits > 0 ? "#00b8a3" : "#555" }}>{hits > 0 ? hits : "-"}</td>
-                                    <td style={{ paddingRight: "20px" }}>{hits > 0 && maxExecutions > 0 && (<div style={{ height: "8px", width: `${(hits / maxExecutions) * 100}%`, backgroundColor: hits === maxExecutions ? "#f39c12" : "#00b8a3", borderRadius: "4px", transition: "width 0.5s ease-out", boxShadow: hits === maxExecutions ? "0 0 8px rgba(243, 156, 18, 0.5)" : "none" }} />)}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <div className="console-content-wrapper" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}><div className="console-container" style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", minHeight: 0 }}><pre className="console-output">{consoleOutput}</pre>{isWaitingForInput && (<div className="console-input-line"><span className="console-cursor">{">"}</span><input type="text" className="console-input-field" value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={handleSendInput} autoFocus /></div>)}<div ref={consoleEndRef} /></div><div style={{ padding: "10px", backgroundColor: "#111", borderTop: "1px solid #333", display: "flex", justifyContent: "flex-end" }}><button className="clear-console-btn" onClick={() => setConsoleOutput("Ready to run...\n")}>Clear Console</button></div></div>
                 ) : (
-                  <div className="complexity-content">
-                    <div className="complexity-tabs">
-                      <div className="tab-btn-group"><button onClick={() => { setActiveTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeTab === "local" ? "active" : ""}`}>Local Complexity</button><button onClick={() => { setActiveTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeTab === "global" ? "active" : ""}`}>Global Complexity</button><button onClick={() => { setActiveTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeTab === "memory" ? "active" : ""}`}>Memory Map</button></div>
+                  <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden" }}>
+                    <div className="complexity-tabs"><div className="tab-btn-group"><button onClick={() => { setActiveTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeTab === "local" ? "active" : ""}`}>Local Complexity</button><button onClick={() => { setActiveTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeTab === "global" ? "active" : ""}`}>Global Complexity</button><button onClick={() => { setActiveTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeTab === "memory" ? "active" : ""}`}>Memory Map</button></div>
                       <div className="total-badge-group"><span className="total-badge"><span className="total-label">Total Time:</span> <span style={{ fontSize: "1.3rem", fontWeight: "bold" }}>{formatComplexity(analysisResult.total)}</span></span><span className="total-badge" style={{ backgroundColor: "rgba(0, 184, 163, 0.15)", color: "#00b8a3", border: "1px solid rgba(0, 184, 163, 0.3)" }}><span className="total-label" style={{ color: "#00b8a3" }}>Total Space:</span> <span style={{ fontSize: "20px", fontWeight: "bold" }}>{formatComplexity(analysisResult.space_total)}</span></span><span className="total-badge" style={{ backgroundColor: "rgba(155, 89, 182, 0.15)", color: "#9b59b6", border: "1px solid rgba(155, 89, 182, 0.3)" }}><span className="total-label" style={{ color: "#c275e0" }}>Analysis:</span> <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#db7fff" }}>{analysisTime} ms</span></span></div>
                     </div>
                     {activeTab === "memory" ? (<div style={{ flex: 1, overflow: "hidden", padding: "10px 15px" }}><MemoryVisualizer analysisData={analysisResult.lines} currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0} /></div>) : (
@@ -12551,11 +12634,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                             {analysisResult.lines.map((line, i) => {
                               const timeComplexity = activeTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)";
                               const spaceComplexity = activeTab === "local" ? line.local_space || "O(1)" : line.global_space || "O(1)";
-                              let timeExp = line.time_explanation ?? line.local_explanation ?? "Analysis not available."; let spaceExp = line.space_explanation ?? line.global_explanation ?? "Analysis not available.";
-                              const isBottleneck = actualBottleneckIndices.includes(i); const timeColor = getComplexityColor(timeComplexity); const spaceColor = getComplexityColor(spaceComplexity); const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
-                              const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("âˆšn") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
-
-                              // Fix 2: Changed text color to #000000 and added the dropdown-chevron to the Space Complexity column.
+                              let timeExp = line.time_explanation ?? line.local_explanation ?? "Analysis not available.";
+                              let spaceExp = line.space_explanation ?? line.global_explanation ?? "Analysis not available.";
+                              const isBottleneck = actualBottleneckIndices.includes(i);
+                              const timeColor = getComplexityColor(timeComplexity);
+                              const spaceColor = getComplexityColor(spaceComplexity);
+                              const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
+                              const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("Ã¢Ë†Å¡n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
                               return (
                                 <React.Fragment key={i}>
                                   <tr className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`} onClick={() => toggleLine(i)} style={{ cursor: "pointer", borderLeft: isBottleneck ? "4px solid #ff375f" : isEfficient ? "4px solid #2ecc71" : expandedLines[i] ? `3px solid ${timeColor}` : "none", backgroundColor: isBottleneck ? "rgba(255, 55, 95, 0.12)" : isEfficient ? "rgba(46, 204, 113, 0.12)" : "transparent" }}>
@@ -12593,7 +12678,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
           <footer className="workspace-footer">
             <div className="footer-left"><button className={`footer-tab ${bottomPanel === "console" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "console" ? null : "console")}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button><button className={`footer-tab ${bottomPanel === "complexity" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "complexity" ? null : "complexity")}><img src="/assets/complexity-icon.png" alt="Complexity" className="tab-icon" /> Complexity</button><button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}><img src="/assets/table-icon.png" alt="Reference" className="tab-icon" /> Big O Reference</button></div>
-            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({ isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: async () => { const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user"); if (storedUser) { const user = JSON.parse(storedUser); await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); } localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`); await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true); window.location.reload(); }, onCancelAction: closeModal })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
+            <div className="footer-right"><button className="footer-action-icon" onClick={() => setModalConfig({
+              isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.", confirmText: "Restart", cancelText: "Cancel", isDanger: true, onConfirmAction: async () => {
+                const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+                if (storedUser) {
+                  const user = JSON.parse(storedUser);
+                  await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`);
+                }
+                localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
+                await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true);
+                window.location.reload();
+              }, onCancelAction: closeModal
+            })} title="Restart Activity"><img src="/assets/recursive-icon.png" alt="Restart" /></button></div>
           </footer>
         </main>
 
@@ -12601,8 +12697,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           <div className="activity-panel-header"><h3>Test Cases</h3><span className="test-cases-counter">{passedTests}/{totalTests} passed</span></div>
           <div className="activity-panel-content">
             {processedTestCases.map((tc, i) => {
-              const testIdentifier = `Test ${i + 1}`; const isPassing = consoleOutput.includes(`${testIdentifier}: PASSED`); const isFailing = consoleOutput.includes(`${testIdentifier}: FAILED`); const isError = consoleOutput.includes(`${testIdentifier}: ERROR`);
-              const isExpanded = expandedTests[i]; const statusClass = isPassing ? "passing" : isFailing || isError ? "failing" : "";
+              const testIdentifier = `Test ${i + 1}`;
+              const isPassing = consoleOutput.includes(`${testIdentifier}: PASSED`);
+              const isFailing = consoleOutput.includes(`${testIdentifier}: FAILED`);
+              const isError = consoleOutput.includes(`${testIdentifier}: ERROR`);
+              const isExpanded = expandedTests[i];
+              const statusClass = isPassing ? "passing" : isFailing || isError ? "failing" : "";
               const displayTitle = tc.isComplexityTest ? tc.title : tc.isHidden ? `Hidden Test` : `Test ${i + 1}`;
 
               return (
@@ -12624,6 +12724,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           </div>
         </aside>
       </Split>
+
       <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} cancelText={modalConfig.cancelText} isDanger={modalConfig.isDanger} onCancel={modalConfig.onCancelAction || closeModal} onConfirm={modalConfig.onConfirmAction} />
       <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
     </div>
@@ -13295,7 +13396,7 @@ export default function AssessmentPage() {
 --- FILE: frontend/src/pages/Dashboard.jsx ---
 
 // frontend/src/pages/Dashboard.jsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { projectsDB, templatesDB } from "../db";
@@ -13324,98 +13425,171 @@ const SYSTEM_TEMPLATES = {
   ]
 };
 
+// Helper: Centralized Token Retrieval
+const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [recentProjects, setRecentProjects] = useState([]);
   const [userTemplatesGrouped, setUserTemplatesGrouped] = useState({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadLocalData = async () => {
-      // FIX: Check both storages safely
-      const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-      if (!storedUserStr) {
-        setLoading(false);
-        return;
-      }
-      const storedUser = JSON.parse(storedUserStr || "{}");
-
-      // --- 1. PULL CLOUD DATA FIRST ---
-      if (navigator.onLine) {
-        try {
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`);
-          if (pRes.ok) {
-            const pData = await pRes.json();
-            
-            let cloudProjects = [];
-            if (pData && Array.isArray(pData.projects)) cloudProjects = pData.projects;
-            else if (Array.isArray(pData)) cloudProjects = pData;
-
-            for (const cp of cloudProjects) {
-              if (cp.owner_id === storedUser.email || cp.userId === storedUser.email) {
-                await projectsDB.setItem(cp._id, { ...cp, synced: true });
-              }
-            }
-          }
-
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`);
-          if (tRes.ok) {
-            const tData = await tRes.json();
-            
-            let cloudTemplates = [];
-            if (tData && Array.isArray(tData.templates)) cloudTemplates = tData.templates;
-            else if (Array.isArray(tData)) cloudTemplates = tData;
-
-            for (const ct of cloudTemplates) {
-              if (ct.owner_id === storedUser.email || ct.userId === storedUser.email) {
-                await templatesDB.setItem(ct._id, { ...ct, synced: true });
-              }
-            }
-          }
-        } catch (fetchErr) {
-          console.error("Failed to sync cloud data:", fetchErr);
-        }
-      }
-
-      // --- 2. FETCH FROM LOCAL DB ---
-      
-      const userProjects = [];
-      await projectsDB.iterate((value) => {
-        if (value.owner_id === storedUser.email || value.userId === storedUser.email) {
-          userProjects.push(value);
-        }
-      });
-
-      setRecentProjects(
-        userProjects
-          .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-          .slice(0, 5)
-      );
-
-      const userTemplates = [];
-      await templatesDB.iterate((value) => {
-        if (value.owner_id === storedUser.email || value.userId === storedUser.email) {
-          userTemplates.push(value);
-        }
-      });
-
-      const grouped = {};
-      userTemplates.forEach((t) => {
-        const category = t.category || "Custom Templates";
-        if (!grouped[category]) grouped[category] = [];
-        grouped[category].push({
-            ...t,
-            name: t.title || t.name, 
-            desc: t.description || t.desc
-        });
-      });
-
-      setUserTemplatesGrouped(grouped);
+  // 1. Core function to load data to UI
+  const loadLocalData = useCallback(async () => {
+    const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!storedUserStr) {
       setLoading(false);
+      return;
+    }
+    const storedUser = JSON.parse(storedUserStr);
+
+    // Pull Fresh Cloud Data (Removed restrictive API_BASE check)
+    if (navigator.onLine) {
+      try {
+        const token = getToken();
+        const headers = { "Content-Type": "application/json", ...(token && { "Authorization": `Bearer ${token}` }) };
+
+        const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`, { headers });
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
+          for (const cp of cloudProjects) {
+            if (cp.owner_id === storedUser.email || cp.userId === storedUser.email) {
+              await projectsDB.setItem(cp._id, { ...cp, synced: true });
+            }
+          }
+        }
+
+        const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`, { headers });
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
+          for (const ct of cloudTemplates) {
+            if (ct.owner_id === storedUser.email || ct.userId === storedUser.email) {
+              await templatesDB.setItem(ct._id, { ...ct, synced: true });
+            }
+          }
+        }
+      } catch (fetchErr) {
+        console.error("Failed to sync cloud data down:", fetchErr);
+      }
+    }
+
+    // Refresh UI from local DB
+    const userProjects = [];
+    await projectsDB.iterate((value) => {
+      if (value.owner_id === storedUser.email || value.userId === storedUser.email) userProjects.push(value);
+    });
+
+    setRecentProjects(userProjects.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 5));
+
+    const userTemplates = [];
+    await templatesDB.iterate((value) => {
+      if (value.owner_id === storedUser.email || value.userId === storedUser.email) userTemplates.push(value);
+    });
+
+    const grouped = {};
+    userTemplates.forEach((t) => {
+      const category = t.category || "Custom Templates";
+      if (!grouped[category]) grouped[category] = [];
+      grouped[category].push({ ...t, name: t.title || t.name, desc: t.description || t.desc });
+    });
+
+    setUserTemplatesGrouped(grouped);
+    setLoading(false);
+  }, []);
+
+  // 2. Background function to sweep unsynced items and push to MongoDB
+  const syncOfflineItems = useCallback(async () => {
+    // FIX: Removed the API_BASE check that blocked the sync process
+    if (!navigator.onLine) return;
+    
+    const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    const token = getToken();
+    if (!storedUserStr || !token) return;
+    
+    const user = JSON.parse(storedUserStr);
+    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+    let syncedSomething = false;
+
+    // FIX: Safely loop projects instead of uncontrolled iterate
+    try {
+      const pKeys = await projectsDB.keys();
+      for (const key of pKeys) {
+        const proj = await projectsDB.getItem(key);
+        if (proj && !proj.synced && (proj.owner_id === user.email || proj.userId === user.email)) {
+          const apiPayload = { 
+              projectId: key.startsWith('local_') ? null : key, 
+              userId: user.email, 
+              name: proj.title || proj.name || "Untitled Project", 
+              workspace: { blocklyJson: proj.data || proj.workspace?.blocklyJson }, 
+              pythonCode: proj.pythonCode || "" 
+          };
+          
+          const res = await fetch(`${API_BASE}/api/projects/save`, { method: 'POST', headers, body: JSON.stringify(apiPayload) });
+          
+          if (res.ok) {
+            const resData = await res.json();
+            const newId = resData.projectId || resData._id || key;
+            await projectsDB.setItem(newId, { ...proj, _id: newId, synced: true });
+            if (newId !== key) await projectsDB.removeItem(key); // Cleanup local temp ID
+            syncedSomething = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Background sync failed for projects:", err);
+    }
+
+    // FIX: Safely loop templates instead of uncontrolled iterate
+    try {
+      const tKeys = await templatesDB.keys();
+      for (const key of tKeys) {
+        const temp = await templatesDB.getItem(key);
+        if (temp && !temp.synced && (temp.owner_id === user.email || temp.userId === user.email)) {
+          const apiPayload = { 
+              templateId: key.startsWith('local_') ? null : key, 
+              userId: user.email, 
+              name: temp.title || temp.name || "Untitled Template", 
+              description: temp.description || temp.desc || "", 
+              category: temp.category || "Custom Templates", 
+              workspace: { blocklyJson: temp.data || temp.workspace?.blocklyJson } 
+          };
+          
+          const res = await fetch(`${API_BASE}/api/templates/save`, { method: 'POST', headers, body: JSON.stringify(apiPayload) });
+          
+          if (res.ok) {
+            const resData = await res.json();
+            const newId = resData.templateId || resData._id || key;
+            await templatesDB.setItem(newId, { ...temp, _id: newId, synced: true });
+            if (newId !== key) await templatesDB.removeItem(key); // Cleanup local temp ID
+            syncedSomething = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Background sync failed for templates:", err);
+    }
+
+    // Update the UI if backgrounds saves worked
+    if (syncedSomething) {
+      loadLocalData();
+    }
+  }, [loadLocalData]);
+
+  // 3. Effect lifecycle
+  useEffect(() => {
+    // Initial Load & Sync check
+    loadLocalData().then(() => syncOfflineItems());
+
+    // Listen for internet connection restoration
+    const handleOnline = () => {
+      syncOfflineItems();
     };
 
-    loadLocalData();
-  }, []); 
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [loadLocalData, syncOfflineItems]);
 
   const handleItemClick = (item) => {
     const confirmMsg = item.isSystem
@@ -13428,13 +13602,7 @@ export default function Dashboard() {
       navigate("/workspace", { state: { templatePath: item.path } });
     } else {
       navigate("/workspace", {
-        state: {
-          projectToLoad: {
-            title: item.name,
-            data: item.data,
-            _id: item._id
-          }
-        }
+        state: { projectToLoad: { title: item.name, data: item.data, _id: item._id } }
       });
     }
   };
@@ -13465,11 +13633,7 @@ export default function Dashboard() {
               <div key={catKey} className="algorithm-column">
                 <h3 className="column-title">{catKey.toUpperCase()}</h3>
                 {items.map((temp) => (
-                  <div
-                    key={temp.name}
-                    className="algorithm-card"
-                    onClick={() => handleItemClick(temp)}
-                  >
+                  <div key={temp.name} className="algorithm-card" onClick={() => handleItemClick(temp)}>
                     <div className="card-header">
                       <img src={temp.icon} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
@@ -13488,11 +13652,7 @@ export default function Dashboard() {
               <div key={category} className="algorithm-column">
                 <h3 className="column-title">{category.toUpperCase()}</h3>
                 {items.map((temp) => (
-                  <div
-                    key={temp._id}
-                    className="algorithm-card custom-template-card"
-                    onClick={() => handleItemClick(temp)}
-                  >
+                  <div key={temp._id} className="algorithm-card custom-template-card" onClick={() => handleItemClick(temp)}>
                     <div className="card-header">
                       <img src={temp.icon || "/assets/folder-icon.png"} alt={temp.name} className="card-icon-img" />
                       <h4>{temp.name}</h4>
@@ -13517,13 +13677,7 @@ export default function Dashboard() {
           ) : (
             <div className="recent-projects-list">
               {recentProjects.map((proj) => (
-                <div
-                  key={proj._id}
-                  className="recent-project-item"
-                  onClick={() =>
-                    navigate("/workspace", { state: { projectToLoad: proj } })
-                  }
-                >
+                <div key={proj._id} className="recent-project-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                   <div className="project-item-info">
                     <div className="project-item-title">{proj.title || proj.name}</div>
                     <div className="project-item-meta">
@@ -13531,9 +13685,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div
-                    className={`project-item-status ${proj.synced ? "synced" : "local"}`}
-                  >
+                  <div className={`project-item-status ${proj.synced ? "synced" : "local"}`}>
                     {proj.synced ? "Cloud Synced" : "Local Only"}
                   </div>
                 </div>
@@ -13611,22 +13763,36 @@ export default function ForgotPassword() {
 --- FILE: frontend/src/pages/HomePage.jsx ---
 
 // frontend/src/pages/HomePage.jsx
-import { useEffect, useState } from "react";
-import { FaPython } from "react-icons/fa";
+import { FaPython, FaUserCircle } from "react-icons/fa";
 import { IoArrowForward } from "react-icons/io5";
-import { LuChartBar, LuCirclePlay, LuPuzzle } from "react-icons/lu";
+import { LuChartBar, LuPuzzle } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import "../styles/HomePage.css";
 
 export default function LandingPage() {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
+  const handleGuestLogin = () => {
+    // Generate a random guest identity
+    const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
+    const guestUser = {
+      _id: guestId,
+      name: "Guest Explorer",
+      email: `${guestId}@guest.local`,
+      isGuest: true,
+      progress: {},
+      assessments: {}
+    };
+    const guestToken = `guest_token_${Date.now()}`;
+    
+    // Store in localStorage to authenticate the session
+    localStorage.setItem("user", JSON.stringify(guestUser));
+    localStorage.setItem("token", guestToken);
+    localStorage.setItem("authToken", guestToken);
+    
+    // Hard redirect to immediately bypass any lingering React state
+    window.location.href = "/dashboard";
+  };
 
   return (
     <div className="landing-container">
@@ -13644,21 +13810,24 @@ export default function LandingPage() {
               performance in real-time.
             </p>
             <div className="hero-buttons">
-              {/* Dynamic Call-To-Action based on DB Auth Status */}
-              <Link to={user ? "/home" : "/signup"} className="btn-primary">
-                {user ? "Continue Learning" : "Start Now"}
+              <Link to="/signup" className="btn-primary">
+                Start Now
                 <IoArrowForward className="btn-icon-inline" aria-hidden="true" />
               </Link>
-              <button className="btn-secondary">
-                <LuCirclePlay className="btn-icon-inline" aria-hidden="true" />
-                Watch Demo
+              <button 
+                type="button" 
+                className="btn-secondary guest-btn" 
+                onClick={handleGuestLogin}
+              >
+                <FaUserCircle className="btn-icon-inline" aria-hidden="true" />
+                Try as Guest
               </button>
             </div>
           </div>
           <div className="home-hero-media" aria-hidden="true">
             <img
               src="/assets/programming-code-editor-illustration-design-vector-removebg-preview.png"
-              alt=""
+              alt="Programming code editor illustration"
               className="home-hero-image"
             />
           </div>
@@ -14542,7 +14711,6 @@ const getComplexityWeight = (complexity) => {
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
-
   return sections.map((sec, idx) => {
     const trimmedSec = sec.trim();
     if (!trimmedSec) return null;
@@ -14594,6 +14762,17 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   }).filter(Boolean);
 };
 
+// HELPER: Centralized Token & User Retrieval
+const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+const getUser = () => {
+    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+};
+const getAuthHeaders = () => {
+    const token = getToken();
+    return token ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` } : { "Content-Type": "application/json" };
+};
+
 export default function MainApp() {
   const location = useLocation();
   const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -14612,11 +14791,10 @@ export default function MainApp() {
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [bottomPanel, setBottomPanel] = useState(null); 
+  const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
@@ -14626,11 +14804,13 @@ export default function MainApp() {
 
   const [allTemplates, setAllTemplates] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
   const [saveModal, setSaveModal] = useState({
     isOpen: false, isEditMetadataOnly: false, editingId: null, editingData: null,
     title: "", description: "", category: "Custom Templates", saveType: "project"
   });
+
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
 
   const workspaceRefs = useRef({});
@@ -14653,12 +14833,13 @@ export default function MainApp() {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
+
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const initWorker = () => {
     if (!workerRef.current) return;
-
     workerRef.current.onmessage = (event) => {
       const { type, data, counts } = event.data;
 
@@ -14667,7 +14848,6 @@ export default function MainApp() {
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
@@ -14686,7 +14866,6 @@ export default function MainApp() {
         pendingOutputRef.current = "";
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
-        
         if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
         
         setIsEvaluating(false); setIsWaitingForInput(false);
@@ -14703,13 +14882,15 @@ export default function MainApp() {
         }
       }
       else if (type === 'INPUT_REQUEST') {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + data.prompt);
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const hint = translatePythonError(data);
         setConsoleOutput(prev => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
@@ -14736,11 +14917,14 @@ export default function MainApp() {
     };
   }, []);
 
+  // --- FIXED: Ensures Blockly resizes properly when sidebar toggles ---
   useEffect(() => {
     if (workspaceRefs.current[activeTabId] && activeTab?.viewMode === 'workspace') {
       setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 50);
+      setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 300); // Safety fallback timeout after CSS transitions
     }
-  }, [activeTabId, activeTab?.viewMode]);
+  }, [activeTabId, activeTab?.viewMode, isSidebarVisible]);
+  // ------------------------------------------------------------------
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === 'output') consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -14773,13 +14957,13 @@ export default function MainApp() {
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map(t => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
-      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-      if (!storedUser) { setAllTemplates(baseTemplates); return; }
-      const user = JSON.parse(storedUser);
+      const user = getUser();
+      if (!user) { setAllTemplates(baseTemplates); return; }
 
       if (navigator.onLine && API_BASE) {
         try {
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`);
+          const headers = getAuthHeaders();
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
           if (pRes.ok) {
             const pData = await pRes.json();
             const cloudProjects = pData.projects || pData || [];
@@ -14789,7 +14973,7 @@ export default function MainApp() {
                }
             }
           }
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`);
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`, { headers });
           if (tRes.ok) {
             const tData = await tRes.json();
             const cloudTemplates = tData.templates || tData || [];
@@ -14876,7 +15060,6 @@ export default function MainApp() {
       else { setTabs(prev => [...prev, newTabState]); setActiveTabId(targetId); }
 
       setTimeout(() => { if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json); }, 100);
-
     } catch (error) { showToast("Failed to load template", "error"); }
   };
 
@@ -14891,7 +15074,7 @@ export default function MainApp() {
     if (isOnline && API_BASE) {
       try {
         const response = await fetch(`${API_BASE}/api/analyze`, {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code })
+          method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ code })
         });
         if (!response.ok) throw new Error("FastAPI analyze failed");
         const data = await response.json();
@@ -14908,7 +15091,7 @@ export default function MainApp() {
           const hint = translatePythonError(data.message);
           updateTab(tabId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
         }
-        return; 
+        return;
       } catch (error) { console.warn("Online analysis failed, safely falling back locally.", error); }
     }
     if (workerRef.current) workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
@@ -14966,7 +15149,8 @@ export default function MainApp() {
   const handleRunCode = async () => {
     if (isEvaluating) return;
     if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console"); setConsoleTab("output"); return;
     }
 
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
@@ -14976,6 +15160,7 @@ export default function MainApp() {
     setConsoleOutput(prev => prev + "\n> Running the program...\n");
 
     outputCountRef.current = 0; pendingOutputRef.current = "";
+
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
@@ -15004,6 +15189,7 @@ export default function MainApp() {
           setConsoleOutput(prev => prev + flushed);
         }
       }, 100);
+
       runTimeoutRef.current = setTimeout(() => {
         resetWorker();
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
@@ -15014,7 +15200,16 @@ export default function MainApp() {
   };
 
   const openSaveModal = () => {
-    if (!activeTab.blocklyJson) { showToast("The workspace is empty. Nothing to save!", "error"); return; }
+    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) { 
+        showToast("The workspace is empty. Nothing to save!", "error");
+        return; 
+    }
+    
+    if (!getUser()) {
+        showToast("You must be logged in to save.", "error");
+        return;
+    }
+
     setSaveModal({
       isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
       title: activeTab.title !== "Untitled Project" ? activeTab.title : "", description: "", category: "Custom Templates", saveType: activeTab.saveType
@@ -15045,12 +15240,13 @@ export default function MainApp() {
   };
 
   const submitSave = async () => {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return;
-    const user = JSON.parse(userStr);
+    const user = getUser();
+    if (!user) {
+        showToast("Error: You must be logged in to save.", "error");
+        return;
+    }
     
     const id = saveModal.editingId || (saveModal.saveType === 'template' ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
-    
     const payload = { 
         _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description, 
         category: saveModal.saveType === 'template' ? saveModal.category : undefined, 
@@ -15070,14 +15266,15 @@ export default function MainApp() {
               : { projectId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
 
             const res = await fetch(`${API_BASE}${endpoint}`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(apiPayload)
+                method: 'POST', 
+                headers: getAuthHeaders(), 
+                body: JSON.stringify(apiPayload)
             });
 
             if (res.ok) {
                 const responseData = await res.json();
                 const realId = responseData.projectId || responseData.templateId || responseData._id || id;
                 payload._id = realId; payload.synced = true;
-
                 if (realId !== id) await db.removeItem(id); 
                 await db.setItem(realId, payload);
                 
@@ -15086,12 +15283,13 @@ export default function MainApp() {
                 if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType });
                 fetchTemplates();
                 return;
+            } else {
+                console.warn(`Server returned ${res.status}, falling back to local queue`);
             }
         } catch (err) { console.warn("Direct save failed, gracefully falling back to background queue.", err); }
     }
 
     await syncQueueDB.setItem(`sync_${id}_${Date.now()}`, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
-
     showToast("Saved locally. Background sync queued.");
     setSaveModal({ ...saveModal, isOpen: false });
     if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType });
@@ -15105,8 +15303,11 @@ export default function MainApp() {
 
     setAllTemplates(prev => prev.filter(t => t._id !== item._id));
     try {
-      if (item.saveType === 'template') await templatesDB.removeItem(item._id); else await projectsDB.removeItem(item._id);
-      if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id); else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
+      if (item.saveType === 'template') await templatesDB.removeItem(item._id);
+      else await projectsDB.removeItem(item._id);
+      
+      if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id); 
+      else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
 
       showToast(`${itemLabel} deleted locally!`, "success");
       tabs.forEach(t => {
@@ -15119,6 +15320,7 @@ export default function MainApp() {
   };
 
   const filteredTemplates = allTemplates.filter(t => String(t.title || "").toLowerCase().includes(String(searchTerm || "").toLowerCase()));
+
   const groupedTemplates = filteredTemplates.reduce((acc, template) => {
     const category = template.category || "Uncategorized";
     if (!acc[category]) acc[category] = [];
@@ -15127,17 +15329,34 @@ export default function MainApp() {
 
   const lines = activeTab.analysisResult?.lines || [];
   let maxWeight = 0; let bottleneckIndices = [];
+
   lines.forEach((line, index) => {
     const weight = getComplexityWeight(activeComplexityTab === 'local' ? (line.local_time || "O(1)") : (line.global_time || "O(1)"));
     if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
     else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
   });
+
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (activeTab.pythonCode || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(activeTab.lineExecutions));
 
   return (
     <div className="workspace-app-container">
+      
+      {/* CSS Block to cleanly hide the sidebar without breaking react-split widths */}
+      <style>{`
+        .workspace-split.sidebar-hidden .templates-sidebar {
+          display: none !important;
+          width: 0 !important;
+        }
+        .workspace-split.sidebar-hidden .gutter.gutter-horizontal {
+          display: none !important;
+        }
+        .workspace-split.sidebar-hidden .workspace-main {
+          width: 100% !important;
+        }
+      `}</style>
+
       {toast.show && (<div className={`toast-notification ${toast.type === 'error' ? 'toast-error' : 'toast-success'}`}>{toast.message}</div>)}
 
       {saveModal.isOpen && (

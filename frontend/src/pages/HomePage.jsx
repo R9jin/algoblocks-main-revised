@@ -1,20 +1,34 @@
 // frontend/src/pages/HomePage.jsx
-import { useEffect, useState } from "react";
-import { FaPython } from "react-icons/fa";
+import { FaPython, FaUserCircle } from "react-icons/fa";
 import { IoArrowForward } from "react-icons/io5";
-import { LuChartBar, LuCirclePlay, LuPuzzle } from "react-icons/lu";
+import { LuChartBar, LuPuzzle } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import "../styles/HomePage.css";
 
 export default function LandingPage() {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
+  const handleGuestLogin = () => {
+    // Generate a random guest identity
+    const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
+    const guestUser = {
+      _id: guestId,
+      name: "Guest Explorer",
+      email: `${guestId}@guest.local`,
+      isGuest: true,
+      progress: {},
+      assessments: {}
+    };
+    const guestToken = `guest_token_${Date.now()}`;
+    
+    // Store in localStorage to authenticate the session
+    localStorage.setItem("user", JSON.stringify(guestUser));
+    localStorage.setItem("token", guestToken);
+    localStorage.setItem("authToken", guestToken);
+    
+    // Hard redirect to immediately bypass any lingering React state
+    window.location.href = "/dashboard";
+  };
 
   return (
     <div className="landing-container">
@@ -32,21 +46,24 @@ export default function LandingPage() {
               performance in real-time.
             </p>
             <div className="hero-buttons">
-              {/* Dynamic Call-To-Action based on DB Auth Status */}
-              <Link to={user ? "/home" : "/signup"} className="btn-primary">
-                {user ? "Continue Learning" : "Start Now"}
+              <Link to="/signup" className="btn-primary">
+                Start Now
                 <IoArrowForward className="btn-icon-inline" aria-hidden="true" />
               </Link>
-              <button className="btn-secondary">
-                <LuCirclePlay className="btn-icon-inline" aria-hidden="true" />
-                Watch Demo
+              <button 
+                type="button" 
+                className="btn-secondary guest-btn" 
+                onClick={handleGuestLogin}
+              >
+                <FaUserCircle className="btn-icon-inline" aria-hidden="true" />
+                Try as Guest
               </button>
             </div>
           </div>
           <div className="home-hero-media" aria-hidden="true">
             <img
               src="/assets/programming-code-editor-illustration-design-vector-removebg-preview.png"
-              alt=""
+              alt="Programming code editor illustration"
               className="home-hero-image"
             />
           </div>

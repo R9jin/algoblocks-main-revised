@@ -1,53 +1,167 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
-from api.database import db # Adjust import based on your actual db instance
-from api.security import get_current_user # Adjust based on your auth implementation
+# api/routers/progress_router.py
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from database import db 
+from security import get_current_user_email
 
-router = APIRouter(prefix="/api/progress", tags=["Progress"])
+router = APIRouter()
 
-# Define exactly what the frontend should send
-class AssessmentPayload(BaseModel):
-    module_id: str
-    score: int
-    total_questions: int
-    passed: bool
+@router.get("/get-progress")
+def get_progress(user_email: str = Depends(get_current_user_email)):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid user token")
 
-@router.post("/assessment")
-async def save_assessment(payload: AssessmentPayload, current_user: dict = Depends(get_current_user)):
     try:
-        # 1. Prepare the query to find the specific user and module
-        query = {
-            "user_id": current_user["_id"],  # Or current_user.id depending on your auth model
-            "module_id": payload.module_id
-        }
-
-        # 2. Prepare the data to update or insert
-        update_data = {
-            "$set": {
-                "score": payload.score,
-                "total_questions": payload.total_questions,
-                "passed": payload.passed,
-                "updated_at": "ISODate()" # Or a datetime.utcnow()
-            }
-        }
-
-        # 3. CRITICAL: Await the database call and use upsert=True
-        result = await db.assessments.update_one(
-            query, 
-            update_data, 
-            upsert=True  # Creates the document if it doesn't exist!
-        )
-
-        return {
-            "success": True, 
-            "message": "Assessment saved to MongoDB successfully.",
-            "matched_count": result.matched_count,
-            "modified_count": result.modified_count
-        }
-
+        progress_data = list(db["progress"].find({"userId": user_email}, {"_id": 0}))
+        for item in progress_data:
+            if "data" in item and isinstance(item["data"], dict):
+                nested = item.pop("data")
+                item.update(nested)
+        return progress_data
     except Exception as e:
-        # If something breaks, throw a 500 so it doesn't silently fail with a 200 OK
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database insertion failed: {str(e)}"
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get("/get-assessments")
+def get_assessments(user_email: str = Depends(get_current_user_email)):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid user token")
+
+    try:
+        assessment_data = list(db["assessments"].find({"userId": user_email}, {"_id": 0}))
+        for item in assessment_data:
+            if "data" in item and isinstance(item["data"], dict):
+                nested = item.pop("data")
+                item.update(nested)
+        return assessment_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.get("/get-submission")
+def get_submission(
+    activityId: str = Query(..., description="The ID of the activity"),
+    moduleId: str = Query(None, description="The ID of the module"),
+    user_email: str = Depends(get_current_user_email)
+):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid user token")
+
+    try:
+        submission = db["submissions"].find_one(
+            {"userId": user_email, "activityId": activityId}, 
+            {"_id": 0}
         )
+        # CRITICAL FIX: Unpack single submissions
+        if submission and "data" in submission and isinstance(submission["data"], dict):
+            nested = submission.pop("data")
+            submission.update(nested)
+        return submission if submission else {}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    
+@router.get("/get-submissions")
+def get_all_submissions(user_email: str = Depends(get_current_user_email)):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid user token")
+
+    try:
+        submissions_data = list(db["submissions"].find({"userId": user_email}, {"_id": 0}))
+        # CRITICAL FIX: Unpack nested submission arrays
+        for item in submissions_data:
+            if "data" in item and isinstance(item["data"], dict):
+                nested = item.pop("data")
+                item.update(nested)
+        return submissions_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.post("/update-progress")
+def update_progress(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid user token")
+
+    try:
+        key = payload.get("key") or payload.get("lesson_id")
+        if not key:
+            raise HTTPException(status_code=400, detail="Missing progress key or lesson_id")
+
+        actual_data = payload.get("data", payload)
+        if isinstance(actual_data, dict) and actual_data is not payload:
+            for k, v in payload.items():
+                if k != "data":
+                    actual_data[k] = v
+        else:
+            actual_data = payload.copy()
+
+        actual_data["key"] = key
+        actual_data["userId"] = user_email
+
+        db["progress"].update_one(
+            {"userId": user_email, "key": key},
+            {"$set": actual_data},
+            upsert=True
+        )
+
+        return {"status": "success", "message": "Progress updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update progress: {str(e)}")
+
+@router.post("/update-assessment")
+def update_assessment(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid user token")
+
+    try:
+        key = payload.get("key") or payload.get("assessment_key")
+        if not key:
+            raise HTTPException(status_code=400, detail="Missing assessment key")
+
+        actual_data = payload.get("data", payload)
+        if isinstance(actual_data, dict) and actual_data is not payload:
+            for k, v in payload.items():
+                if k != "data":
+                    actual_data[k] = v
+        else:
+            actual_data = payload.copy()
+
+        actual_data["key"] = key
+        actual_data["userId"] = user_email
+
+        db["assessments"].update_one(
+            {"userId": user_email, "key": key},
+            {"$set": actual_data},
+            upsert=True
+        )
+
+        return {"status": "success", "message": "Assessment updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update assessment: {str(e)}")
+
+@router.post("/sync-submission")
+def sync_submission(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Invalid user token")
+
+    try:
+        # CRITICAL FIX: Ensure incoming queue data isn't nested
+        actual_data = payload.get("data", payload)
+        if isinstance(actual_data, dict) and actual_data is not payload:
+            for k, v in payload.items():
+                if k != "data":
+                    actual_data[k] = v
+        else:
+            actual_data = payload.copy()
+
+        activity_id = actual_data.get("activityId")
+        if not activity_id:
+            raise HTTPException(status_code=400, detail="Missing activityId in payload")
+
+        actual_data["userId"] = user_email
+
+        db["submissions"].update_one(
+            {"userId": user_email, "activityId": activity_id},
+            {"$set": actual_data},
+            upsert=True
+        )
+
+        return {"status": "success", "message": "Submission synced successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to sync submission: {str(e)}")

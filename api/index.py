@@ -30,7 +30,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://your-main-custom-domain.com" # Put your primary custom domain here if you have one
+        "https://algoblocks-main-revised.vercel.app" # Put your primary custom domain here if you have one
     ], 
     # 2. Dynamically allow ALL Vercel deployments (previews, branches, etc.)
     allow_origin_regex=r"https://.*\.vercel\.app", 

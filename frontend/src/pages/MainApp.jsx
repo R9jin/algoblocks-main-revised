@@ -78,7 +78,6 @@ const getComplexityWeight = (complexity) => {
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
-
   return sections.map((sec, idx) => {
     const trimmedSec = sec.trim();
     if (!trimmedSec) return null;
@@ -130,7 +129,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
   }).filter(Boolean);
 };
 
-// HELPER: Centralized Token & User Retrieval
 const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 const getUser = () => {
     const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -145,7 +143,6 @@ export default function MainApp() {
   const location = useLocation();
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
-  // Hook into the global Pyodide Context
   const { worker, isEngineReady, resetWorker } = usePyodide();
 
   const createInitialTab = () => ({
@@ -159,11 +156,10 @@ export default function MainApp() {
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [bottomPanel, setBottomPanel] = useState(null); 
+  const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
@@ -200,21 +196,19 @@ export default function MainApp() {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
+
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const initWorker = () => {
     if (!workerRef.current) return;
-
     workerRef.current.onmessage = (event) => {
       const { type, data, counts } = event.data;
-
       if (type === 'ANALYZE_RESULT') {
         const targetId = analyzingTabId.current;
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
@@ -233,7 +227,6 @@ export default function MainApp() {
         pendingOutputRef.current = "";
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
-        
         if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
         
         setIsEvaluating(false); setIsWaitingForInput(false);
@@ -250,13 +243,15 @@ export default function MainApp() {
         }
       }
       else if (type === 'INPUT_REQUEST') {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + data.prompt);
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const hint = translatePythonError(data);
         setConsoleOutput(prev => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
@@ -286,8 +281,9 @@ export default function MainApp() {
   useEffect(() => {
     if (workspaceRefs.current[activeTabId] && activeTab?.viewMode === 'workspace') {
       setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 50);
+      setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 300);
     }
-  }, [activeTabId, activeTab?.viewMode]);
+  }, [activeTabId, activeTab?.viewMode, isSidebarVisible]);
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === 'output') consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -325,9 +321,7 @@ export default function MainApp() {
 
       if (navigator.onLine && API_BASE) {
         try {
-          // FIX: Add auth headers to fetch requests to prevent silent 401s
           const headers = getAuthHeaders();
-          
           const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
           if (pRes.ok) {
             const pData = await pRes.json();
@@ -372,7 +366,6 @@ export default function MainApp() {
             }); 
         }
       });
-
       const uniqueItemsMap = new Map();
       customItems.forEach(item => uniqueItemsMap.set(item._id, item));
       setAllTemplates([...baseTemplates, ...Array.from(uniqueItemsMap.values())]);
@@ -420,12 +413,10 @@ export default function MainApp() {
         isEditingCode: false, syntaxError: null, analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
         lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : (item.saveType || "project")
       };
-
       if (isClean) setTabs(prev => prev.map(t => t.id === targetId ? newTabState : t));
       else { setTabs(prev => [...prev, newTabState]); setActiveTabId(targetId); }
 
       setTimeout(() => { if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json); }, 100);
-
     } catch (error) { showToast("Failed to load template", "error"); }
   };
 
@@ -444,7 +435,6 @@ export default function MainApp() {
         });
         if (!response.ok) throw new Error("FastAPI analyze failed");
         const data = await response.json();
-
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
@@ -457,7 +447,7 @@ export default function MainApp() {
           const hint = translatePythonError(data.message);
           updateTab(tabId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
         }
-        return; 
+        return;
       } catch (error) { console.warn("Online analysis failed, safely falling back locally.", error); }
     }
     if (workerRef.current) workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
@@ -469,7 +459,6 @@ export default function MainApp() {
 
     const oldCode = (tab.pythonCode || "").trim();
     const newCode = (pythonCode || "").trim();
-
     if (!tab.isEditingCode && oldCode !== newCode) {
       analyzeCode(tabId, pythonCode);
     }
@@ -515,7 +504,8 @@ export default function MainApp() {
   const handleRunCode = async () => {
     if (isEvaluating) return;
     if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console"); setConsoleTab("output"); return;
     }
 
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
@@ -531,7 +521,6 @@ export default function MainApp() {
         setConsoleOutput(prev => prev + flushed);
       }
     }, 100);
-
     workerRef.current.postMessage({ type: 'RUN_CODE', code: activeTab.pythonCode });
     runTimeoutRef.current = setTimeout(() => {
       resetWorker();
@@ -546,7 +535,6 @@ export default function MainApp() {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
       outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
-
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
@@ -564,11 +552,10 @@ export default function MainApp() {
 
   const openSaveModal = () => {
     if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) { 
-        showToast("The workspace is empty. Nothing to save!", "error"); 
+        showToast("The workspace is empty. Nothing to save!", "error");
         return; 
     }
     
-    // FIX: Pre-check if user is logged in before opening the modal
     if (!getUser()) {
         showToast("You must be logged in to save.", "error");
         return;
@@ -595,6 +582,30 @@ export default function MainApp() {
     showToast("Workspace exported as JSON", "success");
   };
 
+  const handleImportJson = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+        if (workspaceRefs.current[activeTabId]) {
+          workspaceRefs.current[activeTabId].loadTemplate(json);
+          updateTab(activeTabId, {
+            title: file.name.replace(".json", ""),
+            saveType: "project"
+          });
+          showToast("Workspace imported successfully", "success");
+        }
+      } catch (err) {
+        showToast("Invalid JSON file", "error");
+      }
+      event.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   const handleEditItem = (e, item) => {
     e.stopPropagation();
     setSaveModal({
@@ -604,7 +615,6 @@ export default function MainApp() {
   };
 
   const submitSave = async () => {
-    // FIX: Get user explicitly handling both Session and Local storage
     const user = getUser();
     if (!user) {
         showToast("Error: You must be logged in to save.", "error");
@@ -612,7 +622,6 @@ export default function MainApp() {
     }
     
     const id = saveModal.editingId || (saveModal.saveType === 'template' ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
-    
     const payload = { 
         _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description, 
         category: saveModal.saveType === 'template' ? saveModal.category : undefined, 
@@ -631,7 +640,6 @@ export default function MainApp() {
               ? { templateId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
               : { projectId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
 
-            // FIX: Add strictly defined auth headers
             const res = await fetch(`${API_BASE}${endpoint}`, {
                 method: 'POST', 
                 headers: getAuthHeaders(), 
@@ -642,7 +650,6 @@ export default function MainApp() {
                 const responseData = await res.json();
                 const realId = responseData.projectId || responseData.templateId || responseData._id || id;
                 payload._id = realId; payload.synced = true;
-
                 if (realId !== id) await db.removeItem(id); 
                 await db.setItem(realId, payload);
                 
@@ -658,7 +665,6 @@ export default function MainApp() {
     }
 
     await syncQueueDB.setItem(`sync_${id}_${Date.now()}`, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
-
     showToast("Saved locally. Background sync queued.");
     setSaveModal({ ...saveModal, isOpen: false });
     if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType });
@@ -672,8 +678,11 @@ export default function MainApp() {
 
     setAllTemplates(prev => prev.filter(t => t._id !== item._id));
     try {
-      if (item.saveType === 'template') await templatesDB.removeItem(item._id); else await projectsDB.removeItem(item._id);
-      if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id); else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
+      if (item.saveType === 'template') await templatesDB.removeItem(item._id);
+      else await projectsDB.removeItem(item._id);
+      
+      if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id); 
+      else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
 
       showToast(`${itemLabel} deleted locally!`, "success");
       tabs.forEach(t => {
@@ -699,12 +708,28 @@ export default function MainApp() {
     if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
     else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
   });
+
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (activeTab.pythonCode || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(activeTab.lineExecutions));
 
   return (
     <div className="workspace-app-container">
+      
+      {/* CSS Block to cleanly hide the sidebar without breaking react-split widths */}
+      <style>{`
+        .workspace-split.sidebar-hidden .templates-sidebar {
+          display: none !important;
+          width: 0 !important;
+        }
+        .workspace-split.sidebar-hidden .gutter.gutter-horizontal {
+          display: none !important;
+        }
+        .workspace-split.sidebar-hidden .workspace-main {
+          width: 100% !important;
+        }
+      `}</style>
+
       {toast.show && (<div className={`toast-notification ${toast.type === 'error' ? 'toast-error' : 'toast-success'}`}>{toast.message}</div>)}
 
       {saveModal.isOpen && (
@@ -736,7 +761,7 @@ export default function MainApp() {
 
       <WorkspaceHeader
         viewMode={activeTab.viewMode} setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })}
-        runCode={handleRunCode} handleExport={handleExportJson} handleSaveToDB={openSaveModal}
+        runCode={handleRunCode} handleExport={handleExportJson} handleImport={handleImportJson} handleSaveToDB={openSaveModal}
         currentProjectId={activeTab.currentLoadedId} currentProjectTitle={activeTab.title}
         handleUpdateDB={openSaveModal} isEvaluating={isEvaluating}
       />

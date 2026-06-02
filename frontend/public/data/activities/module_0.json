@@ -3,310 +3,499 @@
     {
       "id": "m0_l1_a1",
       "title": "Hello AlgoBlocks",
-      "task": "You are initializing a basic system greeting function inside the AlgoBlocks runtime environment.\n\nYour system must confirm successful execution by returning a fixed string value.\n\nTask Requirement:\nCreate a function hello() that returns the exact string:\n\nHello, AlgoBlocks!\n\nRules:\n- Must not use print()\n- Must not modify spacing or characters\n- Must return the exact string\n\nSample Output:\nhello() → Hello, AlgoBlocks!",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
+      "task": [
+        "Welcome to AlgoBlocks, future algorithm master! Every great programmer's journey begins with a classic tradition: making the computer speak. Today, you'll be writing your very first algorithm to greet the digital world. Let's dive into the workspace and build a simple function to introduce yourself!",
+        "",
+        "Instructions:",
+        "1. Open the **Functions** tab and drag out the block with a 'return' slot. Rename the function to `hello`.",
+        "2. Open the **Text** tab, drag out a text block (`\" \"`), and type 'Hello World'.",
+        "3. Snap the text block into the return slot of your function.",
+        "4. (Optional) Open the **Functions** tab again and use the `call hello` block if you want to test it manually.",
+        "5. Open the **Python Code** tab to see how your blocks are converted into real code.",
+        "6. Click Run, then open the **Complexity** tab to view the analysis (check out the local and global metrics!).",
+        "",
+        "Sample Output:",
+        "hello() → 'Hello World'"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
-        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
-        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
-        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false },
-        { "call": "hello()", "expected": "'Hello, AlgoBlocks!'", "isHidden": false }
+        { "call": "hello()", "expected": "'Hello World'", "isHidden": false }
       ]
     },
     {
       "id": "m0_l1_a2",
-      "title": "ASCII Art Triangle",
-      "task": "A rendering engine is required to generate text-based visual patterns using characters.\n\nTask Requirement:\nCreate a function triangle(n) that returns a left-aligned triangle made of '*' characters.\n\nRules:\n- Each row i contains i asterisks\n- Rows must be separated using '\\n'\n- If n ≤ 0, return an empty string\n\nSample Output:\ntriangle(3) → \"*\\n**\\n***\"",
+      "title": "ASCII Art",
+      "task": [
+        "Programming isn't just about logic; it's also about creativity! Cody wants to draw something cool on the screen using only text characters, but he needs your help to make it happen. Let's practice the basic flow again by creating a function that returns a simple piece of ASCII art.",
+        "",
+        "Instructions:",
+        "1. Open the **Functions** tab, get a return-slot function, and rename it to `draw_star`.",
+        "2. Open the **Text** tab, grab a text block, and type `***`.",
+        "3. Attach it to your function's return slot.",
+        "4. (Optional) Call the function using the block from the **Functions** tab to see it work.",
+        "5. Check the **Python Code** tab to see the generated return statement.",
+        "6. Run and open the **Complexity** tab. Notice your global time and space are Constant O(1).",
+        "",
+        "Sample Output:",
+        "draw_star() → '***'"
+      ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
-      "randomizeTestCases": true,
+      "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "triangle(3)", "expected": "\"*\\n**\\n***\"", "isHidden": false },
-        { "call": "triangle(2)", "expected": "\"*\\n**\"", "isHidden": false },
-        { "call": "triangle(1)", "expected": "\"*\"", "isHidden": false },
-        { "call": "triangle(0)", "expected": "\"\"", "isHidden": false },
-        { "call": "triangle(-1)", "expected": "\"\"", "isHidden": false }
+        { "call": "draw_star()", "expected": "'***'", "isHidden": false }
       ]
     },
     {
       "id": "m0_l1_a3",
       "title": "Basic Calculator",
-      "task": "A computation validation system is required to safely perform arithmetic operations only on valid numeric inputs.\n\nTask Requirement:\nCreate a function add(a, b) that returns the sum of two numbers.\n\nRules:\n- Inputs must be integers or floats\n- If any input is invalid, return 'Error'\n\nSample Output:\nadd(2,3) → 5",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "task": [
+        "Calculators are one of the most fundamental tools built with code. Cody is trying to do his math homework but keeps losing count! Let's help him out by exploring math blocks and function parameters to build a basic calculator that adds two numbers together.",
+        "",
+        "Instructions:",
+        "1. Open the **Functions** tab, create a function named `add`, and click the gear icon to add two inputs: `a` and `b`.",
+        "2. Open the **Math** tab and drag out the addition block (`1 + 1`).",
+        "3. Open the **Variables** tab to get your `a` and `b` blocks, and plug them into the math block.",
+        "4. Attach the completed math block to your return slot.",
+        "5. View your generated code in the **Python Code** tab.",
+        "6. Run the tests and review the **Complexity** tab.",
+        "",
+        "Sample Output:",
+        "add(5, 3) → 8"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "add(2,3)", "expected": "5", "isHidden": false },
-        { "call": "add(10,10)", "expected": "20", "isHidden": false },
-        { "call": "add(0,5)", "expected": "5", "isHidden": false },
-        { "call": "add('a',3)", "expected": "'Error'", "isHidden": false },
-        { "call": "add(None,2)", "expected": "'Error'", "isHidden": false }
+        { "call": "add(5, 3)", "expected": "8", "isHidden": false },
+        { "call": "add(10, 20)", "expected": "30", "isHidden": false },
+        { "call": "add(0, 0)", "expected": "0", "isHidden": false }
       ]
     },
     {
       "id": "m0_l1_a4",
       "title": "Name Greeter",
-      "task": "A user interaction system generates personalized messages based on input values.\n\nTask Requirement:\nCreate a function greet(name) that returns a formatted greeting.\n\nRules:\n- Must not modify input\n- Must follow exact output format\n\nOutput Format:\nWelcome <name>!\n\nSample Output:\ngreet('Ana') → Welcome Ana!",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "task": [
+        "A good program knows how to be polite! Instead of just saying 'Hello World', we want our algorithm to greet people by their actual names. Let's combine text blocks and variable parameters to build a customized name greeter for Cody and his friends.",
+        "",
+        "Instructions:",
+        "1. Open the **Functions** tab and create `greet` with one input parameter named `name`.",
+        "2. Open the **Text** tab and drag out the 'create text with' block.",
+        "3. Snap a text block with 'Hi ' into the first slot, and your `name` variable from the **Variables** tab into the second.",
+        "4. Attach the group to the return slot.",
+        "5. (Optional) Open **Functions** and call it with a sample name.",
+        "6. Run the code and check the **Complexity** tab's local views to see the cost of the blocks.",
+        "",
+        "Sample Output:",
+        "greet('Alice') → 'Hi Alice'"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "greet('Ana')", "expected": "'Welcome Ana!'", "isHidden": false },
-        { "call": "greet('John')", "expected": "'Welcome John!'", "isHidden": false },
-        { "call": "greet('Lee')", "expected": "'Welcome Lee!'", "isHidden": false },
-        { "call": "greet('')", "expected": "'Welcome !'", "isHidden": false },
-        { "call": "greet(None)", "expected": "'Welcome None!'", "isHidden": false }
+        { "call": "greet('Alice')", "expected": "'Hi Alice'", "isHidden": false },
+        { "call": "greet('Bob')", "expected": "'Hi Bob'", "isHidden": false }
       ]
     },
     {
       "id": "m0_l1_a5",
-      "title": "Execution Step Counter",
-      "task": "A process simulation module tracks how many execution steps occur inside a controlled runtime environment.\n\nTask Requirement:\nCreate a function multi() that simulates execution of 5 internal steps.\n\nRules:\n- Must return total number of steps executed\n- Must not print intermediate values\n\nSample Output:\nmulti() → 5",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
+      "title": "Multi-Line Output",
+      "task": [
+        "Sometimes, one piece of data just isn't enough. Cody needs to organize a sequence of numbers, and the best way to do that in programming is by using a List! Let's explore the Lists tab and group multiple items together into a single structured output.",
+        "",
+        "Instructions:",
+        "1. Open the **Functions** tab to set up your `get_numbers` function.",
+        "2. Open the **Lists** tab and grab the 'create list with' block.",
+        "3. Open the **Math** tab, grab three number blocks (1, 2, 3), and snap them into the list.",
+        "4. Return the list.",
+        "5. Open the **Python Code** tab to see how lists are formatted in Python.",
+        "6. Run and check the **Complexity** tab.",
+        "",
+        "Sample Output:",
+        "get_numbers() → [1, 2, 3]"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "multi()", "expected": "5", "isHidden": false },
-        { "call": "multi()", "expected": "5", "isHidden": false },
-        { "call": "multi()", "expected": "5", "isHidden": false },
-        { "call": "multi()", "expected": "5", "isHidden": false },
-        { "call": "multi()", "expected": "5", "isHidden": false }
+        { "call": "get_numbers()", "expected": "[1, 2, 3]", "isHidden": false }
       ]
     }
   ],
-
   "lesson_2": [
     {
       "id": "m0_l2_a1",
-      "title": "Odd or Even Classifier",
-      "task": "A number classification system is required to evaluate whether a given input is odd or even.\n\nTask Requirement:\nCreate a function check_odd_even(n).\n\nRules:\n- If n is odd → return 'Odd'\n- If n is even → return 'Even'\n- If input is not an integer → return 'Invalid'\n\nSample Output:\ncheck_odd_even(7) → Odd",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
+      "title": "Variable Assignment",
+      "task": [
+        "Imagine variables as labeled boxes where you can safely store important information for later use. Cody found a secret number that he wants to keep safe inside the computer's memory. Let's learn how to create and assign a value to a variable!",
+        "",
+        "Instructions:",
+        "1. Open the **Functions** tab and create `store_data`.",
+        "2. Open the **Variables** tab, click 'Create variable...', and name it `x`.",
+        "3. Drag the `set x to` block into your function, and use the **Math** tab to set it to 100.",
+        "4. Get the `x` block from the **Variables** tab and put it in the return slot.",
+        "5. Check the **Python Code** tab to see variable assignment (`x = 100`).",
+        "6. Run and check the **Complexity** tab.",
+        "",
+        "Sample Output:",
+        "store_data() → 100"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "check_odd_even(7)", "expected": "'Odd'", "isHidden": false },
-        { "call": "check_odd_even(10)", "expected": "'Even'", "isHidden": false },
-        { "call": "check_odd_even(3)", "expected": "'Odd'", "isHidden": false },
-        { "call": "check_odd_even('7')", "expected": "'Invalid'", "isHidden": false },
-        { "call": "check_odd_even(None)", "expected": "'Invalid'", "isHidden": false }
+        { "call": "store_data()", "expected": "100", "isHidden": false }
       ]
     },
     {
       "id": "m0_l2_a2",
-      "title": "Sequence Generator",
-      "task": "A sequence generation engine produces ordered numeric lists for computational pipelines.\n\nTask Requirement:\nCreate a function count(n) that generates numbers from 1 to n.\n\nRules:\n- Return list of integers\n- If n ≤ 0 → return empty list\n\nSample Output:\ncount(3) → [1,2,3]",
+      "title": "Simple Condition",
+      "task": [
+        "Programs need to be smart enough to make their own decisions! Cody is building a system that sorts numbers, but it needs to know if a number is positive or not. Let's use logic and condition blocks to teach your algorithm how to choose between different paths.",
+        "",
+        "Instructions:",
+        "1. Open **Functions** and create `is_positive(n)`.",
+        "2. Open the **Logic** tab and drag out an `if / do` block.",
+        "3. Grab a comparison block (`=`) from the **Logic** tab, change it to `>`, and check if `n > 0`.",
+        "4. Inside the `do`, return 'Yes' (from **Text**). Click the gear icon to add an `else` and return 'No'.",
+        "5. Open the **Python Code** tab to see the generated `if/else` statement.",
+        "6. Run the tests and explore the global metrics in the **Complexity** tab.",
+        "",
+        "Sample Output:",
+        "is_positive(5) → 'Yes'",
+        "is_positive(-2) → 'No'"
+      ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "count(3)", "expected": "[1,2,3]", "isHidden": false },
-        { "call": "count(5)", "expected": "[1,2,3,4,5]", "isHidden": false },
-        { "call": "count(1)", "expected": "[1]", "isHidden": false },
-        { "call": "count(0)", "expected": "[]", "isHidden": false },
-        { "call": "count(-2)", "expected": "[]", "isHidden": false }
+        { "call": "is_positive(5)", "expected": "'Yes'", "isHidden": false },
+        { "call": "is_positive(-2)", "expected": "'No'", "isHidden": false },
+        { "call": "is_positive(0)", "expected": "'No'", "isHidden": false }
       ]
     },
     {
       "id": "m0_l2_a3",
-      "title": "Array Transformation Engine",
-      "task": "A data processing pipeline requires transformation of numerical arrays using scaling operations.\n\nTask Requirement:\nCreate a function double(arr).\n\nRules:\n- Multiply each element by 2\n- Input must be a valid list\n- Invalid input → return 'Error'\n\nSample Output:\ndouble([1,2,3]) → [2,4,6]",
-      "targetTime": "O(n)",
+      "title": "Basic Loop",
+      "task": [
+        "Why do the exact same work over and over again when the computer can do it for you? Cody needs to count up some items, but doing it manually takes way too long. Let's harness the power of loops to repeat actions automatically and save us some serious time!",
+        "",
+        "Instructions:",
+        "1. Open **Functions** and create `repeat_five`.",
+        "2. In the **Variables** tab, create a variable `total` and set it to 0.",
+        "3. Open the **Loops** tab and drag a `repeat 5 times` block.",
+        "4. Inside the loop, use **Math** and **Variables** blocks to add 1 to `total`.",
+        "5. Return `total`.",
+        "6. Check the **Python Code** tab to see the `for` loop, then run and open the **Complexity** tab to see how loops affect the score.",
+        "",
+        "Sample Output:",
+        "repeat_five() → 5"
+      ],
+      "targetTime": "O(n^2)",
       "targetSpace": "O(n)",
-      "randomizeTestCases": true,
+      "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "double([1,2,3])", "expected": "[2,4,6]", "isHidden": false },
-        { "call": "double([10])", "expected": "[20]", "isHidden": false },
-        { "call": "double([0,0])", "expected": "[0,0]", "isHidden": false },
-        { "call": "double([])", "expected": "[]", "isHidden": false },
-        { "call": "double(None)", "expected": "'Error'", "isHidden": false }
+        { "call": "repeat_five()", "expected": "5", "isHidden": false }
       ]
     },
     {
       "id": "m0_l2_a4",
-      "title": "Score Evaluation System",
-      "task": "A grading system evaluates numeric scores and assigns performance labels.\n\nTask Requirement:\nCreate a function evaluate(score).\n\nRules:\n- 75–100 → 'Pass'\n- 0–74 → 'Fail'\n- Outside 0–100 → 'Invalid'\n\nSample Output:\nevaluate(75) → Pass",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "title": "Array Access",
+      "task": [
+        "Now that we know how to store items in a list, we need to know how to retrieve them! Cody has a list of high scores, but he only wants to see the very first one. Let's dive into array access and extract a specific item from our data collection.",
+        "",
+        "Instructions:",
+        "1. Open **Functions** and create `get_first(arr)`.",
+        "2. Open the **Lists** tab and find the `in list ... get ...` block.",
+        "3. Plug your `arr` variable into the list slot, and set it to get the first item.",
+        "4. Return this block.",
+        "5. Open the **Python Code** tab to see how Python accesses list indices (e.g., `arr[0]`).",
+        "6. Run the code and view the **Complexity** tab.",
+        "",
+        "Sample Output:",
+        "get_first([10, 20, 30]) → 10"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "evaluate(75)", "expected": "'Pass'", "isHidden": false },
-        { "call": "evaluate(74)", "expected": "'Fail'", "isHidden": false },
-        { "call": "evaluate(90)", "expected": "'Pass'", "isHidden": false },
-        { "call": "evaluate(-1)", "expected": "'Invalid'", "isHidden": false },
-        { "call": "evaluate(101)", "expected": "'Invalid'", "isHidden": false }
+        { "call": "get_first([10, 20, 30])", "expected": "10", "isHidden": false },
+        { "call": "get_first([99])", "expected": "99", "isHidden": false }
       ]
     },
     {
       "id": "m0_l2_a5",
-      "title": "Range Summation Engine",
-      "task": "A computation system calculates cumulative sums over a numeric range using iterative logic.\n\nTask Requirement:\nCreate a function sum_range(n).\n\nRules:\n- Sum all integers from 1 to n\n- If n ≤ 0 → return 0\n\nSample Output:\nsum_range(5) → 15",
+      "title": "Array Modification",
+      "task": [
+        "Data isn't static; it grows and changes over time! Cody just got a new high score and needs to add it to his existing record list. Let's learn how to modify an array dynamically by appending new items to the very end of it.",
+        "",
+        "Instructions:",
+        "1. Open **Functions** and create `add_zero(arr)`.",
+        "2. Open the **Lists** tab and find the block to insert/set an item at the end of a list.",
+        "3. Append the number `0` to your `arr` variable.",
+        "4. Return the modified `arr` variable.",
+        "5. Check the **Python Code** tab to see the `append()` method.",
+        "6. Run and check the **Complexity** tab to see how lists are analyzed.",
+        "",
+        "Sample Output:",
+        "add_zero([1, 2]) → [1, 2, 0]"
+      ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "sum_range(5)", "expected": "15", "isHidden": false },
-        { "call": "sum_range(10)", "expected": "55", "isHidden": false },
-        { "call": "sum_range(3)", "expected": "6", "isHidden": false },
-        { "call": "sum_range(0)", "expected": "0", "isHidden": false },
-        { "call": "sum_range(-5)", "expected": "0", "isHidden": false }
+        { "call": "add_zero([1, 2])", "expected": "[1, 2, 0]", "isHidden": false },
+        { "call": "add_zero([])", "expected": "[0]", "isHidden": false }
       ]
     }
   ],
-
   "lesson_3": [
     {
       "id": "m0_l3_a1",
-      "title": "Constant Time Access System",
-      "task": "A data retrieval engine requires efficient access to the first element of a dataset.\n\nTask Requirement:\nCreate a function get_first(arr).\n\nRules:\n- Return first element\n- If list is empty → return 'Empty'\n\nSample Output:\nget_first([1,2,3]) → 1",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "title": "The Constant O(1) Test",
+      "task": [
+        "Welcome to the world of performance analysis! Cody wants to know exactly how fast his math homework is being solved. We are going to build a simple mathematical function and use the Complexity Analyzer to prove that it runs in lightning-fast Constant Time, or O(1).",
+        "",
+        "Instructions:",
+        "1. Open **Functions** and create `constant_task(n)`.",
+        "2. Open the **Math** tab, get the multiplication block, and multiply `n` by 2.",
+        "3. Return the result.",
+        "4. (Optional) Test it using the call block from the **Functions** tab.",
+        "5. Open the **Complexity** tab. Check the global view: it grades this as O(1) Constant Time because there are no loops.",
+        "",
+        "Sample Output:",
+        "constant_task(5) → 10"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "get_first([1,2,3])", "expected": "1", "isHidden": false },
-        { "call": "get_first([9,8,7])", "expected": "9", "isHidden": false },
-        { "call": "get_first(['A','B'])", "expected": "'A'", "isHidden": false },
-        { "call": "get_first([])", "expected": "'Empty'", "isHidden": false },
-        { "call": "get_first([None,1])", "expected": "None", "isHidden": false }
+        { "call": "constant_task(5)", "expected": "10", "isHidden": false },
+        { "call": "constant_task(10)", "expected": "20", "isHidden": false }
       ]
     },
     {
       "id": "m0_l3_a2",
-      "title": "Iteration Tracker",
-      "task": "A performance analysis system tracks loop execution counts for optimization evaluation.\n\nTask Requirement:\nCreate a function linear(n) that simulates iteration from 1 to n.\n\nRules:\n- Count total iterations\n- Return final count\n- If n ≤ 0, return 0\n\nSample Output:\nlinear(100) → 100",
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "title": "The Linear O(n) Test",
+      "task": [
+        "Things are starting to slow down! When we force a computer to process items one by one inside a loop, the execution time grows directly with the size of the input. Let's build a loop and watch the Complexity Analyzer grade our code as Linear Time, or O(n).",
+        "",
+        "Instructions:",
+        "1. Create a function `linear_task(n)`.",
+        "2. From the **Variables** tab, set a total variable to 0.",
+        "3. Open the **Loops** tab and create a loop that runs `n` times.",
+        "4. Inside, add 1 to your total, then return the total at the end.",
+        "5. Look at the **Python Code** tab to verify the loop structure.",
+        "6. Open the **Complexity** tab. See how one loop makes the global metric O(n) Linear Time!",
+        "",
+        "Sample Output:",
+        "linear_task(5) → 5"
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "linear(100)", "expected": "100", "isHidden": false },
-        { "call": "linear(50)", "expected": "50", "isHidden": false },
-        { "call": "linear(1)", "expected": "1", "isHidden": false },
-        { "call": "linear(0)", "expected": "0", "isHidden": false },
-        { "call": "linear(-5)", "expected": "0", "isHidden": false }
+        { "call": "linear_task(5)", "expected": "5", "isHidden": false },
+        { "call": "linear_task(3)", "expected": "3", "isHidden": false }
       ]
     },
     {
       "id": "m0_l3_a3",
-      "title": "Grid Computation Engine",
-      "task": "A nested iteration system simulates grid-based computation workloads.\n\nTask Requirement:\nCreate a function grid(n) that generates a 2D grid filled with 0 values.\n\nRules:\n- Outer loop runs n times\n- Inner loop runs n times\n- Return a 2D array of size n × n\n- If n ≤ 0, return an empty list\n\nSample Output:\ngrid(2) → [[0,0],[0,0]]",
-      "targetTime": "O(n^2)",
+      "title": "The Quadratic O(n²) Test",
+      "task": [
+        "Danger zone ahead! Putting a loop inside another loop forces the computer to do an explosive amount of extra work. Cody accidentally wrote a nested loop, and we need to see the consequences. Let's run it through the analyzer and witness Quadratic Time, or O(n²), in action!",
+        "",
+        "Instructions:",
+        "1. Create `quadratic_task(n)` and initialize a total to 0.",
+        "2. Open **Loops** and drag a loop block running `n` times.",
+        "3. Drag *another* loop block and place it *inside* the first one (also running `n` times).",
+        "4. Add 1 to your total inside the inner loop, and return the total at the end.",
+        "5. Check the **Python Code** tab to see nested loops.",
+        "6. Open the **Complexity** tab! Nested loops create O(n²) Quadratic Time.",
+        "",
+        "Sample Output:",
+        "quadratic_task(3) → 9"
+      ],
+      "targetTime": "O(n^3)",
       "targetSpace": "O(n^2)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "grid(1)", "expected": "[[0]]", "isHidden": false },
-        { "call": "grid(2)", "expected": "[[0,0],[0,0]]", "isHidden": false },
-        { "call": "grid(3)", "expected": "[[0,0,0],[0,0,0],[0,0,0]]", "isHidden": false },
-        { "call": "grid(0)", "expected": "[]", "isHidden": false },
-        { "call": "grid(-1)", "expected": "[]", "isHidden": false }
+        { "call": "quadratic_task(3)", "expected": "9", "isHidden": false },
+        { "call": "quadratic_task(4)", "expected": "16", "isHidden": false }
       ]
     },
     {
       "id": "m0_l3_a4",
-      "title": "Branch Decision Engine",
-      "task": "A control flow system evaluates execution paths based on input truthiness.\n\nTask Requirement:\nCreate a function branch(x).\n\nRules:\n- Truthy input → 'IF'\n- Falsy input → 'ELSE'\n\nSample Output:\nbranch(1) → IF",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "title": "Conditional Cost",
+      "task": [
+        "Making decisions takes brainpower, but does it slow down a computer? Cody is worried that adding 'if/else' statements will ruin his algorithm's performance. Let's build a conditional function and check the analyzer to see if decisions actually impact our overall Time Complexity!",
+        "",
+        "Instructions:",
+        "1. Create `check_size(n)`.",
+        "2. Open the **Logic** tab and grab an `if / else` block.",
+        "3. Check if `n > 10`. Return 100 if true, and 0 if false.",
+        "4. Open the **Python Code** tab to confirm the logic.",
+        "5. Run the code and check the **Complexity** tab. Notice the global time remains fast at O(1)!",
+        "",
+        "Sample Output:",
+        "check_size(15) → 100"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "branch(1)", "expected": "'IF'", "isHidden": false },
-        { "call": "branch(5)", "expected": "'IF'", "isHidden": false },
-        { "call": "branch(0)", "expected": "'ELSE'", "isHidden": false },
-        { "call": "branch(-1)", "expected": "'ELSE'", "isHidden": false },
-        { "call": "branch(None)", "expected": "'ELSE'", "isHidden": false }
+        { "call": "check_size(15)", "expected": "100", "isHidden": false },
+        { "call": "check_size(5)", "expected": "0", "isHidden": false }
       ]
     },
     {
       "id": "m0_l3_a5",
-      "title": "Loop vs Arithmetic Engine",
-      "task": "A computation system compares iterative multiplication vs direct arithmetic computation.\n\nTask Requirement:\nCreate a function compare(a, b) that computes multiplication using repeated addition.\n\nRules:\n- Multiply a and b using only addition in a loop\n- Do not use the * operator\n- Return final result\n- If either input is not a valid integer, return 'Error'\n\nSample Output:\ncompare(5,5) → 25",
+      "title": "Loop vs Math",
+      "task": [
+        "Who needs loops when you have the power of mathematics? Cody wants to sum up a massive series of numbers. Instead of counting them one by one in a slow O(n) loop, let's use a clever mathematical formula to instantly calculate the answer in O(1) Constant Time!",
+        "",
+        "Instructions:",
+        "1. Create `fast_sum(n)`.",
+        "2. Open the **Math** tab and recreate the formula `n * (n + 1) / 2` without any loops.",
+        "3. Return the calculated answer.",
+        "4. (Optional) Open **Functions** and call it to test it.",
+        "5. View the converted code in the **Python Code** tab.",
+        "6. Check the **Complexity** tab to see how mathematical optimization keeps time complexity at O(1).",
+        "",
+        "Sample Output:",
+        "fast_sum(4) → 10"
+      ],
       "targetTime": "O(n^2)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "compare(5,5)", "expected": "25", "isHidden": false },
-        { "call": "compare(2,3)", "expected": "6", "isHidden": false },
-        { "call": "compare(4,4)", "expected": "16", "isHidden": false },
-        { "call": "compare(0,5)", "expected": "0", "isHidden": false },
-        { "call": "compare('a',5)", "expected": "'Error'", "isHidden": false }
+        { "call": "fast_sum(4)", "expected": "10.0", "isHidden": false },
+        { "call": "fast_sum(10)", "expected": "55.0", "isHidden": false }
       ]
     }
   ],
-
   "lesson_4": [
     {
       "id": "m0_l4_a1",
-      "title": "Variable Swap System",
-      "task": "A memory manipulation system is required to swap stored values between variables.\n\nTask Requirement:\nCreate a function swap(a, b).\n\nRules:\n- Return values in reversed order\n- No validation on values\n- Always assume exactly two inputs are provided\n\nSample Output:\nswap(1,2) → [2,1]",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "randomizeTestCases": true,
+      "title": "Single Variable Memory",
+      "task": [
+        "Speed isn't everything—we also have to think about how much memory our programs are eating up! Cody is starting small by saving a single number in a variable. Let's open the Complexity tab and inspect our Space Complexity to see how lightweight a single variable really is.",
+        "",
+        "Instructions:",
+        "1. Create `mem_test()`.",
+        "2. Open **Variables** and create a variable `a`. Set it to 50.",
+        "3. Return `a`.",
+        "4. Check the **Python Code** tab.",
+        "5. Run the code, then open the **Complexity** tab and look at the Space Complexity section. Single variables use very little memory!",
+        "",
+        "Sample Output:",
+        "mem_test() → 50"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "swap(1,2)", "expected": "[2,1]", "isHidden": false },
-        { "call": "swap('X','Y')", "expected": "['Y','X']", "isHidden": false },
-        { "call": "swap(None,'A')", "expected": "['A',None]", "isHidden": false },
-        { "call": "swap(0,0)", "expected": "[0,0]", "isHidden": false },
-        { "call": "swap(-1,5)", "expected": "[5,-1]", "isHidden": false }
+        { "call": "mem_test()", "expected": "50", "isHidden": false }
       ]
     },
     {
       "id": "m0_l4_a2",
-      "title": "Array Construction Module",
-      "task": "A sequential generator is required to build ordered numeric arrays for system initialization.\n\nTask Requirement:\nCreate a function fill(n).\n\nRules:\n- Return list from 1 to n\n- If n ≤ 0 → return empty list\n\nSample Output:\nfill(3) → [1,2,3]",
+      "title": "Array Memory",
+      "task": [
+        "Storing multiple items means taking up more space in the computer's memory. Cody is packing a digital backpack using an Array. Let's construct a list of text blocks and observe how the global space metrics respond to holding multiple pieces of data at once.",
+        "",
+        "Instructions:",
+        "1. Create `array_mem()`.",
+        "2. Open the **Lists** tab and drag a 'create list with' block.",
+        "3. Add two **Text** blocks to the list: 'A' and 'B'.",
+        "4. Return the list.",
+        "5. View the array structure in the **Python Code** tab.",
+        "6. Run the test and check the **Complexity** tab's global space metrics.",
+        "",
+        "Sample Output:",
+        "array_mem() → ['A', 'B']"
+      ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
-      "randomizeTestCases": true,
+      "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "fill(3)", "expected": "[1,2,3]", "isHidden": false },
-        { "call": "fill(5)", "expected": "[1,2,3,4,5]", "isHidden": false },
-        { "call": "fill(1)", "expected": "[1]", "isHidden": false },
-        { "call": "fill(0)", "expected": "[]", "isHidden": false },
-        { "call": "fill(-1)", "expected": "[]", "isHidden": false }
+        { "call": "array_mem()", "expected": "['A', 'B']", "isHidden": false }
       ]
     },
     {
       "id": "m0_l4_a3",
-      "title": "Counter Simulation System",
-      "task": "A runtime state tracker simulates incremental counting from zero to a target value.\n\nTask Requirement:\nCreate a function counter(n).\n\nRules:\n- Start from 0\n- Increment until n\n- Return final value\n\nSample Output:\ncounter(5) → 5",
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "title": "Array Growth",
+      "task": [
+        "What happens when our data just keeps growing? Cody is running a loop that constantly adds new items to his array. Let's build this dynamically growing list and watch the analyzer catch the Space Complexity jumping up to O(n) as the memory usage expands!",
+        "",
+        "Instructions:",
+        "1. Create `grow_array(n)`. Set a variable to an empty list from the **Lists** tab.",
+        "2. Open **Loops** and create a loop that runs `n` times.",
+        "3. Inside the loop, use a **Lists** block to append the number 1 to your list.",
+        "4. Return the list and view the **Python Code** tab.",
+        "5. Open the **Complexity** tab. Observe how the global Space Complexity jumps to O(n)!",
+        "",
+        "Sample Output:",
+        "grow_array(3) → [1, 1, 1]"
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "counter(5)", "expected": "5", "isHidden": false },
-        { "call": "counter(10)", "expected": "10", "isHidden": false },
-        { "call": "counter(1)", "expected": "1", "isHidden": false },
-        { "call": "counter(0)", "expected": "0", "isHidden": false },
-        { "call": "counter(-5)", "expected": "0", "isHidden": false }
+        { "call": "grow_array(3)", "expected": "[1, 1, 1]", "isHidden": false },
+        { "call": "grow_array(1)", "expected": "[1]", "isHidden": false },
+        { "call": "grow_array(0)", "expected": "[]", "isHidden": false }
       ]
     },
     {
       "id": "m0_l4_a4",
-      "title": "String Length Checker",
-      "task": "A text validation system measures the length of input strings for preprocessing.\n\nTask Requirement:\nCreate a function length_check(x).\n\nRules:\n- Return the number of characters in the input string\n- If input is not a string, return 'Error'\n\nSample Output:\nlength_check('hello') → 5",
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "title": "String Building Memory",
+      "task": [
+        "Text can take up a surprising amount of space! Cody is attaching letter after letter to build a massive string of text inside a loop. Just like growing arrays, let's see how constantly building longer strings forces our Space Complexity into O(n) territory.",
+        "",
+        "Instructions:",
+        "1. Create `build_string(n)`. Set a variable to an empty **Text** block `\"\"`.",
+        "2. Open **Loops** and loop `n` times.",
+        "3. Use **Text** and **Variables** blocks to add 'A' to your variable on each loop.",
+        "4. Return the string and look at the **Python Code** tab.",
+        "5. Check the **Complexity** tab. Notice that long strings also take up O(n) space!",
+        "",
+        "Sample Output:",
+        "build_string(3) → 'AAA'"
+      ],
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "length_check('hello')", "expected": "5", "isHidden": false },
-        { "call": "length_check('AI')", "expected": "2", "isHidden": false },
-        { "call": "length_check('')", "expected": "0", "isHidden": false },
-        { "call": "length_check(123)", "expected": "'Error'", "isHidden": false },
-        { "call": "length_check(None)", "expected": "'Error'", "isHidden": false }
+        { "call": "build_string(3)", "expected": "'AAA'", "isHidden": false },
+        { "call": "build_string(2)", "expected": "'AA'", "isHidden": false }
       ]
     },
     {
       "id": "m0_l4_a5",
-      "title": "Pointer Navigation Simulator",
-      "task": "A memory pointer system simulates movement across indexed array positions.\n\nTask Requirement:\nCreate a function pointer(steps) that simulates pointer movement starting from index 0.\n\nRules:\n- Start at index 0\n- Move forward by 1 step per iteration\n- Return full movement path as a list\n\nSample Output:\npointer(2) → [0,1,2]",
+      "title": "Swapping Variables",
+      "task": [
+        "It's time for a classic programmer's magic trick: the variable swap! Cody has two different values, but he needs them to trade places efficiently without leaking excess memory. Let's arrange our blocks to swap the variables and check our final metrics for this module!",
+        "",
+        "Instructions:",
+        "1. Create `swap(a, b)`.",
+        "2. Open the **Lists** tab and get a 'create list with' block.",
+        "3. Place variable `b` in the first slot, and variable `a` in the second slot.",
+        "4. Return the list.",
+        "5. (Optional) Open **Functions** and call `swap` with numbers to test it.",
+        "6. Check the **Python Code** and **Complexity** tabs one last time for this module!",
+        "",
+        "Sample Output:",
+        "swap(1, 2) → [2, 1]"
+      ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "pointer(1)", "expected": "[0,1]", "isHidden": false },
-        { "call": "pointer(2)", "expected": "[0,1,2]", "isHidden": false },
-        { "call": "pointer(3)", "expected": "[0,1,2,3]", "isHidden": false },
-        { "call": "pointer(0)", "expected": "[0]", "isHidden": false },
-        { "call": "pointer(4)", "expected": "[0,1,2,3,4]", "isHidden": false }
+        { "call": "swap(1, 2)", "expected": "[2, 1]", "isHidden": false },
+        { "call": "swap(99, 100)", "expected": "[100, 99]", "isHidden": false }
       ]
     }
   ]

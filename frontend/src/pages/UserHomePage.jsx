@@ -13,20 +13,23 @@ export default function UserHomePage() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // Load the user from the database session on mount
   useEffect(() => {
-    // FIX: Check both storages safely
     const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser || "{}"));
     } else {
-      navigate("/signin"); // Protect the route
+      navigate("/"); // Protect the route
     }
   }, [navigate]);
 
   const confirmLogout = () => {
-    setShowLogoutModal(false);
-    navigate("/home");
+    // 1. Nuke all stored auth data completely
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 2. HARD REDIRECT FIRST. DO NOT UPDATE REACT STATE (do not call setShowLogoutModal(false))
+    // This prevents protected routes from intercepting the transition.
+    window.location.replace("/");
   };
 
   if (!user) return null;
@@ -35,7 +38,6 @@ export default function UserHomePage() {
     <div className="landing-container user-homepage">
       <UserHeader user={user} onLogoutClick={() => setShowLogoutModal(true)} />
       <main className="landing-main">
-        {/* Hero Section */}
         <section className="hero home-hero">
           <div className="home-hero-copy">
             <p className="welcome-text">Welcome Back, {user.name}!</p>
@@ -75,7 +77,6 @@ export default function UserHomePage() {
           </div>
         </section>
 
-        {/* Feature Cards Section */}
         <section className="feature-cards">
           <h2>Your Learning Hub</h2>
           <p className="section-subtitle">
@@ -115,7 +116,6 @@ export default function UserHomePage() {
           </div>
         </section>
 
-        {/* Everything You Need Section */}
         <section className="features-list">
           <div className="features-content">
             <h2>Everything You Need, in One Place</h2>
@@ -142,7 +142,7 @@ export default function UserHomePage() {
             <p>Are you sure you want to logout?</p>
             <div className="logout-modal-actions">
               <button className="logout-btn" onClick={confirmLogout}>Confirm</button>
-              <button className="logout-btn" onClick={() => setShowLogoutModal(false)}>Cancel</button>
+              <button className="logout-btn logout-btn-cancel" onClick={() => setShowLogoutModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
