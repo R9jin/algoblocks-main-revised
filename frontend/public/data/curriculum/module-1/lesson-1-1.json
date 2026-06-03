@@ -1,80 +1,127 @@
 {
-  "lessonId": "lesson-0-4",
-  "moduleId": "module-0",
-  "title": "Memory Visualizer",
-  "description": "Understand how variables, arrays, and function calls change during algorithm execution using the Memory Visualizer. This lesson provides a real-time window into computer memory, showing exactly how data is stored, updated, and removed as your algorithm runs. By the end, you will be able to debug variable state issues, track array modifications, and understand function call behavior including recursion without guessing.",
+  "lessonId": "lesson-1-1",
+  "moduleId": "module-1",
+  "title": "Big-O Notation",
+  "description": "Learn the universal language of algorithm performance. This lesson introduces **Big-O Notation**, the mathematical framework used by software engineers to describe how an algorithm's runtime or memory requirements grow as the amount of input data increases.",
   "difficulty": "Beginner",
   "estimatedTime": "20 min",
   "prerequisites": "The Complexity Analyzer",
-  "tags": ["memory", "variables", "visualization"],
+  "tags": ["big-o", "complexity", "theory", "performance"],
   "activities": [
     {
-      "id": "m0_l4_a1",
-      "title": "Swap Variables"
+      "id": "m1_l1_a1",
+      "title": "Identifying O(1)"
     },
     {
-      "id": "m0_l4_a2",
-      "title": "Array Fill Trace"
+      "id": "m1_l1_a2",
+      "title": "Counting Loops"
     },
     {
-      "id": "m0_l4_a3",
-      "title": "Counter Memory"
-    },
-    {
-      "id": "m0_l4_a4",
-      "title": "Scope Lifetime"
-    },
-    {
-      "id": "m0_l4_a5",
-      "title": "Pointer Movement"
+      "id": "m1_l1_a3",
+      "title": "Worst-Case Scenarios"
     }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
-      "title": "Introduction",
-      "content": "Algorithms use memory to store information while executing. Every time you create a variable, add an item to an array, or call a function, your program consumes memory. Understanding how memory works is essential for writing correct and bug-free code.\n\nThe Memory Visualizer inside AlgoBlocks helps you observe how variables, arrays, and function calls behave during execution. Unlike traditional debugging where you only see the final output, the Memory Visualizer shows you when a variable is created, when its value changes, when it is overwritten, and when it is destroyed.\n\nThis makes abstract programming concepts easier to understand because you can visually track state changes in real time. You can watch a counter variable increment from 0 to 10 step by step. You can see exactly what happens when you swap two variables. You can observe how an array grows and shrinks as items are added and removed.\n\nThink of the Memory Visualizer as an X-ray machine for your algorithm. You can see inside your program's memory without adding extra print statements or guesswork. This lesson will teach you how to use this tool to debug and optimize your algorithms effectively."
+      "title": "Introduction to Big-O",
+      "content": "When comparing two algorithms, it is not enough to measure execution time in seconds. A faster computer will run a bad algorithm faster than a slow computer running a good algorithm. Instead, we need a way to measure efficiency based purely on the **number of operations** relative to the **input size (n)**.",
+      "subsections": [
+        {
+          "id": "what-is-big-o",
+          "title": "What is Big-O?",
+          "content": "**Big-O Notation** is the universal language used by computer scientists to describe performance. It expresses the **upper bound** of an algorithm's growth rate. Simply put, it tells us: *As the amount of data gets infinitely large, how quickly does the required time (or memory) shoot up?*"
+        }
+      ]
     },
     {
-      "id": "variables-memory",
+      "id": "worst-case",
       "type": "concept",
-      "title": "Variable State Changes",
-      "content": "Variables store temporary information while a program runs. Think of each variable as a labeled box in memory. The label is the variable name like score or playerName, and the content of the box is the current value. During execution, the content of that box can change multiple times.\n\nThe Memory Visualizer shows you the variable name, its current value, its data type, and a history of how the value changed. You can step through each change to see the algorithm's logic unfold. You can also see when a variable is first created and when it disappears at the end of a function or loop.\n\nFor example, when swapping two variables a and b, you need a temporary variable. The visualizer would show a=5, b=10 initially. After creating temp=a, it shows temp=5. After setting a=b, it shows a=10. After setting b=temp, it shows b=5. The swap is complete.\n\nIf you forget the temporary variable and just do a=b then b=a, the visualizer would show both a and b becoming 10, and the original value 5 disappears. The visualizer makes this mistake obvious immediately, helping you debug faster."
+      "title": "The Worst-Case Scenario",
+      "content": "When measuring efficiency, programmers generally care most about the **worst-case scenario**. If you are searching for a specific name in a phone book, you might get lucky and find it on the very first page. However, we cannot base our performance metrics on luck.",
+      "subsections": [
+        {
+          "id": "why-worst-case",
+          "title": "Preparing for the Worst",
+          "content": "Big-O assumes the data is arranged in the worst possible way for your algorithm. If you are searching an array of `n` items, Big-O assumes the item you are looking for is at the **very end of the array** (or not there at all), forcing your algorithm to do the maximum amount of work. This guarantees that your algorithm will **never perform worse** than its Big-O rating."
+        }
+      ]
     },
     {
-      "id": "arrays-memory",
+      "id": "rules-of-big-o",
       "type": "concept",
-      "title": "Tracking Arrays",
-      "content": "Arrays store multiple related values inside a single structure. Think of an array as a row of numbered lockers. The array name is the row label, and each locker has an index number starting from 0. The first item is at index 0, the second at index 1, and so on.\n\nThe Memory Visualizer displays arrays as expandable lists showing the array name, length, each index, and the current value at that position. When an element changes, that row flashes to draw your attention. Newly added elements glow, and removed elements fade out.\n\nFor example, creating an empty colors array shows length 0. Adding red shows index 0 = red. Adding green shows index 0 = red and index 1 = green. Inserting blue at index 1 shifts green to index 2. Removing index 0 removes red and shifts the remaining items left.\n\nCommon bugs like off-by-one errors become obvious. If you try to access index 5 in an array with 5 items, valid indices are 0 to 4. The visualizer would show that index 5 does not exist, helping you catch the error immediately."
+      "title": "The Rules of Big-O",
+      "content": "When calculating the Big-O of an algorithm, we don't care about exact numbers. We only care about the **overall trend** as `n` approaches infinity. Because of this, we follow two strict mathematical rules.",
+      "subsections": [
+        {
+          "id": "drop-constants",
+          "title": "Rule 1: Drop the Constants",
+          "content": "If an algorithm requires `2n` operations, we drop the `2` and simply call it **O(n)**. If it requires `n / 2` operations, it is still **O(n)**. As data grows to a billion items, the constant multiplier becomes insignificant compared to the sheer size of `n`.",
+          "bullets": [
+            "**O(2n)** becomes **O(n)**",
+            "**O(500)** becomes **O(1)**",
+            "**O(n² / 2)** becomes **O(n²)**"
+          ]
+        },
+        {
+          "id": "drop-non-dominant",
+          "title": "Rule 2: Drop Non-Dominant Terms",
+          "content": "If an algorithm does an `O(n²)` operation followed by an `O(n)` operation, the total time is `O(n² + n)`. However, as `n` gets huge, the `n²` part completely overshadows the `n` part. Therefore, we only keep the **largest, fastest-growing term**.",
+          "bullets": [
+            "**O(n² + n)** becomes **O(n²)**",
+            "**O(n + 1000)** becomes **O(n)**",
+            "**O(2^n + n²)** becomes **O(2^n)**"
+          ]
+        }
+      ]
     },
     {
-      "id": "call-stack",
+      "id": "calculating",
       "type": "deep_dive",
-      "title": "Understanding the Call Stack",
-      "content": "When functions are executed, the computer stores information about each function call inside a structure called the call stack. Think of it as a stack of sticky notes. Each time a function is called, a new note is placed on top. When the function finishes, the top note is removed.\n\nThe Memory Visualizer shows each active function call as a separate frame. The bottom of the stack is the first function called, usually the main program. The top of the stack is the currently executing function. Each frame shows local variables and parameter values for that specific call.\n\nRecursion is when a function calls itself. This becomes much clearer when visualized. For a countdown function called with 3, the visualizer shows frames building up: countdown(3), then countdown(2), then countdown(1), then countdown(0). Each frame has its own n value that does not interfere with others.\n\nWhen the base case is reached, frames pop off in reverse order. You can see countdown(0) return, then countdown(1), then countdown(2), then countdown(3). If recursion never reaches the base case, you would see frames piling up endlessly, warning you of a stack overflow bug."
-    },
-    {
-      "id": "real-world",
-      "type": "real_world_connection",
-      "title": "Why Memory Visualization Matters",
-      "content": "Many programming bugs happen because developers misunderstand how memory changes during execution. A variable might be accidentally reset inside a loop. An array index might be off by one. A recursive function might never reach its base case. The Memory Visualizer helps you catch these bugs instantly.\n\nFor example, a developer calculating averages might accidentally reset the total variable to zero inside a loop instead of before it. With a memory visualizer, they would see total dropping back to zero on each iteration immediately, saving hours of debugging.\n\nProfessional developers use similar memory visualization tools every day. Browser DevTools show JavaScript variables in real time. IDE debuggers like VS Code and PyCharm have watch panels that track variable changes. Memory profilers help find leaks and inefficiencies.\n\nBy learning the Memory Visualizer in AlgoBlocks, you are building the same core debugging skills used by software engineers at major tech companies. The concepts of watching variables change, inspecting arrays, and tracing the call stack are identical to what professionals do with advanced debuggers."
+      "title": "Calculating Big-O in Code",
+      "content": "To calculate the Big-O of your AlgoBlocks code, look directly at how you are using your control structures (specifically, loops).",
+      "subsections": [
+        {
+          "id": "calc-examples",
+          "title": "Code Examples",
+          "content": "Here is how common programming structures translate into Big-O notation:",
+          "bullets": [
+            "**O(1):** Basic math, setting a variable, or accessing an array index. There are no loops involved.",
+            "**O(n):** A single loop that iterates over a list of `n` items.",
+            "**O(n²):** A loop perfectly **nested** inside another loop. (For every item in `n`, we loop through `n` again)."
+          ]
+        }
+      ]
     },
     {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "The Memory Visualizer helps you observe how variables, arrays, and function calls behave during execution. Understanding memory is important for debugging, optimization, and learning advanced concepts like recursion.\n\nVariables are labeled boxes in memory. The visualizer shows their current values and change history. The swap algorithm example shows why a temporary variable is needed. Arrays are numbered sequences starting at index 0. The visualizer shows each index and value, making off-by-one errors obvious.\n\nThe call stack tracks active function calls as stack frames. Recursion creates multiple frames of the same function. The visualizer shows frames building up and unwinding, making recursion transparent.\n\nTo use the Memory Visualizer, build your algorithm, open the visualizer panel, run step by step, watch variables change, inspect arrays after each operation, and observe the call stack when using functions or recursion. Memory is not magic. You can observe and understand it, and the Memory Visualizer makes invisible memory operations visible and concrete."
+      "content": "Big-O Notation is how software engineers communicate efficiency. By dropping constants and non-dominant terms, it allows us to focus entirely on **scalability**.",
+      "subsections": [
+        {
+          "id": "sum-key-takeaways",
+          "title": "Key Takeaways",
+          "content": "Remember these core principles as you analyze algorithms:",
+          "bullets": [
+            "Big-O measures the **worst-case scenario**.",
+            "Always **drop constants** (O(2n) = O(n)).",
+            "Always **drop non-dominant terms** (O(n² + n) = O(n²)).",
+            "Look for **nested loops** to quickly estimate complexity."
+          ]
+        }
+      ]
     }
   ],
   "references": [
     {
-      "title": "MDN Web Docs — Memory Management",
-      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Memory_Management"
+      "title": "GeeksforGeeks — Big-O Notation",
+      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
     },
     {
-      "title": "Visualgo",
-      "url": "https://visualgo.net/en"
+      "title": "Programiz — Time Complexity",
+      "url": "https://www.programiz.com/dsa/time-complexity"
     }
   ]
 }

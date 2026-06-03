@@ -19,12 +19,24 @@ import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, progressDB } from "../db";
 import "../styles/LessonViewer.css";
 
+// Utility to parse **bold** text in JSON strings
+function formatText(text) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 function renderParagraphs(content, className = "lesson-section-content") {
   if (!content) return null;
   return (
     <div className={className}>
       {content.split("\n\n").map((paragraph, index) => (
-        <p key={index}>{paragraph}</p>
+        <p key={index}>{formatText(paragraph)}</p>
       ))}
     </div>
   );
@@ -35,7 +47,7 @@ function renderBullets(items) {
   return (
     <ul className="lesson-bullet-list">
       {items.map((item, index) => (
-        <li key={index}>{item}</li>
+        <li key={index}>{formatText(item)}</li>
       ))}
     </ul>
   );
@@ -62,7 +74,7 @@ function renderChart(chart) {
       {(chart.title || chart.description) && (
         <figcaption>
           {chart.title && <strong>{chart.title}</strong>}
-          {chart.description && <span>{chart.description}</span>}
+          {chart.description && <span>{formatText(chart.description)}</span>}
         </figcaption>
       )}
       <BigOChart
@@ -549,7 +561,7 @@ export default function LessonViewer() {
                   LESSON {moduleNum}.{lessonNum}
                 </div>
                 <h1>{lesson?.title}</h1>
-                <p>{lesson?.description}</p>
+                <p>{formatText(lesson?.description)}</p>
                 <div className="lesson-meta-grid">
                   <div className="lesson-meta-card">
                     <FiClock className="meta-icon" />
