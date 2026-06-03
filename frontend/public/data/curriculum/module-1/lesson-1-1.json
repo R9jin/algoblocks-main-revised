@@ -39,13 +39,13 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Big-O notation is a mathematical way to describe how an algorithm grows as the input size becomes larger. Instead of measuring exact execution time in seconds, Big-O focuses on how the number of operations changes relative to the size of the input.\n\nThis makes Big-O useful for programming because runtime depends on hardware, operating system load, programming language implementation, and many other details. Growth behavior is more stable. If an algorithm checks every item one by one, it grows differently from an algorithm that repeatedly divides the problem in half.\n\nProgrammers use Big-O to predict whether an implementation will remain efficient when it processes thousands, millions, or billions of data items."
+      "content": "Big-O notation is a way to describe how an algorithm's speed changes as the input gets larger. Instead of measuring exact seconds, it focuses on how the number of operations grows. This is useful because different computers run code at different speeds, but growth behavior stays the same.\n\nAn algorithm that checks every item one by one grows differently from an algorithm that repeatedly cuts the problem in half. Programmers use Big-O to predict if their code will stay fast when handling thousands or millions of items.\n\nBig-O answers the question: What happens to the runtime when I double the input size? Understanding this helps you choose better algorithms and build systems that can handle large amounts of data."
     },
     {
       "id": "why-big-o-matters",
       "type": "real_world_connection",
       "title": "Why Big-O Matters",
-      "content": "Modern applications process massive amounts of data. Search engines process billions of pages, social media systems serve millions of users, navigation software computes routes quickly, and AI systems analyze large datasets.\n\nAn algorithm that works well for 10 items can become unusably slow for 10 million items. Big-O gives engineers a formal vocabulary for comparing solutions before those solutions are deployed at scale.",
+      "content": "Modern applications handle huge amounts of data. Search engines process billions of web pages. Social media serves millions of users. An algorithm that works well for 10 items can become unusably slow for 10 million items.\n\nSearching through 1 million items with linear search needs up to 1 million checks. Binary search needs only about 20 checks. That is 50,000 times faster. Big-O helps engineers compare solutions before building them.\n\nWithout Big-O, you might pick an algorithm that seems fast on small test data but fails with real workloads. With Big-O, you can predict problems early and choose algorithms that will work at scale.",
       "bullets": [
         "Compare two implementations that solve the same problem.",
         "Estimate how performance changes when input size grows.",
@@ -57,7 +57,7 @@
       "id": "understanding-growth",
       "type": "concept",
       "title": "Understanding Algorithm Growth",
-      "content": "Big-O does not measure exact runtime. It measures how quickly work increases as input size increases. The input size is usually represented by n.\n\nIf an algorithm checks every element once, its operations grow linearly and its complexity is O(n). If another algorithm repeatedly halves the remaining search area, its operations grow logarithmically and its complexity is O(log n).\n\nThe key idea is that growth rate matters more than exact timing when analyzing scalability.",
+      "content": "Big-O does not measure exact seconds. It measures how quickly the amount of work increases as input size grows. The input size is called n. If an algorithm checks every element once, doubling n doubles the work. This is called O(n) or linear time.\n\nIf an algorithm repeatedly cuts the problem in half, doubling n adds only a small amount of work. This is called O(log n) or logarithmic time. Logarithmic algorithms are extremely efficient for large datasets.\n\nGrowth rate matters more than exact speed. A fast O(n squared) algorithm might beat a slower O(n) algorithm for small inputs, but as n grows large, the O(n) algorithm will win by a huge margin. The chart below shows how different complexities compare.",
       "chart": {
         "title": "Growth rates as input size increases",
         "description": "The chart normalizes each curve so beginners can compare the shape of constant, logarithmic, linear, linearithmic, and quadratic growth.",
@@ -76,7 +76,7 @@
       "id": "constant-time",
       "type": "concept",
       "title": "Constant Time: O(1)",
-      "content": "An algorithm is constant time when the amount of work does not grow as input size increases. The operation may still take real time, but it does not require more steps just because the input contains more items.\n\nArray indexing is the classic example. If the program already knows the index, it can jump directly to that position.",
+      "content": "An algorithm runs in constant time when the amount of work does not change as input size grows. Whether you have 10 items or 10 million items, the algorithm takes about the same number of steps. Array indexing is the classic example. Accessing an element at a known index is always fast.\n\nOther O(1) operations include basic math like addition and multiplication, variable assignment, and simple comparisons. These are the building blocks of all algorithms. O(1) is the most efficient complexity class possible.\n\nEven though O(1) operations are fast by themselves, they add up. If you put an O(1) operation inside a loop that runs n times, the whole thing becomes O(n). Understanding this helps you see where the real work comes from.",
       "codeSnippets": [
         {
           "title": "Array indexing uses constant time",
@@ -89,7 +89,7 @@
       "id": "linear-time",
       "type": "concept",
       "title": "Linear Time: O(n)",
-      "content": "Linear time means the amount of work grows proportionally with input size. If the list doubles, the number of possible checks also roughly doubles.\n\nLinear search demonstrates this behavior because the target might be at the end of the list, or not present at all. In the worst case, the algorithm must inspect every element.",
+      "content": "Linear time means the work grows in direct proportion to the input size. If the list doubles, the work roughly doubles. Linear search is a perfect example. It checks each element from first to last until it finds the target or reaches the end.\n\nFor 1 million items, linear search performs up to 1 million checks. On modern computers, this takes a fraction of a second, which is often fine. The problem happens when n becomes huge or when linear operations are nested inside other linear operations.\n\nCommon O(n) operations include summing all elements in an array, finding the maximum value, and copying an array. O(n) is considered efficient and acceptable for most real-world applications when n is in the thousands or millions.",
       "codeSnippets": [
         {
           "title": "Linear search checks items one by one",
@@ -102,7 +102,7 @@
       "id": "logarithmic-time",
       "type": "deep_dive",
       "title": "Logarithmic Time: O(log n)",
-      "content": "Logarithmic algorithms reduce the problem size repeatedly. Binary search is the common example: instead of checking every element, it looks at the middle of a sorted list and removes half of the remaining candidates.\n\nFor example, a search space can shrink from 16 to 8, then to 4, then to 2, then to 1. This makes logarithmic algorithms highly efficient for large datasets.",
+      "content": "Logarithmic algorithms cut the problem size in half at each step. Binary search is the classic example. Instead of checking every element, it looks at the middle of a sorted list and discards half of the remaining candidates.\n\nFor 1,000 items, binary search needs about 10 steps. For 1 million items, it needs only about 20 steps. For 1 billion items, it needs about 30 steps. This is incredibly efficient.\n\nBinary search requires sorted data. If your data is not sorted, you cannot use it. But sorting once costs O(n log n) time, which is worth it if you need to search many times. Databases, search engines, and many other systems rely on logarithmic time operations.",
       "codeSnippets": [
         {
           "title": "Binary search halves the remaining range",
@@ -115,7 +115,7 @@
       "id": "quadratic-time",
       "type": "deep_dive",
       "title": "Quadratic Time: O(n^2)",
-      "content": "Quadratic growth often appears when every item is compared with every other item. This is common in simple sorting strategies and pair-comparison problems.\n\nIf n is 10, a nested comparison may perform about 100 checks. If n is 1,000, the same pattern may perform about 1,000,000 checks. This rapid multiplication becomes expensive quickly.",
+      "content": "Quadratic growth happens when every item is compared with every other item. The classic pattern is nested loops where the outer loop runs n times and the inner loop also runs n times, giving n times n operations.\n\nFor n=10, O(n squared) is about 100 operations, which is fine. For n=1,000, it is about 1 million operations, which is noticeable. For n=10,000, it is about 100 million operations, which is slow. For n=100,000, it becomes too slow for practical use.\n\nBubble sort and selection sort are examples of O(n squared) algorithms. They work fine for small lists but become extremely slow for large datasets. Professional systems use faster O(n log n) sorts like merge sort or Timsort instead.\n\nIf you see nested loops where both loops depend on the input size, look for ways to optimize. Using a hash set or dictionary can often reduce O(n squared) to O(n).",
       "codeSnippets": [
         {
           "title": "Nested loops often multiply the work",
@@ -128,7 +128,7 @@
       "id": "comparing-complexities",
       "type": "summary",
       "title": "Comparing Common Complexities",
-      "content": "Different Big-O classes describe different growth behaviors. O(1) is constant and is common in array indexing. O(log n) grows very slowly and appears in binary search. O(n) grows linearly and appears in linear search. O(n log n) is common in efficient sorting algorithms such as merge sort. O(n^2) grows rapidly and appears in algorithms such as bubble sort.\n\nThis comparison helps developers decide which algorithm is practical for a large-scale system."
+      "content": "Different Big-O classes describe different growth behaviors. O(1) is constant and appears in array indexing. O(log n) grows very slowly and appears in binary search. O(n) grows linearly and appears in linear search. O(n log n) appears in efficient sorting like merge sort. O(n squared) grows rapidly and appears in bubble sort.\n\nFor n=1 million, the differences are huge. O(1) takes 1 operation. O(log n) takes about 20 operations. O(n) takes 1 million operations. O(n log n) takes about 20 million operations. O(n squared) takes 1 trillion operations, which is impractical.\n\nAs input size increases, scalability matters much more than small differences on tiny examples. An O(n) algorithm that is 10 times slower than an O(n squared) algorithm for n=100 will be 1,000 times faster for n=10,000. Always consider the size of data your system will actually handle."
     },
     {
       "id": "misconceptions",
@@ -138,17 +138,17 @@
         {
           "id": "runtime-misconception",
           "title": "Misconception: Big-O measures exact runtime",
-          "content": "Big-O measures growth behavior, not exact seconds. Two machines can run the same code at different speeds, but the algorithm's growth pattern remains the same."
+          "content": "Big-O measures growth behavior, not exact seconds. Two machines can run the same code at different speeds, but the algorithm's growth pattern remains the same. O(n) on a slow machine still grows linearly; O(n squared) on a fast machine still grows quadratically."
         },
         {
           "id": "constant-time-misconception",
           "title": "Misconception: O(1) means instant",
-          "content": "Constant-time operations still take time. O(1) means the amount of work does not grow with input size."
+          "content": "Constant-time operations still take real time. O(1) means the amount of work does not grow with input size, not that the work is zero. Accessing an array element takes nanoseconds, but it still takes time."
         },
         {
           "id": "smaller-is-always-better",
           "title": "Misconception: The smaller notation is always the best choice",
-          "content": "Engineering decisions depend on context. Some solutions trade memory for speed, some are easier to maintain, and some are only faster for large inputs."
+          "content": "Engineering decisions depend on context. Some solutions trade memory for speed. Some are easier to maintain. Some are only faster for large inputs. For small n, a simpler O(n squared) algorithm might be better than a complex O(n log n) algorithm."
         }
       ]
     },

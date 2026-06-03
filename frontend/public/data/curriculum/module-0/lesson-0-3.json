@@ -2,7 +2,7 @@
   "lessonId": "lesson-0-3",
   "moduleId": "module-0",
   "title": "The Complexity Analyzer",
-  "description": "Learn how the AlgoBlocks Complexity Analyzer helps visualize algorithm efficiency and performance growth.",
+  "description": "Learn how the AlgoBlocks Complexity Analyzer helps visualize algorithm efficiency and performance growth. This lesson introduces time complexity, space complexity, and bottleneck detection using Big O notation. By the end, you will understand why some algorithms slow down dramatically with larger inputs and how to choose or design more efficient solutions.",
   "difficulty": "Beginner",
   "estimatedTime": "20 min",
   "prerequisites": "Core Blockly Components",
@@ -38,37 +38,37 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Efficient algorithms are important because modern applications often process massive amounts of data.\n\nThe Complexity Analyzer inside AlgoBlocks helps students understand how algorithm performance changes as input size grows.\n\nInstead of only seeing the final output, learners can analyze how much work an algorithm performs internally."
+      "content": "Efficient algorithms are important because modern applications process massive amounts of data. Google handles over 40,000 searches per second. Amazon processes millions of orders daily. If the algorithms behind these systems were inefficient, simple actions would take minutes or hours instead of milliseconds.\n\nThe Complexity Analyzer inside AlgoBlocks helps you understand how algorithm performance changes as input size grows. It provides visual feedback like graphs, step counters, and execution time estimates that make abstract performance concepts concrete and observable.\n\nInstead of only seeing the final output, you can analyze how much work an algorithm performs internally. How many operations did it execute? How did that number change when the input size doubled? Did memory usage spike unexpectedly? These questions are at the heart of algorithm analysis.\n\nIn this lesson, you will learn to use the Complexity Analyzer to measure and compare algorithms. You will discover why one algorithm might work fine for 100 items but become completely useless for 1,000,000 items."
     },
     {
       "id": "time-complexity",
       "type": "concept",
       "title": "Understanding Time Complexity",
-      "content": "Time complexity describes how the running time of an algorithm changes as the input size increases.\n\nSome algorithms remain efficient even with large datasets, while others become slower very quickly.\n\nThe Complexity Analyzer helps visualize these differences through graphs and execution analysis."
+      "content": "Time complexity describes how the running time of an algorithm changes as the input size increases. It answers the question: If I double the amount of data, how much longer will the algorithm take? Computer scientists use Big O notation to express this.\n\nThe most common time complexities are easy to understand. O(1) or constant time means the algorithm takes the same time regardless of input size. Accessing the first element of an array is O(1). O(n) or linear time means time grows proportionally to input size. A single loop that prints each item is O(n).\n\nO(n²) or quadratic time means time grows with the square of input size. Nested loops are the classic example. If you double the input, the time quadruples. For 1,000 items, O(n²) needs 1,000,000 operations. For 10,000 items, it needs 100,000,000 operations, which is much slower.\n\nOther complexities include O(log n) which is very efficient like binary search, and O(2^n) which is exponential and only usable for tiny inputs. The Complexity Analyzer displays step counts and graphs so you can actually see these growth patterns as you test different input sizes."
     },
     {
       "id": "space-complexity",
       "type": "concept",
       "title": "Understanding Space Complexity",
-      "content": "Space complexity measures how much memory an algorithm consumes while executing.\n\nAlgorithms that store large amounts of temporary data may require more memory resources.\n\nThe analyzer helps students observe how variables, arrays, and recursion affect memory usage."
+      "content": "Space complexity measures how much memory an algorithm consumes while executing. While time complexity asks how long, space complexity asks how much RAM. Both are critical for real-world software, especially on devices with limited memory like smartphones.\n\nCommon space complexities include O(1) or constant space, which means the algorithm uses the same amount of memory regardless of input size. A loop that uses a single counter variable is O(1). O(n) or linear space means memory grows with input size. Storing all items in an array is O(n).\n\nO(n²) or quadratic space means memory grows with the square of input size. Creating an n by n matrix or grid uses n² memory cells. For n=1,000, that is 1,000,000 cells, which could be hundreds of megabytes.\n\nThe Complexity Analyzer tracks how many variables are created, how large arrays grow, and memory allocation peaks. You can see a memory meter that rises and falls as your program runs. This helps you choose between algorithms that use less memory versus those that are faster but use more memory."
     },
     {
       "id": "bottlenecks",
       "type": "deep_dive",
       "title": "Identifying Bottlenecks",
-      "content": "A bottleneck is a part of an algorithm that significantly slows down performance.\n\nNested loops, repeated calculations, and unnecessary operations often create bottlenecks.\n\nThe Complexity Analyzer helps students identify inefficient sections so they can improve algorithm design and reduce computational cost."
+      "content": "A bottleneck is a part of an algorithm that significantly slows down performance. It is the section where the algorithm spends most of its time. Find the bottleneck and fix it, and the whole program becomes faster.\n\nCommon bottlenecks include nested loops, which create O(n²) behavior. For 10,000 items, a nested loop performs 100 million operations. Redundant calculations happen when you repeat the same expensive operation inside a loop when the result never changes. Unnecessary array copies also waste time and memory.\n\nThe Complexity Analyzer helps find bottlenecks using heat maps. Blocks that execute most frequently are highlighted in red. A block inside a nested loop will glow bright red, instantly showing where the work is happening. Step counters also show how many times each block executed.\n\nFor example, to find duplicate names in a list, a slow nested loop version compares every pair of names. For 1,000 names, that is 500,000 comparisons. A fast version using a set needs only 1,000 operations. The Complexity Analyzer would show the nested loop version as bright red, teaching you to recognize and avoid such bottlenecks."
     },
     {
       "id": "real-world",
       "type": "real_world_connection",
       "title": "Why Performance Analysis Matters",
-      "content": "Large systems such as search engines, banking platforms, and social media applications rely heavily on efficient algorithms.\n\nEven small inefficiencies can become major problems when software handles millions of users or large datasets.\n\nPerformance analysis allows engineers to predict scalability issues before deploying systems to real users."
+      "content": "Large systems like search engines, banking platforms, and social media apps rely on efficient algorithms. Poor performance directly impacts user experience and business revenue. Amazon found that every 100 milliseconds of delay costs them 1 percent in sales.\n\nSearch engines like Google scan billions of web pages in milliseconds using O(log n) data structures. Without them, a single search could take days. Navigation apps like Google Maps find the shortest route using optimized algorithms. A slow algorithm would make rerouting during traffic impossible.\n\nEven small inefficiencies become major problems when handling millions of users. A checkout algorithm that is O(n²) could make Black Friday sales impossible. Fraud detection must process millions of transactions per second. Healthcare and genomics require efficient algorithms to sequence DNA.\n\nThe Complexity Analyzer prepares you for these scenarios by helping you think like an engineer. Before writing code, ask yourself: How will this scale to 1 million items? Measure performance with different input sizes. Compare alternative approaches. Spot O(n²) patterns early before they become embedded in large codebases."
     },
     {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "The Complexity Analyzer helps students visualize algorithm efficiency by examining time complexity, space complexity, and performance bottlenecks. Understanding algorithm efficiency is important for designing scalable and optimized software systems."
+      "content": "The Complexity Analyzer helps you understand algorithm efficiency through time complexity, space complexity, and bottleneck detection. Time complexity describes how runtime grows with input size. O(1) is constant, O(n) is linear, O(n²) is quadratic and slow for large inputs. Space complexity describes memory usage. O(1) uses fixed memory, O(n) grows with input size.\n\nBottlenecks are sections where algorithms spend most of their time. Nested loops are the most common bottleneck. The Complexity Analyzer uses heat maps to show which blocks run most frequently, and step counters to show operation counts.\n\nReal-world systems like search engines, e-commerce, and navigation apps depend on efficient algorithms. Poor performance costs money and frustrates users. The Complexity Analyzer helps you think about scalability before problems occur.\n\nTo use the Complexity Analyzer, build your algorithm, open the analyzer panel, run with different input sizes, observe how step counts change, check memory usage, look for red hotspots, and try to improve bottlenecks. An algorithm that works for 100 items may fail for 1,000,000 items. Always consider both time and space complexity when designing solutions."
     }
   ],
   "references": [

@@ -2,7 +2,7 @@
   "lessonId": "lesson-0-2",
   "moduleId": "module-0",
   "title": "Core Blockly Components",
-  "description": "Understand the fundamental Blockly components used to build algorithms visually inside AlgoBlocks.",
+  "description": "Understand the fundamental Blockly components used to build algorithms visually inside AlgoBlocks. This lesson covers variables, loops, conditionals, arrays, and math operations—the essential building blocks for creating any algorithm. By the end, you will know how to select and combine these components to solve problems ranging from simple calculations to complex data processing tasks.",
   "difficulty": "Beginner",
   "estimatedTime": "20 min",
   "prerequisites": "The AlgoBlocks Workspace",
@@ -39,43 +39,43 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "AlgoBlocks uses Blockly components to help students build algorithms through visual programming.\n\nEach block represents a programming instruction or logical operation. By combining blocks together, learners can create complete algorithms without immediately dealing with programming syntax.\n\nUnderstanding the purpose of each component is important because these blocks form the foundation of all future algorithm activities."
+      "content": "AlgoBlocks uses Blockly components to help students build algorithms through visual programming. Each block represents a programming instruction like storing a number, repeating an action, or making a decision. By combining blocks together, learners can create complete algorithms without dealing with complicated syntax like semicolons or parentheses.\n\nUnderstanding each component is important because these blocks form the foundation of all future algorithm activities. Just as a carpenter needs to know different tools, a programmer needs to know when to use a variable versus an array, or a loop versus a conditional.\n\nMastering the five core component types which are variables, loops, conditionals, arrays, and math operations will enable you to solve almost any introductory programming problem. This lesson explains each component with simple examples and typical use cases."
     },
     {
       "id": "variables",
       "type": "concept",
       "title": "Variables",
-      "content": "Variables are used to store information temporarily while an algorithm executes.\n\nA variable can hold numbers, text, or other forms of data that may change during execution.\n\nProgrammers use variables to track values, store calculations, and manage the state of an algorithm while it runs."
+      "content": "Variables store information temporarily while an algorithm runs. Think of a variable as a labeled box where you can put a value, give it a name like score or playerName, and later change that value. In AlgoBlocks, the Variables toolbox contains blocks to create a variable, set its value, or change it by a certain amount.\n\nA variable can hold numbers, text, or true/false values. For example, a variable named lives might start at 3 and decrease to 2 when the player makes a mistake. A variable named username stores whatever text the user types in.\n\nProgrammers use variables to track values and manage program state. Without variables, a program could only perform fixed operations with no memory of past events. A game score needs a variable to update and display current points. A shopping cart needs variables to store prices and calculate totals.\n\nIn AlgoBlocks, click Create a variable, give it a name like age or total, then drag the set or change blocks onto your workspace. The Python code for set score to 10 becomes score = 10. Use descriptive names like playerScore instead of ps, and always set a starting value before using a variable."
     },
     {
       "id": "loops",
       "type": "deep_dive",
       "title": "Loops",
-      "content": "Loops allow algorithms to repeat instructions multiple times automatically.\n\nInstead of manually writing the same instructions repeatedly, programmers use loops to perform repetitive tasks efficiently.\n\nLoops are extremely important in programming because many real-world problems require repeated processing of data, calculations, or user actions."
+      "content": "Loops allow algorithms to repeat instructions automatically. Instead of writing the same block 100 times, programmers use loops to perform repetitive tasks efficiently. Loops save time and make code easier to read.\n\nAlgoBlocks provides three types of loops. The Repeat loop runs a set of blocks a specific number of times, like repeat 10 times to print Hello 10 times. The While loop runs as long as a condition is true, like while score is less than 100 to keep playing until reaching that score. The For Each loop goes through each item in an array, like processing every color in a list.\n\nReal-world examples include calculating the average of 100 test scores using a loop to add each score, displaying all products in a shopping cart, or asking a user to re-enter a password until it matches the confirmation.\n\nCommon pitfalls to avoid are infinite loops where the condition never becomes false, off-by-one errors where a repeat 10 loop runs 9 or 11 times, and forgetting to initialize loop counters before a while loop."
     },
     {
       "id": "conditions",
       "type": "concept",
       "title": "Conditional Logic",
-      "content": "Conditional logic allows algorithms to make decisions.\n\nUsing if and else conditions, the program can choose different actions depending on whether a condition is true or false.\n\nDecision-making is a core part of programming because algorithms often need to react differently depending on the situation."
+      "content": "Conditional logic allows algorithms to make decisions. Using if, else if, and else blocks, the program can choose different actions depending on whether a condition is true or false. This makes programs intelligent and responsive to different situations.\n\nIn AlgoBlocks, the Logic toolbox contains comparison blocks like equal to, greater than, and less than, plus Boolean blocks like AND, OR, and NOT. Every condition evaluates to true or false. For example, age greater than or equal to 18 is true if the person is 18 or older.\n\nTypes of conditionals include the If block which runs only when true, the If/Else block which runs one branch or the other, and the If/Else If/Else block which checks multiple conditions in sequence. Grading systems use this to assign A, B, C, D, or F based on scores.\n\nReal-world examples include a login system that checks if the password matches, a game that ends when health reaches zero, or a weather app that recommends a coat or jacket based on temperature. The Python code for an if/else looks like if score >= 90: print(A) else: print(B or lower)."
     },
     {
       "id": "arrays",
       "type": "concept",
       "title": "Arrays",
-      "content": "Arrays are used to store multiple related values inside a single structure.\n\nInstead of creating many separate variables, programmers use arrays to organize collections of data efficiently.\n\nArrays are commonly used for managing lists, processing datasets, and performing algorithm operations such as searching and sorting."
+      "content": "Arrays store multiple related values inside a single structure. Instead of creating separate variables like score1, score2, up to score100, programmers use arrays to organize collections of data efficiently. An array is a list where each item has a position called an index.\n\nImportant: Indexing starts at zero. The first item is at index 0, the second at index 1, the third at index 2, and so on. For example, an array colors with values red, green, blue has red at index 0, green at index 1, and blue at index 2.\n\nThe Arrays toolbox provides blocks to create arrays, get or set values at an index, add items to the end, insert or remove items, get the array length, and find the index of an item.\n\nReal-world examples include storing student names in a class roster, tracking daily temperatures for a month, managing items in a shopping cart, or storing high scores for a leaderboard. Common pitfalls are index out of bounds errors and off-by-one errors when looping through arrays."
     },
     {
       "id": "math-operations",
       "type": "real_world_connection",
       "title": "Math Operations in Algorithms",
-      "content": "Algorithms frequently perform mathematical operations such as addition, subtraction, multiplication, and comparison.\n\nThese operations are used in calculations, scoring systems, simulations, data analysis, and many other computational tasks.\n\nUnderstanding how mathematical blocks work is essential because mathematics forms the foundation of many computer science concepts."
+      "content": "Algorithms frequently perform math operations like addition, subtraction, multiplication, division, and comparison. Math is what enables calculations, scoring systems, simulations, data analysis, graphics, and finance applications.\n\nThe Math toolbox contains blocks for arithmetic, exponentiation, square root, absolute value, rounding, min and max, random numbers, comparisons, and trigonometric functions. A random 1 to 6 block simulates a dice roll.\n\nMath blocks work together with other components. They store results in variables, accumulate totals inside loops, make decisions inside conditions, and compute statistics on array data like finding the average of all scores.\n\nAlgoBlocks follows the standard order of operations: parentheses first, then exponents, then multiplication and division, then addition and subtraction. A simple calculator algorithm combines variables, math operations, and conditions to ask for two numbers and an operation, then compute and display the result."
     },
     {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "Blockly components allow students to build algorithms visually using variables, loops, conditions, arrays, and mathematical operations. These components form the foundation of algorithm design and problem-solving inside AlgoBlocks."
+      "content": "You have learned five core Blockly components. Variables store changing data like scores and user input. Loops repeat instructions automatically using repeat, while, or for-each. Conditionals make decisions using if and else blocks. Arrays hold collections of related values accessed by index starting at zero. Math operations power calculations, scoring, randomness, and data analysis.\n\nA complete algorithm often combines all five components. For example, to find the highest score in a list, you create an array of scores, set a highest variable to the first score, loop through each score, compare current score with highest using a condition, update highest if needed, then print the result.\n\nYou are now ready to complete the five activities: Odd or Even, Number Counter, Array Printer, Grade Evaluator, and Sum of Range. Each activity will challenge you to combine these components in different ways. Experiment freely and observe the Python code being generated as you build."
     }
   ],
   "references": [
