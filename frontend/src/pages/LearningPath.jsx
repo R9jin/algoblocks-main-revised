@@ -79,13 +79,14 @@ export default function LearningPath() {
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
 
-  // CRITICAL FIX: The loader that stops the "split-second" glitch
   const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(true);
 
   const storedUser = JSON.parse(
     localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
   );
   const userEmail = storedUser.email || "";
+
+  // ADMIN OVERRIDE FLAG
   const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
 
   const checkActivityDone = (moduleId, actId) => {
@@ -147,7 +148,7 @@ export default function LearningPath() {
       }
       setLessonDetails(details);
       setActivitiesData(acts);
-      setIsLoadingCurriculum(false); // Tell the UI it is safe to render
+      setIsLoadingCurriculum(false);
     };
     fetchAllData();
   }, []);
@@ -167,7 +168,7 @@ export default function LearningPath() {
     assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
 
   const isModuleComplete = (moduleId) => {
-    if (isLoadingCurriculum) return false; // Prevent calculating on empty JSONs
+    if (isLoadingCurriculum) return false;
 
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
@@ -192,7 +193,7 @@ export default function LearningPath() {
       let isNextLocked = !preComplete;
 
       for (const lesson of module.lessons) {
-        // FIX: Force unlock if the user is an admin
+        // ADMIN OVERRIDE FOR LESSONS
         lockMap[lesson.lessonId] = isAdmin ? false : isNextLocked;
 
         if (!isNextLocked) {
@@ -215,7 +216,6 @@ export default function LearningPath() {
 
   const lockMap = buildLockMap();
 
-  // CRITICAL FIX: Only render once everything is 100% loaded
   if (isLoadingCurriculum) {
     return (
       <div className="learning-path-page">
@@ -260,9 +260,14 @@ export default function LearningPath() {
             const hasOptimizations = optimizations.length > 0;
             const lastLessonId =
               module.lessons[module.lessons.length - 1]?.lessonId;
+
+            // ADMIN OVERRIDES FOR OPTIMIZATION AND POST-ASSESSMENT
             const optimizationsLocked = isAdmin
               ? false
               : lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
+            const postAssessmentLocked = isAdmin
+              ? false
+              : !moduleComplete && !postComplete;
 
             return (
               <div key={module.moduleId}>
@@ -565,7 +570,7 @@ export default function LearningPath() {
                     )}
 
                     <div
-                      className={`assessment-row post ${postComplete ? "done" : moduleComplete ? "pending" : "locked"}`}
+                      className={`assessment-row post ${postComplete ? "done" : postAssessmentLocked ? "locked" : "pending"}`}
                     >
                       <div className="assessment-row-left">
                         <FiClipboard size={16} />
@@ -577,14 +582,14 @@ export default function LearningPath() {
                             {postScore}%
                           </span>
                         )}
-                        {!moduleComplete && !postComplete && (
+                        {postAssessmentLocked && (
                           <span className="assessment-gate-note">
                             (Complete all lessons first)
                           </span>
                         )}
                       </div>
                       <div className="assessment-row-right">
-                        {!moduleComplete && !postComplete ? (
+                        {postAssessmentLocked ? (
                           <FiLock color="#bdbdbd" size={16} />
                         ) : postComplete ? (
                           <>

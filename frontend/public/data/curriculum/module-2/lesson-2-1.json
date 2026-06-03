@@ -2,7 +2,7 @@
   "lessonId": "lesson-2-1",
   "moduleId": "module-2",
   "title": "Brute Force Strategy",
-  "description": "Learn how brute force algorithms solve problems through systematic exhaustive checking and why this strategy is correct but often expensive.",
+  "description": "Learn how **brute force algorithms** solve problems through **systematic exhaustive checking** and why this strategy is correct but **often expensive**.",
   "difficulty": "Beginner",
   "estimatedTime": "35 min",
   "prerequisites": "Space Complexity",
@@ -34,37 +34,37 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "One of the most natural ways to solve a problem is to try every possible solution until you find the correct one. This strategy is called brute force. It is how humans often solve puzzles in real life. When you lose your keys, you check every room and every drawer until you find them.\n\nA brute force algorithm does not use shortcuts or fancy optimization. It uses direct, systematic checking. The algorithm tests each candidate answer one by one. It stops only when the answer is found or every possibility has been tried.\n\nBrute force is important because it is often the first correct version of a solution. When facing a new problem, trying all possibilities gives you something that works, at least for small inputs.\n\nMany advanced algorithms like binary search and dynamic programming are easier to understand when you see them as optimizations of a simpler brute force approach. Understanding brute force helps you see what work can be eliminated or accelerated."
+      "content": "One of the most natural ways to solve a problem is to **try every possible solution** until you find the correct one. This strategy is called **brute force**. It is how humans often solve puzzles in real life. When you lose your keys, you check every room and every drawer until you find them.\n\nA brute force algorithm **does not use shortcuts or fancy optimization**. It uses **direct, systematic checking**. The algorithm tests each candidate answer one by one. It stops only when the answer is found or every possibility has been tried.\n\nBrute force is important because it is often the **first correct version of a solution**. When facing a new problem, trying all possibilities gives you something that works, at least for small inputs.\n\nMany advanced algorithms like binary search and dynamic programming are easier to understand when you see them as optimizations of a simpler brute force approach. Understanding brute force helps you **see what work can be eliminated or accelerated**."
     },
     {
       "id": "why-brute-force-matters",
       "type": "concept",
       "title": "Why Brute Force Matters",
-      "content": "When programmers face a new problem, a brute force solution helps establish a baseline. The baseline proves what the correct output should be for small inputs. You can then test faster, more complex algorithms against this trusted reference.\n\nBrute force is also valuable for learning because it shows you the entire search space. By seeing every candidate that could be tested, you can identify which work is necessary, which work is repeated, and which work can be eliminated later.\n\nSometimes brute force is not just a baseline but the actual production solution. Many real-world systems use brute force when input sizes are guaranteed to be small. A configuration checker that tests a handful of settings or a simple game AI that looks a few moves ahead uses brute force effectively.\n\nBrute force is simple to design and explain. It helps verify correctness before optimization. It gives developers a baseline for comparing faster algorithms. It works well when input sizes are small or when correctness matters more than speed.",
+      "content": "When programmers face a new problem, a brute force solution helps establish a **baseline**. The baseline proves what the correct output should be for small inputs. You can then test faster, more complex algorithms against this **trusted reference**.\n\nBrute force is also valuable for learning because it shows you the **entire search space**. By seeing every candidate that could be tested, you can identify which work is necessary, which work is repeated, and **which work can be eliminated later**.\n\nSometimes brute force is not just a baseline but the **actual production solution**. Many real-world systems use brute force when input sizes are **guaranteed to be small**. A configuration checker that tests a handful of settings or a simple game AI that looks a few moves ahead uses brute force effectively.\n\nBrute force is simple to design and explain. It helps verify correctness before optimization. It gives developers a baseline for comparing faster algorithms. It works well when input sizes are small or when **correctness matters more than speed**.",
       "bullets": [
-        "It is usually simple to design and explain.",
-        "It helps verify correctness before optimization.",
-        "It gives developers a baseline for comparing faster algorithms.",
-        "It works well when input sizes are small or when correctness matters more than speed."
+        "It is usually **simple to design and explain**.",
+        "It helps **verify correctness** before optimization.",
+        "It gives developers a **baseline for comparing faster algorithms**.",
+        "It works well when **input sizes are small** or when correctness matters more than speed."
       ]
     },
     {
       "id": "core-idea",
       "type": "concept",
       "title": "Core Idea of Brute Force",
-      "content": "The core idea of brute force is systematic testing. Instead of making intelligent guesses, the algorithm checks candidates one by one in a fixed order. This systematic approach ensures that no candidate is missed.\n\nIn array problems, brute force may mean scanning every element from index 0 to n-1. In combination problems, it may mean generating every possible pair using nested loops. In password problems, it may mean trying every possible sequence like 0000, 0001, 0002.\n\nBecause every possibility is checked, brute force can guarantee correctness if the implementation is correct and the search space is finite. There is no risk of missing a solution due to a wrong guess or assumption.\n\nThis reliability is the algorithm's greatest strength. You may not know if a clever optimization will always work, but you can always trust brute force to find the answer if it exists."
+      "content": "The core idea of brute force is **systematic testing**. Instead of making intelligent guesses, the algorithm **checks candidates one by one** in a fixed order. This systematic approach ensures that **no candidate is missed**.\n\nIn array problems, brute force may mean **scanning every element** from index 0 to n-1. In combination problems, it may mean generating **every possible pair** using nested loops. In password problems, it may mean trying **every possible sequence** like 0000, 0001, 0002.\n\nBecause every possibility is checked, brute force can **guarantee correctness** if the implementation is correct and the search space is finite. There is no risk of missing a solution due to a wrong guess or assumption.\n\nThis reliability is the algorithm's greatest strength. You may not know if a clever optimization will always work, but you can **always trust brute force to find the answer if it exists**."
     },
     {
       "id": "brute-force-searching",
       "type": "deep_dive",
       "title": "Brute Force in Searching",
-      "content": "One common brute force algorithm is linear search. Suppose you need to find the number 8 inside an array. The direct strategy is to compare the target with each element from left to right, starting at index 0, then index 1, then index 2.\n\nLinear search is brute force because it examines every element in the worst case. It makes no assumptions about the data's order. If the array is not sorted, there is no way to know where the target might be without checking.\n\nIf the value is found, the algorithm returns its position. If the value is not found, the algorithm reaches the end and reports that no match exists. No element is skipped.\n\nLinear search is useful when the array is not sorted, when the array is small so even the worst case is fine, when you only search once, or when the data comes in a stream and you cannot jump to arbitrary positions."
+      "content": "One common brute force algorithm is linear search. Suppose you need to find the number 8 inside an array. The direct strategy is to compare the target with each element from left to right, starting at index 0, then index 1, then index 2.\n\nLinear search is brute force because it **examines every element in the worst case**. It **makes no assumptions** about the data's order. If the array is not sorted, there is no way to know where the target might be without checking.\n\nIf the value is found, the algorithm returns its position. If the value is not found, the algorithm reaches the end and reports that no match exists. **No element is skipped**.\n\nLinear search is useful when the array is not sorted, when the array is small so even the worst case is fine, when you only search once, or when the data comes in a stream and **you cannot jump to arbitrary positions**."
     },
     {
       "id": "implementation-examples",
       "type": "concept",
       "title": "Implementation Examples",
-      "content": "Brute force implementations are usually built from loops, comparisons, and simple variables. Most brute force array algorithms follow a simple pattern. You initialize a result, loop through each candidate, check if it satisfies the condition, update the result if needed, and then return the result.\n\nFinding the maximum value is a classic example. You start with the first element as the current maximum. Then you loop through every element. If you find a larger value, you update the maximum. This checks every element exactly once.\n\nAnother example is checking every pair to see if their sum equals a target. This uses nested loops. The outer loop picks the first element. The inner loop picks the second element starting after the first to avoid duplicate pairs. This takes O(n squared) time but is very simple to write.\n\nOther common brute force patterns include counting how many values meet a condition, finding the first negative number, and searching for a specific target. These patterns are easy to understand and get correct.",
+      "content": "Brute force implementations are usually built from **loops, comparisons, and simple variables**. Most brute force array algorithms follow a simple pattern. You initialize a result, loop through each candidate, check if it satisfies the condition, update the result if needed, and then return the result.\n\nFinding the maximum value is a classic example. You start with the first element as the current maximum. Then you loop through every element. If you find a larger value, you update the maximum. This **checks every element exactly once**.\n\nAnother example is checking every pair to see if their sum equals a target. This uses **nested loops**. The outer loop picks the first element. The inner loop picks the second element starting after the first to avoid duplicate pairs. This takes O(n squared) time but is **very simple to write**.\n\nOther common brute force patterns include counting how many values meet a condition, finding the first negative number, and searching for a specific target. These patterns are **easy to understand and get correct**.",
       "codeSnippets": [
         {
           "title": "Find the maximum by checking every element",
@@ -92,7 +92,7 @@
       "id": "exhaustive-search",
       "type": "deep_dive",
       "title": "Understanding Exhaustive Search",
-      "content": "Brute force algorithms are often called exhaustive search because every possible candidate is explored. The algorithm does not stop early if a candidate seems unlikely. It checks everything in a methodical way.\n\nThis exhaustiveness is both the strength and the weakness. It guarantees correctness but can require enormous amounts of work. For array scanning, exhaustive search means checking each element once, which is actually optimal for unsorted data.\n\nFor pair checking, it means checking all n times n-1 divided by 2 pairs. For subset problems, it means trying all 2 to the power of n subsets. For n=20, that is about 1 million subsets, which is fine. For n=40, it is about 1 trillion subsets, which is not feasible.\n\nThis is useful for small inputs. But the number of possibilities grows very quickly. A four-digit password has 10,000 combinations. An eight-digit password has 100 million combinations. The algorithm may be correct, but the work can become too large for practical systems.",
+      "content": "Brute force algorithms are often called **exhaustive search** because every possible candidate is explored. The algorithm does not stop early if a candidate seems unlikely. It **checks everything in a methodical way**.\n\nThis exhaustiveness is both the strength and the weakness. It **guarantees correctness but can require enormous amounts of work**. For array scanning, exhaustive search means checking each element once, which is actually optimal for unsorted data.\n\nFor pair checking, it means checking all n times n-1 divided by 2 pairs. For subset problems, it means trying all 2 to the power of n subsets. For n=20, that is about 1 million subsets, which is fine. For n=40, it is **about 1 trillion subsets, which is not feasible**.\n\nThis is useful for small inputs. But the **number of possibilities grows very quickly**. A four-digit password has 10,000 combinations. An eight-digit password has 100 million combinations. The algorithm may be correct, but the work can **become too large for practical systems**.",
       "chart": {
         "title": "Exhaustive growth as input size increases",
         "description": "Brute force methods often begin with linear scanning, but combinations and nested checks can quickly move toward quadratic or exponential growth.",
@@ -105,13 +105,13 @@
       "id": "complexity-analysis",
       "type": "concept",
       "title": "Time and Space Complexity",
-      "content": "The complexity of a brute force algorithm depends on how many candidates it must test. A single loop through n elements takes O(n) time. Checking every pair with nested loops takes O(n squared) time. Generating all subsets takes O(2 to the n) time.\n\nMany beginner brute force algorithms use O(1) auxiliary space. They only keep a few variables like a counter, current maximum, or current minimum. They process the input without creating new structures that grow with n.\n\nHowever, more complex exhaustive searches may need more memory. Storing all candidates may take O(n) space. Tracking visited states may take O(n) or O(n squared) space. Recursion for generating combinations may need O(depth) space for the call stack.\n\nUnderstanding these complexity patterns helps you predict whether your brute force solution will run within acceptable limits for your expected input sizes."
+      "content": "The complexity of a brute force algorithm depends on **how many candidates it must test**. A single loop through n elements takes O(n) time. Checking every pair with nested loops takes O(n squared) time. Generating all subsets takes O(2 to the n) time.\n\nMany beginner brute force algorithms use **O(1) auxiliary space**. They only keep a few variables like a counter, current maximum, or current minimum. They process the input **without creating new structures that grow with n**.\n\nHowever, more complex exhaustive searches may need more memory. Storing all candidates may take **O(n) space**. Tracking visited states may take O(n) or O(n squared) space. Recursion for generating combinations may need **O(depth) space** for the call stack.\n\nUnderstanding these complexity patterns helps you **predict whether your brute force solution will run within acceptable limits** for your expected input sizes."
     },
     {
       "id": "brute-force-vs-optimized",
       "type": "real_world_connection",
       "title": "Brute Force vs Optimized Algorithms",
-      "content": "Brute force explores everything and focuses on being correct. Optimized algorithms try to eliminate unnecessary work. They use ordering, math insights, data structures, pruning, or divide and conquer strategies. The difference between brute force and optimized solutions can be enormous.\n\nFor example, linear search checks every element and takes O(n) time. Binary search needs sorted data but cuts the search space in half each time, taking O(log n) time. For 1 million items, linear search does 1 million checks while binary search does only about 20 checks. That is 50,000 times faster.\n\nFor the pair sum problem, brute force checks all pairs in O(n squared) time. An optimized approach uses a hash set. For each element, it checks if the target minus that element is in the set. This runs in O(n) time on average. For 100,000 items, brute force does about 5 billion comparisons while the optimized version does about 100,000 hash lookups.\n\nUse brute force when n is small, when correctness is critical and optimization time is expensive, or as a baseline for testing. Use optimized algorithms when n is large, when performance matters, or when the problem structure allows math shortcuts."
+      "content": "Brute force explores everything and focuses on being correct. Optimized algorithms try to **eliminate unnecessary work**. They use ordering, math insights, data structures, pruning, or divide and conquer strategies. The **difference between brute force and optimized solutions can be enormous**.\n\nFor example, linear search checks every element and takes O(n) time. Binary search needs sorted data but cuts the search space in half each time, taking O(log n) time. For 1 million items, linear search does 1 million checks while binary search does only about 20 checks. That is **50,000 times faster**.\n\nFor the pair sum problem, brute force checks all pairs in O(n squared) time. An optimized approach uses a hash set. For each element, it checks if the target minus that element is in the set. This runs in O(n) time on average. For 100,000 items, brute force does about 5 billion comparisons while the optimized version does **about 100,000 hash lookups**.\n\nUse brute force when **n is small**, when **correctness is critical**, or as a **baseline for testing**. Use optimized algorithms when **n is large**, when **performance matters**, or when the problem structure allows math shortcuts."
     },
     {
       "id": "advantages-limitations",
@@ -122,20 +122,20 @@
           "id": "advantages",
           "title": "Advantages",
           "bullets": [
-            "Easy to understand and implement.",
-            "Useful as a correctness baseline.",
-            "Reliable when the search space is small.",
-            "Helpful for debugging and testing optimized solutions."
+            "**Easy to understand and implement**.",
+            "Useful as a **correctness baseline**.",
+            "**Reliable** when the search space is small.",
+            "Helpful for **debugging and testing optimized solutions**."
           ]
         },
         {
           "id": "limitations",
           "title": "Limitations",
           "bullets": [
-            "Often performs unnecessary work.",
-            "Scales poorly when the number of candidates grows quickly.",
-            "Can consume excessive time, memory, or processing power.",
-            "May be impractical for large datasets or real-time systems."
+            "Often performs **unnecessary work**.",
+            "**Scales poorly** when the number of candidates grows quickly.",
+            "Can consume **excessive time, memory, or processing power**.",
+            "May be **impractical for large datasets or real-time systems**."
           ]
         }
       ]
@@ -144,7 +144,7 @@
       "id": "applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Brute force appears in many real-world systems. It is used when input sizes are small, when correctness is most important, or when the cost of optimization is higher than the benefit.\n\nIn password testing for security, professionals use brute force to check password strength. They try every possible combination within a character set. This is slow but guarantees that if the password is in the search space, it will be found.\n\nIn small game AI like Tic-Tac-Toe, brute force can play perfectly. The AI can explore all possible moves and pick the winning one. The game state space is small enough that checking everything is possible.\n\nIn configuration testing, when a system has only a few settings, brute force can test all combinations to find which settings cause a bug or give the best performance.\n\nIn competitive programming, many beginner problems are designed for brute force solutions. The input sizes are kept small so that even exponential algorithms can pass within the time limit. Brute force is useful when inputs are small, when correctness is the top priority, or when you need a baseline before designing a faster algorithm."
+      "content": "Brute force appears in many real-world systems. It is used when **input sizes are small**, when **correctness is most important**, or when the **cost of optimization is higher than the benefit**.\n\nIn password testing for security, professionals use brute force to check password strength. They try **every possible combination** within a character set. This is slow but guarantees that if the password is in the search space, it will be found.\n\nIn small game AI like Tic-Tac-Toe, brute force can play perfectly. The AI can explore all possible moves and pick the winning one. The **game state space is small enough** that checking everything is possible.\n\nIn configuration testing, when a system has only a few settings, brute force can **test all combinations** to find which settings cause a bug or give the best performance.\n\nIn competitive programming, many beginner problems are designed for brute force solutions. The input sizes are kept small so that even exponential algorithms can pass within the time limit. Brute force is useful when inputs are small, when correctness is the top priority, or when you need a **baseline before designing a faster algorithm**."
     },
     {
       "id": "misconceptions",
@@ -154,17 +154,17 @@
         {
           "id": "always-bad",
           "title": "Misconception: Brute force is always bad",
-          "content": "Brute force can be the right choice for small inputs, testing, or baseline implementation. The problem appears when the search space becomes too large. For n=10, 2 to the n is 1024 operations, which is fine. For n=100, it is impossible."
+          "content": "Brute force can be the **right choice for small inputs, testing, or baseline implementation**. The problem appears when the search space becomes too large. For n=10, 2 to the n is 1024 operations, which is fine. For n=100, it is impossible."
         },
         {
           "id": "always-linear",
           "title": "Misconception: Brute force is always O(n)",
-          "content": "Some brute force algorithms are linear, but others use nested loops for O(n squared), generate subsets for O(2 to the n), or list permutations for O(n factorial). Complexity depends on how many candidates are tested, not on the name brute force."
+          "content": "Some brute force algorithms are linear, but others use nested loops for O(n squared), generate subsets for O(2 to the n), or list permutations for O(n factorial). Complexity depends on **how many candidates are tested**, not on the name brute force."
         },
         {
           "id": "random-guessing",
           "title": "Misconception: Brute force means random guessing",
-          "content": "Brute force is systematic exhaustive checking. It follows a predictable order like left to right or smallest to largest. Random guessing may miss candidates and has no guarantee of finding a solution. Brute force is complete and deterministic."
+          "content": "Brute force is **systematic exhaustive checking**. It follows a predictable order like left to right or smallest to largest. Random guessing may miss candidates and has no guarantee of finding a solution. Brute force is **complete and deterministic**."
         }
       ]
     },
@@ -173,11 +173,11 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "Brute force solves problems by systematically checking possible solutions.",
-        "The strategy is simple and often guarantees correctness.",
-        "Brute force is useful as a baseline before optimization.",
-        "Performance depends on the number of candidates tested.",
-        "Large search spaces can make brute force impractical."
+        "Brute force solves problems by **systematically checking possible solutions**.",
+        "The strategy is simple and **often guarantees correctness**.",
+        "Brute force is useful as a **baseline before optimization**.",
+        "Performance depends on the **number of candidates tested**.",
+        "Large search spaces can make brute force **impractical**."
       ]
     }
   ],
