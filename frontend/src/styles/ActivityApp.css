@@ -1,4 +1,4 @@
-/*frontend\src\styles\ActivityApp.css*/
+/*frontend/src/styles/ActivityApp.css*/
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap');
 
@@ -217,7 +217,6 @@
   background-color: #FBF9FF;
   transition: all 0.3s ease;
   overflow: hidden;
-  /* Keeps the dropdown tidy */
 }
 
 /* Success State */
@@ -360,8 +359,6 @@
   justify-content: space-between;
   align-items: center;
 }
-
-/* --- IDENTICAL STYLES TRANSFERRED FROM MAINAPP.CSS --- */
 
 /* DOCKED FOOTER */
 .workspace-footer {
@@ -830,4 +827,106 @@
   border-color: #6C5CE7;
   box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
   background-color: #ffffff;
+}
+
+/* =========================================
+   FLOATING ERROR DROPDOWN (DEEP STACK)
+   ========================================= */
+.floating-error-container {
+  position: absolute;
+  bottom: 20px;
+  right: 25px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.floating-error-btn {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.floating-error-btn:hover {
+  background-color: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(231, 76, 60, 0.5);
+}
+
+.floating-error-btn.open {
+  border-radius: 0 0 12px 12px;
+  transform: translateY(0);
+}
+
+.error-dropdown-menu {
+  background-color: #2A1B54;
+  border: 1px solid #e74c3c;
+  border-radius: 12px 12px 0 0;
+  width: 350px;
+  max-height: 250px;
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.2s ease-out;
+}
+
+.error-dropdown-header {
+  background-color: #e74c3c;
+  color: white;
+  padding: 10px 15px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-dropdown-list {
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.error-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: rgba(231, 76, 60, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid #e74c3c;
+}
+
+.error-line-badge {
+  background-color: #e74c3c;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.error-message {
+  color: #EBE4FF;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
 }

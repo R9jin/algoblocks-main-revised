@@ -22,7 +22,16 @@ const LessonViewer = lazy(() => import("./pages/LessonViewer"));
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!user) {
-    return <Navigate to="/signin" replace />;
+    // FIXED: Let PublicRoute handle the landing page, kills the /signin race condition
+    return <Navigate to="/" replace />; 
+  }
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 };
@@ -31,8 +40,6 @@ function App() {
   const location = useLocation();
 
   useEffect(() => {
-    // FIX: Only trigger background sync if the user is authenticated and NOT on auth pages.
-    // This prevents the sync manager from firing with a null token and triggering a logout interceptor.
     const user = localStorage.getItem("user") || sessionStorage.getItem("user");
     const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
     
@@ -46,10 +53,11 @@ function App() {
       <OfflineIndicator />
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+          <Route path="/signin" element={<PublicRoute><SignIn /></PublicRoute>} />
+          <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />
           <Route path="/learning-path/:moduleId/:lessonId" element={<ProtectedRoute><LessonViewer /></ProtectedRoute>} />

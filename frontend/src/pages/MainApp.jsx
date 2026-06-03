@@ -78,7 +78,6 @@ const getComplexityWeight = (complexity) => {
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
   const sections = text.split(/\n\n+/);
-
   return sections.map((sec, idx) => {
     const trimmedSec = sec.trim();
     if (!trimmedSec) return null;
@@ -126,31 +125,29 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     }
 
     let parsedSec = trimmedSec.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(parsedSec)}}></p>;
+    return <p key={idx} style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '0.9rem', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></p>;
   }).filter(Boolean);
 };
 
-// HELPER: Centralized Token & User Retrieval
 const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 const getUser = () => {
-    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-    return userStr ? JSON.parse(userStr) : null;
+  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  return userStr ? JSON.parse(userStr) : null;
 };
 const getAuthHeaders = () => {
-    const token = getToken();
-    return token ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` } : { "Content-Type": "application/json" };
+  const token = getToken();
+  return token ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` } : { "Content-Type": "application/json" };
 };
 
 export default function MainApp() {
   const location = useLocation();
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
-  // Hook into the global Pyodide Context
   const { worker, isEngineReady, resetWorker } = usePyodide();
 
   const createInitialTab = () => ({
     id: `tab-${Date.now()}`, title: 'Untitled Project', viewMode: 'workspace', blocklyJson: null,
-    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxError: null,
+    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
     analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project"
   });
@@ -159,17 +156,18 @@ export default function MainApp() {
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [bottomPanel, setBottomPanel] = useState(null); 
+  const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [consoleTab, setConsoleTab] = useState("output");
   const [activeComplexityTab, setActiveComplexityTab] = useState("local");
   const [expandedLines, setExpandedLines] = useState({});
+
+  const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
 
   const [allTemplates, setAllTemplates] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -200,30 +198,38 @@ export default function MainApp() {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
+
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const initWorker = () => {
     if (!workerRef.current) return;
-
     workerRef.current.onmessage = (event) => {
       const { type, data, counts } = event.data;
-
       if (type === 'ANALYZE_RESULT') {
         const targetId = analyzingTabId.current;
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
-
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
-            lineExecutions: prev => ({...prev, ...initialCounts}),
-            syntaxError: null
+            lineExecutions: prev => ({ ...prev, ...initialCounts }),
+            syntaxErrors: []
           });
+          setIsErrorDropdownOpen(false);
         } else {
-          const hint = translatePythonError(data.message);
-          updateTab(targetId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
+          // --- DEEP STACK FIX: Process multiple errors simultaneously ---
+          if (data.multiple_errors && data.multiple_errors.length > 0) {
+            const mappedErrors = data.multiple_errors.map(err => {
+              const hint = translatePythonError(err.message);
+              return { line: err.line, message: `${err.message}. ${hint}` };
+            });
+            updateTab(targetId, { syntaxErrors: mappedErrors });
+          } else {
+            const hint = translatePythonError(data.message);
+            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${hint}` }] });
+          }
         }
       }
       else if (type === 'RUN_RESULT') {
@@ -233,9 +239,8 @@ export default function MainApp() {
         pendingOutputRef.current = "";
         const resultData = (data !== undefined && data !== null && data !== "") ? `\n${String(data)}` : "";
         setConsoleOutput(prev => prev + flushed + resultData + "\n> Program finished.\n");
-        
         if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
-        
+
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
       else if (type === 'OUTPUT') {
@@ -250,13 +255,15 @@ export default function MainApp() {
         }
       }
       else if (type === 'INPUT_REQUEST') {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         setConsoleOutput(prev => prev + flushed + data.prompt);
         setIsWaitingForInput(true);
       }
       else if (type === 'ERROR') {
-        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        clearTimeout(runTimeoutRef.current);
+        clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const hint = translatePythonError(data);
         setConsoleOutput(prev => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
@@ -268,7 +275,7 @@ export default function MainApp() {
   useEffect(() => {
     if (worker) {
       workerRef.current = worker;
-      initWorker(); 
+      initWorker();
     }
   }, [worker]);
 
@@ -286,8 +293,9 @@ export default function MainApp() {
   useEffect(() => {
     if (workspaceRefs.current[activeTabId] && activeTab?.viewMode === 'workspace') {
       setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 50);
+      setTimeout(() => { workspaceRefs.current[activeTabId].resize(); }, 300);
     }
-  }, [activeTabId, activeTab?.viewMode]);
+  }, [activeTabId, activeTab?.viewMode, isSidebarVisible]);
 
   useEffect(() => {
     if (consoleEndRef.current && consoleTab === 'output') consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -325,17 +333,15 @@ export default function MainApp() {
 
       if (navigator.onLine && API_BASE) {
         try {
-          // FIX: Add auth headers to fetch requests to prevent silent 401s
           const headers = getAuthHeaders();
-          
           const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
           if (pRes.ok) {
             const pData = await pRes.json();
             const cloudProjects = pData.projects || pData || [];
             for (const cp of cloudProjects) {
-               if (cp.owner_id === user.email || cp.userId === user.email) {
-                   await projectsDB.setItem(cp._id, { ...cp, synced: true });
-               }
+              if (cp.owner_id === user.email || cp.userId === user.email) {
+                await projectsDB.setItem(cp._id, { ...cp, synced: true });
+              }
             }
           }
           const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`, { headers });
@@ -343,36 +349,35 @@ export default function MainApp() {
             const tData = await tRes.json();
             const cloudTemplates = tData.templates || tData || [];
             for (const ct of cloudTemplates) {
-                if (ct.owner_id === user.email || ct.userId === user.email) {
-                    await templatesDB.setItem(ct._id, { ...ct, synced: true });
-                }
+              if (ct.owner_id === user.email || ct.userId === user.email) {
+                await templatesDB.setItem(ct._id, { ...ct, synced: true });
+              }
             }
           }
         } catch (e) { console.error("MainApp cloud sync failed:", e); }
       }
-      
-      let customItems = [];
-      await projectsDB.iterate((value) => { 
-        if (value.owner_id === user.email || value.userId === user.email) {
-            customItems.push({ 
-                _id: value._id, title: value.title || value.name || "Untitled Project", 
-                description: value.description || "Saved Project", category: "My Projects", 
-                isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson, 
-                synced: value.synced 
-            }); 
-        }
-      });
-      await templatesDB.iterate((value) => { 
-        if (value.owner_id === user.email || value.userId === user.email) {
-            customItems.push({ 
-                _id: value._id, title: value.title || value.name || "Untitled Template", 
-                description: value.description || "Custom template", category: value.category || "Custom Templates", 
-                isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson, 
-                synced: value.synced 
-            }); 
-        }
-      });
 
+      let customItems = [];
+      await projectsDB.iterate((value) => {
+        if (value.owner_id === user.email || value.userId === user.email) {
+          customItems.push({
+            _id: value._id, title: value.title || value.name || "Untitled Project",
+            description: value.description || "Saved Project", category: "My Projects",
+            isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson,
+            synced: value.synced
+          });
+        }
+      });
+      await templatesDB.iterate((value) => {
+        if (value.owner_id === user.email || value.userId === user.email) {
+          customItems.push({
+            _id: value._id, title: value.title || value.name || "Untitled Template",
+            description: value.description || "Custom template", category: value.category || "Custom Templates",
+            isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson,
+            synced: value.synced
+          });
+        }
+      });
       const uniqueItemsMap = new Map();
       customItems.forEach(item => uniqueItemsMap.set(item._id, item));
       setAllTemplates([...baseTemplates, ...Array.from(uniqueItemsMap.values())]);
@@ -417,15 +422,13 @@ export default function MainApp() {
 
       const newTabState = {
         id: targetId, title: item.title, viewMode: 'workspace', blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
-        isEditingCode: false, syntaxError: null, analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
+        isEditingCode: false, syntaxErrors: [], analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
         lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : (item.saveType || "project")
       };
-
       if (isClean) setTabs(prev => prev.map(t => t.id === targetId ? newTabState : t));
       else { setTabs(prev => [...prev, newTabState]); setActiveTabId(targetId); }
 
       setTimeout(() => { if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json); }, 100);
-
     } catch (error) { showToast("Failed to load template", "error"); }
   };
 
@@ -444,20 +447,20 @@ export default function MainApp() {
         });
         if (!response.ok) throw new Error("FastAPI analyze failed");
         const data = await response.json();
-
         if (data.status === "success") {
           const initialCounts = {};
           (data.lines || []).forEach(l => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           updateTab(tabId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
             analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
-            lineExecutions: prev => ({...prev, ...initialCounts}), syntaxError: null
+            lineExecutions: prev => ({ ...prev, ...initialCounts }), syntaxErrors: []
           });
+          setIsErrorDropdownOpen(false);
         } else {
           const hint = translatePythonError(data.message);
-          updateTab(tabId, { syntaxError: { line: data.line, message: `${data.message}. ${hint}` } });
+          updateTab(tabId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${hint}` }] });
         }
-        return; 
+        return;
       } catch (error) { console.warn("Online analysis failed, safely falling back locally.", error); }
     }
     if (workerRef.current) workerRef.current.postMessage({ type: 'ANALYZE_CODE', code });
@@ -470,15 +473,20 @@ export default function MainApp() {
     const oldCode = (tab.pythonCode || "").trim();
     const newCode = (pythonCode || "").trim();
 
-    if (!tab.isEditingCode && oldCode !== newCode) {
-      analyzeCode(tabId, pythonCode);
+    if (!tab.isEditingCode) {
+      if (oldCode !== newCode) {
+        analyzeCode(tabId, pythonCode);
+      }
+      updateTab(tabId, { blocklyJson: json, pythonCode: newCode });
+    } else {
+      updateTab(tabId, { blocklyJson: json });
     }
-    updateTab(tabId, { blocklyJson: json, pythonCode: newCode });
   };
 
+  // Increased debounce from 500 to 800ms to stop UI flickering while typing
   useEffect(() => {
     if (isEngineReady && activeTab.pythonCode !== "# Drag blocks to generate Python code" && activeTab.isEditingCode) {
-      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 500);
+      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 800);
       return () => clearTimeout(timeoutId);
     }
   }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
@@ -503,7 +511,7 @@ export default function MainApp() {
           updateTab(activeTabId, {
             pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
             analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
-            analysisTime: "0.0", lineExecutions: {}, syntaxError: null,
+            analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project"
           });
           setBottomPanel(null); setExpandedLines({});
@@ -515,7 +523,8 @@ export default function MainApp() {
   const handleRunCode = async () => {
     if (isEvaluating) return;
     if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
-      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+      setConsoleOutput("Error: No code to execute.");
+      setBottomPanel("console"); setConsoleTab("output"); return;
     }
 
     clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
@@ -531,7 +540,6 @@ export default function MainApp() {
         setConsoleOutput(prev => prev + flushed);
       }
     }, 100);
-
     workerRef.current.postMessage({ type: 'RUN_CODE', code: activeTab.pythonCode });
     runTimeoutRef.current = setTimeout(() => {
       resetWorker();
@@ -546,7 +554,6 @@ export default function MainApp() {
       setConsoleOutput((prev) => prev + userInput + "\n");
       workerRef.current.postMessage({ type: 'INPUT_RESPONSE', data: userInput });
       outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
-
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
           const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
@@ -563,15 +570,14 @@ export default function MainApp() {
   };
 
   const openSaveModal = () => {
-    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) { 
-        showToast("The workspace is empty. Nothing to save!", "error"); 
-        return; 
+    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) {
+      showToast("The workspace is empty. Nothing to save!", "error");
+      return;
     }
-    
-    // FIX: Pre-check if user is logged in before opening the modal
+
     if (!getUser()) {
-        showToast("You must be logged in to save.", "error");
-        return;
+      showToast("You must be logged in to save.", "error");
+      return;
     }
 
     setSaveModal({
@@ -595,6 +601,30 @@ export default function MainApp() {
     showToast("Workspace exported as JSON", "success");
   };
 
+  const handleImportJson = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+        if (workspaceRefs.current[activeTabId]) {
+          workspaceRefs.current[activeTabId].loadTemplate(json);
+          updateTab(activeTabId, {
+            title: file.name.replace(".json", ""),
+            saveType: "project",
+            isEditingCode: false // Force unlock so the imported blocks generate Python code
+          });
+          showToast("Workspace imported successfully", "success");
+        }
+      } catch (err) {
+        showToast("Invalid JSON file", "error");
+      }
+      event.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   const handleEditItem = (e, item) => {
     e.stopPropagation();
     setSaveModal({
@@ -604,61 +634,56 @@ export default function MainApp() {
   };
 
   const submitSave = async () => {
-    // FIX: Get user explicitly handling both Session and Local storage
     const user = getUser();
     if (!user) {
-        showToast("Error: You must be logged in to save.", "error");
-        return;
+      showToast("Error: You must be logged in to save.", "error");
+      return;
     }
-    
+
     const id = saveModal.editingId || (saveModal.saveType === 'template' ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
-    
-    const payload = { 
-        _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description, 
-        category: saveModal.saveType === 'template' ? saveModal.category : undefined, 
-        data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson, 
-        workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
-        owner_id: user.email, userId: user.email, synced: false, updatedAt: Date.now() 
+    const payload = {
+      _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description,
+      category: saveModal.saveType === 'template' ? saveModal.category : undefined,
+      data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson,
+      workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
+      owner_id: user.email, userId: user.email, synced: false, updatedAt: Date.now()
     };
 
     const db = saveModal.saveType === 'template' ? templatesDB : projectsDB;
     await db.setItem(id, payload);
 
     if (navigator.onLine && user.email && API_BASE) {
-        try {
-            const endpoint = saveModal.saveType === 'template' ? '/api/templates/save' : '/api/projects/save';
-            const apiPayload = saveModal.saveType === 'template' 
-              ? { templateId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
-              : { projectId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
+      try {
+        const endpoint = saveModal.saveType === 'template' ? '/api/templates/save' : '/api/projects/save';
+        const apiPayload = saveModal.saveType === 'template'
+          ? { templateId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
+          : { projectId: id.startsWith('local_') ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
 
-            // FIX: Add strictly defined auth headers
-            const res = await fetch(`${API_BASE}${endpoint}`, {
-                method: 'POST', 
-                headers: getAuthHeaders(), 
-                body: JSON.stringify(apiPayload)
-            });
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(apiPayload)
+        });
 
-            if (res.ok) {
-                const responseData = await res.json();
-                const realId = responseData.projectId || responseData.templateId || responseData._id || id;
-                payload._id = realId; payload.synced = true;
+        if (res.ok) {
+          const responseData = await res.json();
+          const realId = responseData.projectId || responseData.templateId || responseData._id || id;
+          payload._id = realId; payload.synced = true;
+          if (realId !== id) await db.removeItem(id);
+          await db.setItem(realId, payload);
 
-                if (realId !== id) await db.removeItem(id); 
-                await db.setItem(realId, payload);
-                
-                showToast("Saved directly to cloud!", "success");
-                setSaveModal({ ...saveModal, isOpen: false });
-                if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType });
-                fetchTemplates();
-                return;
-            } else {
-                console.warn(`Server returned ${res.status}, falling back to local queue`);
-            }
-        } catch (err) { console.warn("Direct save failed, gracefully falling back to background queue.", err); }
+          showToast("Saved directly to cloud!", "success");
+          setSaveModal({ ...saveModal, isOpen: false });
+          if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType });
+          fetchTemplates();
+          return;
+        } else {
+          console.warn(`Server returned ${res.status}, falling back to local queue`);
+        }
+      } catch (err) { console.warn("Direct save failed, gracefully falling back to background queue.", err); }
     }
 
     await syncQueueDB.setItem(`sync_${id}_${Date.now()}`, { type: saveModal.saveType.toUpperCase(), action: 'UPSERT', data: payload });
-
     showToast("Saved locally. Background sync queued.");
     setSaveModal({ ...saveModal, isOpen: false });
     if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType });
@@ -672,8 +697,11 @@ export default function MainApp() {
 
     setAllTemplates(prev => prev.filter(t => t._id !== item._id));
     try {
-      if (item.saveType === 'template') await templatesDB.removeItem(item._id); else await projectsDB.removeItem(item._id);
-      if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id); else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
+      if (item.saveType === 'template') await templatesDB.removeItem(item._id);
+      else await projectsDB.removeItem(item._id);
+
+      if (item._id.startsWith('local_')) await syncQueueDB.removeItem(item._id);
+      else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: 'DELETE', data: { _id: item._id } });
 
       showToast(`${itemLabel} deleted locally!`, "success");
       tabs.forEach(t => {
@@ -699,12 +727,28 @@ export default function MainApp() {
     if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
     else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
   });
+
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (activeTab.pythonCode || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(activeTab.lineExecutions));
 
   return (
     <div className="workspace-app-container">
+
+      {/* CSS Block to cleanly hide the sidebar without breaking react-split widths */}
+      <style>{`
+        .workspace-split.sidebar-hidden .templates-sidebar {
+          display: none !important;
+          width: 0 !important;
+        }
+        .workspace-split.sidebar-hidden .gutter.gutter-horizontal {
+          display: none !important;
+        }
+        .workspace-split.sidebar-hidden .workspace-main {
+          width: 100% !important;
+        }
+      `}</style>
+
       {toast.show && (<div className={`toast-notification ${toast.type === 'error' ? 'toast-error' : 'toast-success'}`}>{toast.message}</div>)}
 
       {saveModal.isOpen && (
@@ -736,7 +780,7 @@ export default function MainApp() {
 
       <WorkspaceHeader
         viewMode={activeTab.viewMode} setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })}
-        runCode={handleRunCode} handleExport={handleExportJson} handleSaveToDB={openSaveModal}
+        runCode={handleRunCode} handleExport={handleExportJson} handleImport={handleImportJson} handleSaveToDB={openSaveModal}
         currentProjectId={activeTab.currentLoadedId} currentProjectTitle={activeTab.title}
         handleUpdateDB={openSaveModal} isEvaluating={isEvaluating}
       />
@@ -790,32 +834,63 @@ export default function MainApp() {
             <button className="new-tab-btn" onClick={createNewTab}>+</button>
           </div>
 
-          <Split direction="vertical" sizes={bottomPanel ? [65, 35] : [100, 0]} minSize={bottomPanel ? [200, 150] : [200, 0]} gutterSize={bottomPanel ? 8 : 0} className="editor-split-vertical">
-            <div className="editor-container" style={{ position: 'relative' }}>
-              {tabs.map(tab => (
-                <div key={tab.id} className={activeTabId === tab.id && tab.viewMode === 'workspace' ? 'workspace-view d-block' : 'workspace-view d-none'} style={{ height: '100%' }}>
-                  <BlocklyWorkspace ref={el => workspaceRefs.current[tab.id] = el} onChange={(json, py) => handleBlocklyChange(tab.id, json, py)} syntaxError={activeTabId === tab.id ? activeTab.syntaxError : null} />
-                </div>
-              ))}
+          <div className="editor-split-vertical">
+            {/* Added flex: 1 and height: 100% here so the container expands */}
+            <div className="editor-container" style={{ flex: 1, height: '100%', position: 'relative' }}>
+
+              {/* Added flex: 1 here as well */}
+              <div className={activeTab.viewMode === 'workspace' ?
+                'workspace-view d-flex' : 'workspace-view d-none'} style={{ flex: 1, height: '100%', width: '100%' }}>
+                {tabs.map(tab => (
+                  <div key={tab.id} className={activeTabId === tab.id ? 'd-block' : 'd-none'} style={{ width: '100%', height: '100%' }}>
+                    <BlocklyWorkspace
+                      ref={el => workspaceRefs.current[tab.id] = el}
+                      onChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
+                    />
+                  </div>
+                ))}
+              </div>
 
               <div className={activeTab.viewMode === 'python' ? 'python-view d-flex' : 'python-view d-none'}>
                 <div className="python-header">
                   <span className="python-sync-status">{activeTab.isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
                   <button onClick={handleSyncToBlocks} disabled={!activeTab.isEditingCode} className={`python-sync-btn ${activeTab.isEditingCode ? 'active' : 'disabled'}`}> Sync to Blocks </button>
                 </div>
+
                 <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-                  {activeTab.syntaxError && (
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(231, 76, 60, 0.9)', color: 'white', padding: '6px 15px', zIndex: 10, fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Syntax Error on line {activeTab.syntaxError.line}: {activeTab.syntaxError.message}</span>
-                      <button onClick={() => updateTab(activeTabId, { syntaxError: null })} style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>X</button>
-                    </div>
-                  )}
                   <Editor
                     height="100%" language="python" theme="algoblocks-purple" beforeMount={handleEditorWillMount}
                     value={activeTab.pythonCode}
-                    onChange={(value) => { updateTab(activeTabId, { pythonCode: value || "", isEditingCode: true, syntaxError: null }); }}
+                    onChange={(value) => { updateTab(activeTabId, { pythonCode: value || "", isEditingCode: true, syntaxErrors: [] }); }}
                     options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, wordWrap: "on", padding: { top: 16 } }}
                   />
+
+                  {/* NEW ERROR DROPDOWN */}
+                  {activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0 && (
+                    <div className="floating-error-container">
+                      {isErrorDropdownOpen && (
+                        <div className="error-dropdown-menu">
+                          <div className="error-dropdown-header">
+                            Detected Issues ({activeTab.syntaxErrors.length})
+                          </div>
+                          <div className="error-dropdown-list">
+                            {activeTab.syntaxErrors.map((err, idx) => (
+                              <div key={idx} className="error-dropdown-item">
+                                <span className="error-line-badge">Line {err.line}</span>
+                                <span className="error-message">{err.message}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        className={`floating-error-btn ${isErrorDropdownOpen ? 'open' : ''}`}
+                        onClick={() => setIsErrorDropdownOpen(!isErrorDropdownOpen)}
+                      >
+                        ⚠️ {activeTab.syntaxErrors.length} Error{activeTab.syntaxErrors.length > 1 ? 's' : ''}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -955,7 +1030,7 @@ export default function MainApp() {
                 )}
               </div>
             </div>
-          </Split>
+          </div>
           <footer className="workspace-footer">
             <div className="footer-left">
               <button className={`footer-tab ${bottomPanel === 'console' ? 'active' : ''}`} onClick={() => setBottomPanel(bottomPanel === 'console' ? null : 'console')}><img src="/assets/console-icon.png" alt="Console" className="tab-icon" /> Console</button>

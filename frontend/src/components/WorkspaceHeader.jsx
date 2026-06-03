@@ -1,5 +1,6 @@
-// frontend\src\components\WorkspaceHeader.jsx
+// frontend/src/components/WorkspaceHeader.jsx
 
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function WorkspaceHeader({
@@ -10,10 +11,17 @@ export default function WorkspaceHeader({
   currentProjectId,       
   currentProjectTitle,    
   handleUpdateDB,          
-  handleExport            // NEW: Added handleExport prop
+  handleExport,
+  handleImport            // NEW: handleImport prop
 }) {
 
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+
+  // Programmatically trigger the hidden file input
+  const onImportClick = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <header className="workspace-header">
@@ -43,9 +51,22 @@ export default function WorkspaceHeader({
       </div>
 
       <div className="header-right">
-        {/* NEW: Export JSON Button */}
+        {/* Hidden file input for importing JSON */}
+        <input 
+          type="file" 
+          accept=".json" 
+          style={{ display: 'none' }} 
+          ref={fileInputRef}
+          onChange={handleImport}
+        />
+        
+        {/* NEW: Import JSON Button */}
+        <button onClick={onImportClick} className="action-btn" style={{ backgroundColor: '#00cec9', color: 'white', marginRight: '10px' }}>
+          Import JSON
+        </button>
+
         <button onClick={handleExport} className="action-btn" style={{ backgroundColor: '#6C5CE7', color: 'white', marginRight: '10px' }}>
-          Export JSON
+           Export JSON
         </button>
 
         <button onClick={runCode} className="action-btn btn-run">

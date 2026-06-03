@@ -1,3 +1,4 @@
+// frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuFolder, LuLayoutDashboard, LuLogOut, LuUser } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
@@ -46,19 +47,11 @@ export default function DashboardHeader({
   }, []);
 
   const handleLogout = () => {
-    setOpen(false);
+    localStorage.clear();
+    sessionStorage.clear();
     
-    // Clear user data
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("user");
-    
-    // FIXED: Clear ALL token variations from BOTH storages to prevent leakage
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    localStorage.removeItem("authToken");
-    sessionStorage.removeItem("authToken");
-
-    navigate("/signin", { replace: true });
+    // HARD REDIRECT to landing page
+    window.location.replace("/");
   };
 
   return (
