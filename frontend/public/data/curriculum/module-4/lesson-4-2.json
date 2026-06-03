@@ -38,13 +38,13 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "The Coin Change Problem is one of the most common applications of Greedy Algorithms.\n\nThe objective is to find the minimum number of coins needed to make a target amount.\n\nInstead of trying every possible combination, the greedy strategy repeatedly selects the largest coin denomination available.\n\nThis problem introduces learners to greedy optimization, local decision making, resource minimization, and algorithmic efficiency."
+      "content": "The Coin Change Problem is one of the most common and intuitive applications of Greedy Algorithms. Given a set of coin denominations and a target amount, the goal is to find the minimum number of coins needed to make that amount. You may use unlimited coins of each denomination.\n\nInstead of trying every possible combination which would be exponential time, the greedy strategy repeatedly selects the largest coin denomination that does not exceed the remaining amount. This mirrors how humans naturally make change. To make 36 cents, you take a quarter, then a dime, then a penny.\n\nThis problem introduces learners to greedy optimization, local decision making, resource minimization, and algorithmic efficiency. It also serves as a perfect case study for comparing greedy algorithms with dynamic programming.\n\nEvery time you receive change from a cashier, a vending machine dispenses coins, or an ATM dispenses bills, a coin change algorithm is working behind the scenes. Understanding this problem helps you design efficient resource allocation systems."
     },
     {
       "id": "why-problem-matters",
       "type": "concept",
       "title": "Why This Problem Matters",
-      "content": "Cashier systems, vending machines, banking software, and digital payment systems constantly calculate efficient ways to return change.\n\nGiving many small coins may technically work, but it becomes inefficient and inconvenient. The Coin Change Problem models how systems minimize resource usage through optimization.",
+      "content": "Cashier systems, vending machines, banking software, and digital payment systems constantly calculate efficient ways to return change. Giving many small coins like 36 pennies may technically work, but it becomes inefficient and inconvenient for both the cashier and the customer.\n\nVending machines must return exact change quickly using limited coin supplies. ATMs dispense bills in optimal denominations like 20s, 10s, and 5s to minimize bill count. Banking software calculates optimal coin combinations for cash orders.\n\nThe Coin Change Problem models how systems minimize resource usage through optimization. The same principles apply to inventory management like choosing box sizes to pack items with minimal waste, data storage like selecting disk sizes to store files with minimal fragmentation, and time management like choosing task durations to fill a schedule efficiently.\n\nGiving many small coins may technically work, but it becomes inefficient and inconvenient. The Coin Change Problem models how systems minimize resource usage through optimization, giving you insight into resource allocation across many domains.",
       "bullets": [
         "Minimizes the number of coins used.",
         "Demonstrates greedy optimization.",
@@ -56,31 +56,31 @@
       "id": "core-idea",
       "type": "concept",
       "title": "Core Idea of the Greedy Strategy",
-      "content": "The greedy approach follows one simple rule: always choose the largest possible coin at the current step.\n\nAfter selecting a coin, the algorithm subtracts its value from the remaining amount and repeats the process again.\n\nThis continues until the remaining amount becomes zero."
+      "content": "The greedy approach follows one simple rule. Always choose the largest possible coin at the current step. This mimics how most people naturally make change.\n\nFirst, sort coin denominations in descending order from largest to smallest. Start with the target amount. For each coin denomination from largest to smallest, while the remaining amount is greater than or equal to the coin value, take that coin and subtract its value from the remaining amount.\n\nAfter selecting a coin, the algorithm subtracts its value from the remaining amount and repeats the process again. The algorithm never reconsiders a coin choice. It commits immediately. This no backtracking policy defines greedy algorithms.\n\nFor example, with US coins [25,10,5,1] and target 36 cents, take 25, leaving 11. Take 10, leaving 1. Take 1, leaving 0. Result is 3 coins. This continues until the remaining amount becomes zero."
     },
     {
       "id": "greedy-selection",
       "type": "deep_dive",
       "title": "Understanding Greedy Coin Selection",
-      "content": "Suppose we need to make 18 pesos using coins 10, 5, and 1.\n\nThe algorithm first selects 10 because it is the largest usable coin. The remaining amount becomes 8.\n\nNext, the algorithm selects 5, reducing the remaining amount to 3.\n\nFinally, the algorithm uses three 1-peso coins.\n\nThe final solution becomes 10 + 5 + 1 + 1 + 1."
+      "content": "Let us walk through greedy coin selection in detail with multiple examples. Suppose we need to make 18 pesos using Philippine coins [10,5,1]. The algorithm first selects 10 because it is the largest usable coin. The remaining amount becomes 8. Next, it selects 5, reducing the remaining to 3. Finally, it uses three 1 peso coins. The final solution becomes 10 plus 5 plus 1 plus 1 plus 1, which is 5 coins. For Philippine coins, this is optimal.\n\nFor US coins [25,10,5,1] with target 41 cents, the algorithm takes 25, leaving 16. Takes 10, leaving 6. Takes 5, leaving 1. Takes 1, leaving 0. Result is 4 coins which is optimal.\n\nFor a large target like 99 cents with US coins, the algorithm takes three quarters for 75 cents, leaving 24. Takes two dimes for 20 cents, leaving 4. Takes four pennies. Result is 3 quarters plus 2 dimes plus 4 pennies equals 9 coins.\n\nThe order matters. If you processed coins in ascending order from smallest to largest, you would take 1 repeatedly, resulting in 99 coins instead of 9. The greedy strategy succeeds because larger denominations reduce the remaining amount quickly."
     },
     {
       "id": "why-greedy-works",
       "type": "concept",
       "title": "Why the Greedy Strategy Works Here",
-      "content": "The greedy strategy succeeds because larger denominations reduce the remaining amount quickly.\n\nChoosing large coins first usually minimizes unnecessary smaller denominations and reduces the total coin count.\n\nMany real-world currency systems are designed so greedy coin selection works correctly."
+      "content": "The greedy strategy succeeds because larger denominations reduce the remaining amount quickly. Choosing large coins first usually minimizes unnecessary smaller denominations and reduces the total coin count.\n\nA coin system is canonical if for every target amount, the greedy algorithm produces an optimal solution with the minimum number of coins. Many real-world currencies are canonical. US coins 1,5,10,25 are canonical. Euro coins 1,2,5,10,20,50 are canonical. Philippine pesos 1,5,10 are canonical.\n\nIn canonical systems, each coin is at least as large as the sum of all smaller coins, or a similar property holds. For US coins, 10 cents equals two nickels, so the greedy choice of a dime is always at least as good as using two nickels.\n\nMany real-world currency systems are intentionally designed so greedy coin selection works correctly. This is not an accident. It is intentional design to make cash transactions efficient for both humans and machines. Cashiers and vending machines can use the simple greedy algorithm instead of complex dynamic programming."
     },
     {
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Execution Visualization",
-      "content": "Suppose we need to make 36 using coins 25, 10, 5, and 1.\n\nThe algorithm selects 25 first, leaving 11 remaining.\n\nNext, the algorithm selects 10, leaving 1 remaining.\n\nFinally, the algorithm selects 1.\n\nThe final solution becomes 25 + 10 + 1, using only 3 coins."
+      "content": "Suppose we need to make 36 cents using US coins [25,10,5,1]. Step 1: remaining is 36, can take a quarter. Yes, take quarter. Count is 1, remaining is 11. Step 2: remaining is 11, can take another quarter? No, move to next coin. Step 3: can take a dime? Yes, take dime. Count is 2, remaining is 1. Step 4: can take another dime? No. Step 5: can take a nickel? No. Step 6: can take a penny? Yes, take penny. Count is 3, remaining is 0. Final result is [25,10,1] using 3 coins.\n\nFor a larger target like 99 cents, the algorithm takes three quarters, leaving 24. Takes two dimes, leaving 4. Takes four pennies. Result is 9 coins.\n\nNow consider a non-canonical coin system [4,3,1] with target 6. Greedy takes 4 first, leaving 2. Takes 1 twice. Result is [4,1,1] using 3 coins. However, the optimal solution is [3,3] using 2 coins. Greedy fails because the local choice of 4 prevented the better combination of two 3s.\n\nThis demonstrates that local optimal choices may sometimes produce globally suboptimal solutions. The greedy algorithm only works correctly for canonical coin systems."
     },
     {
       "id": "implementation",
       "type": "concept",
       "title": "Python Implementation",
-      "content": "Greedy Coin Change implementations repeatedly select the largest possible denomination until the target amount becomes zero.",
+      "content": "Greedy Coin Change implementations repeatedly select the largest possible denomination until the target amount becomes zero. Below are multiple variants for different use cases.\n\nThe basic implementation takes a list of coins and a target amount. It sorts the coins in descending order, then loops through each coin. For each coin, it uses a while loop to repeatedly take that coin as long as the remaining amount is greater than or equal to the coin value. It appends each coin to the selected list and subtracts its value from the remaining amount.\n\nThe count only version returns the number of coins used instead of the list, which is more memory efficient. It uses the same logic but only increments a counter instead of storing coins.\n\nThe coin breakdown report returns a dictionary showing how many of each coin are used. This is useful for cashier systems. The optimized version uses integer division to compute the number of coins directly, which is much faster for large amounts. Instead of a while loop, it calculates num_coins equals remaining divided by coin, then subtracts num_coins times coin from remaining.\n\nThe examples below show these different implementations.",
       "codeSnippets": [
         {
           "title": "Greedy Coin Change implementation",
@@ -103,7 +103,7 @@
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Complexity Analysis",
-      "content": "Traversing the coin denominations requires O(n) time, where n represents the number of coin types.\n\nIn the worst case, the algorithm may repeatedly subtract small denominations such as 1 until the amount becomes zero.\n\nThis creates worst-case behavior proportional to the target amount.\n\nSpace complexity is usually O(1) because only a small number of variables are required.",
+      "content": "Traversing the coin denominations requires O(n) time, where n represents the number of coin types. However, the inner loop can make many iterations if the amount is large and the smallest coin is 1.\n\nIn the worst case, the algorithm may repeatedly subtract small denominations such as 1 until the amount becomes zero. For example, making 1 million cents with only 1 cent coins requires 1 million iterations. This creates worst-case behavior proportional to the target amount, which is O(n plus amount).\n\nThe optimized version using integer division reduces time complexity to O(n) regardless of amount. It computes num_coins equals remaining divided by coin directly, avoiding the while loop.\n\nSpace complexity is usually O(1) when only counting coins, because only a small number of variables are required. However, if you store the list of selected coins, space becomes proportional to the number of coins, which could be O(amount divided by min_coin). The chart below compares greedy efficiency with exponential brute force.",
       "chart": {
         "title": "Greedy Coin Change complexity",
         "description": "Greedy Coin Change often scales efficiently because the algorithm immediately commits to large denominations instead of exploring every combination.",
@@ -120,25 +120,25 @@
       "id": "when-greedy-fails",
       "type": "deep_dive",
       "title": "When Greedy Coin Change Fails",
-      "content": "Greedy solutions do not always guarantee optimal answers.\n\nSuppose the available coins are 1, 3, and 4, and the target amount is 6.\n\nThe greedy strategy selects 4 first, leaving 2 remaining. The algorithm then uses two 1-peso coins, producing 3 coins total.\n\nHowever, the optimal solution is 3 + 3, which uses only 2 coins.\n\nThis demonstrates that local optimal choices may sometimes produce globally suboptimal solutions."
+      "content": "Greedy solutions do not always guarantee optimal answers. Understanding why greedy fails is essential for recognizing when you need more powerful techniques like dynamic programming.\n\nSuppose the available coins are 1, 3, and 4, and the target amount is 6. The greedy strategy selects 4 first, leaving 2. The algorithm then uses two 1 cent coins, producing 3 coins total. However, the optimal solution is 3 plus 3, which uses only 2 coins. The greedy choice of 4 seemed good at the moment, but it prevented the better combination of two 3s.\n\nAnother counterexample is coins [1,6,10] with target 12. Greedy gives 10 plus 1 plus 1 equals 3 coins. Optimal is 6 plus 6 equals 2 coins.\n\nIn a non-canonical coin system, a larger coin is not always better than using multiple smaller coins. For [1,3,4], the coin 4 is less than twice 3, so two 3s are better than one 4 plus something. The greedy algorithm does not consider this possibility.\n\nWhen greedy fails, use Dynamic Programming. The DP solution guarantees optimality for any coin system, though it runs in O(n times amount) time and uses O(amount) space. This demonstrates that local optimal choices may sometimes produce globally suboptimal solutions."
     },
     {
       "id": "canonical-systems",
       "type": "concept",
       "title": "Why Some Currency Systems Work Well",
-      "content": "Many real-world currency systems are intentionally designed so greedy coin selection consistently produces optimal solutions.\n\nThese are called canonical coin systems.\n\nExamples include many international currencies and common coin denominations used in modern financial systems."
+      "content": "Many real-world currency systems are intentionally designed so greedy coin selection consistently produces optimal solutions. These are called canonical coin systems.\n\nUS coins 1,5,10,25 are canonical. Euro coins 1,2,5,10,20,50 are canonical. Philippine pesos 1,5,10 are canonical. British pounds 1,2,5,10,20,50 are canonical. Japanese yen 1,5,10,50,100,500 are canonical.\n\nA sufficient but not necessary condition for canonicity is that each coin is greater than or equal to the sum of all smaller coins. For US coins, 5 is greater than or equal to 1. 10 is greater than or equal to 1 plus 5 equals 6. 25 is greater than or equal to 1 plus 5 plus 10 equals 16.\n\nExamples include many international currencies and common coin denominations used in modern financial systems. If you are implementing a cashier system for a standard currency, you can safely use the greedy algorithm. If you are dealing with arbitrary denominations like a puzzle or custom coin set, you may need dynamic programming."
     },
     {
       "id": "greedy-vs-dp",
       "type": "concept",
       "title": "Greedy vs Dynamic Programming",
-      "content": "Greedy Coin Change prioritizes efficiency by making immediate locally optimal decisions.\n\nDynamic Programming explores many subproblems and revisits earlier states to guarantee optimal solutions.\n\nGreedy methods are usually faster and use less memory, while Dynamic Programming provides stronger correctness guarantees."
+      "content": "Greedy Coin Change prioritizes efficiency by making immediate locally optimal decisions. Dynamic Programming explores many subproblems and revisits earlier states to guarantee optimal solutions.\n\nGreedy works only for canonical coin systems. It runs in O(n) time with integer division optimization and uses O(1) space for counting. Dynamic Programming works for any coin system and guarantees optimality. It runs in O(n times amount) time and uses O(amount) space.\n\nFor US coins, greedy is the right choice. For arbitrary coin systems where optimality matters, use dynamic programming. The DP solution builds a table where dp[i] equals the minimum coins to make amount i. For each amount, try every coin and take the minimum.\n\nGreedy methods are usually faster and use less memory, while Dynamic Programming provides stronger correctness guarantees. The choice depends on whether you know the coin system is canonical. For standard cashier applications, greedy is correct and fast. For puzzles or custom coin systems, use dynamic programming."
     },
     {
       "id": "applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Coin Change logic appears in cashier systems, ATM machines, vending machines, banking software, financial optimization systems, and payment processing platforms.\n\nMany resource minimization problems use similar greedy reasoning strategies."
+      "content": "Coin Change logic appears in cashier systems, ATM machines, vending machines, banking software, financial optimization systems, and payment processing platforms.\n\nCashier systems at point of sale terminals automatically calculate minimal change to return and display the coin breakdown to the cashier. Vending machines must return exact change using available coins, and the greedy algorithm is fast enough for real-time response.\n\nATMs dispense cash in optimal bill denominations like 100s, 50s, 20s, 10s, and 5s to minimize the number of bills dispensed. Banking software processes cash orders for businesses and determines optimal coin and bill denominations for cash shipments.\n\nMany resource minimization problems use similar greedy reasoning strategies. Inventory management uses box packing analogous to coins. Data storage uses file allocation on disks. Time management uses schedule filling with tasks of fixed durations. Even cryptocurrency UTXO selection uses greedy algorithms to choose largest transaction inputs to minimize transaction size."
     },
     {
       "id": "misconceptions",
@@ -148,17 +148,17 @@
         {
           "id": "always-optimal",
           "title": "Mistake: Assuming greedy always produces optimal solutions",
-          "content": "Some coin systems break greedy correctness and require Dynamic Programming instead."
+          "content": "Some coin systems break greedy correctness and require Dynamic Programming instead. The [1,3,4] system with target 6 is a classic counterexample. Always test or prove canonicity before relying on greedy optimality."
         },
         {
           "id": "ignore-order",
           "title": "Mistake: Ignoring coin ordering",
-          "content": "The greedy strategy depends on descending denomination order."
+          "content": "The greedy strategy depends on descending denomination order. If coins are processed in ascending order from smallest to largest, the algorithm would take many small coins instead of large ones, resulting in far more coins. Always sort coins in descending order before the greedy loop."
         },
         {
           "id": "exhaustive-search",
           "title": "Mistake: Confusing greedy optimization with exhaustive search",
-          "content": "Greedy algorithms do not test every possibility. They commit immediately to local decisions."
+          "content": "Greedy algorithms do not test every possibility. They commit immediately to local decisions without looking ahead. This is what makes them fast but also what can cause suboptimal results. Greedy trades perfect optimality for speed."
         }
       ]
     },

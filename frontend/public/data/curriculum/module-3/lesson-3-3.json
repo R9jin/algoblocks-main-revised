@@ -38,13 +38,13 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Merge Sort is a sorting algorithm based on the Divide and Conquer strategy.\n\nInstead of sorting the entire array directly, Merge Sort repeatedly divides the array into smaller halves, recursively sorts each half, and merges the sorted halves back together.\n\nThe recursive splitting continues until every subarray contains only one element. Since a single element is already sorted, the algorithm then rebuilds the final sorted array through repeated merging."
+      "content": "Merge Sort is a sorting algorithm based on the Divide and Conquer strategy. Instead of sorting the entire array directly, Merge Sort repeatedly divides the array into smaller halves, recursively sorts each half, and merges the sorted halves back together. This divide, sort, merge pattern transforms a complex sorting problem into many simpler ones.\n\nThink of it like combining two sorted stacks of papers. You always take the smaller top card from either stack, maintaining sorted order throughout. The recursive splitting continues until every subarray contains only one element. Since a single element is already sorted trivially, the algorithm then rebuilds the final sorted array through repeated merging.\n\nMerge Sort is one of the most reliable sorting algorithms. For 1 million items, Bubble Sort takes about 500 billion comparisons which could take days. Merge Sort takes about 20 million comparisons which completes in seconds. That is 25,000 times faster.\n\nPython's built-in sort called Timsort is a hybrid of Merge Sort and Insertion Sort. Java uses a modified Merge Sort for sorting objects. C++ uses Merge Sort for stable_sort. Merge Sort is also the foundation of external sorting, which sorts data too large to fit in memory."
     },
     {
       "id": "why-merge-sort-matters",
       "type": "concept",
       "title": "Why Merge Sort Matters",
-      "content": "Large systems constantly process enormous amounts of data. Search engines, databases, analytics systems, and recommendation platforms all rely heavily on efficient sorting.\n\nSimple sorting algorithms such as Bubble Sort become very slow for large datasets because repeated comparisons create quadratic growth. Merge Sort remains efficient because it repeatedly reduces problem size through recursive decomposition.",
+      "content": "Large systems constantly process enormous amounts of data. Search engines, databases, analytics systems, and recommendation platforms all rely heavily on efficient sorting. Without O(n log n) sorting, these systems would be impossibly slow.\n\nSimple sorting algorithms such as Bubble Sort become very slow for large datasets because repeated comparisons create quadratic growth. For n equals 1 million, Bubble Sort takes about 500 billion comparisons. Merge Sort takes about 20 million comparisons. That is 25,000 times faster.\n\nMerge Sort remains efficient because it repeatedly reduces problem size through recursive decomposition. It provides predictable O(n log n) performance in all cases. Unlike Quick Sort, Merge Sort has no pathological worst-case input that causes O(n squared) behavior.\n\nMerge Sort is also stable, meaning equal elements preserve their original order. This is important for multi-key sorting, like sorting by last name then by first name. Stability ensures that the first name order is preserved among people with the same last name.",
       "bullets": [
         "It scales efficiently for large datasets.",
         "It uses Divide and Conquer recursion.",
@@ -56,13 +56,13 @@
       "id": "core-idea",
       "type": "concept",
       "title": "Core Idea of Merge Sort",
-      "content": "Merge Sort follows three major phases: divide, conquer, and merge.\n\nThe divide phase repeatedly splits the array into smaller halves. The conquer phase recursively sorts the smaller subarrays. The merge phase combines sorted subarrays back together in the correct order.\n\nThe algorithm repeatedly reduces the workload until every subarray contains only one element."
+      "content": "Merge Sort follows three major phases: divide, conquer, and merge. These phases are applied recursively to transform an unsorted array into a sorted one.\n\nIn the divide phase, the array is split into two halves. In the conquer phase, Merge Sort is called recursively on the left half and the right half. In the merge phase, the two sorted halves are combined into one sorted array.\n\nThe algorithm repeatedly reduces the workload until every subarray contains only one element. A single-element array is trivially sorted, so no comparisons are needed. This is the base case that stops the recursion.\n\nVisualize it like this. Start with [8, 3, 5, 1]. Divide into [8, 3] and [5, 1]. Divide again into [8], [3], [5], [1]. Then merge [8] and [3] into [3, 8]. Merge [5] and [1] into [1, 5]. Finally merge [3, 8] and [1, 5] into [1, 3, 5, 8]. The array becomes fully sorted through repeated merging."
     },
     {
       "id": "three-phases",
       "type": "deep_dive",
       "title": "The Three Phases",
-      "content": "Understanding Merge Sort requires understanding recursive splitting and reconstruction.",
+      "content": "Understanding Merge Sort requires understanding recursive splitting and reconstruction. Let us explore each phase in detail.\n\nIn the divide phase, the array is repeatedly divided into smaller halves. For example, [8, 3, 5, 1] becomes [8, 3] and [5, 1]. Then it continues dividing into individual elements [8], [3], [5], [1]. The divide phase only splits. It does no sorting yet.\n\nIn the conquer phase, each smaller subarray is recursively sorted. A single element is already considered sorted, which becomes the base case of the recursion. The conquer phase relies on the fact that recursive calls correctly sort smaller subarrays. You do not need to understand how. Just trust that they work.\n\nIn the merge phase, sorted subarrays are combined back together in order. The algorithm repeatedly compares the smallest remaining elements from each subarray and inserts the smaller value first. For merging [3,8] and [1,5], compare 3 and 1, take 1. Compare 3 and 5, take 3. Compare 8 and 5, take 5. Then append the remaining 8. The result is [1,3,5,8].",
       "subsections": [
         {
           "id": "divide-phase",
@@ -85,7 +85,7 @@
       "id": "recursive-splitting",
       "type": "deep_dive",
       "title": "Understanding Recursive Splitting",
-      "content": "Merge Sort repeatedly reduces the problem size through recursive decomposition.\n\nSuppose we start with 8 elements. The algorithm divides the array into 4 and 4, then 2 and 2, then finally individual elements.\n\nThis repeated reduction creates a recursion tree that shrinks logarithmically. Recursive decomposition is the reason Merge Sort belongs to Divide and Conquer algorithms.",
+      "content": "Merge Sort repeatedly reduces the problem size through recursive decomposition. This recursive structure is what gives Merge Sort its O(n log n) efficiency.\n\nSuppose we start with 8 elements. Level 0 has 1 array of size 8. Level 1 has 2 arrays of size 4. Level 2 has 4 arrays of size 2. Level 3 has 8 arrays of size 1. The number of levels is log base 2 of 8 plus 1, which is 4. The total number of elements across all subarrays at any level is always n, which is 8.\n\nThe merge phase combines subarrays at each level. Merging all subarrays at a level takes O(n) time total because each element is processed once per level. With log n levels, total time is O(n log n).\n\nThe recursion stack depth is O(log n), which is very shallow. For n equals 1 million, depth is about 20. For n equals 1 billion, depth is about 30. This is why Merge Sort does not risk stack overflow.\n\nThis repeated reduction creates a recursion tree that shrinks logarithmically. Recursive decomposition is the reason Merge Sort belongs to Divide and Conquer algorithms. The O(n log n) efficiency comes from O(n) work per level times O(log n) levels.",
       "chart": {
         "title": "Merge Sort recursive reduction",
         "description": "Merge Sort repeatedly divides arrays into smaller halves before rebuilding the final sorted result through merging.",
@@ -102,19 +102,19 @@
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Merge Example",
-      "content": "Suppose we sort the array [6, 2, 8, 1].\n\nThe array first divides into [6, 2] and [8, 1]. Each section divides again into individual elements: [6], [2], [8], and [1].\n\nThe algorithm then begins merging. [6] and [2] become [2, 6]. [8] and [1] become [1, 8]. Finally, [2, 6] and [1, 8] merge together into [1, 2, 6, 8].\n\nThe array becomes fully sorted through repeated merging."
+      "content": "Suppose we sort the array [6, 2, 8, 1].\n\nThe array first divides into [6, 2] and [8, 1]. Each section divides again into individual elements [6], [2], [8], and [1].\n\nThe algorithm then begins merging. [6] and [2] are compared. 6 is greater than 2, so they become [2, 6]. [8] and [1] are compared. 8 is greater than 1, so they become [1, 8].\n\nNow merge [2, 6] and [1, 8]. Compare 2 and 1, take 1. Compare 2 and 8, take 2. Compare 6 and 8, take 6. Left array is exhausted, so append the remaining 8. The result is [1, 2, 6, 8].\n\nThe array becomes fully sorted through repeated merging. Notice that the largest value 8 took only one merge to reach the end. The second largest 6 took two merges. This bottom-up construction is the essence of Merge Sort."
     },
     {
       "id": "why-merge-phase-matters",
       "type": "concept",
       "title": "Why the Merge Phase Matters",
-      "content": "The merge operation combines two already-sorted arrays into a larger sorted array.\n\nSuppose the algorithm merges [2, 6] and [1, 8]. The smallest remaining elements are repeatedly compared. The smaller value is inserted first, and the process continues until all elements are merged.\n\nEfficient merging is the central idea behind Merge Sort."
+      "content": "The merge operation is the heart of Merge Sort. It is where the actual sorting happens. The divide phase only splits the array. The merge phase builds the sorted result.\n\nThe merge operation combines two already-sorted arrays into a larger sorted array. It works by repeatedly comparing the smallest remaining elements from each array and selecting the smaller one.\n\nFor example, merging [2, 6] and [1, 8] proceeds as follows. Compare 2 and 1, take 1. Compare 2 and 8, take 2. Compare 6 and 8, take 6. Left array is exhausted, so append the remaining 8. The result is [1, 2, 6, 8].\n\nEach comparison eliminates one element from consideration. For two arrays of total size n, at most n comparisons are needed. The merge operation is O(n) time, which is optimal. Any algorithm that merges two sorted arrays must examine each element at least once. Efficient merging is the central idea behind Merge Sort."
     },
     {
       "id": "implementation",
       "type": "concept",
       "title": "Python Implementation",
-      "content": "Merge Sort implementations rely heavily on recursion, array splitting, and merging logic.",
+      "content": "Merge Sort implementations rely heavily on recursion, array splitting, and merging logic. The standard implementation is concise but uses O(n) auxiliary space.\n\nThe base case is when the array length is less than or equal to 1. In that case, the array is already sorted and is returned directly. Otherwise, the algorithm finds the middle index, splits the array into left and right halves, and recursively calls merge_sort on both halves.\n\nAfter both halves are sorted, the merge function combines them. The merge function uses two pointers i and j to track positions in the left and right arrays. It compares the elements at these pointers and appends the smaller one to the result. When one array is exhausted, it appends the remaining elements from the other array.\n\nThe merge operation is O(n) time. With log n levels of recursion, the total time is O(n log n). The space complexity is O(n) for the temporary arrays created during merging.\n\nUnderstanding the merge operation is key to mastering Merge Sort. The code below shows the standard implementation as well as a standalone merge function for merging two sorted arrays.",
       "codeSnippets": [
         {
           "title": "Merge Sort implementation",
@@ -137,25 +137,36 @@
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Complexity Analysis",
-      "content": "Merge Sort achieves O(n log n) complexity in the best, average, and worst cases.\n\nThe recursive splitting creates log n levels, while each level processes all n elements during merging. Combining these behaviors produces O(n log n) efficiency.\n\nSpace complexity is O(n) because Merge Sort uses auxiliary arrays during the merge process."
+      "content": "Merge Sort achieves O(n log n) complexity in the best, average, and worst cases. This predictable performance is one of its greatest strengths. The recurrence relation is T(n) = 2 times T(n/2) plus O(n).\n\nLevel 0 has 1 subarray of size n, with merge work n. Level 1 has 2 subarrays of size n/2, with merge work n/2 plus n/2 equals n. Level 2 has 4 subarrays of size n/4, with merge work n/4 times 4 equals n. This pattern continues for log n levels. Total work is n times log n, which is O(n log n).\n\nEven if the array is already sorted, Merge Sort still performs all divisions and merges. The merge operation still compares elements, though it may take from the left half first. No early termination is possible. The worst case is the same as the best case, O(n log n).\n\nSpace complexity is O(n) for the temporary arrays created during merging. The recursion stack uses O(log n) additional space. For n equals 10 million integers, the array takes about 80 megabytes. Merge Sort needs about 160 megabytes total. This is usually acceptable on modern systems. For memory-constrained environments, in-place merge sort exists but is more complex and slower.",
+      "chart": {
+        "title": "Merge Sort recursive reduction",
+        "description": "Merge Sort repeatedly divides arrays into smaller halves before rebuilding the final sorted result through merging.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": [
+          "O(log n)",
+          "O(n)",
+          "O(n log n)"
+        ]
+      }
     },
     {
       "id": "extra-memory",
       "type": "concept",
       "title": "Why Merge Sort Uses Extra Memory",
-      "content": "Merge Sort temporarily stores left subarrays, right subarrays, and merged results during execution.\n\nUnlike in-place algorithms, Merge Sort requires additional memory while combining arrays.\n\nThis creates a tradeoff between excellent time efficiency and increased space usage."
+      "content": "Merge Sort temporarily stores left subarrays, right subarrays, and merged results during execution. This extra memory is the price for its guaranteed O(n log n) performance and stability.\n\nIf merging were done in-place without extra memory, elements would overwrite each other. The simplest solution is to create temporary copies of the subarrays being merged. Each recursive call creates copies of subarrays using slicing in Python. At the top level, the merge operation may allocate a temporary array of size n.\n\nUnlike in-place algorithms like Bubble Sort and Quick Sort, Merge Sort requires additional memory while combining arrays. This creates a tradeoff between excellent time efficiency and increased space usage.\n\nFor most applications, the O(n) space is acceptable. Sorting 1 million integers requires about 8 megabytes for the array plus 8 megabytes for temporary storage, which is negligible. Sorting 100 million integers requires about 800 megabytes plus 800 megabytes, which is still acceptable on many servers. For embedded systems with very limited RAM, in-place merge sort exists but is complex and slower."
     },
     {
       "id": "stable-sorting",
       "type": "concept",
       "title": "Stable Sorting",
-      "content": "Merge Sort is considered a stable sorting algorithm.\n\nThis means equal elements preserve their original order after sorting. For example, if Alice and Bob both have score 90, Alice will still appear before Bob after sorting if Alice originally appeared first.\n\nStability becomes important in ranking systems, databases, and multi-condition sorting."
+      "content": "Merge Sort is considered a stable sorting algorithm. Stability means equal elements preserve their original relative order after sorting.\n\nFor example, suppose you have students with names and scores. Alice has 90, Bob has 85, Charlie has 90. If you sort by score, a stable sort will keep Alice before Charlie because Alice appeared first in the original list. An unstable sort might swap them.\n\nStability becomes important in ranking systems, databases, and multi-condition sorting. If you sort by last name then by first name, a stable sort allows you to sort by first name first, then by last name. The last name sort preserves the first name order among people with the same last name.\n\nMerge Sort achieves stability through the merge operation. When left[i] equals right[j], the merge algorithm takes from the left array first if using the less than or equal comparison. This ensures that elements from the left half, which originally came before elements from the right half, appear before them in the merged result."
     },
     {
       "id": "merge-vs-bubble",
       "type": "concept",
       "title": "Merge Sort vs Bubble Sort",
-      "content": "Bubble Sort repeatedly swaps adjacent elements and produces O(n^2) behavior for large datasets. Merge Sort instead uses recursive decomposition and efficient merging to achieve O(n log n) performance.\n\nMerge Sort scales dramatically better for large inputs, although it requires additional memory during merging."
+      "content": "Bubble Sort repeatedly swaps adjacent elements and produces O(n squared) behavior for large datasets. Merge Sort instead uses recursive decomposition and efficient merging to achieve O(n log n) performance.\n\nFor n equals 1 million, Bubble Sort takes about 500 billion comparisons, which could take days. Merge Sort takes about 20 million comparisons, which completes in seconds. That is 25,000 times faster.\n\nBubble Sort is simple and works in-place with O(1) space. Merge Sort requires O(n) extra space. For very small n under 50, Bubble Sort might be faster due to lower overhead. For nearly sorted data, optimized Bubble Sort can run in O(n) time while Merge Sort still does O(n log n).\n\nHowever, for production sorting of large datasets, Bubble Sort is never used. Python's sort uses Timsort, a hybrid of Merge Sort and Insertion Sort. Java uses Timsort for objects. C++ uses Introsort for primitives but Merge Sort for stable_sort. Merge Sort scales dramatically better for large inputs and provides guaranteed performance."
     },
     {
       "id": "advantages-limitations",
@@ -188,7 +199,7 @@
       "id": "applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Merge Sort appears in database engines, distributed computing systems, large-scale analytics, external sorting systems, and parallel processing systems.\n\nIt is especially useful when stability matters or when extremely large datasets must be processed efficiently."
+      "content": "Merge Sort appears in database engines, distributed computing systems, large-scale analytics, external sorting systems, and parallel processing systems. Its predictable O(n log n) performance and stability make it a go-to choice for many applications.\n\nWhen data does not fit in RAM, external sorting uses Merge Sort. The algorithm loads chunks of data into memory, sorts each chunk, writes them to disk, then merges the sorted chunks. This is how operating systems sort files larger than available memory.\n\nMapReduce and Apache Spark use sort-based shuffles that leverage merge sort principles. Data is sorted on each mapper, then reduced by merging sorted results from multiple machines. Python's Timsort and Java's Arrays.sort for objects use modified Merge Sort.\n\nMerge Sort is especially useful when stability matters or when extremely large datasets must be processed efficiently. For example, sorting a 100 gigabyte file on a 16 gigabyte RAM machine is impossible with Quick Sort but feasible with external Merge Sort."
     },
     {
       "id": "misconceptions",
@@ -198,17 +209,17 @@
         {
           "id": "division-sorts",
           "title": "Mistake: Thinking Merge Sort sorts during division",
-          "content": "The division phase only breaks the array into smaller parts. Most sorting actually occurs during the merge phase."
+          "content": "The division phase only breaks the array into smaller parts. Most sorting actually occurs during the merge phase. The divide phase just sets up the problem. The merge phase builds sorted arrays from the bottom up."
         },
         {
           "id": "ignoring-space",
           "title": "Mistake: Ignoring auxiliary memory",
-          "content": "Merge Sort requires additional arrays during merging, which increases space complexity."
+          "content": "Merge Sort requires additional arrays during merging, which increases space complexity. Beginners sometimes assume it is in-place like Bubble Sort. Remember that Merge Sort trades memory for guaranteed O(n log n) time."
         },
         {
           "id": "confusing-recursion",
           "title": "Mistake: Confusing recursion flow",
-          "content": "Beginners often struggle understanding recursive calls, merge order, and return flow. Recursion trees help visualize the process."
+          "content": "Beginners often struggle understanding recursive calls, merge order, and return flow. The recursion goes all the way down to size 1, then merges as it returns. Draw the recursion tree or use a debugger to visualize the order."
         }
       ]
     },
