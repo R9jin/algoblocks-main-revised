@@ -1,32 +1,32 @@
 {
-  "lessonId": "lesson-4-1",
+  "lessonId": "lesson-4-2",
   "moduleId": "module-4",
-  "title": "Greedy Algorithms",
-  "description": "Learn how Greedy Algorithms make locally optimal decisions, why they are efficient, and when greedy reasoning succeeds or fails.",
+  "title": "Coin Change Problem",
+  "description": "Learn how **greedy coin selection** minimizes resource usage and understand when greedy optimization **succeeds or fails**.",
   "difficulty": "Beginner",
   "estimatedTime": "40 min",
-  "prerequisites": "Quick Sort",
-  "tags": ["greedy algorithms", "optimization", "algorithm strategies"],
+  "prerequisites": "Greedy Algorithms",
+  "tags": ["coin change", "greedy algorithms", "optimization"],
   "activities": [
     {
-      "id": "m4_l1_a1",
-      "title": "Largest First"
+      "id": "m4_l2_a1",
+      "title": "Philippine Cashier"
     },
     {
-      "id": "m4_l1_a2",
-      "title": "Smallest First"
+      "id": "m4_l2_a2",
+      "title": "US Cashier"
     },
     {
-      "id": "m4_l1_a3",
-      "title": "Greedy Sum"
+      "id": "m4_l2_a3",
+      "title": "Coin Breakdown Report"
     },
     {
-      "id": "m4_l1_a4",
-      "title": "Closest Number"
+      "id": "m4_l2_a4",
+      "title": "Custom Coin System"
     },
     {
-      "id": "m4_l1_a5",
-      "title": "Greedy Path"
+      "id": "m4_l2_a5",
+      "title": "Exact Change Validator"
     }
   ],
   "sections": [
@@ -34,118 +34,123 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Greedy Algorithms solve problems by repeatedly making the best possible choice at the current moment. This take what looks best now approach is intuitive and mirrors how humans often make decisions in real life. For example, when you are at a buffet, you might pick the most expensive item you can still fit without planning ahead.\n\nInstead of exploring every possible solution like brute force, a greedy algorithm immediately selects what appears to be the most beneficial local decision. This is fundamentally different from exhaustive search or dynamic programming.\n\nAfter making a choice, the algorithm moves forward without reconsidering previous decisions. This no backtracking policy is what makes greedy algorithms fast. They do not waste time revisiting or second guessing decisions.\n\nThis often creates fast and memory-efficient solutions because there is no exponential search space exploration and no need to store large tables of intermediate results. Greedy algorithms typically run in O(n) or O(n log n) time."
+      "content": "The **Coin Change Problem** is one of the most common and intuitive applications of Greedy Algorithms.\n* Given a set of coin denominations and a target amount, the goal is to find the **minimum number of coins** needed to make that exact amount.\n* You may use **unlimited coins** of each denomination.\n\nInstead of trying every possible combination (which would take exponential time), the greedy strategy works by:\n1.  Repeatedly selecting the **largest coin denomination** that does not exceed the remaining amount.\n2.  Mirroring how humans naturally make change. To make 36 cents, you take a quarter, then a dime, then a penny.\n\nThis problem introduces learners to **greedy optimization, local decision making, resource minimization, and algorithmic efficiency**. It also serves as a perfect case study for comparing greedy algorithms with dynamic programming.\n\nEvery time you receive change from a cashier, a vending machine dispenses coins, or an ATM dispenses bills, a **coin change algorithm is working behind the scenes**."
     },
     {
-      "id": "why-greedy-matters",
+      "id": "why-problem-matters",
       "type": "concept",
-      "title": "Why Greedy Algorithms Matter",
-      "content": "Many real-world systems require fast decision making where exhaustive search is impossible. Scheduling systems like airline gate assignments and CPU task scheduling, shortest path algorithms like GPS navigation, and optimization systems like resource allocation often cannot afford to test every possible solution.\n\nConsider scheduling 100 tasks. The number of possible schedules is 100 factorial, which is about 9 times 10 to the 157 power, far more than atoms in the universe. Exhaustive search is impossible. Greedy algorithms offer a practical alternative by making locally optimal decisions quickly.\n\nReal-world examples include GPS navigation where Dijkstra's algorithm finds the shortest path without exploring every possible route. Data compression uses Huffman coding which greedily merges smallest frequency characters. Scheduling uses earliest deadline first which greedily chooses the task with the nearest deadline.\n\nGreedy Algorithms reduce computational cost by immediately committing to locally optimal decisions instead of performing exhaustive search. This makes them indispensable for large-scale optimization problems where perfect solutions are impractical.",
+      "title": "Why This Problem Matters",
+      "content": "Cashier systems, vending machines, banking software, and digital payment systems constantly calculate efficient ways to return change. Giving many small coins (like 36 pennies) may technically work, but it becomes **inefficient and inconvenient** for both the cashier and the customer.\n\nReal-world applications of this optimization include:\n* **Vending machines** must return exact change quickly using limited coin supplies.\n* **ATMs** dispense bills in optimal denominations (like 20s, 10s, and 5s) to minimize bill count and mechanical wear.\n* **Banking software** calculates optimal coin combinations for cash orders.\n\nThe Coin Change Problem models how systems **minimize resource usage through optimization**. The same algorithmic principles apply to:\n1.  **Inventory management:** Choosing box sizes to pack items with minimal waste.\n2.  **Data storage:** Selecting disk blocks to store files with minimal fragmentation.\n3.  **Time management:** Choosing task durations to fill a schedule efficiently.",
       "bullets": [
-        "Decisions are made quickly.",
-        "Unnecessary computation is avoided.",
-        "Memory usage is often lower.",
-        "Many optimization systems rely on greedy reasoning."
+        "**Minimizes the number of coins** used.",
+        "Demonstrates **greedy optimization**.",
+        "Appears in real-world **financial systems**.",
+        "Introduces **local decision-making strategies**."
       ]
     },
     {
       "id": "core-idea",
       "type": "concept",
-      "title": "Core Idea of Greedy Algorithms",
-      "content": "A Greedy Algorithm follows a simple repeatable process. It evaluates available choices, selects the locally best option, permanently commits to that choice, and continues until the solution is complete.\n\nFor example, making change with US coins uses a greedy approach. To make 30 cents, always take the largest coin that fits. Take a quarter which is 25 cents, leaving 5 cents. Then take a nickel which is 5 cents. The result is 2 coins, which is optimal.\n\nUnlike Dynamic Programming, greedy methods usually do not revisit decisions, backtrack, or explore every possibility. Once a choice is made, it is final. This irrevocable commitment is the defining characteristic of greedy algorithms.\n\nThe key insight is that greedy algorithms work when a locally optimal choice leads to a globally optimal solution. This is not always true, which is why greedy is an algorithmic strategy rather than a universal solution."
+      "title": "Core Idea of the Greedy Strategy",
+      "content": "The greedy approach follows one simple rule: **Always choose the largest possible coin at the current step.** This mimics how most people naturally make change.\n\nThe algorithm follows these steps:\n1.  **Sort coin denominations** in descending order (from largest to smallest).\n2.  **Start with the target amount**.\n3.  For each coin denomination (from largest to smallest), **while the remaining amount is greater than or equal to the coin value**, take that coin and subtract its value from the remaining amount.\n\nAfter selecting a coin, the algorithm subtracts its value from the remaining amount and repeats the process. \n* The algorithm **never reconsiders** a coin choice. \n* It commits immediately. This **\"no backtracking\" policy** is what defines greedy algorithms.\n\nFor example, with US coins `[25, 10, 5, 1]` and a target of `36` cents:\n* Take `25`, leaving `11`.\n* Take `10`, leaving `1`.\n* Take `1`, leaving `0`.\n* **Result:** 3 coins. This continues until the remaining amount becomes zero."
     },
     {
-      "id": "local-vs-global",
+      "id": "greedy-selection",
       "type": "deep_dive",
-      "title": "Local vs Global Optimization",
-      "content": "A locally optimal choice means choosing the best immediate option based on current information. A globally optimal solution means achieving the best final overall result across all possibilities. The tension between these two concepts is the central challenge of greedy algorithms.\n\nImagine you are hiking in a mountain range and want to reach the highest peak, but visibility is limited to 100 meters. A greedy approach always walks uphill in the steepest direction. The risk is that you might reach a local peak, a small hill, but miss the actual highest mountain because you cannot see over the next ridge.\n\nIn the coin change problem with denominations [1,3,4] and target 6, the greedy choice takes 4 first, leaving 2. Then it takes two 1s, using 3 coins total. However, the global optimal solution is 3 plus 3, using only 2 coins. The greedy local choice of 4 prevented reaching the global optimum.\n\nProblems where greedy works include coin change with canonical coin systems like US coins, activity selection, minimum spanning tree, Huffman coding, and Dijkstra's shortest path with non-negative weights. Problems where greedy fails include coin change with arbitrary denominations, 0/1 knapsack, and the Traveling Salesman Problem."
+      "title": "Understanding Greedy Coin Selection",
+      "content": "Let us walk through greedy coin selection in detail with multiple examples:\n\n**Example 1: Philippine Coins**\n* Target: `18` pesos using `[10, 5, 1]`.\n* Select `10` (largest usable). Remaining = `8`.\n* Select `5`. Remaining = `3`.\n* Use three `1` peso coins.\n* **Solution:** `10 + 5 + 1 + 1 + 1` = **5 coins**. For Philippine coins, this is optimal.\n\n**Example 2: US Coins**\n* Target: `41` cents using `[25, 10, 5, 1]`.\n* Take `25` (leaves `16`), take `10` (leaves `6`), take `5` (leaves `1`), take `1` (leaves `0`).\n* **Solution:** **4 coins** (optimal).\n\n**Example 3: Large Targets**\n* Target: `99` cents using US coins.\n* Take three quarters (`75¢`), leaving `24¢`.\n* Take two dimes (`20¢`), leaving `4¢`.\n* Take four pennies (`4¢`).\n* **Solution:** 3 quarters + 2 dimes + 4 pennies = **9 coins**.\n\n**Why order matters:** If you processed coins in *ascending* order (smallest to largest), you would take `1` repeatedly, resulting in 99 coins instead of 9. The greedy strategy succeeds because sorting from largest to smallest reduces the remaining amount as quickly as possible."
     },
     {
-      "id": "greedy-choice-property",
+      "id": "why-greedy-works",
       "type": "concept",
-      "title": "Greedy Choice Property",
-      "content": "A problem can often be solved greedily if it satisfies the Greedy Choice Property. This means making locally optimal choices leads toward a globally optimal solution. A global optimum can be reached by a series of local optimum decisions.\n\nIf a problem has the greedy choice property, then a greedy algorithm will find the optimal solution. You do not need to explore alternatives or backtrack. The solution can be built incrementally with confidence.\n\nThe Activity Selection problem is a good example. Given activities with start and end times, the greedy choice is to always select the activity with the earliest finish time. Choosing the earliest finishing activity leaves the most remaining time for other activities. This choice property leads to global optimality.\n\nProblems such as Activity Selection, Huffman Coding, and Dijkstra's Algorithm satisfy this property. Recognizing the greedy choice property is the key to identifying when greedy algorithms are appropriate. If the property does not hold, greedy may produce suboptimal results."
+      "title": "Why the Greedy Strategy Works Here",
+      "content": "The greedy strategy succeeds because larger denominations reduce the remaining amount quickly. Choosing large coins first minimizes unnecessary smaller denominations and reduces the total coin count.\n\nThis works flawlessly on a **canonical coin system**.\n* A coin system is \"canonical\" if, for every possible target amount, the greedy algorithm produces an optimal solution with the minimum number of coins.\n* **Canonical examples:** US coins `(1, 5, 10, 25)`, Euro coins `(1, 2, 5, 10, 20, 50)`, Philippine pesos `(1, 5, 10)`.\n\nIn canonical systems, each coin is roughly at least as large as the sum of all smaller coins, or a similar mathematical property holds. For US coins, `10` cents equals two nickels, so the greedy choice of a dime is *always* at least as good as using two nickels.\n\nMany real-world currency systems are **intentionally designed** so greedy coin selection works correctly. This is not an accident—it is intentional design to make cash transactions efficient for humans and machines. Cashiers and vending machines can use the simple greedy algorithm instead of complex dynamic programming."
     },
     {
-      "id": "optimal-substructure",
-      "type": "concept",
-      "title": "Optimal Substructure",
-      "content": "Optimal Substructure means the optimal solution to a problem can be built from optimal solutions to smaller subproblems. This property is shared by both greedy algorithms and dynamic programming.\n\nFor example, in the shortest path problem, if the shortest path from A to C goes through B, then the path from A to B must be the shortest path from A to B, and the path from B to C must be the shortest path from B to C. This is optimal substructure.\n\nBoth greedy and DP require optimal substructure, but they differ in how they build solutions. Greedy makes one choice and then solves the remaining subproblem. Dynamic Programming considers multiple choices and takes the best among them.\n\nMany greedy algorithms rely on both the Greedy Choice Property and Optimal Substructure. Optimal substructure ensures the problem can be broken down. Greedy choice property ensures that the locally optimal choice is safe. Together, these properties guarantee that a greedy approach will yield the global optimum."
-    },
-    {
-      "id": "coin-example",
+      "id": "step-by-step-example",
       "type": "deep_dive",
-      "title": "Coin Change Example",
-      "content": "The coin change problem is the classic example for understanding greedy algorithms both when they work and when they fail. It demonstrates the crucial distinction between canonical coin systems where greedy works and arbitrary systems where it may fail.\n\nSuppose we need to make 18 pesos using coins 10, 5, and 1 which is a canonical system. The greedy strategy repeatedly selects the largest possible coin. It takes 10, leaving 8. Then takes 5, leaving 3. Then takes 1 three times. The result is [10,5,1,1,1] using 5 coins, which is optimal.\n\nNow suppose the coin values are 1, 3, and 4 which is non-canonical, and the target amount is 6. The greedy strategy takes 4 first, leaving 2. Then takes two 1s, using 3 coins total. However, the optimal solution is 3 plus 3, using only 2 coins. Greedy fails because the local choice of 4 blocked the better combination of two 3s.\n\nThe greedy algorithm works for canonical coin systems where each coin is at least the sum of all smaller coins or a similar property holds. US coins and Euro coins are designed to be canonical. Arbitrary denominations may break greedy. If you are solving a coin change problem with arbitrary denominations, use dynamic programming instead."
-    },
-    {
-      "id": "why-greedy-fast",
-      "type": "concept",
-      "title": "Why Greedy Algorithms Are Fast",
-      "content": "Greedy Algorithms avoid exhaustive search, backtracking, and testing every combination. Instead, they immediately commit to decisions. This often produces lower time complexity, lower memory usage, and faster execution.\n\nFor activity selection, brute force would try all 2 to the power of n subsets, taking O(2 to the n) time. Greedy sorts activities by end time in O(n log n) time, then makes one linear scan in O(n) time. Total is O(n log n), which is exponentially faster.\n\nFor coin change with canonical systems, greedy takes O(n) time where n is the number of denominations. Brute force would take O(amount to the power of n) time, which is impossible for large amounts.\n\nGreedy algorithms are fast because they make a single pass through sorted data, they never backtrack, they do not need large DP tables, and they use only simple operations like comparisons and arithmetic. The chart below compares greedy efficiency with exponential brute force.",
-      "chart": {
-        "title": "Greedy algorithm efficiency",
-        "description": "Greedy Algorithms often avoid exhaustive exploration, producing more scalable performance than brute-force search.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(n)", "O(n log n)", "O(2^n)"]
-      }
-    },
-    {
-      "id": "when-greedy-fails",
-      "type": "deep_dive",
-      "title": "When Greedy Algorithms Fail",
-      "content": "Greedy Algorithms do not always produce optimal solutions. Understanding why they fail is as important as knowing when they work.\n\nCoin change with arbitrary denominations is a classic failure. With coins [1,3,4] and target 6, greedy gives 4+1+1 which is 3 coins, but optimal is 3+3 which is 2 coins. The greedy choice of 4 blocked the better combination.\n\nThe 0/1 knapsack problem also fails with greedy. Taking items with the highest value per weight ratio may leave unusable capacity. For example, a high-value heavy item might prevent fitting two medium-value lighter items that together have higher total value.\n\nThe Traveling Salesman Problem fails with greedy nearest neighbor. Starting at a city and always going to the nearest unvisited city can produce a path significantly longer than the optimal route.\n\nGreedy fails when the problem lacks the greedy choice property. What looks good now may lead to worse outcomes later. This is the classic short-term gain, long-term pain scenario. Recognizing when greedy might fail helps you choose the right algorithm."
-    },
-    {
-      "id": "greedy-vs-dp",
-      "type": "concept",
-      "title": "Greedy Algorithms vs Dynamic Programming",
-      "content": "Greedy Algorithms and Dynamic Programming are both optimization strategies that build solutions from subproblems, but they differ fundamentally in their approach, guarantees, and complexity.\n\nGreedy makes one irreversible choice per step. It picks the locally optimal option without considering alternatives. Dynamic Programming considers multiple choices and takes the best among them, exploring all possibilities efficiently.\n\nGreedy typically runs in O(n) or O(n log n) time and uses O(1) or O(n) space. Dynamic Programming often runs in O(n squared) or O(n times W) time and uses O(n squared) or O(n times W) space. Greedy is much faster but only works for specific problem structures.\n\nUse Greedy when the greedy choice property holds and you need extremely fast execution with limited memory. Use Dynamic Programming when greedy fails, you need guaranteed optimal solutions, and input size is moderate.\n\nFor coin change with canonical systems, greedy works. For arbitrary denominations, DP is required. For activity selection, greedy works for maximizing count but DP is needed for weighted activities. The choice depends on problem structure and requirements."
+      "title": "Step-by-Step Execution Visualization",
+      "content": "Suppose we need to make `36` cents using US coins `[25, 10, 5, 1]`.\n\n1.  **Step 1:** Remaining is 36. Can take a quarter? Yes. Count = 1, remaining = 11.\n2.  **Step 2:** Remaining is 11. Can take another quarter? No. Move to next coin.\n3.  **Step 3:** Can take a dime? Yes. Count = 2, remaining = 1.\n4.  **Step 4:** Can take another dime? No.\n5.  **Step 5:** Can take a nickel? No.\n6.  **Step 6:** Can take a penny? Yes. Count = 3, remaining = 0.\n7.  **Final Result:** `[25, 10, 1]` using **3 coins**.\n\nNow consider a **non-canonical** coin system `[4, 3, 1]` with a target of `6`:\n* **Greedy Approach:** Takes `4` first (leaving 2). Takes `1` twice. Result is `[4, 1, 1]` using **3 coins**.\n* **Optimal Approach:** `[3, 3]` using **2 coins**.\n\n**Greedy fails here** because the local choice of `4` prevented the better combination of two `3`s. This demonstrates that local optimal choices may sometimes produce globally suboptimal solutions. The greedy algorithm *only* works correctly for canonical coin systems."
     },
     {
       "id": "implementation",
       "type": "concept",
       "title": "Python Implementation",
-      "content": "Greedy implementations commonly involve sorting, repeated selection, and immediate commitment to locally optimal choices. The examples below show greedy patterns across different problem types.\n\nFor greedy coin selection, sort coins in descending order. Then loop through each coin and take as many as possible while the remaining amount is greater than or equal to the coin value. This repeatedly selects the largest possible coin.\n\nFor largest-first selection, repeatedly find and remove the largest number from a list. This demonstrates greedy selection from a set. A more efficient version simply sorts the list in descending order.\n\nFor greedy sum with a limit, sort values in descending order. Then iterate through each value and add it to the selected list if the current sum plus the value does not exceed the limit. This is like a simplified knapsack where all items have the same weight.\n\nThese patterns show how greedy algorithms make one pass through sorted data, commit to choices immediately, and never backtrack. The examples below demonstrate these patterns in code.",
+      "content": "Greedy Coin Change implementations repeatedly select the largest possible denomination until the target amount becomes zero. Below are multiple variants for different use cases.\n\n* **Basic Implementation:** Takes a list of coins and a target amount. It sorts the coins in descending order, then uses a `while` loop to repeatedly take a coin as long as the remaining amount is `>=` the coin value.\n* **Count-Only Version:** Returns the *number* of coins used instead of the list, which is more memory efficient. It uses the same logic but increments a counter.\n* **Optimized Version (Division):** Uses integer division to compute the number of coins directly, which is much faster for large amounts. Instead of a `while` loop, it calculates `num_coins = remaining // coin`, then subtracts `num_coins * coin` from the remaining amount.\n\nThe examples below show these different implementations in Python.",
       "codeSnippets": [
         {
-          "title": "Simple greedy coin selection",
+          "title": "Greedy Coin Change (Basic)",
           "language": "python",
-          "code": "coins = [10, 5, 1]\namount = 18\nselected = []\n\nfor coin in coins:\n    while amount >= coin:\n        selected.append(coin)\n        amount -= coin\n\nprint(selected)"
+          "code": "coins = [25, 10, 5, 1]\namount = 36\nselected = []\n\n# Ensure coins are sorted largest to smallest\ncoins.sort(reverse=True)\n\nfor coin in coins:\n    while amount >= coin:\n        selected.append(coin)\n        amount -= coin\n\nprint(selected)"
         },
         {
-          "title": "Largest-first selection example",
+          "title": "Optimized Coin Change (Using Division)",
           "language": "python",
-          "code": "numbers = [3, 8, 2, 9, 5]\nselected = []\n\nwhile numbers:\n    largest = max(numbers)\n    selected.append(largest)\n    numbers.remove(largest)\n\nprint(selected)"
+          "code": "coins = [25, 10, 5, 1]\namount = 99\ncoin_counts = {}\n\ncoins.sort(reverse=True)\n\nfor coin in coins:\n    if amount >= coin:\n        # Calculate exactly how many of this coin we need immediately\n        num_coins = amount // coin\n        coin_counts[coin] = num_coins\n        amount -= (num_coins * coin)\n\nprint(coin_counts)"
+        },
+        {
+          "title": "Track remaining amount step-by-step",
+          "language": "python",
+          "code": "coins = [25, 10, 5, 1]\namount = 41\n\ncoins.sort(reverse=True)\n\nfor coin in coins:\n    while amount >= coin:\n        print('Use coin:', coin)\n        amount -= coin\n        print('Remaining:', amount)"
         }
       ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Let `n` be the number of coin types and `A` be the target amount.\n\n**Time Complexity (Basic While-Loop Version):**\n* Traversing the coin denominations requires **O(n)** time.\n* However, the inner `while` loop can make many iterations if the amount is large and the smallest coin is 1.\n* In the worst case (e.g., making 1 million cents with only 1-cent coins), it requires 1 million iterations. This creates worst-case behavior proportional to the target amount: **O(n + A)**.\n\n**Time Complexity (Optimized Division Version):**\n* The optimized version using integer division (`//`) reduces time complexity to strictly **O(n log n) to sort** the coins, and **O(n) to process** them, regardless of the amount.\n* It computes `num_coins = remaining // coin` directly, completely avoiding the inner `while` loop.\n\n**Space Complexity:**\n* Space complexity is **O(1)** when only counting coins, because only a few numeric variables are required.\n* If you store the list of selected coins, space becomes proportional to the number of coins used, which is **O(A / min_coin)**.",
+      "chart": {
+        "title": "Greedy Coin Change complexity",
+        "description": "Greedy Coin Change often scales efficiently because the algorithm immediately commits to large denominations instead of exploring every combination.",
+        "maxN": 32,
+        "normalize": true,
+        "curves": ["O(n)", "O(amount)", "O(2^n)"]
+      }
+    },
+    {
+      "id": "when-greedy-fails",
+      "type": "deep_dive",
+      "title": "When Greedy Coin Change Fails",
+      "content": "Greedy solutions **do not always guarantee optimal answers**. Understanding why greedy fails is essential for recognizing when you need more powerful techniques like Dynamic Programming.\n\n**Failure Example 1:**\n* Coins: `[1, 3, 4]`, Target: `6`.\n* **Greedy:** Selects `4` first, leaving `2`. Uses two `1`s. Total: **3 coins** `[4, 1, 1]`.\n* **Optimal:** **2 coins** `[3, 3]`.\n* *Why it failed:* The greedy choice of 4 seemed good at the moment, but it prevented the better combination of two 3s.\n\n**Failure Example 2:**\n* Coins: `[1, 6, 10]`, Target: `12`.\n* **Greedy:** `10 + 1 + 1` = **3 coins**.\n* **Optimal:** `6 + 6` = **2 coins**.\n\nIn a non-canonical coin system, a larger coin is not always better than using multiple smaller coins. The greedy algorithm is \"blind\" to this possibility because it **never looks ahead or backtracks**.\n\nWhen greedy fails, you must use **Dynamic Programming (DP)**. The DP solution guarantees optimality for *any* coin system, though it runs in `O(n * amount)` time and uses `O(amount)` space."
+    },
+    {
+      "id": "canonical-systems",
+      "type": "concept",
+      "title": "Why Some Currency Systems Work Well",
+      "content": "Many real-world currency systems are **intentionally designed** so greedy coin selection consistently produces optimal solutions. These are called **canonical coin systems**.\n\n* **US coins:** `[1, 5, 10, 25]` are canonical.\n* **Euro coins:** `[1, 2, 5, 10, 20, 50]` are canonical.\n* **Philippine pesos:** `[1, 5, 10]` are canonical.\n* **Japanese yen:** `[1, 5, 10, 50, 100, 500]` are canonical.\n\nA sufficient (but not necessary) condition for canonicity is that each coin is greater than or equal to the sum of all smaller coins. \n* For US coins, `5 >= 1`.\n* `10 >= (1 + 5 = 6)`.\n* `25 >= (1 + 5 + 10 = 16)`.\n\nIf you are implementing a cashier system for a standard currency, you can safely use the ultra-fast O(n) greedy algorithm. If you are dealing with arbitrary denominations like a programming puzzle or custom coin set, you **must use dynamic programming**."
+    },
+    {
+      "id": "greedy-vs-dp",
+      "type": "concept",
+      "title": "Greedy vs Dynamic Programming",
+      "content": "Greedy Coin Change prioritizes **efficiency** by making immediate locally optimal decisions. Dynamic Programming (DP) prioritizes **correctness** by exploring subproblems to guarantee global optimality.\n\n**Greedy:**\n* Works **only** for canonical coin systems.\n* Runs in **O(n)** time (with integer division optimization).\n* Uses **O(1)** space (for counting).\n\n**Dynamic Programming:**\n* Works for **any** coin system.\n* Runs in **O(n * amount)** time.\n* Uses **O(amount)** space to build a table where `dp[i]` equals the minimum coins to make amount `i`.\n\nGreedy methods are usually faster and use less memory, while Dynamic Programming provides stronger correctness guarantees. For standard cashier applications, greedy is correct and incredibly fast. For algorithmic puzzles or custom currencies, use dynamic programming."
     },
     {
       "id": "applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Greedy Algorithms appear in GPS route calculation, network routing, CPU scheduling, compression systems, cloud infrastructure, and optimization systems. Their speed and simplicity make them invaluable for large-scale systems.\n\nDijkstra's algorithm for GPS navigation greedily expands the closest unvisited node to find the shortest path. Huffman coding for data compression greedily merges the smallest frequency characters to build optimal prefix codes used in ZIP files and JPEG images.\n\nCPU scheduling uses Shortest Job First to minimize average wait time and Earliest Deadline First for real-time systems. Minimum spanning tree algorithms like Prim's and Kruskal's greedily add the smallest edge that does not create a cycle, used in network design.\n\nEven when greedy does not guarantee optimality, it often provides fast approximations within a small constant factor of optimal, baseline solutions for benchmarking, and real-time responses when waiting for optimal is impossible. Modern systems frequently rely on fast local decision making to process large workloads efficiently."
+      "content": "Coin Change logic appears across the financial and software engineering spectrum:\n\n* **Cashier Systems:** Point of Sale (POS) terminals automatically calculate minimal change to return and display the specific coin breakdown to the cashier.\n* **Vending Machines:** Must return exact change using available hardware tubes, requiring extremely fast, real-time responses.\n* **ATMs:** Dispense cash in optimal bill denominations (100s, 50s, 20s, 10s) to minimize the physical thickness of the dispensed cash stack.\n* **Banking Software:** Processes bulk cash orders for businesses, determining optimal coin and bill distributions for armored truck shipments.\n\nBeyond finance, many resource minimization problems use similar greedy reasoning:\n* **Inventory management:** Uses box packing algorithms (bin packing) analogous to coins.\n* **Blockchain:** Cryptocurrency UTXO (Unspent Transaction Output) selection uses greedy algorithms to choose the largest transaction inputs to minimize transaction byte size."
     },
     {
       "id": "misconceptions",
       "type": "key_concept",
-      "title": "Common Beginner Misconceptions",
+      "title": "Common Beginner Mistakes",
       "subsections": [
         {
           "id": "always-optimal",
-          "title": "Misconception: Greedy Algorithms always find the best solution",
-          "content": "Greedy reasoning only works correctly for certain problem structures. The coin change counterexample with [1,3,4] and target 6 shows greedy can produce suboptimal results. Always verify the greedy choice property before assuming optimality."
+          "title": "Mistake: Assuming greedy always produces optimal solutions",
+          "content": "Some coin systems completely break greedy correctness and require Dynamic Programming instead. The `[1, 3, 4]` system with a target of `6` is the classic counterexample. **Always test or prove canonicity** before relying on greedy optimality."
         },
         {
-          "id": "random-shortcuts",
-          "title": "Misconception: Greedy Algorithms are random shortcuts",
-          "content": "Greedy decisions follow carefully designed optimization logic, not randomness. The greedy choice is deterministic based on a specific criterion like largest coin, earliest finish time, or smallest frequency. Randomness is not greedy."
+          "id": "ignore-order",
+          "title": "Mistake: Ignoring coin ordering",
+          "content": "The greedy strategy fundamentally depends on **descending denomination order**. If coins are processed in ascending order (smallest to largest), the algorithm would take many small coins instead of large ones, resulting in massive inefficiency. Always sort coins `reverse=True`."
         },
         {
-          "id": "all-fast",
-          "title": "Misconception: Fast algorithms are always greedy",
-          "content": "Many efficient algorithms use recursion, graph traversal, or Dynamic Programming instead. Binary search is Divide and Conquer, not greedy. Merge Sort is Divide and Conquer, not greedy. Greedy is one strategy among many for efficient algorithm design."
+          "id": "exhaustive-search",
+          "title": "Mistake: Confusing greedy optimization with exhaustive search",
+          "content": "Greedy algorithms do *not* test every possibility. They commit immediately to local decisions without looking ahead. This is what makes them fast, but it is also what causes suboptimal results on tricky inputs. **Greedy trades perfect guarantees for raw speed.**"
         }
       ]
     },
@@ -154,12 +159,12 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "Greedy Algorithms make locally optimal decisions.",
-        "Greedy methods usually do not revisit earlier choices.",
-        "Some problems satisfy the Greedy Choice Property.",
-        "Greedy Algorithms are fast and memory efficient.",
-        "Greedy reasoning does not always guarantee optimal solutions.",
-        "Understanding when greedy works is an important algorithmic skill."
+        "The Coin Change Problem aims to **minimize the number of coins** used.",
+        "Greedy Coin Change repeatedly selects the **largest denomination possible**.",
+        "Local optimal choices **may or may not** produce global optimality.",
+        "Standard currency systems (US, Euro) are mathematically designed for **greedy correctness**.",
+        "Greedy algorithms are **extremely fast and memory efficient**.",
+        "**Dynamic Programming** must be used when greedy solutions fail on arbitrary coins."
       ]
     }
   ],
@@ -169,12 +174,20 @@
       "url": "https://www.programiz.com/dsa/greedy-algorithm"
     },
     {
-      "title": "GeeksforGeeks - Greedy Algorithms",
-      "url": "https://www.geeksforgeeks.org/greedy-algorithms/"
+      "title": "Codecademy - Greedy Algorithms and Coin Change",
+      "url": "https://www.codecademy.com/article/greedy-algorithms"
     },
     {
-      "title": "Wikipedia - Greedy Algorithm",
-      "url": "https://en.wikipedia.org/wiki/Greedy_algorithm"
+      "title": "Wikipedia - Change-Making Problem",
+      "url": "https://en.wikipedia.org/wiki/Change-making_problem"
+    },
+    {
+      "title": "GeeksforGeeks - Coin Change Problem",
+      "url": "https://www.geeksforgeeks.org/coin-change-problem-in-cpp/"
+    },
+    {
+      "title": "Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009). Introduction to Algorithms (3rd ed.). MIT Press.",
+      "url": "https://mitpress.mit.edu/9780262033848/introduction-to-algorithms/"
     }
   ]
 }
