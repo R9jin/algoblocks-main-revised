@@ -16,8 +16,10 @@
         "2. Append `item` to the `stack` list.",
         "3. Return the `stack` array.",
         "",
-        "Sample Output:",
-        "push_stack([10, 20], 30) → [10, 20, 30]"
+        "Sample Outputs:",
+        "push_stack([10, 20], 30) → [10, 20, 30]",
+        "push_stack([], 5) → [5]",
+        "push_stack([1], 1) → [1, 1]"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -25,7 +27,7 @@
         { "call": "push_stack([10, 20], 30)", "expected": "[10, 20, 30]", "isHidden": false },
         { "call": "push_stack([], 5)", "expected": "[5]", "isHidden": false },
         { "call": "push_stack([1], 1)", "expected": "[1, 1]", "isHidden": false },
-        { "call": "push_stack([-5, 0], 5)", "expected": "[-5, 0, 5]", "isHidden": false },
+        { "call": "push_stack([-5, 0], 5)", "expected": "[-5, 0, 5]", "isHidden": true },
         { "call": "push_stack([99], 100)", "expected": "[99, 100]", "isHidden": true }
       ]
     },
@@ -46,8 +48,10 @@
         "3. Otherwise, execute standard list popping to remove the final item.",
         "4. Return the removed item.",
         "",
-        "Sample Output:",
-        "pop_stack([10, 20, 30]) → 30"
+        "Sample Outputs:",
+        "pop_stack([10, 20, 30]) → 30",
+        "pop_stack([5]) → 5",
+        "pop_stack([]) → 'Underflow'"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -55,7 +59,7 @@
         { "call": "pop_stack([10, 20, 30])", "expected": "30", "isHidden": false },
         { "call": "pop_stack([5])", "expected": "5", "isHidden": false },
         { "call": "pop_stack([])", "expected": "'Underflow'", "isHidden": false },
-        { "call": "pop_stack([1, 2])", "expected": "2", "isHidden": false },
+        { "call": "pop_stack([1, 2])", "expected": "2", "isHidden": true },
         { "call": "pop_stack([-10, -20])", "expected": "-20", "isHidden": true }
       ]
     },
@@ -78,8 +82,10 @@
         "4. Implement a `while` loop: as long as `stack` contains elements, append `stack.pop()` to `result`.",
         "5. Return `result`.",
         "",
-        "Sample Output:",
-        "reverse_string('data') → 'atad'"
+        "Sample Outputs:",
+        "reverse_string('data') → 'atad'",
+        "reverse_string('stack') → 'kcats'",
+        "reverse_string('a') → 'a'"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -87,7 +93,7 @@
         { "call": "reverse_string('data')", "expected": "'atad'", "isHidden": false },
         { "call": "reverse_string('stack')", "expected": "'kcats'", "isHidden": false },
         { "call": "reverse_string('a')", "expected": "'a'", "isHidden": false },
-        { "call": "reverse_string('')", "expected": "''", "isHidden": false },
+        { "call": "reverse_string('')", "expected": "''", "isHidden": true },
         { "call": "reverse_string('12345')", "expected": "'54321'", "isHidden": true }
       ]
     },
@@ -110,8 +116,10 @@
         "4. If `char == ')'`, check if `stack` is empty; if so, return `False`. Otherwise, execute `stack.pop()`.",
         "5. Return `True` if `stack` is perfectly empty at completion, otherwise `False`.",
         "",
-        "Sample Output:",
-        "is_balanced('(())') → True"
+        "Sample Outputs:",
+        "is_balanced('(())') → True",
+        "is_balanced('()()') → True",
+        "is_balanced('(()') → False"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -119,7 +127,7 @@
         { "call": "is_balanced('(())')", "expected": "True", "isHidden": false },
         { "call": "is_balanced('()()')", "expected": "True", "isHidden": false },
         { "call": "is_balanced('(()')", "expected": "False", "isHidden": false },
-        { "call": "is_balanced(')')", "expected": "False", "isHidden": false },
+        { "call": "is_balanced(')')", "expected": "False", "isHidden": true },
         { "call": "is_balanced('')", "expected": "True", "isHidden": true }
       ]
     },
@@ -142,8 +150,10 @@
         "4. If the item is a string operator, pop into variable `b`, then pop into variable `a`. Calculate `a (operator) b` and push the result.",
         "5. Return the final integer via `stack.pop()`.",
         "",
-        "Sample Output:",
-        "evaluate_postfix([3, 4, '+', 2, '*']) → 14"
+        "Sample Outputs:",
+        "evaluate_postfix([3, 4, '+', 2, '*']) → 14",
+        "evaluate_postfix([5, 1, 2, '+', 4, '*', '+', 3, '-']) → 14",
+        "evaluate_postfix([10, 2, '*']) → 20"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -151,7 +161,7 @@
         { "call": "evaluate_postfix([3, 4, '+', 2, '*'])", "expected": "14", "isHidden": false },
         { "call": "evaluate_postfix([5, 1, 2, '+', 4, '*', '+', 3, '-'])", "expected": "14", "isHidden": false },
         { "call": "evaluate_postfix([10, 2, '*'])", "expected": "20", "isHidden": false },
-        { "call": "evaluate_postfix([8, 2, '-'])", "expected": "6", "isHidden": false },
+        { "call": "evaluate_postfix([8, 2, '-'])", "expected": "6", "isHidden": true },
         { "call": "evaluate_postfix([7])", "expected": "7", "isHidden": true }
       ]
     }
@@ -173,8 +183,10 @@
         "2. Execute the append method to add `item` to `queue`.",
         "3. Return `queue`.",
         "",
-        "Sample Output:",
-        "enqueue([1, 2], 3) → [1, 2, 3]"
+        "Sample Outputs:",
+        "enqueue([1, 2], 3) → [1, 2, 3]",
+        "enqueue([], 10) → [10]",
+        "enqueue([5], 5) → [5, 5]"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -182,7 +194,7 @@
         { "call": "enqueue([1, 2], 3)", "expected": "[1, 2, 3]", "isHidden": false },
         { "call": "enqueue([], 10)", "expected": "[10]", "isHidden": false },
         { "call": "enqueue([5], 5)", "expected": "[5, 5]", "isHidden": false },
-        { "call": "enqueue([-1], 0)", "expected": "[-1, 0]", "isHidden": false },
+        { "call": "enqueue([-1], 0)", "expected": "[-1, 0]", "isHidden": true },
         { "call": "enqueue([100, 200], 300)", "expected": "[100, 200, 300]", "isHidden": true }
       ]
     },
@@ -203,8 +215,10 @@
         "3. Isolate and remove the element using `queue.pop(0)`.",
         "4. Return the removed element.",
         "",
-        "Sample Output:",
-        "dequeue([10, 20, 30]) → 10"
+        "Sample Outputs:",
+        "dequeue([10, 20, 30]) → 10",
+        "dequeue([5]) → 5",
+        "dequeue([]) → 'Underflow'"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -212,7 +226,7 @@
         { "call": "dequeue([10, 20, 30])", "expected": "10", "isHidden": false },
         { "call": "dequeue([5])", "expected": "5", "isHidden": false },
         { "call": "dequeue([])", "expected": "'Underflow'", "isHidden": false },
-        { "call": "dequeue([1, 2])", "expected": "1", "isHidden": false },
+        { "call": "dequeue([1, 2])", "expected": "1", "isHidden": true },
         { "call": "dequeue([-10, -20])", "expected": "-10", "isHidden": true }
       ]
     },
@@ -232,8 +246,10 @@
         "2. If `queue` is explicitly empty, return the string `'Empty'`.",
         "3. Return `queue[0]` without triggering removal methods.",
         "",
-        "Sample Output:",
-        "peek_queue([5, 10, 15]) → 5"
+        "Sample Outputs:",
+        "peek_queue([5, 10, 15]) → 5",
+        "peek_queue([99]) → 99",
+        "peek_queue([]) → 'Empty'"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -241,7 +257,7 @@
         { "call": "peek_queue([5, 10, 15])", "expected": "5", "isHidden": false },
         { "call": "peek_queue([99])", "expected": "99", "isHidden": false },
         { "call": "peek_queue([])", "expected": "'Empty'", "isHidden": false },
-        { "call": "peek_queue([1, 2, 3])", "expected": "1", "isHidden": false },
+        { "call": "peek_queue([1, 2, 3])", "expected": "1", "isHidden": true },
         { "call": "peek_queue([-5, 0, 5])", "expected": "-5", "isHidden": true }
       ]
     },
@@ -263,8 +279,10 @@
         "4. Enqueue `curr + '0'` and `curr + '1'` into the `queue`.",
         "5. Return `result`.",
         "",
-        "Sample Output:",
-        "generate_binary(3) → ['1', '10', '11']"
+        "Sample Outputs:",
+        "generate_binary(3) → ['1', '10', '11']",
+        "generate_binary(5) → ['1', '10', '11', '100', '101']",
+        "generate_binary(1) → ['1']"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -272,7 +290,7 @@
         { "call": "generate_binary(3)", "expected": "['1', '10', '11']", "isHidden": false },
         { "call": "generate_binary(5)", "expected": "['1', '10', '11', '100', '101']", "isHidden": false },
         { "call": "generate_binary(1)", "expected": "['1']", "isHidden": false },
-        { "call": "generate_binary(0)", "expected": "[]", "isHidden": false },
+        { "call": "generate_binary(0)", "expected": "[]", "isHidden": true },
         { "call": "generate_binary(2)", "expected": "['1', '10']", "isHidden": true }
       ]
     },
@@ -294,8 +312,10 @@
         "3. Isolate the subset using list slicing, apply a reversal, and prepend it to the unaltered remainder of the queue.",
         "4. Return the newly modified list.",
         "",
-        "Sample Output:",
-        "reverse_k([1, 2, 3, 4, 5], 3) → [3, 2, 1, 4, 5]"
+        "Sample Outputs:",
+        "reverse_k([1, 2, 3, 4, 5], 3) → [3, 2, 1, 4, 5]",
+        "reverse_k([10, 20, 30], 2) → [20, 10, 30]",
+        "reverse_k([1, 2], 5) → [1, 2]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(k)",
@@ -303,7 +323,7 @@
         { "call": "reverse_k([1, 2, 3, 4, 5], 3)", "expected": "[3, 2, 1, 4, 5]", "isHidden": false },
         { "call": "reverse_k([10, 20, 30], 2)", "expected": "[20, 10, 30]", "isHidden": false },
         { "call": "reverse_k([1, 2], 5)", "expected": "[1, 2]", "isHidden": false },
-        { "call": "reverse_k([1, 2, 3], 0)", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "reverse_k([1, 2, 3], 0)", "expected": "[1, 2, 3]", "isHidden": true },
         { "call": "reverse_k([7, 8, 9, 10], 4)", "expected": "[10, 9, 8, 7]", "isHidden": true }
       ]
     }
@@ -327,8 +347,10 @@
         "3. Loop `item` in `arr`. If `item` exists in `freq_dict`, execute `freq_dict[item] += 1`. Otherwise, execute `freq_dict[item] = 1`.",
         "4. Return `freq_dict`.",
         "",
-        "Sample Output:",
-        "frequency_map([1, 2, 2, 3]) → {1: 1, 2: 2, 3: 1}"
+        "Sample Outputs:",
+        "frequency_map([1, 2, 2, 3]) → {1: 1, 2: 2, 3: 1}",
+        "frequency_map([5, 5, 5]) → {5: 3}",
+        "frequency_map([]) → {}"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -336,7 +358,7 @@
         { "call": "frequency_map([1, 2, 2, 3])", "expected": "{1: 1, 2: 2, 3: 1}", "isHidden": false },
         { "call": "frequency_map([5, 5, 5])", "expected": "{5: 3}", "isHidden": false },
         { "call": "frequency_map([])", "expected": "{}", "isHidden": false },
-        { "call": "frequency_map([10])", "expected": "{10: 1}", "isHidden": false },
+        { "call": "frequency_map([10])", "expected": "{10: 1}", "isHidden": true },
         { "call": "frequency_map([1, 2, 1, 2])", "expected": "{1: 2, 2: 2}", "isHidden": true }
       ]
     },
@@ -357,8 +379,10 @@
         "3. Traverse the string `s` sequentially. If `map[char] == 1`, return the character.",
         "4. If traversal concludes with no unique discoveries, return `'_'`.",
         "",
-        "Sample Output:",
-        "first_unique('leetcode') → 'l'"
+        "Sample Outputs:",
+        "first_unique('leetcode') → 'l'",
+        "first_unique('aabb') → '_'",
+        "first_unique('z') → 'z'"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(k)",
@@ -366,7 +390,7 @@
         { "call": "first_unique('leetcode')", "expected": "'l'", "isHidden": false },
         { "call": "first_unique('aabb')", "expected": "'_'", "isHidden": false },
         { "call": "first_unique('z')", "expected": "'z'", "isHidden": false },
-        { "call": "first_unique('aabbc')", "expected": "'c'", "isHidden": false },
+        { "call": "first_unique('aabbc')", "expected": "'c'", "isHidden": true },
         { "call": "first_unique('')", "expected": "'_'", "isHidden": true }
       ]
     },
@@ -388,8 +412,10 @@
         "3. Traverse `arr2`. If the element is present in `set1`, append to `result` and invoke `.remove(item)` on `set1`.",
         "4. Return `result`.",
         "",
-        "Sample Output:",
-        "intersect_arrays([1, 2, 2, 1], [2, 2]) → [2]"
+        "Sample Outputs:",
+        "intersect_arrays([1, 2, 2, 1], [2, 2]) → [2]",
+        "intersect_arrays([4, 9, 5], [9, 4, 9, 8, 4]) → [9, 4]",
+        "intersect_arrays([1, 2], [3, 4]) → []"
       ],
       "targetTime": "O(n + m)",
       "targetSpace": "O(n)",
@@ -397,7 +423,7 @@
         { "call": "intersect_arrays([1, 2, 2, 1], [2, 2])", "expected": "[2]", "isHidden": false },
         { "call": "intersect_arrays([4, 9, 5], [9, 4, 9, 8, 4])", "expected": "[9, 4]", "isHidden": false },
         { "call": "intersect_arrays([1, 2], [3, 4])", "expected": "[]", "isHidden": false },
-        { "call": "intersect_arrays([], [1])", "expected": "[]", "isHidden": false },
+        { "call": "intersect_arrays([], [1])", "expected": "[]", "isHidden": true },
         { "call": "intersect_arrays([1, 1], [1, 1])", "expected": "[1]", "isHidden": true }
       ]
     },
@@ -420,8 +446,10 @@
         "4. Traverse `t`. Decrement the dictionary value for each character. If a character is absent, return `False`.",
         "5. If any remaining dictionary value is non-zero, return `False`. Otherwise, return `True`.",
         "",
-        "Sample Output:",
-        "is_anagram('anagram', 'nagaram') → True"
+        "Sample Outputs:",
+        "is_anagram('anagram', 'nagaram') → True",
+        "is_anagram('rat', 'car') → False",
+        "is_anagram('a', 'a') → True"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(k)",
@@ -429,7 +457,7 @@
         { "call": "is_anagram('anagram', 'nagaram')", "expected": "True", "isHidden": false },
         { "call": "is_anagram('rat', 'car')", "expected": "False", "isHidden": false },
         { "call": "is_anagram('a', 'a')", "expected": "True", "isHidden": false },
-        { "call": "is_anagram('ab', 'a')", "expected": "False", "isHidden": false },
+        { "call": "is_anagram('ab', 'a')", "expected": "False", "isHidden": true },
         { "call": "is_anagram('', '')", "expected": "True", "isHidden": true }
       ]
     },
@@ -452,8 +480,10 @@
         "5. If `char_t` is in `map_t` and `map_t[char_t] != char_s`, return `False`.",
         "6. Establish the mappings: `map_s[char_s] = char_t` and `map_t[char_t] = char_s`. Return `True` upon full resolution.",
         "",
-        "Sample Output:",
-        "is_isomorphic('egg', 'add') → True"
+        "Sample Outputs:",
+        "is_isomorphic('egg', 'add') → True",
+        "is_isomorphic('foo', 'bar') → False",
+        "is_isomorphic('paper', 'title') → True"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -461,7 +491,7 @@
         { "call": "is_isomorphic('egg', 'add')", "expected": "True", "isHidden": false },
         { "call": "is_isomorphic('foo', 'bar')", "expected": "False", "isHidden": false },
         { "call": "is_isomorphic('paper', 'title')", "expected": "True", "isHidden": false },
-        { "call": "is_isomorphic('a', 'a')", "expected": "True", "isHidden": false },
+        { "call": "is_isomorphic('a', 'a')", "expected": "True", "isHidden": true },
         { "call": "is_isomorphic('ab', 'aa')", "expected": "False", "isHidden": true }
       ]
     }
@@ -485,8 +515,10 @@
         "3. Cast the Set back to a list format.",
         "4. Sort the result in ascending order and return it.",
         "",
-        "Sample Output:",
-        "filter_unique([3, 1, 2, 1, 3]) → [1, 2, 3]"
+        "Sample Outputs:",
+        "filter_unique([3, 1, 2, 1, 3]) → [1, 2, 3]",
+        "filter_unique([5, 5, 5]) → [5]",
+        "filter_unique([10, 20]) → [10, 20]"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
@@ -494,7 +526,7 @@
         { "call": "filter_unique([3, 1, 2, 1, 3])", "expected": "[1, 2, 3]", "isHidden": false },
         { "call": "filter_unique([5, 5, 5])", "expected": "[5]", "isHidden": false },
         { "call": "filter_unique([10, 20])", "expected": "[10, 20]", "isHidden": false },
-        { "call": "filter_unique([])", "expected": "[]", "isHidden": false },
+        { "call": "filter_unique([])", "expected": "[]", "isHidden": true },
         { "call": "filter_unique([-1, -1, 0, 1])", "expected": "[-1, 0, 1]", "isHidden": true }
       ]
     },
@@ -514,8 +546,10 @@
         "2. Transpile `sub_arr` and `super_arr` to Sets.",
         "3. Return the boolean result evaluated via Python's native `issubset()` function.",
         "",
-        "Sample Output:",
-        "is_subset([1, 2], [1, 2, 3, 4]) → True"
+        "Sample Outputs:",
+        "is_subset([1, 2], [1, 2, 3, 4]) → True",
+        "is_subset([5], [1, 2, 3]) → False",
+        "is_subset([], [1]) → True"
       ],
       "targetTime": "O(n + m)",
       "targetSpace": "O(n + m)",
@@ -523,7 +557,7 @@
         { "call": "is_subset([1, 2], [1, 2, 3, 4])", "expected": "True", "isHidden": false },
         { "call": "is_subset([5], [1, 2, 3])", "expected": "False", "isHidden": false },
         { "call": "is_subset([], [1])", "expected": "True", "isHidden": false },
-        { "call": "is_subset([10, 10], [10])", "expected": "True", "isHidden": false },
+        { "call": "is_subset([10, 10], [10])", "expected": "True", "isHidden": true },
         { "call": "is_subset([1, 2, 3], [1, 2, 3])", "expected": "True", "isHidden": true }
       ]
     },
@@ -544,8 +578,10 @@
         "3. Calculate the intersection of the sets.",
         "4. Return `True` if the intersection resolves to an empty structure, otherwise `False`.",
         "",
-        "Sample Output:",
-        "is_disjoint([1, 2], [3, 4]) → True"
+        "Sample Outputs:",
+        "is_disjoint([1, 2], [3, 4]) → True",
+        "is_disjoint([1, 2, 3], [3, 4]) → False",
+        "is_disjoint([], [1, 2]) → True"
       ],
       "targetTime": "O(n + m)",
       "targetSpace": "O(n + m)",
@@ -553,7 +589,7 @@
         { "call": "is_disjoint([1, 2], [3, 4])", "expected": "True", "isHidden": false },
         { "call": "is_disjoint([1, 2, 3], [3, 4])", "expected": "False", "isHidden": false },
         { "call": "is_disjoint([], [1, 2])", "expected": "True", "isHidden": false },
-        { "call": "is_disjoint([5], [5])", "expected": "False", "isHidden": false },
+        { "call": "is_disjoint([5], [5])", "expected": "False", "isHidden": true },
         { "call": "is_disjoint([10, 20], [30, 40, 50])", "expected": "True", "isHidden": true }
       ]
     },
@@ -576,8 +612,10 @@
         "4. Compute `actual_sum = sum(arr)`.",
         "5. Return `expected_sum - actual_sum`.",
         "",
-        "Sample Output:",
-        "find_missing([3, 0, 1]) → 2"
+        "Sample Outputs:",
+        "find_missing([3, 0, 1]) → 2",
+        "find_missing([0, 1]) → 2",
+        "find_missing([9, 6, 4, 2, 3, 5, 7, 0, 1]) → 8"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -585,7 +623,7 @@
         { "call": "find_missing([3, 0, 1])", "expected": "2", "isHidden": false },
         { "call": "find_missing([0, 1])", "expected": "2", "isHidden": false },
         { "call": "find_missing([9, 6, 4, 2, 3, 5, 7, 0, 1])", "expected": "8", "isHidden": false },
-        { "call": "find_missing([0])", "expected": "1", "isHidden": false },
+        { "call": "find_missing([0])", "expected": "1", "isHidden": true },
         { "call": "find_missing([1])", "expected": "0", "isHidden": true }
       ]
     },
@@ -607,8 +645,10 @@
         "3. Generate a Set from the array and retrieve its length.",
         "4. Return `True` if the lengths are mathematically asymmetrical, signaling duplicates. Return `False` if symmetrical.",
         "",
-        "Sample Output:",
-        "contains_duplicate([1, 2, 3, 1]) → True"
+        "Sample Outputs:",
+        "contains_duplicate([1, 2, 3, 1]) → True",
+        "contains_duplicate([1, 2, 3, 4]) → False",
+        "contains_duplicate([1, 1, 1, 3, 3, 4, 3, 2, 4, 2]) → True"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -616,7 +656,7 @@
         { "call": "contains_duplicate([1, 2, 3, 1])", "expected": "True", "isHidden": false },
         { "call": "contains_duplicate([1, 2, 3, 4])", "expected": "False", "isHidden": false },
         { "call": "contains_duplicate([1, 1, 1, 3, 3, 4, 3, 2, 4, 2])", "expected": "True", "isHidden": false },
-        { "call": "contains_duplicate([])", "expected": "False", "isHidden": false },
+        { "call": "contains_duplicate([])", "expected": "False", "isHidden": true },
         { "call": "contains_duplicate([5])", "expected": "False", "isHidden": true }
       ]
     }
@@ -633,7 +673,12 @@
         "2. Eradicate the sequential list tracking variables and the associated `count()` logic.",
         "3. Initialize an empty standard dictionary.",
         "4. Deploy a unified sequential iteration across the dataset, dynamically storing element occurrences as key-value pairings.",
-        "5. Validate that the runtime complexity effectively collapses to an optimal O(n) limit."
+        "5. Validate that the runtime complexity effectively collapses to an optimal O(n) limit.",
+        "",
+        "Sample Outputs:",
+        "optimize_frequency([10, 20, 10, 30]) → {10: 2, 20: 1, 30: 1}",
+        "optimize_frequency([1, 1, 1]) → {1: 3}",
+        "optimize_frequency([]) → {}"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -642,7 +687,7 @@
         { "call": "optimize_frequency([10, 20, 10, 30])", "expected": "{10: 2, 20: 1, 30: 1}", "isHidden": false },
         { "call": "optimize_frequency([1, 1, 1])", "expected": "{1: 3}", "isHidden": false },
         { "call": "optimize_frequency([])", "expected": "{}", "isHidden": false },
-        { "call": "optimize_frequency([5, 6])", "expected": "{5: 1, 6: 1}", "isHidden": false },
+        { "call": "optimize_frequency([5, 6])", "expected": "{5: 1, 6: 1}", "isHidden": true },
         { "call": "optimize_frequency([7, 7, 8, 8])", "expected": "{7: 2, 8: 2}", "isHidden": true }
       ]
     },
@@ -656,7 +701,12 @@
         "1. Identify the performance degradation directly tied to linear list containment verification.",
         "2. Strip the secondary list tracking implementation alongside the conditional loop sequence.",
         "3. Pass the primary array input directly into the built-in `set()` function to trigger immediate duplicate purging.",
-        "4. Format the Set output back into standard array syntax, ensuring the algorithm validates at an O(n) operational threshold."
+        "4. Format the Set output back into standard array syntax, ensuring the algorithm validates at an O(n) operational threshold.",
+        "",
+        "Sample Outputs:",
+        "optimize_unique([4, 1, 2, 1, 4]) → [1, 2, 4]",
+        "optimize_unique([3, 3, 3]) → [3]",
+        "optimize_unique([10]) → [10]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -665,7 +715,7 @@
         { "call": "optimize_unique([4, 1, 2, 1, 4])", "expected": "[1, 2, 4]", "isHidden": false },
         { "call": "optimize_unique([3, 3, 3])", "expected": "[3]", "isHidden": false },
         { "call": "optimize_unique([10])", "expected": "[10]", "isHidden": false },
-        { "call": "optimize_unique([])", "expected": "[]", "isHidden": false },
+        { "call": "optimize_unique([])", "expected": "[]", "isHidden": true },
         { "call": "optimize_unique([9, 8, 7, 7, 8])", "expected": "[7, 8, 9]", "isHidden": true }
       ]
     },
@@ -680,7 +730,12 @@
         "2. Integrate a persistent localized dictionary (`memo = {}`) to act as a state cache.",
         "3. Refactor core logic: before invoking a recursive `fib(n)` calculation, actively query the dictionary for pre-existing keys matching `n`.",
         "4. If present, immediately return the cached integer. If absent, execute the calculation, map the payload to the dictionary, and return.",
-        "5. Observe the architectural shift efficiently flattening the time complexity spectrum to O(n)."
+        "5. Observe the architectural shift efficiently flattening the time complexity spectrum to O(n).",
+        "",
+        "Sample Outputs:",
+        "fib_optimized(5) → 5",
+        "fib_optimized(10) → 55",
+        "fib_optimized(0) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -689,7 +744,7 @@
         { "call": "fib_optimized(5)", "expected": "5", "isHidden": false },
         { "call": "fib_optimized(10)", "expected": "55", "isHidden": false },
         { "call": "fib_optimized(0)", "expected": "0", "isHidden": false },
-        { "call": "fib_optimized(1)", "expected": "1", "isHidden": false },
+        { "call": "fib_optimized(1)", "expected": "1", "isHidden": true },
         { "call": "fib_optimized(6)", "expected": "8", "isHidden": true }
       ]
     }

@@ -20,7 +20,8 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "hello()", "expected": "'Hello World'", "isHidden": false }
+        { "call": "hello()", "expected": "'Hello World'", "isHidden": false },
+        { "call": "hello()", "expected": "'Hello World'", "isHidden": true }
       ]
     },
     {
@@ -43,7 +44,8 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "draw_star()", "expected": "'***'", "isHidden": false }
+        { "call": "draw_star()", "expected": "'***'", "isHidden": false },
+        { "call": "draw_star()", "expected": "'***'", "isHidden": true }
       ]
     },
     {
@@ -59,8 +61,10 @@
         "4. Attach the evaluated math block to the return slot.",
         "5. Review the Complexity tab to observe the analytical cost of standard arithmetic operations.",
         "",
-        "Sample Output:",
-        "add(5, 3) → 8"
+        "Sample Outputs:",
+        "add(5, 3) → 8",
+        "add(10, 20) → 30",
+        "add(0, 0) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -68,7 +72,10 @@
       "testCasesPool": [
         { "call": "add(5, 3)", "expected": "8", "isHidden": false },
         { "call": "add(10, 20)", "expected": "30", "isHidden": false },
-        { "call": "add(0, 0)", "expected": "0", "isHidden": false }
+        { "call": "add(0, 0)", "expected": "0", "isHidden": false },
+        { "call": "add(-5, 15)", "expected": "10", "isHidden": true },
+        { "call": "add(100, -50)", "expected": "50", "isHidden": true },
+        { "call": "add(-10, -20)", "expected": "-30", "isHidden": true }
       ]
     },
     {
@@ -84,15 +91,19 @@
         "4. Attach the concatenated construct to the return slot.",
         "5. Observe the Complexity tab to verify the computational cost of the operation.",
         "",
-        "Sample Output:",
-        "greet('Alice') → 'Hi Alice'"
+        "Sample Outputs:",
+        "greet('Alice') → 'Hi Alice'",
+        "greet('Bob') → 'Hi Bob'"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "greet('Alice')", "expected": "'Hi Alice'", "isHidden": false },
-        { "call": "greet('Bob')", "expected": "'Hi Bob'", "isHidden": false }
+        { "call": "greet('Bob')", "expected": "'Hi Bob'", "isHidden": false },
+        { "call": "greet('Charlie')", "expected": "'Hi Charlie'", "isHidden": true },
+        { "call": "greet('Diana')", "expected": "'Hi Diana'", "isHidden": true },
+        { "call": "greet('')", "expected": "'Hi '", "isHidden": true }
       ]
     },
     {
@@ -115,7 +126,8 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "get_numbers()", "expected": "[1, 2, 3]", "isHidden": false }
+        { "call": "get_numbers()", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "get_numbers()", "expected": "[1, 2, 3]", "isHidden": true }
       ]
     }
   ],
@@ -140,7 +152,8 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "store_data()", "expected": "100", "isHidden": false }
+        { "call": "store_data()", "expected": "100", "isHidden": false },
+        { "call": "store_data()", "expected": "100", "isHidden": true }
       ]
     },
     {
@@ -156,9 +169,10 @@
         "4. Inside the 'do' branch, return the string 'Yes'. Append an 'else' branch and return 'No'.",
         "5. Check the Complexity tab. The analyzer assesses standard conditional branching as O(1) Time.",
         "",
-        "Sample Output:",
+        "Sample Outputs:",
         "is_positive(5) → 'Yes'",
-        "is_positive(-2) → 'No'"
+        "is_positive(-2) → 'No'",
+        "is_positive(0) → 'No'"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -166,7 +180,9 @@
       "testCasesPool": [
         { "call": "is_positive(5)", "expected": "'Yes'", "isHidden": false },
         { "call": "is_positive(-2)", "expected": "'No'", "isHidden": false },
-        { "call": "is_positive(0)", "expected": "'No'", "isHidden": false }
+        { "call": "is_positive(0)", "expected": "'No'", "isHidden": false },
+        { "call": "is_positive(99)", "expected": "'Yes'", "isHidden": true },
+        { "call": "is_positive(-100)", "expected": "'No'", "isHidden": true }
       ]
     },
     {
@@ -190,7 +206,8 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "repeat_five()", "expected": "5", "isHidden": false }
+        { "call": "repeat_five()", "expected": "5", "isHidden": false },
+        { "call": "repeat_five()", "expected": "5", "isHidden": true }
       ]
     },
     {
@@ -206,15 +223,18 @@
         "4. Return the extracted element.",
         "5. Verify the syntax in the Python Code tab, noting the algorithmic standard of zero-based indexing.",
         "",
-        "Sample Output:",
-        "get_first([10, 20, 30]) → 10"
+        "Sample Outputs:",
+        "get_first([10, 20, 30]) → 10",
+        "get_first([99]) → 99"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "get_first([10, 20, 30])", "expected": "10", "isHidden": false },
-        { "call": "get_first([99])", "expected": "99", "isHidden": false }
+        { "call": "get_first([99])", "expected": "99", "isHidden": false },
+        { "call": "get_first(['Apple', 'Banana'])", "expected": "'Apple'", "isHidden": true },
+        { "call": "get_first([-5, 0, 5])", "expected": "-5", "isHidden": true }
       ]
     },
     {
@@ -230,15 +250,18 @@
         "4. Return the modified 'arr' variable.",
         "5. Check the Complexity tab to observe the analytical cost of appending items to an array dynamically.",
         "",
-        "Sample Output:",
-        "add_zero([1, 2]) → [1, 2, 0]"
+        "Sample Outputs:",
+        "add_zero([1, 2]) → [1, 2, 0]",
+        "add_zero([]) → [0]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "add_zero([1, 2])", "expected": "[1, 2, 0]", "isHidden": false },
-        { "call": "add_zero([])", "expected": "[0]", "isHidden": false }
+        { "call": "add_zero([])", "expected": "[0]", "isHidden": false },
+        { "call": "add_zero([99, 100])", "expected": "[99, 100, 0]", "isHidden": true },
+        { "call": "add_zero([-1])", "expected": "[-1, 0]", "isHidden": true }
       ]
     }
   ],
@@ -255,15 +278,18 @@
         "3. Return the evaluated result.",
         "4. Examine the Complexity tab. The static analyzer grades the global time as O(1) regardless of the numerical magnitude of 'n'.",
         "",
-        "Sample Output:",
-        "constant_task(5) → 10"
+        "Sample Outputs:",
+        "constant_task(5) → 10",
+        "constant_task(10) → 20"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "constant_task(5)", "expected": "10", "isHidden": false },
-        { "call": "constant_task(10)", "expected": "20", "isHidden": false }
+        { "call": "constant_task(10)", "expected": "20", "isHidden": false },
+        { "call": "constant_task(0)", "expected": "0", "isHidden": true },
+        { "call": "constant_task(-4)", "expected": "-8", "isHidden": true }
       ]
     },
     {
@@ -280,15 +306,18 @@
         "5. Return the 'total' variable outside the loop.",
         "6. Observe the Complexity tab. The structural pass identifies the dependent loop, elevating the global metric to O(n) Linear Time.",
         "",
-        "Sample Output:",
-        "linear_task(5) → 5"
+        "Sample Outputs:",
+        "linear_task(5) → 5",
+        "linear_task(3) → 3"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "linear_task(5)", "expected": "5", "isHidden": false },
-        { "call": "linear_task(3)", "expected": "3", "isHidden": false }
+        { "call": "linear_task(3)", "expected": "3", "isHidden": false },
+        { "call": "linear_task(12)", "expected": "12", "isHidden": true },
+        { "call": "linear_task(0)", "expected": "0", "isHidden": true }
       ]
     },
     {
@@ -305,15 +334,18 @@
         "5. Return the 'total' variable outside the outer loop.",
         "6. Check the Complexity tab. The analyzer detects the depth hierarchy and reports an O(n²) Quadratic Time.",
         "",
-        "Sample Output:",
-        "quadratic_task(3) → 9"
+        "Sample Outputs:",
+        "quadratic_task(3) → 9",
+        "quadratic_task(4) → 16"
       ],
       "targetTime": "O(n^3)",
       "targetSpace": "O(n^2)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "quadratic_task(3)", "expected": "9", "isHidden": false },
-        { "call": "quadratic_task(4)", "expected": "16", "isHidden": false }
+        { "call": "quadratic_task(4)", "expected": "16", "isHidden": false },
+        { "call": "quadratic_task(5)", "expected": "25", "isHidden": true },
+        { "call": "quadratic_task(10)", "expected": "100", "isHidden": true }
       ]
     },
     {
@@ -328,15 +360,18 @@
         "3. Formulate the condition 'n > 10'. Return 100 if true, and 0 if false.",
         "4. View the Complexity tab. Since both branches contain strictly O(1) operations, the worst-case evaluation remains O(1).",
         "",
-        "Sample Output:",
-        "check_size(15) → 100"
+        "Sample Outputs:",
+        "check_size(15) → 100",
+        "check_size(5) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "check_size(15)", "expected": "100", "isHidden": false },
-        { "call": "check_size(5)", "expected": "0", "isHidden": false }
+        { "call": "check_size(5)", "expected": "0", "isHidden": false },
+        { "call": "check_size(10)", "expected": "0", "isHidden": true },
+        { "call": "check_size(99)", "expected": "100", "isHidden": true }
       ]
     },
     {
@@ -351,15 +386,18 @@
         "3. Return the calculated sum.",
         "4. Review the Complexity tab. The analyzer confirms that mathematical resolution avoids iteration, maintaining a strict O(1) Time Complexity.",
         "",
-        "Sample Output:",
-        "fast_sum(4) → 10.0"
+        "Sample Outputs:",
+        "fast_sum(4) → 10.0",
+        "fast_sum(10) → 55.0"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "fast_sum(4)", "expected": "10.0", "isHidden": false },
-        { "call": "fast_sum(10)", "expected": "55.0", "isHidden": false }
+        { "call": "fast_sum(10)", "expected": "55.0", "isHidden": false },
+        { "call": "fast_sum(5)", "expected": "15.0", "isHidden": true },
+        { "call": "fast_sum(100)", "expected": "5050.0", "isHidden": true }
       ]
     }
   ],
@@ -383,7 +421,8 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "mem_test()", "expected": "50", "isHidden": false }
+        { "call": "mem_test()", "expected": "50", "isHidden": false },
+        { "call": "mem_test()", "expected": "50", "isHidden": true }
       ]
     },
     {
@@ -406,7 +445,8 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "array_mem()", "expected": "['A', 'B']", "isHidden": false }
+        { "call": "array_mem()", "expected": "['A', 'B']", "isHidden": false },
+        { "call": "array_mem()", "expected": "['A', 'B']", "isHidden": true }
       ]
     },
     {
@@ -422,8 +462,10 @@
         "4. Return the list outside the loop.",
         "5. Open the Complexity tab. The analyzer detects the dynamic growth pattern and assigns an O(n) Space Complexity.",
         "",
-        "Sample Output:",
-        "grow_array(3) → [1, 1, 1]"
+        "Sample Outputs:",
+        "grow_array(3) → [1, 1, 1]",
+        "grow_array(1) → [1]",
+        "grow_array(0) → []"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
@@ -431,7 +473,9 @@
       "testCasesPool": [
         { "call": "grow_array(3)", "expected": "[1, 1, 1]", "isHidden": false },
         { "call": "grow_array(1)", "expected": "[1]", "isHidden": false },
-        { "call": "grow_array(0)", "expected": "[]", "isHidden": false }
+        { "call": "grow_array(0)", "expected": "[]", "isHidden": false },
+        { "call": "grow_array(5)", "expected": "[1, 1, 1, 1, 1]", "isHidden": true },
+        { "call": "grow_array(2)", "expected": "[1, 1]", "isHidden": true }
       ]
     },
     {
@@ -447,15 +491,18 @@
         "4. Return the concatenated string outside the loop.",
         "5. Verify the static evaluation in the Complexity tab, noting the O(n) spatial requirement.",
         "",
-        "Sample Output:",
-        "build_string(3) → 'AAA'"
+        "Sample Outputs:",
+        "build_string(3) → 'AAA'",
+        "build_string(2) → 'AA'"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "build_string(3)", "expected": "'AAA'", "isHidden": false },
-        { "call": "build_string(2)", "expected": "'AA'", "isHidden": false }
+        { "call": "build_string(2)", "expected": "'AA'", "isHidden": false },
+        { "call": "build_string(5)", "expected": "'AAAAA'", "isHidden": true },
+        { "call": "build_string(0)", "expected": "''", "isHidden": true }
       ]
     },
     {
@@ -471,15 +518,18 @@
         "4. Return the structured list.",
         "5. Review the Complexity tab metrics to confirm the minimal space allocation.",
         "",
-        "Sample Output:",
-        "swap(1, 2) → [2, 1]"
+        "Sample Outputs:",
+        "swap(1, 2) → [2, 1]",
+        "swap(99, 100) → [100, 99]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
         { "call": "swap(1, 2)", "expected": "[2, 1]", "isHidden": false },
-        { "call": "swap(99, 100)", "expected": "[100, 99]", "isHidden": false }
+        { "call": "swap(99, 100)", "expected": "[100, 99]", "isHidden": false },
+        { "call": "swap('X', 'Y')", "expected": "['Y', 'X']", "isHidden": true },
+        { "call": "swap(0, -5)", "expected": "[-5, 0]", "isHidden": true }
       ]
     }
   ]

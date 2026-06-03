@@ -16,14 +16,16 @@
         "2. Inside the function, initialize a list containing the integers `10`, `20`, and `30`.",
         "3. Return this list.",
         "",
-        "Sample Output:",
-        "create_basic_array() → [10, 20, 30]"
+        "Sample Outputs:",
+        "create_basic_array() → [10, 20, 30]",
+        "len(create_basic_array()) → 3"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "create_basic_array()", "expected": "[10, 20, 30]", "isHidden": false },
-        { "call": "len(create_basic_array())", "expected": "3", "isHidden": false }
+        { "call": "len(create_basic_array())", "expected": "3", "isHidden": false },
+        { "call": "type(create_basic_array())", "expected": "<class 'list'>", "isHidden": true }
       ]
     },
     {
@@ -43,8 +45,11 @@
         "2. Check if the length of `arr` is 0; if true, return `0`.",
         "3. Otherwise, return the result of `arr[0] + arr[-1]`.",
         "",
-        "Sample Output:",
-        "sum_first_last([5, 10, 15]) → 20"
+        "Sample Outputs:",
+        "sum_first_last([5, 10, 15]) → 20",
+        "sum_first_last([100]) → 200",
+        "sum_first_last([-5, 0, 5]) → 0",
+        "sum_first_last([]) → 0"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -53,7 +58,8 @@
         { "call": "sum_first_last([100])", "expected": "200", "isHidden": false },
         { "call": "sum_first_last([-5, 0, 5])", "expected": "0", "isHidden": false },
         { "call": "sum_first_last([])", "expected": "0", "isHidden": false },
-        { "call": "sum_first_last([1, 2, 3, 4])", "expected": "5", "isHidden": true }
+        { "call": "sum_first_last([1, 2, 3, 4])", "expected": "5", "isHidden": true },
+        { "call": "sum_first_last([-10, 20, 30, -40])", "expected": "-50", "isHidden": true }
       ]
     },
     {
@@ -74,8 +80,11 @@
         "3. Reassign the value: `arr[1] = 99`.",
         "4. Return `arr`.",
         "",
-        "Sample Output:",
-        "update_second_element([10, 20, 30]) → [10, 99, 30]"
+        "Sample Outputs:",
+        "update_second_element([10, 20, 30]) → [10, 99, 30]",
+        "update_second_element([0, 0]) → [0, 99]",
+        "update_second_element([5]) → [5]",
+        "update_second_element([]) → []"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -84,7 +93,8 @@
         { "call": "update_second_element([0, 0])", "expected": "[0, 99]", "isHidden": false },
         { "call": "update_second_element([5])", "expected": "[5]", "isHidden": false },
         { "call": "update_second_element([])", "expected": "[]", "isHidden": false },
-        { "call": "update_second_element([-1, -2, -3])", "expected": "[-1, 99, -3]", "isHidden": true }
+        { "call": "update_second_element([-1, -2, -3])", "expected": "[-1, 99, -3]", "isHidden": true },
+        { "call": "update_second_element([99, 100, 101])", "expected": "[99, 99, 101]", "isHidden": true }
       ]
     },
     {
@@ -103,8 +113,11 @@
         "2. Execute `arr.append(item)`.",
         "3. Return `arr`.",
         "",
-        "Sample Output:",
-        "add_to_end([1, 2], 3) → [1, 2, 3]"
+        "Sample Outputs:",
+        "add_to_end([1, 2], 3) → [1, 2, 3]",
+        "add_to_end([], 10) → [10]",
+        "add_to_end([99], 100) → [99, 100]",
+        "add_to_end([-1, 0], 1) → [-1, 0, 1]"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -113,7 +126,8 @@
         { "call": "add_to_end([], 10)", "expected": "[10]", "isHidden": false },
         { "call": "add_to_end([99], 100)", "expected": "[99, 100]", "isHidden": false },
         { "call": "add_to_end([-1, 0], 1)", "expected": "[-1, 0, 1]", "isHidden": false },
-        { "call": "add_to_end([5, 5], 5)", "expected": "[5, 5, 5]", "isHidden": true }
+        { "call": "add_to_end([5, 5], 5)", "expected": "[5, 5, 5]", "isHidden": true },
+        { "call": "add_to_end(['A', 'B'], 'C')", "expected": "['A', 'B', 'C']", "isHidden": true }
       ]
     },
     {
@@ -132,8 +146,11 @@
         "2. If `len(arr) == 0`, return the string `'Empty'`.",
         "3. Otherwise, execute `arr.pop()` to remove the item, and return the result.",
         "",
-        "Sample Output:",
-        "remove_last([10, 20, 30]) → 30"
+        "Sample Outputs:",
+        "remove_last([10, 20, 30]) → 30",
+        "remove_last([5]) → 5",
+        "remove_last([]) → 'Empty'",
+        "remove_last([1, 2]) → 2"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -142,7 +159,8 @@
         { "call": "remove_last([5])", "expected": "5", "isHidden": false },
         { "call": "remove_last([])", "expected": "'Empty'", "isHidden": false },
         { "call": "remove_last([1, 2])", "expected": "2", "isHidden": false },
-        { "call": "remove_last([-10, -20])", "expected": "-20", "isHidden": true }
+        { "call": "remove_last([-10, -20])", "expected": "-20", "isHidden": true },
+        { "call": "remove_last([99, 100, 101])", "expected": "101", "isHidden": true }
       ]
     }
   ],
@@ -165,8 +183,11 @@
         "3. Implement a loop: `for num in arr:` and execute `total += num`.",
         "4. Return `total`.",
         "",
-        "Sample Output:",
-        "sum_array([5, 10, 15]) → 30"
+        "Sample Outputs:",
+        "sum_array([5, 10, 15]) → 30",
+        "sum_array([1, 1, 1, 1]) → 4",
+        "sum_array([]) → 0",
+        "sum_array([-5, 5]) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -175,7 +196,8 @@
         { "call": "sum_array([1, 1, 1, 1])", "expected": "4", "isHidden": false },
         { "call": "sum_array([])", "expected": "0", "isHidden": false },
         { "call": "sum_array([-5, 5])", "expected": "0", "isHidden": false },
-        { "call": "sum_array([100])", "expected": "100", "isHidden": true }
+        { "call": "sum_array([100])", "expected": "100", "isHidden": true },
+        { "call": "sum_array([10, -10, 20, -20])", "expected": "0", "isHidden": true }
       ]
     },
     {
@@ -198,8 +220,11 @@
         "4. Loop `for num in arr:`. If `num > max_val`, update `max_val = num`.",
         "5. Return `max_val`.",
         "",
-        "Sample Output:",
-        "find_max([10, 50, 20]) → 50"
+        "Sample Outputs:",
+        "find_max([10, 50, 20]) → 50",
+        "find_max([-10, -5, -20]) → -5",
+        "find_max([5]) → 5",
+        "find_max([]) → None"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -208,7 +233,8 @@
         { "call": "find_max([-10, -5, -20])", "expected": "-5", "isHidden": false },
         { "call": "find_max([5])", "expected": "5", "isHidden": false },
         { "call": "find_max([])", "expected": "None", "isHidden": false },
-        { "call": "find_max([1, 1, 1])", "expected": "1", "isHidden": true }
+        { "call": "find_max([1, 1, 1])", "expected": "1", "isHidden": true },
+        { "call": "find_max([100, 200, 50])", "expected": "200", "isHidden": true }
       ]
     },
     {
@@ -230,8 +256,11 @@
         "3. Loop `for num in arr:`. Evaluate `if num % 2 == 0:` and execute `count += 1`.",
         "4. Return `count`.",
         "",
-        "Sample Output:",
-        "count_evens([1, 2, 3, 4, 5]) → 2"
+        "Sample Outputs:",
+        "count_evens([1, 2, 3, 4, 5]) → 2",
+        "count_evens([2, 4, 6]) → 3",
+        "count_evens([1, 3, 5]) → 0",
+        "count_evens([]) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -240,7 +269,8 @@
         { "call": "count_evens([2, 4, 6])", "expected": "3", "isHidden": false },
         { "call": "count_evens([1, 3, 5])", "expected": "0", "isHidden": false },
         { "call": "count_evens([])", "expected": "0", "isHidden": false },
-        { "call": "count_evens([0, -2, 4])", "expected": "3", "isHidden": true }
+        { "call": "count_evens([0, -2, 4])", "expected": "3", "isHidden": true },
+        { "call": "count_evens([10, 11, 12, 13, 14])", "expected": "3", "isHidden": true }
       ]
     },
     {
@@ -261,8 +291,11 @@
         "3. Evaluate `if arr[i] == target:`, returning `i` upon success.",
         "4. Return `-1` outside the loop.",
         "",
-        "Sample Output:",
-        "linear_search([10, 20, 30], 20) → 1"
+        "Sample Outputs:",
+        "linear_search([10, 20, 30], 20) → 1",
+        "linear_search([5, 1, 9], 9) → 2",
+        "linear_search([1, 2, 3], 4) → -1",
+        "linear_search([], 5) → -1"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -271,7 +304,8 @@
         { "call": "linear_search([5, 1, 9], 9)", "expected": "2", "isHidden": false },
         { "call": "linear_search([1, 2, 3], 4)", "expected": "-1", "isHidden": false },
         { "call": "linear_search([], 5)", "expected": "-1", "isHidden": false },
-        { "call": "linear_search([7, 7, 7], 7)", "expected": "0", "isHidden": true }
+        { "call": "linear_search([7, 7, 7], 7)", "expected": "0", "isHidden": true },
+        { "call": "linear_search([100, 200, 300], 100)", "expected": "0", "isHidden": true }
       ]
     },
     {
@@ -293,8 +327,11 @@
         "4. Execute `result.append(arr[i])`.",
         "5. Return `result`.",
         "",
-        "Sample Output:",
-        "reverse_array([1, 2, 3]) → [3, 2, 1]"
+        "Sample Outputs:",
+        "reverse_array([1, 2, 3]) → [3, 2, 1]",
+        "reverse_array([10]) → [10]",
+        "reverse_array([]) → []",
+        "reverse_array([-1, 0, 1]) → [1, 0, -1]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -303,7 +340,8 @@
         { "call": "reverse_array([10])", "expected": "[10]", "isHidden": false },
         { "call": "reverse_array([])", "expected": "[]", "isHidden": false },
         { "call": "reverse_array([-1, 0, 1])", "expected": "[1, 0, -1]", "isHidden": false },
-        { "call": "reverse_array([5, 5])", "expected": "[5, 5]", "isHidden": true }
+        { "call": "reverse_array([5, 5])", "expected": "[5, 5]", "isHidden": true },
+        { "call": "reverse_array([100, 200, 300])", "expected": "[300, 200, 100]", "isHidden": true }
       ]
     }
   ],
@@ -324,8 +362,11 @@
         "1. Define `get_grid_element(grid, row, col)`.",
         "2. Return the value using sequential brackets: `grid[row][col]`.",
         "",
-        "Sample Output:",
-        "get_grid_element([[1, 2], [3, 4]], 1, 0) → 3"
+        "Sample Outputs:",
+        "get_grid_element([[1, 2], [3, 4]], 1, 0) → 3",
+        "get_grid_element([[9, 8, 7], [6, 5, 4]], 0, 2) → 7",
+        "get_grid_element([[100]], 0, 0) → 100",
+        "get_grid_element([[0, 0], [0, -5]], 1, 1) → -5"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -334,7 +375,8 @@
         { "call": "get_grid_element([[9, 8, 7], [6, 5, 4]], 0, 2)", "expected": "7", "isHidden": false },
         { "call": "get_grid_element([[100]], 0, 0)", "expected": "100", "isHidden": false },
         { "call": "get_grid_element([[0, 0], [0, -5]], 1, 1)", "expected": "-5", "isHidden": false },
-        { "call": "get_grid_element([[1, 2, 3], [4, 5, 6], [7, 8, 9]], 2, 2)", "expected": "9", "isHidden": true }
+        { "call": "get_grid_element([[1, 2, 3], [4, 5, 6], [7, 8, 9]], 2, 2)", "expected": "9", "isHidden": true },
+        { "call": "get_grid_element([[-1, -2], [-3, -4]], 0, 1)", "expected": "-2", "isHidden": true }
       ]
     },
     {
@@ -354,8 +396,11 @@
         "2. Isolate the list: `target_row = grid[row_index]`.",
         "3. Return the sum of `target_row` (using iteration or the `sum()` function).",
         "",
-        "Sample Output:",
-        "sum_row([[1, 2, 3], [4, 5, 6]], 0) → 6"
+        "Sample Outputs:",
+        "sum_row([[1, 2, 3], [4, 5, 6]], 0) → 6",
+        "sum_row([[1, 2, 3], [4, 5, 6]], 1) → 15",
+        "sum_row([[10]], 0) → 10",
+        "sum_row([[0, 0], [-1, -1]], 1) → -2"
       ],
       "targetTime": "O(c)",
       "targetSpace": "O(1)",
@@ -364,7 +409,8 @@
         { "call": "sum_row([[1, 2, 3], [4, 5, 6]], 1)", "expected": "15", "isHidden": false },
         { "call": "sum_row([[10]], 0)", "expected": "10", "isHidden": false },
         { "call": "sum_row([[0, 0], [-1, -1]], 1)", "expected": "-2", "isHidden": false },
-        { "call": "sum_row([[5, 5, 5], [1, 1, 1], [2, 2, 2]], 2)", "expected": "6", "isHidden": true }
+        { "call": "sum_row([[5, 5, 5], [1, 1, 1], [2, 2, 2]], 2)", "expected": "6", "isHidden": true },
+        { "call": "sum_row([[10, 20], [30, 40]], 0)", "expected": "30", "isHidden": true }
       ]
     },
     {
@@ -386,8 +432,11 @@
         "4. Execute `total += row[col_index]`.",
         "5. Return `total`.",
         "",
-        "Sample Output:",
-        "sum_col([[1, 2], [3, 4]], 1) → 6"
+        "Sample Outputs:",
+        "sum_col([[1, 2], [3, 4]], 1) → 6",
+        "sum_col([[1, 2], [3, 4]], 0) → 4",
+        "sum_col([[10]], 0) → 10",
+        "sum_col([[1, 5, 9], [2, 6, 10]], 2) → 19"
       ],
       "targetTime": "O(r)",
       "targetSpace": "O(1)",
@@ -396,7 +445,8 @@
         { "call": "sum_col([[1, 2], [3, 4]], 0)", "expected": "4", "isHidden": false },
         { "call": "sum_col([[10]], 0)", "expected": "10", "isHidden": false },
         { "call": "sum_col([[1, 5, 9], [2, 6, 10]], 2)", "expected": "19", "isHidden": false },
-        { "call": "sum_col([[0, -1], [0, -2], [0, 3]], 1)", "expected": "0", "isHidden": true }
+        { "call": "sum_col([[0, -1], [0, -2], [0, 3]], 1)", "expected": "0", "isHidden": true },
+        { "call": "sum_col([[5, 10], [5, 10], [5, 10]], 0)", "expected": "15", "isHidden": true }
       ]
     },
     {
@@ -419,8 +469,11 @@
         "4. Execute `total += item`.",
         "5. Return `total`.",
         "",
-        "Sample Output:",
-        "sum_matrix([[1, 2], [3, 4]]) → 10"
+        "Sample Outputs:",
+        "sum_matrix([[1, 2], [3, 4]]) → 10",
+        "sum_matrix([[5, 5], [5, 5]]) → 20",
+        "sum_matrix([[]]) → 0",
+        "sum_matrix([[10]]) → 10"
       ],
       "targetTime": "O(r * c)",
       "targetSpace": "O(1)",
@@ -429,7 +482,8 @@
         { "call": "sum_matrix([[5, 5], [5, 5]])", "expected": "20", "isHidden": false },
         { "call": "sum_matrix([[]])", "expected": "0", "isHidden": false },
         { "call": "sum_matrix([[10]])", "expected": "10", "isHidden": false },
-        { "call": "sum_matrix([[-1, 1], [-2, 2]])", "expected": "0", "isHidden": true }
+        { "call": "sum_matrix([[-1, 1], [-2, 2]])", "expected": "0", "isHidden": true },
+        { "call": "sum_matrix([[1, 1, 1], [1, 1, 1]])", "expected": "6", "isHidden": true }
       ]
     },
     {
@@ -452,8 +506,11 @@
         "5. Execute `total += grid[i][i]`.",
         "6. Return `total`.",
         "",
-        "Sample Output:",
-        "sum_diagonal([[1, 2], [3, 4]]) → 5"
+        "Sample Outputs:",
+        "sum_diagonal([[1, 2], [3, 4]]) → 5",
+        "sum_diagonal([[1, 0, 0], [0, 2, 0], [0, 0, 3]]) → 6",
+        "sum_diagonal([[5]]) → 5",
+        "sum_diagonal([]) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -462,7 +519,8 @@
         { "call": "sum_diagonal([[1, 0, 0], [0, 2, 0], [0, 0, 3]])", "expected": "6", "isHidden": false },
         { "call": "sum_diagonal([[5]])", "expected": "5", "isHidden": false },
         { "call": "sum_diagonal([])", "expected": "0", "isHidden": false },
-        { "call": "sum_diagonal([[-1, 5], [5, -1]])", "expected": "-2", "isHidden": true }
+        { "call": "sum_diagonal([[-1, 5], [5, -1]])", "expected": "-2", "isHidden": true },
+        { "call": "sum_diagonal([[10, 20], [30, 40]])", "expected": "50", "isHidden": true }
       ]
     }
   ],
@@ -486,8 +544,11 @@
         "4. Reinsert: `arr.append(first)`.",
         "5. Return `arr`.",
         "",
-        "Sample Output:",
-        "shift_left([1, 2, 3, 4]) → [2, 3, 4, 1]"
+        "Sample Outputs:",
+        "shift_left([1, 2, 3, 4]) → [2, 3, 4, 1]",
+        "shift_left([10, 20]) → [20, 10]",
+        "shift_left([5]) → [5]",
+        "shift_left([]) → []"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -496,7 +557,8 @@
         { "call": "shift_left([10, 20])", "expected": "[20, 10]", "isHidden": false },
         { "call": "shift_left([5])", "expected": "[5]", "isHidden": false },
         { "call": "shift_left([])", "expected": "[]", "isHidden": false },
-        { "call": "shift_left([0, 0, 1])", "expected": "[0, 1, 0]", "isHidden": true }
+        { "call": "shift_left([0, 0, 1])", "expected": "[0, 1, 0]", "isHidden": true },
+        { "call": "shift_left([99, 100, 101])", "expected": "[100, 101, 99]", "isHidden": true }
       ]
     },
     {
@@ -517,8 +579,11 @@
         "3. Implement `for num in arr:`. Evaluate `if num > 0:`, and execute `result.append(num)`.",
         "4. Return `result`.",
         "",
-        "Sample Output:",
-        "filter_positives([-2, 5, -10, 8]) → [5, 8]"
+        "Sample Outputs:",
+        "filter_positives([-2, 5, -10, 8]) → [5, 8]",
+        "filter_positives([1, 2, 3]) → [1, 2, 3]",
+        "filter_positives([-1, -2, -3]) → []",
+        "filter_positives([0, 10, -5]) → [10]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -527,7 +592,8 @@
         { "call": "filter_positives([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
         { "call": "filter_positives([-1, -2, -3])", "expected": "[]", "isHidden": false },
         { "call": "filter_positives([0, 10, -5])", "expected": "[10]", "isHidden": false },
-        { "call": "filter_positives([])", "expected": "[]", "isHidden": true }
+        { "call": "filter_positives([])", "expected": "[]", "isHidden": true },
+        { "call": "filter_positives([100, -100, 200])", "expected": "[100, 200]", "isHidden": true }
       ]
     },
     {
@@ -548,8 +614,11 @@
         "3. Evaluate `if arr[i] > arr[i + 1]:`, returning `False`.",
         "4. Return `True` outside the loop.",
         "",
-        "Sample Output:",
-        "is_sorted([1, 2, 3, 4]) → True"
+        "Sample Outputs:",
+        "is_sorted([1, 2, 3, 4]) → True",
+        "is_sorted([1, 3, 2, 4]) → False",
+        "is_sorted([5, 5, 5]) → True",
+        "is_sorted([10]) → True"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -558,7 +627,8 @@
         { "call": "is_sorted([1, 3, 2, 4])", "expected": "False", "isHidden": false },
         { "call": "is_sorted([5, 5, 5])", "expected": "True", "isHidden": false },
         { "call": "is_sorted([10])", "expected": "True", "isHidden": false },
-        { "call": "is_sorted([])", "expected": "True", "isHidden": true }
+        { "call": "is_sorted([])", "expected": "True", "isHidden": true },
+        { "call": "is_sorted([10, 9, 8])", "expected": "False", "isHidden": true }
       ]
     },
     {
@@ -580,8 +650,11 @@
         "4. Execute `result.append(item)`.",
         "5. Return `result`.",
         "",
-        "Sample Output:",
-        "flatten_grid([[1, 2], [3, 4]]) → [1, 2, 3, 4]"
+        "Sample Outputs:",
+        "flatten_grid([[1, 2], [3, 4]]) → [1, 2, 3, 4]",
+        "flatten_grid([[9], [8], [7]]) → [9, 8, 7]",
+        "flatten_grid([[], []]) → []",
+        "flatten_grid([[5, 5]]) → [5, 5]"
       ],
       "targetTime": "O(r * c)",
       "targetSpace": "O(r * c)",
@@ -590,7 +663,8 @@
         { "call": "flatten_grid([[9], [8], [7]])", "expected": "[9, 8, 7]", "isHidden": false },
         { "call": "flatten_grid([[], []])", "expected": "[]", "isHidden": false },
         { "call": "flatten_grid([[5, 5]])", "expected": "[5, 5]", "isHidden": false },
-        { "call": "flatten_grid([[1, 2, 3], [4]])", "expected": "[1, 2, 3, 4]", "isHidden": true }
+        { "call": "flatten_grid([[1, 2, 3], [4]])", "expected": "[1, 2, 3, 4]", "isHidden": true },
+        { "call": "flatten_grid([[10], [20, 30]])", "expected": "[10, 20, 30]", "isHidden": true }
       ]
     },
     {
@@ -609,8 +683,11 @@
         "2. Utilize the native concatenation operator (`+`) to combine the arrays.",
         "3. Return the result of `arr1 + arr2`.",
         "",
-        "Sample Output:",
-        "merge_arrays([1, 2], [3, 4]) → [1, 2, 3, 4]"
+        "Sample Outputs:",
+        "merge_arrays([1, 2], [3, 4]) → [1, 2, 3, 4]",
+        "merge_arrays([10], []) → [10]",
+        "merge_arrays([], [20]) → [20]",
+        "merge_arrays([], []) → []"
       ],
       "targetTime": "O(n + m)",
       "targetSpace": "O(n + m)",
@@ -619,7 +696,8 @@
         { "call": "merge_arrays([10], [])", "expected": "[10]", "isHidden": false },
         { "call": "merge_arrays([], [20])", "expected": "[20]", "isHidden": false },
         { "call": "merge_arrays([], [])", "expected": "[]", "isHidden": false },
-        { "call": "merge_arrays([1, 1], [2, 2])", "expected": "[1, 1, 2, 2]", "isHidden": true }
+        { "call": "merge_arrays([1, 1], [2, 2])", "expected": "[1, 1, 2, 2]", "isHidden": true },
+        { "call": "merge_arrays([5], [6, 7, 8])", "expected": "[5, 6, 7, 8]", "isHidden": true }
       ]
     }
   ],
@@ -635,7 +713,13 @@
         "2. Instantiate two pointer variables: `left` starting at 0, and `right` starting at `len(arr) - 1`.",
         "3. Implement a `while left < right:` loop. Within this block, swap the values located at `arr[left]` and `arr[right]`.",
         "4. Increment the `left` pointer and decrement the `right` pointer to converge towards the center.",
-        "5. Observe that the reversal is achieved without requiring additional proportional memory."
+        "5. Observe that the reversal is achieved without requiring additional proportional memory.",
+        "",
+        "Sample Outputs:",
+        "optimize_reverse([1, 2, 3, 4]) → [4, 3, 2, 1]",
+        "optimize_reverse([10, 20, 30]) → [30, 20, 10]",
+        "optimize_reverse([5]) → [5]",
+        "optimize_reverse([]) → []"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -645,7 +729,8 @@
         { "call": "optimize_reverse([10, 20, 30])", "expected": "[30, 20, 10]", "isHidden": false },
         { "call": "optimize_reverse([5])", "expected": "[5]", "isHidden": false },
         { "call": "optimize_reverse([])", "expected": "[]", "isHidden": false },
-        { "call": "optimize_reverse([-1, -2, -3, -4])", "expected": "[-4, -3, -2, -1]", "isHidden": true }
+        { "call": "optimize_reverse([-1, -2, -3, -4])", "expected": "[-4, -3, -2, -1]", "isHidden": true },
+        { "call": "optimize_reverse([100, 200, 300, 400, 500])", "expected": "[500, 400, 300, 200, 100]", "isHidden": true }
       ]
     },
     {
@@ -659,7 +744,13 @@
         "2. Consolidate the logic: initialize both `max_val` and `min_val` referencing `arr[0]`.",
         "3. Deploy a single loop to iterate over the array elements.",
         "4. Within the single loop, apply sequential conditional checks: update `max_val` if the element is greater, and update `min_val` if the element is lesser.",
-        "5. Return the dual result format: `[min_val, max_val]`."
+        "5. Return the dual result format: `[min_val, max_val]`.",
+        "",
+        "Sample Outputs:",
+        "optimize_min_max([5, 1, 9, 3]) → [1, 9]",
+        "optimize_min_max([10, 10, 10]) → [10, 10]",
+        "optimize_min_max([-5, 0, 5]) → [-5, 5]",
+        "optimize_min_max([7]) → [7, 7]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -669,7 +760,8 @@
         { "call": "optimize_min_max([10, 10, 10])", "expected": "[10, 10]", "isHidden": false },
         { "call": "optimize_min_max([-5, 0, 5])", "expected": "[-5, 5]", "isHidden": false },
         { "call": "optimize_min_max([7])", "expected": "[7, 7]", "isHidden": false },
-        { "call": "optimize_min_max([100, 2, 50, 1])", "expected": "[1, 100]", "isHidden": true }
+        { "call": "optimize_min_max([100, 2, 50, 1])", "expected": "[1, 100]", "isHidden": true },
+        { "call": "optimize_min_max([-10, -20, -30])", "expected": "[-30, -10]", "isHidden": true }
       ]
     },
     {
@@ -682,7 +774,13 @@
         "1. Remove the secondary tracking list and the linear containment check (`if item not in...`).",
         "2. Replace the iterative logic with native Set architecture. A Set resolves element unicity inherently.",
         "3. Transform the original array using `set(arr)` to perform instantaneous deduplication.",
-        "4. Cast the resulting Set back to a list format. Verify the computational complexity shift from O(n^2) to an efficient O(n)."
+        "4. Cast the resulting Set back to a list format. Verify the computational complexity shift from O(n^2) to an efficient O(n).",
+        "",
+        "Sample Outputs:",
+        "optimize_remove_dupes([1, 2, 2, 3, 1]) → [1, 2, 3]",
+        "optimize_remove_dupes([5, 5, 5]) → [5]",
+        "optimize_remove_dupes([1, 2, 3]) → [1, 2, 3]",
+        "optimize_remove_dupes([]) → []"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -692,7 +790,8 @@
         { "call": "optimize_remove_dupes([5, 5, 5])", "expected": "[5]", "isHidden": false },
         { "call": "optimize_remove_dupes([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
         { "call": "optimize_remove_dupes([])", "expected": "[]", "isHidden": false },
-        { "call": "optimize_remove_dupes([0, -1, 0, -1])", "expected": "[-1, 0]", "isHidden": true }
+        { "call": "optimize_remove_dupes([0, -1, 0, -1])", "expected": "[-1, 0]", "isHidden": true },
+        { "call": "optimize_remove_dupes([100, 200, 100, 300])", "expected": "[100, 200, 300]", "isHidden": true }
       ]
     }
   ]

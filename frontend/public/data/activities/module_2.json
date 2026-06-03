@@ -20,8 +20,10 @@
         "6. Return `max_val` upon loop termination.",
         "7. Review the Complexity tab. The structural pass identifies a single loop, evaluating the global time complexity as O(n).",
         "",
-        "Sample Output:",
-        "find_max([32, 45, 28, 47, 39]) → 47"
+        "Sample Outputs:",
+        "find_max([32, 45, 28, 47, 39]) → 47",
+        "find_max([-10, -5, -20]) → -5",
+        "find_max([100]) → 100"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -29,8 +31,8 @@
         { "call": "find_max([32, 45, 28, 47, 39])", "expected": "47", "isHidden": false },
         { "call": "find_max([-10, -5, -20])", "expected": "-5", "isHidden": false },
         { "call": "find_max([100])", "expected": "100", "isHidden": false },
-        { "call": "find_max([])", "expected": "'Error'", "isHidden": false },
-        { "call": "find_max([1, 1, 1, 1])", "expected": "1", "isHidden": false }
+        { "call": "find_max([])", "expected": "'Error'", "isHidden": true },
+        { "call": "find_max([1, 1, 1, 1])", "expected": "1", "isHidden": true }
       ]
     },
     {
@@ -51,8 +53,10 @@
         "4. Iterate through the array. If the current item evaluates as `<` than `min_val`, update the variable.",
         "5. Return `min_val`.",
         "",
-        "Sample Output:",
-        "find_min([3, 1, 9, 2]) → 1"
+        "Sample Outputs:",
+        "find_min([3, 1, 9, 2]) → 1",
+        "find_min([10, 20, 30, 40]) → 10",
+        "find_min([-5, -10, 0, 5]) → -10"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -60,8 +64,8 @@
         { "call": "find_min([3, 1, 9, 2])", "expected": "1", "isHidden": false },
         { "call": "find_min([10, 20, 30, 40])", "expected": "10", "isHidden": false },
         { "call": "find_min([-5, -10, 0, 5])", "expected": "-10", "isHidden": false },
-        { "call": "find_min([])", "expected": "'Error'", "isHidden": false },
-        { "call": "find_min([99])", "expected": "99", "isHidden": false }
+        { "call": "find_min([])", "expected": "'Error'", "isHidden": true },
+        { "call": "find_min([99])", "expected": "99", "isHidden": true }
       ]
     },
     {
@@ -84,8 +88,10 @@
         "5. Return `False` outside the iterative constructs.",
         "6. Observe the static complexity evaluation. The nested hierarchy generates an O(n²) Time Complexity.",
         "",
-        "Sample Output:",
-        "has_pair_sum([2, 4, 7, 11], 13) → True"
+        "Sample Outputs:",
+        "has_pair_sum([2, 4, 7, 11], 13) → True",
+        "has_pair_sum([1, 2, 3, 4], 10) → False",
+        "has_pair_sum([5, 5, 5], 10) → True"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
@@ -93,8 +99,8 @@
         { "call": "has_pair_sum([2, 4, 7, 11], 13)", "expected": "True", "isHidden": false },
         { "call": "has_pair_sum([1, 2, 3, 4], 10)", "expected": "False", "isHidden": false },
         { "call": "has_pair_sum([5, 5, 5], 10)", "expected": "True", "isHidden": false },
-        { "call": "has_pair_sum([10], 10)", "expected": "False", "isHidden": false },
-        { "call": "has_pair_sum([], 5)", "expected": "False", "isHidden": false }
+        { "call": "has_pair_sum([10], 10)", "expected": "False", "isHidden": true },
+        { "call": "has_pair_sum([], 5)", "expected": "False", "isHidden": true }
       ]
     },
     {
@@ -117,8 +123,10 @@
         "5. If the condition is met, increment `count` by 1.",
         "6. Return the `count` variable.",
         "",
-        "Sample Output:",
-        "count_evens([1, 2, 3, 4, 5, 6]) → 3"
+        "Sample Outputs:",
+        "count_evens([1, 2, 3, 4, 5, 6]) → 3",
+        "count_evens([2, 4, 6, 8]) → 4",
+        "count_evens([1, 3, 5]) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -126,8 +134,8 @@
         { "call": "count_evens([1, 2, 3, 4, 5, 6])", "expected": "3", "isHidden": false },
         { "call": "count_evens([2, 4, 6, 8])", "expected": "4", "isHidden": false },
         { "call": "count_evens([1, 3, 5])", "expected": "0", "isHidden": false },
-        { "call": "count_evens([])", "expected": "0", "isHidden": false },
-        { "call": "count_evens([0])", "expected": "1", "isHidden": false }
+        { "call": "count_evens([])", "expected": "0", "isHidden": true },
+        { "call": "count_evens([0])", "expected": "1", "isHidden": true }
       ]
     },
     {
@@ -149,8 +157,10 @@
         "4. Return `0` strictly outside the loop boundary.",
         "5. Note that the static analyzer computes the maximum potential traversal depth, maintaining the Time Complexity at O(n).",
         "",
-        "Sample Output:",
-        "first_negative([5, 3, -2, 8, -1]) → -2"
+        "Sample Outputs:",
+        "first_negative([5, 3, -2, 8, -1]) → -2",
+        "first_negative([10, 20, 30]) → 0",
+        "first_negative([-5, -10]) → -5"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -158,8 +168,8 @@
         { "call": "first_negative([5, 3, -2, 8, -1])", "expected": "-2", "isHidden": false },
         { "call": "first_negative([10, 20, 30])", "expected": "0", "isHidden": false },
         { "call": "first_negative([-5, -10])", "expected": "-5", "isHidden": false },
-        { "call": "first_negative([])", "expected": "0", "isHidden": false },
-        { "call": "first_negative([0, 0, -1])", "expected": "-1", "isHidden": false }
+        { "call": "first_negative([])", "expected": "0", "isHidden": true },
+        { "call": "first_negative([0, 0, -1])", "expected": "-1", "isHidden": true }
       ]
     }
   ],
@@ -182,8 +192,10 @@
         "3. Implement the condition: if `arr[i] == target`, execute `return i`.",
         "4. Ensure `return -1` executes only if the loop fully completes.",
         "",
-        "Sample Output:",
-        "linear_search([3, 8, 5, 11, 2], 11) → 3"
+        "Sample Outputs:",
+        "linear_search([3, 8, 5, 11, 2], 11) → 3",
+        "linear_search([10, 20, 30], 40) → -1",
+        "linear_search([7, 7, 7], 7) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -191,8 +203,8 @@
         { "call": "linear_search([3, 8, 5, 11, 2], 11)", "expected": "3", "isHidden": false },
         { "call": "linear_search([10, 20, 30], 40)", "expected": "-1", "isHidden": false },
         { "call": "linear_search([7, 7, 7], 7)", "expected": "0", "isHidden": false },
-        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": false },
-        { "call": "linear_search([1], 1)", "expected": "0", "isHidden": false }
+        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": true },
+        { "call": "linear_search([1], 1)", "expected": "0", "isHidden": true }
       ]
     },
     {
@@ -214,8 +226,10 @@
         "4. If `item == target` evaluates to true, increment `count` by 1.",
         "5. Return the `count` variable.",
         "",
-        "Sample Output:",
-        "count_occurrences([1, 2, 2, 3], 2) → 2"
+        "Sample Outputs:",
+        "count_occurrences([1, 2, 2, 3], 2) → 2",
+        "count_occurrences([5, 5, 5, 5], 5) → 4",
+        "count_occurrences([1, 2, 3], 4) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -223,8 +237,8 @@
         { "call": "count_occurrences([1, 2, 2, 3], 2)", "expected": "2", "isHidden": false },
         { "call": "count_occurrences([5, 5, 5, 5], 5)", "expected": "4", "isHidden": false },
         { "call": "count_occurrences([1, 2, 3], 4)", "expected": "0", "isHidden": false },
-        { "call": "count_occurrences([], 1)", "expected": "0", "isHidden": false },
-        { "call": "count_occurrences([9], 9)", "expected": "1", "isHidden": false }
+        { "call": "count_occurrences([], 1)", "expected": "0", "isHidden": true },
+        { "call": "count_occurrences([9], 9)", "expected": "1", "isHidden": true }
       ]
     },
     {
@@ -246,8 +260,10 @@
         "4. Under the condition `arr[i] == target`, execute the reassignment `last_index = i`.",
         "5. Return `last_index`.",
         "",
-        "Sample Output:",
-        "last_occurrence([1, 2, 2, 3, 2, 4], 2) → 4"
+        "Sample Outputs:",
+        "last_occurrence([1, 2, 2, 3, 2, 4], 2) → 4",
+        "last_occurrence([5, 5, 5], 5) → 2",
+        "last_occurrence([1, 2, 3], 4) → -1"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -255,8 +271,8 @@
         { "call": "last_occurrence([1, 2, 2, 3, 2, 4], 2)", "expected": "4", "isHidden": false },
         { "call": "last_occurrence([5, 5, 5], 5)", "expected": "2", "isHidden": false },
         { "call": "last_occurrence([1, 2, 3], 4)", "expected": "-1", "isHidden": false },
-        { "call": "last_occurrence([9, 1, 1], 9)", "expected": "0", "isHidden": false },
-        { "call": "last_occurrence([], 1)", "expected": "-1", "isHidden": false }
+        { "call": "last_occurrence([9, 1, 1], 9)", "expected": "0", "isHidden": true },
+        { "call": "last_occurrence([], 1)", "expected": "-1", "isHidden": true }
       ]
     },
     {
@@ -277,8 +293,10 @@
         "3. If the evaluation `arr[i] == target` asserts as true, return `i`.",
         "4. Execute `return -1` strictly outside the bounded loop.",
         "",
-        "Sample Output:",
-        "search_in_range([10, 20, 30, 40, 50], 40, 1, 4) → 3"
+        "Sample Outputs:",
+        "search_in_range([10, 20, 30, 40, 50], 40, 1, 4) → 3",
+        "search_in_range([10, 20, 30, 40, 50], 10, 2, 5) → -1",
+        "search_in_range([5, 5, 5], 5, 1, 2) → 1"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -286,8 +304,8 @@
         { "call": "search_in_range([10, 20, 30, 40, 50], 40, 1, 4)", "expected": "3", "isHidden": false },
         { "call": "search_in_range([10, 20, 30, 40, 50], 10, 2, 5)", "expected": "-1", "isHidden": false },
         { "call": "search_in_range([5, 5, 5], 5, 1, 2)", "expected": "1", "isHidden": false },
-        { "call": "search_in_range([], 1, 0, 0)", "expected": "-1", "isHidden": false },
-        { "call": "search_in_range([1, 2, 3], 2, 0, 3)", "expected": "1", "isHidden": false }
+        { "call": "search_in_range([], 1, 0, 0)", "expected": "-1", "isHidden": true },
+        { "call": "search_in_range([1, 2, 3], 2, 0, 3)", "expected": "1", "isHidden": true }
       ]
     },
     {
@@ -310,8 +328,10 @@
         "5. Return `results`.",
         "6. Observe the analytical feedback to verify the structural transition to an O(n) Space Complexity.",
         "",
-        "Sample Output:",
-        "multi_search([1, 5, 1, 8, 1], 1) → [0, 2, 4]"
+        "Sample Outputs:",
+        "multi_search([1, 5, 1, 8, 1], 1) → [0, 2, 4]",
+        "multi_search([2, 4, 6], 5) → []",
+        "multi_search([3, 3], 3) → [0, 1]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -319,8 +339,8 @@
         { "call": "multi_search([1, 5, 1, 8, 1], 1)", "expected": "[0, 2, 4]", "isHidden": false },
         { "call": "multi_search([2, 4, 6], 5)", "expected": "[]", "isHidden": false },
         { "call": "multi_search([3, 3], 3)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "multi_search([], 1)", "expected": "[]", "isHidden": false },
-        { "call": "multi_search([0], 0)", "expected": "[0]", "isHidden": false }
+        { "call": "multi_search([], 1)", "expected": "[]", "isHidden": true },
+        { "call": "multi_search([0], 0)", "expected": "[0]", "isHidden": true }
       ]
     }
   ],
@@ -345,8 +365,10 @@
         "5. Return the sorted `arr` structure.",
         "6. Verify the diagnostic feedback mapping the nested array traversals to an O(n²) Time Complexity parameter.",
         "",
-        "Sample Output:",
-        "bubble_sort_asc([5, 2, 8, 1]) → [1, 2, 5, 8]"
+        "Sample Outputs:",
+        "bubble_sort_asc([5, 2, 8, 1]) → [1, 2, 5, 8]",
+        "bubble_sort_asc([3, 3, 1, 2]) → [1, 2, 3, 3]",
+        "bubble_sort_asc([9, 8, 7]) → [7, 8, 9]"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
@@ -354,8 +376,8 @@
         { "call": "bubble_sort_asc([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
         { "call": "bubble_sort_asc([3, 3, 1, 2])", "expected": "[1, 2, 3, 3]", "isHidden": false },
         { "call": "bubble_sort_asc([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
-        { "call": "bubble_sort_asc([1])", "expected": "[1]", "isHidden": false },
-        { "call": "bubble_sort_asc([])", "expected": "[]", "isHidden": false }
+        { "call": "bubble_sort_asc([1])", "expected": "[1]", "isHidden": true },
+        { "call": "bubble_sort_asc([])", "expected": "[]", "isHidden": true }
       ]
     },
     {
@@ -377,8 +399,10 @@
         "4. In the outer loop scope, execute a positional swap between `arr[i]` and `arr[min_idx]`.",
         "5. Return the mutated `arr`.",
         "",
-        "Sample Output:",
-        "selection_sort_asc([5, 2, 8, 1]) → [1, 2, 5, 8]"
+        "Sample Outputs:",
+        "selection_sort_asc([5, 2, 8, 1]) → [1, 2, 5, 8]",
+        "selection_sort_asc([10, -2, 5]) → [-2, 5, 10]",
+        "selection_sort_asc([4, 4, 2]) → [2, 4, 4]"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
@@ -386,8 +410,8 @@
         { "call": "selection_sort_asc([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
         { "call": "selection_sort_asc([10, -2, 5])", "expected": "[-2, 5, 10]", "isHidden": false },
         { "call": "selection_sort_asc([4, 4, 2])", "expected": "[2, 4, 4]", "isHidden": false },
-        { "call": "selection_sort_asc([7])", "expected": "[7]", "isHidden": false },
-        { "call": "selection_sort_asc([])", "expected": "[]", "isHidden": false }
+        { "call": "selection_sort_asc([7])", "expected": "[7]", "isHidden": true },
+        { "call": "selection_sort_asc([])", "expected": "[]", "isHidden": true }
       ]
     },
     {
@@ -407,8 +431,10 @@
         "3. Define the inverted condition: execute element transposition if `arr[j] < arr[j+1]`.",
         "4. Process the swaps and return the mutated array.",
         "",
-        "Sample Output:",
-        "bubble_sort_desc([1, 2, 3]) → [3, 2, 1]"
+        "Sample Outputs:",
+        "bubble_sort_desc([1, 2, 3]) → [3, 2, 1]",
+        "bubble_sort_desc([5, 8, 2, 9]) → [9, 8, 5, 2]",
+        "bubble_sort_desc([2, 2, 1]) → [2, 2, 1]"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
@@ -416,8 +442,8 @@
         { "call": "bubble_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
         { "call": "bubble_sort_desc([5, 8, 2, 9])", "expected": "[9, 8, 5, 2]", "isHidden": false },
         { "call": "bubble_sort_desc([2, 2, 1])", "expected": "[2, 2, 1]", "isHidden": false },
-        { "call": "bubble_sort_desc([-1, -5, 0])", "expected": "[0, -1, -5]", "isHidden": false },
-        { "call": "bubble_sort_desc([])", "expected": "[]", "isHidden": false }
+        { "call": "bubble_sort_desc([-1, -5, 0])", "expected": "[0, -1, -5]", "isHidden": true },
+        { "call": "bubble_sort_desc([])", "expected": "[]", "isHidden": true }
       ]
     },
     {
@@ -438,8 +464,10 @@
         "4. Finalize the operation by transposing `arr[i]` and `arr[max_idx]`.",
         "5. Return the array.",
         "",
-        "Sample Output:",
-        "selection_sort_desc([1, 2, 3]) → [3, 2, 1]"
+        "Sample Outputs:",
+        "selection_sort_desc([1, 2, 3]) → [3, 2, 1]",
+        "selection_sort_desc([10, 50, 20]) → [50, 20, 10]",
+        "selection_sort_desc([4, 4, 6]) → [6, 4, 4]"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
@@ -447,8 +475,8 @@
         { "call": "selection_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
         { "call": "selection_sort_desc([10, 50, 20])", "expected": "[50, 20, 10]", "isHidden": false },
         { "call": "selection_sort_desc([4, 4, 6])", "expected": "[6, 4, 4]", "isHidden": false },
-        { "call": "selection_sort_desc([9])", "expected": "[9]", "isHidden": false },
-        { "call": "selection_sort_desc([])", "expected": "[]", "isHidden": false }
+        { "call": "selection_sort_desc([9])", "expected": "[9]", "isHidden": true },
+        { "call": "selection_sort_desc([])", "expected": "[]", "isHidden": true }
       ]
     },
     {
@@ -468,8 +496,10 @@
         "3. If `arr[j] > arr[j+1]`, compute their transposition.",
         "4. Return the partially organized `arr`. Review the diagnostic analyzer to confirm the execution simplifies to an O(n) Linear Time metric.",
         "",
-        "Sample Output:",
-        "single_pass([5, 2, 8, 1]) → [2, 5, 1, 8]"
+        "Sample Outputs:",
+        "single_pass([5, 2, 8, 1]) → [2, 5, 1, 8]",
+        "single_pass([10, 1, 2]) → [1, 2, 10]",
+        "single_pass([3, 2, 1]) → [2, 1, 3]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -477,8 +507,8 @@
         { "call": "single_pass([5, 2, 8, 1])", "expected": "[2, 5, 1, 8]", "isHidden": false },
         { "call": "single_pass([10, 1, 2])", "expected": "[1, 2, 10]", "isHidden": false },
         { "call": "single_pass([3, 2, 1])", "expected": "[2, 1, 3]", "isHidden": false },
-        { "call": "single_pass([1, 2])", "expected": "[1, 2]", "isHidden": false },
-        { "call": "single_pass([])", "expected": "[]", "isHidden": false }
+        { "call": "single_pass([1, 2])", "expected": "[1, 2]", "isHidden": true },
+        { "call": "single_pass([])", "expected": "[]", "isHidden": true }
       ]
     }
   ],
@@ -495,7 +525,12 @@
         "3. Instantiate a discrete dictionary map to actively track evaluated integers.",
         "4. Within the single primary iteration, algorithmically compute the required numeric differential corresponding to the active element.",
         "5. If the computed differential exists in the tracking map, output the positive pair state immediately.",
-        "6. If absent, append the active integer to the map to permit evaluation in subsequent loop cycles."
+        "6. If absent, append the active integer to the map to permit evaluation in subsequent loop cycles.",
+        "",
+        "Sample Outputs:",
+        "two_sum([2, 7, 11, 15], 9) → [0, 1]",
+        "two_sum([3, 2, 4], 6) → [1, 2]",
+        "two_sum([3, 3], 6) → [0, 1]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -504,8 +539,8 @@
         { "call": "two_sum([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
         { "call": "two_sum([3, 2, 4], 6)", "expected": "[1, 2]", "isHidden": false },
         { "call": "two_sum([3, 3], 6)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "two_sum([1, 2, 3], 10)", "expected": "[]", "isHidden": false },
-        { "call": "two_sum([], 5)", "expected": "[]", "isHidden": false }
+        { "call": "two_sum([1, 2, 3], 10)", "expected": "[]", "isHidden": true },
+        { "call": "two_sum([], 5)", "expected": "[]", "isHidden": true }
       ]
     },
     {
@@ -518,7 +553,12 @@
         "1. Analyze the Space Complexity metric. The system flags an O(n) bound generated by continuous appending operations to an auxiliary list structure.",
         "2. Discard all sequential blocks concerning the initialization and population of localized tracking lists.",
         "3. Substitute list appending logic with a direct elemental return block to immediately output matched elements.",
-        "4. Review the analytical feedback to verify the architectural Space Complexity has regressed to an optimal O(1) state."
+        "4. Review the analytical feedback to verify the architectural Space Complexity has regressed to an optimal O(1) state.",
+        "",
+        "Sample Outputs:",
+        "linear_search([10, 20, 30], 20) → 20",
+        "linear_search([5, 8, 2], 5) → 5",
+        "linear_search([7, 7, 7], 7) → 7"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -527,8 +567,8 @@
         { "call": "linear_search([10, 20, 30], 20)", "expected": "20", "isHidden": false },
         { "call": "linear_search([5, 8, 2], 5)", "expected": "5", "isHidden": false },
         { "call": "linear_search([7, 7, 7], 7)", "expected": "7", "isHidden": false },
-        { "call": "linear_search([1, 2, 3], 4)", "expected": "-1", "isHidden": false },
-        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": false }
+        { "call": "linear_search([1, 2, 3], 4)", "expected": "-1", "isHidden": true },
+        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": true }
       ]
     },
     {
@@ -541,7 +581,12 @@
         "1. Consult the diagnostic feedback outlining an O(n) Spatial configuration resulting from active list cloning protocols.",
         "2. Execute the complete removal of blocks assigned to construct isolated sequential clones (e.g., `temp_arr`).",
         "3. Formulate the swap parameters to exclusively execute positional permutations inside the boundaries of the original parameter array.",
-        "4. Verify via the real-time analyzer that omitting structural array cloning reduces the Space Complexity to O(1) Constant."
+        "4. Verify via the real-time analyzer that omitting structural array cloning reduces the Space Complexity to O(1) Constant.",
+        "",
+        "Sample Outputs:",
+        "bubble_sort([5, 2, 8, 1]) → [1, 2, 5, 8]",
+        "bubble_sort([3, 3, 1, 2]) → [1, 2, 3, 3]",
+        "bubble_sort([9, 8, 7]) → [7, 8, 9]"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
@@ -550,8 +595,8 @@
         { "call": "bubble_sort([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
         { "call": "bubble_sort([3, 3, 1, 2])", "expected": "[1, 2, 3, 3]", "isHidden": false },
         { "call": "bubble_sort([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
-        { "call": "bubble_sort([1])", "expected": "[1]", "isHidden": false },
-        { "call": "bubble_sort([])", "expected": "[]", "isHidden": false }
+        { "call": "bubble_sort([1])", "expected": "[1]", "isHidden": true },
+        { "call": "bubble_sort([])", "expected": "[]", "isHidden": true }
       ]
     }
   ]

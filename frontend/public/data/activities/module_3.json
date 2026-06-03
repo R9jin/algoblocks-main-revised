@@ -15,8 +15,10 @@
         "2. Check if `n <= 1`. If true, return `1`.",
         "3. Otherwise, return the product of `n` and `factorial(n - 1)`.",
         "",
-        "Sample Output:",
-        "factorial(5) → 120"
+        "Sample Outputs:",
+        "factorial(5) → 120",
+        "factorial(4) → 24",
+        "factorial(3) → 6"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -24,7 +26,7 @@
         { "call": "factorial(5)", "expected": "120", "isHidden": false },
         { "call": "factorial(4)", "expected": "24", "isHidden": false },
         { "call": "factorial(3)", "expected": "6", "isHidden": false },
-        { "call": "factorial(0)", "expected": "1", "isHidden": false },
+        { "call": "factorial(0)", "expected": "1", "isHidden": true },
         { "call": "factorial(6)", "expected": "720", "isHidden": true }
       ]
     },
@@ -44,8 +46,10 @@
         "2. If `n <= 0`, return the list `['Abort']`.",
         "3. Otherwise, return `[n] + countdown(n - 1)`.",
         "",
-        "Sample Output:",
-        "countdown(3) → [3, 2, 1, 'Abort']"
+        "Sample Outputs:",
+        "countdown(3) → [3, 2, 1, 'Abort']",
+        "countdown(5) → [5, 4, 3, 2, 1, 'Abort']",
+        "countdown(1) → [1, 'Abort']"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -53,7 +57,7 @@
         { "call": "countdown(3)", "expected": "[3, 2, 1, 'Abort']", "isHidden": false },
         { "call": "countdown(5)", "expected": "[5, 4, 3, 2, 1, 'Abort']", "isHidden": false },
         { "call": "countdown(1)", "expected": "[1, 'Abort']", "isHidden": false },
-        { "call": "countdown(0)", "expected": "['Abort']", "isHidden": false },
+        { "call": "countdown(0)", "expected": "['Abort']", "isHidden": true },
         { "call": "countdown(-2)", "expected": "['Abort']", "isHidden": true }
       ]
     },
@@ -73,8 +77,10 @@
         "2. If the array is empty (`len(arr) == 0`), return `0`.",
         "3. Otherwise, return `arr[0] + sum_recursive(arr[1:])`.",
         "",
-        "Sample Output:",
-        "sum_recursive([10, 20, 30]) → 60"
+        "Sample Outputs:",
+        "sum_recursive([10, 20, 30]) → 60",
+        "sum_recursive([5, 5, 5, 5]) → 20",
+        "sum_recursive([100]) → 100"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -82,7 +88,7 @@
         { "call": "sum_recursive([10, 20, 30])", "expected": "60", "isHidden": false },
         { "call": "sum_recursive([5, 5, 5, 5])", "expected": "20", "isHidden": false },
         { "call": "sum_recursive([100])", "expected": "100", "isHidden": false },
-        { "call": "sum_recursive([])", "expected": "0", "isHidden": false },
+        { "call": "sum_recursive([])", "expected": "0", "isHidden": true },
         { "call": "sum_recursive([-10, 10])", "expected": "0", "isHidden": true }
       ]
     },
@@ -102,8 +108,10 @@
         "2. If `exp == 0`, return `1`.",
         "3. Otherwise, return `base * power(base, exp - 1)`.",
         "",
-        "Sample Output:",
-        "power(2, 3) → 8"
+        "Sample Outputs:",
+        "power(2, 3) → 8",
+        "power(5, 2) → 25",
+        "power(10, 1) → 10"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -111,7 +119,7 @@
         { "call": "power(2, 3)", "expected": "8", "isHidden": false },
         { "call": "power(5, 2)", "expected": "25", "isHidden": false },
         { "call": "power(10, 1)", "expected": "10", "isHidden": false },
-        { "call": "power(7, 0)", "expected": "1", "isHidden": false },
+        { "call": "power(7, 0)", "expected": "1", "isHidden": true },
         { "call": "power(3, 4)", "expected": "81", "isHidden": true }
       ]
     },
@@ -133,8 +141,10 @@
         "3. If `s[0] != s[-1]`, return `False`.",
         "4. Return `is_palindrome(s[1:-1])`.",
         "",
-        "Sample Output:",
-        "is_palindrome('racecar') → True"
+        "Sample Outputs:",
+        "is_palindrome('racecar') → True",
+        "is_palindrome('level') → True",
+        "is_palindrome('hello') → False"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -142,7 +152,7 @@
         { "call": "is_palindrome('racecar')", "expected": "True", "isHidden": false },
         { "call": "is_palindrome('level')", "expected": "True", "isHidden": false },
         { "call": "is_palindrome('hello')", "expected": "False", "isHidden": false },
-        { "call": "is_palindrome('a')", "expected": "True", "isHidden": false },
+        { "call": "is_palindrome('a')", "expected": "True", "isHidden": true },
         { "call": "is_palindrome('')", "expected": "True", "isHidden": true }
       ]
     }
@@ -169,8 +179,10 @@
         "6. If `arr[mid] < target`, assign `low = mid + 1`. Otherwise, assign `high = mid - 1`.",
         "7. Return `-1` if the loop concludes without finding the target.",
         "",
-        "Sample Output:",
-        "binary_search([10, 20, 30, 40], 30) → 2"
+        "Sample Outputs:",
+        "binary_search([10, 20, 30, 40], 30) → 2",
+        "binary_search([1, 2, 3, 4], 1) → 0",
+        "binary_search([5, 10, 15], 20) → -1"
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
@@ -178,7 +190,7 @@
         { "call": "binary_search([10, 20, 30, 40], 30)", "expected": "2", "isHidden": false },
         { "call": "binary_search([1, 2, 3, 4], 1)", "expected": "0", "isHidden": false },
         { "call": "binary_search([5, 10, 15], 20)", "expected": "-1", "isHidden": false },
-        { "call": "binary_search([], 5)", "expected": "-1", "isHidden": false },
+        { "call": "binary_search([], 5)", "expected": "-1", "isHidden": true },
         { "call": "binary_search([7, 14, 21, 28], 14)", "expected": "1", "isHidden": true }
       ]
     },
@@ -201,8 +213,10 @@
         "5. Otherwise, shift `low` or `high` using standard binary search logic.",
         "6. Return the `result` variable.",
         "",
-        "Sample Output:",
-        "binary_first([1, 2, 2, 2, 3], 2) → 1"
+        "Sample Outputs:",
+        "binary_first([1, 2, 2, 2, 3], 2) → 1",
+        "binary_first([5, 5, 5, 6], 5) → 0",
+        "binary_first([1, 2, 3], 3) → 2"
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
@@ -210,7 +224,7 @@
         { "call": "binary_first([1, 2, 2, 2, 3], 2)", "expected": "1", "isHidden": false },
         { "call": "binary_first([5, 5, 5, 6], 5)", "expected": "0", "isHidden": false },
         { "call": "binary_first([1, 2, 3], 3)", "expected": "2", "isHidden": false },
-        { "call": "binary_first([], 1)", "expected": "-1", "isHidden": false },
+        { "call": "binary_first([], 1)", "expected": "-1", "isHidden": true },
         { "call": "binary_first([7, 7, 7, 7], 7)", "expected": "0", "isHidden": true }
       ]
     },
@@ -233,8 +247,10 @@
         "5. Otherwise, shift bounds normally based on strictly `<` or `>` evaluations.",
         "6. Return the tracked `result`.",
         "",
-        "Sample Output:",
-        "binary_last([1, 2, 2, 2, 3], 2) → 3"
+        "Sample Outputs:",
+        "binary_last([1, 2, 2, 2, 3], 2) → 3",
+        "binary_last([5, 5, 5, 6], 5) → 2",
+        "binary_last([1, 2, 3], 3) → 2"
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
@@ -242,7 +258,7 @@
         { "call": "binary_last([1, 2, 2, 2, 3], 2)", "expected": "3", "isHidden": false },
         { "call": "binary_last([5, 5, 5, 6], 5)", "expected": "2", "isHidden": false },
         { "call": "binary_last([1, 2, 3], 3)", "expected": "2", "isHidden": false },
-        { "call": "binary_last([], 1)", "expected": "-1", "isHidden": false },
+        { "call": "binary_last([], 1)", "expected": "-1", "isHidden": true },
         { "call": "binary_last([7, 7, 7, 7], 7)", "expected": "3", "isHidden": true }
       ]
     },
@@ -265,8 +281,10 @@
         "5. Update pointers for `<` and `>` normally.",
         "6. Once the loop terminates, return the `low` variable.",
         "",
-        "Sample Output:",
-        "search_insert([1, 3, 5, 6], 2) → 1"
+        "Sample Outputs:",
+        "search_insert([1, 3, 5, 6], 5) → 2",
+        "search_insert([1, 3, 5, 6], 2) → 1",
+        "search_insert([1, 3, 5, 6], 7) → 4"
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
@@ -274,7 +292,7 @@
         { "call": "search_insert([1, 3, 5, 6], 5)", "expected": "2", "isHidden": false },
         { "call": "search_insert([1, 3, 5, 6], 2)", "expected": "1", "isHidden": false },
         { "call": "search_insert([1, 3, 5, 6], 7)", "expected": "4", "isHidden": false },
-        { "call": "search_insert([1, 3, 5, 6], 0)", "expected": "0", "isHidden": false },
+        { "call": "search_insert([1, 3, 5, 6], 0)", "expected": "0", "isHidden": true },
         { "call": "search_insert([], 5)", "expected": "0", "isHidden": true }
       ]
     },
@@ -296,8 +314,10 @@
         "4. If the target is found (`arr[mid] == target`), return `steps` immediately.",
         "5. Update pointers normally. If the loop terminates without a match, return `steps`.",
         "",
-        "Sample Output:",
-        "binary_steps([1, 2, 3, 4, 5, 6, 7], 6) → 2"
+        "Sample Outputs:",
+        "binary_steps([1, 2, 3, 4, 5, 6, 7], 4) → 1",
+        "binary_steps([1, 2, 3, 4, 5, 6, 7], 6) → 2",
+        "binary_steps([10, 20, 30], 40) → 2"
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
@@ -305,7 +325,7 @@
         { "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 4)", "expected": "1", "isHidden": false },
         { "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 6)", "expected": "2", "isHidden": false },
         { "call": "binary_steps([10, 20, 30], 40)", "expected": "2", "isHidden": false },
-        { "call": "binary_steps([], 10)", "expected": "0", "isHidden": false },
+        { "call": "binary_steps([], 10)", "expected": "0", "isHidden": true },
         { "call": "binary_steps([100], 100)", "expected": "1", "isHidden": true }
       ]
     }
@@ -330,8 +350,10 @@
         "4. Extract the right partition: `right = arr[mid:]`.",
         "5. Return the array `[left, right]`.",
         "",
-        "Sample Output:",
-        "halve_array([1, 2, 3, 4]) → [[1, 2], [3, 4]]"
+        "Sample Outputs:",
+        "halve_array([1, 2, 3, 4]) → [[1, 2], [3, 4]]",
+        "halve_array([10, 20, 30]) → [[10], [20, 30]]",
+        "halve_array([5]) → [[], [5]]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -339,7 +361,7 @@
         { "call": "halve_array([1, 2, 3, 4])", "expected": "[[1, 2], [3, 4]]", "isHidden": false },
         { "call": "halve_array([10, 20, 30])", "expected": "[[10], [20, 30]]", "isHidden": false },
         { "call": "halve_array([5])", "expected": "[[], [5]]", "isHidden": false },
-        { "call": "halve_array([])", "expected": "[[], []]", "isHidden": false },
+        { "call": "halve_array([])", "expected": "[[], []]", "isHidden": true },
         { "call": "halve_array([1, 2, 3, 4, 5])", "expected": "[[1, 2], [3, 4, 5]]", "isHidden": true }
       ]
     },
@@ -362,8 +384,10 @@
         "4. Extend the `result` list with any remaining elements: `left[i:]` and `right[j:]`.",
         "5. Return `result`.",
         "",
-        "Sample Output:",
-        "merge([1, 3], [2, 4]) → [1, 2, 3, 4]"
+        "Sample Outputs:",
+        "merge([1, 3], [2, 4]) → [1, 2, 3, 4]",
+        "merge([5, 9], [1, 8]) → [1, 5, 8, 9]",
+        "merge([10], []) → [10]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -371,7 +395,7 @@
         { "call": "merge([1, 3], [2, 4])", "expected": "[1, 2, 3, 4]", "isHidden": false },
         { "call": "merge([5, 9], [1, 8])", "expected": "[1, 5, 8, 9]", "isHidden": false },
         { "call": "merge([10], [])", "expected": "[10]", "isHidden": false },
-        { "call": "merge([], [5])", "expected": "[5]", "isHidden": false },
+        { "call": "merge([], [5])", "expected": "[5]", "isHidden": true },
         { "call": "merge([1, 1], [1, 1])", "expected": "[1, 1, 1, 1]", "isHidden": true }
       ]
     },
@@ -394,8 +418,10 @@
         "4. Process partitions: `left = merge_sort(arr[:mid])` and `right = merge_sort(arr[mid:])`.",
         "5. Return the result of `merge(left, right)`.",
         "",
-        "Sample Output:",
-        "merge_sort([4, 2, 3, 1]) → [1, 2, 3, 4]"
+        "Sample Outputs:",
+        "merge_sort([4, 2, 3, 1]) → [1, 2, 3, 4]",
+        "merge_sort([38, 27, 43, 3, 9, 82, 10]) → [3, 9, 10, 27, 38, 43, 82]",
+        "merge_sort([5, 5, 5]) → [5, 5, 5]"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
@@ -403,7 +429,7 @@
         { "call": "merge_sort([4, 2, 3, 1])", "expected": "[1, 2, 3, 4]", "isHidden": false },
         { "call": "merge_sort([38, 27, 43, 3, 9, 82, 10])", "expected": "[3, 9, 10, 27, 38, 43, 82]", "isHidden": false },
         { "call": "merge_sort([5, 5, 5])", "expected": "[5, 5, 5]", "isHidden": false },
-        { "call": "merge_sort([])", "expected": "[]", "isHidden": false },
+        { "call": "merge_sort([])", "expected": "[]", "isHidden": true },
         { "call": "merge_sort([10, -2, 8])", "expected": "[-2, 8, 10]", "isHidden": true }
       ]
     },
@@ -424,8 +450,10 @@
         "3. If true, append from `left` and advance `i`. Otherwise, append from `right` and advance `j`.",
         "4. Append any remaining elements and return. The primary recursive function remains structurally unchanged.",
         "",
-        "Sample Output:",
-        "merge_sort_desc([1, 2, 3]) → [3, 2, 1]"
+        "Sample Outputs:",
+        "merge_sort_desc([1, 2, 3]) → [3, 2, 1]",
+        "merge_sort_desc([5, 1, 4]) → [5, 4, 1]",
+        "merge_sort_desc([7, 7, 7]) → [7, 7, 7]"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
@@ -433,7 +461,7 @@
         { "call": "merge_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
         { "call": "merge_sort_desc([5, 1, 4])", "expected": "[5, 4, 1]", "isHidden": false },
         { "call": "merge_sort_desc([7, 7, 7])", "expected": "[7, 7, 7]", "isHidden": false },
-        { "call": "merge_sort_desc([])", "expected": "[]", "isHidden": false },
+        { "call": "merge_sort_desc([])", "expected": "[]", "isHidden": true },
         { "call": "merge_sort_desc([-5, -1, 0])", "expected": "[0, -1, -5]", "isHidden": true }
       ]
     },
@@ -453,8 +481,10 @@
         "2. Replicate the standard `merge_sort` logic identically.",
         "3. No data type conversions are necessary. Let the native operators evaluate the strings and return the sorted array.",
         "",
-        "Sample Output:",
-        "merge_strings(['c', 'a', 'b']) → ['a', 'b', 'c']"
+        "Sample Outputs:",
+        "merge_strings(['c', 'a', 'b']) → ['a', 'b', 'c']",
+        "merge_strings(['z', 'x', 'y']) → ['x', 'y', 'z']",
+        "merge_strings(['apple', 'banana', 'ant']) → ['ant', 'apple', 'banana']"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
@@ -462,7 +492,7 @@
         { "call": "merge_strings(['c', 'a', 'b'])", "expected": "['a', 'b', 'c']", "isHidden": false },
         { "call": "merge_strings(['z', 'x', 'y'])", "expected": "['x', 'y', 'z']", "isHidden": false },
         { "call": "merge_strings(['apple', 'banana', 'ant'])", "expected": "['ant', 'apple', 'banana']", "isHidden": false },
-        { "call": "merge_strings([])", "expected": "[]", "isHidden": false },
+        { "call": "merge_strings([])", "expected": "[]", "isHidden": true },
         { "call": "merge_strings(['a'])", "expected": "['a']", "isHidden": true }
       ]
     }
@@ -487,8 +517,10 @@
         "4. Loop through `arr[1:]`. Append values strictly `< pivot` to `left`. Append values `>= pivot` to `right`.",
         "5. Return the exact format: `[left, pivot, right]`.",
         "",
-        "Sample Output:",
-        "partition([5, 1, 8, 2]) → [[1, 2], 5, [8]]"
+        "Sample Outputs:",
+        "partition([5, 1, 8, 2]) → [[1, 2], 5, [8]]",
+        "partition([10, 20, 5]) → [[5], 10, [20]]",
+        "partition([3, 3, 3]) → [[], 3, [3, 3]]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -496,7 +528,7 @@
         { "call": "partition([5, 1, 8, 2])", "expected": "[[1, 2], 5, [8]]", "isHidden": false },
         { "call": "partition([10, 20, 5])", "expected": "[[5], 10, [20]]", "isHidden": false },
         { "call": "partition([3, 3, 3])", "expected": "[[], 3, [3, 3]]", "isHidden": false },
-        { "call": "partition([])", "expected": "[]", "isHidden": false },
+        { "call": "partition([])", "expected": "[]", "isHidden": true },
         { "call": "partition([7])", "expected": "[[], 7, []]", "isHidden": true }
       ]
     },
@@ -518,8 +550,10 @@
         "3. Separate the array into `left` and `right` lists based on `pivot = arr[0]`.",
         "4. Return the concatenated result: `quick_sort(left) + [pivot] + quick_sort(right)`.",
         "",
-        "Sample Output:",
-        "quick_sort([3, 2, 1, 4]) → [1, 2, 3, 4]"
+        "Sample Outputs:",
+        "quick_sort([3, 2, 1, 4]) → [1, 2, 3, 4]",
+        "quick_sort([10, 7, 8, 9, 1, 5]) → [1, 5, 7, 8, 9, 10]",
+        "quick_sort([5, 5, 5]) → [5, 5, 5]"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
@@ -527,7 +561,7 @@
         { "call": "quick_sort([3, 2, 1, 4])", "expected": "[1, 2, 3, 4]", "isHidden": false },
         { "call": "quick_sort([10, 7, 8, 9, 1, 5])", "expected": "[1, 5, 7, 8, 9, 10]", "isHidden": false },
         { "call": "quick_sort([5, 5, 5])", "expected": "[5, 5, 5]", "isHidden": false },
-        { "call": "quick_sort([])", "expected": "[]", "isHidden": false },
+        { "call": "quick_sort([])", "expected": "[]", "isHidden": true },
         { "call": "quick_sort([1])", "expected": "[1]", "isHidden": true }
       ]
     },
@@ -549,8 +583,10 @@
         "4. Append values strictly `> pivot` to the `left` array and values `<= pivot` to the `right` array.",
         "5. Return `quick_sort_desc(left) + [pivot] + quick_sort_desc(right)`.",
         "",
-        "Sample Output:",
-        "quick_sort_desc([1, 2, 3]) → [3, 2, 1]"
+        "Sample Outputs:",
+        "quick_sort_desc([1, 2, 3]) → [3, 2, 1]",
+        "quick_sort_desc([5, 1, 4, 8]) → [8, 5, 4, 1]",
+        "quick_sort_desc([7, 7, 7]) → [7, 7, 7]"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
@@ -558,7 +594,7 @@
         { "call": "quick_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
         { "call": "quick_sort_desc([5, 1, 4, 8])", "expected": "[8, 5, 4, 1]", "isHidden": false },
         { "call": "quick_sort_desc([7, 7, 7])", "expected": "[7, 7, 7]", "isHidden": false },
-        { "call": "quick_sort_desc([])", "expected": "[]", "isHidden": false },
+        { "call": "quick_sort_desc([])", "expected": "[]", "isHidden": true },
         { "call": "quick_sort_desc([-5, 0, 5])", "expected": "[5, 0, -5]", "isHidden": true }
       ]
     },
@@ -578,8 +614,10 @@
         "2. Implement the standard ascending `quick_sort` architecture.",
         "3. Return the recursively concatenated lists. Python's native operators will evaluate the alphabetical sorting automatically.",
         "",
-        "Sample Output:",
-        "quick_sort_strings(['delta', 'alpha', 'charlie']) → ['alpha', 'charlie', 'delta']"
+        "Sample Outputs:",
+        "quick_sort_strings(['delta', 'alpha', 'charlie']) → ['alpha', 'charlie', 'delta']",
+        "quick_sort_strings(['z', 'a', 'm']) → ['a', 'm', 'z']",
+        "quick_sort_strings(['same', 'same']) → ['same', 'same']"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
@@ -587,7 +625,7 @@
         { "call": "quick_sort_strings(['delta', 'alpha', 'charlie'])", "expected": "['alpha', 'charlie', 'delta']", "isHidden": false },
         { "call": "quick_sort_strings(['z', 'a', 'm'])", "expected": "['a', 'm', 'z']", "isHidden": false },
         { "call": "quick_sort_strings(['same', 'same'])", "expected": "['same', 'same']", "isHidden": false },
-        { "call": "quick_sort_strings([])", "expected": "[]", "isHidden": false },
+        { "call": "quick_sort_strings([])", "expected": "[]", "isHidden": true },
         { "call": "quick_sort_strings(['b'])", "expected": "['b']", "isHidden": true }
       ]
     },
@@ -608,8 +646,10 @@
         "3. Extract `pivot = arr[0]`. Generate the `left` and `right` partitions via normal comparison.",
         "4. Return `pivot_track(left) + [pivot] + pivot_track(right)`. Note that this returns only the sequence of pivots, not the fully sorted array.",
         "",
-        "Sample Output:",
-        "pivot_track([3, 1, 4]) → [1, 3, 4]"
+        "Sample Outputs:",
+        "pivot_track([3, 1, 4]) → [1, 3, 4]",
+        "pivot_track([5, 2, 8]) → [2, 5, 8]",
+        "pivot_track([10, 20, 30]) → [10, 20, 30]"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
@@ -617,7 +657,7 @@
         { "call": "pivot_track([3, 1, 4])", "expected": "[1, 3, 4]", "isHidden": false },
         { "call": "pivot_track([5, 2, 8])", "expected": "[2, 5, 8]", "isHidden": false },
         { "call": "pivot_track([10, 20, 30])", "expected": "[10, 20, 30]", "isHidden": false },
-        { "call": "pivot_track([])", "expected": "[]", "isHidden": false },
+        { "call": "pivot_track([])", "expected": "[]", "isHidden": true },
         { "call": "pivot_track([7])", "expected": "[7]", "isHidden": true }
       ]
     }
@@ -634,7 +674,12 @@
         "2. Remove the `for loop` completely.",
         "3. Introduce `low` and `high` pointer variables to establish boundaries.",
         "4. Implement a `while` loop that calculates the exact middle (`mid = (low + high) // 2`). Check the midpoint, and adjust the boundaries to systematically halve the search space.",
-        "5. Observe the analytical metrics demonstrating the transition to O(log n) efficiency."
+        "5. Observe the analytical metrics demonstrating the transition to O(log n) efficiency.",
+        "",
+        "Sample Outputs:",
+        "search([1, 3, 5, 7, 9], 7) → 3",
+        "search([10, 20, 30, 40], 10) → 0",
+        "search([2, 4, 6], 5) → -1"
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
@@ -643,7 +688,7 @@
         { "call": "search([1, 3, 5, 7, 9], 7)", "expected": "3", "isHidden": false },
         { "call": "search([10, 20, 30, 40], 10)", "expected": "0", "isHidden": false },
         { "call": "search([2, 4, 6], 5)", "expected": "-1", "isHidden": false },
-        { "call": "search([], 1)", "expected": "-1", "isHidden": false },
+        { "call": "search([], 1)", "expected": "-1", "isHidden": true },
         { "call": "search([5], 5)", "expected": "0", "isHidden": true }
       ]
     },
@@ -659,7 +704,12 @@
         "3. Within a `while low < high` loop, compute the midpoint index.",
         "4. Evaluate the slope: if `arr[mid] < arr[mid + 1]`, the slope is increasing to the right. Adjust the `low` pointer up (`mid + 1`).",
         "5. If the slope is decreasing, the peak exists in the left partition. Reduce the `high` pointer to `mid`.",
-        "6. Return the `low` pointer index when the iteration concludes."
+        "6. Return the `low` pointer index when the iteration concludes.",
+        "",
+        "Sample Outputs:",
+        "find_peak([1, 2, 3, 1]) → 2",
+        "find_peak([1, 2, 1, 3, 5, 6, 4]) → 5",
+        "find_peak([1, 2, 3, 4, 5]) → 4"
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
@@ -668,7 +718,7 @@
         { "call": "find_peak([1, 2, 3, 1])", "expected": "2", "isHidden": false },
         { "call": "find_peak([1, 2, 1, 3, 5, 6, 4])", "expected": "5", "isHidden": false },
         { "call": "find_peak([1, 2, 3, 4, 5])", "expected": "4", "isHidden": false },
-        { "call": "find_peak([10, 9, 8, 7])", "expected": "0", "isHidden": false },
+        { "call": "find_peak([10, 9, 8, 7])", "expected": "0", "isHidden": true },
         { "call": "find_peak([5])", "expected": "0", "isHidden": true }
       ]
     },
@@ -683,7 +733,12 @@
         "2. Remove all recursive function calls from the structure.",
         "3. Refactor the core logic using an iterative `while low <= high:` loop structure.",
         "4. Reassign the `low` and `high` pointer variables directly within the active loop instead of passing them as parameters to a new function.",
-        "5. Verify through the analyzer that the Space Complexity has successfully dropped to O(1)."
+        "5. Verify through the analyzer that the Space Complexity has successfully dropped to O(1).",
+        "",
+        "Sample Outputs:",
+        "search_optimized([10, 20, 30, 40, 50], 40) → 3",
+        "search_optimized([1, 2, 3], 2) → 1",
+        "search_optimized([5, 8, 12], 20) → -1"
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
@@ -692,12 +747,12 @@
         { "call": "search_optimized([10, 20, 30, 40, 50], 40)", "expected": "3", "isHidden": false },
         { "call": "search_optimized([1, 2, 3], 2)", "expected": "1", "isHidden": false },
         { "call": "search_optimized([5, 8, 12], 20)", "expected": "-1", "isHidden": false },
-        { "call": "search_optimized([], 5)", "expected": "-1", "isHidden": false },
+        { "call": "search_optimized([], 5)", "expected": "-1", "isHidden": true },
         { "call": "search_optimized([7], 7)", "expected": "0", "isHidden": true }
       ]
     }
   ],
-    "lesson_3": [
+  "lesson_5": [
     {
       "id": "m6_l3_a1",
       "title": "Constraint Protocols: Row/Column Validation",
@@ -713,7 +768,12 @@
         "1. Define `safe_row_col(arr, value)`.",
         "2. Execute a sequential validation assessing whether the `value` is present inside `arr`.",
         "3. If the value exists, return `False`.",
-        "4. If the execution concludes without intercepting a duplicate, return `True`."
+        "4. If the execution concludes without intercepting a duplicate, return `True`.",
+        "",
+        "Sample Outputs:",
+        "safe_row_col([0, 1], 1) → False",
+        "safe_row_col([0, 0], 1) → False",
+        "safe_row_col([1, 0], 1) → False"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -721,7 +781,7 @@
         { "call": "safe_row_col([0, 1], 1)", "expected": "False", "isHidden": false },
         { "call": "safe_row_col([0, 0], 1)", "expected": "False", "isHidden": false },
         { "call": "safe_row_col([1, 0], 1)", "expected": "False", "isHidden": false },
-        { "call": "safe_row_col([], 0)", "expected": "True", "isHidden": false },
+        { "call": "safe_row_col([], 0)", "expected": "True", "isHidden": true },
         { "call": "safe_row_col([0], 0)", "expected": "False", "isHidden": true }
       ]
     },
@@ -741,7 +801,12 @@
         "2. Extract the length of the coordinate matrix.",
         "3. Construct a nested loop to compare every unique coordinate pair within the array.",
         "4. Apply the mathematical evaluation: `abs(r1 - r2) == abs(c1 - c2)`. If verified, return `False`.",
-        "5. Yield `True` if no coordinates breach the diagonal boundary constraint."
+        "5. Yield `True` if no coordinates breach the diagonal boundary constraint.",
+        "",
+        "Sample Outputs:",
+        "safe_diagonal([[0, 1], [1, 0]]) → False",
+        "safe_diagonal([[0, 0], [0, 0]]) → True",
+        "safe_diagonal([[1, 0], [0, 1]]) → False"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
@@ -749,7 +814,7 @@
         { "call": "safe_diagonal([[0, 1], [1, 0]])", "expected": "False", "isHidden": false },
         { "call": "safe_diagonal([[0, 0], [0, 0]])", "expected": "True", "isHidden": false },
         { "call": "safe_diagonal([[1, 0], [0, 1]])", "expected": "False", "isHidden": false },
-        { "call": "safe_diagonal([[0, 0]])", "expected": "True", "isHidden": false },
+        { "call": "safe_diagonal([[0, 0]])", "expected": "True", "isHidden": true },
         { "call": "safe_diagonal([])", "expected": "True", "isHidden": true }
       ]
     },
@@ -770,7 +835,12 @@
         "2. Verify the array holds data. If it is empty, return it unchanged.",
         "3. Execute a standard append operation (e.g., adding `99`).",
         "4. Execute a standard pop operation removing the terminal item.",
-        "5. Return the array."
+        "5. Return the array.",
+        "",
+        "Sample Outputs:",
+        "simulate_placement([0, 0]) → [0, 0]",
+        "simulate_placement([1, 0]) → [1, 0]",
+        "simulate_placement([0, 1]) → [0, 1]"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -778,7 +848,7 @@
         { "call": "simulate_placement([0, 0])", "expected": "[0, 0]", "isHidden": false },
         { "call": "simulate_placement([1, 0])", "expected": "[1, 0]", "isHidden": false },
         { "call": "simulate_placement([0, 1])", "expected": "[0, 1]", "isHidden": false },
-        { "call": "simulate_placement([])", "expected": "[]", "isHidden": false },
+        { "call": "simulate_placement([])", "expected": "[]", "isHidden": true },
         { "call": "simulate_placement([1])", "expected": "[1]", "isHidden": true }
       ]
     },
@@ -798,7 +868,12 @@
         "2. Trap edge cases executing `if n <= 0: return []`.",
         "3. Formulate the matrix utilizing nested list comprehensions or standard loops.",
         "4. Guarantee the internal arrays explicitly measure `n` in geometric length and are populated solely with `0`.",
-        "5. Output the constructed board matrix."
+        "5. Output the constructed board matrix.",
+        "",
+        "Sample Outputs:",
+        "initialize_board(2) → [[0, 0], [0, 0]]",
+        "initialize_board(1) → [[0]]",
+        "initialize_board(3) → [[0, 0, 0], [0, 0, 0], [0, 0, 0]]"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
@@ -806,7 +881,7 @@
         { "call": "initialize_board(2)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
         { "call": "initialize_board(1)", "expected": "[[0]]", "isHidden": false },
         { "call": "initialize_board(3)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
-        { "call": "initialize_board(0)", "expected": "[]", "isHidden": false },
+        { "call": "initialize_board(0)", "expected": "[]", "isHidden": true },
         { "call": "initialize_board(-1)", "expected": "[]", "isHidden": true }
       ]
     },
@@ -829,7 +904,12 @@
         "4. Develop `backtrack(row)`.",
         "5. If `row == n`, increment `count` and return.",
         "6. Loop through columns, validate constraints, apply backtracking, and revert state.",
-        "7. Return `count`."
+        "7. Return `count`.",
+        "",
+        "Sample Outputs:",
+        "n_queens(4) → 2",
+        "n_queens(5) → 10",
+        "n_queens(1) → 1"
       ],
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
@@ -837,9 +917,9 @@
         { "call": "n_queens(4)", "expected": "2", "isHidden": false },
         { "call": "n_queens(5)", "expected": "10", "isHidden": false },
         { "call": "n_queens(1)", "expected": "1", "isHidden": false },
-        { "call": "n_queens(2)", "expected": "0", "isHidden": false },
+        { "call": "n_queens(2)", "expected": "0", "isHidden": true },
         { "call": "n_queens(-5)", "expected": "0", "isHidden": true }
       ]
     }
-  ],
+  ]
 }

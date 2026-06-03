@@ -18,7 +18,12 @@
         "3. Create a loop that continues as long as the left index is strictly less than the right index.",
         "4. Use the modulo operator (`% 2`) to check for parity. If the left item is odd and the right item is even, execute a swap.",
         "5. Increment the left index if its item is even, and decrement the right index if its item is odd.",
-        "6. Return the modified array."
+        "6. Return the modified array.",
+        "",
+        "Sample Outputs:",
+        "sort_by_parity([3, 1, 2, 4]) → [4, 2, 1, 3]",
+        "sort_by_parity([0]) → [0]",
+        "sort_by_parity([1, 3, 5]) → [1, 3, 5]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -26,7 +31,7 @@
         { "call": "sort_by_parity([3, 1, 2, 4])", "expected": "[4, 2, 1, 3]", "isHidden": false },
         { "call": "sort_by_parity([0])", "expected": "[0]", "isHidden": false },
         { "call": "sort_by_parity([1, 3, 5])", "expected": "[1, 3, 5]", "isHidden": false },
-        { "call": "sort_by_parity([2, 4, 6])", "expected": "[2, 4, 6]", "isHidden": false },
+        { "call": "sort_by_parity([2, 4, 6])", "expected": "[2, 4, 6]", "isHidden": true },
         { "call": "sort_by_parity([7, 8, 9, 10])", "expected": "[10, 8, 9, 7]", "isHidden": true }
       ]
     },
@@ -48,7 +53,12 @@
         "3. Loop while the start tracker is less than the end tracker. Calculate the current width between the boundaries.",
         "4. Determine the current volume by multiplying the width by the smaller of the two heights.",
         "5. Update your maximum volume variable if the current volume is larger.",
-        "6. Advance the tracker pointing to the smaller height, then return the maximum volume once the loop concludes."
+        "6. Advance the tracker pointing to the smaller height, then return the maximum volume once the loop concludes.",
+        "",
+        "Sample Outputs:",
+        "max_area([1, 8, 6, 2, 5, 4, 8, 3, 7]) → 49",
+        "max_area([1, 1]) → 1",
+        "max_area([4, 3, 2, 1, 4]) → 16"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -56,7 +66,7 @@
         { "call": "max_area([1, 8, 6, 2, 5, 4, 8, 3, 7])", "expected": "49", "isHidden": false },
         { "call": "max_area([1, 1])", "expected": "1", "isHidden": false },
         { "call": "max_area([4, 3, 2, 1, 4])", "expected": "16", "isHidden": false },
-        { "call": "max_area([1, 2, 1])", "expected": "2", "isHidden": false },
+        { "call": "max_area([1, 2, 1])", "expected": "2", "isHidden": true },
         { "call": "max_area([10, 9, 8, 7, 6, 5, 4, 3, 2, 1])", "expected": "25", "isHidden": true }
       ]
     },
@@ -77,7 +87,12 @@
         "3. Initialize a slow tracker variable starting at index 1.",
         "4. Iterate a fast tracker from index 1 to the end of the array. Compare the element at the fast tracker with the element immediately before it.",
         "5. If they differ, assign the value at the fast tracker to the index at the slow tracker, then increment the slow tracker.",
-        "6. Utilize list slicing (`arr[:slow]`) to return only the deduplicated portion of the array."
+        "6. Utilize list slicing (`arr[:slow]`) to return only the deduplicated portion of the array.",
+        "",
+        "Sample Outputs:",
+        "remove_duplicates([1, 1, 2]) → [1, 2]",
+        "remove_duplicates([0, 0, 1, 1, 1, 2, 2, 3, 3, 4]) → [0, 1, 2, 3, 4]",
+        "remove_duplicates([5, 5, 5]) → [5]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -85,7 +100,7 @@
         { "call": "remove_duplicates([1, 1, 2])", "expected": "[1, 2]", "isHidden": false },
         { "call": "remove_duplicates([0, 0, 1, 1, 1, 2, 2, 3, 3, 4])", "expected": "[0, 1, 2, 3, 4]", "isHidden": false },
         { "call": "remove_duplicates([5, 5, 5])", "expected": "[5]", "isHidden": false },
-        { "call": "remove_duplicates([])", "expected": "[]", "isHidden": false },
+        { "call": "remove_duplicates([])", "expected": "[]", "isHidden": true },
         { "call": "remove_duplicates([-1, 0, 0, 0, 3, 3])", "expected": "[-1, 0, 3]", "isHidden": true }
       ]
     },
@@ -107,7 +122,12 @@
         "3. Implement a loop that runs while the left index is less than the right index.",
         "4. Calculate the sum of the elements at the current indices. If it matches the target, return a list containing both indices.",
         "5. If the sum is too small, advance the left index. If it is too large, retract the right index.",
-        "6. Return an empty list if no pair satisfies the condition."
+        "6. Return an empty list if no pair satisfies the condition.",
+        "",
+        "Sample Outputs:",
+        "two_sum_sorted([2, 7, 11, 15], 9) → [0, 1]",
+        "two_sum_sorted([2, 3, 4], 6) → [0, 2]",
+        "two_sum_sorted([-1, 0], -1) → [0, 1]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -115,7 +135,7 @@
         { "call": "two_sum_sorted([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
         { "call": "two_sum_sorted([2, 3, 4], 6)", "expected": "[0, 2]", "isHidden": false },
         { "call": "two_sum_sorted([-1, 0], -1)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "two_sum_sorted([1, 2, 3, 4], 10)", "expected": "[]", "isHidden": false },
+        { "call": "two_sum_sorted([1, 2, 3, 4], 10)", "expected": "[]", "isHidden": true },
         { "call": "two_sum_sorted([1, 5, 8, 12, 19], 20)", "expected": "[2, 3]", "isHidden": true }
       ]
     },
@@ -135,7 +155,12 @@
         "2. Establish an insertion variable starting at index 0.",
         "3. Iterate through each number in the array. If the number is not equal to zero, assign it to the array at the insertion index, then increment the insertion variable.",
         "4. Initiate a secondary loop starting from the current insertion index up to the length of the array, assigning 0 to each position.",
-        "5. Return the mutated array."
+        "5. Return the mutated array.",
+        "",
+        "Sample Outputs:",
+        "move_zeroes([0, 1, 0, 3, 12]) → [1, 3, 12, 0, 0]",
+        "move_zeroes([0]) → [0]",
+        "move_zeroes([1, 2, 3]) → [1, 2, 3]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -143,7 +168,7 @@
         { "call": "move_zeroes([0, 1, 0, 3, 12])", "expected": "[1, 3, 12, 0, 0]", "isHidden": false },
         { "call": "move_zeroes([0])", "expected": "[0]", "isHidden": false },
         { "call": "move_zeroes([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "move_zeroes([4, 0, 0, 5])", "expected": "[4, 5, 0, 0]", "isHidden": false },
+        { "call": "move_zeroes([4, 0, 0, 5])", "expected": "[4, 5, 0, 0]", "isHidden": true },
         { "call": "move_zeroes([0, 0, 1])", "expected": "[1, 0, 0]", "isHidden": true }
       ]
     }
@@ -166,7 +191,12 @@
         "2. Implement an early return of `0` if the array length is less than `k`.",
         "3. Calculate the sum of the first `k` elements to establish your initial window sum, and set this as your current maximum.",
         "4. Loop through the array starting from index `k`. In each iteration, update your window sum by adding the current element and subtracting the element `k` positions behind it.",
-        "5. Update your maximum value variable if the new window sum is greater. Return the maximum."
+        "5. Update your maximum value variable if the new window sum is greater. Return the maximum.",
+        "",
+        "Sample Outputs:",
+        "max_sum_subarray([2, 1, 5, 1, 3, 2], 3) → 9",
+        "max_sum_subarray([1, 9, -1, -2, 7, 3, -1, 2], 4) → 13",
+        "max_sum_subarray([5, 5, 5], 1) → 5"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -174,7 +204,7 @@
         { "call": "max_sum_subarray([2, 1, 5, 1, 3, 2], 3)", "expected": "9", "isHidden": false },
         { "call": "max_sum_subarray([1, 9, -1, -2, 7, 3, -1, 2], 4)", "expected": "13", "isHidden": false },
         { "call": "max_sum_subarray([5, 5, 5], 1)", "expected": "5", "isHidden": false },
-        { "call": "max_sum_subarray([1, 2], 3)", "expected": "0", "isHidden": false },
+        { "call": "max_sum_subarray([1, 2], 3)", "expected": "0", "isHidden": true },
         { "call": "max_sum_subarray([10, 20, 30, 40], 2)", "expected": "70", "isHidden": true }
       ]
     },
@@ -195,7 +225,12 @@
         "2. Return an empty list if `k` is invalid or if the array is too short.",
         "3. Establish the sum of the first `k` elements. Initialize a results array containing this sum divided by `k`.",
         "4. Iterate from index `k` to the end. Adjust the window sum by adding the newly included element and subtracting the element dropping out of the window.",
-        "5. Append the newly calculated average to your results array, then return it."
+        "5. Append the newly calculated average to your results array, then return it.",
+        "",
+        "Sample Outputs:",
+        "moving_average([1, 3, 2, 6, -1, 4, 1, 8, 2], 5) → [2.2, 2.8, 2.4, 3.6, 2.8]",
+        "moving_average([10, 20, 30], 1) → [10.0, 20.0, 30.0]",
+        "moving_average([5, 5, 5, 5], 2) → [5.0, 5.0, 5.0]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -203,7 +238,7 @@
         { "call": "moving_average([1, 3, 2, 6, -1, 4, 1, 8, 2], 5)", "expected": "[2.2, 2.8, 2.4, 3.6, 2.8]", "isHidden": false },
         { "call": "moving_average([10, 20, 30], 1)", "expected": "[10.0, 20.0, 30.0]", "isHidden": false },
         { "call": "moving_average([5, 5, 5, 5], 2)", "expected": "[5.0, 5.0, 5.0]", "isHidden": false },
-        { "call": "moving_average([1, 2], 3)", "expected": "[]", "isHidden": false },
+        { "call": "moving_average([1, 2], 3)", "expected": "[]", "isHidden": true },
         { "call": "moving_average([100, 200, 300, 400], 3)", "expected": "[200.0, 300.0]", "isHidden": true }
       ]
     },
@@ -225,7 +260,12 @@
         "3. Iterate over the array while tracking the current index (using `enumerate` is helpful).",
         "4. If the current index exceeds `k`, remove the element located at `index - k - 1` from the set.",
         "5. Check if the current element is already inside the set. If it is, return `True`.",
-        "6. If not, add the current element to the set. Return `False` if the loop completes without finding duplicates."
+        "6. If not, add the current element to the set. Return `False` if the loop completes without finding duplicates.",
+        "",
+        "Sample Outputs:",
+        "contains_nearby_duplicate([1, 2, 3, 1], 3) → True",
+        "contains_nearby_duplicate([1, 0, 1, 1], 1) → True",
+        "contains_nearby_duplicate([1, 2, 3, 1, 2, 3], 2) → False"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(k)",
@@ -233,7 +273,7 @@
         { "call": "contains_nearby_duplicate([1, 2, 3, 1], 3)", "expected": "True", "isHidden": false },
         { "call": "contains_nearby_duplicate([1, 0, 1, 1], 1)", "expected": "True", "isHidden": false },
         { "call": "contains_nearby_duplicate([1, 2, 3, 1, 2, 3], 2)", "expected": "False", "isHidden": false },
-        { "call": "contains_nearby_duplicate([], 5)", "expected": "False", "isHidden": false },
+        { "call": "contains_nearby_duplicate([], 5)", "expected": "False", "isHidden": true },
         { "call": "contains_nearby_duplicate([99, 99], 2)", "expected": "True", "isHidden": true }
       ]
     },
@@ -254,7 +294,12 @@
         "2. Create a reference set of vowels. Calculate the initial count of vowels found within the first `k` characters of the string.",
         "3. Set a tracking variable to record the maximum volume observed, initially equal to your starting count.",
         "4. Loop from index `k` to the end of the string. Modify your current count based on whether the character entering the window and the character exiting the window are vowels.",
-        "5. Continually evaluate and update the maximum volume variable. Return it at the end."
+        "5. Continually evaluate and update the maximum volume variable. Return it at the end.",
+        "",
+        "Sample Outputs:",
+        "max_vowels('abciiidef', 3) → 3",
+        "max_vowels('aeiou', 2) → 2",
+        "max_vowels('leetcode', 3) → 2"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -262,7 +307,7 @@
         { "call": "max_vowels('abciiidef', 3)", "expected": "3", "isHidden": false },
         { "call": "max_vowels('aeiou', 2)", "expected": "2", "isHidden": false },
         { "call": "max_vowels('leetcode', 3)", "expected": "2", "isHidden": false },
-        { "call": "max_vowels('rhythm', 4)", "expected": "0", "isHidden": false },
+        { "call": "max_vowels('rhythm', 4)", "expected": "0", "isHidden": true },
         { "call": "max_vowels('a', 1)", "expected": "1", "isHidden": true }
       ]
     },
@@ -284,7 +329,12 @@
         "3. Initialize a results array.",
         "4. Loop through the valid starting indices for a window of size `k`.",
         "5. Inside the loop, initialize a temporary product variable to 1. Use an inner loop to multiply the `k` contiguous elements starting from your current index.",
-        "6. Append the evaluated product to your results array, and return the array upon completion."
+        "6. Append the evaluated product to your results array, and return the array upon completion.",
+        "",
+        "Sample Outputs:",
+        "rolling_product_fixed([1, 2, 3, 4], 2) → [2, 6, 12]",
+        "rolling_product_fixed([1, 0, 3, 4], 2) → [0, 0, 12]",
+        "rolling_product_fixed([5, 5, 5], 1) → [5, 5, 5]"
       ],
       "targetTime": "O(n * k)",
       "targetSpace": "O(n)",
@@ -292,7 +342,7 @@
         { "call": "rolling_product_fixed([1, 2, 3, 4], 2)", "expected": "[2, 6, 12]", "isHidden": false },
         { "call": "rolling_product_fixed([1, 0, 3, 4], 2)", "expected": "[0, 0, 12]", "isHidden": false },
         { "call": "rolling_product_fixed([5, 5, 5], 1)", "expected": "[5, 5, 5]", "isHidden": false },
-        { "call": "rolling_product_fixed([], 2)", "expected": "[]", "isHidden": false },
+        { "call": "rolling_product_fixed([], 2)", "expected": "[]", "isHidden": true },
         { "call": "rolling_product_fixed([-1, -2, -3], 2)", "expected": "[2, 6]", "isHidden": true }
       ]
     }
@@ -316,7 +366,12 @@
         "3. Traverse the array with a `right` boundary pointer. Add the element at the `right` boundary to your running sum.",
         "4. Create a `while` loop that triggers as long as the running sum is greater than or equal to the target.",
         "5. Inside the while loop, update your `min_len` tracker, subtract the element at the `left` boundary from the running sum, and advance the `left` boundary forward.",
-        "6. Return the `min_len` tracker if a valid subarray was found, otherwise return 0."
+        "6. Return the `min_len` tracker if a valid subarray was found, otherwise return 0.",
+        "",
+        "Sample Outputs:",
+        "min_sub_array_len(7, [2, 3, 1, 2, 4, 3]) → 2",
+        "min_sub_array_len(4, [1, 4, 4]) → 1",
+        "min_sub_array_len(11, [1, 1, 1, 1, 1, 1, 1, 1]) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -324,7 +379,7 @@
         { "call": "min_sub_array_len(7, [2, 3, 1, 2, 4, 3])", "expected": "2", "isHidden": false },
         { "call": "min_sub_array_len(4, [1, 4, 4])", "expected": "1", "isHidden": false },
         { "call": "min_sub_array_len(11, [1, 1, 1, 1, 1, 1, 1, 1])", "expected": "0", "isHidden": false },
-        { "call": "min_sub_array_len(10, [1, 2, 3, 4, 5])", "expected": "3", "isHidden": false },
+        { "call": "min_sub_array_len(10, [1, 2, 3, 4, 5])", "expected": "3", "isHidden": true },
         { "call": "min_sub_array_len(15, [1, 2, 3, 4, 5])", "expected": "5", "isHidden": true }
       ]
     },
@@ -346,7 +401,12 @@
         "3. Iterate over the string while tracking both the character and its index (the right boundary).",
         "4. Check if the character exists in the dictionary AND if its recorded index is greater than or equal to the left boundary. If true, advance the left boundary to the recorded index + 1.",
         "5. Update the dictionary with the current character's new index.",
-        "6. Recalculate the maximum length against the current window size (`right - left + 1`), then return it."
+        "6. Recalculate the maximum length against the current window size (`right - left + 1`), then return it.",
+        "",
+        "Sample Outputs:",
+        "length_of_longest_substring('abcabcbb') → 3",
+        "length_of_longest_substring('bbbbb') → 1",
+        "length_of_longest_substring('pwwkew') → 3"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(k)",
@@ -354,7 +414,7 @@
         { "call": "length_of_longest_substring('abcabcbb')", "expected": "3", "isHidden": false },
         { "call": "length_of_longest_substring('bbbbb')", "expected": "1", "isHidden": false },
         { "call": "length_of_longest_substring('pwwkew')", "expected": "3", "isHidden": false },
-        { "call": "length_of_longest_substring('')", "expected": "0", "isHidden": false },
+        { "call": "length_of_longest_substring('')", "expected": "0", "isHidden": true },
         { "call": "length_of_longest_substring('au')", "expected": "2", "isHidden": true }
       ]
     },
@@ -375,7 +435,12 @@
         "2. Set up your tracking variables: a left boundary, a zero-counter, and a maximum length tracker.",
         "3. Iterate a right boundary across the array. If the value at the right boundary is 0, increment your zero-counter.",
         "4. Create a `while` loop that activates if your zero-counter exceeds `k`. Inside, check if the value at the left boundary is 0 (if so, decrement the zero-counter) and advance the left boundary.",
-        "5. Outside the while loop, update your maximum length tracker with the current window size. Return the tracker."
+        "5. Outside the while loop, update your maximum length tracker with the current window size. Return the tracker.",
+        "",
+        "Sample Outputs:",
+        "longest_ones([1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0], 2) → 6",
+        "longest_ones([0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1], 3) → 10",
+        "longest_ones([1, 1, 1, 1], 0) → 4"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -383,7 +448,7 @@
         { "call": "longest_ones([1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0], 2)", "expected": "6", "isHidden": false },
         { "call": "longest_ones([0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1], 3)", "expected": "10", "isHidden": false },
         { "call": "longest_ones([1, 1, 1, 1], 0)", "expected": "4", "isHidden": false },
-        { "call": "longest_ones([0, 0, 0], 1)", "expected": "1", "isHidden": false },
+        { "call": "longest_ones([0, 0, 0], 1)", "expected": "1", "isHidden": true },
         { "call": "longest_ones([0, 0, 0], 0)", "expected": "0", "isHidden": true }
       ]
     },
@@ -405,7 +470,12 @@
         "3. Initialize a running product variable to 1, a left boundary to 0, and a tally to 0.",
         "4. Iterate a right boundary across the array, updating your running product.",
         "5. Implement a `while` loop to contract the left boundary if the running product is greater than or equal to `k`. Remember to divide the product by the element leaving the window.",
-        "6. Add the calculated valid combinations (`right - left + 1`) to your tally and return it."
+        "6. Add the calculated valid combinations (`right - left + 1`) to your tally and return it.",
+        "",
+        "Sample Outputs:",
+        "num_subarray_product_less_than_k([10, 5, 2, 6], 100) → 8",
+        "num_subarray_product_less_than_k([1, 2, 3], 0) → 0",
+        "num_subarray_product_less_than_k([10, 9, 10, 4, 3, 8, 3, 3, 6, 2, 10, 10, 9, 3], 19) → 18"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -413,7 +483,7 @@
         { "call": "num_subarray_product_less_than_k([10, 5, 2, 6], 100)", "expected": "8", "isHidden": false },
         { "call": "num_subarray_product_less_than_k([1, 2, 3], 0)", "expected": "0", "isHidden": false },
         { "call": "num_subarray_product_less_than_k([10, 9, 10, 4, 3, 8, 3, 3, 6, 2, 10, 10, 9, 3], 19)", "expected": "18", "isHidden": false },
-        { "call": "num_subarray_product_less_than_k([1, 1, 1], 2)", "expected": "6", "isHidden": false },
+        { "call": "num_subarray_product_less_than_k([1, 1, 1], 2)", "expected": "6", "isHidden": true },
         { "call": "num_subarray_product_less_than_k([5], 10)", "expected": "1", "isHidden": true }
       ]
     },
@@ -434,7 +504,12 @@
         "3. Iterate a right boundary across the string. Update the frequency of the current character in your dictionary.",
         "4. Update your maximum frequency tracker if the current character's count is higher.",
         "5. Evaluate compliance: if the current window size `(right - left + 1)` minus the maximum frequency count exceeds `k`, decrement the count of the character at the left boundary and advance the left boundary.",
-        "6. Continuously update and return the maximum valid string length."
+        "6. Continuously update and return the maximum valid string length.",
+        "",
+        "Sample Outputs:",
+        "character_replacement('ABAB', 2) → 4",
+        "character_replacement('AABABBA', 1) → 4",
+        "character_replacement('A', 0) → 1"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -442,7 +517,7 @@
         { "call": "character_replacement('ABAB', 2)", "expected": "4", "isHidden": false },
         { "call": "character_replacement('AABABBA', 1)", "expected": "4", "isHidden": false },
         { "call": "character_replacement('A', 0)", "expected": "1", "isHidden": false },
-        { "call": "character_replacement('ABBB', 2)", "expected": "4", "isHidden": false },
+        { "call": "character_replacement('ABBB', 2)", "expected": "4", "isHidden": true },
         { "call": "character_replacement('CBAAAB', 1)", "expected": "5", "isHidden": true }
       ]
     }
@@ -465,7 +540,12 @@
         "2. Initialize an empty list to store results and a variable to track the running sum.",
         "3. Iterate through each number in the input array.",
         "4. Add the number to your running sum tracker.",
-        "5. Append the updated tracker to your results list, returning the list upon completion."
+        "5. Append the updated tracker to your results list, returning the list upon completion.",
+        "",
+        "Sample Outputs:",
+        "running_sum([1, 2, 3, 4]) → [1, 3, 6, 10]",
+        "running_sum([1, 1, 1, 1, 1]) → [1, 2, 3, 4, 5]",
+        "running_sum([3, 1, 2, 10, 1]) → [3, 4, 6, 16, 17]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -473,7 +553,7 @@
         { "call": "running_sum([1, 2, 3, 4])", "expected": "[1, 3, 6, 10]", "isHidden": false },
         { "call": "running_sum([1, 1, 1, 1, 1])", "expected": "[1, 2, 3, 4, 5]", "isHidden": false },
         { "call": "running_sum([3, 1, 2, 10, 1])", "expected": "[3, 4, 6, 16, 17]", "isHidden": false },
-        { "call": "running_sum([])", "expected": "[]", "isHidden": false },
+        { "call": "running_sum([])", "expected": "[]", "isHidden": true },
         { "call": "running_sum([-1, -2, -3])", "expected": "[-1, -3, -6]", "isHidden": true }
       ]
     },
@@ -495,7 +575,12 @@
         "3. Iterate through the array using index and value tracking.",
         "4. Implement the equilibrium check: if the left sum is equal to the total sum minus the left sum minus the current value, return the current index.",
         "5. Increment the left sum by the current value for the next iteration.",
-        "6. Return -1 if no pivot satisfies the condition."
+        "6. Return -1 if no pivot satisfies the condition.",
+        "",
+        "Sample Outputs:",
+        "pivot_index([1, 7, 3, 6, 5, 6]) → 3",
+        "pivot_index([1, 2, 3]) → -1",
+        "pivot_index([2, 1, -1]) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -503,7 +588,7 @@
         { "call": "pivot_index([1, 7, 3, 6, 5, 6])", "expected": "3", "isHidden": false },
         { "call": "pivot_index([1, 2, 3])", "expected": "-1", "isHidden": false },
         { "call": "pivot_index([2, 1, -1])", "expected": "0", "isHidden": false },
-        { "call": "pivot_index([0, 0, 0])", "expected": "0", "isHidden": false },
+        { "call": "pivot_index([0, 0, 0])", "expected": "0", "isHidden": true },
         { "call": "pivot_index([-1, -1, 0, -1, -1, 0])", "expected": "2", "isHidden": true }
       ]
     },
@@ -523,7 +608,12 @@
         "2. Initialize an output array populated with 1s, matching the length of the input array.",
         "3. Establish a tracker for the left product (starting at 1). Iterate forward, assigning the tracker to the output array and then multiplying the tracker by the current array element.",
         "4. Establish a tracker for the right product (starting at 1). Iterate backward. Multiply the output array's existing value by the tracker, then multiply the tracker by the current array element.",
-        "5. Return the finalized output array."
+        "5. Return the finalized output array.",
+        "",
+        "Sample Outputs:",
+        "product_except_self([1, 2, 3, 4]) → [24, 12, 8, 6]",
+        "product_except_self([-1, 1, 0, -3, 3]) → [0, 0, 9, 0, 0]",
+        "product_except_self([5, 5]) → [5, 5]"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -531,7 +621,7 @@
         { "call": "product_except_self([1, 2, 3, 4])", "expected": "[24, 12, 8, 6]", "isHidden": false },
         { "call": "product_except_self([-1, 1, 0, -3, 3])", "expected": "[0, 0, 9, 0, 0]", "isHidden": false },
         { "call": "product_except_self([5, 5])", "expected": "[5, 5]", "isHidden": false },
-        { "call": "product_except_self([2, 2, 2, 2])", "expected": "[8, 8, 8, 8]", "isHidden": false },
+        { "call": "product_except_self([2, 2, 2, 2])", "expected": "[8, 8, 8, 8]", "isHidden": true },
         { "call": "product_except_self([9, 0, 0])", "expected": "[0, 0, 0]", "isHidden": true }
       ]
     },
@@ -551,7 +641,12 @@
         "2. Construct a prefix sum array that includes a leading 0 (e.g., `[0] + running_sums`).",
         "3. Initialize a results list.",
         "4. Loop through each query pairing `[left, right]`. Calculate the regional sum by assessing `prefix[right + 1] - prefix[left]`.",
-        "5. Append the evaluated sums to the results list and return."
+        "5. Append the evaluated sums to the results list and return.",
+        "",
+        "Sample Outputs:",
+        "range_sum_query([-2, 0, 3, -5, 2, -1], [[0, 2], [2, 5], [0, 5]]) → [1, -1, -3]",
+        "range_sum_query([1, 2, 3, 4], [[1, 1], [0, 3]]) → [2, 10]",
+        "range_sum_query([5], [[0, 0]]) → [5]"
       ],
       "targetTime": "O(n + q)",
       "targetSpace": "O(n)",
@@ -559,7 +654,7 @@
         { "call": "range_sum_query([-2, 0, 3, -5, 2, -1], [[0, 2], [2, 5], [0, 5]])", "expected": "[1, -1, -3]", "isHidden": false },
         { "call": "range_sum_query([1, 2, 3, 4], [[1, 1], [0, 3]])", "expected": "[2, 10]", "isHidden": false },
         { "call": "range_sum_query([5], [[0, 0]])", "expected": "[5]", "isHidden": false },
-        { "call": "range_sum_query([10, -10, 10, -10], [[0, 1], [1, 2]])", "expected": "[0, 0]", "isHidden": false },
+        { "call": "range_sum_query([10, -10, 10, -10], [[0, 1], [1, 2]])", "expected": "[0, 0]", "isHidden": true },
         { "call": "range_sum_query([-1, -2, -3], [[0, 2]])", "expected": "[-6]", "isHidden": true }
       ]
     },
@@ -582,7 +677,12 @@
         "3. Traverse the elements. Add the element to the current running sum.",
         "4. Evaluate if the condition `(current_sum - k)` exists within the dictionary. If so, increment your count by the frequency stored at that key.",
         "5. Update the dictionary to log the occurrence of the `current_sum`.",
-        "6. Return the ultimate accumulated count."
+        "6. Return the ultimate accumulated count.",
+        "",
+        "Sample Outputs:",
+        "subarray_sum([1, 1, 1], 2) → 2",
+        "subarray_sum([1, 2, 3], 3) → 2",
+        "subarray_sum([1, -1, 0], 0) → 3"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -590,7 +690,7 @@
         { "call": "subarray_sum([1, 1, 1], 2)", "expected": "2", "isHidden": false },
         { "call": "subarray_sum([1, 2, 3], 3)", "expected": "2", "isHidden": false },
         { "call": "subarray_sum([1, -1, 0], 0)", "expected": "3", "isHidden": false },
-        { "call": "subarray_sum([5, 5], 10)", "expected": "1", "isHidden": false },
+        { "call": "subarray_sum([5, 5], 10)", "expected": "1", "isHidden": true },
         { "call": "subarray_sum([10, 2, -2, -20, 10], -10)", "expected": "3", "isHidden": true }
       ]
     }
@@ -606,7 +706,12 @@
         "1. Identify the performance regression linked to calculating sums repeatedly inside an indexed loop.",
         "2. Remove the internal slicing/summation operations completely. Compute the foundational metric explicitly for the very first window only (`window_sum = sum(arr[:k])`).",
         "3. Process the remainder of the array dynamically. Adjust the existing sum strictly by subtracting the element that exits the trailing boundary and adding the element entering the leading boundary.",
-        "4. Observe the performance trajectory fundamentally shifting to O(N) Linear Time constraints."
+        "4. Observe the performance trajectory fundamentally shifting to O(N) Linear Time constraints.",
+        "",
+        "Sample Outputs:",
+        "optimize_max_sum([2, 1, 5, 1, 3, 2], 3) → 9",
+        "optimize_max_sum([1, 9, -1, -2, 7, 3, -1, 2], 4) → 13",
+        "optimize_max_sum([5, 5, 5], 1) → 5"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -615,7 +720,7 @@
         { "call": "optimize_max_sum([2, 1, 5, 1, 3, 2], 3)", "expected": "9", "isHidden": false },
         { "call": "optimize_max_sum([1, 9, -1, -2, 7, 3, -1, 2], 4)", "expected": "13", "isHidden": false },
         { "call": "optimize_max_sum([5, 5, 5], 1)", "expected": "5", "isHidden": false },
-        { "call": "optimize_max_sum([1, 2], 3)", "expected": "0", "isHidden": false },
+        { "call": "optimize_max_sum([1, 2], 3)", "expected": "0", "isHidden": true },
         { "call": "optimize_max_sum([10, 20, 30, 40], 2)", "expected": "70", "isHidden": true }
       ]
     },
@@ -630,7 +735,12 @@
         "2. Eradicate the internal loop architecture. Initiate dynamic constraints managing `left` and `right` positioning independently.",
         "3. Configure the `right` pointer to aggregate sequential elements within a primary loop.",
         "4. Introduce an internal `while` sequence that strictly contracts the `left` pointer, pruning the subset only when parameters stabilize relative to the required target.",
-        "5. Document the runtime stabilizing at an optimized O(n)."
+        "5. Document the runtime stabilizing at an optimized O(n).",
+        "",
+        "Sample Outputs:",
+        "optimize_min_length(7, [2, 3, 1, 2, 4, 3]) → 2",
+        "optimize_min_length(4, [1, 4, 4]) → 1",
+        "optimize_min_length(11, [1, 1, 1, 1, 1, 1, 1, 1]) → 0"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -639,7 +749,7 @@
         { "call": "optimize_min_length(7, [2, 3, 1, 2, 4, 3])", "expected": "2", "isHidden": false },
         { "call": "optimize_min_length(4, [1, 4, 4])", "expected": "1", "isHidden": false },
         { "call": "optimize_min_length(11, [1, 1, 1, 1, 1, 1, 1, 1])", "expected": "0", "isHidden": false },
-        { "call": "optimize_min_length(10, [1, 2, 3, 4, 5])", "expected": "3", "isHidden": false },
+        { "call": "optimize_min_length(10, [1, 2, 3, 4, 5])", "expected": "3", "isHidden": true },
         { "call": "optimize_min_length(15, [1, 2, 3, 4, 5])", "expected": "5", "isHidden": true }
       ]
     },
@@ -653,7 +763,12 @@
         "1. Identify the mathematical inefficiency stemming from resetting internal traversal loops to check variable sums.",
         "2. Eliminate internal loops completely. Introduce a localized Hash Dictionary mapping initialized with `prefix_map = {0: 1}` to handle historical sum lookup.",
         "3. Implement standard sequential prefix sum aggregation. Instead of manual combination checks, apply standard algebra: check if the differential `(current_sum - target)` is already registered within the Hash Map.",
-        "4. Rapidly append mapped occurrences to your tracker, demonstrating the power of converting O(N^2) iteration into O(N) spatial processing."
+        "4. Rapidly append mapped occurrences to your tracker, demonstrating the power of converting O(N^2) iteration into O(N) spatial processing.",
+        "",
+        "Sample Outputs:",
+        "optimize_subarray_target([1, 1, 1], 2) → 2",
+        "optimize_subarray_target([1, 2, 3], 3) → 2",
+        "optimize_subarray_target([1, -1, 0], 0) → 3"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -662,7 +777,7 @@
         { "call": "optimize_subarray_target([1, 1, 1], 2)", "expected": "2", "isHidden": false },
         { "call": "optimize_subarray_target([1, 2, 3], 3)", "expected": "2", "isHidden": false },
         { "call": "optimize_subarray_target([1, -1, 0], 0)", "expected": "3", "isHidden": false },
-        { "call": "optimize_subarray_target([5, 5], 10)", "expected": "1", "isHidden": false },
+        { "call": "optimize_subarray_target([5, 5], 10)", "expected": "1", "isHidden": true },
         { "call": "optimize_subarray_target([10, 2, -2, -20, 10], -10)", "expected": "3", "isHidden": true }
       ]
     }

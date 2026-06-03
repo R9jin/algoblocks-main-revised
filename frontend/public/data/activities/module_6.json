@@ -16,18 +16,16 @@
         "7. Remove the inserted element to backtrack into alternative subset branches.",
         "",
         "Instructions:",
-        "1. Define the function `power_set(arr)`.",
-        "2. Initialize an empty list called `results`.",
-        "3. Create a helper function `backtrack(start, path)`.",
-        "4. Append a copy of `path` into `results`.",
-        "5. Use a loop from `start` to `len(arr)`.",
-        "6. Append `arr[i]` into `path`.",
-        "7. Call `backtrack(i + 1, path)`.",
-        "8. Remove the last element from `path`.",
-        "9. Return `results`.",
+        "1. Define the primary function `power_set(arr)` and instantiate an empty collection to aggregate `results`.",
+        "2. Formulate a recursive helper `backtrack(start, path)` designed to systematically capture the current state sequence into the results matrix.",
+        "3. Iterate dynamically through the array originating from the `start` index to progressively explore subsequent branches.",
+        "4. Push the current element to the path, execute a recursive dive targeting the next index, and subsequently backtrack by popping the element.",
+        "5. Return the fully populated `results` collection upon execution completion.",
         "",
-        "Sample Output:",
-        "power_set([1, 2]) → [[], [1], [1, 2], [2]]"
+        "Sample Outputs:",
+        "power_set([1, 2]) → [[], [1], [1, 2], [2]]",
+        "power_set([1]) → [[], [1]]",
+        "power_set([]) → [[]]"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -35,7 +33,7 @@
         { "call": "power_set([1, 2])", "expected": "[[], [1], [1, 2], [2]]", "isHidden": false },
         { "call": "power_set([1])", "expected": "[[], [1]]", "isHidden": false },
         { "call": "power_set([])", "expected": "[[]]", "isHidden": false },
-        { "call": "power_set([1, 2, 3])", "expected": "[[], [1], [1, 2], [1, 2, 3], [1, 3], [2], [2, 3], [3]]", "isHidden": false },
+        { "call": "power_set([1, 2, 3])", "expected": "[[], [1], [1, 2], [1, 2, 3], [1, 3], [2], [2, 3], [3]]", "isHidden": true },
         { "call": "power_set([0, 0])", "expected": "[[], [0], [0, 0], [0]]", "isHidden": true }
       ]
     },
@@ -55,18 +53,16 @@
         "7. Remove the inserted number to backtrack.",
         "",
         "Instructions:",
-        "1. Define the function `combinations(n, k)`.",
-        "2. Initialize an empty list called `results`.",
-        "3. Create a helper function `backtrack(start, path)`.",
-        "4. If `len(path) == k`, append a copy of `path` into `results` and return.",
-        "5. Use a loop from `start` to `n` inclusive.",
-        "6. Append the current number into `path`.",
-        "7. Call `backtrack(i + 1, path)`.",
-        "8. Remove the last element from `path`.",
-        "9. Return `results`.",
+        "1. Define `combinations(n, k)` alongside an empty `results` array.",
+        "2. Implement a recursive `backtrack(start, path)` that immediately archives the `path` and terminates the branch if its spatial length perfectly matches `k`.",
+        "3. Loop sequentially through potential integer candidates spanning from `start` up to `n` inclusive.",
+        "4. Append the selected integer to the active sequence, and trigger the recursive step progressing to the next valid numeric candidate.",
+        "5. Execute structural backtracking by ejecting the most recent element before finalizing the function's return state.",
         "",
-        "Sample Output:",
-        "combinations(3, 2) → [[1, 2], [1, 3], [2, 3]]"
+        "Sample Outputs:",
+        "combinations(3, 2) → [[1, 2], [1, 3], [2, 3]]",
+        "combinations(4, 1) → [[1], [2], [3], [4]]",
+        "combinations(2, 2) → [[1, 2]]"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -74,7 +70,7 @@
         { "call": "combinations(3, 2)", "expected": "[[1, 2], [1, 3], [2, 3]]", "isHidden": false },
         { "call": "combinations(4, 1)", "expected": "[[1], [2], [3], [4]]", "isHidden": false },
         { "call": "combinations(2, 2)", "expected": "[[1, 2]]", "isHidden": false },
-        { "call": "combinations(1, 1)", "expected": "[[1]]", "isHidden": false },
+        { "call": "combinations(1, 1)", "expected": "[[1]]", "isHidden": true },
         { "call": "combinations(4, 3)", "expected": "[[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]", "isHidden": true }
       ]
     },
@@ -95,19 +91,17 @@
         "8. Remove the inserted value to backtrack.",
         "",
         "Instructions:",
-        "1. Define the function `combination_sum(arr, target)`.",
-        "2. Initialize an empty list called `results`.",
-        "3. Create a helper function `backtrack(start, remaining, path)`.",
-        "4. If `remaining == 0`, append a copy of `path` into `results` and return.",
-        "5. If `remaining < 0`, return immediately.",
-        "6. Use a loop from `start` to `len(arr)`.",
-        "7. Append `arr[i]` into `path`.",
-        "8. Call `backtrack(i, remaining - arr[i], path)`.",
-        "9. Remove the last element from `path`.",
-        "10. Return `results`.",
+        "1. Define `combination_sum(arr, target)` and initialize a `results` array to store valid target deductions.",
+        "2. Construct `backtrack(start, remaining, path)` to navigate the deduction tree systematically.",
+        "3. Enforce terminal conditions: archive the sequence if `remaining == 0`, or violently abort the branch if `remaining < 0`.",
+        "4. Iterate over the remaining elements starting from the active index to allow targeted repeated variable selection.",
+        "5. Recursively dive with the updated `remaining` computation while maintaining the exact same index footprint.",
+        "6. Revert the environmental state upon return to facilitate alternative pathway exploration.",
         "",
-        "Sample Output:",
-        "combination_sum([2, 3, 6, 7], 7) → [[2, 2, 3], [7]]"
+        "Sample Outputs:",
+        "combination_sum([2, 3, 6, 7], 7) → [[2, 2, 3], [7]]",
+        "combination_sum([2, 3, 5], 8) → [[2, 2, 2, 2], [2, 3, 3], [3, 5]]",
+        "combination_sum([2], 1) → []"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -115,7 +109,7 @@
         { "call": "combination_sum([2, 3, 6, 7], 7)", "expected": "[[2, 2, 3], [7]]", "isHidden": false },
         { "call": "combination_sum([2, 3, 5], 8)", "expected": "[[2, 2, 2, 2], [2, 3, 3], [3, 5]]", "isHidden": false },
         { "call": "combination_sum([2], 1)", "expected": "[]", "isHidden": false },
-        { "call": "combination_sum([1], 2)", "expected": "[[1, 1]]", "isHidden": false },
+        { "call": "combination_sum([1], 2)", "expected": "[[1, 1]]", "isHidden": true },
         { "call": "combination_sum([2, 4], 6)", "expected": "[[2, 2, 2], [2, 4]]", "isHidden": true }
       ]
     },
@@ -132,16 +126,17 @@
         "4. Add a closing bracket only if the closed count is less than the open count.",
         "",
         "Instructions:",
-        "1. Define the function `generate_parentheses(n)`.",
-        "2. Initialize an empty list called `results`.",
-        "3. Create a helper function `backtrack(path, open_count, close_count)`.",
-        "4. If `len(path) == n * 2`, append `path` into `results`.",
-        "5. If `open_count < n`, call recursion with an added `'('`.",
-        "6. If `close_count < open_count`, call recursion with an added `')'`.",
-        "7. Return `results`.",
+        "1. Define `generate_parentheses(n)` to orchestrate lexical sequence building and aggregate a `results` array.",
+        "2. Implement `backtrack(path, open_count, close_count)` to rigorously monitor structural validity rules.",
+        "3. Establish the primary recursive base case: archive the built string when its combined length identically equals `2 * n`.",
+        "4. Conditionally branch to append an opening bracket strictly if the current open count remains beneath the `n` ceiling.",
+        "5. Conditionally branch to append a closing bracket solely when the closed count tracks behind the open count.",
+        "6. Return the comprehensive `results` compilation encompassing all valid architectural permutations.",
         "",
-        "Sample Output:",
-        "generate_parentheses(2) → ['(())', '()()']"
+        "Sample Outputs:",
+        "generate_parentheses(2) → ['(())', '()()']",
+        "generate_parentheses(1) → ['()']",
+        "generate_parentheses(3) → ['((()))', '(()())', '(())()', '()(())', '()()()']"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -149,7 +144,7 @@
         { "call": "generate_parentheses(2)", "expected": "['(())', '()()']", "isHidden": false },
         { "call": "generate_parentheses(1)", "expected": "['()']", "isHidden": false },
         { "call": "generate_parentheses(3)", "expected": "['((()))', '(()())', '(())()', '()(())', '()()()']", "isHidden": false },
-        { "call": "generate_parentheses(0)", "expected": "['']", "isHidden": false },
+        { "call": "generate_parentheses(0)", "expected": "['']", "isHidden": true },
         { "call": "generate_parentheses(4)", "expected": "['(((())))', '((()()))', '((())())', '((()))()', '(()(()))', '(()()())', '(()())()', '(())(())', '(())()()', '()((()))', '()(()())', '()(())()', '()()(())', '()()()()']", "isHidden": true }
       ]
     },
@@ -167,18 +162,17 @@
         "5. Recursively branch using every available character.",
         "",
         "Instructions:",
-        "1. Define the function `letter_combinations(digits)`.",
-        "2. Return an empty list if the input string is empty.",
-        "3. Create a digit mapping dictionary for digits `2` through `9`.",
-        "4. Initialize an empty list called `results`.",
-        "5. Create a helper function `backtrack(index, path)`.",
-        "6. If `index == len(digits)`, append `path` into `results`.",
-        "7. Iterate through every letter mapped to the current digit.",
-        "8. Call recursion using the next index and updated string.",
-        "9. Return `results`.",
+        "1. Define `letter_combinations(digits)` and mandate an immediate fallback returning an empty list if the input structure is void.",
+        "2. Instantiate a comprehensive lexical dictionary securely mapping numeric characters `2` through `9` to their designated string sets.",
+        "3. Construct `backtrack(index, path)` to systematically evaluate the mapped character dependencies.",
+        "4. Set a termination condition to store the unified sequence once the sequence length optimally mirrors the original digit length.",
+        "5. Iterate dynamically through every targetable character tied to the active numerical digit.",
+        "6. Execute parallel recursive branching utilizing the subsequent spatial index to finalize the output array.",
         "",
-        "Sample Output:",
-        "letter_combinations('23') → ['ad', 'ae', 'af', 'bd', 'be', 'bf', 'cd', 'ce', 'cf']"
+        "Sample Outputs:",
+        "letter_combinations('23') → ['ad', 'ae', 'af', 'bd', 'be', 'bf', 'cd', 'ce', 'cf']",
+        "letter_combinations('') → []",
+        "letter_combinations('2') → ['a', 'b', 'c']"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -186,7 +180,7 @@
         { "call": "letter_combinations('23')", "expected": "['ad', 'ae', 'af', 'bd', 'be', 'bf', 'cd', 'ce', 'cf']", "isHidden": false },
         { "call": "letter_combinations('')", "expected": "[]", "isHidden": false },
         { "call": "letter_combinations('2')", "expected": "['a', 'b', 'c']", "isHidden": false },
-        { "call": "letter_combinations('7')", "expected": "['p', 'q', 'r', 's']", "isHidden": false },
+        { "call": "letter_combinations('7')", "expected": "['p', 'q', 'r', 's']", "isHidden": true },
         { "call": "letter_combinations('99')", "expected": "['ww', 'wx', 'wy', 'wz', 'xw', 'xx', 'xy', 'xz', 'yw', 'yx', 'yy', 'yz', 'zw', 'zx', 'zy', 'zz']", "isHidden": true }
       ]
     }
@@ -209,19 +203,16 @@
         "8. Remove the inserted value to backtrack.",
         "",
         "Instructions:",
-        "1. Define the function `permutations(arr)`.",
-        "2. Initialize an empty list called `results`.",
-        "3. Create a helper function `backtrack(path)`.",
-        "4. If `len(path) == len(arr)`, append a copy of `path` into `results`.",
-        "5. Iterate through every element in `arr`.",
-        "6. Skip the element if it already exists in `path`.",
-        "7. Append the element into `path`.",
-        "8. Call `backtrack(path)` recursively.",
-        "9. Remove the last element from `path`.",
-        "10. Return `results`.",
+        "1. Define `permutations(arr)` and formulate an empty skeletal array to capture valid elemental orderings.",
+        "2. Develop `backtrack(path)` to sequentially build unrestricted positional sequences.",
+        "3. Isolate the base condition: physically archive a duplication of the path once its spatial array length matches the origin array.",
+        "4. Iterate indiscriminately over the origin elements, rigorously bypassing values currently active within the path array.",
+        "5. Append viable elements, execute the recursive dive to establish the ensuing sequence state, and actively retract the placement to ensure environment safety.",
         "",
-        "Sample Output:",
-        "permutations([1, 2]) → [[1, 2], [2, 1]]"
+        "Sample Outputs:",
+        "permutations([1, 2, 3]) → [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]",
+        "permutations([0, 1]) → [[0, 1], [1, 0]]",
+        "permutations([1]) → [[1]]"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -229,7 +220,7 @@
         { "call": "permutations([1, 2, 3])", "expected": "[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]", "isHidden": false },
         { "call": "permutations([0, 1])", "expected": "[[0, 1], [1, 0]]", "isHidden": false },
         { "call": "permutations([1])", "expected": "[[1]]", "isHidden": false },
-        { "call": "permutations([])", "expected": "[[]]", "isHidden": false },
+        { "call": "permutations([])", "expected": "[[]]", "isHidden": true },
         { "call": "permutations([4, 5])", "expected": "[[4, 5], [5, 4]]", "isHidden": true }
       ]
     },
@@ -250,22 +241,17 @@
         "8. Remove the value and reset visited status during backtracking.",
         "",
         "Instructions:",
-        "1. Define the function `unique_permutations(arr)`.",
-        "2. Sort the array using `arr.sort()`.",
-        "3. Create a visited list initialized with `False` values.",
-        "4. Initialize an empty list called `results`.",
-        "5. Create a helper function `backtrack(path)`.",
-        "6. If `len(path) == len(arr)`, append a copy of `path` into `results`.",
-        "7. Iterate through array indices.",
-        "8. Skip visited indices.",
-        "9. Skip duplicate values using pruning logic.",
-        "10. Mark the index visited and append the value.",
-        "11. Recursively continue exploration.",
-        "12. Remove the value and reset visited status.",
-        "13. Return `results`.",
+        "1. Define `unique_permutations(arr)` and apply an immediate sort function to structurally cluster localized duplicates.",
+        "2. Initialize an overarching boolean memory array to meticulously log independent index visitations.",
+        "3. Construct `backtrack(path)`, enforcing a terminal save state identical to standard permutation bounds.",
+        "4. Loop through array indices, proactively pruning branches where identical contiguous values lack a preceding active visitation marker.",
+        "5. Flag the corresponding index as visited, insert the target sequence value, and recursively push the sequence branch downward.",
+        "6. Execute an absolute state rollback post-recursion by explicitly unmarking the tracked index and popping the tail value.",
         "",
-        "Sample Output:",
-        "unique_permutations([1, 1, 2]) → [[1, 1, 2], [1, 2, 1], [2, 1, 1]]"
+        "Sample Outputs:",
+        "unique_permutations([1, 1, 2]) → [[1, 1, 2], [1, 2, 1], [2, 1, 1]]",
+        "unique_permutations([1, 2]) → [[1, 2], [2, 1]]",
+        "unique_permutations([3, 3]) → [[3, 3]]"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -273,7 +259,7 @@
         { "call": "unique_permutations([1, 1, 2])", "expected": "[[1, 1, 2], [1, 2, 1], [2, 1, 1]]", "isHidden": false },
         { "call": "unique_permutations([1, 2])", "expected": "[[1, 2], [2, 1]]", "isHidden": false },
         { "call": "unique_permutations([3, 3])", "expected": "[[3, 3]]", "isHidden": false },
-        { "call": "unique_permutations([1])", "expected": "[[1]]", "isHidden": false },
+        { "call": "unique_permutations([1])", "expected": "[[1]]", "isHidden": true },
         { "call": "unique_permutations([2, 2, 2])", "expected": "[[2, 2, 2]]", "isHidden": true }
       ]
     },
@@ -294,20 +280,17 @@
         "8. Remove the inserted value during backtracking.",
         "",
         "Instructions:",
-        "1. Define the function `subsets_with_duplicates(arr)`.",
-        "2. Sort the array using `arr.sort()`.",
-        "3. Initialize an empty list called `results`.",
-        "4. Create a helper function `backtrack(start, path)`.",
-        "5. Append a copy of `path` into `results`.",
-        "6. Use a loop from `start` to `len(arr)`.",
-        "7. Skip duplicate values using pruning logic.",
-        "8. Append the current value into `path`.",
-        "9. Call `backtrack(i + 1, path)`.",
-        "10. Remove the last element from `path`.",
-        "11. Return `results`.",
+        "1. Define `subsets_with_duplicates(arr)` and strictly enforce an initial array sort to homogenize repeated value groupings.",
+        "2. Formulate the `backtrack(start, path)` framework to continuously archive intermediate sub-states identically into the matrix structure.",
+        "3. Loop sequentially through the trailing element indices originating dynamically from the `start` parameter.",
+        "4. Implement definitive subset pruning: algorithmically bypass any element flawlessly mirroring its immediate predecessor at the exact same recursive depth.",
+        "5. Ingest the validated, unique element and plunge the recursive engine targeting the subsequent index parameter.",
+        "6. Conduct the standardized backtracking item ejection sequence before fulfilling the ultimate return logic.",
         "",
-        "Sample Output:",
-        "subsets_with_duplicates([1, 2, 2]) → [[], [1], [1, 2], [1, 2, 2], [2], [2, 2]]"
+        "Sample Outputs:",
+        "subsets_with_duplicates([1, 2, 2]) → [[], [1], [1, 2], [1, 2, 2], [2], [2, 2]]",
+        "subsets_with_duplicates([0]) → [[], [0]]",
+        "subsets_with_duplicates([1, 1]) → [[], [1], [1, 1]]"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -315,7 +298,7 @@
         { "call": "subsets_with_duplicates([1, 2, 2])", "expected": "[[], [1], [1, 2], [1, 2, 2], [2], [2, 2]]", "isHidden": false },
         { "call": "subsets_with_duplicates([0])", "expected": "[[], [0]]", "isHidden": false },
         { "call": "subsets_with_duplicates([1, 1])", "expected": "[[], [1], [1, 1]]", "isHidden": false },
-        { "call": "subsets_with_duplicates([])", "expected": "[[]]", "isHidden": false },
+        { "call": "subsets_with_duplicates([])", "expected": "[[]]", "isHidden": true },
         { "call": "subsets_with_duplicates([4, 4, 4, 1, 4])", "expected": "[[], [1], [1, 4], [1, 4, 4], [1, 4, 4, 4], [1, 4, 4, 4, 4], [4], [4, 4], [4, 4, 4], [4, 4, 4, 4]]", "isHidden": true }
       ]
     },
@@ -336,20 +319,17 @@
         "8. Remove the inserted substring during backtracking.",
         "",
         "Instructions:",
-        "1. Define the function `palindrome_partitioning(s)`.",
-        "2. Create a helper function `is_palindrome(sub)`.",
-        "3. Initialize an empty list called `results`.",
-        "4. Create a helper function `backtrack(start, path)`.",
-        "5. If `start == len(s)`, append a copy of `path` into `results`.",
-        "6. Use a loop from `start` to `len(s)`.",
-        "7. Extract substrings using slicing.",
-        "8. If the substring is a palindrome, append it into `path`.",
-        "9. Call recursion using the next index.",
-        "10. Remove the last substring from `path`.",
-        "11. Return `results`.",
+        "1. Define `palindrome_partitioning(s)` alongside an isolated boolean verification helper named `is_palindrome(sub)`.",
+        "2. Implement the principal recursive engine `backtrack(start, path)` to calculate logical sequence partitions.",
+        "3. Establish the execution termination threshold: lock and store the full `path` explicitly once the `start` cursor exceeds string boundaries.",
+        "4. Systematically extract sequential substrings originating dynamically from the actively tracked `start` index variable.",
+        "5. If the extracted geometric segment withstands the palindrome verification protocol, assimilate it securely into the current partition vector.",
+        "6. Recurse forward immediately and subsequently retract the string segment to continuously test parallel branching pathways.",
         "",
-        "Sample Output:",
-        "palindrome_partitioning('aab') → [['a', 'a', 'b'], ['aa', 'b']]"
+        "Sample Outputs:",
+        "palindrome_partitioning('aab') → [['a', 'a', 'b'], ['aa', 'b']]",
+        "palindrome_partitioning('a') → [['a']]",
+        "palindrome_partitioning('ab') → [['a', 'b']]"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -357,7 +337,7 @@
         { "call": "palindrome_partitioning('aab')", "expected": "[['a', 'a', 'b'], ['aa', 'b']]", "isHidden": false },
         { "call": "palindrome_partitioning('a')", "expected": "[['a']]", "isHidden": false },
         { "call": "palindrome_partitioning('ab')", "expected": "[['a', 'b']]", "isHidden": false },
-        { "call": "palindrome_partitioning('aba')", "expected": "[['a', 'b', 'a'], ['aba']]", "isHidden": false },
+        { "call": "palindrome_partitioning('aba')", "expected": "[['a', 'b', 'a'], ['aba']]", "isHidden": true },
         { "call": "palindrome_partitioning('racecar')", "expected": "[['r', 'a', 'c', 'e', 'c', 'a', 'r'], ['r', 'a', 'cec', 'a', 'r'], ['r', 'aceca', 'r'], ['racecar']]", "isHidden": true }
       ]
     },
@@ -377,17 +357,17 @@
         "7. Return False if no valid segmentation exists.",
         "",
         "Instructions:",
-        "1. Define the function `word_break(s, word_dict)`.",
-        "2. Convert `word_dict` into a set.",
-        "3. Create a helper function `backtrack(start)`.",
-        "4. If `start == len(s)`, return `True`.",
-        "5. Use a loop from `start + 1` to `len(s) + 1`.",
-        "6. Extract substrings using slicing.",
-        "7. If the substring exists in the set and recursion returns `True`, return `True`.",
-        "8. Return `False` if no valid path exists.",
+        "1. Define `word_break(s, word_dict)` and systematically convert the dictionary parameter into a localized `set` structure to guarantee O(1) query complexity.",
+        "2. Formulate `backtrack(start)` to aggressively orchestrate algorithmic segmentation across the provided string architecture.",
+        "3. Trigger an unconditional `True` return condition if the targeted progression cursor officially aligns with the terminal string length.",
+        "4. Extract progressing sequential substrings by iterating locally from `start + 1` cascading upward to the theoretical physical boundary.",
+        "5. Verify the substring's distinct presence within the set structure while simultaneously confirming a successful boolean outcome from the downstream recursive call.",
+        "6. Return `False` holistically if the function iteratively exhausts all indices without isolating a structurally functional segmentation trajectory.",
         "",
-        "Sample Output:",
-        "word_break('leetcode', ['leet', 'code']) → True"
+        "Sample Outputs:",
+        "word_break('leetcode', ['leet', 'code']) → True",
+        "word_break('applepenapple', ['apple', 'pen']) → True",
+        "word_break('catsandog', ['cats', 'dog', 'sand', 'and', 'cat']) → True"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
@@ -395,12 +375,12 @@
         { "call": "word_break('leetcode', ['leet', 'code'])", "expected": "True", "isHidden": false },
         { "call": "word_break('applepenapple', ['apple', 'pen'])", "expected": "True", "isHidden": false },
         { "call": "word_break('catsandog', ['cats', 'dog', 'sand', 'and', 'cat'])", "expected": "True", "isHidden": false },
-        { "call": "word_break('catsandog', ['cats', 'dog', 'sand', 'and'])", "expected": "False", "isHidden": false },
+        { "call": "word_break('catsandog', ['cats', 'dog', 'sand', 'and'])", "expected": "False", "isHidden": true },
         { "call": "word_break('aaaaaaa', ['aaaa', 'aaa'])", "expected": "True", "isHidden": true }
       ]
     }
   ],
-    "lesson_3": [
+  "lesson_3": [
     {
       "id": "m6_l3_a1",
       "title": "Constraint Protocols: Row/Column Validation",
@@ -413,10 +393,16 @@
         "3. Register boolean success solely if the value remains entirely absent from the pre-existing configuration.",
         "",
         "Instructions:",
-        "1. Define `safe_row_col(arr, value)`.",
-        "2. Execute a sequential validation assessing whether the `value` is present inside `arr`.",
-        "3. If the value exists, return `False`.",
-        "4. If the execution concludes without intercepting a duplicate, return `True`."
+        "1. Define `safe_row_col(arr, value)` to act as the primary environmental evaluation unit.",
+        "2. Initiate a sequential read across the provided historic placement array configuration.",
+        "3. Rigorously cross-reference the targeted `value` parameter against array elements to detect underlying spatial collisions.",
+        "4. Immediately return a `False` boolean state upon intercepting any identical pre-existing coordinate trace.",
+        "5. Yield a secure `True` validation if the scanning execution cleanly concludes without isolating an architectural conflict.",
+        "",
+        "Sample Outputs:",
+        "safe_row_col([0, 1], 1) → False",
+        "safe_row_col([0, 0], 1) → False",
+        "safe_row_col([1, 0], 1) → False"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -424,7 +410,7 @@
         { "call": "safe_row_col([0, 1], 1)", "expected": "False", "isHidden": false },
         { "call": "safe_row_col([0, 0], 1)", "expected": "False", "isHidden": false },
         { "call": "safe_row_col([1, 0], 1)", "expected": "False", "isHidden": false },
-        { "call": "safe_row_col([], 0)", "expected": "True", "isHidden": false },
+        { "call": "safe_row_col([], 0)", "expected": "True", "isHidden": true },
         { "call": "safe_row_col([0], 0)", "expected": "False", "isHidden": true }
       ]
     },
@@ -440,11 +426,16 @@
         "3. Output false upon any structural intersection.",
         "",
         "Instructions:",
-        "1. Define `safe_diagonal(arr)`.",
-        "2. Extract the length of the coordinate matrix.",
-        "3. Construct a nested loop to compare every unique coordinate pair within the array.",
-        "4. Apply the mathematical evaluation: `abs(r1 - r2) == abs(c1 - c2)`. If verified, return `False`.",
-        "5. Yield `True` if no coordinates breach the diagonal boundary constraint."
+        "1. Define `safe_diagonal(arr)` to strictly evaluate multi-directional matrix geometry overlaps.",
+        "2. Construct a comprehensive nested iteration logic to systematically compare every single unique spatial coordinate pair inside the log.",
+        "3. Apply the definitive absolute differential mathematical evaluation targeting rows and columns: `abs(r1 - r2) == abs(c1 - c2)`.",
+        "4. Yield an immediate `False` flag if the evaluation algorithm definitively confirms a catastrophic diagonal intersection path.",
+        "5. Return `True` solely if the coordinate matrix satisfies all theoretical boundary safety constraints.",
+        "",
+        "Sample Outputs:",
+        "safe_diagonal([[0, 1], [1, 0]]) → False",
+        "safe_diagonal([[0, 0], [0, 0]]) → True",
+        "safe_diagonal([[1, 0], [0, 1]]) → False"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
@@ -452,7 +443,7 @@
         { "call": "safe_diagonal([[0, 1], [1, 0]])", "expected": "False", "isHidden": false },
         { "call": "safe_diagonal([[0, 0], [0, 0]])", "expected": "True", "isHidden": false },
         { "call": "safe_diagonal([[1, 0], [0, 1]])", "expected": "False", "isHidden": false },
-        { "call": "safe_diagonal([[0, 0]])", "expected": "True", "isHidden": false },
+        { "call": "safe_diagonal([[0, 0]])", "expected": "True", "isHidden": true },
         { "call": "safe_diagonal([])", "expected": "True", "isHidden": true }
       ]
     },
@@ -469,11 +460,16 @@
         "4. Validate the outcome effectively reflects the untouched initial matrix.",
         "",
         "Instructions:",
-        "1. Define `simulate_placement(arr)`.",
-        "2. Verify the array holds data. If it is empty, return it unchanged.",
-        "3. Execute a standard append operation (e.g., adding `99`).",
-        "4. Execute a standard pop operation removing the terminal item.",
-        "5. Return the array."
+        "1. Define `simulate_placement(arr)` to scientifically test the core environmental tracking and reset logic.",
+        "2. Interrogate the structural integrity of the supplied array, returning it unmodified if the engine registers it as geometrically empty.",
+        "3. Introduce a standardized temporary dummy variable utilizing a basic underlying append mechanism to force a simulated state mutation.",
+        "4. Immediately execute the designated state rollback procedure by triggering a strict pop operation on the previously appended terminal variable.",
+        "5. Conclusively output the stabilized tracking array to confirm total environmental equilibrium has been securely restored.",
+        "",
+        "Sample Outputs:",
+        "simulate_placement([0, 0]) → [0, 0]",
+        "simulate_placement([1, 0]) → [1, 0]",
+        "simulate_placement([0, 1]) → [0, 1]"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -481,7 +477,7 @@
         { "call": "simulate_placement([0, 0])", "expected": "[0, 0]", "isHidden": false },
         { "call": "simulate_placement([1, 0])", "expected": "[1, 0]", "isHidden": false },
         { "call": "simulate_placement([0, 1])", "expected": "[0, 1]", "isHidden": false },
-        { "call": "simulate_placement([])", "expected": "[]", "isHidden": false },
+        { "call": "simulate_placement([])", "expected": "[]", "isHidden": true },
         { "call": "simulate_placement([1])", "expected": "[1]", "isHidden": true }
       ]
     },
@@ -497,11 +493,16 @@
         "3. Instantiate a two-dimensional grid spanning 'n' rows and 'n' columns, defaulting all elements to 0.",
         "",
         "Instructions:",
-        "1. Define `initialize_board(n)`.",
-        "2. Trap edge cases executing `if n <= 0: return []`.",
-        "3. Formulate the matrix utilizing nested list comprehensions or standard loops.",
-        "4. Guarantee the internal arrays explicitly measure `n` in geometric length and are populated solely with `0`.",
-        "5. Output the constructed board matrix."
+        "1. Define `initialize_board(n)` to orchestrate and formulate the foundational multi-dimensional evaluation blueprint.",
+        "2. Proactively trap critical calculation edge cases, forcefully returning a structurally empty matrix if the size parameter inherently satisfies `n <= 0`.",
+        "3. Instantiate an N x N geometric data structure utilizing standard high-level list comprehensions or robust iterative sequences.",
+        "4. Rigorously ensure every individual internal grid cell strictly defaults to a neutralized `0` value state.",
+        "5. Output the completed and comprehensively constructed two-dimensional grid blueprint.",
+        "",
+        "Sample Outputs:",
+        "initialize_board(2) → [[0, 0], [0, 0]]",
+        "initialize_board(1) → [[0]]",
+        "initialize_board(3) → [[0, 0, 0], [0, 0, 0], [0, 0, 0]]"
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
@@ -509,7 +510,7 @@
         { "call": "initialize_board(2)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
         { "call": "initialize_board(1)", "expected": "[[0]]", "isHidden": false },
         { "call": "initialize_board(3)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
-        { "call": "initialize_board(0)", "expected": "[]", "isHidden": false },
+        { "call": "initialize_board(0)", "expected": "[]", "isHidden": true },
         { "call": "initialize_board(-1)", "expected": "[]", "isHidden": true }
       ]
     },
@@ -526,13 +527,17 @@
         "4. Maintain a running tally returning the aggregate valid paths.",
         "",
         "Instructions:",
-        "1. Define `n_queens(n)`.",
-        "2. If `n <= 0`, return `0`.",
-        "3. Construct Hash Sets mapping `cols`, `pos_diag` (row + col), and `neg_diag` (row - col). Initialize `count = 0`.",
-        "4. Develop `backtrack(row)`.",
-        "5. If `row == n`, increment `count` and return.",
-        "6. Loop through columns, validate constraints, apply backtracking, and revert state.",
-        "7. Return `count`."
+        "1. Define `n_queens(n)` and initialize a localized `count` state variable alongside optimized hash sets mapping occupied `cols`, `pos_diag`, and `neg_diag`.",
+        "2. Construct the primary `backtrack(row)` functional framework specifically to isolate and process sequence variables incrementally.",
+        "3. Register an official mathematically valid configuration by actively incrementing the `count` integer strictly when `row == n`.",
+        "4. Loop iteratively across all targeted boundary columns to systematically assess physical placement viability against the active set constraints.",
+        "5. Overwrite the tracked spatial memory variables to simulate successful placement, systematically step the recursive engine forward, and rigorously retract the variables to enforce pure structural backtracking.",
+        "6. Return the finalized and aggregated valid sequence pathway total output parameter.",
+        "",
+        "Sample Outputs:",
+        "n_queens(4) → 2",
+        "n_queens(5) → 10",
+        "n_queens(1) → 1"
       ],
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
@@ -540,105 +545,11 @@
         { "call": "n_queens(4)", "expected": "2", "isHidden": false },
         { "call": "n_queens(5)", "expected": "10", "isHidden": false },
         { "call": "n_queens(1)", "expected": "1", "isHidden": false },
-        { "call": "n_queens(2)", "expected": "0", "isHidden": false },
+        { "call": "n_queens(2)", "expected": "0", "isHidden": true },
         { "call": "n_queens(-5)", "expected": "0", "isHidden": true }
       ]
     }
   ],
-  "lesson_1": [
-    {
-      "id": "m6_l1_a1",
-      "title": "Recursive State Generation: Binary Branches",
-      "task": [
-        "We need a foundational recursive engine capable of exploring a binary decision tree. The goal is to generate all possible binary strings of a specified length 'n'.",
-        "",
-        "Algorithm Requirements:",
-        "1. Initialize an array to warehouse the completed binary sequences.",
-        "2. Develop a recursive helper function that tracks the currently constructed string.",
-        "3. The base case must terminate the branch and save the sequence once the string length reaches 'n'.",
-        "4. During exploration, the function must branch twice: once appending '0' and once appending '1'.",
-        "",
-        "Instructions:",
-        "1. Define `generate_binary(n)`.",
-        "2. Handle edge cases: if `n <= 0`, return `[]`.",
-        "3. Setup the results collection and the recursive helper function.",
-        "4. Within the helper, write the base case to append the sequence when the target length is met.",
-        "5. Execute the recursive calls for both '0' and '1' pathways to explore the entire state space."
-      ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "generate_binary(2)", "expected": "['00', '01', '10', '11']", "isHidden": false },
-        { "call": "generate_binary(1)", "expected": "['0', '1']", "isHidden": false },
-        { "call": "generate_binary(3)", "expected": "['000', '001', '010', '011', '100', '101', '110', '111']", "isHidden": false },
-        { "call": "generate_binary(0)", "expected": "[]", "isHidden": false },
-        { "call": "generate_binary(-1)", "expected": "[]", "isHidden": true }
-      ]
-    }
-  ],
-
-  "lesson_2": [
-    {
-      "id": "m6_l2_a1",
-      "title": "State Inclusion/Exclusion: Generating Subsets",
-      "task": [
-        "The objective is to implement a comprehensive subset generator. The backtracking engine must autonomously process the inclusion and exclusion parameters of every dataset element to construct the Power Set.",
-        "",
-        "Algorithm Requirements:",
-        "1. Formulate a global array to persist the subset structures.",
-        "2. Design a recursive function managing the active array index and the ongoing subset.",
-        "3. Ensure every recursive cycle immediately captures a copy of the active subset.",
-        "4. Loop through remaining array bounds, pushing the element, executing recursion for the subsequent index, and popping the element to reset the state.",
-        "",
-        "Instructions:",
-        "1. Define `generate_subsets(arr)`.",
-        "2. Initialize `results = []` and the recursive helper function.",
-        "3. Inside the helper, unconditionally append a list copy of the current sequence.",
-        "4. Execute a loop from the active index to the array boundary.",
-        "5. Within the loop: append the item, invoke the helper advancing the index by 1, and pop the item to restore the environment."
-      ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "generate_subsets(['A', 'B'])", "expected": "[[], ['A'], ['A', 'B'], ['B']]", "isHidden": false },
-        { "call": "generate_subsets(['A'])", "expected": "[[], ['A']]", "isHidden": false },
-        { "call": "generate_subsets([])", "expected": "[[]]", "isHidden": false },
-        { "call": "generate_subsets([1, 2])", "expected": "[[], [1], [1, 2], [2]]", "isHidden": false },
-        { "call": "generate_subsets([None])", "expected": "[[], [None]]", "isHidden": true }
-      ]
-    }
-  ],
-
-  "lesson_3": [
-    {
-      "id": "m6_l3_a1",
-      "title": "Constraint Protocols: Row/Column Validation",
-      "task": [
-        "Within an N-Queens implementation, placing a variable necessitates rigorous environmental checks. The logic must determine whether the active configuration introduces a horizontal or vertical collision.",
-        "",
-        "Algorithm Requirements:",
-        "1. Evaluate the provided sequence array detailing previously placed variables.",
-        "2. Cross-reference the targeted placement value against the historic array.",
-        "3. Register boolean success solely if the value remains entirely absent from the pre-existing configuration.",
-        "",
-        "Instructions:",
-        "1. Define `safe_row_col(arr, value)`.",
-        "2. Execute a sequential validation assessing whether the `value` is present inside `arr`.",
-        "3. If the value exists, return `False`.",
-        "4. If the execution concludes without intercepting a duplicate, return `True`."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "testCasesPool": [
-        { "call": "safe_row_col([0, 1], 1)", "expected": "False", "isHidden": false },
-        { "call": "safe_row_col([0, 0], 1)", "expected": "False", "isHidden": false },
-        { "call": "safe_row_col([1, 0], 1)", "expected": "False", "isHidden": false },
-        { "call": "safe_row_col([], 0)", "expected": "True", "isHidden": false },
-        { "call": "safe_row_col([0], 0)", "expected": "False", "isHidden": true }
-      ]
-    }
-  ],
-
   "lesson_4": [
     {
       "id": "m6_l4_a1",
@@ -658,16 +569,14 @@
         "3. Ensure invalid inputs are safely rejected.",
         "",
         "Instructions:",
-        "1. Define `get_movement_delta(direction)`.",
-        "2. Use the following mapping logic:",
-        "   - U → (-1, 0)",
-        "   - D → (1, 0)",
-        "   - L → (0, -1)",
-        "   - R → (0, 1)",
-        "3. If input is not one of these, return `'invalid'`.",
+        "1. Define `get_movement_delta(direction)` to translate raw spatial string commands directly into normalized numeric shift tuples.",
+        "2. Methodically map the `'U'` and `'D'` directional inputs to their corresponding distinct vertical coordinate deltas of `(-1, 0)` and `(1, 0)`.",
+        "3. Methodically map the `'L'` and `'R'` lateral directional inputs strictly to their respective horizontal deltas representing `(0, -1)` and `(0, 1)`.",
+        "4. Establish a rigorous fallback validation protocol to strictly yield an `'invalid'` payload sequence for any unrecognized or rogue parameter string.",
         "",
-        "Sample Output:",
+        "Sample Outputs:",
         "get_movement_delta('U') → (-1, 0)",
+        "get_movement_delta('D') → (1, 0)",
         "get_movement_delta('L') → (0, -1)"
       ],
       "targetTime": "O(1)",
@@ -676,11 +585,10 @@
         { "call": "get_movement_delta('U')", "expected": "(-1, 0)", "isHidden": false },
         { "call": "get_movement_delta('D')", "expected": "(1, 0)", "isHidden": false },
         { "call": "get_movement_delta('L')", "expected": "(0, -1)", "isHidden": false },
-        { "call": "get_movement_delta('R')", "expected": "(0, 1)", "isHidden": false },
+        { "call": "get_movement_delta('R')", "expected": "(0, 1)", "isHidden": true },
         { "call": "get_movement_delta('X')", "expected": "'invalid'", "isHidden": true }
       ]
     },
-
     {
       "id": "m6_l4_a2",
       "title": "Grid Confinement: Boundary Check",
@@ -700,15 +608,15 @@
         "2. Reject any coordinate outside the grid range.",
         "",
         "Instructions:",
-        "1. Define `is_within_bounds(r, c, n)`.",
-        "2. Check both conditions:",
-        "   - r is between 0 and n-1",
-        "   - c is between 0 and n-1",
-        "3. Return True only if both conditions pass.",
+        "1. Define the boolean evaluation tool `is_within_bounds(r, c, n)` to proactively manage stringent spatial grid geometric confinement limits.",
+        "2. Execute a continuous horizontal bounds evaluation guaranteeing the targeted `c` column metric persistently remains bounded strictly between `0` and `n-1`.",
+        "3. Execute a parallel vertical boundary calculation explicitly ensuring the targeted `r` row strictly adheres securely to the parallel `0` to `n-1` spatial scope range.",
+        "4. Formulate the primary execution return strictly yielding a `True` classification solely if both isolated geographic mapping coordinates mathematically survive verification.",
         "",
-        "Sample Output:",
+        "Sample Outputs:",
         "is_within_bounds(0, 0, 5) → True",
-        "is_within_bounds(6, 1, 5) → False"
+        "is_within_bounds(2, 2, 5) → True",
+        "is_within_bounds(-1, 0, 5) → False"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -716,11 +624,10 @@
         { "call": "is_within_bounds(0, 0, 5)", "expected": "True", "isHidden": false },
         { "call": "is_within_bounds(2, 2, 5)", "expected": "True", "isHidden": false },
         { "call": "is_within_bounds(-1, 0, 5)", "expected": "False", "isHidden": false },
-        { "call": "is_within_bounds(0, -1, 5)", "expected": "False", "isHidden": false },
+        { "call": "is_within_bounds(0, -1, 5)", "expected": "False", "isHidden": true },
         { "call": "is_within_bounds(6, 6, 5)", "expected": "False", "isHidden": true }
       ]
     },
-
     {
       "id": "m6_l4_a3",
       "title": "Obstacle Detection: Wall Verification",
@@ -738,12 +645,15 @@
         "2. Anything else is considered walkable space.",
         "",
         "Instructions:",
-        "1. Define `is_wall(value)`.",
-        "2. Return True only if value equals 1.",
+        "1. Define `is_wall(value)` to robustly process real-time localized environmental grid obstacle detection parameters.",
+        "2. Evaluate the structurally targeted numeric internal grid cell specifically checking parameter equivalence against the globally recognized active wall barrier identifier (`1`).",
+        "3. Algorithmically sequence an absolute `True` boolean data output unconditionally triggered upon achieving a definitive, positive obstacle structure match.",
+        "4. Force a secure default fallback returning a generalized `False` output parameter applied evenly toward all supplementary values denoting naturally open navigable terrain space.",
         "",
-        "Sample Output:",
+        "Sample Outputs:",
         "is_wall(1) → True",
-        "is_wall(0) → False"
+        "is_wall(0) → False",
+        "is_wall(2) → False"
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -751,11 +661,10 @@
         { "call": "is_wall(1)", "expected": "True", "isHidden": false },
         { "call": "is_wall(0)", "expected": "False", "isHidden": false },
         { "call": "is_wall(2)", "expected": "False", "isHidden": false },
-        { "call": "is_wall(-1)", "expected": "False", "isHidden": false },
+        { "call": "is_wall(-1)", "expected": "False", "isHidden": true },
         { "call": "is_wall(None)", "expected": "False", "isHidden": true }
       ]
     },
-
     {
       "id": "m6_l4_a4",
       "title": "Algorithmic Logging: Path Tracking",
@@ -773,11 +682,14 @@
         "2. Return it exactly as received.",
         "",
         "Instructions:",
-        "1. Define `track_visited_path(arr)`.",
-        "2. Return the array directly without changes.",
+        "1. Define `track_visited_path(arr)` inherently engineered to function seamlessly as an entirely isolated read-only algorithmic node tracking and diagnostic logging sub-utility framework.",
+        "2. Safely ingest the structurally supplied operational traversal coordinate array explicitly without internally triggering, initializing, or otherwise engaging any cascading destructive data mutation subroutines.",
+        "3. Conclusively return the exact unadulterated pristine origin structural sequence array fundamentally identical to the received parameters designed implicitly to systematically validate exhaustive historical system traversals.",
         "",
-        "Sample Output:",
-        "track_visited_path([1, 2, 3]) → [1, 2, 3]"
+        "Sample Outputs:",
+        "track_visited_path([1, 2, 3]) → [1, 2, 3]",
+        "track_visited_path([1]) → [1]",
+        "track_visited_path([]) → []"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -785,11 +697,10 @@
         { "call": "track_visited_path([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
         { "call": "track_visited_path([1])", "expected": "[1]", "isHidden": false },
         { "call": "track_visited_path([])", "expected": "[]", "isHidden": false },
-        { "call": "track_visited_path([1, None])", "expected": "[1, None]", "isHidden": false },
+        { "call": "track_visited_path([1, None])", "expected": "[1, None]", "isHidden": true },
         { "call": "track_visited_path([None])", "expected": "[None]", "isHidden": true }
       ]
     },
-
     {
       "id": "m6_l4_a5",
       "title": "Comprehensive Engine: Rat in a Maze",
@@ -809,15 +720,16 @@
         "4. Each visited cell must not be revisited in the same path.",
         "",
         "Instructions:",
-        "1. Define `solve_maze(matrix)`.",
-        "2. If start or end is blocked, return False immediately.",
-        "3. Use recursion or stack-based exploration to traverse the grid.",
-        "4. Mark visited cells temporarily to avoid cycles.",
-        "5. If destination is reached, return True.",
+        "1. Define `solve_maze(matrix)` and enforce a crucial initial algorithmic rejection sequence, forcing an immediate boolean `False` termination if primary coordinate extremities specifically locating `(0,0)` or `(n-1,n-1)` strictly represent entirely impassable barrier walls.",
+        "2. Methodically construct a highly rigorous deep recursive or structurally iterative stack-driven grid navigation evaluation engine engineered expressly to algorithmically probe and validate sprawling potential internal grid environment pathways.",
+        "3. Unilaterally restrict tracked active node movement vectors exclusively confined to solely mapping the standardized four primary cardinal mapping directions continuously while thoroughly respecting predetermined geometric environmental obstacle configuration bounds.",
+        "4. Temporarily deliberately mutate localized tracked grid cells or dynamically allocate secondary mapped active memory states distinctly intended sequentially to completely suppress endless spiraling infinite redundant recursive cyclomatic tracking loops.",
+        "5. Finalize the deep navigational sequence implicitly concluding the framework by deliberately returning a generalized boolean `True` logic flag exactly if the primary evaluation iteration engine manages structurally successfully to entirely organically bridge continuous links bridging intersecting the starting and terminating tracking vertices.",
         "",
-        "Sample Output:",
-        "solve_maze([[1,0],[1,1]]) → True",
-        "solve_maze([[1,0],[0,1]]) → False"
+        "Sample Outputs:",
+        "solve_maze([[1, 0, 0, 0], [1, 1, 0, 1], [0, 1, 0, 0], [1, 1, 1, 1]]) → True",
+        "solve_maze([[1, 1], [0, 1]]) → True",
+        "solve_maze([[1, 0], [1, 0]]) → False"
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n^2)",
@@ -825,7 +737,7 @@
         { "call": "solve_maze([[1, 0, 0, 0], [1, 1, 0, 1], [0, 1, 0, 0], [1, 1, 1, 1]])", "expected": "True", "isHidden": false },
         { "call": "solve_maze([[1, 1], [0, 1]])", "expected": "True", "isHidden": false },
         { "call": "solve_maze([[1, 0], [1, 0]])", "expected": "False", "isHidden": false },
-        { "call": "solve_maze([[0, 1], [1, 1]])", "expected": "False", "isHidden": false },
+        { "call": "solve_maze([[0, 1], [1, 1]])", "expected": "False", "isHidden": true },
         { "call": "solve_maze([[1, 1, 1], [1, 0, 1], [1, 1, 1]])", "expected": "True", "isHidden": true }
       ]
     }
@@ -838,12 +750,14 @@
         "The current recursive knapsack engine repeatedly evaluates identical subproblems across different branches of the decision tree, resulting in exponential time complexity due to redundant state recomputation.",
         "",
         "Optimization Guidelines:",
-        "1. Identify repeated evaluations of identical states defined by index position and remaining capacity.",
-        "2. Introduce a persistent hash-based cache structure to store previously computed results.",
-        "3. Before executing any recursive computation, check whether the current state already exists in memory.",
-        "4. If a cached value exists, return it immediately without further recursion.",
-        "5. If no cached value exists, compute the result once, store it, and reuse it for all future identical states.",
-        "6. Ensure all unique state combinations are evaluated only once across the entire recursion tree."
+        "1. Identify redundant state evaluations and introduce a persistent hash-based cache.",
+        "2. Check the cache prior to recursive computation, returning stored results immediately.",
+        "3. Compute, store, and reuse results for unique states to ensure singular evaluation across the tree.",
+        "",
+        "Sample Outputs:",
+        "knapsack([10, 20, 30], [60, 100, 120], 50, 3) → 220",
+        "knapsack([1, 2, 3], [10, 15, 40], 6, 3) → 65",
+        "knapsack([5, 5, 5], [10, 20, 30], 4, 3) → 0"
       ],
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
@@ -852,11 +766,10 @@
         { "call": "knapsack([10, 20, 30], [60, 100, 120], 50, 3)", "expected": "220", "isHidden": false },
         { "call": "knapsack([1, 2, 3], [10, 15, 40], 6, 3)", "expected": "65", "isHidden": false },
         { "call": "knapsack([5, 5, 5], [10, 20, 30], 4, 3)", "expected": "0", "isHidden": false },
-        { "call": "knapsack([10], [50], 10, 1)", "expected": "50", "isHidden": false },
+        { "call": "knapsack([10], [50], 10, 1)", "expected": "50", "isHidden": true },
         { "call": "knapsack([], [], 50, 0)", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m6_opt_2",
       "title": "Optimization: Bottom-Up Tabulation (Coin Change)",
@@ -864,12 +777,14 @@
         "The current solution relies on recursive exploration of all possible coin combinations, which introduces redundant branching and deep call stack overhead.",
         "",
         "Optimization Guidelines:",
-        "1. Eliminate recursive branching and replace it with iterative state construction.",
-        "2. Define a structured DP array where each index represents a target amount.",
-        "3. Build solutions sequentially from the smallest subproblem upward.",
-        "4. Ensure each state is computed exactly once using previously computed results.",
-        "5. Prevent recalculation by enforcing strict iterative progression over the DP structure.",
-        "6. Maintain consistent reuse of earlier computed values to construct larger solutions."
+        "1. Replace recursive branching with a bottom-up structured DP array mapping target amounts.",
+        "2. Build solutions sequentially, ensuring each state is computed exactly once.",
+        "3. Reuse computed values to construct optimal larger solutions without deep call stack overhead.",
+        "",
+        "Sample Outputs:",
+        "coin_change([1, 2, 5], 11) → 3",
+        "coin_change([2], 3) → -1",
+        "coin_change([1], 0) → 0"
       ],
       "targetTime": "O(n * m)",
       "targetSpace": "O(n)",
@@ -878,11 +793,10 @@
         { "call": "coin_change([1, 2, 5], 11)", "expected": "3", "isHidden": false },
         { "call": "coin_change([2], 3)", "expected": "-1", "isHidden": false },
         { "call": "coin_change([1], 0)", "expected": "0", "isHidden": false },
-        { "call": "coin_change([1, 4, 5], 8)", "expected": "2", "isHidden": false },
+        { "call": "coin_change([1, 4, 5], 8)", "expected": "2", "isHidden": true },
         { "call": "coin_change([3, 5], 7)", "expected": "-1", "isHidden": true }
       ]
     },
-
     {
       "id": "m6_opt_3",
       "title": "Optimization: Dynamic 2D Matrix (LCS)",
@@ -890,12 +804,14 @@
         "The current approach recomputes overlapping subsequence comparisons across both strings, leading to exponential redundancy in state evaluation.",
         "",
         "Optimization Guidelines:",
-        "1. Identify overlapping subproblems caused by repeated prefix comparisons between both sequences.",
-        "2. Introduce a 2D matrix to store intermediate results for all prefix combinations.",
-        "3. Ensure each cell represents a unique subproblem defined by indices of both input strings.",
-        "4. Populate the matrix iteratively or recursively while reusing previously computed sub-results.",
-        "5. Avoid recomputation by always referencing stored values from adjacent solved states.",
-        "6. Derive the final solution directly from the completed matrix structure."
+        "1. Mitigate prefix comparison redundancy by introducing a 2D matrix for intermediate states.",
+        "2. Populate the matrix iteratively, reusing previously solved adjacent subproblems.",
+        "3. Derive the final solution directly from the constructed matrix bounds.",
+        "",
+        "Sample Outputs:",
+        "lcs('abcde', 'ace') → 3",
+        "lcs('abc', 'def') → 0",
+        "lcs('abc', 'abc') → 3"
       ],
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
@@ -904,11 +820,10 @@
         { "call": "lcs('abcde', 'ace')", "expected": "3", "isHidden": false },
         { "call": "lcs('abc', 'def')", "expected": "0", "isHidden": false },
         { "call": "lcs('abc', 'abc')", "expected": "3", "isHidden": false },
-        { "call": "lcs('a', 'a')", "expected": "1", "isHidden": false },
+        { "call": "lcs('a', 'a')", "expected": "1", "isHidden": true },
         { "call": "lcs('', 'abc')", "expected": "0", "isHidden": true }
       ]
     },
-
     {
       "id": "m6_opt_4",
       "title": "Optimization: Spatial Array Compression (Climbing Stairs)",
@@ -916,12 +831,14 @@
         "The current dynamic programming implementation stores full historical state arrays despite only requiring a constant number of previous states for computation.",
         "",
         "Optimization Guidelines:",
-        "1. Identify redundant storage of full DP history where only the last two computed values are required.",
-        "2. Remove full array-based storage and replace it with constant state tracking variables.",
-        "3. Update state iteratively by shifting previously computed values forward at each step.",
-        "4. Ensure that only the minimal necessary information is retained during computation.",
-        "5. Preserve correctness while eliminating unnecessary memory allocation.",
-        "6. Maintain dependency strictly on immediate prior computed states only."
+        "1. Identify full historical array storage and replace it with constant state tracking variables.",
+        "2. Update states iteratively by shifting necessary prior values forward.",
+        "3. Maintain memory strictly for immediate dependencies to optimize spatial complexity.",
+        "",
+        "Sample Outputs:",
+        "climb_stairs(2) → 2",
+        "climb_stairs(3) → 3",
+        "climb_stairs(1) → 1"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -930,7 +847,7 @@
         { "call": "climb_stairs(2)", "expected": "2", "isHidden": false },
         { "call": "climb_stairs(3)", "expected": "3", "isHidden": false },
         { "call": "climb_stairs(1)", "expected": "1", "isHidden": false },
-        { "call": "climb_stairs(5)", "expected": "8", "isHidden": false },
+        { "call": "climb_stairs(5)", "expected": "8", "isHidden": true },
         { "call": "climb_stairs(10)", "expected": "89", "isHidden": true }
       ]
     }
