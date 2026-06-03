@@ -1,709 +1,670 @@
 {
-  "module_4": {
-    "lesson_1": [
-      {
-        "id": "m4_l1_a1",
-        "title": "Largest Element Selection",
-        "task": [
-          "Greedy algorithms solve problems by making the best obvious choice at each step. To reach a target number as quickly as possible, the greedy choice is to pick the largest numbers first.",
-          "",
-          "Algorithm Steps:",
-          "1. Sort the array from largest to smallest (descending order).",
-          "2. Loop through the array. Add the current number to a `total` variable.",
-          "3. Save the number in a `result` list.",
-          "4. Stop the loop if your `total` is greater than or equal to the `target`.",
-          "5. Return the `result` list.",
-          "",
-          "Instructions:",
-          "1. Create the function `greedy_collect(arr, target)`.",
-          "2. Write the sorting and looping logic.",
-          "3. Check the Complexity tab. The sorting step gives this an O(n log n) Time Complexity.",
-          "",
-          "Sample Output:",
-          "greedy_collect([2, 8, 4, 5], 10) → [8, 5]"
-        ],
-        "targetTime": "O(n log n)",
-        "targetSpace": "O(n)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "greedy_collect([2, 8, 4, 5], 10)", "expected": "[8, 5]", "isHidden": false },
-          { "call": "greedy_collect([1, 10, 5, 20], 25)", "expected": "[20, 10]", "isHidden": false },
-          { "call": "greedy_collect([3, 3, 3], 6)", "expected": "[3, 3]", "isHidden": false },
-          { "call": "greedy_collect([100, 50, 10], 50)", "expected": "[100]", "isHidden": false },
-          { "call": "greedy_collect([1, 2, 3], 10)", "expected": "[3, 2, 1]", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m4_l1_a2",
-        "title": "Maximum Quantity Selection",
-        "task": [
-          "If your goal is to collect as many items as possible without going over a weight limit, the greedy choice changes. You must pick the smallest items first so you have room for more.",
-          "",
-          "Algorithm Steps:",
-          "1. Sort the array from smallest to largest (ascending order).",
-          "2. Loop through the array. For each item, subtract its value from your `capacity`.",
-          "3. Keep a `count` of how many items you successfully take.",
-          "4. If the next item is bigger than your remaining `capacity`, stop the loop.",
-          "5. Return the `count`.",
-          "",
-          "Instructions:",
-          "1. Create `max_elements(arr, capacity)`.",
-          "2. Sort the array and write the counting loop.",
-          "3. Return the maximum count of items you can fit.",
-          "",
-          "Sample Output:",
-          "max_elements([5, 2, 1, 8, 3], 7) → 3"
-        ],
-        "targetTime": "O(n log n)",
-        "targetSpace": "O(1)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "max_elements([5, 2, 1, 8, 3], 7)", "expected": "3", "isHidden": false },
-          { "call": "max_elements([10, 20, 30], 15)", "expected": "1", "isHidden": false },
-          { "call": "max_elements([1, 1, 1, 1], 4)", "expected": "4", "isHidden": false },
-          { "call": "max_elements([50, 40, 30], 10)", "expected": "0", "isHidden": false },
-          { "call": "max_elements([], 10)", "expected": "0", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m4_l1_a3",
-        "title": "Fractional Knapsack",
-        "task": [
-          "In the Fractional Knapsack problem, items have both a `value` and a `weight`. To get the most value out of your bag, the greedy trick is to sort items by their 'value-to-weight' ratio.",
-          "",
-          "Algorithm Steps:",
-          "1. Pair up the values and weights. Find the ratio (`value / weight`) for each item.",
-          "2. Sort the items from highest ratio to lowest ratio.",
-          "3. Loop through the items. If an item fits completely in the bag, take it all.",
-          "4. If it only partially fits, take whatever fraction fits: `(remaining capacity / weight) * value`, add it to your total, and stop.",
-          "",
-          "Instructions:",
-          "1. Create `fractional_knapsack(values, weights, capacity)`.",
-          "2. Sort by the ratio and write the greedy loop.",
-          "3. Return the total value as a decimal (float).",
-          "",
-          "Sample Output:",
-          "fractional_knapsack([60, 100, 120], [10, 20, 30], 50) → 240.0"
-        ],
-        "targetTime": "O(n log n)",
-        "targetSpace": "O(n)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "fractional_knapsack([60, 100, 120], [10, 20, 30], 50)", "expected": "240.0", "isHidden": false },
-          { "call": "fractional_knapsack([50, 40, 90, 120], [5, 20, 15, 30], 50)", "expected": "300.0", "isHidden": false },
-          { "call": "fractional_knapsack([10, 20, 30], [5, 10, 15], 10)", "expected": "20.0", "isHidden": false },
-          { "call": "fractional_knapsack([100], [50], 10)", "expected": "20.0", "isHidden": false },
-          { "call": "fractional_knapsack([], [], 50)", "expected": "0.0", "isHidden": false }
-        ]
-      }
-    ],
-    "lesson_2": [
-      {
-        "id": "m4_l2_a1",
-        "title": "Greedy Coin Dispenser",
-        "task": [
-          "The Coin Change problem asks you to give exact change using the fewest number of coins. For standard money (like USD or PHP), the greedy strategy works perfectly: always give the largest coin possible.",
-          "",
-          "Algorithm Steps:",
-          "1. Use a `coins` list sorted from largest to smallest (like `[25, 10, 5, 1]`).",
-          "2. Create an empty `result` list.",
-          "3. Loop through the coins. Use a `while` loop to check if the current coin is less than or equal to the remaining `amount`.",
-          "4. If it fits, add the coin to the `result` list and subtract its value from the `amount`.",
-          "",
-          "Instructions:",
-          "1. Create `coin_change_list(amount, coins)`.",
-          "2. Write the loops to subtract coins until the amount is zero.",
-          "3. Return the final list of coins.",
-          "",
-          "Sample Output:",
-          "coin_change_list(36, [25, 10, 5, 1]) → [25, 10, 1]"
-        ],
-        "targetTime": "O(amount)",
-        "targetSpace": "O(amount)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "coin_change_list(36, [25, 10, 5, 1])", "expected": "[25, 10, 1]", "isHidden": false },
-          { "call": "coin_change_list(47, [20, 10, 5, 1])", "expected": "[20, 20, 5, 1, 1]", "isHidden": false },
-          { "call": "coin_change_list(4, [10, 5, 1])", "expected": "[1, 1, 1, 1]", "isHidden": false },
-          { "call": "coin_change_list(0, [25, 10, 5, 1])", "expected": "[]", "isHidden": false },
-          { "call": "coin_change_list(10, [25, 10, 5])", "expected": "[10]", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m4_l2_a2",
-        "title": "Fast Minimum Coin Count",
-        "task": [
-          "Instead of making a list of coins, you can speed up the algorithm to just return the total *count* of coins. We can avoid slow subtraction by using division math.",
-          "",
-          "Algorithm Steps:",
-          "1. Create a `count` variable starting at `0`.",
-          "2. Loop through the `coins` array.",
-          "3. Use integer division (`total // coin`) to see exactly how many times the coin fits. Add this number to your `count`.",
-          "4. Update your total using the modulo operator (`total %= coin`) to find the leftover remainder.",
-          "5. Return the final `count`.",
-          "",
-          "Instructions:",
-          "1. Create `min_coin_count(total, coins)`.",
-          "2. Replace iterative subtraction with division and modulo math.",
-          "3. Notice how this changes the time limit to an ultra-fast O(n).",
-          "",
-          "Sample Output:",
-          "min_coin_count(47, [20, 10, 5, 1]) → 5"
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(1)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "min_coin_count(47, [20, 10, 5, 1])", "expected": "5", "isHidden": false },
-          { "call": "min_coin_count(36, [25, 10, 5, 1])", "expected": "3", "isHidden": false },
-          { "call": "min_coin_count(99, [50, 20, 10, 5, 1])", "expected": "6", "isHidden": false },
-          { "call": "min_coin_count(0, [10, 5, 1])", "expected": "0", "isHidden": false },
-          { "call": "min_coin_count(7, [10, 5, 1])", "expected": "3", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m4_l2_a3",
-        "title": "Exact Change Checker",
-        "task": [
-          "Sometimes, the greedy method fails if the coin values are weird (like 10, 5, and 2). Write a function to check if the greedy strategy actually reaches exactly zero.",
-          "",
-          "Algorithm Steps:",
-          "1. Run the same greedy math logic (division and modulo) against the target `total`.",
-          "2. After looping through all the coins, check the leftover remainder.",
-          "3. If the remainder is `0`, return `True`. If there is still money left over, return `False`.",
-          "",
-          "Instructions:",
-          "1. Create `can_make_change(total, coins)`.",
-          "2. Do not use any extra lists so the space complexity stays at O(1).",
-          "3. Return the True/False result.",
-          "",
-          "Sample Output:",
-          "can_make_change(13, [10, 5, 2]) → False"
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(1)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "can_make_change(13, [10, 5, 2])", "expected": "False", "isHidden": false },
-          { "call": "can_make_change(12, [10, 5, 1])", "expected": "True", "isHidden": false },
-          { "call": "can_make_change(7, [5, 3])", "expected": "False", "isHidden": false },
-          { "call": "can_make_change(20, [15, 10])", "expected": "False", "isHidden": false },
-          { "call": "can_make_change(0, [10, 5, 1])", "expected": "True", "isHidden": false }
-        ]
-      }
-    ],
-    "lesson_3": [
-      {
-        "id": "m4_l3_a1",
-        "title": "Sort Events by End Time",
-        "task": [
-          "The Activity Selection algorithm helps you attend the maximum number of events without scheduling conflicts. The greedy secret is to always pick the event that finishes the earliest. The first step is sorting.",
-          "",
-          "Algorithm Steps:",
-          "1. You will be given a list of events. Each event is a pair of numbers: `[start_time, end_time]`.",
-          "2. Sort the entire list based on the `end_time` (the number at index 1) from smallest to largest.",
-          "3. Return the sorted list.",
-          "",
-          "Instructions:",
-          "1. Create `sort_by_end(events)`.",
-          "2. Use Python's built-in sorting logic (like a `lambda` function) to target index `1`.",
-          "",
-          "Sample Output:",
-          "sort_by_end([[3, 5], [1, 4], [0, 6]]) → [[1, 4], [3, 5], [0, 6]]"
-        ],
-        "targetTime": "O(n log n)",
-        "targetSpace": "O(n)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "sort_by_end([[3, 5], [1, 4], [0, 6]])", "expected": "[[1, 4], [3, 5], [0, 6]]", "isHidden": false },
-          { "call": "sort_by_end([[5, 9], [1, 2], [3, 4]])", "expected": "[[1, 2], [3, 4], [5, 9]]", "isHidden": false },
-          { "call": "sort_by_end([[10, 20], [5, 15]])", "expected": "[[5, 15], [10, 20]]", "isHidden": false },
-          { "call": "sort_by_end([[1, 3]])", "expected": "[[1, 3]]", "isHidden": false },
-          { "call": "sort_by_end([])", "expected": "[]", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m4_l3_a2",
-        "title": "Activity Selection Scheduler",
-        "task": [
-          "Now implement the main greedy loop for Activity Selection. Since the events are already sorted by finish time, you just need to pick the ones that don't overlap.",
-          "",
-          "Algorithm Steps:",
-          "1. Create a `count` variable starting at `0`, and a `last_finish` variable starting at `-1`.",
-          "2. Loop through the pre-sorted `events`.",
-          "3. Check if the current event's `start` time is greater than or equal to `last_finish`. If it is, the event fits in your schedule!",
-          "4. Increase your `count` by 1, and update `last_finish` to be the current event's `end` time.",
-          "5. Return the total `count`.",
-          "",
-          "Instructions:",
-          "1. Create `max_events(events)`.",
-          "2. Write the O(n) loop to count the non-overlapping events.",
-          "",
-          "Sample Output:",
-          "max_events([[1, 4], [3, 5], [5, 7], [8, 9]]) → 3"
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(1)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "max_events([[1, 4], [3, 5], [5, 7], [8, 9]])", "expected": "3", "isHidden": false },
-          { "call": "max_events([[1, 2], [2, 3], [3, 4]])", "expected": "3", "isHidden": false },
-          { "call": "max_events([[1, 5], [2, 6], [3, 7]])", "expected": "1", "isHidden": false },
-          { "call": "max_events([[10, 20]])", "expected": "1", "isHidden": false },
-          { "call": "max_events([])", "expected": "0", "isHidden": false }
-        ]
-      }
-    ],
-    "optimizations": [
-      {
-        "id": "m4_opt_1",
-        "title": "Optimization: Fix the Loop Sorting Bug",
-        "task": [
-          "The starter code for `greedy_collect` gives the right answer, but it has a massive speed bug: it sorts the array inside the loop over and over again.",
-          "",
-          "Task Requirement:",
-          "Fix the code by moving the sorting step outside of the loop. This will drop the time complexity down to a much faster O(n log n).",
-          "",
-          "Optimization Guidelines:",
-          "1. Look at the Complexity tab to see the slow O(n² log n) Time result. This is caused by running `sorted(arr)` during every single loop cycle.",
-          "2. Move the sorting code so it only runs once, before the loop starts.",
-          "3. Change the `for item in arr:` loop so it reads from your new, pre-sorted list instead.",
-          "4. Check the analyzer again to make sure the Global Time changes to O(n log n)."
-        ],
-        "targetTime": "O(n log n)",
-        "targetSpace": "O(n)",
-        "templateUrl": "/data/optimizations/m4-4.1.json",
-        "testCasesPool": [
-          { "call": "greedy_collect([5, 2, 8, 1], 10)", "expected": "[1, 2, 5, 8]", "isHidden": false },
-          { "call": "greedy_collect([10, 50, 20], 30)", "expected": "[10, 20]", "isHidden": false },
-          { "call": "greedy_collect([3, 3, 3], 5)", "expected": "[3, 3]", "isHidden": false },
-          { "call": "greedy_collect([100], 50)", "expected": "[100]", "isHidden": false },
-          { "call": "greedy_collect([], 10)", "expected": "[]", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m4_opt_2",
-        "title": "Optimization: Use Fast Math, Not Loops",
-        "task": [
-          "The starter `get_coins` algorithm uses a `while` loop to subtract coin values one by one. If you need to give $1,000,000 in $1 coins, that loop will run a million times, which is too slow.",
-          "",
-          "Task Requirement:",
-          "Rewrite the code to use division (`//`) and modulo (`%`) math instead of the slow `while` loop. This guarantees an ultra-fast O(n) Time Complexity.",
-          "",
-          "Optimization Guidelines:",
-          "1. Look at the code and delete the `while total >= coin:` loop completely.",
-          "2. Inside the main `for` loop, use floor division (`total // coin`) to find out exactly how many coins fit, and add that number to `count`.",
-          "3. Use the modulo operator (`total % coin`) to update the leftover `total` balance.",
-          "4. Check the analyzer to ensure the code now runs in strict O(n) time."
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(1)",
-        "templateUrl": "/data/optimizations/m4-4.2.json",
-        "testCasesPool": [
-          { "call": "get_coins(36, [25, 10, 5, 1])", "expected": "3", "isHidden": false },
-          { "call": "get_coins(47, [20, 10, 5, 1])", "expected": "5", "isHidden": false },
-          { "call": "get_coins(99, [50, 25, 10, 5, 1])", "expected": "8", "isHidden": false },
-          { "call": "get_coins(0, [10, 5, 1])", "expected": "0", "isHidden": false },
-          { "call": "get_coins(8, [10, 5, 1])", "expected": "4", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m4_opt_3",
-        "title": "Optimization: Switch to Greedy Scheduling",
-        "task": [
-          "The starter `schedule_events` function uses basic recursion to test every possible combination of 'taking' or 'skipping' an event. This O(2ⁿ) approach will crash the program on large datasets.",
-          "",
-          "Task Requirement:",
-          "Delete the recursive code entirely. Solve the problem using the Greedy Activity Selection method (sorting by end time) to make the code run in O(n log n) time.",
-          "",
-          "Optimization Guidelines:",
-          "1. Remove all the recursive `schedule_events()` calls, `skip`/`take` variables, and the `idx` parameter.",
-          "2. Add a step to sort the `events` list by their finish time.",
-          "3. Create simple tracking variables like `count = 0` and `last_finish = -1`.",
-          "4. Write a simple `for` loop to go through the sorted events. If an event's start time is `>= last_finish`, increase your count and update `last_finish`.",
-          "5. Verify that the dynamic analyzer changes the Time Complexity from Exponential down to O(n log n)."
-        ],
-        "targetTime": "O(n log n)",
-        "targetSpace": "O(1)",
-        "templateUrl": "/data/optimizations/m4-4.3.json",
-        "testCasesPool": [
-          { "call": "schedule_events([[1, 4], [3, 5], [0, 6], [5, 7], [3, 9], [5, 9], [6, 10], [8, 11]], 0, 0)", "expected": "4", "isHidden": false },
-          { "call": "schedule_events([[1, 2], [2, 3], [3, 4]], 0, 0)", "expected": "3", "isHidden": false },
-          { "call": "schedule_events([[10, 20], [5, 15]], 0, 0)", "expected": "1", "isHidden": false },
-          { "call": "schedule_events([[1, 5], [2, 6], [3, 7], [4, 8]], 0, 0)", "expected": "1", "isHidden": false },
-          { "call": "schedule_events([], 0, 0)", "expected": "0", "isHidden": false }
-        ]
-      }
-    ]
-  },
-  "module_5": {
-    "lesson_1": [
-      {
-        "id": "m5_l1_a1",
-        "title": "Top-Down Cache (Memoization)",
-        "task": [
-          "Dynamic Programming speeds up code by saving answers you already figured out. The top-down method (Memoization) uses a dictionary (a cache) to remember answers so the computer doesn't do the same math twice.",
-          "",
-          "Algorithm Steps:",
-          "1. Receive a number `n` and a dictionary called `cache`.",
-          "2. Check if `n` is already saved as a key in the `cache`. If it is, return the saved answer immediately.",
-          "3. If it is not in the cache, calculate the answer (for this exercise, just do `n * 2`).",
-          "4. Save the calculated answer into `cache[n]` and return it.",
-          "",
-          "Instructions:",
-          "1. Create `memoized_calc(n, cache)`.",
-          "2. Write the `if/else` logic to check the dictionary before doing any math.",
-          "3. Skipping repeated math makes the time complexity a super-fast O(1).",
-          "",
-          "Sample Output:",
-          "memoized_calc(5, {5: 10}) → 10"
-        ],
-        "targetTime": "O(1)",
-        "targetSpace": "O(1)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "memoized_calc(5, {5: 10})", "expected": "10", "isHidden": false },
-          { "call": "memoized_calc(4, {})", "expected": "8", "isHidden": false },
-          { "call": "memoized_calc(10, {10: 20})", "expected": "20", "isHidden": false },
-          { "call": "memoized_calc(0, {})", "expected": "0", "isHidden": false },
-          { "call": "memoized_calc(7, {7: 14})", "expected": "14", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m5_l1_a2",
-        "title": "Bottom-Up List (Tabulation)",
-        "task": [
-          "The bottom-up method (Tabulation) builds a list (or table) starting from the smallest problem all the way up to the final answer `n`.",
-          "",
-          "Algorithm Steps:",
-          "1. Given a number `n`, create a list named `dp`. Make its size `n + 1` and fill it completely with `0`s.",
-          "2. Set your starting base case by changing the value at index 1 to 1: `dp[1] = 1`.",
-          "3. Return the new `dp` list.",
-          "",
-          "Instructions:",
-          "1. Create `init_dp_table(n)`.",
-          "2. Use list math (like `[0] * (n + 1)`) to quickly build the table.",
-          "3. Set index 1 and return the list. Creating this list takes O(n) time and O(n) space.",
-          "",
-          "Sample Output:",
-          "init_dp_table(3) → [0, 1, 0, 0]"
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(n)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "init_dp_table(3)", "expected": "[0, 1, 0, 0]", "isHidden": false },
-          { "call": "init_dp_table(1)", "expected": "[0, 1]", "isHidden": false },
-          { "call": "init_dp_table(5)", "expected": "[0, 1, 0, 0, 0, 0]", "isHidden": false },
-          { "call": "init_dp_table(2)", "expected": "[0, 1, 0]", "isHidden": false },
-          { "call": "init_dp_table(4)", "expected": "[0, 1, 0, 0, 0]", "isHidden": false }
-        ]
-      }
-    ],
-    "lesson_2": [
-      {
-        "id": "m5_l2_a1",
-        "title": "Slow Recursive Fibonacci",
-        "task": [
-          "The Fibonacci sequence is easy to write with basic recursion. But without Dynamic Programming, the computer solves the exact same math problems over and over again.",
-          "",
-          "Algorithm Steps:",
-          "1. Check the base case: If `n <= 1`, return `n`.",
-          "2. Call the function again for `n - 1` and `n - 2`.",
-          "3. Add the two recursive answers together and return the sum.",
-          "",
-          "Instructions:",
-          "1. Create `fib_naive(n)`.",
-          "2. Write the basic recursion.",
-          "3. Watch the analyzer show you that the time limit is an extremely slow O(2^n).",
-          "",
-          "Sample Output:",
-          "fib_naive(5) → 5"
-        ],
-        "targetTime": "O(2^n)",
-        "targetSpace": "O(n)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "fib_naive(5)", "expected": "5", "isHidden": false },
-          { "call": "fib_naive(6)", "expected": "8", "isHidden": false },
-          { "call": "fib_naive(2)", "expected": "1", "isHidden": false },
-          { "call": "fib_naive(1)", "expected": "1", "isHidden": false },
-          { "call": "fib_naive(0)", "expected": "0", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m5_l2_a2",
-        "title": "Fast Bottom-Up Fibonacci",
-        "task": [
-          "Stop the slow recursion by building the Fibonacci sequence from the bottom up using a list (Tabulation).",
-          "",
-          "Algorithm Steps:",
-          "1. If `n <= 1`, return `n`.",
-          "2. Create a `dp` list of size `n + 1` filled with `0`s.",
-          "3. Set the base case `dp[1] = 1`.",
-          "4. Write a loop from `2` up to `n`. In the loop, do `dp[i] = dp[i-1] + dp[i-2]`.",
-          "5. Return `dp[n]`.",
-          "",
-          "Instructions:",
-          "1. Create `fib_tab(n)`.",
-          "2. Write the list and the loop.",
-          "3. This calculates each step exactly once, dropping the Time Complexity to a fast O(n).",
-          "",
-          "Sample Output:",
-          "fib_tab(5) → 5"
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(n)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "fib_tab(5)", "expected": "5", "isHidden": false },
-          { "call": "fib_tab(10)", "expected": "55", "isHidden": false },
-          { "call": "fib_tab(1)", "expected": "1", "isHidden": false },
-          { "call": "fib_tab(7)", "expected": "13", "isHidden": false },
-          { "call": "fib_tab(0)", "expected": "0", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m5_l2_a3",
-        "title": "Space-Saving Fibonacci",
-        "task": [
-          "You only need the last two numbers to find the next Fibonacci number. We can delete the big list and just use two simple variables to save memory.",
-          "",
-          "Algorithm Steps:",
-          "1. If `n <= 1`, return `n`.",
-          "2. Create two variables: `prev2 = 0` and `prev1 = 1`.",
-          "3. Loop from `2` up to `n`. Find the `current` number by adding `prev1 + prev2`.",
-          "4. Update your variables for the next round: set `prev2 = prev1` and `prev1 = current`.",
-          "5. Return `prev1` at the end.",
-          "",
-          "Instructions:",
-          "1. Create `fib_optimized(n)`.",
-          "2. Use the two-variable trick inside the loop.",
-          "3. This makes your code use almost no extra memory, hitting an O(1) Space limit.",
-          "",
-          "Sample Output:",
-          "fib_optimized(6) → 8"
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(1)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "fib_optimized(6)", "expected": "8", "isHidden": false },
-          { "call": "fib_optimized(10)", "expected": "55", "isHidden": false },
-          { "call": "fib_optimized(2)", "expected": "1", "isHidden": false },
-          { "call": "fib_optimized(0)", "expected": "0", "isHidden": false },
-          { "call": "fib_optimized(8)", "expected": "21", "isHidden": false }
-        ]
-      }
-    ],
-    "lesson_3": [
-      {
-        "id": "m5_l3_a1",
-        "title": "Knapsack Grid Setup",
-        "task": [
-          "The 0/1 Knapsack problem uses a 2D grid (a list of lists) to track items and weights. Your first step is to build this grid filled with zeros.",
-          "",
-          "Algorithm Steps:",
-          "1. You are given `n` (the number of items) and `capacity` (the bag's max weight).",
-          "2. Create a 2D matrix called `dp`. It needs to have `n + 1` rows and `capacity + 1` columns.",
-          "3. Fill every cell in the grid with `0`.",
-          "4. Return the `dp` grid.",
-          "",
-          "Instructions:",
-          "1. Create `build_knapsack_matrix(n, capacity)`.",
-          "2. Use nested loops to create the rows and columns properly.",
-          "",
-          "Sample Output:",
-          "build_knapsack_matrix(2, 2) → [[0, 0, 0], [0, 0, 0], [0, 0, 0]]"
-        ],
-        "targetTime": "O(n^2)",
-        "targetSpace": "O(n^2)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "build_knapsack_matrix(2, 2)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
-          { "call": "build_knapsack_matrix(1, 1)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
-          { "call": "build_knapsack_matrix(3, 2)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
-          { "call": "build_knapsack_matrix(0, 5)", "expected": "[[0, 0, 0, 0, 0, 0]]", "isHidden": false },
-          { "call": "build_knapsack_matrix(2, 0)", "expected": "[[0], [0], [0]]", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m5_l3_a2",
-        "title": "0/1 Knapsack Solver",
-        "task": [
-          "Now fill out the 0/1 Knapsack grid. For each cell, check if taking the item gives a higher value than skipping it.",
-          "",
-          "Algorithm Steps:",
-          "1. Build the grid full of zeros. Loop through the rows (`i`) and columns (`w`).",
-          "2. Check if the item's weight fits: `weights[i-1] <= w`.",
-          "3. If it fits, calculate the value of 'taking' it: `values[i-1] + dp[i-1][w - weights[i-1]]`.",
-          "4. Calculate the value of 'skipping' it: `dp[i-1][w]`.",
-          "5. Put the max of those two values into your cell. If the item doesn't fit at all, just copy the 'skipping' value into the cell.",
-          "6. Return the very last cell: `dp[n][capacity]`.",
-          "",
-          "Instructions:",
-          "1. Create `knapsack(weights, values, capacity)`.",
-          "2. Write the loops and the max-value check.",
-          "",
-          "Sample Output:",
-          "knapsack([1, 3, 4], [15, 20, 30], 4) → 35"
-        ],
-        "targetTime": "O(n^2)",
-        "targetSpace": "O(n^2)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "knapsack([1, 3, 4], [15, 20, 30], 4)", "expected": "35", "isHidden": false },
-          { "call": "knapsack([10, 20, 30], [60, 100, 120], 50)", "expected": "220", "isHidden": false },
-          { "call": "knapsack([5, 5, 5], [10, 20, 30], 4)", "expected": "0", "isHidden": false },
-          { "call": "knapsack([10], [50], 10)", "expected": "50", "isHidden": false },
-          { "call": "knapsack([], [], 50)", "expected": "0", "isHidden": false }
-        ]
-      }
-    ],
-    "lesson_4": [
-      {
-        "id": "m5_l4_a1",
-        "title": "LCS Grid Setup",
-        "task": [
-          "To find the Longest Common Subsequence (LCS) between two strings, you first need to build a 2D grid filled with zeros.",
-          "",
-          "Algorithm Steps:",
-          "1. Find the lengths of the two strings: `m = len(str1)` and `n = len(str2)`.",
-          "2. Create a 2D `dp` list that has `m + 1` rows and `n + 1` columns.",
-          "3. Fill every cell in the grid with `0`.",
-          "4. Return the `dp` grid.",
-          "",
-          "Instructions:",
-          "1. Create `build_lcs_matrix(str1, str2)`.",
-          "2. Use nested loops to make the grid exactly the right size.",
-          "",
-          "Sample Output:",
-          "build_lcs_matrix('A', 'B') → [[0, 0], [0, 0]]"
-        ],
-        "targetTime": "O(n^2)",
-        "targetSpace": "O(n^2)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "build_lcs_matrix('A', 'B')", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
-          { "call": "build_lcs_matrix('AB', 'C')", "expected": "[[0, 0], [0, 0], [0, 0]]", "isHidden": false },
-          { "call": "build_lcs_matrix('', 'A')", "expected": "[[0, 0]]", "isHidden": false },
-          { "call": "build_lcs_matrix('A', '')", "expected": "[[0], [0]]", "isHidden": false },
-          { "call": "build_lcs_matrix('AB', 'CD')", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m5_l4_a2",
-        "title": "Longest Common Subsequence Logic",
-        "task": [
-          "Fill the LCS grid. If the letters match, add 1 to the diagonal cell. If they don't match, carry over the best score from the top or left cell.",
-          "",
-          "Algorithm Steps:",
-          "1. Create the grid full of zeros. Loop `i` through the rows, and `j` through the columns.",
-          "2. Check if the letters match: `str1[i-1] == str2[j-1]`.",
-          "3. If they match, set the cell to the diagonal value plus one: `dp[i][j] = dp[i-1][j-1] + 1`.",
-          "4. If they do not match, set the cell to the maximum of the cell above it (`dp[i-1][j]`) or the cell to its left (`dp[i][j-1]`).",
-          "5. Return the value in the very last cell.",
-          "",
-          "Instructions:",
-          "1. Create `lcs(str1, str2)`.",
-          "2. Write the nested loops and the letter matching rules.",
-          "",
-          "Sample Output:",
-          "lcs('ABC', 'AC') → 2"
-        ],
-        "targetTime": "O(n^2)",
-        "targetSpace": "O(n^2)",
-        "randomizeTestCases": true,
-        "testCasesPool": [
-          { "call": "lcs('ABC', 'AC')", "expected": "2", "isHidden": false },
-          { "call": "lcs('ABCBDAB', 'BDCAB')", "expected": "4", "isHidden": false },
-          { "call": "lcs('ABCD', 'EFGH')", "expected": "0", "isHidden": false },
-          { "call": "lcs('A', 'A')", "expected": "1", "isHidden": false },
-          { "call": "lcs('', 'ABC')", "expected": "0", "isHidden": false }
-        ]
-      }
-    ],
-    "optimizations": [
-      {
-        "id": "m5_opt_1",
-        "title": "Optimization: Delete the Fibonacci List",
-        "task": [
-          "The starter `fibonacci` code runs fast, but it uses too much memory. It saves every single number in a long list, pushing the Space Complexity up to O(n).",
-          "",
-          "Task Requirement:",
-          "Rewrite the code so it stops using a list. Use two simple variables to keep track of just the last two numbers. This drops the Space limit to an optimal O(1).",
-          "",
-          "Optimization Guidelines:",
-          "1. Look at the analyzer. The O(n) Space warning comes from creating the `dp` list.",
-          "2. Delete the list creation line entirely.",
-          "3. Create two variables (`prev2 = 0` and `prev1 = 1`) before your loop starts.",
-          "4. Inside the loop, find the `current` number by adding the two variables, then shift them forward.",
-          "5. Watch the analyzer change the Space Complexity to a tiny O(1)."
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(1)",
-        "templateUrl": "/data/optimizations/m5-5.1.json",
-        "testCasesPool": [
-          { "call": "fibonacci(5)", "expected": "5", "isHidden": false },
-          { "call": "fibonacci(10)", "expected": "55", "isHidden": false },
-          { "call": "fibonacci(1)", "expected": "1", "isHidden": false },
-          { "call": "fibonacci(0)", "expected": "0", "isHidden": false },
-          { "call": "fibonacci(7)", "expected": "13", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m5_opt_2",
-        "title": "Optimization: Add a Dictionary Cache",
-        "task": [
-          "The starter `climb_stairs` function uses basic recursion. This makes the program extremely slow (O(2ⁿ)) because it repeats the exact same math over and over again.",
-          "",
-          "Task Requirement:",
-          "Fix the code by adding a dictionary cache (Memoization). Tell the computer to check the dictionary before doing any math so it only solves each step once.",
-          "",
-          "Optimization Guidelines:",
-          "1. Create an empty dictionary called `cache` inside the function's parameters, or use a global one.",
-          "2. At the top of the code, write an `if` statement: if `n` is already saved in the `cache`, return it right away.",
-          "3. If it's not saved yet, don't return the math directly. First, save the answer into `cache[n]`, and then return it.",
-          "4. Check the analyzer to ensure the Time Complexity drops from a slow Exponential to a fast O(n)."
-        ],
-        "targetTime": "O(n)",
-        "targetSpace": "O(n)",
-        "templateUrl": "/data/optimizations/m5-5.2.json",
-        "testCasesPool": [
-          { "call": "climb_stairs(5)", "expected": "8", "isHidden": false },
-          { "call": "climb_stairs(10)", "expected": "89", "isHidden": false },
-          { "call": "climb_stairs(2)", "expected": "2", "isHidden": false },
-          { "call": "climb_stairs(1)", "expected": "1", "isHidden": false },
-          { "call": "climb_stairs(4)", "expected": "5", "isHidden": false }
-        ]
-      },
-      {
-        "id": "m5_opt_3",
-        "title": "Optimization: Switch to a DP Grid",
-        "task": [
-          "The starter `knapsack_recursive` code uses basic recursion to test 'taking' or 'skipping' items. This causes an O(2ⁿ) time crash on big lists of items.",
-          "",
-          "Task Requirement:",
-          "Change the code from slow recursion to Bottom-Up Tabulation. Build a 2D grid (matrix) to solve the problem step-by-step so it runs in O(n²) time.",
-          "",
-          "Optimization Guidelines:",
-          "1. Delete all the recursive function calls and `if` statements.",
-          "2. Create a 2D `dp` grid filled with `0`s, making it the size of the items and capacity.",
-          "3. Write two loops (`i` for rows, `w` for columns) to go through the grid.",
-          "4. Inside the loop, check if taking the item is better than skipping it using the grid values (just like the lesson taught).",
-          "5. Ensure the analyzer confirms your new loops are running in O(n²) time."
-        ],
-        "targetTime": "O(n^2)",
-        "targetSpace": "O(n^2)",
-        "templateUrl": "/data/optimizations/m5-5.3.json",
-        "testCasesPool": [
-          { "call": "knapsack([10, 20, 30], [60, 100, 120], 50)", "expected": "220", "isHidden": false },
-          { "call": "knapsack([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
-          { "call": "knapsack([5, 5, 5], [10, 20, 30], 4)", "expected": "0", "isHidden": false },
-          { "call": "knapsack([10], [50], 10)", "expected": "50", "isHidden": false },
-          { "call": "knapsack([], [], 50)", "expected": "0", "isHidden": false }
-        ]
-      }
-    ]
-  }
+  "lesson_1": [
+    {
+      "id": "m5_l1_a1",
+      "title": "Two Pointers: Parity Segregation",
+      "task": [
+        "Two-pointer architecture allows us to modify an array in-place without allocating a completely new array in memory. The goal here is to segregate the array so that all even numbers appear before all odd numbers.",
+        "",
+        "Algorithm Steps:",
+        "1. Position one pointer at the beginning of the array and another at the end.",
+        "2. Evaluate the numbers at both pointers.",
+        "3. If the left pointer encounters an odd number and the right pointer encounters an even number, swap their positions.",
+        "4. Advance the pointers inward whenever they are pointing to a correctly placed number (left pointing to even, right pointing to odd).",
+        "",
+        "Instructions:",
+        "1. Define a function `sort_by_parity(arr)`.",
+        "2. Set up your two index trackers: one starting at 0, the other at the last index.",
+        "3. Create a loop that continues as long as the left index is strictly less than the right index.",
+        "4. Use the modulo operator (`% 2`) to check for parity. If the left item is odd and the right item is even, execute a swap.",
+        "5. Increment the left index if its item is even, and decrement the right index if its item is odd.",
+        "6. Return the modified array."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "sort_by_parity([3, 1, 2, 4])", "expected": "[4, 2, 1, 3]", "isHidden": false },
+        { "call": "sort_by_parity([0])", "expected": "[0]", "isHidden": false },
+        { "call": "sort_by_parity([1, 3, 5])", "expected": "[1, 3, 5]", "isHidden": false },
+        { "call": "sort_by_parity([2, 4, 6])", "expected": "[2, 4, 6]", "isHidden": false },
+        { "call": "sort_by_parity([7, 8, 9, 10])", "expected": "[10, 8, 9, 7]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l1_a2",
+      "title": "Converging Pointers: Volumetric Maximization",
+      "task": [
+        "Given an array representing vertical boundary heights, compute the maximum rectangular area that can be formed between any two lines. Instead of comparing every possible pair (which takes O(n^2) time), a converging two-pointer approach finds the maximum in O(n) time.",
+        "",
+        "Algorithm Steps:",
+        "1. Place pointers at the extreme ends of the array to maximize the initial width.",
+        "2. Calculate the area formed by the two lines. The height of the rectangle is bottlenecked by the shorter line.",
+        "3. Keep track of the maximum area observed.",
+        "4. To potentially find a taller boundary and a larger area, move the pointer that is currently pointing to the shorter line inward.",
+        "",
+        "Instructions:",
+        "1. Define `max_area(heights)`.",
+        "2. Initialize boundary trackers for the start and end of the array, along with a variable to store the maximum volume.",
+        "3. Loop while the start tracker is less than the end tracker. Calculate the current width between the boundaries.",
+        "4. Determine the current volume by multiplying the width by the smaller of the two heights.",
+        "5. Update your maximum volume variable if the current volume is larger.",
+        "6. Advance the tracker pointing to the smaller height, then return the maximum volume once the loop concludes."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "max_area([1, 8, 6, 2, 5, 4, 8, 3, 7])", "expected": "49", "isHidden": false },
+        { "call": "max_area([1, 1])", "expected": "1", "isHidden": false },
+        { "call": "max_area([4, 3, 2, 1, 4])", "expected": "16", "isHidden": false },
+        { "call": "max_area([1, 2, 1])", "expected": "2", "isHidden": false },
+        { "call": "max_area([10, 9, 8, 7, 6, 5, 4, 3, 2, 1])", "expected": "25", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l1_a3",
+      "title": "Fast/Slow Pointers: In-Place Deduplication",
+      "task": [
+        "When removing duplicate elements from a sorted array, creating a secondary array wastes space. A slow/fast pointer paradigm allows us to safely overwrite duplicate elements in O(n) time while maintaining an O(1) spatial footprint.",
+        "",
+        "Algorithm Steps:",
+        "1. Maintain a 'slow' pointer that tracks the position where the next unique element should be placed.",
+        "2. Iterate a 'fast' pointer sequentially through the dataset to evaluate elements.",
+        "3. Whenever the fast pointer identifies a new unique value (different from the one immediately preceding it), overwrite the value at the slow pointer and increment the slow pointer.",
+        "",
+        "Instructions:",
+        "1. Define `remove_duplicates(arr)`.",
+        "2. Handle the edge case where the array is empty by returning an empty array.",
+        "3. Initialize a slow tracker variable starting at index 1.",
+        "4. Iterate a fast tracker from index 1 to the end of the array. Compare the element at the fast tracker with the element immediately before it.",
+        "5. If they differ, assign the value at the fast tracker to the index at the slow tracker, then increment the slow tracker.",
+        "6. Utilize list slicing (`arr[:slow]`) to return only the deduplicated portion of the array."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "remove_duplicates([1, 1, 2])", "expected": "[1, 2]", "isHidden": false },
+        { "call": "remove_duplicates([0, 0, 1, 1, 1, 2, 2, 3, 3, 4])", "expected": "[0, 1, 2, 3, 4]", "isHidden": false },
+        { "call": "remove_duplicates([5, 5, 5])", "expected": "[5]", "isHidden": false },
+        { "call": "remove_duplicates([])", "expected": "[]", "isHidden": false },
+        { "call": "remove_duplicates([-1, 0, 0, 0, 3, 3])", "expected": "[-1, 0, 3]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l1_a4",
+      "title": "Converging Pointers: Target Sum Integration",
+      "task": [
+        "If an array is strictly sorted, we can locate two numbers that sum to a specific target without relying on nested iterative loops or extra memory structures.",
+        "",
+        "Algorithm Steps:",
+        "1. Position boundary pointers at the absolute minimum (left) and maximum (right) indices.",
+        "2. Calculate the aggregate sum of the two elements at these pointers.",
+        "3. If the sum exceeds the target, we need a smaller number, so we decrement the right boundary.",
+        "4. If the sum falls short of the target, we need a larger number, so we increment the left boundary.",
+        "",
+        "Instructions:",
+        "1. Define `two_sum_sorted(arr, target)`.",
+        "2. Initialize your left and right index variables at the extremities of the array.",
+        "3. Implement a loop that runs while the left index is less than the right index.",
+        "4. Calculate the sum of the elements at the current indices. If it matches the target, return a list containing both indices.",
+        "5. If the sum is too small, advance the left index. If it is too large, retract the right index.",
+        "6. Return an empty list if no pair satisfies the condition."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "two_sum_sorted([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
+        { "call": "two_sum_sorted([2, 3, 4], 6)", "expected": "[0, 2]", "isHidden": false },
+        { "call": "two_sum_sorted([-1, 0], -1)", "expected": "[0, 1]", "isHidden": false },
+        { "call": "two_sum_sorted([1, 2, 3, 4], 10)", "expected": "[]", "isHidden": false },
+        { "call": "two_sum_sorted([1, 5, 8, 12, 19], 20)", "expected": "[2, 3]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l1_a5",
+      "title": "Fast/Slow Pointers: Zero Displacement",
+      "task": [
+        "A standard memory management task involves shifting all instances of a specific value (like zero) to the terminal end of an array while strictly preserving the chronological order of the remaining valid elements.",
+        "",
+        "Algorithm Steps:",
+        "1. Utilize an insertion pointer that tracks where the next non-zero element should be placed.",
+        "2. Iterate through the array. When a non-zero element is encountered, write it to the insertion pointer's location and advance the insertion pointer.",
+        "3. Once all non-zero elements are secured at the front, overwrite all remaining positions from the insertion pointer to the end of the array with zeroes.",
+        "",
+        "Instructions:",
+        "1. Define `move_zeroes(arr)`.",
+        "2. Establish an insertion variable starting at index 0.",
+        "3. Iterate through each number in the array. If the number is not equal to zero, assign it to the array at the insertion index, then increment the insertion variable.",
+        "4. Initiate a secondary loop starting from the current insertion index up to the length of the array, assigning 0 to each position.",
+        "5. Return the mutated array."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "move_zeroes([0, 1, 0, 3, 12])", "expected": "[1, 3, 12, 0, 0]", "isHidden": false },
+        { "call": "move_zeroes([0])", "expected": "[0]", "isHidden": false },
+        { "call": "move_zeroes([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "move_zeroes([4, 0, 0, 5])", "expected": "[4, 5, 0, 0]", "isHidden": false },
+        { "call": "move_zeroes([0, 0, 1])", "expected": "[1, 0, 0]", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_2": [
+    {
+      "id": "m5_l2_a1",
+      "title": "Fixed Sliding Window: Maximum Subarray",
+      "task": [
+        "The Fixed Sliding Window paradigm optimizes operations on contiguous sub-arrays. Instead of recalculating overlapping data, it establishes a window of size K and shifts it iteratively, updating the metric by evaluating only the entering and exiting elements.",
+        "",
+        "Algorithm Steps:",
+        "1. Ensure the array has enough elements to form a window of size K.",
+        "2. Calculate the baseline metric (sum) for the initial window sequentially.",
+        "3. Shift the window across the remainder of the array: add the new element entering the window and subtract the old element exiting the window.",
+        "4. Track and return the maximum value observed.",
+        "",
+        "Instructions:",
+        "1. Define `max_sum_subarray(arr, k)`.",
+        "2. Implement an early return of `0` if the array length is less than `k`.",
+        "3. Calculate the sum of the first `k` elements to establish your initial window sum, and set this as your current maximum.",
+        "4. Loop through the array starting from index `k`. In each iteration, update your window sum by adding the current element and subtracting the element `k` positions behind it.",
+        "5. Update your maximum value variable if the new window sum is greater. Return the maximum."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "max_sum_subarray([2, 1, 5, 1, 3, 2], 3)", "expected": "9", "isHidden": false },
+        { "call": "max_sum_subarray([1, 9, -1, -2, 7, 3, -1, 2], 4)", "expected": "13", "isHidden": false },
+        { "call": "max_sum_subarray([5, 5, 5], 1)", "expected": "5", "isHidden": false },
+        { "call": "max_sum_subarray([1, 2], 3)", "expected": "0", "isHidden": false },
+        { "call": "max_sum_subarray([10, 20, 30, 40], 2)", "expected": "70", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l2_a2",
+      "title": "Fixed Sliding Window: Moving Average",
+      "task": [
+        "A sequence of moving averages requires capturing the aggregated sum of every valid window iteration and normalizing it mathematically. This is heavily utilized in data smoothing and temporal analysis.",
+        "",
+        "Algorithm Steps:",
+        "1. Calculate the foundational sum of the initial structural window of size K.",
+        "2. Record the calculated average into a persistent array.",
+        "3. Slide the window iteratively across the dataset, dynamically adjusting the window sum.",
+        "4. Record the updated average at each subsequent step.",
+        "",
+        "Instructions:",
+        "1. Define `moving_average(arr, k)`.",
+        "2. Return an empty list if `k` is invalid or if the array is too short.",
+        "3. Establish the sum of the first `k` elements. Initialize a results array containing this sum divided by `k`.",
+        "4. Iterate from index `k` to the end. Adjust the window sum by adding the newly included element and subtracting the element dropping out of the window.",
+        "5. Append the newly calculated average to your results array, then return it."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "moving_average([1, 3, 2, 6, -1, 4, 1, 8, 2], 5)", "expected": "[2.2, 2.8, 2.4, 3.6, 2.8]", "isHidden": false },
+        { "call": "moving_average([10, 20, 30], 1)", "expected": "[10.0, 20.0, 30.0]", "isHidden": false },
+        { "call": "moving_average([5, 5, 5, 5], 2)", "expected": "[5.0, 5.0, 5.0]", "isHidden": false },
+        { "call": "moving_average([1, 2], 3)", "expected": "[]", "isHidden": false },
+        { "call": "moving_average([100, 200, 300, 400], 3)", "expected": "[200.0, 300.0]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l2_a3",
+      "title": "Stateful Boundaries: Proximity Duplicates",
+      "task": [
+        "A Sliding Window can utilize a Hash Set to evaluate conditions within a defined proximity constraint. The algorithm must determine if identical elements exist within a maximum index separation of K.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize a Set to maintain the operational elements of the active window.",
+        "2. Traverse the dataset sequentially.",
+        "3. If the active index surpasses K, purge the trailing element from the Set to enforce the strict window boundary.",
+        "4. If the active element already exists within the Set, proximity duplication is confirmed.",
+        "",
+        "Instructions:",
+        "1. Define `contains_nearby_duplicate(arr, k)`.",
+        "2. Initialize an empty set to represent your sliding constraint window.",
+        "3. Iterate over the array while tracking the current index (using `enumerate` is helpful).",
+        "4. If the current index exceeds `k`, remove the element located at `index - k - 1` from the set.",
+        "5. Check if the current element is already inside the set. If it is, return `True`.",
+        "6. If not, add the current element to the set. Return `False` if the loop completes without finding duplicates."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(k)",
+      "testCasesPool": [
+        { "call": "contains_nearby_duplicate([1, 2, 3, 1], 3)", "expected": "True", "isHidden": false },
+        { "call": "contains_nearby_duplicate([1, 0, 1, 1], 1)", "expected": "True", "isHidden": false },
+        { "call": "contains_nearby_duplicate([1, 2, 3, 1, 2, 3], 2)", "expected": "False", "isHidden": false },
+        { "call": "contains_nearby_duplicate([], 5)", "expected": "False", "isHidden": false },
+        { "call": "contains_nearby_duplicate([99, 99], 2)", "expected": "True", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l2_a4",
+      "title": "Lexical Boundaries: Maximizing Substring Vowels",
+      "task": [
+        "Applying fixed boundary concepts to strings involves tracking specific lexical characteristics. The objective is to calculate the absolute maximum number of vowels contained within any continuous substring of length K.",
+        "",
+        "Algorithm Steps:",
+        "1. Establish a static set of target characters (vowels) for O(1) reference.",
+        "2. Compute the precise vowel count strictly within the initial substring of length K.",
+        "3. Traverse the remainder of the string incrementally.",
+        "4. Adjust the running count: decrement if the exiting character is a vowel, increment if the entering character is a vowel.",
+        "",
+        "Instructions:",
+        "1. Define `max_vowels(s, k)`.",
+        "2. Create a reference set of vowels. Calculate the initial count of vowels found within the first `k` characters of the string.",
+        "3. Set a tracking variable to record the maximum volume observed, initially equal to your starting count.",
+        "4. Loop from index `k` to the end of the string. Modify your current count based on whether the character entering the window and the character exiting the window are vowels.",
+        "5. Continually evaluate and update the maximum volume variable. Return it at the end."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "max_vowels('abciiidef', 3)", "expected": "3", "isHidden": false },
+        { "call": "max_vowels('aeiou', 2)", "expected": "2", "isHidden": false },
+        { "call": "max_vowels('leetcode', 3)", "expected": "2", "isHidden": false },
+        { "call": "max_vowels('rhythm', 4)", "expected": "0", "isHidden": false },
+        { "call": "max_vowels('a', 1)", "expected": "1", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l2_a5",
+      "title": "Hybrid Iteration: Subarray Product Generation",
+      "task": [
+        "When sliding a window representing a mathematical product, dividing to remove exiting elements can induce float precision errors or ZeroDivision errors. A robust variation involves recalculating localized sequences iteratively.",
+        "",
+        "Algorithm Steps:",
+        "1. Establish a standard iteration identifying the starting index for every possible window of size K.",
+        "2. For each identified window, deploy an inner traversal strictly bounded to K elements to calculate the localized product.",
+        "3. Store the product in an output array.",
+        "4. Note: While optimal dynamic windows achieve O(n), bounded sequential evaluation achieves a secure O(n*k) without division risks.",
+        "",
+        "Instructions:",
+        "1. Define `rolling_product_fixed(arr, k)`.",
+        "2. Handle edge cases: return an empty list if `k` is invalid or the array is too short.",
+        "3. Initialize a results array.",
+        "4. Loop through the valid starting indices for a window of size `k`.",
+        "5. Inside the loop, initialize a temporary product variable to 1. Use an inner loop to multiply the `k` contiguous elements starting from your current index.",
+        "6. Append the evaluated product to your results array, and return the array upon completion."
+      ],
+      "targetTime": "O(n * k)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "rolling_product_fixed([1, 2, 3, 4], 2)", "expected": "[2, 6, 12]", "isHidden": false },
+        { "call": "rolling_product_fixed([1, 0, 3, 4], 2)", "expected": "[0, 0, 12]", "isHidden": false },
+        { "call": "rolling_product_fixed([5, 5, 5], 1)", "expected": "[5, 5, 5]", "isHidden": false },
+        { "call": "rolling_product_fixed([], 2)", "expected": "[]", "isHidden": false },
+        { "call": "rolling_product_fixed([-1, -2, -3], 2)", "expected": "[2, 6]", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_3": [
+    {
+      "id": "m5_l3_a1",
+      "title": "Dynamic Contraction: Minimum Size Subarray Sum",
+      "task": [
+        "Unlike fixed constraints, dynamic sliding windows expand their right boundary iteratively to accumulate data, and contract their trailing left boundary strictly when logical parameters are met, seeking optimized metrics.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize expanding (right) and contracting (left) pointers at the beginning of the array.",
+        "2. Advance the right pointer to accumulate a continuous subset sum.",
+        "3. While the running sum fulfills the target criteria, evaluate the current window length against the historical minimum.",
+        "4. Force contraction by deducting the trailing left variable from the sum and advancing the left pointer inward.",
+        "",
+        "Instructions:",
+        "1. Define `min_sub_array_len(target, arr)`.",
+        "2. Set your `left` boundary to 0, your running sum to 0, and a `min_len` tracker to infinity.",
+        "3. Traverse the array with a `right` boundary pointer. Add the element at the `right` boundary to your running sum.",
+        "4. Create a `while` loop that triggers as long as the running sum is greater than or equal to the target.",
+        "5. Inside the while loop, update your `min_len` tracker, subtract the element at the `left` boundary from the running sum, and advance the `left` boundary forward.",
+        "6. Return the `min_len` tracker if a valid subarray was found, otherwise return 0."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "min_sub_array_len(7, [2, 3, 1, 2, 4, 3])", "expected": "2", "isHidden": false },
+        { "call": "min_sub_array_len(4, [1, 4, 4])", "expected": "1", "isHidden": false },
+        { "call": "min_sub_array_len(11, [1, 1, 1, 1, 1, 1, 1, 1])", "expected": "0", "isHidden": false },
+        { "call": "min_sub_array_len(10, [1, 2, 3, 4, 5])", "expected": "3", "isHidden": false },
+        { "call": "min_sub_array_len(15, [1, 2, 3, 4, 5])", "expected": "5", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l3_a2",
+      "title": "State Verification: Longest Unique Substring",
+      "task": [
+        "A dynamic structural window can interface with Hash Maps to rapidly enforce subset continuity rules. The algorithmic objective is to determine the maximal continuous string sequence utterly devoid of character duplication.",
+        "",
+        "Algorithm Steps:",
+        "1. Establish a trailing left pointer and a dictionary tracking the most recently observed indices of characters.",
+        "2. Expand the right boundary sequentially across the string.",
+        "3. If a character is recognized and its last known index falls inside the active window, immediately skip the left boundary forward past the duplicate to restore unique compliance.",
+        "4. Continuously evaluate and preserve the maximum calculated boundary width.",
+        "",
+        "Instructions:",
+        "1. Define `length_of_longest_substring(s)`.",
+        "2. Initialize a dictionary, a left boundary pointer, and a variable to track maximum length.",
+        "3. Iterate over the string while tracking both the character and its index (the right boundary).",
+        "4. Check if the character exists in the dictionary AND if its recorded index is greater than or equal to the left boundary. If true, advance the left boundary to the recorded index + 1.",
+        "5. Update the dictionary with the current character's new index.",
+        "6. Recalculate the maximum length against the current window size (`right - left + 1`), then return it."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(k)",
+      "testCasesPool": [
+        { "call": "length_of_longest_substring('abcabcbb')", "expected": "3", "isHidden": false },
+        { "call": "length_of_longest_substring('bbbbb')", "expected": "1", "isHidden": false },
+        { "call": "length_of_longest_substring('pwwkew')", "expected": "3", "isHidden": false },
+        { "call": "length_of_longest_substring('')", "expected": "0", "isHidden": false },
+        { "call": "length_of_longest_substring('au')", "expected": "2", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l3_a3",
+      "title": "Algorithmic Tolerance: Max Consecutive Ones",
+      "task": [
+        "Dynamic windows elegantly handle algorithmic 'tolerance' parameters. This sequence evaluates the maximum continuous cluster of 1s permissible when the engine is granted the ability to ignore (or flip) exactly K zeroes.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize boundaries and a metric to count zeroes absorbed into the current window.",
+        "2. Advance the right boundary across the binary array, incrementing the zero-count metric upon absorbing a 0.",
+        "3. If the active metric exceeds the permissible tolerance K, contract the left boundary iteratively until a 0 is ejected and compliance is restored.",
+        "4. Track the maximum permissible window width.",
+        "",
+        "Instructions:",
+        "1. Define `longest_ones(arr, k)`.",
+        "2. Set up your tracking variables: a left boundary, a zero-counter, and a maximum length tracker.",
+        "3. Iterate a right boundary across the array. If the value at the right boundary is 0, increment your zero-counter.",
+        "4. Create a `while` loop that activates if your zero-counter exceeds `k`. Inside, check if the value at the left boundary is 0 (if so, decrement the zero-counter) and advance the left boundary.",
+        "5. Outside the while loop, update your maximum length tracker with the current window size. Return the tracker."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "longest_ones([1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0], 2)", "expected": "6", "isHidden": false },
+        { "call": "longest_ones([0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1], 3)", "expected": "10", "isHidden": false },
+        { "call": "longest_ones([1, 1, 1, 1], 0)", "expected": "4", "isHidden": false },
+        { "call": "longest_ones([0, 0, 0], 1)", "expected": "1", "isHidden": false },
+        { "call": "longest_ones([0, 0, 0], 0)", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l3_a4",
+      "title": "Combinatorial Boundaries: Bounded Subarray Products",
+      "task": [
+        "Dynamic boundary engines can calculate aggregate combinatorics. The objective is quantifying the total volume of independent valid subsets where the numerical product remains strictly inferior to parameter K.",
+        "",
+        "Algorithm Steps:",
+        "1. Handle threshold exceptions: if K <= 1, valid product sets cannot exist within an array of strictly positive integers.",
+        "2. Expand the right boundary iteratively, multiplying the incoming element into an active product tracker.",
+        "3. Contract the trailing left pointer if the current product breaches the threshold K, dividing out the exiting elements.",
+        "4. The quantity of newly formed valid subarrays corresponding to the current right boundary mathematically equates to `right - left + 1`.",
+        "",
+        "Instructions:",
+        "1. Define `num_subarray_product_less_than_k(arr, k)`.",
+        "2. If `k` is less than or equal to 1, return `0`.",
+        "3. Initialize a running product variable to 1, a left boundary to 0, and a tally to 0.",
+        "4. Iterate a right boundary across the array, updating your running product.",
+        "5. Implement a `while` loop to contract the left boundary if the running product is greater than or equal to `k`. Remember to divide the product by the element leaving the window.",
+        "6. Add the calculated valid combinations (`right - left + 1`) to your tally and return it."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "num_subarray_product_less_than_k([10, 5, 2, 6], 100)", "expected": "8", "isHidden": false },
+        { "call": "num_subarray_product_less_than_k([1, 2, 3], 0)", "expected": "0", "isHidden": false },
+        { "call": "num_subarray_product_less_than_k([10, 9, 10, 4, 3, 8, 3, 3, 6, 2, 10, 10, 9, 3], 19)", "expected": "18", "isHidden": false },
+        { "call": "num_subarray_product_less_than_k([1, 1, 1], 2)", "expected": "6", "isHidden": false },
+        { "call": "num_subarray_product_less_than_k([5], 10)", "expected": "1", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l3_a5",
+      "title": "Frequency Windows: Character Replacement",
+      "task": [
+        "A highly optimized sliding window utilizes a frequency matrix. The protocol demands finding the maximum contiguous substring of identical characters, permitting up to K artificial character transformations.",
+        "",
+        "Algorithm Steps:",
+        "1. Maintain a dynamic Hash Map defining character frequencies within the active boundaries.",
+        "2. Document the single highest character frequency recorded within the current structural window.",
+        "3. The required transformations equal the total window size minus this highest frequency. If this exceeds K, contract the trailing boundary.",
+        "",
+        "Instructions:",
+        "1. Define `character_replacement(s, k)`.",
+        "2. Initialize a frequency dictionary, a left boundary, and variables to track the maximum frequency count and maximum string length.",
+        "3. Iterate a right boundary across the string. Update the frequency of the current character in your dictionary.",
+        "4. Update your maximum frequency tracker if the current character's count is higher.",
+        "5. Evaluate compliance: if the current window size `(right - left + 1)` minus the maximum frequency count exceeds `k`, decrement the count of the character at the left boundary and advance the left boundary.",
+        "6. Continuously update and return the maximum valid string length."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "character_replacement('ABAB', 2)", "expected": "4", "isHidden": false },
+        { "call": "character_replacement('AABABBA', 1)", "expected": "4", "isHidden": false },
+        { "call": "character_replacement('A', 0)", "expected": "1", "isHidden": false },
+        { "call": "character_replacement('ABBB', 2)", "expected": "4", "isHidden": false },
+        { "call": "character_replacement('CBAAAB', 1)", "expected": "5", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_4": [
+    {
+      "id": "m5_l4_a1",
+      "title": "State Precomputation: Cumulative Prefix Sum",
+      "task": [
+        "Calculating sequential aggregations repeatedly operates at O(n^2) efficiency. A Prefix Sum array precomputes contiguous state parameters, compiling cumulative totals progressively to enable subsequent instantaneous query lookups.",
+        "",
+        "Algorithm Steps:",
+        "1. Instantiate a cumulative sum tracker variable initialized at 0.",
+        "2. Traverse the source array systematically.",
+        "3. Increment the tracker by the value of the current array element.",
+        "4. Append or assign the resulting metric to a corresponding index in an output array.",
+        "",
+        "Instructions:",
+        "1. Define `running_sum(arr)`.",
+        "2. Initialize an empty list to store results and a variable to track the running sum.",
+        "3. Iterate through each number in the input array.",
+        "4. Add the number to your running sum tracker.",
+        "5. Append the updated tracker to your results list, returning the list upon completion."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "running_sum([1, 2, 3, 4])", "expected": "[1, 3, 6, 10]", "isHidden": false },
+        { "call": "running_sum([1, 1, 1, 1, 1])", "expected": "[1, 2, 3, 4, 5]", "isHidden": false },
+        { "call": "running_sum([3, 1, 2, 10, 1])", "expected": "[3, 4, 6, 16, 17]", "isHidden": false },
+        { "call": "running_sum([])", "expected": "[]", "isHidden": false },
+        { "call": "running_sum([-1, -2, -3])", "expected": "[-1, -3, -6]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l4_a2",
+      "title": "Structural Equilibrium: Target Pivot Index",
+      "task": [
+        "A pivot index represents structural equilibrium within an array, occurring precisely where the cumulative sum of all indices preceding the pivot equates to the cumulative sum of all indices succeeding it.",
+        "",
+        "Algorithm Steps:",
+        "1. Precompute the absolute total sum of the entire array structure.",
+        "2. Initialize a secondary variable to exclusively track the prefix subset sum (starting at 0).",
+        "3. Traverse the array. The sum of the right side can be artificially calculated by subtracting the active element and the left prefix sum from the total sum.",
+        "4. If the left prefix sum equals the right-side calculation, the equilibrium pivot is resolved.",
+        "",
+        "Instructions:",
+        "1. Define `pivot_index(arr)`.",
+        "2. Calculate the sum of the entire array using a built-in method. Set a variable for the left sum to 0.",
+        "3. Iterate through the array using index and value tracking.",
+        "4. Implement the equilibrium check: if the left sum is equal to the total sum minus the left sum minus the current value, return the current index.",
+        "5. Increment the left sum by the current value for the next iteration.",
+        "6. Return -1 if no pivot satisfies the condition."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "pivot_index([1, 7, 3, 6, 5, 6])", "expected": "3", "isHidden": false },
+        { "call": "pivot_index([1, 2, 3])", "expected": "-1", "isHidden": false },
+        { "call": "pivot_index([2, 1, -1])", "expected": "0", "isHidden": false },
+        { "call": "pivot_index([0, 0, 0])", "expected": "0", "isHidden": false },
+        { "call": "pivot_index([-1, -1, 0, -1, -1, 0])", "expected": "2", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l4_a3",
+      "title": "Bidirectional Prefix: Product Except Self",
+      "task": [
+        "Standard sequential exclusion utilizing operational division is prone to ZeroDivision errors. Designing an output array representing the combined sequential product excluding a specific index requires bidirectional prefix calculations.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize an output array of equivalent length.",
+        "2. Execute a forward traversal, storing the cumulative product of all elements to the left of the current index.",
+        "3. Execute a reverse traversal, multiplying the pre-existing left product by the cumulative product of all elements to the right.",
+        "",
+        "Instructions:",
+        "1. Define `product_except_self(arr)`.",
+        "2. Initialize an output array populated with 1s, matching the length of the input array.",
+        "3. Establish a tracker for the left product (starting at 1). Iterate forward, assigning the tracker to the output array and then multiplying the tracker by the current array element.",
+        "4. Establish a tracker for the right product (starting at 1). Iterate backward. Multiply the output array's existing value by the tracker, then multiply the tracker by the current array element.",
+        "5. Return the finalized output array."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "product_except_self([1, 2, 3, 4])", "expected": "[24, 12, 8, 6]", "isHidden": false },
+        { "call": "product_except_self([-1, 1, 0, -3, 3])", "expected": "[0, 0, 9, 0, 0]", "isHidden": false },
+        { "call": "product_except_self([5, 5])", "expected": "[5, 5]", "isHidden": false },
+        { "call": "product_except_self([2, 2, 2, 2])", "expected": "[8, 8, 8, 8]", "isHidden": false },
+        { "call": "product_except_self([9, 0, 0])", "expected": "[0, 0, 0]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l4_a4",
+      "title": "Optimized Query Lookup: Range Sum Matrix",
+      "task": [
+        "Iterative array lookups between distinct boundaries require constant O(n) recalculations. Establishing a preliminary continuous Prefix Array structurally reduces subsequent regional evaluations to rapid O(1) resolutions.",
+        "",
+        "Algorithm Steps:",
+        "1. Precompute a prefix sum array. Prepending a 0 simplifies boundary logic when querying indices starting at 0.",
+        "2. Process a list of distinct `[left, right]` boundary queries.",
+        "3. For any given query, the sum within the boundaries is mathematically equivalent to the prefix sum immediately following the right boundary, minus the prefix sum exactly at the left boundary.",
+        "",
+        "Instructions:",
+        "1. Define `range_sum_query(arr, queries)`.",
+        "2. Construct a prefix sum array that includes a leading 0 (e.g., `[0] + running_sums`).",
+        "3. Initialize a results list.",
+        "4. Loop through each query pairing `[left, right]`. Calculate the regional sum by assessing `prefix[right + 1] - prefix[left]`.",
+        "5. Append the evaluated sums to the results list and return."
+      ],
+      "targetTime": "O(n + q)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "range_sum_query([-2, 0, 3, -5, 2, -1], [[0, 2], [2, 5], [0, 5]])", "expected": "[1, -1, -3]", "isHidden": false },
+        { "call": "range_sum_query([1, 2, 3, 4], [[1, 1], [0, 3]])", "expected": "[2, 10]", "isHidden": false },
+        { "call": "range_sum_query([5], [[0, 0]])", "expected": "[5]", "isHidden": false },
+        { "call": "range_sum_query([10, -10, 10, -10], [[0, 1], [1, 2]])", "expected": "[0, 0]", "isHidden": false },
+        { "call": "range_sum_query([-1, -2, -3], [[0, 2]])", "expected": "[-6]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_l4_a5",
+      "title": "Hash Map Prefixing: Bounded Subarray Summation",
+      "task": [
+        "Isolating contiguous subarray indices that perfectly align with a target summation routinely demands O(n^2) nested evaluation. Synchronizing a Hash Map against progressive Prefix variables resolves valid sequences rapidly.",
+        "",
+        "Algorithm Steps:",
+        "1. Instantiate a Hash Map storing historical prefix sum aggregations, preconfigured with a baseline sum of 0 occurring exactly 1 time.",
+        "2. Traverse the array iteratively, updating an active cumulative sum.",
+        "3. Calculate the mathematical difference: `current_sum - target_k`.",
+        "4. If this difference exists as a key within the Hash Map, it confirms a valid internal subarray. Add its recorded frequency to the total combination count.",
+        "5. Update the Hash Map with the current cumulative sum.",
+        "",
+        "Instructions:",
+        "1. Define `subarray_sum(arr, k)`.",
+        "2. Initialize variables for the total count, the current running sum, and a dictionary containing `{0: 1}`.",
+        "3. Traverse the elements. Add the element to the current running sum.",
+        "4. Evaluate if the condition `(current_sum - k)` exists within the dictionary. If so, increment your count by the frequency stored at that key.",
+        "5. Update the dictionary to log the occurrence of the `current_sum`.",
+        "6. Return the ultimate accumulated count."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "subarray_sum([1, 1, 1], 2)", "expected": "2", "isHidden": false },
+        { "call": "subarray_sum([1, 2, 3], 3)", "expected": "2", "isHidden": false },
+        { "call": "subarray_sum([1, -1, 0], 0)", "expected": "3", "isHidden": false },
+        { "call": "subarray_sum([5, 5], 10)", "expected": "1", "isHidden": false },
+        { "call": "subarray_sum([10, 2, -2, -20, 10], -10)", "expected": "3", "isHidden": true }
+      ]
+    }
+  ],
+  "optimizations": [
+    {
+      "id": "m5_opt_1",
+      "title": "Optimization: Subarray Slicing to Sliding Protocol",
+      "task": [
+        "Extracting subarrays iteratively utilizing list slicing (e.g., `sum(arr[i:i+k])`) generates massive computational overlap. The algorithm re-adds elements it has already processed, resulting in suboptimal O(N*K) scaling. Applying the Sliding Window parameter resolves this.",
+        "",
+        "Optimization Guidelines:",
+        "1. Identify the performance regression linked to calculating sums repeatedly inside an indexed loop.",
+        "2. Remove the internal slicing/summation operations completely. Compute the foundational metric explicitly for the very first window only (`window_sum = sum(arr[:k])`).",
+        "3. Process the remainder of the array dynamically. Adjust the existing sum strictly by subtracting the element that exits the trailing boundary and adding the element entering the leading boundary.",
+        "4. Observe the performance trajectory fundamentally shifting to O(N) Linear Time constraints."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m5-5.1.json",
+      "testCasesPool": [
+        { "call": "optimize_max_sum([2, 1, 5, 1, 3, 2], 3)", "expected": "9", "isHidden": false },
+        { "call": "optimize_max_sum([1, 9, -1, -2, 7, 3, -1, 2], 4)", "expected": "13", "isHidden": false },
+        { "call": "optimize_max_sum([5, 5, 5], 1)", "expected": "5", "isHidden": false },
+        { "call": "optimize_max_sum([1, 2], 3)", "expected": "0", "isHidden": false },
+        { "call": "optimize_max_sum([10, 20, 30, 40], 2)", "expected": "70", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_opt_2",
+      "title": "Optimization: Nested Loop to Dynamic Contraction",
+      "task": [
+        "A nested double loop evaluating sequence combinations is highly inefficient, firmly bounded at O(n^2). Deploying a dynamic dual-pointer format drastically mitigates algorithmic volume by manipulating expanding and contracting constraints logically.",
+        "",
+        "Optimization Guidelines:",
+        "1. Acknowledge the processing drag caused by fully parsing combinations repeatedly across nested iterations.",
+        "2. Eradicate the internal loop architecture. Initiate dynamic constraints managing `left` and `right` positioning independently.",
+        "3. Configure the `right` pointer to aggregate sequential elements within a primary loop.",
+        "4. Introduce an internal `while` sequence that strictly contracts the `left` pointer, pruning the subset only when parameters stabilize relative to the required target.",
+        "5. Document the runtime stabilizing at an optimized O(n)."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m5-5.2.json",
+      "testCasesPool": [
+        { "call": "optimize_min_length(7, [2, 3, 1, 2, 4, 3])", "expected": "2", "isHidden": false },
+        { "call": "optimize_min_length(4, [1, 4, 4])", "expected": "1", "isHidden": false },
+        { "call": "optimize_min_length(11, [1, 1, 1, 1, 1, 1, 1, 1])", "expected": "0", "isHidden": false },
+        { "call": "optimize_min_length(10, [1, 2, 3, 4, 5])", "expected": "3", "isHidden": false },
+        { "call": "optimize_min_length(15, [1, 2, 3, 4, 5])", "expected": "5", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m5_opt_3",
+      "title": "Optimization: Brute Traversal to Map Association",
+      "task": [
+        "Calculating valid sequence targets repeatedly triggers O(N^2) latency as the algorithm re-analyzes aggregated variables across subsequent matrix segments. Integrating Hash Map logic with running prefix sums condenses this architecture.",
+        "",
+        "Optimization Guidelines:",
+        "1. Identify the mathematical inefficiency stemming from resetting internal traversal loops to check variable sums.",
+        "2. Eliminate internal loops completely. Introduce a localized Hash Dictionary mapping initialized with `prefix_map = {0: 1}` to handle historical sum lookup.",
+        "3. Implement standard sequential prefix sum aggregation. Instead of manual combination checks, apply standard algebra: check if the differential `(current_sum - target)` is already registered within the Hash Map.",
+        "4. Rapidly append mapped occurrences to your tracker, demonstrating the power of converting O(N^2) iteration into O(N) spatial processing."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m5-5.3.json",
+      "testCasesPool": [
+        { "call": "optimize_subarray_target([1, 1, 1], 2)", "expected": "2", "isHidden": false },
+        { "call": "optimize_subarray_target([1, 2, 3], 3)", "expected": "2", "isHidden": false },
+        { "call": "optimize_subarray_target([1, -1, 0], 0)", "expected": "3", "isHidden": false },
+        { "call": "optimize_subarray_target([5, 5], 10)", "expected": "1", "isHidden": false },
+        { "call": "optimize_subarray_target([10, 2, -2, -20, 10], -10)", "expected": "3", "isHidden": true }
+      ]
+    }
+  ]
 }

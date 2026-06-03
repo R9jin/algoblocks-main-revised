@@ -2,109 +2,695 @@
   "lesson_1": [
     {
       "id": "m4_l1_a1",
-      "title": "Greedy Strategy: Maximum Extraction",
+      "title": "Stack Architecture: Push Operation",
       "task": [
-        "Greedy algorithms solve optimization problems by making the locally optimal choice at each decision boundary without reconsidering previous states. To establish a sequentially maximized extraction, the algorithm iteratively isolates and removes the absolute maximum element from the current subset.",
+        "A stack operates on a strictly Last-In-First-Out (LIFO) architectural model. Elements are sequentially added and removed from the exact same conceptual end, designated as the 'top' of the stack.",
         "",
         "Algorithm Steps:",
-        "1. Initialize an auxiliary array to maintain the ordered sequence of extracted values.",
-        "2. Implement an iterative construct that executes while the input array remains populated.",
-        "3. Evaluate the current state of the array to identify the maximum integer.",
-        "4. Append the identified integer to the auxiliary array and execute a removal operation on the original array.",
+        "1. Receive an existing list structure representing the stack, alongside a new data element.",
+        "2. Utilize the native append method to insert the element at the maximum index, acting as the stack's top.",
+        "3. Return the structurally updated stack.",
         "",
         "Instructions:",
-        "1. Create `largest_first(arr)`.",
-        "2. Initialize `selected = []`.",
-        "3. Construct a `while` loop evaluated against the boolean truth of `arr` (while it is not empty).",
-        "4. Inside the iteration, declare `current_max = max(arr)`.",
-        "5. Append `current_max` to `selected` and utilize `arr.remove(current_max)`.",
-        "6. Return the `selected` array.",
-        "7. Note the structural complexity: finding and removing elements within a sequential loop yields an O(n²) worst-case Time Complexity.",
+        "1. Define the function `push_stack(stack, item)`.",
+        "2. Append `item` to the `stack` list.",
+        "3. Return the `stack` array.",
         "",
         "Sample Output:",
-        "largest_first([3, 8, 2, 9, 5]) → [9, 8, 5, 3, 2]"
+        "push_stack([10, 20], 30) → [10, 20, 30]"
       ],
-      "targetTime": "O(n^2)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "push_stack([10, 20], 30)", "expected": "[10, 20, 30]", "isHidden": false },
+        { "call": "push_stack([], 5)", "expected": "[5]", "isHidden": false },
+        { "call": "push_stack([1], 1)", "expected": "[1, 1]", "isHidden": false },
+        { "call": "push_stack([-5, 0], 5)", "expected": "[-5, 0, 5]", "isHidden": false },
+        { "call": "push_stack([99], 100)", "expected": "[99, 100]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l1_a2",
+      "title": "Stack Architecture: Pop Operation",
+      "task": [
+        "To maintain LIFO integrity, data extraction must exclusively occur from the top of the stack. The algorithm must extract the most recently appended element while safely handling empty structural states.",
+        "",
+        "Algorithm Steps:",
+        "1. Evaluate the stack's length to prevent underflow exceptions.",
+        "2. Isolate and remove the terminal element at the maximum index.",
+        "3. Return the extracted element.",
+        "",
+        "Instructions:",
+        "1. Define the function `pop_stack(stack)`.",
+        "2. If `stack` is empty, return the string `'Underflow'`.",
+        "3. Otherwise, execute standard list popping to remove the final item.",
+        "4. Return the removed item.",
+        "",
+        "Sample Output:",
+        "pop_stack([10, 20, 30]) → 30"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "pop_stack([10, 20, 30])", "expected": "30", "isHidden": false },
+        { "call": "pop_stack([5])", "expected": "5", "isHidden": false },
+        { "call": "pop_stack([])", "expected": "'Underflow'", "isHidden": false },
+        { "call": "pop_stack([1, 2])", "expected": "2", "isHidden": false },
+        { "call": "pop_stack([-10, -20])", "expected": "-20", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l1_a3",
+      "title": "Sequence Inversion: Reversing a String",
+      "task": [
+        "Because stacks naturally invert the chronological sequence of data input, they serve as optimal engines for string and sequence reversal without relying on native slicing methods.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize an empty stack structure.",
+        "2. Iteratively traverse the input string, pushing each character onto the stack.",
+        "3. Initialize an empty string variable to serve as the output payload.",
+        "4. Iteratively pop elements from the stack, concatenating them to the output string until the stack is exhausted.",
+        "",
+        "Instructions:",
+        "1. Define the function `reverse_string(s)`.",
+        "2. Populate a `stack` array iteratively with the characters of `s`.",
+        "3. Initialize `result = ''`.",
+        "4. Implement a `while` loop: as long as `stack` contains elements, append `stack.pop()` to `result`.",
+        "5. Return `result`.",
+        "",
+        "Sample Output:",
+        "reverse_string('data') → 'atad'"
+      ],
+      "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "largest_first([3, 8, 2, 9, 5])", "expected": "[9, 8, 5, 3, 2]", "isHidden": false },
-        { "call": "largest_first([10, 10, 5])", "expected": "[10, 10, 5]", "isHidden": false },
-        { "call": "largest_first([-1, -5, 0])", "expected": "[0, -1, -5]", "isHidden": false },
-        { "call": "largest_first([100])", "expected": "[100]", "isHidden": false },
-        { "call": "largest_first([])", "expected": "[]", "isHidden": false }
+        { "call": "reverse_string('data')", "expected": "'atad'", "isHidden": false },
+        { "call": "reverse_string('stack')", "expected": "'kcats'", "isHidden": false },
+        { "call": "reverse_string('a')", "expected": "'a'", "isHidden": false },
+        { "call": "reverse_string('')", "expected": "''", "isHidden": false },
+        { "call": "reverse_string('12345')", "expected": "'54321'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l1_a4",
+      "title": "Syntax Validation: Balanced Parentheses",
+      "task": [
+        "Compilers heavily rely on stack architectures to validate nested code structures. We can implement a stack to evaluate a string of parentheses, confirming symmetrical balance and correct closure order.",
+        "",
+        "Algorithm Steps:",
+        "1. Initialize an empty validation stack.",
+        "2. Iterate over the input sequence. Upon detecting an opening parenthesis `(`, push it to the stack.",
+        "3. Upon detecting a closing parenthesis `)`, evaluate the stack. If empty, the structure is prematurely closed. If populated, pop the top element.",
+        "4. Post-iteration, an empty stack confirms balance, while residual elements indicate unclosed brackets.",
+        "",
+        "Instructions:",
+        "1. Define `is_balanced(s)`.",
+        "2. Initialize `stack = []`.",
+        "3. Loop through each `char` in `s`. If `char == '('`, push it.",
+        "4. If `char == ')'`, check if `stack` is empty; if so, return `False`. Otherwise, execute `stack.pop()`.",
+        "5. Return `True` if `stack` is perfectly empty at completion, otherwise `False`.",
+        "",
+        "Sample Output:",
+        "is_balanced('(())') → True"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "is_balanced('(())')", "expected": "True", "isHidden": false },
+        { "call": "is_balanced('()()')", "expected": "True", "isHidden": false },
+        { "call": "is_balanced('(()')", "expected": "False", "isHidden": false },
+        { "call": "is_balanced(')')", "expected": "False", "isHidden": false },
+        { "call": "is_balanced('')", "expected": "True", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l1_a5",
+      "title": "Expression Evaluation: Postfix Notation",
+      "task": [
+        "Postfix (Reverse Polish Notation) relies on stacks to evaluate mathematical expressions without the need for strict operator precedence rules or parenthesis parsing.",
+        "",
+        "Algorithm Steps:",
+        "1. Traverse an array representing a postfix mathematical expression.",
+        "2. If the current element is an integer operand, push it onto the stack.",
+        "3. If the element is a string operator (`+`, `-`, `*`), pop the top two integers. Apply the operator to them, and push the newly resolved integer back onto the stack.",
+        "4. The final stack will contain exactly one integer: the result.",
+        "",
+        "Instructions:",
+        "1. Define `evaluate_postfix(arr)`.",
+        "2. Initialize `stack = []`.",
+        "3. Iterate over `arr`. If the item's type is an integer, push it to the stack.",
+        "4. If the item is a string operator, pop into variable `b`, then pop into variable `a`. Calculate `a (operator) b` and push the result.",
+        "5. Return the final integer via `stack.pop()`.",
+        "",
+        "Sample Output:",
+        "evaluate_postfix([3, 4, '+', 2, '*']) → 14"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "evaluate_postfix([3, 4, '+', 2, '*'])", "expected": "14", "isHidden": false },
+        { "call": "evaluate_postfix([5, 1, 2, '+', 4, '*', '+', 3, '-'])", "expected": "14", "isHidden": false },
+        { "call": "evaluate_postfix([10, 2, '*'])", "expected": "20", "isHidden": false },
+        { "call": "evaluate_postfix([8, 2, '-'])", "expected": "6", "isHidden": false },
+        { "call": "evaluate_postfix([7])", "expected": "7", "isHidden": true }
       ]
     }
   ],
   "lesson_2": [
     {
       "id": "m4_l2_a1",
-      "title": "Coin Change Optimization",
+      "title": "Queue Architecture: Enqueue Operation",
       "task": [
-        "The Coin Change problem models resource minimization. When utilizing a canonical denomination system, the problem satisfies the greedy choice property. The algorithm sequentially exhausts the largest available denomination before transitioning to smaller capacities.",
+        "A queue operates on a strictly First-In-First-Out (FIFO) model, simulating chronological processing. New elements are added sequentially to the rear of the architecture in an operation defined as 'enqueuing'.",
         "",
         "Algorithm Steps:",
-        "1. Receive a target numeric amount and an array of canonical denominations strictly ordered in descending magnitude.",
-        "2. Traverse the available denominations sequentially.",
-        "3. While the target amount strictly accommodates the current denomination, execute subtraction to reduce the target.",
-        "4. Aggregate the applied denomination into a tracking array.",
-        "5. Terminate execution when the target amount resolves to zero.",
+        "1. Receive the active queue list and a targeted element payload.",
+        "2. Append the item to the maximum geometric index (the rear of the queue structure).",
+        "3. Return the structurally updated queue.",
         "",
         "Instructions:",
-        "1. Create `give_change(amount)`.",
-        "2. Declare the standard canonical system: `coins = [20, 10, 5, 1]`.",
-        "3. Initialize an empty array `change_given`.",
-        "4. Structure a `for` loop to iterate over the `coins` array.",
-        "5. Nest a `while` loop bound by the condition `amount >= coin`.",
-        "6. Within the nested loop, decrement `amount` by `coin` and append the `coin` to `change_given`.",
-        "7. Return `change_given`.",
+        "1. Define the function `enqueue(queue, item)`.",
+        "2. Execute the append method to add `item` to `queue`.",
+        "3. Return `queue`.",
         "",
         "Sample Output:",
-        "give_change(36) → [20, 10, 5, 1]"
+        "enqueue([1, 2], 3) → [1, 2, 3]"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "enqueue([1, 2], 3)", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "enqueue([], 10)", "expected": "[10]", "isHidden": false },
+        { "call": "enqueue([5], 5)", "expected": "[5, 5]", "isHidden": false },
+        { "call": "enqueue([-1], 0)", "expected": "[-1, 0]", "isHidden": false },
+        { "call": "enqueue([100, 200], 300)", "expected": "[100, 200, 300]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l2_a2",
+      "title": "Queue Architecture: Dequeue Operation",
+      "task": [
+        "The dequeue operation mandates that elements are exclusively extracted from the front (zeroth index) of the array, preserving strict chronological resolution.",
+        "",
+        "Algorithm Steps:",
+        "1. Validate the structure's length to prevent underflow exceptions.",
+        "2. Isolate and remove the element positioned at index 0.",
+        "3. Return the extracted value. (Note: Utilizing list popping at index 0 naturally operates in O(n) time due to index shifting).",
+        "",
+        "Instructions:",
+        "1. Define the function `dequeue(queue)`.",
+        "2. If `queue` is empty, return the string `'Underflow'`.",
+        "3. Isolate and remove the element using `queue.pop(0)`.",
+        "4. Return the removed element.",
+        "",
+        "Sample Output:",
+        "dequeue([10, 20, 30]) → 10"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "dequeue([10, 20, 30])", "expected": "10", "isHidden": false },
+        { "call": "dequeue([5])", "expected": "5", "isHidden": false },
+        { "call": "dequeue([])", "expected": "'Underflow'", "isHidden": false },
+        { "call": "dequeue([1, 2])", "expected": "1", "isHidden": false },
+        { "call": "dequeue([-10, -20])", "expected": "-10", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l2_a3",
+      "title": "Observation Protocols: Queue Peeking",
+      "task": [
+        "Operational systems frequently require observation of the impending item without structurally executing a dequeue resolution. This requires an O(1) non-destructive observation parameter.",
+        "",
+        "Algorithm Steps:",
+        "1. Validate the array length to ensure data exists.",
+        "2. Observe and isolate the integer located precisely at index 0 without mutating the array structure.",
+        "3. Return the observed integer.",
+        "",
+        "Instructions:",
+        "1. Define the function `peek_queue(queue)`.",
+        "2. If `queue` is explicitly empty, return the string `'Empty'`.",
+        "3. Return `queue[0]` without triggering removal methods.",
+        "",
+        "Sample Output:",
+        "peek_queue([5, 10, 15]) → 5"
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "peek_queue([5, 10, 15])", "expected": "5", "isHidden": false },
+        { "call": "peek_queue([99])", "expected": "99", "isHidden": false },
+        { "call": "peek_queue([])", "expected": "'Empty'", "isHidden": false },
+        { "call": "peek_queue([1, 2, 3])", "expected": "1", "isHidden": false },
+        { "call": "peek_queue([-5, 0, 5])", "expected": "-5", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l2_a4",
+      "title": "Breadth-First Generation: Binary Sequences",
+      "task": [
+        "Queues are the standard data structure utilized for breadth-first or level-order generation. We can systematically generate sequential binary strings utilizing FIFO iteration mechanics.",
+        "",
+        "Algorithm Steps:",
+        "1. Instantiate a queue initially containing the base string `'1'`.",
+        "2. Iterate `n` times. During each sequence, dequeue the front string and record it in an output array.",
+        "3. Append `'0'` and `'1'` to the dequeued string independently, and enqueue both new sequential permutations back into the queue.",
+        "",
+        "Instructions:",
+        "1. Define `generate_binary(n)`.",
+        "2. Initialize `queue = ['1']` and an output `result = []`.",
+        "3. Loop `n` times: extract `curr = queue.pop(0)`, and append `curr` to `result`.",
+        "4. Enqueue `curr + '0'` and `curr + '1'` into the `queue`.",
+        "5. Return `result`.",
+        "",
+        "Sample Output:",
+        "generate_binary(3) → ['1', '10', '11']"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "give_change(36)", "expected": "[20, 10, 5, 1]", "isHidden": false },
-        { "call": "give_change(40)", "expected": "[20, 20]", "isHidden": false },
-        { "call": "give_change(8)", "expected": "[5, 1, 1, 1]", "isHidden": false },
-        { "call": "give_change(0)", "expected": "[]", "isHidden": false },
-        { "call": "give_change(20)", "expected": "[20]", "isHidden": false }
+        { "call": "generate_binary(3)", "expected": "['1', '10', '11']", "isHidden": false },
+        { "call": "generate_binary(5)", "expected": "['1', '10', '11', '100', '101']", "isHidden": false },
+        { "call": "generate_binary(1)", "expected": "['1']", "isHidden": false },
+        { "call": "generate_binary(0)", "expected": "[]", "isHidden": false },
+        { "call": "generate_binary(2)", "expected": "['1', '10']", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l2_a5",
+      "title": "Structural Manipulation: Reverse K Elements",
+      "task": [
+        "Certain networking algorithms mandate partial sequence reversal. The engine must invert exactly the first K elements of a queue while strictly maintaining the chronological continuity of the remaining dataset.",
+        "",
+        "Algorithm Steps:",
+        "1. Validate that the parameter `k` does not exceed array bounds.",
+        "2. Isolate the first `k` elements into a temporary structure.",
+        "3. Reverse the isolated structure.",
+        "4. Reattach the reversed structure to the front of the preserved remainder of the queue.",
+        "",
+        "Instructions:",
+        "1. Define `reverse_k(queue, k)`.",
+        "2. If `k <= 0` or `k > len(queue)`, return `queue` unchanged.",
+        "3. Isolate the subset using list slicing, apply a reversal, and prepend it to the unaltered remainder of the queue.",
+        "4. Return the newly modified list.",
+        "",
+        "Sample Output:",
+        "reverse_k([1, 2, 3, 4, 5], 3) → [3, 2, 1, 4, 5]"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(k)",
+      "testCasesPool": [
+        { "call": "reverse_k([1, 2, 3, 4, 5], 3)", "expected": "[3, 2, 1, 4, 5]", "isHidden": false },
+        { "call": "reverse_k([10, 20, 30], 2)", "expected": "[20, 10, 30]", "isHidden": false },
+        { "call": "reverse_k([1, 2], 5)", "expected": "[1, 2]", "isHidden": false },
+        { "call": "reverse_k([1, 2, 3], 0)", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "reverse_k([7, 8, 9, 10], 4)", "expected": "[10, 9, 8, 7]", "isHidden": true }
       ]
     }
   ],
   "lesson_3": [
     {
-      "id": "m4_l3_a2",
-      "title": "Activity Selection Scheduling",
+      "id": "m4_l3_a1",
+      "title": "Hash Map Architecture: Frequency Tally",
       "task": [
-        "The Activity Selection problem evaluates temporal intervals to maximize mutually compatible selections. The optimal greedy approach requires sorting the dataset by finish time. Selecting the earliest terminating interval mathematically guarantees the maximum remaining temporal capacity for subsequent evaluations.",
+        "Dictionaries (Hash Maps) provide near-instantaneous O(1) data lookup by hashing keys to specific memory addresses. They are highly optimal for frequency counting, mapping discrete variables to their integer occurrence counts.",
         "",
         "Algorithm Steps:",
-        "1. Ingest a 2D array of temporal intervals formatted as `[start_time, end_time]`.",
-        "2. Apply a sorting protocol targeting the second index (`end_time`) to establish ascending order.",
-        "3. Initialize an allocation array and a tracking variable to record the completion time of the last scheduled interval.",
-        "4. Traverse the sorted dataset. If a candidate interval's start time evaluates as greater than or equal to the tracking variable, allocate the interval.",
+        "1. Instantiate an empty dictionary structure.",
+        "2. Iterate systematically over the provided array.",
+        "3. For each element, verify its existence as a key in the dictionary. If absent, initialize it to 1. If present, increment the associated value.",
+        "4. Return the fully tabulated map.",
         "",
         "Instructions:",
-        "1. Create `schedule_events(events)`.",
-        "2. Utilize native array sorting with a lambda function targeting index 1: `events.sort(key=lambda x: x[1])`.",
-        "3. Initialize `selected = []` and `last_finish = -1`.",
-        "4. Loop through `start, end` in the sorted `events`.",
-        "5. Evaluate if `start >= last_finish`. If validated, append `[start, end]` to `selected` and reassign `last_finish = end`.",
-        "6. Return the `selected` array.",
-        "7. Review the analyzer to note the O(n log n) overhead driven by the prerequisite sorting algorithm.",
+        "1. Define the function `frequency_map(arr)`.",
+        "2. Initialize an empty dictionary: `freq_dict = {}`.",
+        "3. Loop `item` in `arr`. If `item` exists in `freq_dict`, execute `freq_dict[item] += 1`. Otherwise, execute `freq_dict[item] = 1`.",
+        "4. Return `freq_dict`.",
         "",
         "Sample Output:",
-        "schedule_events([[1, 4], [3, 5], [0, 6], [5, 7]]) → [[1, 4], [5, 7]]"
+        "frequency_map([1, 2, 2, 3]) → {1: 1, 2: 2, 3: 1}"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "frequency_map([1, 2, 2, 3])", "expected": "{1: 1, 2: 2, 3: 1}", "isHidden": false },
+        { "call": "frequency_map([5, 5, 5])", "expected": "{5: 3}", "isHidden": false },
+        { "call": "frequency_map([])", "expected": "{}", "isHidden": false },
+        { "call": "frequency_map([10])", "expected": "{10: 1}", "isHidden": false },
+        { "call": "frequency_map([1, 2, 1, 2])", "expected": "{1: 2, 2: 2}", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l3_a2",
+      "title": "Optimized Lookups: First Unique Character",
+      "task": [
+        "Isolating the first unique character utilizing nested O(n) array lookups results in inefficient O(n^2) scaling. Deploying a Hash Map reduces this to a strictly linear O(n) operation through separated pre-processing and evaluation phases.",
+        "",
+        "Algorithm Steps:",
+        "1. Execute an initial complete traversal to populate a Hash Map with character frequencies.",
+        "2. Execute a secondary traversal chronologically over the original string sequence.",
+        "3. Query the Hash Map for each character; the first character that evaluates to a frequency of exactly 1 is returned immediately.",
+        "",
+        "Instructions:",
+        "1. Define the function `first_unique(s)`.",
+        "2. Generate a frequency map for all characters inside `s`.",
+        "3. Traverse the string `s` sequentially. If `map[char] == 1`, return the character.",
+        "4. If traversal concludes with no unique discoveries, return `'_'`.",
+        "",
+        "Sample Output:",
+        "first_unique('leetcode') → 'l'"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(k)",
+      "testCasesPool": [
+        { "call": "first_unique('leetcode')", "expected": "'l'", "isHidden": false },
+        { "call": "first_unique('aabb')", "expected": "'_'", "isHidden": false },
+        { "call": "first_unique('z')", "expected": "'z'", "isHidden": false },
+        { "call": "first_unique('aabbc')", "expected": "'c'", "isHidden": false },
+        { "call": "first_unique('')", "expected": "'_'", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l3_a3",
+      "title": "Set Integration: Array Intersection",
+      "task": [
+        "Identifying intersecting elements across dual arrays is computationally expensive using list iterators. Converting an array to a Set architecture inherently deduplicates variables and optimizes subset lookups to O(1).",
+        "",
+        "Algorithm Steps:",
+        "1. Convert the first array parameter into a structural Set.",
+        "2. Initialize a payload array for confirmed matched integers.",
+        "3. Iterate over the second array, cross-referencing elements against the Set.",
+        "4. Append successful matches to the payload and remove them from the Set to intercept duplicate triggers.",
+        "",
+        "Instructions:",
+        "1. Define the function `intersect_arrays(arr1, arr2)`.",
+        "2. Instantiate `set1 = set(arr1)` and initialize `result = []`.",
+        "3. Traverse `arr2`. If the element is present in `set1`, append to `result` and invoke `.remove(item)` on `set1`.",
+        "4. Return `result`.",
+        "",
+        "Sample Output:",
+        "intersect_arrays([1, 2, 2, 1], [2, 2]) → [2]"
+      ],
+      "targetTime": "O(n + m)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "intersect_arrays([1, 2, 2, 1], [2, 2])", "expected": "[2]", "isHidden": false },
+        { "call": "intersect_arrays([4, 9, 5], [9, 4, 9, 8, 4])", "expected": "[9, 4]", "isHidden": false },
+        { "call": "intersect_arrays([1, 2], [3, 4])", "expected": "[]", "isHidden": false },
+        { "call": "intersect_arrays([], [1])", "expected": "[]", "isHidden": false },
+        { "call": "intersect_arrays([1, 1], [1, 1])", "expected": "[1]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l3_a4",
+      "title": "Lexical Analysis: Anagram Validation",
+      "task": [
+        "Anagram validation requires confirming absolute character parity between two strings. While an O(n log n) sort provides a solution, a dictionary-based frequency array accomplishes this optimally in O(n) linear time.",
+        "",
+        "Algorithm Steps:",
+        "1. Immediately reject evaluation if the string lengths are asymmetrical.",
+        "2. Compile a frequency dictionary from the primary string.",
+        "3. Traverse the secondary string, iteratively decrementing the corresponding character values within the dictionary.",
+        "4. If all keys resolve perfectly to 0, lexical parity is confirmed.",
+        "",
+        "Instructions:",
+        "1. Define `is_anagram(s, t)`.",
+        "2. If `len(s) != len(t)`, return `False`.",
+        "3. Map the character frequencies of `s` into a dictionary.",
+        "4. Traverse `t`. Decrement the dictionary value for each character. If a character is absent, return `False`.",
+        "5. If any remaining dictionary value is non-zero, return `False`. Otherwise, return `True`.",
+        "",
+        "Sample Output:",
+        "is_anagram('anagram', 'nagaram') → True"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(k)",
+      "testCasesPool": [
+        { "call": "is_anagram('anagram', 'nagaram')", "expected": "True", "isHidden": false },
+        { "call": "is_anagram('rat', 'car')", "expected": "False", "isHidden": false },
+        { "call": "is_anagram('a', 'a')", "expected": "True", "isHidden": false },
+        { "call": "is_anagram('ab', 'a')", "expected": "False", "isHidden": false },
+        { "call": "is_anagram('', '')", "expected": "True", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l3_a5",
+      "title": "Bidirectional Mapping: Isomorphic Relations",
+      "task": [
+        "Isomorphism mandates a perfectly consistent 1-to-1 mapping protocol between two data sequences. Dual Hash Maps must track index-to-index relationships concurrently to intercept mapping conflicts.",
+        "",
+        "Algorithm Steps:",
+        "1. Instantiate two parallel mapping environments (Hash Maps).",
+        "2. Iterate over the dataset chronologically utilizing numerical indices.",
+        "3. Evaluate the corresponding variables. If a variable is already mapped to a conflicting partner in either environment, the structure is asynchronous.",
+        "",
+        "Instructions:",
+        "1. Define `is_isomorphic(s, t)`.",
+        "2. Initialize `map_s = {}` and `map_t = {}`.",
+        "3. Traverse using numerical index `i`. Assign `char_s = s[i]` and `char_t = t[i]`.",
+        "4. If `char_s` is in `map_s` and `map_s[char_s] != char_t`, return `False`.",
+        "5. If `char_t` is in `map_t` and `map_t[char_t] != char_s`, return `False`.",
+        "6. Establish the mappings: `map_s[char_s] = char_t` and `map_t[char_t] = char_s`. Return `True` upon full resolution.",
+        "",
+        "Sample Output:",
+        "is_isomorphic('egg', 'add') → True"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "is_isomorphic('egg', 'add')", "expected": "True", "isHidden": false },
+        { "call": "is_isomorphic('foo', 'bar')", "expected": "False", "isHidden": false },
+        { "call": "is_isomorphic('paper', 'title')", "expected": "True", "isHidden": false },
+        { "call": "is_isomorphic('a', 'a')", "expected": "True", "isHidden": false },
+        { "call": "is_isomorphic('ab', 'aa')", "expected": "False", "isHidden": true }
+      ]
+    }
+  ],
+  "lesson_4": [
+    {
+      "id": "m4_l4_a1",
+      "title": "Mathematical Structures: Set Unique Filtration",
+      "task": [
+        "Set protocols enforce strict absolute uniqueness upon initialization. To efficiently purge duplicate elements from a sequence, casting an array to a Set bypasses complex, nested algorithmic checks.",
+        "",
+        "Algorithm Steps:",
+        "1. Accept an initial array populated with potential duplicate variables.",
+        "2. Transpile the array natively into a mathematical Set to obliterate redundancies.",
+        "3. Recast the filtered Set back into a standard list.",
+        "4. Apply standard sorting to the resultant list to maintain deterministic output.",
+        "",
+        "Instructions:",
+        "1. Define the function `filter_unique(arr)`.",
+        "2. Cast `arr` to a Set using `set(arr)`.",
+        "3. Cast the Set back to a list format.",
+        "4. Sort the result in ascending order and return it.",
+        "",
+        "Sample Output:",
+        "filter_unique([3, 1, 2, 1, 3]) → [1, 2, 3]"
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "schedule_events([[1, 4], [3, 5], [0, 6], [5, 7]])", "expected": "[[1, 4], [5, 7]]", "isHidden": false },
-        { "call": "schedule_events([[1, 3], [2, 5], [4, 6], [6, 8]])", "expected": "[[1, 3], [4, 6], [6, 8]]", "isHidden": false },
-        { "call": "schedule_events([[1, 2], [1, 5], [2, 3]])", "expected": "[[1, 2], [2, 3]]", "isHidden": false },
-        { "call": "schedule_events([[10, 20]])", "expected": "[[10, 20]]", "isHidden": false },
-        { "call": "schedule_events([])", "expected": "[]", "isHidden": false }
+        { "call": "filter_unique([3, 1, 2, 1, 3])", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "filter_unique([5, 5, 5])", "expected": "[5]", "isHidden": false },
+        { "call": "filter_unique([10, 20])", "expected": "[10, 20]", "isHidden": false },
+        { "call": "filter_unique([])", "expected": "[]", "isHidden": false },
+        { "call": "filter_unique([-1, -1, 0, 1])", "expected": "[-1, 0, 1]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l4_a2",
+      "title": "Set Operations: Subset Validation",
+      "task": [
+        "Validating if one dataset exists entirely within another utilizes Set inclusion operations, optimizing O(n^2) manual iterative lookups down to a streamlined comparative layer.",
+        "",
+        "Algorithm Steps:",
+        "1. Accept dual array parameters acting as the potential subset and the superset.",
+        "2. Convert both arrays into operational Set instances.",
+        "3. Leverage native Set methods to ascertain mathematically complete inclusion.",
+        "",
+        "Instructions:",
+        "1. Define `is_subset(sub_arr, super_arr)`.",
+        "2. Transpile `sub_arr` and `super_arr` to Sets.",
+        "3. Return the boolean result evaluated via Python's native `issubset()` function.",
+        "",
+        "Sample Output:",
+        "is_subset([1, 2], [1, 2, 3, 4]) → True"
+      ],
+      "targetTime": "O(n + m)",
+      "targetSpace": "O(n + m)",
+      "testCasesPool": [
+        { "call": "is_subset([1, 2], [1, 2, 3, 4])", "expected": "True", "isHidden": false },
+        { "call": "is_subset([5], [1, 2, 3])", "expected": "False", "isHidden": false },
+        { "call": "is_subset([], [1])", "expected": "True", "isHidden": false },
+        { "call": "is_subset([10, 10], [10])", "expected": "True", "isHidden": false },
+        { "call": "is_subset([1, 2, 3], [1, 2, 3])", "expected": "True", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l4_a3",
+      "title": "Set Operations: Disjoint Status Evaluation",
+      "task": [
+        "Two collections are mathematically defined as 'disjoint' if their intersection equates strictly to the empty set. Applying an intersection parameter easily confirms the absence of shared elements.",
+        "",
+        "Algorithm Steps:",
+        "1. Morph dual arrays into separate Set object structures.",
+        "2. Execute an intersection sequence against both parameters.",
+        "3. Evaluate the total length of the resulting intersection payload. A zero length confirms disjoint status.",
+        "",
+        "Instructions:",
+        "1. Define the function `is_disjoint(arr1, arr2)`.",
+        "2. Cast input parameters to sets.",
+        "3. Calculate the intersection of the sets.",
+        "4. Return `True` if the intersection resolves to an empty structure, otherwise `False`.",
+        "",
+        "Sample Output:",
+        "is_disjoint([1, 2], [3, 4]) → True"
+      ],
+      "targetTime": "O(n + m)",
+      "targetSpace": "O(n + m)",
+      "testCasesPool": [
+        { "call": "is_disjoint([1, 2], [3, 4])", "expected": "True", "isHidden": false },
+        { "call": "is_disjoint([1, 2, 3], [3, 4])", "expected": "False", "isHidden": false },
+        { "call": "is_disjoint([], [1, 2])", "expected": "True", "isHidden": false },
+        { "call": "is_disjoint([5], [5])", "expected": "False", "isHidden": false },
+        { "call": "is_disjoint([10, 20], [30, 40, 50])", "expected": "True", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l4_a4",
+      "title": "Arithmetic Algorithms: Missing Sequence Entity",
+      "task": [
+        "When analyzing a consecutive arithmetic progression from 0 to N where precisely one integer is missing, Gauss's summation formula offers an O(n) mathematical solution to isolate the absent entity.",
+        "",
+        "Algorithm Steps:",
+        "1. Establish the theoretical sequence length (N).",
+        "2. Compute the theoretical sum of the expected sequence using `N * (N + 1) / 2`.",
+        "3. Compute the literal sum of the input array elements.",
+        "4. Deduct the literal sum from the theoretical sum to isolate the discrepancy.",
+        "",
+        "Instructions:",
+        "1. Define the function `find_missing(arr)`.",
+        "2. Assign `n = len(arr)`.",
+        "3. Compute `expected_sum = (n * (n + 1)) // 2`.",
+        "4. Compute `actual_sum = sum(arr)`.",
+        "5. Return `expected_sum - actual_sum`.",
+        "",
+        "Sample Output:",
+        "find_missing([3, 0, 1]) → 2"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        { "call": "find_missing([3, 0, 1])", "expected": "2", "isHidden": false },
+        { "call": "find_missing([0, 1])", "expected": "2", "isHidden": false },
+        { "call": "find_missing([9, 6, 4, 2, 3, 5, 7, 0, 1])", "expected": "8", "isHidden": false },
+        { "call": "find_missing([0])", "expected": "1", "isHidden": false },
+        { "call": "find_missing([1])", "expected": "0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_l4_a5",
+      "title": "Integrity Metrics: Duplicate Extrapolation",
+      "task": [
+        "Verifying the presence of duplicate variables within an extensive array is inefficient via standard iteration. Set structures intrinsically purge clones, rendering geometric length comparisons highly effective.",
+        "",
+        "Algorithm Steps:",
+        "1. Document the absolute length of the provided array parameter.",
+        "2. Transpile the array structure natively into a Set parameter.",
+        "3. Document the new length of the resulting Set.",
+        "4. Variance between the two recorded lengths confirms that duplicate variables existed and were inherently purged.",
+        "",
+        "Instructions:",
+        "1. Define the function `contains_duplicate(arr)`.",
+        "2. Retrieve the initial length of `arr`.",
+        "3. Generate a Set from the array and retrieve its length.",
+        "4. Return `True` if the lengths are mathematically asymmetrical, signaling duplicates. Return `False` if symmetrical.",
+        "",
+        "Sample Output:",
+        "contains_duplicate([1, 2, 3, 1]) → True"
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "contains_duplicate([1, 2, 3, 1])", "expected": "True", "isHidden": false },
+        { "call": "contains_duplicate([1, 2, 3, 4])", "expected": "False", "isHidden": false },
+        { "call": "contains_duplicate([1, 1, 1, 3, 3, 4, 3, 2, 4, 2])", "expected": "True", "isHidden": false },
+        { "call": "contains_duplicate([])", "expected": "False", "isHidden": false },
+        { "call": "contains_duplicate([5])", "expected": "False", "isHidden": true }
+      ]
+    }
+  ],
+  "optimizations": [
+    {
+      "id": "m4_opt_1",
+      "title": "Optimization: List Iteration to Hash Mapping",
+      "task": [
+        "The baseline combinatorial algorithm effectively maps frequencies but relies on dual `list.count()` iterations, generating a highly inefficient O(n^2) time cascade. The primary optimization objective is restructuring this methodology to utilize a single O(n) Hash Map traversal.",
+        "",
+        "Optimization Guidelines:",
+        "1. Review the diagnostic metrics indicating O(n^2) scaling limits caused by nested array loop logic.",
+        "2. Eradicate the sequential list tracking variables and the associated `count()` logic.",
+        "3. Initialize an empty standard dictionary.",
+        "4. Deploy a unified sequential iteration across the dataset, dynamically storing element occurrences as key-value pairings.",
+        "5. Validate that the runtime complexity effectively collapses to an optimal O(n) limit."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m4-4.1.json",
+      "testCasesPool": [
+        { "call": "optimize_frequency([10, 20, 10, 30])", "expected": "{10: 2, 20: 1, 30: 1}", "isHidden": false },
+        { "call": "optimize_frequency([1, 1, 1])", "expected": "{1: 3}", "isHidden": false },
+        { "call": "optimize_frequency([])", "expected": "{}", "isHidden": false },
+        { "call": "optimize_frequency([5, 6])", "expected": "{5: 1, 6: 1}", "isHidden": false },
+        { "call": "optimize_frequency([7, 7, 8, 8])", "expected": "{7: 2, 8: 2}", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_opt_2",
+      "title": "Optimization: Structural Set Deduplication",
+      "task": [
+        "The current deduplication engine iterates across the dataset while continuously evaluating containment against an auxiliary list via `if item not in list` statements. This process induces unnecessary O(n^2) operations and must be optimized.",
+        "",
+        "Optimization Guidelines:",
+        "1. Identify the performance degradation directly tied to linear list containment verification.",
+        "2. Strip the secondary list tracking implementation alongside the conditional loop sequence.",
+        "3. Pass the primary array input directly into the built-in `set()` function to trigger immediate duplicate purging.",
+        "4. Format the Set output back into standard array syntax, ensuring the algorithm validates at an O(n) operational threshold."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m4-4.2.json",
+      "testCasesPool": [
+        { "call": "optimize_unique([4, 1, 2, 1, 4])", "expected": "[1, 2, 4]", "isHidden": false },
+        { "call": "optimize_unique([3, 3, 3])", "expected": "[3]", "isHidden": false },
+        { "call": "optimize_unique([10])", "expected": "[10]", "isHidden": false },
+        { "call": "optimize_unique([])", "expected": "[]", "isHidden": false },
+        { "call": "optimize_unique([9, 8, 7, 7, 8])", "expected": "[7, 8, 9]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m4_opt_3",
+      "title": "Optimization: Hash Caching (Memoization)",
+      "task": [
+        "Computing Fibonacci sequences utilizing naive dual-branch recursion yields accurate variables but forces astronomical O(2^n) exponential time scaling. The subsystem requires a Hash Map memory block (Memoization) to bypass redundant execution trees.",
+        "",
+        "Optimization Guidelines:",
+        "1. Acknowledge the extreme O(2^n) metrics triggered by repetitive recursive function calls for identical state variables.",
+        "2. Integrate a persistent localized dictionary (`memo = {}`) to act as a state cache.",
+        "3. Refactor core logic: before invoking a recursive `fib(n)` calculation, actively query the dictionary for pre-existing keys matching `n`.",
+        "4. If present, immediately return the cached integer. If absent, execute the calculation, map the payload to the dictionary, and return.",
+        "5. Observe the architectural shift efficiently flattening the time complexity spectrum to O(n)."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m4-4.3.json",
+      "testCasesPool": [
+        { "call": "fib_optimized(5)", "expected": "5", "isHidden": false },
+        { "call": "fib_optimized(10)", "expected": "55", "isHidden": false },
+        { "call": "fib_optimized(0)", "expected": "0", "isHidden": false },
+        { "call": "fib_optimized(1)", "expected": "1", "isHidden": false },
+        { "call": "fib_optimized(6)", "expected": "8", "isHidden": true }
       ]
     }
   ]
