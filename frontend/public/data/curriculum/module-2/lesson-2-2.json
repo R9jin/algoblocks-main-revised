@@ -1,36 +1,32 @@
 {
-  "lessonId": "lesson-2-2",
+  "lessonId": "lesson-2-1",
   "moduleId": "module-2",
-  "title": "Linear Search",
-  "description": "Understand how linear search checks data sequentially, handles found and not-found cases, and why its runtime grows with input size.",
+  "title": "Brute Force Strategy",
+  "description": "Learn how brute force algorithms solve problems through systematic exhaustive checking and why this strategy is correct but often expensive.",
   "difficulty": "Beginner",
   "estimatedTime": "35 min",
-  "prerequisites": "Brute Force Strategy",
-  "tags": [
-    "linear search",
-    "searching",
-    "arrays"
-  ],
+  "prerequisites": "Space Complexity",
+  "tags": ["brute force", "searching", "algorithm strategies"],
   "activities": [
     {
-      "id": "m2_l2_a1",
-      "title": "Target Search"
+      "id": "m2_l1_a1",
+      "title": "Max Finder"
     },
     {
-      "id": "m2_l2_a2",
-      "title": "Count Occurrences"
+      "id": "m2_l1_a2",
+      "title": "Min Finder"
     },
     {
-      "id": "m2_l2_a3",
-      "title": "Last Occurrence"
+      "id": "m2_l1_a3",
+      "title": "Sum Search"
     },
     {
-      "id": "m2_l2_a4",
-      "title": "Search in Range"
+      "id": "m2_l1_a4",
+      "title": "Count Evens"
     },
     {
-      "id": "m2_l2_a5",
-      "title": "Multi-Target Search"
+      "id": "m2_l1_a5",
+      "title": "First Negative Finder"
     }
   ],
   "sections": [
@@ -38,94 +34,84 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Linear Search is the simplest searching algorithm. It works by checking elements one by one until the target is found or the collection ends.\n\nThe algorithm does not require sorting, recursion, pointer tricks, or extra data structures. It uses a direct sequential scan, which makes it one of the best first examples for understanding how search algorithms operate."
+      "content": "One of the most natural ways to solve a problem is to try every possible solution until you find the correct one. This strategy is called brute force. It is how humans often solve puzzles in real life. When you lose your keys, you check every room and every drawer until you find them.\n\nA brute force algorithm does not use shortcuts or fancy optimization. It uses direct, systematic checking. The algorithm tests each candidate answer one by one. It stops only when the answer is found or every possibility has been tried.\n\nBrute force is important because it is often the first correct version of a solution. When facing a new problem, trying all possibilities gives you something that works, at least for small inputs.\n\nMany advanced algorithms like binary search and dynamic programming are easier to understand when you see them as optimizations of a simpler brute force approach. Understanding brute force helps you see what work can be eliminated or accelerated."
     },
     {
-      "id": "why-linear-search-matters",
+      "id": "why-brute-force-matters",
       "type": "concept",
-      "title": "Why Linear Search Matters",
-      "content": "Many real-world systems still use sequential searching. A program may scan attendance lists, search unsorted files, check notifications, locate names in small datasets, or find a first matching record.\n\nLinear Search matters because not all data is sorted. When the input has no useful ordering, the program may have no safe way to skip elements. It must inspect candidates directly.",
+      "title": "Why Brute Force Matters",
+      "content": "When programmers face a new problem, a brute force solution helps establish a baseline. The baseline proves what the correct output should be for small inputs. You can then test faster, more complex algorithms against this trusted reference.\n\nBrute force is also valuable for learning because it shows you the entire search space. By seeing every candidate that could be tested, you can identify which work is necessary, which work is repeated, and which work can be eliminated later.\n\nSometimes brute force is not just a baseline but the actual production solution. Many real-world systems use brute force when input sizes are guaranteed to be small. A configuration checker that tests a handful of settings or a simple game AI that looks a few moves ahead uses brute force effectively.\n\nBrute force is simple to design and explain. It helps verify correctness before optimization. It gives developers a baseline for comparing faster algorithms. It works well when input sizes are small or when correctness matters more than speed.",
       "bullets": [
-        "It works on unsorted arrays.",
-        "It is simple to implement and debug.",
-        "It uses minimal auxiliary memory.",
-        "It is practical for small datasets or one-time searches."
+        "It is usually simple to design and explain.",
+        "It helps verify correctness before optimization.",
+        "It gives developers a baseline for comparing faster algorithms.",
+        "It works well when input sizes are small or when correctness matters more than speed."
       ]
     },
     {
       "id": "core-idea",
       "type": "concept",
-      "title": "Core Idea of Linear Search",
-      "content": "Linear Search compares each array element with the target value. If the current element matches the target, the algorithm returns the current index. If the algorithm reaches the end without finding a match, it returns a not-found value such as -1.\n\nUnlike Binary Search, Linear Search does not divide the search space or eliminate large sections. It simply checks elements in sequence."
+      "title": "Core Idea of Brute Force",
+      "content": "The core idea of brute force is systematic testing. Instead of making intelligent guesses, the algorithm checks candidates one by one in a fixed order. This systematic approach ensures that no candidate is missed.\n\nIn array problems, brute force may mean scanning every element from index 0 to n-1. In combination problems, it may mean generating every possible pair using nested loops. In password problems, it may mean trying every possible sequence like 0000, 0001, 0002.\n\nBecause every possibility is checked, brute force can guarantee correctness if the implementation is correct and the search space is finite. There is no risk of missing a solution due to a wrong guess or assumption.\n\nThis reliability is the algorithm's greatest strength. You may not know if a clever optimization will always work, but you can always trust brute force to find the answer if it exists."
     },
     {
-      "id": "step-by-step",
+      "id": "brute-force-searching",
       "type": "deep_dive",
-      "title": "Searching Through an Array",
-      "content": "Suppose the program searches for 11 inside the array [3, 8, 5, 11, 2]. The algorithm compares 3 with 11, then 8 with 11, then 5 with 11. None of those values match.\n\nWhen the algorithm compares 11 with 11, the target is found and the index is returned. Because the target appears before the end, the algorithm can stop early.\n\nIf the program searches for a value that does not exist, every element must be checked. The algorithm reaches the end and returns -1 to communicate that the target was not found."
+      "title": "Brute Force in Searching",
+      "content": "One common brute force algorithm is linear search. Suppose you need to find the number 8 inside an array. The direct strategy is to compare the target with each element from left to right, starting at index 0, then index 1, then index 2.\n\nLinear search is brute force because it examines every element in the worst case. It makes no assumptions about the data's order. If the array is not sorted, there is no way to know where the target might be without checking.\n\nIf the value is found, the algorithm returns its position. If the value is not found, the algorithm reaches the end and reports that no match exists. No element is skipped.\n\nLinear search is useful when the array is not sorted, when the array is small so even the worst case is fine, when you only search once, or when the data comes in a stream and you cannot jump to arbitrary positions."
     },
     {
-      "id": "implementation",
+      "id": "implementation-examples",
       "type": "concept",
-      "title": "Python Implementation",
-      "content": "A correct Linear Search implementation must include three important behaviors: sequential traversal, immediate return when a match is found, and a clear result when no match exists.",
+      "title": "Implementation Examples",
+      "content": "Brute force implementations are usually built from loops, comparisons, and simple variables. Most brute force array algorithms follow a simple pattern. You initialize a result, loop through each candidate, check if it satisfies the condition, update the result if needed, and then return the result.\n\nFinding the maximum value is a classic example. You start with the first element as the current maximum. Then you loop through every element. If you find a larger value, you update the maximum. This checks every element exactly once.\n\nAnother example is checking every pair to see if their sum equals a target. This uses nested loops. The outer loop picks the first element. The inner loop picks the second element starting after the first to avoid duplicate pairs. This takes O(n squared) time but is very simple to write.\n\nOther common brute force patterns include counting how many values meet a condition, finding the first negative number, and searching for a specific target. These patterns are easy to understand and get correct.",
       "codeSnippets": [
         {
-          "title": "Linear search with found and not-found behavior",
+          "title": "Find the maximum by checking every element",
           "language": "python",
-          "code": "def linear_search(arr, target):\n    for i in range(len(arr)):\n        if arr[i] == target:\n            return i\n\n    return -1\n\nprint(linear_search([3, 8, 5, 11, 2], 11))\nprint(linear_search([3, 8, 5, 11, 2], 10))"
+          "code": "def find_max(arr):\n    if len(arr) == 0:\n        return 'Error'\n\n    max_value = arr[0]\n    for value in arr:\n        if value > max_value:\n            max_value = value\n\n    return max_value\n\nprint(find_max([32, 45, 28, 47, 39]))"
         },
         {
-          "title": "Count all matches instead of stopping early",
+          "title": "Find the minimum with one sequential pass",
           "language": "python",
-          "code": "def count_occurrences(arr, target):\n    count = 0\n\n    for value in arr:\n        if value == target:\n            count += 1\n\n    return count\n\nprint(count_occurrences([1, 2, 2, 3], 2))"
+          "code": "def find_min(arr):\n    if len(arr) == 0:\n        return 'Error'\n\n    min_value = arr[0]\n    for value in arr:\n        if value < min_value:\n            min_value = value\n\n    return min_value\n\nprint(find_min([3, 1, 9, 2]))"
         },
         {
-          "title": "Track the last matching index",
+          "title": "Count even values through exhaustive checking",
           "language": "python",
-          "code": "def last_occurrence(arr, target):\n    last_index = -1\n\n    for i in range(len(arr)):\n        if arr[i] == target:\n            last_index = i\n\n    return last_index\n\nprint(last_occurrence([1, 2, 2, 3], 2))"
+          "code": "def count_evens(arr):\n    count = 0\n\n    for value in arr:\n        if value % 2 == 0:\n            count += 1\n\n    return count\n\nprint(count_evens([1, 2, 3, 4, 5, 6]))"
+        },
+        {
+          "title": "Check every pair for a target sum",
+          "language": "python",
+          "code": "def has_pair_sum(arr, target):\n    for i in range(len(arr)):\n        for j in range(i + 1, len(arr)):\n            if arr[i] + arr[j] == target:\n                return True\n\n    return False\n\nprint(has_pair_sum([2, 4, 7, 11], 13))"
         }
       ]
     },
     {
-      "id": "complexity-analysis",
+      "id": "exhaustive-search",
       "type": "deep_dive",
-      "title": "Complexity Analysis",
-      "content": "Linear Search has O(n) worst-case time complexity because the algorithm may need to inspect every element.\n\nThe best case is O(1), which happens when the target is the first element. The average and worst cases are O(n), especially when the target appears near the end or does not exist at all. Space complexity is O(1) because the algorithm only uses a small fixed amount of extra memory.",
+      "title": "Understanding Exhaustive Search",
+      "content": "Brute force algorithms are often called exhaustive search because every possible candidate is explored. The algorithm does not stop early if a candidate seems unlikely. It checks everything in a methodical way.\n\nThis exhaustiveness is both the strength and the weakness. It guarantees correctness but can require enormous amounts of work. For array scanning, exhaustive search means checking each element once, which is actually optimal for unsorted data.\n\nFor pair checking, it means checking all n times n-1 divided by 2 pairs. For subset problems, it means trying all 2 to the power of n subsets. For n=20, that is about 1 million subsets, which is fine. For n=40, it is about 1 trillion subsets, which is not feasible.\n\nThis is useful for small inputs. But the number of possibilities grows very quickly. A four-digit password has 10,000 combinations. An eight-digit password has 100 million combinations. The algorithm may be correct, but the work can become too large for practical systems.",
       "chart": {
-        "title": "Linear Search growth",
-        "description": "Linear Search grows proportionally with input size. The chart compares O(1), O(n), and O(log n) so the sequential scan can be contrasted with constant and logarithmic behavior.",
-        "maxN": 32,
+        "title": "Exhaustive growth as input size increases",
+        "description": "Brute force methods often begin with linear scanning, but combinations and nested checks can quickly move toward quadratic or exponential growth.",
+        "maxN": 20,
         "normalize": true,
-        "curves": [
-          "O(1)",
-          "O(log n)",
-          "O(n)"
-        ]
+        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
       }
     },
     {
-      "id": "best-vs-worst",
+      "id": "complexity-analysis",
       "type": "concept",
-      "title": "Best Case vs Worst Case",
-      "subsections": [
-        {
-          "id": "best-case",
-          "title": "Best Case",
-          "content": "The best case occurs when the target appears immediately. For example, searching for 8 inside [8, 3, 5, 1] requires only one comparison."
-        },
-        {
-          "id": "worst-case",
-          "title": "Worst Case",
-          "content": "The worst case occurs when the target is at the end or missing. Searching for 10 inside [3, 8, 5, 11, 2] checks every element before returning -1."
-        }
-      ]
+      "title": "Time and Space Complexity",
+      "content": "The complexity of a brute force algorithm depends on how many candidates it must test. A single loop through n elements takes O(n) time. Checking every pair with nested loops takes O(n squared) time. Generating all subsets takes O(2 to the n) time.\n\nMany beginner brute force algorithms use O(1) auxiliary space. They only keep a few variables like a counter, current maximum, or current minimum. They process the input without creating new structures that grow with n.\n\nHowever, more complex exhaustive searches may need more memory. Storing all candidates may take O(n) space. Tracking visited states may take O(n) or O(n squared) space. Recursion for generating combinations may need O(depth) space for the call stack.\n\nUnderstanding these complexity patterns helps you predict whether your brute force solution will run within acceptable limits for your expected input sizes."
     },
     {
-      "id": "linear-vs-binary",
+      "id": "brute-force-vs-optimized",
       "type": "real_world_connection",
-      "title": "Linear Search vs Binary Search",
-      "content": "Linear Search works on unsorted data and scans sequentially. Binary Search requires sorted data and uses a divide-and-conquer strategy to eliminate half of the remaining search space after each comparison.\n\nThis means Linear Search is simpler and more flexible, while Binary Search is much more scalable when the data is already sorted."
+      "title": "Brute Force vs Optimized Algorithms",
+      "content": "Brute force explores everything and focuses on being correct. Optimized algorithms try to eliminate unnecessary work. They use ordering, math insights, data structures, pruning, or divide and conquer strategies. The difference between brute force and optimized solutions can be enormous.\n\nFor example, linear search checks every element and takes O(n) time. Binary search needs sorted data but cuts the search space in half each time, taking O(log n) time. For 1 million items, linear search does 1 million checks while binary search does only about 20 checks. That is 50,000 times faster.\n\nFor the pair sum problem, brute force checks all pairs in O(n squared) time. An optimized approach uses a hash set. For each element, it checks if the target minus that element is in the set. This runs in O(n) time on average. For 100,000 items, brute force does about 5 billion comparisons while the optimized version does about 100,000 hash lookups.\n\nUse brute force when n is small, when correctness is critical and optimization time is expensive, or as a baseline for testing. Use optimized algorithms when n is large, when performance matters, or when the problem structure allows math shortcuts."
     },
     {
       "id": "advantages-limitations",
@@ -136,20 +122,20 @@
           "id": "advantages",
           "title": "Advantages",
           "bullets": [
-            "No sorting is required.",
-            "The implementation is beginner-friendly.",
-            "The algorithm uses O(1) auxiliary space.",
-            "It is effective for small datasets and simple checks."
+            "Easy to understand and implement.",
+            "Useful as a correctness baseline.",
+            "Reliable when the search space is small.",
+            "Helpful for debugging and testing optimized solutions."
           ]
         },
         {
           "id": "limitations",
           "title": "Limitations",
           "bullets": [
-            "Large datasets can require many comparisons.",
-            "Repeated searches over huge arrays become expensive.",
-            "It does not use ordering or indexing to skip work.",
-            "Optimized search algorithms are better when data is structured."
+            "Often performs unnecessary work.",
+            "Scales poorly when the number of candidates grows quickly.",
+            "Can consume excessive time, memory, or processing power.",
+            "May be impractical for large datasets or real-time systems."
           ]
         }
       ]
@@ -158,27 +144,27 @@
       "id": "applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Linear Search appears in simple mobile apps, validation systems, small configuration lists, file scanning tools, and situations where data arrives unsorted.\n\nIt is also commonly used as a teaching algorithm because it clearly shows comparison flow, stopping conditions, and the relationship between input size and runtime."
+      "content": "Brute force appears in many real-world systems. It is used when input sizes are small, when correctness is most important, or when the cost of optimization is higher than the benefit.\n\nIn password testing for security, professionals use brute force to check password strength. They try every possible combination within a character set. This is slow but guarantees that if the password is in the search space, it will be found.\n\nIn small game AI like Tic-Tac-Toe, brute force can play perfectly. The AI can explore all possible moves and pick the winning one. The game state space is small enough that checking everything is possible.\n\nIn configuration testing, when a system has only a few settings, brute force can test all combinations to find which settings cause a bug or give the best performance.\n\nIn competitive programming, many beginner problems are designed for brute force solutions. The input sizes are kept small so that even exponential algorithms can pass within the time limit. Brute force is useful when inputs are small, when correctness is the top priority, or when you need a baseline before designing a faster algorithm."
     },
     {
       "id": "misconceptions",
       "type": "key_concept",
-      "title": "Common Beginner Mistakes",
+      "title": "Common Beginner Misconceptions",
       "subsections": [
         {
-          "id": "forgetting-stop",
-          "title": "Mistake: Forgetting to stop after a match",
-          "content": "When the task asks for the first matching index, the algorithm should return immediately after the first match is found."
+          "id": "always-bad",
+          "title": "Misconception: Brute force is always bad",
+          "content": "Brute force can be the right choice for small inputs, testing, or baseline implementation. The problem appears when the search space becomes too large. For n=10, 2 to the n is 1024 operations, which is fine. For n=100, it is impossible."
         },
         {
-          "id": "wrong-return",
-          "title": "Mistake: Returning the element instead of the index",
-          "content": "Many search tasks ask for the position of the target, not the target value itself. The return value must match the requirement."
+          "id": "always-linear",
+          "title": "Misconception: Brute force is always O(n)",
+          "content": "Some brute force algorithms are linear, but others use nested loops for O(n squared), generate subsets for O(2 to the n), or list permutations for O(n factorial). Complexity depends on how many candidates are tested, not on the name brute force."
         },
         {
-          "id": "missing-not-found",
-          "title": "Mistake: Ignoring the not-found case",
-          "content": "A search algorithm must define what happens when the target does not exist. In many beginner problems, -1 is used for this case."
+          "id": "random-guessing",
+          "title": "Misconception: Brute force means random guessing",
+          "content": "Brute force is systematic exhaustive checking. It follows a predictable order like left to right or smallest to largest. Random guessing may miss candidates and has no guarantee of finding a solution. Brute force is complete and deterministic."
         }
       ]
     },
@@ -187,26 +173,26 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "Linear Search checks elements sequentially.",
-        "It works on unsorted data.",
-        "The best case is O(1) when the first item matches.",
-        "The worst case is O(n) when the target is missing or near the end.",
-        "Linear Search is simple and reliable, but not ideal for repeated searches over large datasets."
+        "Brute force solves problems by systematically checking possible solutions.",
+        "The strategy is simple and often guarantees correctness.",
+        "Brute force is useful as a baseline before optimization.",
+        "Performance depends on the number of candidates tested.",
+        "Large search spaces can make brute force impractical."
       ]
     }
   ],
   "references": [
     {
-      "title": "Programiz - Linear Search",
-      "url": "https://www.programiz.com/dsa/linear-search"
+      "title": "GeeksforGeeks - Brute Force Algorithm",
+      "url": "https://www.geeksforgeeks.org/introduction-to-brute-force-algorithm/"
     },
     {
-      "title": "GeeksforGeeks - Linear Search",
-      "url": "https://www.geeksforgeeks.org/linear-search/"
+      "title": "Programiz - Searching Algorithms",
+      "url": "https://www.programiz.com/dsa/searching-algorithms"
     },
     {
-      "title": "Khan Academy - Linear Search",
-      "url": "https://www.khanacademy.org/computing/computer-science/algorithms/linear-search/a/linear-search"
+      "title": "Khan Academy - Algorithms",
+      "url": "https://www.khanacademy.org/computing/computer-science/algorithms"
     }
   ]
 }

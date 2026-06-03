@@ -1718,25 +1718,55 @@ class BlocklyASTConverter:
             
         return self.serialize_expr(node)
 
-    # =========================
+# =========================
     # BLOCK HEIGHT ESTIMATOR
     # =========================
-    def estimate_block_height(self, block):
-        if not block: return 0
-        btype = block.get("type", "")
-        if btype in ["procedures_defnoreturn", "procedures_defreturn"]: return 180
-        if btype == "controls_if": return 160
-        if btype in ["controls_for", "controls_whileUntil"]: return 150
-        if btype in ["variables_set", "math_assignment", "lists_setIndex"]: return 110
-        return 90
-
     def get_chain_height(self, block):
         if not block: return 0
-        height = self.estimate_block_height(block)
+        
+        btype = block.get("type", "")
+        # Safe, generous base heights for top-level wrappers
+        if btype in ["procedures_defnoreturn", "procedures_defreturn"]: 
+            height = 120
+        elif btype == "controls_if": 
+            height = 120
+        elif btype in ["controls_for", "controls_whileUntil", "controls_forEach"]: 
+            height = 120
+        elif btype in ["variables_set", "math_assignment", "lists_setIndex"]: 
+            height = 80
+        else: 
+            height = 60
+
+        # Accumulate height from internal nested blocks
+        inputs = block.get("inputs", {})
+        for key, input_data in inputs.items():
+            inner = input_data.get("block")
+            if not inner: continue
+            
+            # Statement blocks (the body of a loop, if, or function)
+            if key.startswith("DO") or key in ["STACK", "ELSE"]:
+                height += self.get_chain_height(inner)
+            # Value blocks (math, logic conditions, function arguments, nested arrays)
+            else:
+                height += self.get_value_expansion(inner)
+
+        # Accumulate height of subsequent blocks attached below this one
         next_block = block.get("next", {}).get("block")
         if next_block:
             height += self.get_chain_height(next_block)
+            
         return height
+
+    def get_value_expansion(self, block):
+        # Value blocks (like nested math or array items) expand the parent block vertically
+        if not block: return 0
+        expansion = 40 
+        inputs = block.get("inputs", {})
+        for key, input_data in inputs.items():
+            inner = input_data.get("block")
+            if inner:
+                expansion += self.get_value_expansion(inner)
+        return expansion
 
     def convert(self, code: str):
         self.variables = set()
@@ -1744,36 +1774,39 @@ class BlocklyASTConverter:
             clean_code = code.replace('\xa0', ' ').replace('\u200b', '').replace('\t', '    ')
             tree = ast.parse(clean_code)
 
-            top_blocks = []
+            clusters = []
             current_chain_tail = None
-            y_offset = 20
 
+            # Phase 1: Build logic clusters (Separate functions from the main script chain)
             for node in tree.body:
                 block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block: continue
 
                 if block.get("type") in ["procedures_defnoreturn", "procedures_defreturn"]:
-                    block["x"], block["y"] = 20, y_offset
-                    top_blocks.append(block)
-                    y_offset += self.get_chain_height(block) + 40
-                    current_chain_tail = None
-                    continue
-
-                if not top_blocks or current_chain_tail is None:
-                    block["x"], block["y"] = 20, y_offset
-                    top_blocks.append(block)
-                    current_chain_tail = block
-                    y_offset += self.get_chain_height(block) + 40
+                    clusters.append(block)
+                    current_chain_tail = None  # Functions break the chain
                 else:
-                    current_chain_tail["next"] = {"block": block}
-                    current_chain_tail = block
+                    if current_chain_tail is None:
+                        clusters.append(block)
+                        current_chain_tail = block
+                    else:
+                        current_chain_tail["next"] = {"block": block}
+                        current_chain_tail = block
+
+            # Phase 2: Calculate precise Y coordinates based on fully assembled cluster heights
+            y_offset = 20
+            for cluster in clusters:
+                cluster["x"] = 20
+                cluster["y"] = y_offset
+                # Add the generous height of the entire cluster + 150px safety padding
+                y_offset += self.get_chain_height(cluster) + 150
 
             vars_array = [{"id": v, "name": v} for v in self.variables]
             return {
                 "status": "success",
                 "blocks": {
                     "variables": vars_array,
-                    "blocks": {"languageVersion": 0, "blocks": top_blocks}
+                    "blocks": {"languageVersion": 0, "blocks": clusters}
                 }
             }
         except Exception as e:
@@ -1883,6 +1916,11 @@ class BlocklyASTConverter:
                     self.add_input(block, "BOOL", self.serialize_expr_safe(node.operand, ["Boolean"]))
                     return block
                 if isinstance(node.op, ast.USub):
+                    # FIX: Handle negative constants directly instead of (0 - X)
+                    if isinstance(node.operand, ast.Constant) and isinstance(node.operand.value, (int, float)):
+                        return {"type": "math_number", "id": gen_uid(), "fields": {"NUM": str(-node.operand.value)}, "output": "Number"}
+                    
+                    # Fallback for complex negated expressions like -(x + y)
                     block = {"type": "math_arithmetic", "id": gen_uid(), "fields": {"OP": "MINUS"}}
                     self.add_input(block, "A", {"type": "math_number", "id": gen_uid(), "fields": {"NUM": "0"}})
                     self.add_input(block, "B", self.serialize_expr_safe(node.operand, ["Number"]))

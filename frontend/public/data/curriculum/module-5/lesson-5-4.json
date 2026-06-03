@@ -39,13 +39,13 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "The Longest Common Subsequence (LCS) Problem is one of the most important applications of Dynamic Programming for sequence matching.\n\nThe objective is to find the longest sequence that appears in the same order in two strings.\n\nUnlike substring matching, characters in a subsequence do not need to remain consecutive, but they must preserve order.\n\nLCS is widely used in text comparison, DNA analysis, plagiarism detection, version control systems, and file synchronization."
+      "content": "The Longest Common Subsequence Problem is one of the most important applications of Dynamic Programming for sequence matching. The objective is to find the longest sequence that appears in the same order in two strings. Unlike substring matching, characters in a subsequence do not need to remain consecutive, but they must preserve order.\n\nFor example, consider the strings ABCDE and ACBDE. The subsequence ABDE appears in both strings. A is first in both, B appears after A, D after B, and E after D. The characters are not consecutive in the original strings, but they appear in the same relative order.\n\nLCS is widely used in text comparison, DNA analysis, plagiarism detection, version control systems like Git, and file synchronization. When Git shows you the difference between two versions of a file, it uses LCS-like algorithms to find which lines are common and which are added or removed.\n\nUnderstanding LCS helps you solve many sequence comparison problems. It is a classic DP problem that builds a 2D table and uses simple rules to fill it. The solution is both elegant and practical."
     },
     {
       "id": "why-lcs-matters",
       "type": "concept",
       "title": "Why LCS Matters",
-      "content": "Modern systems constantly compare sequences.\n\nExamples include comparing source code versions, detecting document similarities, analyzing biological DNA patterns, spell checking, and recommendation systems.\n\nA brute-force approach would try all possible subsequences, but the number of subsequences grows exponentially.\n\nDynamic Programming solves this efficiently by reusing solutions to smaller comparison problems.",
+      "content": "Modern systems constantly compare sequences. Examples include comparing source code versions in version control, detecting document similarities in plagiarism detection, analyzing biological DNA patterns in bioinformatics, and spell checking where you find the closest matching word in a dictionary.\n\nA brute-force approach would try all possible subsequences. For a string of length n, the number of possible subsequences is 2 to the power of n. For n equals 20, that is about 1 million subsequences, which is feasible. For n equals 100, that is about 1.27 times 10 to the 30 subsequences, which is impossible.\n\nDynamic Programming solves this efficiently by reusing solutions to smaller comparison problems. Instead of generating all subsequences, it builds a table that stores the LCS length for every prefix of both strings.\n\nLCS efficiently compares large sequences, demonstrates Dynamic Programming optimization, appears in bioinformatics and text systems, and avoids exponential brute-force comparison. Understanding LCS helps you recognize when to use DP for sequence problems.",
       "bullets": [
         "Efficiently compares large sequences.",
         "Demonstrates Dynamic Programming optimization.",
@@ -57,67 +57,67 @@
       "id": "understanding-subsequences",
       "type": "deep_dive",
       "title": "Understanding Subsequences",
-      "content": "A subsequence is formed by removing characters without changing their order.\n\nFor example, possible subsequences of ABCDE include ACE, ABD, and BCDE.\n\nHowever, ECA is not a valid subsequence because the order changes.\n\nLCS focuses on the longest subsequence shared between two strings."
+      "content": "A subsequence is formed by deleting some characters from a string without changing the order of the remaining characters. You can remove any number of characters including zero, but you cannot reorder them.\n\nFor example, consider the string ABCDE. Some possible subsequences include A, B, C, D, E, AB, AC, AD, AE, BC, BD, BE, CD, CE, DE, ABC, ABD, ABE, ACD, ACE, ADE, BCD, BCE, BDE, CDE, ABCD, ABCE, ABDE, ACDE, BCDE, and ABCDE. The total number is 2 to the power of 5 equals 32 subsequences.\n\nHowever, ECA is not a valid subsequence because the order changes. E comes after C in the original string, but in ECA it comes before. Order must be preserved.\n\nLCS focuses on the longest subsequence shared between two strings. For strings ABCBDAB and BDCABA, the longest common subsequence is BCAB, BCBA, or BDAB, each of length 4. Notice that the characters are not necessarily consecutive, but they appear in the same order in both strings."
     },
     {
       "id": "subsequence-vs-substring",
       "type": "concept",
       "title": "Subsequence vs Substring",
-      "content": "This is a very important distinction.\n\nA subsequence may skip characters while preserving order.\n\nFor example, ACE is a subsequence of ABCDE.\n\nA substring requires consecutive characters.\n\nFor example, BCD is a substring of ABCDE, while ACE is not."
+      "content": "This is a very important distinction. A subsequence may skip characters while preserving order. A substring requires consecutive characters with no gaps.\n\nFor example, in the string ABCDE, the substring BCD appears consecutively at positions 2, 3, and 4. The subsequence ACE also appears, but the characters are not consecutive. There is a gap between A and C and between C and E.\n\nSubstring problems are often simpler because they only consider consecutive characters. Subsequence problems are more general and more computationally expensive, which is why DP is needed.\n\nIn LCS, we are looking for subsequences, not substrings. This means that characters do not need to be adjacent in the original strings. They only need to appear in the same relative order. This makes LCS more flexible and useful for many applications like DNA sequencing where mutations can insert or delete characters."
     },
     {
       "id": "why-bruteforce-fails",
       "type": "deep_dive",
       "title": "Why Brute Force Is Inefficient",
-      "content": "Suppose a string contains n characters.\n\nThe number of possible subsequences becomes 2^n.\n\nTrying every subsequence combination quickly becomes computationally impossible for large strings.\n\nDynamic Programming avoids this explosion by storing intermediate comparison results."
+      "content": "Suppose a string contains n characters. The number of possible subsequences becomes 2 to the power of n. For n equals 10, that is 1,024 subsequences, which is fine. For n equals 20, that is about 1 million subsequences, which is borderline but possible. For n equals 30, that is about 1 billion subsequences, which is too many. For n equals 100, that is about 1.27 times 10 to the 30 subsequences, which is impossible.\n\nTo find the LCS between two strings of length n and m, a brute force approach would generate all subsequences of the first string, then check if each exists in the second string. For n equals 100, generating all subsequences is impossible. Even for n equals 40, 2 to the 40 is about 1 trillion, which is too many.\n\nAdditionally, checking if a subsequence exists in the second string takes O(m) time per subsequence. The total time would be O(2 to the n times m), which is astronomically large.\n\nTrying every subsequence combination quickly becomes computationally impossible for large strings. Dynamic Programming avoids this explosion by storing intermediate comparison results. It runs in O(n times m) time, which is very efficient even for strings of length 10,000."
     },
     {
       "id": "core-dp-idea",
       "type": "concept",
       "title": "Core Dynamic Programming Idea",
-      "content": "LCS uses overlapping subproblems.\n\nWhen comparing strings recursively, many smaller string comparisons repeat.\n\nDynamic Programming stores previously computed subsequence lengths inside a matrix.\n\nThis eliminates redundant recursive computation."
+      "content": "LCS uses overlapping subproblems. When comparing strings recursively, many smaller string comparisons repeat. For example, the LCS of ABC and AC is needed when computing the LCS of ABC and ACD, and also when computing the LCS of ABCD and AC.\n\nDynamic Programming stores previously computed subsequence lengths inside a matrix. Instead of recomputing the same subproblem many times, the algorithm looks up the answer in the table. This eliminates redundant recursive computation.\n\nThe key insight is to break the problem into smaller subproblems based on the prefixes of the strings. Let dp[i][j] be the length of the LCS of the first i characters of string A and the first j characters of string B. This subproblem is smaller than the original because i and j are smaller.\n\nThe DP matrix gradually fills from the top left to the bottom right. Each cell depends only on cells that are already computed. This allows the algorithm to build the solution iteratively without recursion."
     },
     {
       "id": "lcs-matrix",
       "type": "deep_dive",
       "title": "Understanding the LCS Matrix",
-      "content": "The heart of the LCS algorithm is the 2D Dynamic Programming table.\n\nRows represent characters from the first string.\n\nColumns represent characters from the second string.\n\nEach matrix cell stores the length of the longest common subsequence for that specific subproblem.\n\nThe matrix gradually fills as comparisons progress."
+      "content": "The heart of the LCS algorithm is the 2D Dynamic Programming table. Rows represent characters from the first string, from 0 to n. Columns represent characters from the second string, from 0 to m. Each matrix cell stores the length of the longest common subsequence for that specific subproblem.\n\nRow 0 and column 0 represent empty strings. The LCS between any string and an empty string is 0. So the first row and first column are all zeros.\n\nWhen filling a cell at position i, j, you compare the i-th character of string A with the j-th character of string B. String indices are offset by 1 because row 0 and column 0 are reserved for empty strings.\n\nIf the characters match, you take the value from the diagonal cell, which is the LCS of the prefixes without these characters, and add 1. If the characters do not match, you take the maximum of the cell above, which is the LCS using the first i-1 characters of A and j characters of B, and the cell to the left, which is the LCS using i characters of A and j-1 characters of B.\n\nThe matrix gradually fills as comparisons progress. The final answer is in the bottom right cell, dp[n][m]."
     },
     {
       "id": "dp-decision-rules",
       "type": "deep_dive",
       "title": "DP Decision Rules",
-      "content": "At every matrix cell, the algorithm compares two characters.\n\nCase 1 — Characters Match:\nIf A[i] equals B[j], the algorithm extends the subsequence length using the diagonal value plus one.\n\nCase 2 — Characters Do Not Match:\nThe algorithm selects the larger value between the top cell and left cell.\n\nThis preserves the best previously discovered subsequence length."
+      "content": "At every matrix cell, the algorithm compares two characters. There are two cases.\n\nCase 1 occurs when the characters match. If A[i] equals B[j], then you can extend the common subsequence by including this character. The length of the LCS for the prefixes ending at i and j is the length of the LCS for the prefixes ending at i-1 and j-1, plus 1. This is written as dp[i][j] equals dp[i-1][j-1] plus 1.\n\nCase 2 occurs when the characters do not match. If A[i] does not equal B[j], then you cannot use both characters. You have two options. You can ignore the character from string A, which gives the LCS length from i-1 and j. Or you can ignore the character from string B, which gives the LCS length from i and j-1. You take the larger of these two values. This is written as dp[i][j] equals the maximum of dp[i-1][j] and dp[i][j-1].\n\nThese two rules are applied for every cell in the matrix. They preserve the best previously discovered subsequence length and build the solution incrementally from smaller subproblems."
     },
     {
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Example",
-      "content": "Suppose:\nString A = ABCD\nString B = ACBD\n\nFirst, compare A and A. A match is found, so the subsequence length becomes 1.\n\nNext, compare B and C. No match exists, so the algorithm chooses the larger value between the left and top cells.\n\nThe matrix continues filling through repeated comparisons.\n\nThe final longest common subsequence becomes ABD with length 3."
+      "content": "Let us walk through an example step by step. String A is ABCD, and String B is ACBD. We want to find the longest common subsequence.\n\nCreate a DP table with 5 rows and 5 columns. Row 0 and column 0 are all zeros.\n\nCompare A with A. They match at row 1, column 1. Set dp[1][1] equals dp[0][0] plus 1 equals 1.\n\nCompare A with C. No match at row 1, column 2. Set dp[1][2] equals max of dp[0][2] which is 0 and dp[1][1] which is 1. So equals 1.\n\nCompare A with B. No match at row 1, column 3. Set dp[1][3] equals max of dp[0][3] which is 0 and dp[1][2] which is 1. So equals 1.\n\nCompare A with D. No match at row 1, column 4. Set dp[1][4] equals max of dp[0][4] which is 0 and dp[1][3] which is 1. So equals 1.\n\nCompare B with A. No match at row 2, column 1. Set dp[2][1] equals max of dp[1][1] which is 1 and dp[2][0] which is 0. So equals 1.\n\nCompare B with C. No match at row 2, column 2. Set dp[2][2] equals max of dp[1][2] which is 1 and dp[2][1] which is 1. So equals 1.\n\nCompare B with B. They match at row 2, column 3. Set dp[2][3] equals dp[1][2] plus 1 equals 1 plus 1 equals 2.\n\nContinue this process. The final longest common subsequence is ABD with length 3. The LCS string ABD appears in both A and B in the same order."
     },
     {
       "id": "matrix-visualization",
       "type": "concept",
       "title": "Visualization of Matrix Filling",
-      "content": "LCS matrix transitions follow two rules.\n\nMatching characters extend the diagonal value by one.\n\nMismatched characters choose the larger value between the top and left cells.\n\nThis matrix-filling process transforms recursive sequence comparison into structured optimization."
+      "content": "LCS matrix transitions follow two simple rules. Matching characters extend the diagonal value by one. Mismatched characters choose the larger value between the top and left cells.\n\nThink of the matrix as a grid where you start at the top left corner and move toward the bottom right corner. You fill the matrix row by row, left to right.\n\nWhen you see a match, you add 1 to the diagonal value. This means you are extending the common subsequence by one character. The diagonal value represents the LCS of the strings without the current characters.\n\nWhen you see a mismatch, you take the maximum of the top and left values. This means you are carrying forward the best LCS length found so far without using the current characters.\n\nThis matrix-filling process transforms recursive sequence comparison into structured optimization. By the time you reach the bottom right corner, you have computed the LCS length. To reconstruct the actual subsequence string, you can trace back from the bottom right corner, following the arrows that led to each cell value."
     },
     {
       "id": "recurrence-relation",
       "type": "concept",
       "title": "LCS Recurrence Relation",
-      "content": "The mathematical core of LCS becomes:\n\nif A[i] == B[j]\n    dp[i][j] = dp[i-1][j-1] + 1\nelse\n    dp[i][j] = max(\n        dp[i-1][j],\n        dp[i][j-1]\n    )\n\nThis recurrence drives the entire Dynamic Programming solution."
+      "content": "The mathematical core of LCS is the recurrence relation. It defines how to compute each cell in the DP table from previously computed cells.\n\nIf the characters are equal, meaning A[i-1] equals B[j-1], then dp[i][j] equals dp[i-1][j-1] plus 1. The indices are i-1 and j-1 because the DP table has an extra row and column for empty strings.\n\nIf the characters are not equal, meaning A[i-1] does not equal B[j-1], then dp[i][j] equals the maximum of dp[i-1][j] and dp[i][j-1].\n\nThis recurrence drives the entire Dynamic Programming solution. The base cases are dp[0][j] equals 0 for all j, and dp[i][0] equals 0 for all i, because the LCS with an empty string is always 0.\n\nOnce you fill the entire table, the length of the longest common subsequence is dp[n][m]. To reconstruct the actual subsequence string, you can trace back from dp[n][m] to dp[0][0] following the decisions that led to each cell."
     },
     {
       "id": "pseudocode-pattern",
       "type": "concept",
       "title": "LCS Pseudocode Pattern",
-      "content": "The algorithm compares every character in the first string against every character in the second string.\n\nIf characters match, the diagonal value increases.\n\nOtherwise, the algorithm selects the larger value between the top and left cells.\n\nThis repeated matrix transition is the heart of LCS Dynamic Programming."
+      "content": "The algorithm compares every character in the first string against every character in the second string using nested loops. The outer loop runs over i from 1 to n, where n is the length of string A. The inner loop runs over j from 1 to m, where m is the length of string B.\n\nInside the loops, check if A[i-1] equals B[j-1]. If they match, set dp[i][j] equals dp[i-1][j-1] plus 1.\n\nIf they do not match, set dp[i][j] equals the maximum of dp[i-1][j] and dp[i][j-1].\n\nAfter the loops complete, the LCS length is dp[n][m].\n\nTo reconstruct the LCS string, start from i equals n and j equals m. While i is greater than 0 and j is greater than 0, check if A[i-1] equals B[j-1]. If yes, add this character to the result string, then move diagonally to i-1 and j-1. If not, check if dp[i-1][j] is greater than dp[i][j-1]. If yes, move up to i-1 and j. If no, move left to i and j-1. Finally, reverse the result string because characters were collected in reverse order.\n\nThis repeated matrix transition is the heart of LCS Dynamic Programming."
     },
     {
       "id": "implementation",
       "type": "concept",
       "title": "Python Implementation",
-      "content": "LCS implementations commonly use a 2D Dynamic Programming matrix to store intermediate subsequence lengths.",
+      "content": "LCS implementations commonly use a 2D Dynamic Programming matrix to store intermediate subsequence lengths. The code follows the recurrence relation directly.\n\nFirst, get the lengths of both strings. Let n be the length of string A and m be the length of string B. Create a DP matrix of size n+1 rows and m+1 columns, initialized to zero.\n\nLoop i from 1 to n, and for each i loop j from 1 to m. Check if the character at position i-1 in string A equals the character at position j-1 in string B. If they match, set dp[i][j] equals dp[i-1][j-1] plus 1. If they do not match, set dp[i][j] equals the maximum of dp[i-1][j] and dp[i][j-1].\n\nAfter the loops, the answer is dp[n][m]. This is the length of the longest common subsequence.\n\nTo reconstruct the actual LCS string, you can perform a backtracking step as described in the pseudocode. The examples below show the complete implementation, a simple character comparison, and how to create an empty DP matrix.",
       "codeSnippets": [
         {
           "title": "Longest Common Subsequence implementation",
@@ -140,30 +140,26 @@
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Complexity Analysis",
-      "content": "The LCS algorithm fills every matrix cell once.\n\nIf the first string has length n and the second string has length m, the matrix contains n × m subproblems.\n\nThis creates O(n × m) time complexity and O(n × m) space complexity.\n\nDynamic Programming transforms exponential brute-force comparison into scalable polynomial-time optimization.",
+      "content": "The LCS algorithm fills every matrix cell once. If the first string has length n and the second string has length m, the matrix contains n times m subproblems. Each cell requires constant time to compute, so the total time complexity is O(n times m).\n\nThe space complexity is O(n times m) for the full 2D DP table. This can be optimized to O(min(n, m)) by using only two rows because each row only depends on the previous row. You only need to keep the current row and the previous row.\n\nHowever, the 2D version is easier to understand for learning. For strings of length 1000, the full table uses 1 million cells, which is about 8 megabytes for integers, which is acceptable. For longer strings, the space-optimized version is necessary.\n\nWithout Dynamic Programming, the brute force solution would try all 2 to the power of n subsequences. For n equals 30, that is about 1 billion subsequences, which is borderline. For n equals 40, that is about 1 trillion subsequences, which is impossible. Dynamic Programming transforms exponential subsequence comparison into structured polynomial-time optimization. The chart below compares O(n), O(n squared), and O(2 to the n).",
       "chart": {
         "title": "LCS Dynamic Programming optimization",
         "description": "Dynamic Programming transforms exponential subsequence comparison into structured polynomial-time optimization.",
         "maxN": 32,
         "normalize": true,
-        "curves": [
-          "O(n)",
-          "O(n^2)",
-          "O(2^n)"
-        ]
+        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
       }
     },
     {
       "id": "why-lcs-uses-dp",
       "type": "concept",
       "title": "Why LCS Uses Dynamic Programming",
-      "content": "LCS contains overlapping subproblems and optimal substructure.\n\nWithout Dynamic Programming, recursive comparisons become extremely repetitive.\n\nDynamic Programming avoids repeated computation by storing intermediate sequence matches.\n\nThis dramatically improves scalability."
+      "content": "LCS contains overlapping subproblems and optimal substructure, which are the two key properties for Dynamic Programming.\n\nOverlapping subproblems occur because the same subproblem appears many times. For example, the LCS of the prefixes of length i and j may be needed when computing many larger subproblems. Without DP, you would recompute it each time.\n\nOptimal substructure means that the optimal solution for a larger problem contains optimal solutions for smaller subproblems. For LCS, the optimal solution for strings of length i and j either includes the last characters if they match, or it is the best of the two options when they do not match.\n\nWithout Dynamic Programming, recursive comparisons become extremely repetitive. A naive recursive solution would explore all possibilities, leading to exponential time. For strings of length 50, the recursion would be impossibly slow.\n\nDynamic Programming avoids repeated computation by storing intermediate sequence matches. This dramatically improves scalability. The DP solution runs in O(n times m) time, which is very efficient even for long strings."
     },
     {
       "id": "real-world-applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "LCS appears in Git version control systems, plagiarism detection, spell checking, DNA sequence matching, file comparison tools, bioinformatics, and text editors.\n\nMany intelligent comparison systems rely heavily on sequence alignment algorithms."
+      "content": "LCS appears in many real-world systems. Git version control uses LCS-like algorithms to show differences between file versions. When you run git diff, it finds the longest common subsequence of lines to determine what was added, removed, or changed.\n\nPlagiarism detection systems compare documents by finding long common subsequences. If two student papers share a long common subsequence of words, it may indicate copying. DNA sequence matching in bioinformatics uses LCS to find similarities between gene sequences. This helps identify evolutionary relationships.\n\nSpell checking uses LCS to find the closest matching word in a dictionary. File comparison tools like diff use LCS to highlight differences between text files. Bioinformatics uses LCS to align protein sequences.\n\nMany intelligent comparison systems rely heavily on sequence alignment algorithms. Understanding LCS helps you build tools that compare, diff, and sync data. It is a fundamental algorithm in computational biology, version control, and text processing."
     },
     {
       "id": "misconceptions",
@@ -173,17 +169,17 @@
         {
           "id": "subsequence-substring",
           "title": "Mistake: Confusing subsequence with substring",
-          "content": "Subsequences may skip characters while preserving order. Substrings must remain consecutive."
+          "content": "Subsequences may skip characters while preserving order. Substrings must remain consecutive. In LCS, we are looking for subsequences, not substrings. This is a very common confusion for beginners."
         },
         {
           "id": "matrix-meaning",
           "title": "Mistake: Misunderstanding DP matrix meaning",
-          "content": "Each DP cell represents the best subsequence length for smaller string prefixes."
+          "content": "Each DP cell represents the best subsequence length for smaller string prefixes. dp[i][j] is the LCS length of the first i characters of string A and the first j characters of string B. Row i and column j do not directly correspond to characters at the same indices."
         },
         {
           "id": "recursion-efficient",
           "title": "Mistake: Thinking recursion alone is efficient",
-          "content": "Pure recursion creates massive repeated comparisons. Dynamic Programming optimization is essential."
+          "content": "Pure recursion creates massive repeated comparisons. A naive recursive LCS implementation would explore all possibilities and run in exponential time. Dynamic Programming optimization is essential to make LCS practical for long strings."
         }
       ]
     },

@@ -1,173 +1,165 @@
 {
-  "lessonId": "lesson-6-1",
-  "moduleId": "module-6",
-  "title": "Backtracking Fundamentals",
-  "description": "Learn how backtracking systematically explores decision paths using recursion, rollback, and pruning to solve constraint-based problems.",
+  "lessonId": "lesson-5-4",
+  "moduleId": "module-5",
+  "title": "Longest Common Subsequence (LCS)",
+  "description": "Learn how Dynamic Programming solves sequence matching problems by finding the longest ordered subsequence shared between two strings.",
   "difficulty": "Intermediate",
-  "estimatedTime": "50 min",
-  "prerequisites": "Longest Common Subsequence (LCS)",
+  "estimatedTime": "55 min",
+  "prerequisites": "0/1 Knapsack Problem",
   "tags": [
-    "backtracking",
-    "recursion",
-    "constraint solving",
-    "state space search"
+    "dynamic programming",
+    "longest common subsequence",
+    "sequence matching",
+    "dp matrix"
   ],
   "activities": [
-    { "id": "m6_l1_a1", "title": "The Choose Step" },
-    { "id": "m6_l1_a2", "title": "The Unchoose Step" },
-    { "id": "m6_l1_a3", "title": "State Validation" },
-    { "id": "m6_l1_a4", "title": "Recursive Exploration" },
-    { "id": "m6_l1_a5", "title": "Base Case Print" }
+    {
+      "id": "m5_l4_a1",
+      "title": "LCS Grid Init"
+    },
+    {
+      "id": "m5_l4_a2",
+      "title": "Character Match Logic"
+    },
+    {
+      "id": "m5_l4_a3",
+      "title": "Full LCS Table"
+    },
+    {
+      "id": "m5_l4_a4",
+      "title": "Reconstruct LCS String"
+    },
+    {
+      "id": "m5_l4_a5",
+      "title": "Backtrack Steps"
+    }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Backtracking is an algorithmic problem-solving technique used to systematically explore possible solutions.\n\nInstead of directly jumping to a final answer, the algorithm tries one possible choice, explores where that choice leads, undoes the choice if it fails, and then tries another path.\n\nThis recursive exploration continues until a valid solution is discovered or all possibilities have been exhausted.\n\nBacktracking is widely used in puzzles, pathfinding, scheduling, game-solving systems, and constraint-based optimization problems."
+      "content": "The Longest Common Subsequence Problem is one of the most important applications of Dynamic Programming for sequence matching. The objective is to find the longest sequence that appears in the same order in two strings. Unlike substring matching, characters in a subsequence do not need to remain consecutive, but they must preserve order.\n\nFor example, consider the strings ABCDE and ACBDE. The subsequence ABDE appears in both strings. A is first in both, B appears after A, D after B, and E after D. The characters are not consecutive in the original strings, but they appear in the same relative order.\n\nLCS is widely used in text comparison, DNA analysis, plagiarism detection, version control systems like Git, and file synchronization. When Git shows you the difference between two versions of a file, it uses LCS-like algorithms to find which lines are common and which are added or removed.\n\nUnderstanding LCS helps you solve many sequence comparison problems. It is a classic DP problem that builds a 2D table and uses simple rules to fill it. The solution is both elegant and practical."
     },
     {
-      "id": "why-backtracking-matters",
+      "id": "why-lcs-matters",
       "type": "concept",
-      "title": "Why Backtracking Matters",
-      "content": "Many computational problems involve exploring multiple possible decisions.\n\nExamples include maze solving, Sudoku solving, route exploration, permutations, password generation, and N-Queens placement.\n\nThese problems often contain enormous search spaces where many possible paths eventually fail.\n\nBacktracking provides a systematic way to explore possibilities while rejecting impossible paths early.",
+      "title": "Why LCS Matters",
+      "content": "Modern systems constantly compare sequences. Examples include comparing source code versions in version control, detecting document similarities in plagiarism detection, analyzing biological DNA patterns in bioinformatics, and spell checking where you find the closest matching word in a dictionary.\n\nA brute-force approach would try all possible subsequences. For a string of length n, the number of possible subsequences is 2 to the power of n. For n equals 20, that is about 1 million subsequences, which is feasible. For n equals 100, that is about 1.27 times 10 to the 30 subsequences, which is impossible.\n\nDynamic Programming solves this efficiently by reusing solutions to smaller comparison problems. Instead of generating all subsequences, it builds a table that stores the LCS length for every prefix of both strings.\n\nLCS efficiently compares large sequences, demonstrates Dynamic Programming optimization, appears in bioinformatics and text systems, and avoids exponential brute-force comparison. Understanding LCS helps you recognize when to use DP for sequence problems.",
       "bullets": [
-        "Systematically explores decision paths.",
-        "Supports recursive constraint solving.",
-        "Prunes impossible paths early.",
-        "Widely used in intelligent search systems."
+        "Efficiently compares large sequences.",
+        "Demonstrates Dynamic Programming optimization.",
+        "Appears in bioinformatics and text systems.",
+        "Avoids exponential brute-force comparison."
       ]
     },
     {
-      "id": "core-idea",
+      "id": "understanding-subsequences",
+      "type": "deep_dive",
+      "title": "Understanding Subsequences",
+      "content": "A subsequence is formed by deleting some characters from a string without changing the order of the remaining characters. You can remove any number of characters including zero, but you cannot reorder them.\n\nFor example, consider the string ABCDE. Some possible subsequences include A, B, C, D, E, AB, AC, AD, AE, BC, BD, BE, CD, CE, DE, ABC, ABD, ABE, ACD, ACE, ADE, BCD, BCE, BDE, CDE, ABCD, ABCE, ABDE, ACDE, BCDE, and ABCDE. The total number is 2 to the power of 5 equals 32 subsequences.\n\nHowever, ECA is not a valid subsequence because the order changes. E comes after C in the original string, but in ECA it comes before. Order must be preserved.\n\nLCS focuses on the longest subsequence shared between two strings. For strings ABCBDAB and BDCABA, the longest common subsequence is BCAB, BCBA, or BDAB, each of length 4. Notice that the characters are not necessarily consecutive, but they appear in the same order in both strings."
+    },
+    {
+      "id": "subsequence-vs-substring",
       "type": "concept",
-      "title": "Core Idea of Backtracking",
-      "content": "The central idea of backtracking is:\n\nTry a choice. If it fails, undo it and try another.\n\nThe algorithm repeatedly:\n1. chooses a possible option\n2. explores recursively\n3. checks whether constraints are violated\n4. backtracks if the path becomes invalid\n\nThis creates systematic recursive trial-and-error exploration."
+      "title": "Subsequence vs Substring",
+      "content": "This is a very important distinction. A subsequence may skip characters while preserving order. A substring requires consecutive characters with no gaps.\n\nFor example, in the string ABCDE, the substring BCD appears consecutively at positions 2, 3, and 4. The subsequence ACE also appears, but the characters are not consecutive. There is a gap between A and C and between C and E.\n\nSubstring problems are often simpler because they only consider consecutive characters. Subsequence problems are more general and more computationally expensive, which is why DP is needed.\n\nIn LCS, we are looking for subsequences, not substrings. This means that characters do not need to be adjacent in the original strings. They only need to appear in the same relative order. This makes LCS more flexible and useful for many applications like DNA sequencing where mutations can insert or delete characters."
     },
     {
-      "id": "state-space-exploration",
+      "id": "why-bruteforce-fails",
       "type": "deep_dive",
-      "title": "Understanding State Space Exploration",
-      "content": "Backtracking problems are often represented using a state space tree.\n\nEach node represents a partial solution, a current decision state, or an exploration path.\n\nThe algorithm explores one branch at a time using recursion.\n\nIf a branch fails, the algorithm returns upward and explores another branch.\n\nThis process is called backtracking."
+      "title": "Why Brute Force Is Inefficient",
+      "content": "Suppose a string contains n characters. The number of possible subsequences becomes 2 to the power of n. For n equals 10, that is 1,024 subsequences, which is fine. For n equals 20, that is about 1 million subsequences, which is borderline but possible. For n equals 30, that is about 1 billion subsequences, which is too many. For n equals 100, that is about 1.27 times 10 to the 30 subsequences, which is impossible.\n\nTo find the LCS between two strings of length n and m, a brute force approach would generate all subsequences of the first string, then check if each exists in the second string. For n equals 100, generating all subsequences is impossible. Even for n equals 40, 2 to the 40 is about 1 trillion, which is too many.\n\nAdditionally, checking if a subsequence exists in the second string takes O(m) time per subsequence. The total time would be O(2 to the n times m), which is astronomically large.\n\nTrying every subsequence combination quickly becomes computationally impossible for large strings. Dynamic Programming avoids this explosion by storing intermediate comparison results. It runs in O(n times m) time, which is very efficient even for strings of length 10,000."
     },
     {
-      "id": "rollback",
-      "type": "deep_dive",
-      "title": "Understanding Rollback",
-      "content": "Rollback is one of the most important concepts in backtracking.\n\nSuppose we place a queen on a chessboard. Later, we discover that the placement causes conflicts.\n\nThe algorithm must remove the queen, restore the previous board state, and try another placement.\n\nThis undo operation is called rollback.\n\nBacktracking constantly performs:\n● make choice\n● explore deeper\n● undo choice\n● try another branch"
-    },
-    {
-      "id": "backtracking-vs-bruteforce",
+      "id": "core-dp-idea",
       "type": "concept",
-      "title": "Backtracking vs Brute Force",
-      "content": "Brute-force algorithms blindly explore every possible solution completely.\n\nBacktracking improves this process by detecting invalid states early and immediately abandoning impossible branches.\n\nThis early rejection process is called pruning.\n\nPruning dramatically reduces unnecessary recursive exploration."
+      "title": "Core Dynamic Programming Idea",
+      "content": "LCS uses overlapping subproblems. When comparing strings recursively, many smaller string comparisons repeat. For example, the LCS of ABC and AC is needed when computing the LCS of ABC and ACD, and also when computing the LCS of ABCD and AC.\n\nDynamic Programming stores previously computed subsequence lengths inside a matrix. Instead of recomputing the same subproblem many times, the algorithm looks up the answer in the table. This eliminates redundant recursive computation.\n\nThe key insight is to break the problem into smaller subproblems based on the prefixes of the strings. Let dp[i][j] be the length of the LCS of the first i characters of string A and the first j characters of string B. This subproblem is smaller than the original because i and j are smaller.\n\nThe DP matrix gradually fills from the top left to the bottom right. Each cell depends only on cells that are already computed. This allows the algorithm to build the solution iteratively without recursion."
     },
     {
-      "id": "pruning",
+      "id": "lcs-matrix",
       "type": "deep_dive",
-      "title": "Understanding Pruning",
-      "content": "Pruning means stopping exploration of impossible paths early.\n\nSuppose we are solving a maze.\n\nIf a path reaches a wall or revisits an invalid position, the algorithm immediately stops exploring that branch.\n\nThis prevents useless recursive exploration and improves practical efficiency.\n\nEfficient pruning is one of the main reasons backtracking becomes useful in large search problems."
+      "title": "Understanding the LCS Matrix",
+      "content": "The heart of the LCS algorithm is the 2D Dynamic Programming table. Rows represent characters from the first string, from 0 to n. Columns represent characters from the second string, from 0 to m. Each matrix cell stores the length of the longest common subsequence for that specific subproblem.\n\nRow 0 and column 0 represent empty strings. The LCS between any string and an empty string is 0. So the first row and first column are all zeros.\n\nWhen filling a cell at position i, j, you compare the i-th character of string A with the j-th character of string B. String indices are offset by 1 because row 0 and column 0 are reserved for empty strings.\n\nIf the characters match, you take the value from the diagonal cell, which is the LCS of the prefixes without these characters, and add 1. If the characters do not match, you take the maximum of the cell above, which is the LCS using the first i-1 characters of A and j characters of B, and the cell to the left, which is the LCS using i characters of A and j-1 characters of B.\n\nThe matrix gradually fills as comparisons progress. The final answer is in the bottom right cell, dp[n][m]."
     },
     {
-      "id": "workflow",
+      "id": "dp-decision-rules",
       "type": "deep_dive",
-      "title": "Step-by-Step Backtracking Workflow",
-      "content": "General backtracking execution follows a repeated cycle:\n\nchoose option\n↓\nexplore recursively\n↓\nvalid?\n↓\nYES → continue deeper\nNO → undo choice\n↓\ntry next option\n\nThis recursive exploration continues until a valid solution is found or all possibilities are exhausted."
+      "title": "DP Decision Rules",
+      "content": "At every matrix cell, the algorithm compares two characters. There are two cases.\n\nCase 1 occurs when the characters match. If A[i] equals B[j], then you can extend the common subsequence by including this character. The length of the LCS for the prefixes ending at i and j is the length of the LCS for the prefixes ending at i-1 and j-1, plus 1. This is written as dp[i][j] equals dp[i-1][j-1] plus 1.\n\nCase 2 occurs when the characters do not match. If A[i] does not equal B[j], then you cannot use both characters. You have two options. You can ignore the character from string A, which gives the LCS length from i-1 and j. Or you can ignore the character from string B, which gives the LCS length from i and j-1. You take the larger of these two values. This is written as dp[i][j] equals the maximum of dp[i-1][j] and dp[i][j-1].\n\nThese two rules are applied for every cell in the matrix. They preserve the best previously discovered subsequence length and build the solution incrementally from smaller subproblems."
     },
     {
-      "id": "maze-example",
+      "id": "step-by-step-example",
       "type": "deep_dive",
-      "title": "Example — Maze Exploration",
-      "content": "Suppose we are navigating a maze.\n\nThe algorithm first moves in one direction and recursively continues exploration.\n\nIf a dead end is reached, the algorithm backtracks to the previous position and tries another direction.\n\nExample:\nStart\n↓\nRight\n↓\nDead End\n↓\nBacktrack\n↓\nTry Down\n\nThis demonstrates exploration with rollback."
+      "title": "Step-by-Step Example",
+      "content": "Let us walk through an example step by step. String A is ABCD, and String B is ACBD. We want to find the longest common subsequence.\n\nCreate a DP table with 5 rows and 5 columns. Row 0 and column 0 are all zeros.\n\nCompare A with A. They match at row 1, column 1. Set dp[1][1] equals dp[0][0] plus 1 equals 1.\n\nCompare A with C. No match at row 1, column 2. Set dp[1][2] equals max of dp[0][2] which is 0 and dp[1][1] which is 1. So equals 1.\n\nCompare A with B. No match at row 1, column 3. Set dp[1][3] equals max of dp[0][3] which is 0 and dp[1][2] which is 1. So equals 1.\n\nCompare A with D. No match at row 1, column 4. Set dp[1][4] equals max of dp[0][4] which is 0 and dp[1][3] which is 1. So equals 1.\n\nCompare B with A. No match at row 2, column 1. Set dp[2][1] equals max of dp[1][1] which is 1 and dp[2][0] which is 0. So equals 1.\n\nCompare B with C. No match at row 2, column 2. Set dp[2][2] equals max of dp[1][2] which is 1 and dp[2][1] which is 1. So equals 1.\n\nCompare B with B. They match at row 2, column 3. Set dp[2][3] equals dp[1][2] plus 1 equals 1 plus 1 equals 2.\n\nContinue this process. The final longest common subsequence is ABD with length 3. The LCS string ABD appears in both A and B in the same order."
     },
     {
-      "id": "role-of-recursion",
+      "id": "matrix-visualization",
       "type": "concept",
-      "title": "Role of Recursion in Backtracking",
-      "content": "Backtracking commonly relies on recursion.\n\nRecursion naturally supports branching decisions, depth-first exploration, and rollback behavior.\n\nEach recursive call represents a deeper exploration state.\n\nWhen recursion returns, the algorithm automatically backtracks to earlier decisions.\n\nThis makes recursion extremely suitable for systematic search problems."
+      "title": "Visualization of Matrix Filling",
+      "content": "LCS matrix transitions follow two simple rules. Matching characters extend the diagonal value by one. Mismatched characters choose the larger value between the top and left cells.\n\nThink of the matrix as a grid where you start at the top left corner and move toward the bottom right corner. You fill the matrix row by row, left to right.\n\nWhen you see a match, you add 1 to the diagonal value. This means you are extending the common subsequence by one character. The diagonal value represents the LCS of the strings without the current characters.\n\nWhen you see a mismatch, you take the maximum of the top and left values. This means you are carrying forward the best LCS length found so far without using the current characters.\n\nThis matrix-filling process transforms recursive sequence comparison into structured optimization. By the time you reach the bottom right corner, you have computed the LCS length. To reconstruct the actual subsequence string, you can trace back from the bottom right corner, following the arrows that led to each cell value."
     },
     {
-      "id": "recursive-tree",
-      "type": "deep_dive",
-      "title": "Recursive Exploration Tree",
-      "content": "Backtracking problems naturally form recursive branching trees.\n\nExample:\nstart\n├── choice A\n│   ├── choice A1\n│   └── choice A2\n└── choice B\n\nEach branch represents another possible exploration path.\n\nInvalid branches are pruned immediately while valid branches continue recursively."
-    },
-    {
-      "id": "general-pseudocode",
+      "id": "recurrence-relation",
       "type": "concept",
-      "title": "General Backtracking Pseudocode",
-      "content": "Most backtracking algorithms follow a similar structure.",
+      "title": "LCS Recurrence Relation",
+      "content": "The mathematical core of LCS is the recurrence relation. It defines how to compute each cell in the DP table from previously computed cells.\n\nIf the characters are equal, meaning A[i-1] equals B[j-1], then dp[i][j] equals dp[i-1][j-1] plus 1. The indices are i-1 and j-1 because the DP table has an extra row and column for empty strings.\n\nIf the characters are not equal, meaning A[i-1] does not equal B[j-1], then dp[i][j] equals the maximum of dp[i-1][j] and dp[i][j-1].\n\nThis recurrence drives the entire Dynamic Programming solution. The base cases are dp[0][j] equals 0 for all j, and dp[i][0] equals 0 for all i, because the LCS with an empty string is always 0.\n\nOnce you fill the entire table, the length of the longest common subsequence is dp[n][m]. To reconstruct the actual subsequence string, you can trace back from dp[n][m] to dp[0][0] following the decisions that led to each cell."
+    },
+    {
+      "id": "pseudocode-pattern",
+      "type": "concept",
+      "title": "LCS Pseudocode Pattern",
+      "content": "The algorithm compares every character in the first string against every character in the second string using nested loops. The outer loop runs over i from 1 to n, where n is the length of string A. The inner loop runs over j from 1 to m, where m is the length of string B.\n\nInside the loops, check if A[i-1] equals B[j-1]. If they match, set dp[i][j] equals dp[i-1][j-1] plus 1.\n\nIf they do not match, set dp[i][j] equals the maximum of dp[i-1][j] and dp[i][j-1].\n\nAfter the loops complete, the LCS length is dp[n][m].\n\nTo reconstruct the LCS string, start from i equals n and j equals m. While i is greater than 0 and j is greater than 0, check if A[i-1] equals B[j-1]. If yes, add this character to the result string, then move diagonally to i-1 and j-1. If not, check if dp[i-1][j] is greater than dp[i][j-1]. If yes, move up to i-1 and j. If no, move left to i and j-1. Finally, reverse the result string because characters were collected in reverse order.\n\nThis repeated matrix transition is the heart of LCS Dynamic Programming."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "LCS implementations commonly use a 2D Dynamic Programming matrix to store intermediate subsequence lengths. The code follows the recurrence relation directly.\n\nFirst, get the lengths of both strings. Let n be the length of string A and m be the length of string B. Create a DP matrix of size n+1 rows and m+1 columns, initialized to zero.\n\nLoop i from 1 to n, and for each i loop j from 1 to m. Check if the character at position i-1 in string A equals the character at position j-1 in string B. If they match, set dp[i][j] equals dp[i-1][j-1] plus 1. If they do not match, set dp[i][j] equals the maximum of dp[i-1][j] and dp[i][j-1].\n\nAfter the loops, the answer is dp[n][m]. This is the length of the longest common subsequence.\n\nTo reconstruct the actual LCS string, you can perform a backtracking step as described in the pseudocode. The examples below show the complete implementation, a simple character comparison, and how to create an empty DP matrix.",
       "codeSnippets": [
         {
-          "title": "General backtracking pseudocode",
+          "title": "Longest Common Subsequence implementation",
           "language": "python",
-          "code": "def backtrack(current_state):\n    if solution_found:\n        save_solution()\n        return\n\n    for choice in possible_choices:\n        make_choice(choice)\n\n        if valid(choice):\n            backtrack(next_state)\n\n        undo_choice(choice)"
-        }
-      ]
-    },
-    {
-      "id": "python-example",
-      "type": "concept",
-      "title": "Python Backtracking Example",
-      "content": "Simple subset generation demonstrates recursive branching and rollback clearly.",
-      "codeSnippets": [
-        {
-          "title": "Subset generation using backtracking",
-          "language": "python",
-          "code": "def backtrack(start, path):\n    print(path)\n\n    for i in range(start, 4):\n        path.append(i)\n        backtrack(i + 1, path)\n        path.pop()\n\nbacktrack(1, [])"
+          "code": "A = \"ABCDGH\"\nB = \"AEDFHR\"\n\nrows = len(A) + 1\ncols = len(B) + 1\n\ndp = [[0 for _ in range(cols)]\nfor _ in range(rows)]\n\nfor i in range(1, rows):\n    for j in range(1, cols):\n        if A[i - 1] == B[j - 1]:\n            dp[i][j] = dp[i - 1][j - 1] + 1\n        else:\n            dp[i][j] = max(\n                dp[i - 1][j],\n                dp[i][j - 1]\n            )\n\nprint(dp[rows - 1][cols - 1])"
         },
         {
-          "title": "Rollback demonstration",
+          "title": "Simple character comparison",
           "language": "python",
-          "code": "path = [1, 2, 3]\n\nprint(path)\npath.pop()\nprint(path)"
+          "code": "a = 'A'\nb = 'A'\n\nif a == b:\n    print('Match')\nelse:\n    print('No Match')"
         },
         {
-          "title": "Simple recursive branching",
+          "title": "Create an empty LCS matrix",
           "language": "python",
-          "code": "def explore(level):\n    if level == 3:\n        return\n\n    print('Level:', level)\n\n    explore(level + 1)\n\nexplore(0)"
+          "code": "rows = 5\ncols = 5\n\ndp = [[0 for _ in range(cols)]\nfor _ in range(rows)]\n\nfor row in dp:\n    print(row)"
         }
       ]
-    },
-    {
-      "id": "rollback-code",
-      "type": "concept",
-      "title": "Understanding Rollback in Code",
-      "content": "The rollback step restores the previous recursive state.\n\nIn many backtracking programs, rollback appears as:\n\npath.pop()\n\nThis removes the most recent decision so another branch can be explored.\n\nWithout rollback, recursive states become corrupted."
     },
     {
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Complexity Analysis",
-      "content": "Backtracking problems often have exponential complexity because recursive branching creates enormous search spaces.\n\nExamples:\n\nPermutations → O(n!)\nSubsets → O(2^n)\nN-Queens → Exponential\nMaze Solving → Exponential worst case\n\nPruning significantly reduces practical runtime by eliminating impossible paths early.",
+      "content": "The LCS algorithm fills every matrix cell once. If the first string has length n and the second string has length m, the matrix contains n times m subproblems. Each cell requires constant time to compute, so the total time complexity is O(n times m).\n\nThe space complexity is O(n times m) for the full 2D DP table. This can be optimized to O(min(n, m)) by using only two rows because each row only depends on the previous row. You only need to keep the current row and the previous row.\n\nHowever, the 2D version is easier to understand for learning. For strings of length 1000, the full table uses 1 million cells, which is about 8 megabytes for integers, which is acceptable. For longer strings, the space-optimized version is necessary.\n\nWithout Dynamic Programming, the brute force solution would try all 2 to the power of n subsequences. For n equals 30, that is about 1 billion subsequences, which is borderline. For n equals 40, that is about 1 trillion subsequences, which is impossible. Dynamic Programming transforms exponential subsequence comparison into structured polynomial-time optimization. The chart below compares O(n), O(n squared), and O(2 to the n).",
       "chart": {
-        "title": "Backtracking complexity growth",
-        "description": "Recursive branching causes rapid search-space growth in backtracking problems, while pruning helps reduce unnecessary exploration.",
+        "title": "LCS Dynamic Programming optimization",
+        "description": "Dynamic Programming transforms exponential subsequence comparison into structured polynomial-time optimization.",
         "maxN": 32,
         "normalize": true,
-        "curves": [
-          "O(n)",
-          "O(2^n)",
-          "O(n!)"
-        ]
+        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
       }
     },
     {
-      "id": "common-problems",
+      "id": "why-lcs-uses-dp",
       "type": "concept",
-      "title": "Common Backtracking Problems",
-      "content": "Backtracking is commonly used in:\n\n● N-Queens Problem\n● Sudoku Solver\n● Rat in a Maze\n● Permutations\n● Subset Generation\n● Graph Coloring\n● Hamiltonian Paths\n\nThese problems involve recursive exploration under constraints."
-    },
-    {
-      "id": "backtracking-vs-dp",
-      "type": "concept",
-      "title": "Backtracking vs Dynamic Programming",
-      "content": "Backtracking focuses on exploring possible decision paths and constraint satisfaction.\n\nDynamic Programming focuses on avoiding repeated computation through stored subproblem results.\n\nBacktracking usually performs recursive trial-and-error exploration with rollback, while Dynamic Programming performs optimization through subproblem reuse."
+      "title": "Why LCS Uses Dynamic Programming",
+      "content": "LCS contains overlapping subproblems and optimal substructure, which are the two key properties for Dynamic Programming.\n\nOverlapping subproblems occur because the same subproblem appears many times. For example, the LCS of the prefixes of length i and j may be needed when computing many larger subproblems. Without DP, you would recompute it each time.\n\nOptimal substructure means that the optimal solution for a larger problem contains optimal solutions for smaller subproblems. For LCS, the optimal solution for strings of length i and j either includes the last characters if they match, or it is the best of the two options when they do not match.\n\nWithout Dynamic Programming, recursive comparisons become extremely repetitive. A naive recursive solution would explore all possibilities, leading to exponential time. For strings of length 50, the recursion would be impossibly slow.\n\nDynamic Programming avoids repeated computation by storing intermediate sequence matches. This dramatically improves scalability. The DP solution runs in O(n times m) time, which is very efficient even for long strings."
     },
     {
       "id": "real-world-applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Backtracking appears in puzzle-solving systems, robotics pathfinding, game engines, AI search systems, scheduling platforms, cybersecurity testing, and route exploration systems.\n\nMany intelligent systems rely heavily on systematic recursive search."
+      "content": "LCS appears in many real-world systems. Git version control uses LCS-like algorithms to show differences between file versions. When you run git diff, it finds the longest common subsequence of lines to determine what was added, removed, or changed.\n\nPlagiarism detection systems compare documents by finding long common subsequences. If two student papers share a long common subsequence of words, it may indicate copying. DNA sequence matching in bioinformatics uses LCS to find similarities between gene sequences. This helps identify evolutionary relationships.\n\nSpell checking uses LCS to find the closest matching word in a dictionary. File comparison tools like diff use LCS to highlight differences between text files. Bioinformatics uses LCS to align protein sequences.\n\nMany intelligent comparison systems rely heavily on sequence alignment algorithms. Understanding LCS helps you build tools that compare, diff, and sync data. It is a fundamental algorithm in computational biology, version control, and text processing."
     },
     {
       "id": "misconceptions",
@@ -175,19 +167,19 @@
       "title": "Common Beginner Mistakes",
       "subsections": [
         {
-          "id": "forgetting-rollback",
-          "title": "Mistake: Forgetting rollback operations",
-          "content": "Without undoing choices, recursive states become corrupted and exploration becomes invalid."
+          "id": "subsequence-substring",
+          "title": "Mistake: Confusing subsequence with substring",
+          "content": "Subsequences may skip characters while preserving order. Substrings must remain consecutive. In LCS, we are looking for subsequences, not substrings. This is a very common confusion for beginners."
         },
         {
-          "id": "ignoring-pruning",
-          "title": "Mistake: Ignoring pruning conditions",
-          "content": "Efficient backtracking depends heavily on rejecting impossible paths early."
+          "id": "matrix-meaning",
+          "title": "Mistake: Misunderstanding DP matrix meaning",
+          "content": "Each DP cell represents the best subsequence length for smaller string prefixes. dp[i][j] is the LCS length of the first i characters of string A and the first j characters of string B. Row i and column j do not directly correspond to characters at the same indices."
         },
         {
-          "id": "confusing-bruteforce",
-          "title": "Mistake: Confusing backtracking with brute force",
-          "content": "Backtracking prunes invalid branches early, while brute force explores every possibility blindly."
+          "id": "recursion-efficient",
+          "title": "Mistake: Thinking recursion alone is efficient",
+          "content": "Pure recursion creates massive repeated comparisons. A naive recursive LCS implementation would explore all possibilities and run in exponential time. Dynamic Programming optimization is essential to make LCS practical for long strings."
         }
       ]
     },
@@ -196,31 +188,31 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "Backtracking systematically explores possible solutions.",
-        "The algorithm tries choices and undoes them when necessary.",
-        "Rollback restores previous recursive states.",
-        "Pruning eliminates impossible branches early.",
-        "Recursion naturally supports backtracking exploration.",
-        "Backtracking is widely used in puzzles, pathfinding, and constraint-solving systems."
+        "LCS finds the longest ordered subsequence shared between two strings.",
+        "Subsequences preserve order but may skip characters.",
+        "Dynamic Programming stores intermediate comparison results.",
+        "The LCS matrix represents optimal subsequence lengths.",
+        "Matching characters extend diagonal values.",
+        "LCS is widely used in text comparison and bioinformatics."
       ]
     }
   ],
   "references": [
     {
-      "title": "Programiz – Backtracking Algorithm",
-      "url": "https://www.programiz.com/dsa/backtracking-algorithm"
+      "title": "Programiz - Longest Common Subsequence",
+      "url": "https://www.programiz.com/dsa/longest-common-subsequence"
     },
     {
-      "title": "GeeksforGeeks – Backtracking Algorithms",
-      "url": "https://www.geeksforgeeks.org/backtracking-algorithms/"
+      "title": "GeeksforGeeks - Longest Common Subsequence",
+      "url": "https://www.geeksforgeeks.org/longest-common-subsequence-dp-4/"
     },
     {
-      "title": "Wikipedia – Backtracking",
-      "url": "https://en.wikipedia.org/wiki/Backtracking"
+      "title": "Wikipedia - Longest Common Subsequence Problem",
+      "url": "https://en.wikipedia.org/wiki/Longest_common_subsequence_problem"
     },
     {
-      "title": "Hello Algo – Backtracking",
-      "url": "https://www.hello-algo.com/en/chapter_backtracking/"
+      "title": "MIT OpenCourseWare - Dynamic Programming",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
     }
   ]
 }
