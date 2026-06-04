@@ -2,15 +2,11 @@
   "lessonId": "lesson-0-3",
   "moduleId": "module-0",
   "title": "The Complexity Analyzer",
-  "description": "Learn how the AlgoBlocks Complexity Analyzer helps visualize algorithm efficiency and performance growth.",
+  "description": "Learn how the AlgoBlocks Complexity Analyzer helps visualize **algorithm efficiency** and **performance growth**. This lesson introduces **time complexity**, **space complexity**, and **bottleneck detection** using **Big O notation**. By the end, you will understand why some algorithms slow down dramatically with larger inputs and how to choose or design more efficient solutions.",
   "difficulty": "Beginner",
   "estimatedTime": "20 min",
   "prerequisites": "Core Blockly Components",
-  "tags": [
-    "complexity",
-    "performance",
-    "analysis"
-  ],
+  "tags": ["complexity", "performance", "analysis"],
   "activities": [
     {
       "id": "m0_l3_a1",
@@ -38,37 +34,139 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Efficient algorithms are important because modern applications often process massive amounts of data.\n\nThe Complexity Analyzer inside AlgoBlocks helps students understand how algorithm performance changes as input size grows.\n\nInstead of only seeing the final output, learners can analyze how much work an algorithm performs internally."
+      "content": "Efficient algorithms are important because modern applications process **massive amounts of data**. Google handles over 40,000 searches per second, and Amazon processes millions of orders daily. If the algorithms behind these systems were inefficient, simple actions would take minutes or hours instead of milliseconds.",
+      "subsections": [
+        {
+          "id": "intro-analyzer",
+          "title": "The AlgoBlocks Complexity Analyzer",
+          "content": "The Complexity Analyzer inside AlgoBlocks helps you understand how algorithm performance changes as input size grows. It provides **visual feedback** that makes abstract performance concepts concrete and observable:",
+          "bullets": [
+            "**Graphs:** Visualize exactly how execution time scales as data increases.",
+            "**Step Counters:** Track the exact number of operations your computer performs.",
+            "**Execution Time Estimates:** See how long the algorithm takes to run in real-time."
+          ]
+        },
+        {
+          "id": "intro-questions",
+          "title": "Asking the Right Questions",
+          "content": "Instead of only seeing the final output, you can analyze how much work an algorithm performs internally. A good software engineer always asks:",
+          "bullets": [
+            "How many **internal operations** did the program execute?",
+            "How did that number change when the **input size doubled**?",
+            "Did **memory usage** spike unexpectedly?"
+          ]
+        }
+      ]
     },
     {
       "id": "time-complexity",
       "type": "concept",
       "title": "Understanding Time Complexity",
-      "content": "Time complexity describes how the running time of an algorithm changes as the input size increases.\n\nSome algorithms remain efficient even with large datasets, while others become slower very quickly.\n\nThe Complexity Analyzer helps visualize these differences through graphs and execution analysis."
+      "content": "**Time complexity** describes how the running time of an algorithm changes as the input size increases. It answers the question: *If I double the amount of data, how much longer will the algorithm take?* Computer scientists use **Big O notation** to express this.",
+      "subsections": [
+        {
+          "id": "tc-common",
+          "title": "Common Time Complexities",
+          "content": "The Complexity Analyzer will help you identify these common growth patterns as you test different input sizes:",
+          "bullets": [
+            "**O(1) - Constant Time:** The algorithm takes the exact same amount of time regardless of input size. Example: *Accessing the very first element of an array.*",
+            "**O(n) - Linear Time:** Time grows proportionally to the input size. Example: *A single loop that prints every item in a list.*",
+            "**O(n²) - Quadratic Time:** Time grows with the **square** of the input size. If you double the input, the time quadruples! For 10,000 items, it needs 100,000,000 operations. Example: *Nested loops.*",
+            "**O(log n) - Logarithmic Time:** Extremely efficient. The algorithm splits the data in half each step. Example: *Binary search.*",
+            "**O(2^n) - Exponential Time:** Highly inefficient and generally only usable for tiny inputs."
+          ]
+        }
+      ]
     },
     {
       "id": "space-complexity",
       "type": "concept",
       "title": "Understanding Space Complexity",
-      "content": "Space complexity measures how much memory an algorithm consumes while executing.\n\nAlgorithms that store large amounts of temporary data may require more memory resources.\n\nThe analyzer helps students observe how variables, arrays, and recursion affect memory usage."
+      "content": "**Space complexity** measures how much memory (RAM) an algorithm consumes while executing. While time complexity asks *how long*, space complexity asks *how much room*. Both are critical for real-world software, especially on devices with limited memory like smartphones.",
+      "subsections": [
+        {
+          "id": "sc-common",
+          "title": "Common Space Complexities",
+          "content": "Just like time, memory usage is also measured using Big O notation:",
+          "bullets": [
+            "**O(1) Space:** The algorithm uses a fixed, small amount of memory regardless of input size. Example: *A loop that uses a single counter variable.*",
+            "**O(n) Space:** Memory grows strictly with the input size. Example: *Copying all items from one array into a brand new array.*",
+            "**O(n²) Space:** Memory grows with the square of the input size. Example: *Creating an n-by-n matrix or grid. For an input of 1,000, that is 1,000,000 memory cells!*"
+          ]
+        },
+        {
+          "id": "sc-visualizing",
+          "title": "Visualizing Memory",
+          "content": "The Complexity Analyzer tracks how many variables are created, how large arrays grow, and memory allocation peaks. You can watch a **memory meter** that rises and falls as your program runs, helping you weigh the trade-offs between speed and memory efficiency."
+        }
+      ]
     },
     {
       "id": "bottlenecks",
       "type": "deep_dive",
       "title": "Identifying Bottlenecks",
-      "content": "A bottleneck is a part of an algorithm that significantly slows down performance.\n\nNested loops, repeated calculations, and unnecessary operations often create bottlenecks.\n\nThe Complexity Analyzer helps students identify inefficient sections so they can improve algorithm design and reduce computational cost."
+      "content": "A **bottleneck** is a specific part of an algorithm that significantly slows down overall performance. It is the section where the program gets stuck spending most of its time. Find the bottleneck and fix it, and the whole program becomes faster.",
+      "subsections": [
+        {
+          "id": "bottleneck-culprits",
+          "title": "Common Culprits",
+          "content": "Bottlenecks usually take one of these forms:",
+          "bullets": [
+            "**Nested Loops:** The most common culprit, creating slow **O(n²)** behavior.",
+            "**Redundant Calculations:** Repeating the exact same expensive math operation inside a loop when the result never actually changes.",
+            "**Unnecessary Data Copies:** Copying massive arrays over and over instead of just referencing them."
+          ]
+        },
+        {
+          "id": "bottleneck-heatmaps",
+          "title": "Using Heat Maps",
+          "content": "The Complexity Analyzer helps find bottlenecks using **Heat Maps**. Blocks that execute most frequently are **highlighted in bright red**. If you write a slow nested loop, the blocks inside will glow red, instantly showing you exactly where the computer is struggling the most."
+        }
+      ]
     },
     {
       "id": "real-world",
       "type": "real_world_connection",
       "title": "Why Performance Analysis Matters",
-      "content": "Large systems such as search engines, banking platforms, and social media applications rely heavily on efficient algorithms.\n\nEven small inefficiencies can become major problems when software handles millions of users or large datasets.\n\nPerformance analysis allows engineers to predict scalability issues before deploying systems to real users."
+      "content": "Large systems like search engines, banking platforms, and social media apps rely on efficient algorithms. Poor performance directly impacts user experience and business revenue. In fact, Amazon found that **every 100 milliseconds of delay costs them 1 percent in sales**.",
+      "subsections": [
+        {
+          "id": "rw-examples",
+          "title": "Real-World Examples",
+          "content": "Even small inefficiencies become catastrophic when handling millions of users:",
+          "bullets": [
+            "**Search Engines:** Google scans billions of web pages in milliseconds using **O(log n)** data structures. A slow algorithm would take days.",
+            "**Navigation:** Google Maps must calculate routes instantly. A slow algorithm would make rerouting during heavy traffic impossible.",
+            "**E-Commerce:** A checkout cart algorithm that accidentally runs in **O(n²)** could crash an entire website during Black Friday sales."
+          ]
+        },
+        {
+          "id": "rw-engineer",
+          "title": "Thinking Like an Engineer",
+          "content": "The Complexity Analyzer prepares you for these scenarios. Before writing code, ask yourself: *How will this scale to 1 million items?* Measure performance with different input sizes, compare approaches, and spot **O(n²)** patterns early before they break your software."
+        }
+      ]
     },
     {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "The Complexity Analyzer helps students visualize algorithm efficiency by examining time complexity, space complexity, and performance bottlenecks. Understanding algorithm efficiency is important for designing scalable and optimized software systems."
+      "content": "The Complexity Analyzer is your primary tool for evaluating algorithm scalability. An algorithm that works perfectly for 100 items might completely crash when given 1,000,000 items. Always consider both **Time** and **Space** complexity when designing solutions.",
+      "subsections": [
+        {
+          "id": "sum-workflow",
+          "title": "The Analysis Workflow",
+          "content": "To effectively use the Complexity Analyzer in AlgoBlocks, follow these steps:",
+          "bullets": [
+            "1. **Build** your algorithm visually on the canvas.",
+            "2. **Open** the Complexity Analyzer panel.",
+            "3. **Run** the program using multiple, increasing input sizes.",
+            "4. **Observe** how the graphs and step counters scale.",
+            "5. **Locate** any bright red blocks (Heat Maps) indicating a bottleneck.",
+            "6. **Refactor** your logic to eliminate the bottleneck and improve efficiency."
+          ]
+        }
+      ]
     }
   ],
   "references": [

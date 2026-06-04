@@ -6,12 +6,7 @@
   "difficulty": "Intermediate",
   "estimatedTime": "55 min",
   "prerequisites": "N-Queens Problem",
-  "tags": [
-    "backtracking",
-    "maze solving",
-    "pathfinding",
-    "recursive search"
-  ],
+  "tags": ["backtracking", "maze solving", "pathfinding", "recursive search"],
   "activities": [
     { "id": "m6_l4_a1", "title": "Move Directions" },
     { "id": "m6_l4_a2", "title": "Boundary Check" },
@@ -24,13 +19,13 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Maze solving is one of the most classic applications of backtracking.\n\nThe objective is to find a valid path from a starting point to a destination while avoiding walls, invalid cells, and dead ends.\n\nThe algorithm systematically explores possible directions, recursively continues exploration, and backtracks whenever a path becomes impossible.\n\nMaze solving clearly demonstrates recursive search, rollback operations, pruning, and path exploration."
+      "content": "**Maze solving is one of the most classic applications of backtracking.** The objective is to find a valid path from a starting point to a destination while avoiding walls, invalid cells, and dead ends. The algorithm systematically explores possible directions, recursively continues exploration, and backtracks whenever a path becomes impossible.\n\n* Think of it like finding your way out of a corn maze.\n* You try going right. If you hit a dead end, you go back to the last junction and try going left.\n* You keep trying different paths until you find the exit. This is exactly how backtracking works for maze solving.\n\nMaze solving clearly demonstrates recursive search, rollback operations, pruning, and path exploration. It is a perfect example of how backtracking can find paths in complex environments.\n\nThe algorithm works on a grid where each cell is either open or blocked. It starts at the entrance and tries to reach the exit. At each step, it tries all four directions. If a direction leads to a dead end, it backtracks and tries another direction."
     },
     {
       "id": "why-maze-solving-matters",
       "type": "concept",
       "title": "Why Maze Solving Matters",
-      "content": "Many real-world systems involve pathfinding and route exploration.\n\nExamples include robotics navigation, GPS systems, AI movement, video games, warehouse automation, and network routing.\n\nMaze solving models how intelligent systems systematically explore possible movement paths while avoiding obstacles.",
+      "content": "Many real-world systems involve pathfinding and route exploration. Examples include:\n\n* Robotics navigation where a robot must find a path through a room with obstacles.\n* GPS systems that find routes through road networks.\n* AI movement in video games where characters navigate around walls.\n* Warehouse automation where robots move between shelves.\n* Network routing where data packets find paths through networks.\n\nMaze solving models how intelligent systems systematically explore possible movement paths while avoiding obstacles. A self-driving car must navigate through city streets, avoiding buildings, other cars, and pedestrians. This is a complex maze-solving problem.\n\nSearch-and-rescue systems use pathfinding to find trapped people in buildings. Video game characters use pathfinding to move from one point to another without walking through walls.\n\nUnderstanding maze solving helps you build intelligent navigation systems.",
       "bullets": [
         "Demonstrates recursive pathfinding.",
         "Introduces visited-state tracking.",
@@ -42,55 +37,55 @@
       "id": "maze-representation",
       "type": "deep_dive",
       "title": "Understanding Maze Representation",
-      "content": "A maze is commonly represented using a 2D matrix.\n\nExample:\n0 → blocked cell or wall\n1 → open path\n\nExample maze:\n[1, 0, 1, 1]\n[1, 1, 1, 0]\n[0, 1, 0, 1]\n[1, 1, 1, 1]\n\nThe algorithm starts from one position and attempts to reach the destination."
+      "content": "A maze is commonly represented using a 2D matrix. Each cell in the matrix represents a location in the maze. The value in the cell tells you whether that location is open or blocked.\n\n* For example, 1 means open path where you can walk.\n* 0 means blocked cell or wall where you cannot go.\n* The maze is surrounded by implicit walls at the boundaries. The algorithm cannot go outside the grid.\n\nAn example 4x4 maze might be: row 0: [1,0,0,0], row 1: [1,1,0,1], row 2: [0,1,0,0], row 3: [1,1,1,1]. The start is at (0,0) and the destination is at (3,3). The algorithm must find a path from start to destination moving only through cells with value 1.\n\nYou can also represent the maze with characters. 'S' for start, 'E' for exit, '#' for wall, and '.' for open path. The 2D matrix representation is easier for programming because you can use numbers and indices."
     },
     {
       "id": "core-backtracking-idea",
       "type": "concept",
       "title": "Core Backtracking Idea",
-      "content": "The algorithm repeatedly:\n● moves to a possible neighboring cell\n● checks whether the move is valid\n● continues recursively\n● backtracks if a dead end is reached\n\nThis recursive choose-explore-undo process systematically explores the maze."
+      "content": "The algorithm repeatedly moves to a possible neighboring cell, checks whether the move is valid, continues recursively if valid, and backtracks if a dead end is reached. This recursive choose-explore-undo process systematically explores the maze.\n\n* **Choose step:** Selecting a direction to move. The four possible directions are up, down, left, and right.\n* **Explore step:** Recursively calling the solve function on the new cell.\n* **Undo step:** Unmarking the cell as visited when the recursion returns.\n\nIf the current cell is the destination, the algorithm has found a solution. It can return true and stop. If the current cell is invalid because it is outside the maze, is a wall, or has already been visited, the algorithm returns false.\n\nThis pattern is similar to other backtracking problems. The difference is that maze solving has a 2D grid and four movement directions. The choose-explore-undo cycle continues until a path is found or all possibilities are exhausted."
     },
     {
       "id": "valid-movement",
       "type": "deep_dive",
       "title": "Understanding Valid Movement",
-      "content": "Before moving into a new cell, the algorithm checks:\n\n● Is the position inside maze boundaries?\n● Is the cell blocked?\n● Was the cell already visited?\n\nIf any condition fails, the movement becomes invalid.\n\nThe algorithm immediately rejects the move and explores another direction."
+      "content": "Before moving into a new cell, the algorithm checks several conditions:\n\n1. **Is the position inside the maze boundaries?** The row must be between 0 and N-1, and the column must be between 0 and N-1. If outside, the move is invalid.\n2. **Is the cell blocked?** The maze value at that cell must be 1 for open path. If the value is 0, it is a wall and you cannot go there. The move is invalid.\n3. **Was the cell already visited?** The algorithm maintains a visited matrix of the same size as the maze. If visited[row][col] is true, you have already been to that cell in the current path. Going there again would create a loop. The move is invalid.\n\n**If any of these conditions fail, the movement becomes invalid.** The algorithm immediately rejects the move and explores another direction. These checks are the pruning conditions that make backtracking efficient. Without them, the algorithm would waste time exploring impossible or repeated paths."
     },
     {
       "id": "visited-cells",
       "type": "concept",
       "title": "Why Visited Tracking Is Important",
-      "content": "Without tracking visited cells, the algorithm may revisit the same positions repeatedly.\n\nThis creates infinite recursive loops.\n\nVisited tracking prevents repeated exploration of already-visited paths.\n\nIt also helps the algorithm avoid unnecessary recursive work."
+      "content": "Without tracking visited cells, the algorithm may revisit the same positions repeatedly. For example, from cell (1,1), you might move right to (1,2), then left back to (1,1), then right again to (1,2). This creates infinite recursive loops and the algorithm will never finish.\n\n**Visited tracking prevents repeated exploration of already-visited paths.** When you enter a cell, you mark it as visited. When you backtrack out of that cell, you unmark it. This ensures that you do not revisit cells within the same path, but you can still explore them in different paths.\n\nVisited tracking also helps the algorithm avoid unnecessary recursive work. If a cell has already been explored and found not to lead to the destination, you could prune it, but in basic maze solving you still need to try it from different directions. Marking visited within the current path is enough.\n\nThis is different from N-Queens where you only need column and diagonal tracking. In maze solving, you need to track the exact path to avoid loops. Without visited tracking, the algorithm would get stuck in cycles."
     },
     {
       "id": "step-by-step-example",
       "type": "deep_dive",
       "title": "Step-by-Step Maze Exploration",
-      "content": "Suppose the algorithm starts at the top-left corner.\n\nStep 1 — Move Right\nIf the cell is valid, continue recursively.\n\nStep 2 — Reach Dead End\nSuppose all neighboring cells become blocked.\n\nStep 3 — Backtrack\nThe algorithm returns to the previous position.\n\nStep 4 — Try Another Direction\nExplore Down instead.\n\nThis repeated exploration-and-rollback process continues until a valid path is found."
+      "content": "Suppose the algorithm starts at the top-left corner (0,0) and needs to reach the bottom-right corner (3,3) in a 4x4 maze. The maze has open paths at most cells.\n\n1. **Step 1:** Try moving right from (0,0) to (0,1). If the cell (0,1) is within bounds, not a wall, and not visited, the algorithm moves there and marks it visited. Then it recursively continues from (0,1).\n2. **Step 2:** From (0,1), try moving down to (1,1). Suppose (1,1) is open. Move there and continue.\n3. **Step 3:** From (1,1), try moving down to (2,1). Suppose (2,1) is open. Move there and continue.\n\nSuppose from (2,1), all neighboring cells are either walls or already visited. This is a dead end. The algorithm backtracks to (1,1) and tries moving right to (1,2) instead of down. This repeated exploration-and-rollback process continues until a valid path to (3,3) is found or all possibilities are exhausted."
     },
     {
       "id": "dead-ends",
       "type": "deep_dive",
       "title": "Understanding Dead Ends",
-      "content": "A dead end occurs when no valid movement remains.\n\nExample:\n● wall ahead\n● already visited cell\n● maze boundary\n\nWhen this happens, recursion returns backward to the previous state.\n\nThe algorithm then explores another branch.\n\nThis rollback behavior is the heart of backtracking."
+      "content": "A dead end occurs when no valid movement remains from the current cell. This can happen for several reasons:\n\n* All four neighboring cells may be walls, meaning maze value is 0.\n* All four neighboring cells may have been visited already in the current path, creating a loop.\n* All four neighboring cells may be outside the maze boundaries.\n\nWhen a dead end is reached, the algorithm cannot proceed further. The recursive call returns false to the previous call. This indicates that the current path does not lead to the destination.\n\nThe previous call then tries another direction. If all directions from that cell also lead to dead ends, that cell also becomes a dead end, and the algorithm backtracks further.\n\n**This rollback behavior is the heart of backtracking.** The algorithm unwinds the recursion, unmarking visited cells as it goes, until it finds a cell with an untried direction. Then it tries that new direction. This systematic exploration ensures that every possible path is considered, but dead ends are abandoned early."
     },
     {
       "id": "recursive-search-tree",
       "type": "deep_dive",
       "title": "Recursive Search Tree",
-      "content": "Maze exploration forms a recursive branching tree.\n\nExample:\nStart\n├── Right\n│   ├── Down\n│   └── Dead End\n├── Down\n└── Left\n\nEach branch represents another possible movement path.\n\nInvalid branches are pruned immediately."
+      "content": "Maze exploration forms a recursive branching tree. The root of the tree is the starting position. Each node in the tree represents a cell that the algorithm has visited. Each branch represents moving to a neighboring cell.\n\nFrom the start cell (0,0), there are up to 4 branches for moving up, down, left, or right. However, up and left are usually invalid because they go outside the maze. So only down and right might be valid. Each of those branches leads to new cells, which have their own branches.\n\nThe tree continues to grow until it reaches the destination or hits a dead end. When a dead end is reached, that branch stops and the algorithm backtracks to try other branches.\n\nInvalid branches are pruned immediately. For example, if moving right leads to a wall, that branch is not explored at all. This pruning dramatically reduces the size of the search tree. Without pruning, the number of nodes would be enormous."
     },
     {
       "id": "path-marking",
       "type": "concept",
       "title": "Path Marking",
-      "content": "Many maze-solving algorithms mark path cells during exploration.\n\nExample:\n● current path\n● visited positions\n● solution path\n\nMarking helps visualize recursive exploration and prevents repeated movement cycles."
+      "content": "Many maze-solving algorithms mark path cells during exploration. This serves several purposes:\n\n1. It helps visualize the exploration process. You can print the board after each step to see where the algorithm has been.\n2. It prevents revisiting cells within the same path, which prevents infinite loops.\n\nThere are different types of path marking:\n* **Current path marking** marks cells that are on the current exploration path. This is what the visited matrix does. When you backtrack, you unmark those cells. This allows the same cell to be visited in different paths later.\n* **Solution path marking** marks the cells that form the final path from start to destination. When the algorithm finds the destination, it can backtrack and mark which cells were used to get there. This gives you the actual route.\n\nMarking helps visualize recursive exploration and prevents repeated movement cycles. In the implementation, you can store the path in a separate matrix or list. When you find the destination, you can save the current path as the solution."
     },
     {
       "id": "general-pseudocode",
       "type": "concept",
       "title": "General Maze Backtracking Pseudocode",
-      "content": "Most maze-solving algorithms follow this recursive structure.",
+      "content": "Most maze-solving algorithms follow this recursive structure.\n\n1. The `solve` function takes a row and column as parameters. \n2. First, check if the current position is the destination. If yes, return true because a valid path has been found.\n3. Second, check if the current position is invalid. Invalid conditions include being outside the maze boundaries, hitting a wall where maze value is 0, or visiting a cell that is already marked visited. If any of these are true, return false.\n4. Third, mark the current position as visited. This prevents revisiting it in the current path. \n5. Then loop through all four directions. For each direction, compute the next row and next column. Recursively call solve on the next cell. If that call returns true, it means a path exists from that next cell to the destination, so return true.\n6. If none of the directions lead to a solution, unmark the current position as visited. This is the rollback step. Then return false. \n\nThis pattern ensures that all possible paths are explored. The code example below shows this pattern.",
       "codeSnippets": [
         {
           "title": "Maze-solving pseudocode",
@@ -103,7 +98,7 @@
       "id": "python-implementation",
       "type": "concept",
       "title": "Python Implementation",
-      "content": "Maze-solving implementations commonly use recursive movement exploration and visited-state tracking.",
+      "content": "Maze-solving implementations commonly use recursive movement exploration and visited-state tracking. The code creates a maze matrix, a visited matrix of the same size initialized to false, and defines the solve function.\n\n* The solve function first checks if the current position is the destination. If row equals n-1 and col equals n-1, return true.\n* Then it checks for invalid positions. If row or col is out of bounds, return false. If `maze[row][col]` equals 0 which is a wall, return false. If `visited[row][col]` is true, return false.\n* If the position is valid, mark `visited[row][col]` as true.\n* Then try moving down by calling solve(row+1, col). If that returns true, return true.\n* Then try moving right by calling solve(row, col+1). Then try moving up by calling solve(row-1, col). Then try moving left by calling solve(row, col-1).\n* If none of the directions return true, mark `visited[row][col]` as false for rollback and return false.\n\nThe algorithm will either find a path and return true, or exhaust all possibilities and return false. The examples below show this implementation, visited cell tracking, and boundary checking.",
       "codeSnippets": [
         {
           "title": "Maze solving using backtracking",
@@ -126,42 +121,38 @@
       "id": "rollback-code",
       "type": "concept",
       "title": "Understanding Rollback in Maze Solving",
-      "content": "Rollback occurs when a movement path fails.\n\nExample rollback operation:\nvisited[row][col] = False\n\nThis restores the previous exploration state so another direction can be tested.\n\nWithout rollback, recursive exploration becomes incorrect."
+      "content": "Rollback occurs when a movement path fails. When the algorithm tries a direction and all deeper explorations from that direction fail, it needs to undo that move before trying another direction.\n\nThe rollback operation is setting `visited[row][col]` back to false after all four directions have been tried and none led to a solution. This restores the previous exploration state so that other branches can be tested.\n\nWithout rollback, the visited cell would remain marked as true forever. If you later come to that cell from a different path, you would incorrectly think it is already visited and skip it. This would prevent you from finding valid paths that go through that cell from different directions.\n\nWithout rollback, recursive exploration becomes incorrect. The algorithm might miss valid paths or get stuck. Rollback is essential for correct backtracking implementation. It ensures that each recursive call works on a clean state independent of sibling branches."
     },
     {
       "id": "pruning",
       "type": "concept",
       "title": "Why Pruning Is Important",
-      "content": "Maze-solving search spaces grow rapidly.\n\nWithout pruning, the algorithm would waste time exploring:\n● walls\n● invalid positions\n● already visited paths\n● impossible branches\n\nEfficient pruning dramatically improves practical performance."
+      "content": "Maze-solving search spaces grow rapidly. In a 4x4 maze with all cells open, there are many possible paths from start to end. The number of possible paths grows exponentially with the size of the maze. For a 10x10 maze, the number of paths is enormous.\n\nWithout pruning, the algorithm would waste time exploring walls, invalid positions, already visited paths, and impossible branches. Each time you hit a wall, you immediately stop exploring that direction. This prunes that entire branch.\n\nVisited tracking also prunes paths that would create loops. Without visited tracking, the algorithm could go in circles forever. By marking visited cells, you prune those cycles.\n\nEfficient pruning dramatically improves practical performance. For a typical maze, the algorithm only explores a small fraction of all possible paths. The pruning conditions are simple boundary checks, wall checks, and visited checks. These checks are executed at every cell and prevent massive amounts of unnecessary recursion."
     },
     {
       "id": "dfs-connection",
       "type": "deep_dive",
       "title": "Connection to Depth-First Search",
-      "content": "Maze solving with backtracking behaves similarly to Depth-First Search (DFS).\n\nThe algorithm explores one path deeply before returning backward.\n\nThis recursive depth-first exploration naturally fits maze traversal problems.\n\nBacktracking extends DFS with rollback and constraint checking."
+      "content": "Maze solving with backtracking behaves similarly to Depth-First Search, which is DFS. DFS is a graph traversal algorithm that explores as far as possible along each branch before backtracking. This is exactly what backtracking does.\n\nIn DFS, you mark nodes as visited when you enter them. You recursively explore all unvisited neighbors. When you have no more unvisited neighbors, you return to the previous node. This is identical to the maze-solving algorithm.\n\nThe algorithm explores one path deeply before returning backward. For a maze, it goes down a corridor until it hits a dead end, then backtracks to the last junction and tries another direction. This recursive depth-first exploration naturally fits maze traversal problems.\n\nBacktracking extends DFS with rollback and constraint checking. In standard DFS, you mark nodes as visited and never unmark them. In backtracking for pathfinding, you unmark nodes when backtracking because the same node can appear in different paths. This is the main difference."
     },
     {
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Complexity Analysis",
-      "content": "Maze-solving complexity depends heavily on maze size and branching possibilities.\n\nIn the worst case, recursive exploration may visit many possible paths.\n\nWorst-case complexity commonly approaches exponential growth.\n\nPruning and visited tracking significantly reduce unnecessary recursive exploration.",
+      "content": "Maze-solving complexity depends heavily on maze size and branching possibilities. In the worst case, if the maze is mostly open and has very few walls, the algorithm may explore many paths. For an N by N grid with all cells open, the number of paths from the top-left to bottom-right is enormous, roughly exponential in N.\n\nIn the worst case, recursive exploration may visit many possible paths. The worst-case time complexity is O(4 to the power of N squared) in the worst case, but with pruning it is much better. The visited tracking prevents cycles, but there are still many simple paths.\n\nPruning and visited tracking significantly reduce unnecessary recursive exploration. In practice, for a typical maze with many walls and dead ends, the algorithm runs very fast. For a 10x10 maze, it usually finds a path in milliseconds.\n\nThe chart below compares O(n), O(2 to the n), and O(n factorial). Maze solving is usually exponential in the worst case, but pruning makes it feasible for reasonable maze sizes.",
       "chart": {
         "title": "Maze-solving recursive growth",
         "description": "Recursive path exploration causes rapid search-space growth, while pruning and visited tracking improve efficiency.",
         "maxN": 32,
         "normalize": true,
-        "curves": [
-          "O(n)",
-          "O(2^n)",
-          "O(n!)"
-        ]
+        "curves": ["O(n)", "O(2^n)", "O(n!)"]
       }
     },
     {
       "id": "real-world-applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Maze-solving techniques appear in robotics navigation, autonomous vehicles, game AI, GPS systems, warehouse automation, network routing, and search-and-rescue systems.\n\nMany intelligent systems rely heavily on recursive pathfinding and exploration."
+      "content": "Maze-solving techniques appear in many real-world systems.\n\n* **Robotics navigation** uses pathfinding to move robots through rooms while avoiding obstacles.\n* **Autonomous vehicles** use similar algorithms to navigate city streets and avoid collisions.\n* **Game AI** uses pathfinding for character movement. When you click on a location in a game, the character uses a pathfinding algorithm to find the route.\n* **GPS systems** use pathfinding to find the shortest route between two locations.\n* **Warehouse automation** uses pathfinding for robots that move shelves and packages.\n* **Network routing** uses pathfinding algorithms to send data packets through the internet.\n* **Search-and-rescue systems** use pathfinding to find trapped people in buildings.\n\nMany intelligent systems rely heavily on recursive pathfinding and exploration. Understanding maze solving helps you build navigation systems for robots, games, and autonomous vehicles. The backtracking algorithm can be extended to find the shortest path, the fastest path, or the path with the least turns."
     },
     {
       "id": "misconceptions",
@@ -171,17 +162,17 @@
         {
           "id": "forgetting-visited",
           "title": "Mistake: Forgetting visited-state tracking",
-          "content": "Without visited tracking, recursion may revisit cells repeatedly and create infinite loops."
+          "content": "**Without visited tracking, recursion may revisit cells repeatedly and create infinite loops.** Always mark cells as visited before exploring them and unmark them when backtracking."
         },
         {
           "id": "missing-rollback",
           "title": "Mistake: Forgetting rollback operations",
-          "content": "Without undoing visited states, future valid paths may become incorrectly blocked."
+          "content": "Without undoing visited states, future valid paths may become incorrectly blocked. **Always unmark visited cells after exploring all directions.**"
         },
         {
           "id": "boundary-errors",
           "title": "Mistake: Incorrect boundary checking",
-          "content": "Movement validation must carefully check maze dimensions and invalid positions."
+          "content": "Movement validation must carefully check maze dimensions and invalid positions. **Check that row and col are within 0 and N-1 before accessing the maze array.**"
         }
       ]
     },

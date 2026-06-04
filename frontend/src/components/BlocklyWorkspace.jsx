@@ -980,11 +980,13 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         }
       }
     },
-    loadTemplate: (json) => {
+    loadTemplate: (json, preservePythonCode = undefined) => {
       if (workspace.current) {
         try {
           workspace.current.clear();
-          Blockly.serialization.workspaces.load(json, workspace.current);
+          if (json && Object.keys(json).length > 0) {
+            Blockly.serialization.workspaces.load(json, workspace.current);
+          }
         } catch (err) {
           console.error("Error loading workspace JSON:", err);
         }
@@ -992,16 +994,24 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         setTimeout(() => {
           const code = pythonGenerator.workspaceToCode(workspace.current);
           const currentJson = Blockly.serialization.workspaces.save(workspace.current);
-          if (onChangeRef.current) onChangeRef.current(currentJson, code);
+
+          // FIX: Compare preserved custom code with block-generated code on boot
+          if (preservePythonCode !== undefined && preservePythonCode !== null) {
+            const isUnsynced = preservePythonCode.trim() !== code.trim() && preservePythonCode !== "# Drag blocks to generate Python code";
+            if (onChangeRef.current) onChangeRef.current(currentJson, preservePythonCode, isUnsynced);
+          } else {
+            if (onChangeRef.current) onChangeRef.current(currentJson, code, false);
+          }
         }, 100);
       }
     },
+
     setTheme: (themeName) => {
       if (workspace.current) {
         workspace.current.setTheme(themeName === 'dark' ? DarkTheme : pastelTheme);
       }
     },
-    
+
     loadFromPython: async (pythonCode) => {
       if (!workspace.current) return;
       try {
@@ -1021,7 +1031,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         setTimeout(() => {
           if (workspace.current) {
             const currentJson = Blockly.serialization.workspaces.save(workspace.current);
-            
+
             // Do NOT call workspaceToCode() here! It causes a lossy round-trip 
             // that destroys the user's handwritten Python formatting and syntax.
             // Instead, pass the original `pythonCode` back to the state:

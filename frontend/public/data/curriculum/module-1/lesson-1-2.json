@@ -2,15 +2,11 @@
   "lessonId": "lesson-1-2",
   "moduleId": "module-1",
   "title": "Time Complexity Classes",
-  "description": "Learn the most common time complexity classes and connect each growth pattern to real programming implementations.",
+  "description": "Learn the most common **time complexity classes** and connect each **growth pattern** to real programming implementations.",
   "difficulty": "Beginner",
   "estimatedTime": "40 min",
   "prerequisites": "Big-O Notation",
-  "tags": [
-    "time complexity",
-    "big-o",
-    "algorithm analysis"
-  ],
+  "tags": ["time complexity", "big-o", "algorithm analysis"],
   "activities": [
     {
       "id": "m1_l2_a1",
@@ -38,45 +34,95 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Not all algorithms grow at the same speed. Some remain efficient when handling millions of inputs, while others become extremely slow as the input size increases.\n\nTime complexity classes help computer scientists categorize algorithms based on how quickly execution work grows relative to input size. Instead of memorizing formulas, programmers study how operations increase, how algorithms scale, and how performance changes for large datasets."
+      "content": "Not all algorithms grow at the same speed. Some remain fast even with millions of inputs, while others become very slow as the input size grows. **Time complexity classes** help us categorize algorithms based on how their work grows relative to input size.",
+      "subsections": [
+        {
+          "id": "intro-shapes",
+          "title": "Characteristic Shapes",
+          "content": "Each complexity class has a characteristic shape. These shapes tell you whether an algorithm will work for 1,000 items or 1 billion items. Instead of memorizing formulas, programmers learn to recognize these patterns by looking at code. This lesson will teach you to identify each complexity class and understand when each one is appropriate in practice.",
+          "bullets": [
+            "**O(1)** is flat.",
+            "**O(log n)** rises slowly.",
+            "**O(n)** climbs steadily.",
+            "**O(n log n)** curves moderately.",
+            "**O(n²)** shoots up steeply.",
+            "**O(2^n)** explodes."
+          ]
+        }
+      ]
     },
     {
       "id": "why-classes-matter",
       "type": "real_world_connection",
       "title": "Why Complexity Classes Matter",
-      "content": "Imagine two algorithms solving the same problem. Algorithm A checks every item one by one. Algorithm B repeatedly divides the problem in half. For small inputs, both may seem fast. For very large inputs, their performance difference becomes enormous.\n\nSearching one million sorted items with linear search may require one million checks. Binary search can require fewer than 20 checks. This is why engineers analyze complexity before deploying systems at scale.",
-      "bullets": [
-        "Predict scalability before input sizes become large.",
-        "Compare solutions using operation growth instead of machine speed.",
-        "Reduce infrastructure costs by avoiding unnecessary work.",
-        "Improve user experience by selecting algorithms that remain responsive."
+      "content": "Imagine two algorithms that solve the same problem. Algorithm A checks every item one by one. Algorithm B repeatedly divides the problem in half. For small inputs, both seem fast. But for very large inputs, the difference becomes enormous.",
+      "subsections": [
+        {
+          "id": "why-scale",
+          "title": "Scaling Differences",
+          "content": "Searching through 1 million sorted items with **linear search** needs up to 1 million checks. **Binary search** needs only about 20 checks. That is 50,000 times faster. For 1 billion items, linear search is impossible while binary search needs only about 30 steps."
+        },
+        {
+          "id": "why-engineering",
+          "title": "Engineering Value",
+          "content": "This is why engineers analyze complexity before deploying systems at scale. You cannot just test with small data and assume it will work in production. Complexity analysis is **hardware-independent** and helps you predict problems early. Understanding complexity classes also helps you communicate with other developers.",
+          "bullets": [
+            "**Predict scalability** before input sizes become large.",
+            "Compare solutions using **operation growth** instead of machine speed.",
+            "**Reduce infrastructure costs** by avoiding unnecessary work.",
+            "**Improve user experience** by selecting algorithms that remain responsive."
+          ]
+        }
       ]
     },
     {
       "id": "input-size",
       "type": "concept",
       "title": "Understanding Input Size",
-      "content": "Complexity classes are usually expressed using n, where n represents the input size. In programming, n might mean the number of array elements, graph nodes, database records, files, users, or messages being processed.\n\nAs n grows, the algorithm's workload may stay flat, grow slowly, grow proportionally, or grow explosively. Time complexity focuses on that workload growth.",
+      "content": "Complexity classes are expressed using **n**, where `n` represents the **input size**.",
+      "subsections": [
+        {
+          "id": "input-defining-n",
+          "title": "Defining 'n'",
+          "content": "In programming, `n` could mean the number of array elements, graph nodes, database records, files, users, or messages being processed. For a 2D matrix, sometimes `n` means the number of rows, and the total cells are `n²`. Other times, `n` means the total number of cells. Always clarify what `n` means when discussing complexity."
+        },
+        {
+          "id": "input-visualizing",
+          "title": "Visualizing Growth",
+          "content": "As `n` grows, the algorithm's workload may stay flat (**O(1)**), grow slowly (**O(log n)**), grow proportionally (**O(n)**), or grow explosively (**O(n²)** or **O(2^n)**). The chart below shows six common complexity classes. Notice how the curves separate as `n` increases."
+        }
+      ],
       "chart": {
         "title": "Comparing common time complexity classes",
         "description": "Use this visual to see why small differences in growth become important when input size gets larger.",
         "maxN": 24,
         "normalize": true,
-        "curves": [
-          "O(1)",
-          "O(log n)",
-          "O(n)",
-          "O(n log n)",
-          "O(n^2)",
-          "O(2^n)"
-        ]
+        "curves": ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n^2)", "O(2^n)"]
       }
     },
     {
       "id": "constant",
       "type": "concept",
       "title": "Constant Complexity: O(1)",
-      "content": "Constant complexity means the algorithm performs the same amount of work regardless of input size. The workload does not grow with n, which makes constant-time operations highly scalable.\n\nCommon O(1) operations include array indexing, stack push and pop, and average-case hash table lookup.",
+      "content": "**Constant complexity** means the algorithm does the same amount of work no matter the input size. Whether `n` is 1, 1000, or 1 million, the number of operations stays the same. This is the best possible time complexity.",
+      "subsections": [
+        {
+          "id": "constant-examples",
+          "title": "Common Examples",
+          "content": "Common **O(1)** operations include:",
+          "bullets": [
+            "**Array indexing** like accessing `arr` at index `i`.",
+            "Stack **push** and **pop**.",
+            "**Hash table lookup** on average.",
+            "Basic **arithmetic** and **variable assignment**."
+          ]
+        },
+        {
+          "id": "constant-catch",
+          "title": "The Catch: Nested Operations",
+          "content": "Even though **O(1)** operations are fast by themselves, they add up. If you put an O(1) operation inside a loop that runs `n` times, the whole thing becomes **O(n)**. If you put it inside nested loops, it becomes **O(n²)**. Understanding O(1) helps you realize that the real work of an algorithm comes from loop structures, not from individual operations. The constant time parts are just the building blocks."
+        }
+      ],
       "codeSnippets": [
         {
           "title": "Constant lookup by index",
@@ -89,7 +135,24 @@
       "id": "logarithmic",
       "type": "deep_dive",
       "title": "Logarithmic Complexity: O(log n)",
-      "content": "Logarithmic algorithms reduce the problem size repeatedly. The most common example is binary search. Instead of checking every element, the algorithm cuts the search space in half at each step.\n\nA dataset of 1,024 items can shrink through 512, 256, 128, and so on until only one candidate remains. Doubling the input size only adds a small number of extra steps.",
+      "content": "**Logarithmic algorithms** cut the problem size in half at each step. **Binary search** is the most common example. Instead of checking every element, it looks at the middle of a sorted list and discards half of the remaining candidates.",
+      "subsections": [
+        {
+          "id": "log-halving",
+          "title": "Halving the Problem",
+          "content": "A list of 1024 items shrinks to 512, then 256, then 128, then 64, then 32, then 16, then 8, then 4, then 2, then 1. That is only about 10 steps. Doubling the input from 1024 to 2048 adds only one extra step."
+        },
+        {
+          "id": "log-sorting",
+          "title": "The Sorting Prerequisite",
+          "content": "Binary search requires sorted data. If your data is unsorted and you need to search many times, it may be worth sorting once which costs **O(n log n)** to enable **O(log n)** searches afterward."
+        },
+        {
+          "id": "log-scale",
+          "title": "Massive Scale Advantage",
+          "content": "For `n=1 million`, **O(log n)** takes about 20 steps while **O(n)** takes 1 million steps. That is a 50,000 times difference. This is why logarithmic algorithms are so valuable for large datasets."
+        }
+      ],
       "codeSnippets": [
         {
           "title": "Binary search demonstrates O(log n)",
@@ -102,7 +165,25 @@
       "id": "linear",
       "type": "concept",
       "title": "Linear Complexity: O(n)",
-      "content": "Linear complexity occurs when the algorithm processes each element once. If the input size doubles, the number of operations also roughly doubles.\n\nThis pattern is natural for tasks such as checking attendance for every student, scanning every file in a folder, or reading every message in a queue.",
+      "content": "**Linear complexity** means the work grows directly with input size. If `n` doubles, the work roughly doubles. If `n` triples, the work roughly triples. **Linear search** is the classic example. It checks each element from start to end until it finds the target or reaches the end.",
+      "subsections": [
+        {
+          "id": "linear-examples",
+          "title": "Common Operations",
+          "content": "Other **O(n)** operations include:",
+          "bullets": [
+            "Summing all elements in an array.",
+            "Finding the maximum or minimum value.",
+            "Copying an array.",
+            "A single loop that processes each element once is **O(n)**."
+          ]
+        },
+        {
+          "id": "linear-limits",
+          "title": "Scale and Limitations",
+          "content": "**O(n)** is generally considered efficient and acceptable for many real-world applications, especially when `n` is in the thousands or millions. A loop over 1 million items takes a fraction of a second on modern hardware. The problem arises when `n` becomes huge, like billions, or when O(n) operations are nested inside other O(n) operations, creating **O(n²)**. For linear search, the best case is **O(1)** when the target is first, but the **worst case** is **O(n)** when the target is last or not present."
+        }
+      ],
       "codeSnippets": [
         {
           "title": "Linear traversal processes each item",
@@ -115,7 +196,25 @@
       "id": "linearithmic",
       "type": "deep_dive",
       "title": "Linearithmic Complexity: O(n log n)",
-      "content": "Linearithmic complexity combines linear processing with logarithmic splitting. Efficient sorting algorithms often follow this pattern because they divide the input repeatedly while still processing all elements.\n\nMerge sort, heap sort, and many production sorting strategies are associated with O(n log n) behavior. This complexity is considered highly scalable for large sorting tasks.",
+      "content": "**Linearithmic complexity** combines linear processing with logarithmic splitting. Algorithms with **O(n log n)** complexity divide the problem into smaller pieces with `log n` levels of division, then process all `n` elements at each level.",
+      "subsections": [
+        {
+          "id": "linearithmic-algorithms",
+          "title": "Common Algorithms",
+          "content": "Common **O(n log n)** algorithms include:",
+          "bullets": [
+            "**Merge sort**.",
+            "**Heap sort**.",
+            "**Timsort** which is Python's built-in sort.",
+            "These are highly scalable for large sorting tasks."
+          ]
+        },
+        {
+          "id": "linearithmic-performance",
+          "title": "Performance Scale",
+          "content": "For `n=1 million`, O(n) takes 1 million operations. **O(n log n)** takes about 20 million operations, which is about 20 times slower. **O(n²)** takes 1 trillion operations, which is 50,000 times slower than O(n log n). While O(n log n) is slower than O(n), it is vastly faster than O(n²). This is why **O(n log n)** is the standard for sorting in most programming languages. It is considered very efficient for practical use."
+        }
+      ],
       "codeSnippets": [
         {
           "title": "Merge sort divides and merges",
@@ -128,7 +227,24 @@
       "id": "quadratic",
       "type": "deep_dive",
       "title": "Quadratic Complexity: O(n^2)",
-      "content": "Quadratic complexity often appears when every item interacts with every other item. Nested loops are a common signal, although the total operation count still depends on what the loops do.\n\nBubble sort is a beginner-friendly example. It repeatedly compares neighboring values, and the number of comparisons grows rapidly as n increases.",
+      "content": "**Quadratic complexity** happens when every item interacts with every other item. The classic pattern is a **nested loop** where the outer loop runs `n` times and the inner loop also runs `n` times, giving `n * n` operations.",
+      "subsections": [
+        {
+          "id": "quadratic-scale",
+          "title": "The Nested Loop Problem",
+          "content": "For `n=10`, **O(n²)** is about 100 operations, which is fine. For `n=1000`, it is about 1 million operations, which is noticeable. For `n=10,000`, it is about 100 million operations, which is slow. For `n=100,000`, it is about 10 billion operations, which is too slow for most uses."
+        },
+        {
+          "id": "quadratic-algorithms",
+          "title": "Common Algorithms",
+          "content": "Common **O(n²)** algorithms include **bubble sort**, **selection sort**, and **insertion sort** in the worst case. They are good for learning but rarely used in production because O(n log n) sorts are much faster."
+        },
+        {
+          "id": "quadratic-optimization",
+          "title": "Optimization Strategies",
+          "content": "If you see nested loops where both loops depend on the input size, look for ways to optimize. Using a **hash set** or dictionary can often replace an inner O(n) loop with O(1) average, reducing the complexity to O(n). Sorting the data first costing O(n log n) and then using a linear scan can also help."
+        }
+      ],
       "codeSnippets": [
         {
           "title": "Bubble-sort-style nested loops",
@@ -141,7 +257,30 @@
       "id": "exponential",
       "type": "deep_dive",
       "title": "Exponential Complexity: O(2^n)",
-      "content": "Exponential algorithms can double their workload with every additional input. Small increases in input size can create enormous increases in runtime.\n\nA common example is recursive Fibonacci without optimization. The function repeats the same subproblems many times, causing the call tree to grow explosively.",
+      "content": "**Exponential algorithms** double their workload with every additional input. Small increases in input size cause enormous increases in runtime.",
+      "subsections": [
+        {
+          "id": "exponential-growth",
+          "title": "Explosive Growth",
+          "content": "For `n=30`, 2 to the 30 is about 1 billion operations, which is borderline. For `n=50`, it is about 1 quadrillion operations, which is impossible."
+        },
+        {
+          "id": "exponential-fibonacci",
+          "title": "The Fibonacci Example",
+          "content": "A common example is naive **recursive Fibonacci** without optimization. The function calls itself twice for each call, creating a binary tree of calls. Computing Fibonacci of 40 with this method may take seconds or minutes. Computing Fibonacci of 50 could take hours or days."
+        },
+        {
+          "id": "exponential-optimization",
+          "title": "Optimization Strategies",
+          "content": "If you have an exponential algorithm, you usually need optimization strategies.",
+          "bullets": [
+            "**Memoization** caches results and can reduce naive recursive Fibonacci from O(2^n) to O(n).",
+            "**Dynamic programming** solves each subproblem once.",
+            "**Pruning** cuts off branches that cannot lead to an optimal solution.",
+            "The **iterative version** of Fibonacci is even better, using O(n) time and O(1) space. This dramatic improvement shows why exponential algorithms are unacceptable for production use with any reasonably sized input."
+          ]
+        }
+      ],
       "codeSnippets": [
         {
           "title": "Naive recursive Fibonacci repeats work",
@@ -154,7 +293,22 @@
       "id": "comparison",
       "type": "summary",
       "title": "Comparing Common Complexity Classes",
-      "content": "O(1) has constant growth and excellent scalability. O(log n) grows very slowly and is excellent for large sorted or structured data. O(n) grows steadily and is acceptable when every item must be processed. O(n log n) grows moderately and is important for efficient sorting. O(n^2) grows rapidly and is poor for large datasets. O(2^n) grows explosively and quickly becomes impractical.\n\nAs input size increases, scalability matters more than tiny differences on small examples."
+      "content": "As input size increases, scalability matters much more than small differences on tiny examples. An O(n) algorithm that is 10 times slower than an O(n²) algorithm for `n=100` will be 1,000 times faster for `n=10,000`. This comparison helps developers decide which algorithm is practical for a large-scale system. Always consider the size of data your system will actually handle, not just test cases with small inputs.",
+      "subsections": [
+        {
+          "id": "comparison-tiers",
+          "title": "Efficiency Tiers",
+          "content": "Here is a quick reference for how the different classes stack up:",
+          "bullets": [
+            "**O(1)** has constant growth and excellent scalability.",
+            "**O(log n)** grows very slowly and is excellent for large sorted data.",
+            "**O(n)** grows steadily and is acceptable when every item must be processed.",
+            "**O(n log n)** grows moderately and is important for efficient sorting.",
+            "**O(n²)** grows rapidly and is poor for large datasets. For `n=10,000`, O(n²) performs 100 million operations while O(n log n) performs about 132,000 operations.",
+            "**O(2^n)** grows explosively and becomes impractical for `n` greater than 30."
+          ]
+        }
+      ]
     },
     {
       "id": "misconceptions",
@@ -164,17 +318,22 @@
         {
           "id": "lines-of-code",
           "title": "Misconception: More lines of code means worse complexity",
-          "content": "Complexity depends on operation growth, loop structure, and recursion behavior. It does not depend directly on how many lines of code are written."
+          "content": "Complexity depends on operation growth, loop structure, and recursion behavior. It does not depend on how many lines of code are written. A 10-line algorithm could be **O(n²)** while a 100-line algorithm could be **O(log n)**."
         },
         {
           "id": "all-nested-loops",
-          "title": "Misconception: All nested loops are O(n^2)",
-          "content": "Many nested loops are quadratic, but not all of them. Some nested loops operate on smaller ranges or logarithmic reductions, so the total number of operations must be analyzed."
+          "title": "Misconception: All nested loops are O(n squared)",
+          "content": "Many nested loops are quadratic, but not all. Some nested loops operate on smaller ranges or logarithmic reductions. For example, an outer loop running `n` times with an inner loop running `log n` times gives **O(n log n)**, not **O(n²)**."
         },
         {
           "id": "log-means-tiny",
           "title": "Misconception: O(log n) means no real work",
-          "content": "Logarithmic algorithms still perform work. Their advantage is that the work grows slowly as input size increases."
+          "content": "Logarithmic algorithms still perform work. For `n=1 million`, log base 2 of `n` is about 20, meaning 20 operations. That is tiny, but it is not zero. The work is minimal and scales beautifully, but it still exists."
+        },
+        {
+          "id": "single-blocks-o1",
+          "title": "Misconception: Single Blocks always mean O(1) time",
+          "content": "In visual programming environments, it is easy to assume that a single block executes in constant time. However, blocks like 'Find item in Array' or 'List Count' hide internal **O(n)** loops. If you place a 'Find' block inside a standard 'For' loop, you are silently creating an **O(n²)** bottleneck. Always consider the hidden algorithmic costs of the blocks you drag into your workspace."
         }
       ]
     },
@@ -183,11 +342,11 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "Complexity classes describe algorithm growth behavior.",
-        "Efficient algorithms scale better for large inputs.",
-        "O(log n) and O(n log n) are highly useful in professional systems.",
-        "O(n^2) and O(2^n) become expensive quickly.",
-        "Complexity analysis helps engineers select practical implementations."
+        "**Complexity classes** describe algorithm growth behavior.",
+        "**Efficient algorithms** scale better for large inputs.",
+        "**O(log n)** and **O(n log n)** are highly useful in professional systems.",
+        "**O(n²)** and **O(2^n)** become expensive quickly.",
+        "**Complexity analysis** helps engineers select practical implementations."
       ]
     }
   ],

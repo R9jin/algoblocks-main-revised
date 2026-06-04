@@ -2,16 +2,11 @@
   "lessonId": "lesson-0-2",
   "moduleId": "module-0",
   "title": "Core Blockly Components",
-  "description": "Understand the fundamental Blockly components used to build algorithms visually inside AlgoBlocks.",
+  "description": "Understand the fundamental Blockly components used to build algorithms visually inside AlgoBlocks. This lesson deeply covers **variables, loops, conditionals, arrays, and math operations**—the essential building blocks for creating any algorithm. By the end, you will know how to select and combine these components to solve problems ranging from simple calculations to complex data processing tasks.",
   "difficulty": "Beginner",
-  "estimatedTime": "20 min",
+  "estimatedTime": "25 min",
   "prerequisites": "The AlgoBlocks Workspace",
-  "tags": [
-    "blockly",
-    "variables",
-    "loops",
-    "conditions"
-  ],
+  "tags": ["blockly", "variables", "loops", "conditions", "arrays"],
   "activities": [
     {
       "id": "m0_l2_a1",
@@ -39,43 +34,242 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "AlgoBlocks uses Blockly components to help students build algorithms through visual programming.\n\nEach block represents a programming instruction or logical operation. By combining blocks together, learners can create complete algorithms without immediately dealing with programming syntax.\n\nUnderstanding the purpose of each component is important because these blocks form the foundation of all future algorithm activities."
+      "content": "AlgoBlocks uses Blockly components to help students build algorithms through visual programming. Each block represents a **core programming instruction**. By combining these blocks, learners can create complete, complex algorithms **without dealing with syntax errors**.",
+      "subsections": [
+        {
+          "id": "intro-what-are-components",
+          "title": "What are Core Components?",
+          "content": "Just as a carpenter relies on a hammer, saw, and measuring tape, a programmer relies on a specific set of **logical tools**. In computer science, almost every application—from a simple calculator to a complex 3D video game—is built using the same fundamental elements. In AlgoBlocks, these elements are represented as **connectable, color-coded blocks**."
+        },
+        {
+          "id": "intro-the-five-pillars",
+          "title": "The Five Pillars of Programming",
+          "content": "To solve any introductory programming problem, you must master these five core component types:",
+          "bullets": [
+            "**Variables:** The memory of your program.",
+            "**Loops:** The engines of repetition.",
+            "**Conditionals:** The decision-makers.",
+            "**Arrays:** The organizers of data.",
+            "**Math Operations:** The calculators."
+          ]
+        }
+      ]
     },
     {
       "id": "variables",
       "type": "concept",
-      "title": "Variables",
-      "content": "Variables are used to store information temporarily while an algorithm executes.\n\nA variable can hold numbers, text, or other forms of data that may change during execution.\n\nProgrammers use variables to track values, store calculations, and manage the state of an algorithm while it runs."
+      "title": "Variables: The Program's Memory",
+      "content": "**Variables** store information temporarily while an algorithm runs. Without variables, a program has **no memory** of past events or user inputs.",
+      "subsections": [
+        {
+          "id": "var-concept",
+          "title": "Concept: The Storage Box",
+          "content": "Think of a variable as a **labeled box** where you can place a value. You give the box a name (like `score` or `playerName`), and you can look inside the box or **change its contents** at any time during the program's execution."
+        },
+        {
+          "id": "var-data-types",
+          "title": "Common Data Types",
+          "content": "A variable in AlgoBlocks (and Python) can hold different types of information. The blocks will adapt to handle:",
+          "bullets": [
+            "**Numbers (Integers and Floats):** Used for math and counting (e.g., lives = 3, temperature = 98.6).",
+            "**Strings (Text):** Used for words and characters (e.g., username = \"Player1\").",
+            "**Booleans:** Used for logic, holding strictly True or False values (e.g., isGameOver = False)."
+          ]
+        },
+        {
+          "id": "var-operations",
+          "title": "Variable Operations in AlgoBlocks",
+          "content": "In the Variables toolbox, you will perform three main actions:",
+          "bullets": [
+            "**Create:** Defining a brand new variable and giving it a descriptive name.",
+            "**Set (Initialization):** Assigning a variable its starting value (e.g., \"Set score to 0\"). This translates to Python as `score = 0`.",
+            "**Change (Update):** Modifying an existing variable based on its current value (e.g., \"Change score by 1\"). This translates to Python as `score += 1`."
+          ]
+        },
+        {
+          "id": "var-best-practices",
+          "title": "Best Practices",
+          "content": "**Always initialize your variables** at the very top of your algorithm. If you try to \"Change score by 1\" before you have \"Set score to 0\", the computer will crash because it doesn't know what the starting number is. Furthermore, always use **descriptive names** (`playerScore` instead of `ps`) so your code is readable."
+        }
+      ]
     },
     {
       "id": "loops",
       "type": "deep_dive",
-      "title": "Loops",
-      "content": "Loops allow algorithms to repeat instructions multiple times automatically.\n\nInstead of manually writing the same instructions repeatedly, programmers use loops to perform repetitive tasks efficiently.\n\nLoops are extremely important in programming because many real-world problems require repeated processing of data, calculations, or user actions."
+      "title": "Loops: The Engines of Repetition",
+      "content": "**Loops** allow algorithms to execute instructions repeatedly. Instead of dragging and dropping the same \"print\" block 100 times, a programmer uses a single loop. This makes algorithms **efficient, scalable, and easier to read**.",
+      "subsections": [
+        {
+          "id": "loops-types",
+          "title": "Types of Loops in AlgoBlocks",
+          "content": "AlgoBlocks provides three primary loop structures, each suited for a different scenario:",
+          "bullets": [
+            "**The Repeat Loop (Counted):** Runs a specific number of times. Use this when you know exactly how many repetitions are needed (e.g., \"Repeat 10 times\").",
+            "**The While Loop (Conditional):** Runs continuously as long as a certain condition remains True. Use this when you don't know how many times the loop needs to run (e.g., \"While playerHealth > 0\").",
+            "**The For-Each Loop (Iterative):** Automatically goes through every single item in a list or array, one by one. Use this for processing collections of data."
+          ]
+        },
+        {
+          "id": "loops-pointer-paradigm",
+          "title": "The Pointer Paradigm",
+          "content": "As you advance, you must often transition from automatic For-Each loops to manual state manipulation. Using a **While loop** combined with custom variables (like `left` and `right` pointers) allows you to traverse arrays from both ends simultaneously. This manual control is a fundamental technique for writing optimized algorithms."
+        },
+        {
+          "id": "loops-pitfalls",
+          "title": "Common Pitfalls to Avoid",
+          "content": "When working with loops, beginners frequently encounter two major logical errors:",
+          "bullets": [
+            "**Infinite Loops:** Occurs in a 'While' loop if the condition never becomes False. The program will get stuck repeating forever and crash. Always ensure there is a block inside the loop that updates the condition variable.",
+            "**Off-By-One Errors:** Occurs when a loop runs one time too many or one time too few. If you want to count from 1 to 10, make sure your logic doesn't accidentally stop at 9."
+          ]
+        }
+      ]
     },
     {
       "id": "conditions",
       "type": "concept",
-      "title": "Conditional Logic",
-      "content": "Conditional logic allows algorithms to make decisions.\n\nUsing if and else conditions, the program can choose different actions depending on whether a condition is true or false.\n\nDecision-making is a core part of programming because algorithms often need to react differently depending on the situation."
+      "title": "Conditional Logic: Making Decisions",
+      "content": "**Conditional logic** allows algorithms to branch into different paths. Using these blocks, your program can evaluate its current state and choose a specific action, making it **intelligent and responsive**.",
+      "subsections": [
+        {
+          "id": "cond-toolbox",
+          "title": "The Logic Toolbox",
+          "content": "Decisions are driven by evaluating conditions that result in either **True or False**. AlgoBlocks provides two types of logic blocks to build these conditions:",
+          "bullets": [
+            "**Comparisons:** Blocks that compare two values (Equal to [==], Not Equal [!=], Greater than [>], Less than [<]).",
+            "**Boolean Operators:** Blocks that combine multiple conditions (**AND** requires both sides to be true, **OR** requires only one side to be true, **NOT** reverses the truth value)."
+          ]
+        },
+        {
+          "id": "cond-structures",
+          "title": "Structural Variants",
+          "content": "You can shape how your program reacts using different Conditional Blocks:",
+          "bullets": [
+            "**If Block:** A single action that only happens if the condition is true. If false, the program simply skips it and moves on.",
+            "**If / Else Block:** A fork in the road. If the condition is true, do Action A. If the condition is false, do Action B.",
+            "**If / Else-If / Else Block:** A multi-path decision. Evaluates conditions in order from top to bottom. As soon as it finds a true condition, it executes that branch and skips the rest."
+          ]
+        },
+        {
+          "id": "cond-nested",
+          "title": "Nested Conditionals",
+          "content": "You can drag an 'If' block inside another 'If' block. This is called **nesting**. It allows you to check for sub-conditions. For example: If the user is an Admin, then (Nested If) check if they have a valid password."
+        }
+      ]
     },
     {
       "id": "arrays",
       "type": "concept",
-      "title": "Arrays",
-      "content": "Arrays are used to store multiple related values inside a single structure.\n\nInstead of creating many separate variables, programmers use arrays to organize collections of data efficiently.\n\nArrays are commonly used for managing lists, processing datasets, and performing algorithm operations such as searching and sorting."
+      "title": "Arrays: Organizing Collections",
+      "content": "**Arrays** (known as Lists in Python) store multiple related values inside a **single, ordered structure**. Instead of creating 100 separate variables for 100 students, you create one Array called `students`.",
+      "subsections": [
+        {
+          "id": "arr-zero-index",
+          "title": "Zero-Based Indexing (Crucial Concept)",
+          "content": "In computer science, counting does not start at 1; **it starts at 0**. The position of an item inside an array is called its **index**.",
+          "bullets": [
+            "The 1st item in the array is located at **Index 0**.",
+            "The 2nd item in the array is located at **Index 1**.",
+            "The last item is always located at **(Length of Array - 1)**."
+          ]
+        },
+        {
+          "id": "arr-operations",
+          "title": "Array Operations",
+          "content": "The Arrays toolbox provides powerful blocks to manipulate collections of data:",
+          "bullets": [
+            "**Get / Set at Index:** Retrieve the value sitting at a specific position, or overwrite it with a new value.",
+            "**Append / Insert:** Add a new item to the very end of the array, or insert it into the middle, pushing other items back.",
+            "**Length:** A block that counts exactly how many items are currently inside the array. Very useful for loops."
+          ]
+        },
+        {
+          "id": "arr-iteration",
+          "title": "Iterating Through Arrays",
+          "content": "Arrays and Loops are best friends. The most common algorithmic pattern is combining a **'For-Each' loop** with an Array to **iterate** (travel through) the data. This allows you to inspect, modify, or print every single item inside the collection automatically."
+        },
+        {
+          "id": "arr-advanced-structures",
+          "title": "Advanced Structures: 2D Matrices and Hash Sets",
+          "content": "As you build more complex algorithms, you will need structures beyond a standard 1D list. A **2D Matrix** is simply an \"Array of Arrays\" used for grid traversal and mapping coordinates. Additionally, **Hash Sets and Dictionaries** act as \"Key-Value Boxes.\" They are incredibly useful for optimization because they enable instant $O(1)$ lookups, allowing you to replace slow nested $O(n)$ loops."
+        }
+      ]
     },
     {
       "id": "math-operations",
       "type": "real_world_connection",
-      "title": "Math Operations in Algorithms",
-      "content": "Algorithms frequently perform mathematical operations such as addition, subtraction, multiplication, and comparison.\n\nThese operations are used in calculations, scoring systems, simulations, data analysis, and many other computational tasks.\n\nUnderstanding how mathematical blocks work is essential because mathematics forms the foundation of many computer science concepts."
+      "title": "Math Operations: The Engine of Calculation",
+      "content": "Algorithms frequently rely on **math operations** to manipulate variables, calculate scores, control loop increments, and process array data.",
+      "subsections": [
+        {
+          "id": "math-available",
+          "title": "Available Math Blocks",
+          "content": "The Math toolbox provides everything needed for data manipulation:",
+          "bullets": [
+            "**Basic Arithmetic:** Addition (+), Subtraction (-), Multiplication (*), Division (/).",
+            "**Advanced Operators:** Modulo (finding the remainder of division), Exponents, and Square Roots.",
+            "**Utility Functions:** Rounding decimals, finding the absolute value, and retrieving the Minimum or Maximum of two numbers.",
+            "**Randomness:** Generating a random integer between two numbers (crucial for games and simulations)."
+          ]
+        },
+        {
+          "id": "math-order",
+          "title": "Order of Operations",
+          "content": "AlgoBlocks math blocks snap together horizontally, and the execution strictly follows the standard mathematical **Order of Operations (PEMDAS)**. The innermost nested block is calculated first, working its way outward. Understanding this is vital when chaining multiple math blocks together to form complex formulas."
+        }
+      ]
+    },
+    {
+      "id": "beyond-the-core",
+      "type": "deep_dive",
+      "title": "Exploring Beyond the Core Components",
+      "content": "While Variables, Loops, Conditionals, Arrays, and Math form the **five pillars of algorithmic logic**, the AlgoBlocks toolbox contains even more categories waiting to be explored. As you progress, you will discover that programming is largely about **curiosity and experimentation**.",
+      "subsections": [
+        {
+          "id": "other-categories",
+          "title": "Other Toolbox Categories",
+          "content": "Depending on the activity, you may notice additional tabs in your toolbox:",
+          "bullets": [
+            "**Input / Output (I/O):** Blocks that allow you to print messages to the console or ask the user to type in an answer during runtime.",
+            "**Text / Strings:** Blocks specifically designed to manipulate words, combine sentences, find the length of a word, or change text cases.",
+            "**Functions (Procedures):** Advanced blocks that let you bundle a large group of instructions into a single, reusable custom block."
+          ]
+        },
+        {
+          "id": "power-of-experimentation",
+          "title": "The Power of Experimentation",
+          "content": "You don't need to read a lesson or memorize a manual to understand what every single block does. If you want to dive further into knowing the blocks, the best approach is **hands-on experimentation**.",
+          "bullets": [
+            "**Drag and Drop:** Pull an unfamiliar block onto the canvas, plug in some test values, and click Run to see what happens in the console.",
+            "**Watch the Code:** Remember to keep an eye on the real-time Python panel! Dropping a new block into the workspace and reading the Python code it instantly generates is one of the fastest and most effective ways to learn new programming concepts."
+          ]
+        }
+      ]
     },
     {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "Blockly components allow students to build algorithms visually using variables, loops, conditions, arrays, and mathematical operations. These components form the foundation of algorithm design and problem-solving inside AlgoBlocks."
+      "content": "You have now mastered the theory behind the **five core Blockly components** and learned how to **explore the rest of the toolbox**. To build successful algorithms, you must understand how all these pieces **interact with one another**.",
+      "subsections": [
+        {
+          "id": "sum-combining",
+          "title": "Combining Components",
+          "content": "A complete algorithm rarely uses just one component type. Consider an algorithm designed to find the highest score in a classroom:",
+          "bullets": [
+            "1. **(Arrays)** Create a list of all student scores.",
+            "2. **(Variables)** Create a variable called 'highest' and Set it to 0.",
+            "3. **(Loops)** Use a For-Each loop to look at every score in the array.",
+            "4. **(Conditionals)** Inside the loop, use an IF block to check: Is the current score Greater Than (>) the 'highest' variable?",
+            "5. **(Variables)** If True, Set 'highest' to be the current score."
+          ]
+        },
+        {
+          "id": "sum-next-steps",
+          "title": "Next Steps",
+          "content": "You are now fully prepared to tackle the module activities: Odd or Even, Number Counter, Array Printer, Grade Evaluator, and Sum of Range. As you build these programs visually, watch the Python panel to see how your logical blocks are instantly converted into **real, syntax-perfect Python code**."
+        }
+      ]
     }
   ],
   "references": [
@@ -84,8 +278,8 @@
       "url": "https://developers.google.com/blockly"
     },
     {
-      "title": "Programiz — Programming Basics",
-      "url": "https://www.programiz.com"
+      "title": "Programiz — Python Programming Basics",
+      "url": "https://www.programiz.com/python-programming"
     }
   ]
 }

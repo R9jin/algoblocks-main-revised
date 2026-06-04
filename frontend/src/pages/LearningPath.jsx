@@ -1,9 +1,16 @@
 // frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
-  FiCheckCircle, FiChevronDown,
-  FiCircle, FiClipboard,
-  FiDatabase, FiFilter, FiLock, FiRefreshCw, FiShare2, FiUsers
+  FiCheckCircle,
+  FiChevronDown,
+  FiCircle,
+  FiClipboard,
+  FiDatabase,
+  FiFilter,
+  FiLock,
+  FiRefreshCw,
+  FiShare2,
+  FiUsers,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -13,13 +20,53 @@ import "../styles/LearningPath.css";
 import { syncDownFromServer } from "../utils/syncManager";
 
 const moduleIcons = {
-  "module-0": { icon: FiUsers, color: "#7c5cff", difficulty: "Beginner", description: "Learn the fundamentals of AlgoBlocks." },
-  "module-1": { icon: FiUsers, color: "#6366f1", difficulty: "Beginner", description: "Understand Big-O notation and complexity analysis." },
-  "module-2": { icon: FiDatabase, color: "#22c55e", difficulty: "Intermediate", prereq: "Module 1", description: "Master brute force and exhaustive search strategies." },
-  "module-3": { icon: FiFilter, color: "#f97316", difficulty: "Intermediate", prereq: "Module 1", description: "Learn divide and conquer algorithm design." },
-  "module-4": { icon: FiFilter, color: "#a855f7", difficulty: "Intermediate", prereq: "Module 1", description: "Explore greedy algorithm strategies." },
-  "module-5": { icon: FiShare2, color: "#3b82f6", difficulty: "Advanced", prereq: "Module 3", description: "Master dynamic programming techniques." },
-  "module-6": { icon: FiRefreshCw, color: "#ec4899", difficulty: "Advanced", prereq: "Module 3", description: "Solve problems using backtracking." },
+  "module-0": {
+    icon: FiUsers,
+    color: "#7c5cff",
+    difficulty: "Beginner",
+    description: "Learn the fundamentals of AlgoBlocks.",
+  },
+  "module-1": {
+    icon: FiUsers,
+    color: "#6366f1",
+    difficulty: "Beginner",
+    description: "Understand Big-O notation and complexity analysis.",
+  },
+  "module-2": {
+    icon: FiDatabase,
+    color: "#22c55e",
+    difficulty: "Intermediate",
+    prereq: "Module 1",
+    description: "Master brute force and exhaustive search strategies.",
+  },
+  "module-3": {
+    icon: FiFilter,
+    color: "#f97316",
+    difficulty: "Intermediate",
+    prereq: "Module 1",
+    description: "Learn divide and conquer algorithm design.",
+  },
+  "module-4": {
+    icon: FiFilter,
+    color: "#a855f7",
+    difficulty: "Intermediate",
+    prereq: "Module 1",
+    description: "Explore greedy algorithm strategies.",
+  },
+  "module-5": {
+    icon: FiShare2,
+    color: "#3b82f6",
+    difficulty: "Advanced",
+    prereq: "Module 3",
+    description: "Master dynamic programming techniques.",
+  },
+  "module-6": {
+    icon: FiRefreshCw,
+    color: "#ec4899",
+    difficulty: "Advanced",
+    prereq: "Module 3",
+    description: "Solve problems using backtracking.",
+  },
 };
 
 export default function LearningPath() {
@@ -27,19 +74,25 @@ export default function LearningPath() {
   const [expandedModules, setExpandedModules] = useState(new Set());
   const [userProgress, setUserProgress] = useState({});
   const [assessments, setAssessments] = useState({});
-  const [submissions, setSubmissions] = useState({}); 
-  
+  const [submissions, setSubmissions] = useState({});
+
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
-  
-  // CRITICAL FIX: The loader that stops the "split-second" glitch
+
   const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(true);
 
-  const storedUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+  const storedUser = JSON.parse(
+    localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
+  );
   const userEmail = storedUser.email || "";
 
+  // ADMIN OVERRIDE FLAG
+  const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
+
   const checkActivityDone = (moduleId, actId) => {
-    return submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`];
+    return (
+      submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`]
+    );
   };
 
   const loadData = async () => {
@@ -48,20 +101,26 @@ export default function LearningPath() {
       const initialAssm = {};
       const initialSubs = {};
 
-      await progressDB.iterate((value, key) => { initialProg[key] = value.score !== undefined ? value.score : value; });
-      await assessmentsDB.iterate((value, key) => { initialAssm[key] = value.data || value; });
-      await submissionsDB.iterate((value, key) => { initialSubs[key] = value; }); 
+      await progressDB.iterate((value, key) => {
+        initialProg[key] = value.score !== undefined ? value.score : value;
+      });
+      await assessmentsDB.iterate((value, key) => {
+        initialAssm[key] = value.data || value;
+      });
+      await submissionsDB.iterate((value, key) => {
+        initialSubs[key] = value;
+      });
 
       setUserProgress(initialProg);
       setAssessments(initialAssm);
       setSubmissions(initialSubs);
-    } catch (e) { }
+    } catch (e) {}
   };
 
   useEffect(() => {
-    loadData(); 
-    syncDownFromServer(); 
-    
+    loadData();
+    syncDownFromServer();
+
     const handleSync = () => loadData();
     window.addEventListener("localDataSynced", handleSync);
     return () => window.removeEventListener("localDataSynced", handleSync);
@@ -77,7 +136,7 @@ export default function LearningPath() {
         try {
           const resAct = await fetch(`/data/activities/module_${mid}.json`);
           if (resAct.ok) acts[module.moduleId] = await resAct.json();
-        } catch (e) { }
+        } catch (e) {}
 
         for (const lesson of module.lessons) {
           try {
@@ -89,7 +148,7 @@ export default function LearningPath() {
       }
       setLessonDetails(details);
       setActivitiesData(acts);
-      setIsLoadingCurriculum(false); // Tell the UI it is safe to render
+      setIsLoadingCurriculum(false);
     };
     fetchAllData();
   }, []);
@@ -101,23 +160,27 @@ export default function LearningPath() {
     setExpandedModules(newExpanded);
   };
 
-  const hasPreAssessment = (moduleId) => assessments[`${moduleId}_pre_assessment`] !== undefined;
-  const hasPostAssessment = (moduleId) => assessments[`${moduleId}_post_assessment`] !== undefined;
-  const getAssessmentScore = (moduleId, type) => assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
+  const hasPreAssessment = (moduleId) =>
+    assessments[`${moduleId}_pre_assessment`] !== undefined;
+  const hasPostAssessment = (moduleId) =>
+    assessments[`${moduleId}_post_assessment`] !== undefined;
+  const getAssessmentScore = (moduleId, type) =>
+    assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
 
   const isModuleComplete = (moduleId) => {
-    if (isLoadingCurriculum) return false; // Prevent calculating on empty JSONs
+    if (isLoadingCurriculum) return false;
 
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
-    
+
     return module.lessons.every((lesson) => {
       const details = lessonDetails[lesson.lessonId];
       if (!details) return false;
 
       const activities = details.activities || [];
-      if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1; 
-      return activities.every(a => checkActivityDone(moduleId, a.id)); 
+      if (activities.length === 0)
+        return (userProgress[lesson.lessonId] || 0) >= 1;
+      return activities.every((a) => checkActivityDone(moduleId, a.id));
     });
   };
 
@@ -130,17 +193,20 @@ export default function LearningPath() {
       let isNextLocked = !preComplete;
 
       for (const lesson of module.lessons) {
-        lockMap[lesson.lessonId] = isNextLocked;
+        // ADMIN OVERRIDE FOR LESSONS
+        lockMap[lesson.lessonId] = isAdmin ? false : isNextLocked;
 
         if (!isNextLocked) {
           const details = lessonDetails[lesson.lessonId];
           const activities = details?.activities || [];
-          
+
           if (activities.length > 0) {
-              const allDone = activities.every(a => checkActivityDone(module.moduleId, a.id));
-              if (!allDone) isNextLocked = true;
+            const allDone = activities.every((a) =>
+              checkActivityDone(module.moduleId, a.id),
+            );
+            if (!allDone) isNextLocked = true;
           } else {
-              if ((userProgress[lesson.lessonId] || 0) < 1) isNextLocked = true;
+            if ((userProgress[lesson.lessonId] || 0) < 1) isNextLocked = true;
           }
         }
       }
@@ -150,13 +216,15 @@ export default function LearningPath() {
 
   const lockMap = buildLockMap();
 
-  // CRITICAL FIX: Only render once everything is 100% loaded
   if (isLoadingCurriculum) {
     return (
       <div className="learning-path-page">
         <DashboardHeader />
-        <div className="learning-path-container" style={{ textAlign: "center", padding: "100px 20px" }}>
-           <h2>Loading Curriculum Data...</h2>
+        <div
+          className="learning-path-container"
+          style={{ textAlign: "center", padding: "100px 20px" }}
+        >
+          <h2>Loading Curriculum Data...</h2>
         </div>
       </div>
     );
@@ -169,8 +237,8 @@ export default function LearningPath() {
         <div className="learning-path-header">
           <h1>Learning Path</h1>
           <p>
-            Explore algorithm concepts through structured lessons, virtual explanations,
-            and interactive learning experiences.
+            Explore algorithm concepts through structured lessons, virtual
+            explanations, and interactive learning experiences.
           </p>
         </div>
 
@@ -187,51 +255,142 @@ export default function LearningPath() {
             const postComplete = hasPostAssessment(module.moduleId);
             const postScore = getAssessmentScore(module.moduleId, "post");
 
-            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
+            const optimizations =
+              activitiesData[module.moduleId]?.optimizations || [];
             const hasOptimizations = optimizations.length > 0;
-            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
-            const optimizationsLocked = lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
+            const lastLessonId =
+              module.lessons[module.lessons.length - 1]?.lessonId;
+
+            // ADMIN OVERRIDES FOR OPTIMIZATION AND POST-ASSESSMENT
+            const optimizationsLocked = isAdmin
+              ? false
+              : lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
+            const postAssessmentLocked = isAdmin
+              ? false
+              : !moduleComplete && !postComplete;
 
             return (
               <div key={module.moduleId}>
-                <div className="module-card-v2" onClick={() => toggleModule(module.moduleId)}>
-                  <div className="module-card-icon" style={{ backgroundColor: `${iconConfig?.color || '#7c5cff'}15` }}>
-                    <IconComponent size={32} color={iconConfig?.color || '#7c5cff'} />
+                <div
+                  className="module-card-v2"
+                  onClick={() => toggleModule(module.moduleId)}
+                >
+                  <div
+                    className="module-card-icon"
+                    style={{
+                      backgroundColor: `${iconConfig?.color || "#7c5cff"}15`,
+                    }}
+                  >
+                    <IconComponent
+                      size={32}
+                      color={iconConfig?.color || "#7c5cff"}
+                    />
                   </div>
                   <div className="module-card-content">
-                    <div className="module-card-header" style={{ alignItems: 'flex-start' }}>
+                    <div
+                      className="module-card-header"
+                      style={{ alignItems: "flex-start" }}
+                    >
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                          <h3 className="module-card-title" style={{ margin: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            marginBottom: "8px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <h3
+                            className="module-card-title"
+                            style={{ margin: 0 }}
+                          >
                             Module {moduleNum}: {module.title}
                           </h3>
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ display: "flex", gap: "6px" }}>
                             {iconConfig?.difficulty && (
-                              <span style={{ fontSize: '0.7rem', fontWeight: 'bold', padding: '3px 10px', borderRadius: '12px', textTransform: 'uppercase', backgroundColor: iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)", color: iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899" }}>
+                              <span
+                                style={{
+                                  fontSize: "0.7rem",
+                                  fontWeight: "bold",
+                                  padding: "3px 10px",
+                                  borderRadius: "12px",
+                                  textTransform: "uppercase",
+                                  backgroundColor:
+                                    iconConfig.difficulty === "Beginner"
+                                      ? "rgba(34, 197, 94, 0.15)"
+                                      : iconConfig.difficulty === "Intermediate"
+                                        ? "rgba(249, 115, 22, 0.15)"
+                                        : "rgba(236, 72, 153, 0.15)",
+                                  color:
+                                    iconConfig.difficulty === "Beginner"
+                                      ? "#22c55e"
+                                      : iconConfig.difficulty === "Intermediate"
+                                        ? "#ea580c"
+                                        : "#ec4899",
+                                }}
+                              >
                                 {iconConfig.difficulty}
                               </span>
                             )}
                           </div>
                         </div>
-                        <p className="module-card-description" style={{ marginTop: 0 }}>{iconConfig?.description || module.title}</p>
+                        <p
+                          className="module-card-description"
+                          style={{ marginTop: 0 }}
+                        >
+                          {iconConfig?.description || module.title}
+                        </p>
                       </div>
-                      <FiChevronDown size={24} color={iconConfig?.color || "#7c5cff"} className={`module-card-chevron ${isExpanded ? "expanded" : ""}`} />
+                      <FiChevronDown
+                        size={24}
+                        color={iconConfig?.color || "#7c5cff"}
+                        className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
+                      />
                     </div>
                   </div>
                 </div>
 
                 {isExpanded && (
                   <div className="module-lessons-dropdown">
-                    <div className={`assessment-row pre ${preComplete ? "done" : "pending"}`}>
+                    <div
+                      className={`assessment-row pre ${preComplete ? "done" : "pending"}`}
+                    >
                       <div className="assessment-row-left">
-                        <FiClipboard size={16} /><span className="assessment-row-label">Pre-Assessment</span>
-                        {preScore !== null && (<span className="assessment-score-badge">{preScore}%</span>)}
+                        <FiClipboard size={16} />
+                        <span className="assessment-row-label">
+                          Pre-Assessment
+                        </span>
+                        {preScore !== null && (
+                          <span className="assessment-score-badge">
+                            {preScore}%
+                          </span>
+                        )}
                       </div>
                       <div className="assessment-row-right">
                         {preComplete ? (
-                          <><FiCheckCircle color="#22c55e" size={16} /><button className="btn-assessment retake" onClick={(e) => { e.stopPropagation(); navigate(`/assessment/${module.moduleId}/pre`); }}>Retake</button></>
+                          <>
+                            <FiCheckCircle color="#22c55e" size={16} />
+                            <button
+                              className="btn-assessment retake"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/assessment/${module.moduleId}/pre`);
+                              }}
+                            >
+                              Retake
+                            </button>
+                          </>
                         ) : (
-                          <button className="btn-assessment start" onClick={(e) => { e.stopPropagation(); navigate(`/assessment/${module.moduleId}/pre`); }}>Take Pre-Assessment</button>
+                          <button
+                            className="btn-assessment start"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/assessment/${module.moduleId}/pre`);
+                            }}
+                          >
+                            Take Pre-Assessment
+                          </button>
                         )}
                       </div>
                     </div>
@@ -240,68 +399,221 @@ export default function LearningPath() {
                       const details = lessonDetails[lesson.lessonId];
                       const activities = details?.activities || [];
                       const totalActivities = activities.length;
-                      const completedCount = activities.filter(a => checkActivityDone(module.moduleId, a.id)).length;
-                      
-                      const allDone = totalActivities > 0 ? (completedCount === totalActivities) : ((userProgress[lesson.lessonId] || 0) >= 1);
+                      const completedCount = activities.filter((a) =>
+                        checkActivityDone(module.moduleId, a.id),
+                      ).length;
+
+                      const allDone =
+                        totalActivities > 0
+                          ? completedCount === totalActivities
+                          : (userProgress[lesson.lessonId] || 0) >= 1;
                       const isLocked = lockMap[lesson.lessonId];
-                      const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
+                      const lessonDisplay = lesson.lessonId
+                        .replace("lesson-", "")
+                        .replace(/-/g, ".");
                       const firstActivityId = activities[0]?.id;
 
                       return (
-                        <div key={lesson.lessonId} className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}>
+                        <div
+                          key={lesson.lessonId}
+                          className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}
+                        >
                           <div className="lesson-info">
-                            <span className="lesson-number">{lessonDisplay}</span>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span className="lesson-title">{lesson.title}</span>
+                            <span className="lesson-number">
+                              {lessonDisplay}
+                            </span>
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                              }}
+                            >
+                              <span className="lesson-title">
+                                {lesson.title}
+                              </span>
                               {totalActivities > 0 && (
-                                <span style={{ fontSize: '0.75rem', marginTop: '2px', fontWeight: 'bold', color: completedCount === totalActivities ? '#22c55e' : '#a8a8a8' }}>
-                                  {completedCount} / {totalActivities} Activities Done
+                                <span
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    marginTop: "2px",
+                                    fontWeight: "bold",
+                                    color:
+                                      completedCount === totalActivities
+                                        ? "#22c55e"
+                                        : "#a8a8a8",
+                                  }}
+                                >
+                                  {completedCount} / {totalActivities}{" "}
+                                  Activities Done
                                 </span>
                               )}
                             </div>
                           </div>
                           <div className="lesson-actions">
-                            <button className="btn-read-lesson" disabled={isLocked} onClick={(e) => { e.stopPropagation(); if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lesson.lessonId}`); }}>Read Lesson</button>
-                            <button className={`btn-start-activity ${!firstActivityId ? "disabled" : ""}`} disabled={isLocked || !firstActivityId} onClick={(e) => { e.stopPropagation(); if (!isLocked && firstActivityId) navigate(`/activity/${module.moduleId}/${firstActivityId}`); }}>
-                              {firstActivityId ? "Start Activity" : "No Activity"}
+                            <button
+                              className="btn-read-lesson"
+                              disabled={isLocked}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isLocked)
+                                  navigate(
+                                    `/learning-path/${module.moduleId}/${lesson.lessonId}`,
+                                  );
+                              }}
+                            >
+                              Read Lesson
+                            </button>
+                            <button
+                              className={`btn-start-activity ${!firstActivityId ? "disabled" : ""}`}
+                              disabled={isLocked || !firstActivityId}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isLocked && firstActivityId)
+                                  navigate(
+                                    `/activity/${module.moduleId}/${firstActivityId}`,
+                                  );
+                              }}
+                            >
+                              {firstActivityId
+                                ? "Start Activity"
+                                : "No Activity"}
                             </button>
                           </div>
-                          <span className="lesson-status-icon">{isLocked ? (<FiLock color="#bdbdbd" />) : allDone ? (<FiCheckCircle color="#22c55e" />) : (<FiCircle color="#7c5cff" />)}</span>
+                          <span className="lesson-status-icon">
+                            {isLocked ? (
+                              <FiLock color="#bdbdbd" />
+                            ) : allDone ? (
+                              <FiCheckCircle color="#22c55e" />
+                            ) : (
+                              <FiCircle color="#7c5cff" />
+                            )}
+                          </span>
                         </div>
                       );
                     })}
 
                     {hasOptimizations && (
-                      <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
+                      <div
+                        className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`}
+                        style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}
+                      >
                         <div className="lesson-info">
-                          <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
-                            <span style={{ fontSize: '0.75rem', marginTop: '2px', fontWeight: 'bold', color: optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? '#22c55e' : '#d35400' }}>
-                              {optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length} / {optimizations.length} Challenges Done
+                          <span
+                            className="lesson-number"
+                            style={{ color: "#f39c12", fontSize: "1.2rem" }}
+                          >
+                            ★
+                          </span>
+                          <div
+                            style={{ display: "flex", flexDirection: "column" }}
+                          >
+                            <span
+                              className="lesson-title"
+                              style={{ fontWeight: "bold", color: "#d35400" }}
+                            >
+                              Optimization Challenges
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "0.75rem",
+                                marginTop: "2px",
+                                fontWeight: "bold",
+                                color:
+                                  optimizations.filter((o) =>
+                                    checkActivityDone(module.moduleId, o.id),
+                                  ).length === optimizations.length
+                                    ? "#22c55e"
+                                    : "#d35400",
+                              }}
+                            >
+                              {
+                                optimizations.filter((o) =>
+                                  checkActivityDone(module.moduleId, o.id),
+                                ).length
+                              }{" "}
+                              / {optimizations.length} Challenges Done
                             </span>
                           </div>
                         </div>
                         <div className="lesson-actions">
-                          <button className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`} style={{ backgroundColor: optimizationsLocked ? "" : "#f39c12" }} disabled={optimizationsLocked} onClick={(e) => { e.stopPropagation(); if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`); }}>
+                          <button
+                            className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`}
+                            style={{
+                              backgroundColor: optimizationsLocked
+                                ? ""
+                                : "#f39c12",
+                            }}
+                            disabled={optimizationsLocked}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!optimizationsLocked)
+                                navigate(
+                                  `/activity/${module.moduleId}/${optimizations[0].id}`,
+                                );
+                            }}
+                          >
                             Start Challenges
                           </button>
                         </div>
-                        <span className="lesson-status-icon">{optimizationsLocked ? (<FiLock color="#bdbdbd" />) : optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? (<FiCheckCircle color="#22c55e" />) : (<FiCircle color="#f39c12" />)}</span>
+                        <span className="lesson-status-icon">
+                          {optimizationsLocked ? (
+                            <FiLock color="#bdbdbd" />
+                          ) : optimizations.filter((o) =>
+                              checkActivityDone(module.moduleId, o.id),
+                            ).length === optimizations.length ? (
+                            <FiCheckCircle color="#22c55e" />
+                          ) : (
+                            <FiCircle color="#f39c12" />
+                          )}
+                        </span>
                       </div>
                     )}
 
-                    <div className={`assessment-row post ${postComplete ? "done" : moduleComplete ? "pending" : "locked"}`}>
+                    <div
+                      className={`assessment-row post ${postComplete ? "done" : postAssessmentLocked ? "locked" : "pending"}`}
+                    >
                       <div className="assessment-row-left">
-                        <FiClipboard size={16} /><span className="assessment-row-label">Post-Assessment</span>
-                        {postScore !== null && (<span className="assessment-score-badge post">{postScore}%</span>)}
-                        {!moduleComplete && !postComplete && (<span className="assessment-gate-note">(Complete all lessons first)</span>)}
+                        <FiClipboard size={16} />
+                        <span className="assessment-row-label">
+                          Post-Assessment
+                        </span>
+                        {postScore !== null && (
+                          <span className="assessment-score-badge post">
+                            {postScore}%
+                          </span>
+                        )}
+                        {postAssessmentLocked && (
+                          <span className="assessment-gate-note">
+                            (Complete all lessons first)
+                          </span>
+                        )}
                       </div>
                       <div className="assessment-row-right">
-                        {!moduleComplete && !postComplete ? (<FiLock color="#bdbdbd" size={16} />) : postComplete ? (
-                          <><FiCheckCircle color="#22c55e" size={16} /><button className="btn-assessment retake" onClick={(e) => { e.stopPropagation(); navigate(`/assessment/${module.moduleId}/post`); }}>Retake</button></>
+                        {postAssessmentLocked ? (
+                          <FiLock color="#bdbdbd" size={16} />
+                        ) : postComplete ? (
+                          <>
+                            <FiCheckCircle color="#22c55e" size={16} />
+                            <button
+                              className="btn-assessment retake"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/assessment/${module.moduleId}/post`);
+                              }}
+                            >
+                              Retake
+                            </button>
+                          </>
                         ) : (
-                          <button className="btn-assessment start post" onClick={(e) => { e.stopPropagation(); navigate(`/assessment/${module.moduleId}/post`); }}>Take Post-Assessment</button>
+                          <button
+                            className="btn-assessment start post"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/assessment/${module.moduleId}/post`);
+                            }}
+                          >
+                            Take Post-Assessment
+                          </button>
                         )}
                       </div>
                     </div>

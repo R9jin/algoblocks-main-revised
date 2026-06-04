@@ -2,177 +2,126 @@
   "lessonId": "lesson-1-1",
   "moduleId": "module-1",
   "title": "Big-O Notation",
-  "description": "Understand how programmers describe algorithm growth, compare implementations, and predict whether code will remain efficient as input size increases.",
+  "description": "Learn the universal language of algorithm performance. This lesson introduces **Big-O Notation**, the mathematical framework used by software engineers to describe how an algorithm's runtime or memory requirements grow as the amount of input data increases.",
   "difficulty": "Beginner",
-  "estimatedTime": "35 min",
+  "estimatedTime": "20 min",
   "prerequisites": "The Complexity Analyzer",
-  "tags": [
-    "big-o",
-    "complexity",
-    "performance",
-    "algorithms"
-  ],
+  "tags": ["big-o", "complexity", "theory", "performance"],
   "activities": [
     {
       "id": "m1_l1_a1",
-      "title": "Best Case Search"
+      "title": "Identifying O(1)"
     },
     {
       "id": "m1_l1_a2",
-      "title": "Worst Case Search"
+      "title": "Counting Loops"
     },
     {
       "id": "m1_l1_a3",
-      "title": "Constant Time Demo"
-    },
-    {
-      "id": "m1_l1_a4",
-      "title": "Linear Growth Demo"
-    },
-    {
-      "id": "m1_l1_a5",
-      "title": "Quadratic Growth Demo"
+      "title": "Worst-Case Scenarios"
     }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
-      "title": "Introduction",
-      "content": "Big-O notation is a mathematical way to describe how an algorithm grows as the input size becomes larger. Instead of measuring exact execution time in seconds, Big-O focuses on how the number of operations changes relative to the size of the input.\n\nThis makes Big-O useful for programming because runtime depends on hardware, operating system load, programming language implementation, and many other details. Growth behavior is more stable. If an algorithm checks every item one by one, it grows differently from an algorithm that repeatedly divides the problem in half.\n\nProgrammers use Big-O to predict whether an implementation will remain efficient when it processes thousands, millions, or billions of data items."
-    },
-    {
-      "id": "why-big-o-matters",
-      "type": "real_world_connection",
-      "title": "Why Big-O Matters",
-      "content": "Modern applications process massive amounts of data. Search engines process billions of pages, social media systems serve millions of users, navigation software computes routes quickly, and AI systems analyze large datasets.\n\nAn algorithm that works well for 10 items can become unusably slow for 10 million items. Big-O gives engineers a formal vocabulary for comparing solutions before those solutions are deployed at scale.",
-      "bullets": [
-        "Compare two implementations that solve the same problem.",
-        "Estimate how performance changes when input size grows.",
-        "Identify code that may become a bottleneck.",
-        "Choose algorithms that reduce infrastructure cost and improve responsiveness."
-      ]
-    },
-    {
-      "id": "understanding-growth",
-      "type": "concept",
-      "title": "Understanding Algorithm Growth",
-      "content": "Big-O does not measure exact runtime. It measures how quickly work increases as input size increases. The input size is usually represented by n.\n\nIf an algorithm checks every element once, its operations grow linearly and its complexity is O(n). If another algorithm repeatedly halves the remaining search area, its operations grow logarithmically and its complexity is O(log n).\n\nThe key idea is that growth rate matters more than exact timing when analyzing scalability.",
-      "chart": {
-        "title": "Growth rates as input size increases",
-        "description": "The chart normalizes each curve so beginners can compare the shape of constant, logarithmic, linear, linearithmic, and quadratic growth.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": [
-          "O(1)",
-          "O(log n)",
-          "O(n)",
-          "O(n log n)",
-          "O(n^2)"
-        ]
-      }
-    },
-    {
-      "id": "constant-time",
-      "type": "concept",
-      "title": "Constant Time: O(1)",
-      "content": "An algorithm is constant time when the amount of work does not grow as input size increases. The operation may still take real time, but it does not require more steps just because the input contains more items.\n\nArray indexing is the classic example. If the program already knows the index, it can jump directly to that position.",
-      "codeSnippets": [
-        {
-          "title": "Array indexing uses constant time",
-          "language": "python",
-          "code": "scores = [72, 88, 91, 95, 100]\n\n# Accessing index 3 does not require scanning the whole list.\nselected_score = scores[3]\nprint(selected_score)"
-        }
-      ]
-    },
-    {
-      "id": "linear-time",
-      "type": "concept",
-      "title": "Linear Time: O(n)",
-      "content": "Linear time means the amount of work grows proportionally with input size. If the list doubles, the number of possible checks also roughly doubles.\n\nLinear search demonstrates this behavior because the target might be at the end of the list, or not present at all. In the worst case, the algorithm must inspect every element.",
-      "codeSnippets": [
-        {
-          "title": "Linear search checks items one by one",
-          "language": "python",
-          "code": "def linear_search(values, target):\n    for index, value in enumerate(values):\n        if value == target:\n            return index\n    return -1\n\nnumbers = [4, 8, 15, 16, 23, 42]\nprint(linear_search(numbers, 42))"
-        }
-      ]
-    },
-    {
-      "id": "logarithmic-time",
-      "type": "deep_dive",
-      "title": "Logarithmic Time: O(log n)",
-      "content": "Logarithmic algorithms reduce the problem size repeatedly. Binary search is the common example: instead of checking every element, it looks at the middle of a sorted list and removes half of the remaining candidates.\n\nFor example, a search space can shrink from 16 to 8, then to 4, then to 2, then to 1. This makes logarithmic algorithms highly efficient for large datasets.",
-      "codeSnippets": [
-        {
-          "title": "Binary search halves the remaining range",
-          "language": "python",
-          "code": "def binary_search(values, target):\n    left = 0\n    right = len(values) - 1\n\n    while left <= right:\n        middle = (left + right) // 2\n\n        if values[middle] == target:\n            return middle\n        if values[middle] < target:\n            left = middle + 1\n        else:\n            right = middle - 1\n\n    return -1\n\nnumbers = [2, 5, 9, 13, 21, 34, 55, 89]\nprint(binary_search(numbers, 34))"
-        }
-      ]
-    },
-    {
-      "id": "quadratic-time",
-      "type": "deep_dive",
-      "title": "Quadratic Time: O(n^2)",
-      "content": "Quadratic growth often appears when every item is compared with every other item. This is common in simple sorting strategies and pair-comparison problems.\n\nIf n is 10, a nested comparison may perform about 100 checks. If n is 1,000, the same pattern may perform about 1,000,000 checks. This rapid multiplication becomes expensive quickly.",
-      "codeSnippets": [
-        {
-          "title": "Nested loops often multiply the work",
-          "language": "python",
-          "code": "students = [\"Ana\", \"Ben\", \"Cara\", \"Dino\"]\n\nfor first in students:\n    for second in students:\n        if first != second:\n            print(first, \"compared with\", second)"
-        }
-      ]
-    },
-    {
-      "id": "comparing-complexities",
-      "type": "summary",
-      "title": "Comparing Common Complexities",
-      "content": "Different Big-O classes describe different growth behaviors. O(1) is constant and is common in array indexing. O(log n) grows very slowly and appears in binary search. O(n) grows linearly and appears in linear search. O(n log n) is common in efficient sorting algorithms such as merge sort. O(n^2) grows rapidly and appears in algorithms such as bubble sort.\n\nThis comparison helps developers decide which algorithm is practical for a large-scale system."
-    },
-    {
-      "id": "misconceptions",
-      "type": "key_concept",
-      "title": "Common Beginner Misconceptions",
+      "title": "Introduction to Big-O",
+      "content": "When comparing two algorithms, it is not enough to measure execution time in seconds. A faster computer will run a bad algorithm faster than a slow computer running a good algorithm. Instead, we need a way to measure efficiency based purely on the **number of operations** relative to the **input size (n)**.",
       "subsections": [
         {
-          "id": "runtime-misconception",
-          "title": "Misconception: Big-O measures exact runtime",
-          "content": "Big-O measures growth behavior, not exact seconds. Two machines can run the same code at different speeds, but the algorithm's growth pattern remains the same."
-        },
-        {
-          "id": "constant-time-misconception",
-          "title": "Misconception: O(1) means instant",
-          "content": "Constant-time operations still take time. O(1) means the amount of work does not grow with input size."
-        },
-        {
-          "id": "smaller-is-always-better",
-          "title": "Misconception: The smaller notation is always the best choice",
-          "content": "Engineering decisions depend on context. Some solutions trade memory for speed, some are easier to maintain, and some are only faster for large inputs."
+          "id": "what-is-big-o",
+          "title": "What is Big-O?",
+          "content": "**Big-O Notation** is the universal language used by computer scientists to describe performance. It expresses the **upper bound** of an algorithm's growth rate. Simply put, it tells us: *As the amount of data gets infinitely large, how quickly does the required time (or memory) shoot up?*"
         }
       ]
     },
     {
-      "id": "takeaways",
+      "id": "worst-case",
+      "type": "concept",
+      "title": "The Worst-Case Scenario",
+      "content": "When measuring efficiency, programmers generally care most about the **worst-case scenario**. If you are searching for a specific name in a phone book, you might get lucky and find it on the very first page. However, we cannot base our performance metrics on luck.",
+      "subsections": [
+        {
+          "id": "why-worst-case",
+          "title": "Preparing for the Worst",
+          "content": "Big-O assumes the data is arranged in the worst possible way for your algorithm. If you are searching an array of `n` items, Big-O assumes the item you are looking for is at the **very end of the array** (or not there at all), forcing your algorithm to do the maximum amount of work. This guarantees that your algorithm will **never perform worse** than its Big-O rating."
+        }
+      ]
+    },
+    {
+      "id": "rules-of-big-o",
+      "type": "concept",
+      "title": "The Rules of Big-O",
+      "content": "When calculating the Big-O of an algorithm, we don't care about exact numbers. We only care about the **overall trend** as `n` approaches infinity. Because of this, we follow two strict mathematical rules.",
+      "subsections": [
+        {
+          "id": "drop-constants",
+          "title": "Rule 1: Drop the Constants",
+          "content": "If an algorithm requires `2n` operations, we drop the `2` and simply call it **O(n)**. If it requires `n / 2` operations, it is still **O(n)**. As data grows to a billion items, the constant multiplier becomes insignificant compared to the sheer size of `n`.",
+          "bullets": [
+            "**O(2n)** becomes **O(n)**",
+            "**O(500)** becomes **O(1)**",
+            "**O(n² / 2)** becomes **O(n²)**"
+          ]
+        },
+        {
+          "id": "drop-non-dominant",
+          "title": "Rule 2: Drop Non-Dominant Terms",
+          "content": "If an algorithm does an `O(n²)` operation followed by an `O(n)` operation, the total time is `O(n² + n)`. However, as `n` gets huge, the `n²` part completely overshadows the `n` part. Therefore, we only keep the **largest, fastest-growing term**.",
+          "bullets": [
+            "**O(n² + n)** becomes **O(n²)**",
+            "**O(n + 1000)** becomes **O(n)**",
+            "**O(2^n + n²)** becomes **O(2^n)**"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calculating",
+      "type": "deep_dive",
+      "title": "Calculating Big-O in Code",
+      "content": "To calculate the Big-O of your AlgoBlocks code, look directly at how you are using your control structures (specifically, loops).",
+      "subsections": [
+        {
+          "id": "calc-examples",
+          "title": "Code Examples",
+          "content": "Here is how common programming structures translate into Big-O notation:",
+          "bullets": [
+            "**O(1):** Basic math, setting a variable, or accessing an array index. There are no loops involved.",
+            "**O(n):** A single loop that iterates over a list of `n` items.",
+            "**O(n²):** A loop perfectly **nested** inside another loop. (For every item in `n`, we loop through `n` again)."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "summary",
       "type": "summary",
-      "title": "Key Takeaways",
-      "bullets": [
-        "Big-O measures algorithm growth as input size increases.",
-        "Efficient algorithms scale better with large datasets.",
-        "O(log n) usually grows much more slowly than O(n).",
-        "Nested loops often produce O(n^2) behavior.",
-        "Complexity analysis helps engineers build scalable software systems."
+      "title": "Lesson Summary",
+      "content": "Big-O Notation is how software engineers communicate efficiency. By dropping constants and non-dominant terms, it allows us to focus entirely on **scalability**.",
+      "subsections": [
+        {
+          "id": "sum-key-takeaways",
+          "title": "Key Takeaways",
+          "content": "Remember these core principles as you analyze algorithms:",
+          "bullets": [
+            "Big-O measures the **worst-case scenario**.",
+            "Always **drop constants** (O(2n) = O(n)).",
+            "Always **drop non-dominant terms** (O(n² + n) = O(n²)).",
+            "Look for **nested loops** to quickly estimate complexity."
+          ]
+        }
       ]
     }
   ],
   "references": [
     {
-      "title": "GeeksforGeeks - Analysis of Algorithms",
+      "title": "GeeksforGeeks — Big-O Notation",
       "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
     },
     {
-      "title": "Programiz - Asymptotic Notation",
-      "url": "https://www.programiz.com/dsa/asymptotic-notations"
+      "title": "Programiz — Time Complexity",
+      "url": "https://www.programiz.com/dsa/time-complexity"
     }
   ]
 }

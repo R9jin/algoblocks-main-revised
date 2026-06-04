@@ -1,0 +1,2917 @@
+﻿--- PROJECT SNAPSHOT (PART 10 OF 10) ---
+
+--- TIMESTAMP: 2026-06-04 14:50:26 ---
+
+
+--- FILE: frontend/src/styles/TestCaseTester.css ---
+
+/* frontend/src/styles/TestCaseTester.css */
+
+.test-case-tester {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #1C1236; /* AlgoBlocks base dark purple */
+  color: #EBE4FF;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+.tester-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tester-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.run-tests-btn {
+  background-color: #6C5CE7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(108, 92, 231, 0.2);
+}
+
+.run-tests-btn:hover:not(:disabled) {
+  background-color: #5a4bcf;
+  transform: translateY(-1px);
+}
+
+.run-tests-btn:disabled {
+  background-color: #444;
+  color: #888;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.tester-error {
+  margin: 15px 20px 0;
+  padding: 12px 16px;
+  background-color: rgba(231, 76, 60, 0.15);
+  border-left: 4px solid #e74c3c;
+  color: #ff7675;
+  font-family: 'Fira Code', Consolas, monospace;
+  font-size: 0.85rem;
+  border-radius: 0 6px 6px 0;
+  white-space: pre-wrap;
+}
+
+.results-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Custom Scrollbar for results */
+.results-container::-webkit-scrollbar {
+  width: 8px;
+}
+.results-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+.results-container::-webkit-scrollbar-thumb {
+  background: rgba(108, 92, 231, 0.5);
+  border-radius: 4px;
+}
+
+.no-results-msg {
+  text-align: center;
+  color: #888;
+  margin-top: 40px;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+/* Test Card Styling */
+.test-result-card {
+  background-color: #2D234A; /* Lighter purple highlight bg */
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.test-result-card.passed {
+  border-left: 4px solid #00b8a3; /* AlgoBlocks Green */
+}
+
+.test-result-card.failed {
+  border-left: 4px solid #ff375f; /* AlgoBlocks Red */
+}
+
+.test-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.test-card-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #FFFFFF;
+}
+
+/* Badges */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.passed {
+  background-color: rgba(0, 184, 163, 0.15);
+  color: #00b8a3;
+  border: 1px solid rgba(0, 184, 163, 0.3);
+}
+
+.status-badge.failed {
+  background-color: rgba(255, 55, 95, 0.15);
+  color: #ff375f;
+  border: 1px solid rgba(255, 55, 95, 0.3);
+}
+
+/* Details Section */
+.test-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-row strong {
+  font-size: 0.8rem;
+  color: #A38CC1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-row pre {
+  margin: 0;
+  padding: 8px 12px;
+  background-color: #0D0814; /* Very dark background for code */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-family: 'Fira Code', Consolas, Monaco, monospace;
+  font-size: 0.85rem;
+  color: #EBE4FF;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.detail-row pre.error-text {
+  color: #ff7675;
+  background-color: rgba(231, 76, 60, 0.05);
+  border-color: rgba(231, 76, 60, 0.2);
+}
+
+.hidden-fail-msg {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #ffc01e; /* Warning yellow */
+  font-style: italic;
+  text-align: center;
+  padding: 10px;
+}
+
+--- FILE: frontend/src/styles/UserHeader.css ---
+
+/* frontend/src/styles/UserHeader.css */
+
+/* Ensures the text is strictly white on the user landing/home page */
+.user-header-logo-text {
+    color: #FFFFFF !important;
+}
+
+--- FILE: frontend/src/styles/UserHomePage.css ---
+
+/*frontend\src\styles\UserHomePage.css*/
+.user-homepage.landing-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #1F1443 0%, #4A0784 100%);
+  color: #F5F5F5;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.user-homepage.landing-container::-webkit-scrollbar {
+  display: none;
+}
+
+.user-homepage .landing-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.user-homepage .landing-main::-webkit-scrollbar {
+  display: none;
+}
+
+/* ========================================================= */
+/* NAVBAR & USER DROPDOWN                                    */
+/* ========================================================= */
+
+.user-homepage .landing-nav {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: rgba(31, 20, 67, 0.95);
+  color: #F5F5F5;
+  border-bottom: 1px solid #4830A0;
+}
+
+.user-homepage .logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-homepage .logo-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.user-homepage .logo-text {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.user-homepage .user-menu {
+  position: relative;
+}
+
+.user-homepage .user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 260px;
+  background: #FFFFFF;
+  color: #24163F;
+  border: 1px solid #E3DAF8;
+  border-radius: 12px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.user-homepage .user-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.user-homepage .user-menu-btn:hover {
+  transform: scale(1.05);
+  border-color: #E058FB;
+}
+
+.user-homepage .user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  color: #F5F5F5;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.user-homepage .user-dropdown-head {
+  padding: 1.5rem 1rem 1.2rem;
+  background: #F6F1FF;
+  border-bottom: 1px solid #E3DAF8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.user-homepage .dropdown-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  color: #F5F5F5;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 4px 10px rgba(127, 87, 249, 0.3);
+}
+
+.user-homepage .user-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #3A2870;
+  margin-bottom: 0.2rem;
+}
+
+.user-homepage .user-email {
+  font-size: 0.85rem;
+  color: #6D5AA7;
+  word-break: break-word;
+}
+
+.user-homepage .user-dd-item {
+  width: 100%;
+  border: 0;
+  background: #FFFFFF;
+  color: #30205B;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.user-homepage .user-dd-item:hover {
+  background: #F7F2FF;
+}
+
+.user-homepage .user-dd-item.danger {
+  color: #A93A60;
+}
+
+.user-homepage .user-dd-divider {
+  border-top: 1px solid #E8E0FA;
+}
+
+/* ========================================================= */
+/* HERO SECTION                                              */
+/* ========================================================= */
+
+.user-homepage .home-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4rem;
+  max-width: 1350px;
+  margin: 4rem auto 8rem auto;
+  min-height: 60vh;
+}
+
+.user-homepage .home-hero-copy {
+  flex: 0 0 500px;
+}
+
+.user-homepage .welcome-text {
+  color: #C994FF;
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin: 0 0 0.5rem 0;
+}
+
+.user-homepage .slogan-text {
+  color: white;
+  font-size: 4.2rem;
+  font-weight: bold;
+  margin: 0 0 1.2rem 0;
+  line-height: 1.15;
+}
+
+.user-homepage .hero-subtitle {
+  font-size: 1.15rem;
+  color: #E8E0FA;
+  margin: 0 0 2.5rem 0;
+  line-height: 1.6;
+  max-width: 100%;
+}
+
+/* BUTTONS */
+.user-homepage .hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.user-homepage .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: linear-gradient(135deg, #7F57F9, #E058FB);
+  color: #F5F5F5;
+  padding: 0.75rem 2rem;
+  border-radius: 40px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(90, 19, 152, 0.4);
+  border: none;
+  cursor: pointer;
+}
+
+.user-homepage .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(224, 88, 251, 0.5);
+}
+
+.user-homepage .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  color: #F5F5F5;
+  padding: 0.75rem 2rem;
+  border-radius: 40px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  border: 2px solid #7F57F9;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.user-homepage .btn-secondary:hover {
+  background-color: #7F57F9;
+  border-color: #7F57F9;
+}
+
+.user-homepage .btn-icon-inline {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* IMAGE CONTAINER */
+.user-homepage .home-hero-media {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-homepage .home-hero-image {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.32));
+}
+
+/* ========================================================= */
+/* FEATURE CARDS                                             */
+/* ========================================================= */
+
+.user-homepage .feature-cards {
+  margin-bottom: 4rem;
+  text-align: center;
+}
+
+.user-homepage .feature-cards h2 {
+  font-size: 2rem;
+  color: #F5F5F5;
+  margin-bottom: 0.5rem;
+}
+
+.user-homepage .section-subtitle {
+  color: #C994FF;
+  font-size: 1.1rem;
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
+
+.user-homepage .cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.user-homepage .card {
+  background: #FFFFFF;
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid #4830A0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  transition: transform 0.2s;
+}
+
+.user-homepage .card:hover {
+  transform: translateY(-5px);
+}
+
+.user-homepage .card-icon {
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 8px #E058FB);
+}
+
+.user-homepage .card-icon-badge {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #E7D9FF;
+}
+
+.user-homepage .card h3 {
+  color: #5A1398;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+}
+
+.user-homepage .card p {
+  color: #4830A0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* ========================================================= */
+/* FEATURES LIST & CODE SNIPPET                              */
+/* ========================================================= */
+
+.user-homepage .features-list {
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.user-homepage .features-content {
+  flex: 1;
+  min-width: 300px;
+}
+
+.user-homepage .features-content h2 {
+  font-size: 2rem;
+  color: #F5F5F5;
+  margin-bottom: 1.5rem;
+}
+
+.user-homepage .features-content ul {
+  list-style: none;
+  padding: 0;
+}
+
+.user-homepage .features-content li {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  position: relative;
+  color: #C994FF;
+  font-size: 1.1rem;
+}
+
+.user-homepage .features-content li::before {
+  content: "âœ“";
+  color: #E058FB;
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+
+/* ========================================================= */
+/* LOGOUT POPUP MODAL                                        */
+/* ========================================================= */
+
+.user-homepage .logout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(22, 12, 51, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.user-homepage .logout-modal {
+  background: linear-gradient(135deg, #FDFBFF 0%, #DFCCFC 100%);
+  padding: 3.5rem 4rem;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  max-width: 500px;
+  width: 90%;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.user-homepage .feature-image-container {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.user-homepage .feature-example-image {
+  width: 100%;
+  max-width: 550px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  object-fit: contain; /* prevents stretching */
+}
+
+.user-homepage .feature-example-image:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.user-homepage .logout-modal h2 {
+  color: #4A3A69;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.user-homepage .logout-modal p {
+  color: #5A487A;
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+}
+
+.user-homepage .logout-modal-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.user-homepage .logout-btn {
+  padding: 0.8rem 2.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: #501F99;
+  color: white;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.user-homepage .logout-btn:hover {
+  background: #3A1570;
+  transform: scale(1.05);
+}
+
+/* ========================================================= */
+/* RESPONSIVE MEDIA QUERIES                                  */
+/* ========================================================= */
+
+@media (max-width: 1024px) {
+  .user-homepage .landing-main {
+    padding: 1.5rem;
+  }
+
+  .user-homepage .home-hero {
+    gap: 2rem;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .user-homepage .home-hero-copy {
+    flex: auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .user-homepage .home-hero-image {
+    width: min(480px, 100%);
+  }
+
+  .user-homepage .slogan-text {
+    font-size: 3rem;
+  }
+
+  .user-homepage .hero-buttons {
+    justify-content: center;
+  }
+
+  .user-homepage .features-list {
+    gap: 2rem;
+  }
+
+  .user-homepage .feature-example-image {
+    max-width: 450px;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-homepage .landing-nav {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .user-homepage .home-hero {
+    margin-bottom: 3rem;
+  }
+
+  .user-homepage .home-hero-media {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .user-homepage .home-hero-image {
+    max-width: 420px;
+  }
+
+  .user-homepage .slogan-text {
+    font-size: 2.5rem;
+  }
+
+  .user-homepage .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .user-homepage .features-list {
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .user-homepage .feature-example-image {
+    max-width: 380px;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-homepage .landing-main {
+    padding: 1rem;
+  }
+
+  .user-homepage .logo-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-homepage .logo-text {
+    font-size: 1.2rem;
+  }
+
+  .user-homepage .slogan-text {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  .user-homepage .home-hero-image {
+    max-width: 320px;
+  }
+
+  .user-homepage .btn-primary,
+  .user-homepage .btn-secondary {
+    width: 100%;
+    text-align: center;
+    font-size: 1rem;
+    padding: 0.7rem 1.2rem;
+  }
+
+  .user-homepage .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .user-homepage .card {
+    padding: 1.5rem;
+  }
+
+  .user-homepage .feature-cards h2,
+  .user-homepage .features-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .user-homepage .features-content li {
+    font-size: 1rem;
+  }
+
+  .user-homepage .logout-modal {
+    padding: 2.5rem 2rem;
+  }
+
+  .user-homepage .feature-example-image {
+    max-width: 280px;
+    border-radius: 10px;
+  }
+}
+
+--- FILE: frontend/src/utils/errorTranslator.js ---
+
+// frontend/src/utils/errorTranslator.js
+export const translatePythonError = (rawErrorMessage) => {
+    if (!rawErrorMessage) return "";
+  
+    const msg = String(rawErrorMessage);
+    let hint = "";
+
+    // ==========================================
+    // SYNTAX & BRACKETS (Expanded)
+    // ==========================================
+    if (msg.includes("EOL while scanning string literal") || msg.includes("unterminated string literal")) {
+      hint = "You forgot to close a quotation mark at the end of a string (e.g., missing a ' or \").";
+    } 
+    else if (msg.includes("unexpected EOF while parsing") || msg.includes("unexpected EOF")) {
+      hint = "You are missing a closing parenthesis ')', bracket ']', or brace '}'.";
+    } 
+    else if (msg.includes("expected ':'") || msg.includes("expected a ':'")) {
+      hint = "You forgot a colon (:) at the end of your 'if', 'for', 'while', 'class', or 'def' statement.";
+    } 
+    else if (msg.includes("invalid character in identifier")) {
+      hint = "You might have accidentally pasted a hidden character or 'smart quote' from a document. Try retyping the line manually.";
+    }
+    else if (msg.includes("positional argument follows keyword argument")) {
+      hint = "When calling a function, regular arguments (like `5`) must come before keyword arguments (like `x=5`).";
+    }
+    else if (msg.includes("invalid syntax")) {
+      if (msg.includes("mismatched")) {
+         hint = "You closed a bracket with the wrong type (e.g. closing a '(' with a ']').";
+      } else {
+         hint = "Check for missing colons (:), unclosed parentheses/quotes, missing commas between arguments, or misspelled keywords nearby.";
+      }
+    } 
+  
+    // ==========================================
+    // INDENTATION & WHITESPACE (Expanded)
+    // ==========================================
+    else if (msg.includes("TabError") || msg.includes("inconsistent use of tabs and spaces")) {
+      hint = "You mixed tabs and spaces for indentation. Python strictly requires using either all spaces or all tabs (spaces are highly recommended).";
+    }
+    else if (msg.includes("IndentationError") || msg.includes("expected an indented block")) {
+      hint = "Check your spacing! Code inside loops, conditionals, and functions must be indented consistently.";
+    } 
+    else if (msg.includes("unindent does not match any outer indentation level")) {
+      hint = "Your indentation is misaligned. Make sure you are deleting spaces in multiples of 4 (or matching the exact spacing of the lines above).";
+    }
+    
+    // ==========================================
+    // VARIABLES, NAMES & SCOPE
+    // ==========================================
+    else if (msg.includes("NameError") || msg.includes("is not defined")) {
+      const match = msg.match(/name '([^']+)' is not defined/);
+      const varName = match ? match[1] : "a variable";
+      hint = `Python doesn't know what '${varName}' is. Did you forget to define it, misspell it, or forget quotation marks around a string?`;
+    } 
+    else if (msg.includes("UnboundLocalError")) {
+      const match = msg.match(/local variable '([^']+)' referenced before assignment/);
+      const varName = match ? match[1] : "a variable";
+      hint = `You are trying to use or modify the variable '${varName}' inside a function before giving it a value. If it's a global variable, you might need to use the 'global' keyword.`;
+    }
+    
+    // ==========================================
+    // TYPES & COMPATIBILITY
+    // ==========================================
+    else if (msg.includes("TypeError: unsupported operand")) {
+      hint = "You are trying to perform a math operation on incompatible data types (like adding text to a number, or a list to an integer).";
+    } 
+    else if (msg.includes("TypeError: can only concatenate str") || msg.includes("must be str, not int")) {
+      hint = "You cannot directly combine text and numbers using '+'. Try wrapping your number in str() first, e.g., str(5).";
+    } 
+    else if (msg.includes("TypeError") && msg.includes("object is not callable")) {
+      const match = msg.match(/'([^']+)' object is not callable/);
+      const objName = match ? match[1] : "An object";
+      hint = `You are treating a '${objName}' like a function by putting parentheses '()' after it. For example, if 'x = 5', doing 'x()' causes this error.`;
+    }
+    else if (msg.includes("TypeError") && msg.includes("object is not iterable")) {
+      const match = msg.match(/'([^']+)' object is not iterable/);
+      const objName = match ? match[1] : "An object";
+      hint = `You are trying to loop over or unpack a '${objName}', but it's a single value (like an integer), not a collection (like a list or string).`;
+    }
+    else if (msg.includes("TypeError") && msg.includes("does not support item assignment")) {
+      hint = "You are trying to change a specific item inside an immutable object (like a string or a tuple). You cannot modify strings directly; you must create a new one.";
+    }
+  
+    // ==========================================
+    // FUNCTIONS & ARGUMENTS
+    // ==========================================
+    else if (msg.includes("TypeError") && (msg.includes("positional arguments but") || msg.includes("missing") && msg.includes("required positional argument"))) {
+      hint = "You are passing the wrong number of arguments to a function. Double-check how many inputs the function expects versus how many you gave it.";
+    }
+  
+    // ==========================================
+    // ATTRIBUTES & METHODS (Expanded)
+    // ==========================================
+    else if (msg.includes("AttributeError") && msg.includes("'NoneType' object has no attribute")) {
+      hint = "You are trying to use a method on a variable that is currently 'None' (null). This often happens if a previous function returned nothing (None) but you expected an object or list.";
+    }
+    else if (msg.includes("AttributeError")) {
+      const match = msg.match(/'([^']+)' object has no attribute '([^']+)'/);
+      if (match) {
+        hint = `A ${match[1]} doesn't have a method or property named '${match[2]}'. Check your spelling or ensure you are using the right method for this data type.`;
+      } else {
+        hint = "You are trying to use a method or property that doesn't exist for this specific type of object.";
+      }
+    }
+  
+    // ==========================================
+    // LISTS, DICTIONARIES & TUPLES (Expanded)
+    // ==========================================
+    else if (msg.includes("IndexError: list index out of range")) {
+      hint = "You are trying to access a position in a list that doesn't exist. Remember, list positions start counting at 0! Try using 'len(my_list) - 1' for the last item.";
+    } 
+    else if (msg.includes("KeyError")) {
+      const match = msg.match(/KeyError: (.*)/);
+      const keyName = match ? match[1] : "a key";
+      hint = `You tried to look up the key ${keyName} in a dictionary, but it hasn't been added yet. Consider using 'my_dict.get(key)' which safely returns None if missing.`;
+    } 
+    else if (msg.includes("ValueError: too many values to unpack")) {
+      hint = "You are trying to assign multiple variables at once (unpacking), but there are more values on the right side than variables on the left.";
+    }
+    else if (msg.includes("ValueError: not enough values to unpack")) {
+      hint = "You are trying to assign multiple variables at once (unpacking), but there aren't enough values on the right side for all the variables on the left.";
+    }
+    else if (msg.includes("ValueError: list.remove(x): x not in list")) {
+      hint = "You tried to remove an item from a list, but that item doesn't exist in the list. Check if it's there first using 'if x in my_list:'.";
+    }
+    
+    // ==========================================
+    // MATH & VALUES
+    // ==========================================
+    else if (msg.includes("ZeroDivisionError") || msg.includes("division by zero")) {
+      hint = "You are trying to divide a number by zero, which is mathematically impossible. Check the variable being used as the divisor.";
+    } 
+    else if (msg.includes("ValueError: invalid literal for int()")) {
+      const match = msg.match(/invalid literal for int\(\) with base \d+: '([^']+)'/);
+      const badVal = match ? match[1] : "the text";
+      hint = `You tried to convert '${badVal}' into an integer, but it isn't a valid whole number. Make sure the string only contains digits.`;
+    } 
+    
+    // ==========================================
+    // IMPORTS, MODULES & FILES (Expanded)
+    // ==========================================
+    else if (msg.includes("ModuleNotFoundError") || msg.includes("No module named")) {
+      const match = msg.match(/No module named '([^']+)'/);
+      const modName = match ? match[1] : "a module";
+      hint = `Python cannot find the library '${modName}'. Check your spelling, or ensure it is supported in this Pyodide environment.`;
+    }
+    else if (msg.includes("ImportError")) {
+      hint = "You are trying to import a specific function or class from a library, but it doesn't exist in that library. Check your spelling.";
+    }
+    else if (msg.includes("FileNotFoundError") || msg.includes("No such file or directory")) {
+      hint = "Python cannot find the file you are trying to open. Check that the file name is spelled correctly and that it exists in the current directory.";
+    }
+  
+    // ==========================================
+    // ADVANCED: RECURSION, ITERATORS & ASSERTIONS (Expanded)
+    // ==========================================
+    else if (msg.includes("RecursionError") || msg.includes("maximum recursion depth exceeded")) {
+      hint = "Your function called itself too many times! Check your 'base case' to ensure the recursion eventually stops.";
+    }
+    else if (msg.includes("MemoryError")) {
+      hint = "Your program ran out of memory. This usually happens if you create an infinitely growing list or string.";
+    }
+    else if (msg.includes("AssertionError")) {
+      hint = "An 'assert' statement failed. This means a condition you expected to be True turned out to be False.";
+    }
+    else if (msg.includes("StopIteration")) {
+      hint = "You called 'next()' on an iterator, but there are no more items left to generate.";
+    }
+  
+    if (!hint) {
+       return ""; 
+    }
+  
+    return `ðŸ’¡ Hint: ${hint}`;
+  };
+
+--- FILE: frontend/src/utils/formatters.js ---
+
+// frontend\src\utils\formatters.js
+export function formatComplexity(str) {
+  // BULLETPROOF CHECK: If it's missing or not a string, return it safely without crashing
+  if (!str || typeof str !== 'string') {
+    return str;
+  }
+
+  // Pre-process unformatted output commonly generated from analyzers
+  let formatted = str
+    .replace(/n2/g, 'nÂ²')
+    .replace(/n3/g, 'nÂ³');
+
+  const superscripts = {
+    '0': 'â°', '1': 'Â¹', '2': 'Â²', '3': 'Â³', '4': 'â´',
+    '5': 'âµ', '6': 'â¶', '7': 'â·', '8': 'â¸', '9': 'â¹',
+    'n': 'â¿', 'x': 'Ë£', '+': 'âº', '-': 'â»'
+  };
+
+  return formatted.replace(/\^([0-9nx+-]+)/g, (match, p1) => {
+    return p1.split('').map(char => superscripts[char] || char).join('');
+  });
+}
+
+export const getComplexityWeight = (complexity) => {
+  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, '');
+  if (comp.includes("o(1)") || comp === "1") return 1;
+  // Check n^2 / n^3 before n to avoid "O(n2)" triggering "O(n)"
+  if (comp.includes("n^2") || comp.includes("nÂ²") || comp.includes("n2")) return 5;
+  if (comp.includes("n^3") || comp.includes("nÂ³") || comp.includes("n3")) return 6;
+  if (comp.includes("2^n") || comp.includes("2â¿") || comp.includes("2n")) return 7;
+  if (comp.includes("n!")) return 8;
+  if (comp.includes("nlogn")) return 4;
+  if (comp.includes("logn")) return 2;
+  if (comp.includes("o(n)") || comp === "n") return 3;
+  return 0;
+};
+
+export function resolveRecurrenceToBigO(compStr) {
+  if (!compStr || typeof compStr !== 'string') return "O(1)";
+
+  // Normalize the string for easy matching
+  const comp = compStr.toLowerCase().replace(/\s+/g, '');
+
+  // If it's already a standard Big-O notation, return it as-is
+  if (comp.includes("o(") && !comp.includes("t(")) return compStr;
+
+  // Map Master Theorem / Recurrence Relations to closed-form Big-O
+  if (comp.includes("n*t(n-1)")) return "O(n!)";
+  if (comp.includes("t(n-1)+t(n-2)")) return "O(2^n)";
+  if (comp.includes("2t(n/2)+o(n)")) return "O(n log n)";
+  if (comp.includes("t(n-1)+o(n)")) return "O(n^2)";
+  if (comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)")) return "O(n)";
+  if (comp.includes("t(n/2)+o(1)")) return "O(log n)";
+  if (comp.includes("t(n-1)+o(1)")) return "O(n)";
+
+  // Fallback if unrecognized
+  return "O(1)";
+}
+
+--- FILE: frontend/src/utils/syncManager.js ---
+
+// frontend/src/utils/syncManager.js
+import { assessmentsDB, progressDB, submissionsDB, syncQueueDB } from "../db";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+    : "http://localhost:8000/api";
+
+const getAuthHeaders = () => {
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
+    if (!token) return { "Content-Type": "application/json" };
+    return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+    };
+};
+
+const addToSyncQueue = async (url, method, payload, type) => {
+    try {
+        const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 9);
+        await syncQueueDB.setItem(id, { url, method, payload, type, timestamp: Date.now() });
+        console.log(`[Offline] Saved ${type} to sync queue.`);
+    } catch (err) {
+        console.error("Failed to add to sync queue", err);
+    }
+};
+
+export const syncManager = {
+    syncSubmission: async (activityId, code, output, isCompleted) => {
+        const payload = { activityId, code, output, isCompleted, timestamp: new Date().toISOString() };
+
+        try {
+            await submissionsDB.setItem(activityId, payload);
+            window.dispatchEvent(new Event("localDataSynced"));
+        } catch (err) { }
+
+        if (!navigator.onLine) {
+            await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+            return { status: "offline_saved", message: "Saved locally. Will sync when online." };
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/sync-submission`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
+            if (response.status === 401) {
+                await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+                return false;
+            }
+            if (!response.ok) throw new Error(`Server returned ${response.status}`);
+            return await response.json();
+        } catch (error) {
+            await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+            return false;
+        }
+    },
+
+    updateProgress: async (lessonId, progressData) => {
+        const payload = { lesson_id: lessonId, ...progressData };
+        try {
+            await progressDB.setItem(lessonId, payload);
+            window.dispatchEvent(new Event("localDataSynced"));
+        } catch (err) { }
+
+        if (!navigator.onLine) {
+            await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+            return { status: "offline_saved" };
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/update-progress`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
+            if (response.status === 401) {
+                await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+                return false;
+            }
+            if (!response.ok) throw new Error("Failed to update progress");
+            return await response.json();
+        } catch (error) {
+            await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+            return false;
+        }
+    },
+
+    updateAssessment: async (assessmentKey, score, passed) => {
+        const payload = { key: assessmentKey, score: score, passed: passed, timestamp: new Date().toISOString() };
+        try {
+            await assessmentsDB.setItem(assessmentKey, payload);
+            window.dispatchEvent(new Event("localDataSynced"));
+        } catch (err) { }
+
+        if (!navigator.onLine) {
+            await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+            return { status: "offline_saved" };
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/update-assessment`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
+            if (response.status === 401) {
+                await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+                return false;
+            }
+            if (!response.ok) throw new Error("Failed to update assessment");
+            return await response.json();
+        } catch (error) {
+            await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+            return false;
+        }
+    },
+
+    processSyncQueue: async () => {
+        if (!navigator.onLine) return;
+        try {
+            const keys = await syncQueueDB.keys();
+            if (keys.length === 0) return;
+            for (const key of keys) {
+                const item = await syncQueueDB.getItem(key);
+                try {
+                    if (!item.url || !item.method || !item.payload) {
+                        await syncQueueDB.removeItem(key);
+                        continue;
+                    }
+                    const response = await fetch(item.url, { method: item.method, headers: getAuthHeaders(), body: JSON.stringify(item.payload) });
+                    if (response.ok) {
+                        await syncQueueDB.removeItem(key);
+                    } else if (response.status === 401) {
+                        break;
+                    }
+                } catch (err) { }
+            }
+        } catch (err) { }
+    }
+};
+
+export const syncDownFromServer = async () => {
+    try {
+        const headers = getAuthHeaders();
+        if (!headers.Authorization) return;
+
+        // 1. Progress
+        const progRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
+        if (progRes.ok) {
+            const data = await progRes.json();
+            const progressList = data.progress || data;
+            if (Array.isArray(progressList)) {
+                for (const item of progressList) {
+                    const normalized = item.data ? { ...item, ...item.data } : item;
+                    await progressDB.setItem(normalized.key || normalized.lesson_id, normalized);
+                }
+            } else if (typeof progressList === 'object' && progressList !== null) {
+                for (const [key, val] of Object.entries(progressList)) {
+                    const normalized = typeof val === 'object' && val !== null ? (val.data ? { ...val, ...val.data } : val) : { score: val };
+                    await progressDB.setItem(key, normalized);
+                }
+            }
+        }
+
+        // 2. Assessments
+        const assRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
+        if (assRes.ok) {
+            const data = await assRes.json();
+            const assessmentList = data.assessments || data;
+            if (Array.isArray(assessmentList)) {
+                for (const item of assessmentList) {
+                    const normalized = item.data ? { ...item, ...item.data } : item;
+                    await assessmentsDB.setItem(normalized.key || normalized.assessment_key, normalized);
+                }
+            } else if (typeof assessmentList === 'object' && assessmentList !== null) {
+                for (const [key, val] of Object.entries(assessmentList)) {
+                    const normalized = typeof val === 'object' && val !== null ? (val.data ? { ...val, ...val.data } : val) : val;
+                    await assessmentsDB.setItem(key, normalized);
+                }
+            }
+        }
+
+        // 3. Submissions
+        // FIX: Changed endpoint to /get-all-submissions to match backend router
+        const subRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
+        if (subRes.ok) {
+            const data = await subRes.json();
+            const submissionsList = data.submissions || data;
+            if (Array.isArray(submissionsList)) {
+                for (const item of submissionsList) {
+                    const normalized = item.data ? { ...item, ...item.data } : item;
+                    if (normalized.activityId) {
+                        await submissionsDB.setItem(normalized.activityId, normalized);
+                        if (normalized.userId && normalized.moduleId) {
+                            await submissionsDB.setItem(`${normalized.userId}_${normalized.moduleId}_${normalized.activityId}`, normalized);
+                        }
+                    }
+                }
+            }
+        }
+        window.dispatchEvent(new Event("localDataSynced"));
+    } catch (error) { }
+};
+
+export const startBackgroundSync = () => {
+    syncDownFromServer();
+    syncManager.processSyncQueue();
+    setInterval(() => { syncManager.processSyncQueue(); }, 30000);
+};
+
+window.addEventListener("online", () => syncManager.processSyncQueue());
+
+--- FILE: frontend/src/workers/analyzer.worker.js ---
+
+// frontend/src/workers/analyzer.worker.js
+let pyodide = null;
+let pyodidePromise = null; 
+
+let inputResolve = null;
+let isWaitingForInput = false;
+let executionTimeout = null;
+
+async function initPyodide() {
+  if (pyodide) return pyodide;
+  
+  if (!pyodidePromise) {
+    pyodidePromise = (async () => {
+      try {
+        const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
+        const module = await import(/* @vite-ignore */ pyodideUrl);
+        const loadPyodide = module.loadPyodide;
+
+        const tempPyodide = await loadPyodide();
+        const cacheBuster = "?t=" + Date.now();
+
+        const [analyzerCode, astCode, nlgCode, tracerCode] = await Promise.all([
+          fetch("/python_engine/analyzer.py" + cacheBuster).then(res => res.text()),
+          fetch("/python_engine/blockly_ast.py" + cacheBuster).then(res => res.text()),
+          fetch("/python_engine/semantic_nlg.py" + cacheBuster).then(res => res.text()),
+          fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
+        ]);
+
+        if (nlgCode.includes("<!DOCTYPE html>")) {
+          throw new Error("Service Worker served index.html instead of python files!");
+        }
+
+        tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
+        tempPyodide.FS.writeFile("blockly_ast.py", astCode);
+        tempPyodide.FS.writeFile("semantic_nlg.py", nlgCode);
+        tempPyodide.FS.writeFile("dynamic_tracer.py", tracerCode);
+
+        pyodide = tempPyodide;
+        return tempPyodide;
+      } catch (error) {
+        console.error("Pyodide Engine Crash:", error);
+        pyodidePromise = null; 
+        throw error;
+      }
+    })();
+  }
+  
+  return await pyodidePromise;
+}
+
+self.onmessage = async (e) => {
+  const { type, code, data, testCases } = e.data;
+
+  if (type === 'INPUT_RESPONSE') {
+    if (inputResolve) {
+      clearTimeout(executionTimeout);
+      isWaitingForInput = false;
+      inputResolve(data);
+      inputResolve = null;
+    }
+    return;
+  }
+
+  if (type === 'INIT_ENGINE') {
+    try {
+      await initPyodide();
+      self.postMessage({ type: 'ENGINE_READY' });
+    } catch (err) {
+      console.error(err);
+    }
+    return;
+  }
+
+  const MAX_CODE_LENGTH = 10000;
+  if (code && code.length > MAX_CODE_LENGTH) {
+    const errorMsg = `Code payload too large. Maximum allowed is ${MAX_CODE_LENGTH} characters.`;
+    if (type === 'ANALYZE_CODE') {
+      self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
+    } else {
+      self.postMessage({ type: 'ERROR', data: errorMsg });
+    }
+    return;
+  }
+
+  try {
+    await initPyodide();
+
+    // ======================
+    // 1. ANALYZE MODE
+    // ======================
+    if (type === 'ANALYZE_CODE') {
+      pyodide.globals.set("user_code", code);
+
+      const resultJsonStr = await pyodide.runPythonAsync(`
+import json
+import sys
+import ast
+
+# CLEAR CACHE FOR HOT RELOADING
+if 'analyzer' in sys.modules:
+    del sys.modules['analyzer']
+if 'semantic_nlg' in sys.modules:
+    del sys.modules['semantic_nlg']
+if 'dynamic_tracer' in sys.modules:
+    del sys.modules['dynamic_tracer']
+
+# --- DEEP STACK LINTER ---
+def gather_custom_lint_errors(code_str):
+    errs = []
+    lines = code_str.split('\\n')
+    
+    stack = []
+    pairs = {'(': ')', '[': ']', '{': '}'}
+    
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if not s or s.startswith('#'):
+            continue
+            
+        # 1. Missing Colon Checker
+        if s.startswith(('def ', 'if ', 'elif ', 'else', 'for ', 'while ', 'class ', 'try', 'except', 'finally')):
+            s_no_comment = s.split('#')[0].strip()
+            if not s_no_comment.endswith(':') and not s_no_comment.endswith(('(', '[', '{', ',', '\\\\')):
+                errs.append({"line": i+1, "message": "expected ':'"})
+                
+        # 2. Unbalanced Bracket Checker
+        in_str = False
+        str_char = ''
+        escape = False
+        for char in line:
+            if escape:
+                escape = False
+                continue
+            if char == '\\\\':
+                escape = True
+                continue
+                
+            if char in '"\\'' and not in_str:
+                in_str = True
+                str_char = char
+            elif char == str_char and in_str:
+                in_str = False
+            
+            if not in_str:
+                if char in pairs:
+                    stack.append((char, i+1))
+                elif char in pairs.values():
+                    if not stack:
+                        errs.append({"line": i+1, "message": f"unmatched '{char}'"})
+                    else:
+                        top, _ = stack.pop()
+                        if pairs[top] != char:
+                            errs.append({"line": i+1, "message": f"closing '{char}' does not match opening '{top}'"})
+                            
+    for char, l in stack:
+         errs.append({"line": l, "message": f"unclosed '{char}'"})
+
+    return errs
+
+try:
+    from analyzer import analyze_source_code
+    output_dict = analyze_source_code(user_code)
+    
+    # --- INTERCEPT THE SWALLOWED ERROR ---
+    # analyzer.py gracefully catches SyntaxErrors. We must intercept it 
+    # to run our deep-stack checker and append the multiple errors.
+    if isinstance(output_dict, dict) and output_dict.get("status") == "error":
+        custom_errs = gather_custom_lint_errors(user_code)
+        
+        real_line = output_dict.get("line", 1)
+        real_msg = output_dict.get("message", "Syntax Error")
+        
+        all_errors = [{"line": real_line, "message": real_msg}]
+        
+        for ce in custom_errs:
+            if not any(existing['line'] == ce['line'] for existing in all_errors):
+                all_errors.append(ce)
+                
+        all_errors.sort(key=lambda x: x['line'])
+        output_dict["multiple_errors"] = all_errors
+
+    output = json.dumps(output_dict)
+    
+except Exception as e:
+    # Failsafe if the analyzer actually crashes
+    custom_errs = gather_custom_lint_errors(user_code)
+    real_line = getattr(e, 'lineno', 1) or 1
+    real_msg = str(e)
+    
+    all_errors = [{"line": real_line, "message": real_msg}]
+    for ce in custom_errs:
+        if not any(existing['line'] == ce['line'] for existing in all_errors):
+            all_errors.append(ce)
+            
+    all_errors.sort(key=lambda x: x['line'])
+    
+    output = json.dumps({
+        "status": "error",
+        "multiple_errors": all_errors,
+        "line": real_line,
+        "message": real_msg
+    })
+
+output
+      `);
+      const resultData = JSON.parse(resultJsonStr);
+      self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
+    }
+
+    // ======================
+    // 2. PYTHON TO BLOCKS MODE
+    // ======================
+    else if (type === 'PYTHON_TO_BLOCKS') {
+      pyodide.globals.set("user_code", code);
+
+      const resultJsonStr = await pyodide.runPythonAsync(`
+import json
+import sys
+
+if 'blockly_ast' in sys.modules:
+    del sys.modules['blockly_ast']
+
+try:
+    from blockly_ast import BlocklyASTConverter
+    converter = BlocklyASTConverter()
+    result = converter.convert(user_code)
+    output = json.dumps(result)
+except Exception as e:
+    output = json.dumps({"status": "error", "message": str(e)})
+
+output
+      `);
+
+      const resultData = JSON.parse(resultJsonStr);
+      self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
+    }
+
+    // ======================
+    // 3. RUN MODE
+    // ======================
+    else if (type === 'RUN_CODE') {
+
+      pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
+      pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
+
+      pyodide.globals.set("custom_input_sync", (prompt) => {
+        const safePrompt = prompt === undefined ? "" : String(prompt);
+        if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt });
+        self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: "" } });
+        const simulated = " [Simulated Input - Nested function limitation]";
+        self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
+        return simulated;
+      });
+
+      pyodide.globals.set("custom_input_async", async (prompt) => {
+        return new Promise((resolve) => {
+          inputResolve = (value) => {
+            isWaitingForInput = false;
+            resolve(value);
+          };
+          isWaitingForInput = true;
+          const safePrompt = prompt === undefined ? "" : String(prompt);
+          self.postMessage({
+            type: 'INPUT_REQUEST',
+            data: { prompt: safePrompt }
+          });
+        });
+      });
+
+      pyodide.globals.set("user_code", code);
+
+      executionTimeout = setTimeout(() => {
+        if (!isWaitingForInput) {
+          self.postMessage({
+            type: 'ERROR',
+            data: "Execution Prevented:\nRoot Cause: Infinite Loop detected.\nSuggestion: Check your loop conditions."
+          });
+        }
+      }, 3000);
+
+      await pyodide.runPythonAsync(`
+import builtins
+import sys
+import traceback
+import ast
+import json
+from collections import defaultdict
+from pyodide.code import eval_code_async
+
+builtins.input = custom_input_sync
+
+class LineExecutionProfiler:
+    def __init__(self):
+        self.hits = defaultdict(int)
+
+    def trace_lines(self, frame, event, arg):
+        if event == 'line':
+            if frame.f_code.co_filename == "<user_code>":
+                self.hits[frame.f_lineno] += 1
+        return self.trace_lines
+
+class AsyncInputTransformer(ast.NodeTransformer):
+    def __init__(self):
+        self.has_input = False
+
+    def visit_Call(self, node):
+        self.generic_visit(node)
+        if isinstance(node.func, ast.Name) and node.func.id == 'input':
+            self.has_input = True
+            new_func = ast.Name(id='custom_input_async', ctx=ast.Load())
+            new_call = ast.Call(func=new_func, args=node.args, keywords=node.keywords)
+            return ast.copy_location(ast.Await(value=new_call), node)
+        return node
+
+class InfiniteLoopDetector(ast.NodeVisitor):
+    def __init__(self):
+        self.warnings = []
+
+    def visit_While(self, node):
+        if isinstance(node.test, ast.Constant) and node.test.value is True:
+            has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
+            if not has_break:
+                self.warnings.append("Execution Prevented:\\nRoot Cause: 'while True' loop found with no 'break' or 'return'. This will run forever.")
+        else:
+            condition_vars = {n.id for n in ast.walk(node.test) if isinstance(n, ast.Name)}
+            if condition_vars:
+                modified_vars = set()
+                for child in node.body:
+                    for n in ast.walk(child):
+                        if isinstance(n, ast.Assign):
+                            for target in n.targets:
+                                if isinstance(target, ast.Name): modified_vars.add(target.id)
+                        elif isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
+                             modified_vars.add(n.target.id)
+
+                if not condition_vars.intersection(modified_vars):
+                    has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
+                    if not has_break:
+                        self.warnings.append(f"Execution Prevented:\\nRoot Cause: Variables {list(condition_vars)} control the loop, but are never modified inside it. This will run forever.")
+        self.generic_visit(node)
+
+globals()['run_hits_json'] = "{}"
+dyn_profiler = LineExecutionProfiler()
+
+try:
+    tree = ast.parse(user_code, filename="<user_code>")
+    
+    detector = InfiniteLoopDetector()
+    detector.visit(tree)
+    if detector.warnings:
+        raise Exception("\\n\\n".join(detector.warnings))
+
+    transformer = AsyncInputTransformer()
+    transformed = transformer.visit(tree)
+    ast.fix_missing_locations(transformed)
+
+    try:
+        if transformer.has_input:
+            compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
+            sys.settrace(dyn_profiler.trace_lines)
+            coro = eval(compiled_code, globals())
+            if coro is not None:
+                await coro
+        else:
+            compiled_code = compile(transformed, "<user_code>", "exec")
+            sys.settrace(dyn_profiler.trace_lines)
+            exec(compiled_code, globals())
+    finally:
+        sys.settrace(None)
+        globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
+
+except SyntaxError:
+    try:
+        compiled_code = compile(user_code, "<user_code>", "exec")
+        sys.settrace(dyn_profiler.trace_lines)
+        try:
+            exec(compiled_code, globals())
+        finally:
+            sys.settrace(None)
+            globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
+    except Exception:
+        print(traceback.format_exc(), file=sys.stderr)
+
+except Exception as e:
+    if "Execution Prevented" in str(e):
+        print(str(e), file=sys.stderr)
+    else:
+        print(traceback.format_exc(), file=sys.stderr)
+      `);
+
+      const countsStr = pyodide.globals.get("run_hits_json");
+      const counts = countsStr ? JSON.parse(countsStr) : {};
+
+      clearTimeout(executionTimeout);
+      self.postMessage({ type: 'RUN_RESULT', data: "", counts });
+    }
+
+  } catch (err) {
+    clearTimeout(executionTimeout);
+    if (type === 'ANALYZE_CODE') {
+      self.postMessage({
+        type: 'ANALYZE_RESULT',
+        data: { status: 'error', message: err.message }
+      });
+    } else {
+      self.postMessage({ type: 'ERROR', data: err.message });
+    }
+  }
+};
+
+--- FILE: frontend/src/workers/analyzerInstance.js ---
+
+// frontend/src/workers/analyzerInstance.js
+
+let sharedAnalyzerWorker = new Worker(
+    new URL('./analyzer.worker.js', import.meta.url),
+    { type: 'module' }
+);
+
+export const runCodeWithTimeout = (code, timeoutMs = 4000, onOutput, onError) => {
+    return new Promise((resolve) => {
+        let isFinished = false;
+
+        const timeoutId = setTimeout(() => {
+            if (!isFinished) {
+                isFinished = true;
+                
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
+                sharedAnalyzerWorker.terminate(); 
+                
+                onError("Execution Prevented:\nRoot Cause: Infinite Loop detected.\nSuggestion: Check your loop conditions.");
+                
+                // Resurrect a fresh worker for the next run
+                sharedAnalyzerWorker = new Worker(
+                    new URL('./analyzer.worker.js', import.meta.url),
+                    { type: 'module' }
+                );
+                
+                sharedAnalyzerWorker.postMessage({ type: 'INIT_ENGINE' });
+                resolve();
+            }
+        }, timeoutMs);
+
+        // FIX: Use addEventListener so we don't overwrite other active worker tasks
+        const messageHandler = (e) => {
+            const { type, data } = e.data;
+            
+            if (type === 'OUTPUT') {
+                onOutput(data);
+            } else if (type === 'ERROR') {
+                onError(data);
+            } else if (type === 'RUN_RESULT') {
+                isFinished = true;
+                clearTimeout(timeoutId);
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
+                resolve();
+            }
+        };
+
+        sharedAnalyzerWorker.addEventListener('message', messageHandler);
+        sharedAnalyzerWorker.postMessage({ type: 'RUN_CODE', code });
+    });
+};
+
+// NEW: Function to request AST parsing from the Web Worker
+export const convertPythonToBlocks = (code) => {
+    return new Promise((resolve) => {
+        const messageHandler = (e) => {
+            const { type, data } = e.data;
+            if (type === 'PYTHON_TO_BLOCKS_RESULT') {
+                sharedAnalyzerWorker.removeEventListener('message', messageHandler);
+                resolve(data);
+            }
+        };
+        
+        sharedAnalyzerWorker.addEventListener('message', messageHandler);
+        sharedAnalyzerWorker.postMessage({ type: 'PYTHON_TO_BLOCKS', code });
+    });
+};
+
+export { sharedAnalyzerWorker };
+
+
+--- FILE: frontend/vite.config.js ---
+
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      // 1. Force workbox to grab your template and activity JSONs
+      includeAssets: [
+        'templates/**/*.json', 
+        'activities/**/*.json',
+        'assets/**/*'
+      ],
+      workbox: {
+        maximumFileSizeToCacheInBytes: 15000000, // 15MB limit for Pyodide
+        // 2. Ensure JSON is in the manifest
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm,mjs,py,json}']
+      }
+    })
+  ],
+  // FIX: Route API requests from the frontend to the Python backend
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000', // Change to 5000 if using Flask
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
+})
+
+--- FILE: massive_payload.py ---
+
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+print("Hello")
+
+
+--- FILE: package-lock.json ---
+
+{
+  "name": "algoblocks-main-revised",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "dependencies": {
+        "localforage": "^1.10.0",
+        "react-icons": "^5.6.0"
+      }
+    },
+    "node_modules/immediate": {
+      "version": "3.0.6",
+      "resolved": "https://registry.npmjs.org/immediate/-/immediate-3.0.6.tgz",
+      "integrity": "sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==",
+      "license": "MIT"
+    },
+    "node_modules/lie": {
+      "version": "3.1.1",
+      "resolved": "https://registry.npmjs.org/lie/-/lie-3.1.1.tgz",
+      "integrity": "sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==",
+      "license": "MIT",
+      "dependencies": {
+        "immediate": "~3.0.5"
+      }
+    },
+    "node_modules/localforage": {
+      "version": "1.10.0",
+      "resolved": "https://registry.npmjs.org/localforage/-/localforage-1.10.0.tgz",
+      "integrity": "sha512-14/H1aX7hzBBmmh7sGPd+AOMkkIrHM3Z1PAyGgZigA1H1p5O5ANnMyWzvpAETtG68/dC4pC0ncy3+PPGzXZHPg==",
+      "license": "Apache-2.0",
+      "dependencies": {
+        "lie": "3.1.1"
+      }
+    },
+    "node_modules/react": {
+      "version": "19.2.5",
+      "resolved": "https://registry.npmjs.org/react/-/react-19.2.5.tgz",
+      "integrity": "sha512-llUJLzz1zTUBrskt2pwZgLq59AemifIftw4aB7JxOqf1HY2FDaGDxgwpAPVzHU1kdWabH7FauP4i1oEeer2WCA==",
+      "license": "MIT",
+      "peer": true,
+      "engines": {
+        "node": ">=0.10.0"
+      }
+    },
+    "node_modules/react-icons": {
+      "version": "5.6.0",
+      "resolved": "https://registry.npmjs.org/react-icons/-/react-icons-5.6.0.tgz",
+      "integrity": "sha512-RH93p5ki6LfOiIt0UtDyNg/cee+HLVR6cHHtW3wALfo+eOHTp8RnU2kRkI6E+H19zMIs03DyxUG/GfZMOGvmiA==",
+      "license": "MIT",
+      "peerDependencies": {
+        "react": "*"
+      }
+    }
+  }
+}
+
+--- FILE: package.json ---
+
+{
+  "dependencies": {
+    "localforage": "^1.10.0",
+    "react-icons": "^5.6.0"
+  }
+}
+
+--- FILE: vercel.json ---
+
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
+  ]
+}

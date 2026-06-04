@@ -6,12 +6,7 @@
   "difficulty": "Intermediate",
   "estimatedTime": "55 min",
   "prerequisites": "Fibonacci Optimization",
-  "tags": [
-    "dynamic programming",
-    "knapsack",
-    "optimization",
-    "dp matrix"
-  ],
+  "tags": ["dynamic programming", "knapsack", "optimization", "dp matrix"],
   "activities": [
     {
       "id": "m5_l3_a1",
@@ -39,94 +34,84 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "The 0/1 Knapsack Problem is one of the most famous applications of Dynamic Programming.\n\nThe problem focuses on optimal selection under constraints.\n\nSuppose a bag has a limited carrying capacity. We are given several items, each with a weight and a value.\n\nThe objective is to maximize total value without exceeding the bag's capacity.\n\nEach item can only be selected once, which is why the problem is called 0/1 Knapsack."
+      "content": "The **0/1 Knapsack Problem** is one of the most famous applications of Dynamic Programming involving optimal selection under constraints.\n\n* Suppose a bag (knapsack) has a strict weight capacity.\n* You are given several items, each with a specific `weight` and a specific `value`.\n* The objective is to **maximize total value** without exceeding the bag's capacity.\n* Each item can only be selected once (either 0 or 1 instances), which is why it is called \"0/1\" Knapsack.\n\nThink of it like packing a suitcase for a trip. You have limited space measured by a weight limit. Each item provides a specific usefulness/value to you. You cannot take fractional items (you either pack your laptop or you don't), and you cannot take an item more than once.\n\nThis problem is fundamental in computer science because it strictly models constrained decision-making, where **Greedy Algorithms fail** and full Dynamic Programming 2D matrices are required."
     },
     {
       "id": "why-knapsack-matters",
       "type": "concept",
       "title": "Why the Knapsack Problem Matters",
-      "content": "Many real-world systems involve limited resources and optimization constraints.\n\nExamples include investment planning, cargo loading, budget optimization, server resource allocation, and project selection.\n\nThe challenge is maximizing benefit while respecting capacity limitations.\n\nThe Knapsack Problem models this optimization challenge computationally.",
+      "content": "Many real-world systems involve strictly limited resources combined with optimization goals. You want to maximize a benefit without breaking a hard limit.\n\nApplications include:\n1.  **Investment Planning:** Choosing which stocks to buy with a fixed capital limit to maximize expected portfolio return.\n2.  **Logistics/Cargo:** Selecting which shipping containers to put on an airplane without exceeding takeoff weight limits.\n3.  **Budget Optimization:** Choosing which corporate projects to fund given a fixed annual budget to maximize overall profit.\n4.  **Server Allocation:** Assigning processing tasks to servers with capped CPU/memory capacity to maximize throughput.\n\nThe challenge is maximizing benefit while respecting limitations. Understanding the Knapsack algorithmic structure helps you design automated decision-making engines for all of these domains.",
       "bullets": [
-        "Demonstrates constrained optimization.",
-        "Teaches decision-making under limitations.",
-        "Introduces Dynamic Programming matrices.",
-        "Appears in many real-world optimization systems."
+        "Demonstrates complex **constrained optimization**.",
+        "Teaches multi-variable **decision-making under limitations**.",
+        "Introduces the foundational **2D Dynamic Programming matrix**.",
+        "Appears natively in **budgeting and logistics systems**."
       ]
     },
     {
       "id": "problem-setup",
       "type": "deep_dive",
       "title": "Problem Setup",
-      "content": "Suppose we have the following items:\n\nItem A → Weight = 1, Value = 15\nItem B → Weight = 3, Value = 20\nItem C → Weight = 4, Value = 30\n\nKnapsack capacity:\n4\n\nThe objective is to maximize total value without exceeding the weight limit."
+      "content": "Let us define the problem with concrete variables:\n* **Capacity (`W`):** The absolute maximum weight the knapsack can hold (e.g., `4`).\n* **Items:** Each has a `weight` and a `value`.\n    * `Item A`: weight `1`, value `15`\n    * `Item B`: weight `3`, value `20`\n    * `Item C`: weight `4`, value `30`\n\nPossible Selections:\n* Take only `Item C`. Weight = 4. Value = **30**.\n* Take `Item B`. Weight = 3. Value = **20**.\n* Take `Item A` & `Item B`. Weight = `1 + 3 = 4`. Value = `15 + 20` = **35**.\n\nThe optimal solution is to take `A` and `B` for a value of 35. Notice that the best combination is *not* simply picking the single item with the highest value (`C=30`). You must evaluate combined sets."
     },
     {
       "id": "why-greedy-fails",
       "type": "deep_dive",
       "title": "Why Greedy Selection Fails",
-      "content": "A common beginner instinct is selecting the item with the highest value first.\n\nSuppose we choose item C with value 30.\n\nAlthough this seems attractive locally, selecting items A and B together produces total value 35, which is better.\n\nThis demonstrates that local greedy decisions may fail globally.\n\nDynamic Programming solves this by efficiently exploring multiple combinations."
+      "content": "A common beginner instinct is to use a Greedy algorithm. You might try picking the highest value item first, or the item with the best value-to-weight ratio. **Greedy fails completely for 0/1 Knapsack.**\n\n* **Greedy by Highest Value:** If you pick `Item C` (Value=30, Weight=4), your remaining capacity is 0. Your final value is **30**. You missed the optimal `A+B` combo of **35**.\n* **Greedy by Ratio:** \n    * `Item C` ratio = 30/4 = 7.5\n    * `Item B` ratio = 20/3 = 6.66\n    * `Item A` ratio = 15/1 = 15\n    * Greedy by ratio picks `A` first (Weight=1, Cap=3 remaining). Next best ratio is `C` (doesn't fit). Next is `B` (Weight=3, Cap=0 remaining). In this specific instance ratio works, but it breaks easily on other datasets (e.g., if sizes prevent packing combinations cleanly).\n\nBecause items are discrete (0 or 1), greedy decisions trap the algorithm into wasting remaining capacity. DP solves this by safely tracking *all* possible optimal capacity utilization states."
     },
     {
       "id": "core-dp-idea",
       "type": "concept",
       "title": "Core Dynamic Programming Idea",
-      "content": "Dynamic Programming solves Knapsack by storing solutions to smaller capacity problems.\n\nInstead of repeatedly recalculating combinations, the algorithm remembers previously computed optimal values.\n\nThis allows larger optimal solutions to be built from smaller optimal subproblems."
+      "content": "Dynamic Programming solves the Knapsack problem by generating solutions for smaller, hypothetical knapsacks (sub-capacities) and building up to the true capacity `W`.\n\n* **Overlapping Subproblems:** The optimal packing configuration for \"capacity 3 using only items A and B\" will be referenced multiple times when deciding whether to add item C.\n* **Optimal Substructure:** The optimal solution for capacity `W` using items `0..i` inherently relies on the optimal solution for capacity `W - weight[i]` using items `0..i-1`.\n\nInstead of branching out into `O(2^n)` subsets recursively, DP uses a 2D matrix to record the best possible value for *every capacity from 0 to W*, factoring in one item at a time."
     },
     {
       "id": "dp-matrix",
       "type": "deep_dive",
       "title": "Understanding the DP Matrix",
-      "content": "The most important structure in Knapsack Dynamic Programming is the 2D matrix.\n\nRows represent items considered.\n\nColumns represent available knapsack capacities.\n\nEach matrix cell stores the maximum achievable value for that specific subproblem.\n\nThe matrix gradually fills row by row and capacity by capacity."
+      "content": "The central structure in Knapsack DP is the **2D Matrix (`dp[i][w]`)**.\n\n* **Rows (`i`):** Represent the items being considered (from 0 to `n`).\n* **Columns (`w`):** Represent the hypothetical knapsack capacities (from 0 to `W`).\n* **Cell Value:** `dp[i][w]` stores the absolute maximum value achievable using a subset of the *first `i` items* strictly constrained to *capacity `w`*.\n\n**Base Cases:**\n* `Row 0` (0 items available) = 0 value. Nothing to pack.\n* `Column 0` (0 capacity available) = 0 value. Nothing fits.\n\nAs you evaluate row `i`, you introduce one new item to the system. You decide mathematically if including this new item is superior to excluding it. The final answer rests in the bottom-right corner: `dp[n][W]`."
     },
     {
       "id": "dp-visualization",
       "type": "concept",
       "title": "DP Matrix Visualization",
-      "content": "Suppose the capacity is 4.\n\nThe DP table gradually fills using previous optimal values.\n\nEach row introduces a new item, while each column represents increasing capacity.\n\nThis transforms recursive optimization into structured table-based computation."
+      "content": "Let's trace the matrix for Capacity = 4, Items = A(w:1, v:15), B(w:3, v:20), C(w:4, v:30).\n\n1.  **Row 1 (Item A only):** Fits in all capacities `w >= 1`. Cells for `w=1` through `w=4` all get value `15`.\n2.  **Row 2 (Items A & B):** \n    * For `w=1`, `w=2`, B doesn't fit. Value remains `15` (copied from above).\n    * For `w=3`, B fits. Value `20` > `15`. Take `20`.\n    * For `w=4`, B fits. Value of B (`20`) + Best value for remaining `w=1` (which is A=`15`). Total `35`. Take `35`.\n3.  **Row 3 (Items A, B, & C):**\n    * For `w=4`, C fits. Value of C (`30`) + Best value for remaining `w=0` (`0`). Total `30`.\n    * Excluding C retains the value from above (`35`). \n    * `35 > 30`, so keep `35`.\n\nThe bottom right cell resolves to **35**."
     },
     {
       "id": "cell-decisions",
       "type": "deep_dive",
       "title": "Decision-Making Per DP Cell",
-      "content": "At every matrix cell, the algorithm decides whether to include or exclude the current item.\n\nOption 1 — Exclude the item:\nKeep the previous best value.\n\nOption 2 — Include the item:\nAdd the current item value plus the best value from the remaining capacity.\n\nThe algorithm selects the larger result between these two choices."
+      "content": "At every matrix cell `dp[i][w]`, the algorithm asks one binary question: **Include or Exclude the current item?**\n\n* **Option 1: Exclude.** We don't pack item `i`. The maximum value is simply whatever the best value was for the same capacity `w` using only the previous items `i-1`. \n    * Value = `dp[i-1][w]` (the cell directly above).\n* **Option 2: Include.** We pack item `i` (only allowed if `weight[i] <= w`). We gain `value[i]`, but we consume `weight[i]` capacity. We must add `value[i]` to the best optimal packing of the *remaining* capacity `w - weight[i]` using previous items.\n    * Value = `value[i] + dp[i-1][w - weight[i]]`.\n\nThe algorithm executes a pure `max()` check between Option 1 and Option 2."
     },
     {
       "id": "recurrence-relation",
       "type": "concept",
       "title": "Knapsack Recurrence Relation",
-      "content": "The mathematical core of Knapsack Dynamic Programming becomes:\n\ndp[i][w] = max(\n    dp[i-1][w],\n    value[i] + dp[i-1][w-weight[i]]\n)\n\nThis recurrence drives the optimization process by comparing inclusion and exclusion choices."
+      "content": "The mathematical core of Knapsack Dynamic Programming is this recurrence relation:\n\n**If the item fits (`weight[i] <= w`):**\n`dp[i][w] = max(dp[i-1][w], value[i] + dp[i-1][w - weight[i]])`\n\n**If the item does NOT fit (`weight[i] > w`):**\n`dp[i][w] = dp[i-1][w]`\n\nThis recurrence drives the optimization process safely and reliably, comparing the \"skip it\" path against the \"take it\" path at every sub-capacity tier."
     },
     {
       "id": "step-by-step-example",
       "type": "deep_dive",
-      "title": "Step-by-Step Example",
-      "content": "Suppose the capacity is 4.\n\nFirst, process item A with weight 1 and value 15.\n\nNext, process item B with weight 3 and value 20.\n\nAt capacity 4, the algorithm compares:\n\nExclude B → value 15\nInclude B → 20 + 15 = 35\n\nThe algorithm chooses 35.\n\nFinally, processing item C shows that value 35 remains optimal.\n\nThe final solution becomes selecting items A and B."
+      "title": "Backtracking: Finding Which Items Were Selected",
+      "content": "The bottom right cell `dp[n][W]` tells you the *maximum value*, but it doesn't immediately tell you *which items* you packed. To find the items, you trace back from `dp[n][W]`.\n\n1.  Start at `i = n, w = W`.\n2.  Compare `dp[i][w]` to the cell above it `dp[i-1][w]`.\n3.  **If they are the SAME:** Item `i` was NOT included. Move UP to `i = i-1`.\n4.  **If they are DIFFERENT:** Item `i` WAS included. Record Item `i`, subtract its weight from `w` (`w = w - weight[i]`), and move UP to `i = i-1`.\n5.  Repeat until `i == 0` or `w == 0`.\n\nFor our example matrix ending in `35`:\n* `dp[3][4] == 35`. Cell above `dp[2][4] == 35`. They match. Item C was skipped.\n* `dp[2][4] == 35`. Cell above `dp[1][4] == 15`. Different! Item B was packed. `w` becomes `4 - 3 = 1`.\n* `dp[1][1] == 15`. Cell above `dp[0][1] == 0`. Different! Item A was packed.\n* Packed Items: **A and B**."
     },
     {
       "id": "pseudocode-pattern",
       "type": "concept",
-      "title": "Knapsack Pseudocode Pattern",
-      "content": "The algorithm processes every item and every capacity.\n\nIf the item weight fits within the current capacity, the algorithm compares inclusion and exclusion results.\n\nOtherwise, the previous best value is copied.\n\nThis repeated matrix transition is the heart of Knapsack Dynamic Programming."
+      "title": "Knapsack Loop Structure",
+      "content": "The algorithm processes the matrix using nested standard loops:\n\n1.  **Outer Loop:** Iterates over items `i` from `1` to `n`.\n2.  **Inner Loop:** Iterates over capacities `w` from `0` to `W`.\n3.  **Condition:** Check if `weight[i-1] <= w`.\n4.  **Max Logic:** Apply the recurrence relation to set `dp[i][w]`.\n\nThis simple `O(n * W)` loop guarantees that every required subproblem is solved before it is needed by a larger subproblem."
     },
     {
       "id": "implementation",
       "type": "concept",
       "title": "Python Implementation",
-      "content": "Knapsack implementations commonly use a 2D Dynamic Programming matrix to store optimal intermediate results.",
+      "content": "The 2D Dynamic Programming implementation uses nested lists in Python. \n\n* We create `dp = [[0] * (capacity + 1) for _ in range(n + 1)]`.\n* We use zero-indexing for the `weights` and `values` lists (`i-1`), while mapping `1` through `n` to the DP matrix rows.\n* Because `w` represents the raw capacity integer, we can use it directly as an index.",
       "codeSnippets": [
         {
           "title": "0/1 Knapsack implementation",
           "language": "python",
-          "code": "weights = [1, 3, 4]\nvalues = [15, 20, 30]\ncapacity = 4\nn = len(weights)\n\ndp = [[0 for _ in range(capacity + 1)]\nfor _ in range(n + 1)]\n\nfor i in range(1, n + 1):\n    for w in range(capacity + 1):\n        if weights[i - 1] <= w:\n            include = values[i - 1] + \\\n            dp[i - 1][w - weights[i - 1]]\n\n            exclude = dp[i - 1][w]\n\n            dp[i][w] = max(include, exclude)\n        else:\n            dp[i][w] = dp[i - 1][w]\n\nprint(dp[n][capacity])"
-        },
-        {
-          "title": "Simple inclusion vs exclusion example",
-          "language": "python",
-          "code": "include = 20 + 15\nexclude = 30\n\nprint(max(include, exclude))"
-        },
-        {
-          "title": "Create an empty DP matrix",
-          "language": "python",
-          "code": "rows = 4\ncols = 5\n\ndp = [[0 for _ in range(cols)]\nfor _ in range(rows)]\n\nfor row in dp:\n    print(row)"
+          "code": "weights = [1, 3, 4]\nvalues = [15, 20, 30]\ncapacity = 4\nn = len(weights)\n\n# Initialize DP matrix\ndp = [[0 for _ in range(capacity + 1)] for _ in range(n + 1)]\n\nfor i in range(1, n + 1):\n    for w in range(capacity + 1):\n        if weights[i - 1] <= w:\n            include = values[i - 1] + dp[i - 1][w - weights[i - 1]]\n            exclude = dp[i - 1][w]\n            dp[i][w] = max(include, exclude)\n        else:\n            dp[i][w] = dp[i - 1][w]\n\nprint(\"Maximum Value:\", dp[n][capacity])"
         }
       ]
     },
@@ -134,30 +119,26 @@
       "id": "complexity-analysis",
       "type": "deep_dive",
       "title": "Complexity Analysis",
-      "content": "The algorithm fills every DP matrix cell once.\n\nIf there are n items and capacity W, the matrix contains n × W subproblems.\n\nThis produces O(n × W) time complexity and O(n × W) space complexity.\n\nDynamic Programming transforms exponential brute-force combinations into scalable polynomial-time optimization.",
+      "content": "The algorithm processes every sub-capacity for every item.\n\n* **Time Complexity:** `O(n * W)`, where `n` is the number of items and `W` is the knapsack capacity. \n* **Space Complexity:** `O(n * W)` for the full 2D DP matrix. (This can technically be space-optimized to `O(W)` by keeping only the two most recent rows, as row `i` only ever checks row `i-1`).\n\nIs `O(n * W)` polynomial? Technically, it is **Pseudo-Polynomial** because it scales based on the numeric value of `W` rather than the size of the input elements. \n\nHowever, compared to the brute force `O(2^n)` subset generation, DP is miraculous. For `n=40`, brute force tests 1 trillion combinations. If `W` is 1000, DP performs just 40,000 checks—transforming an impossible lifetime computation into a millisecond task.",
       "chart": {
         "title": "Knapsack DP optimization",
         "description": "Dynamic Programming transforms exponential recursive combination search into structured polynomial-time optimization.",
         "maxN": 32,
         "normalize": true,
-        "curves": [
-          "O(n)",
-          "O(n^2)",
-          "O(2^n)"
-        ]
+        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
       }
     },
     {
       "id": "why-knapsack-uses-dp",
       "type": "concept",
-      "title": "Why Knapsack Uses Dynamic Programming",
-      "content": "The Knapsack Problem contains overlapping subproblems and optimal substructure.\n\nWithout Dynamic Programming, recursive combinations become exponentially expensive.\n\nDP avoids repeated computation by storing optimal intermediate results.\n\nThis transforms impractical brute-force search into efficient optimization."
+      "title": "Why Knapsack Strictly Requires DP",
+      "content": "The Knapsack Problem sits mathematically right on the boundary where greedy techniques fail, forcing DP.\n\n* **Greedy fails:** Because items cannot be fractionally divided (you can't take 50% of a laptop), packing a high-value bulky item might leave small amounts of wasted, unfillable space.\n* **Overlapping Subproblems:** Computing the best loadout for \"15 pounds remaining\" happens repeatedly when testing different combinations of earlier items.\n* **Optimal Substructure:** The optimal 50-pound loadout containing a 10-pound item fundamentally relies on finding the perfect 40-pound loadout among the remaining items.\n\nDP evaluates *both* sides of the binary inclusion split (take it or leave it) and caches the results, completely shielding against greedy traps while avoiding exponential tree bloat."
     },
     {
       "id": "real-world-applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Knapsack optimization appears in cargo loading, investment planning, cloud resource allocation, portfolio management, manufacturing systems, advertisement selection, and budget optimization.\n\nMany business optimization systems use knapsack-style decision modeling."
+      "content": "Knapsack algorithms are deployed in any system with a strict \"budget\" ceiling:\n\n* **Cloud Computing:** Assigning Virtual Machines (VMs) to physical server racks based on CPU limits to maximize client throughput.\n* **Advertising Tech:** Selecting which targeted ads to bid on given a specific programmatic daily budget ceiling to maximize conversion rates.\n* **Shipping & Logistics:** Loading Amazon delivery trucks with boxes of varying sizes to maximize delivery value per trip.\n* **Fantasy Sports:** Drafting optimal Daily Fantasy rosters while staying under the team salary cap."
     },
     {
       "id": "misconceptions",
@@ -167,17 +148,17 @@
         {
           "id": "greedy-knapsack",
           "title": "Mistake: Using greedy selection for 0/1 Knapsack",
-          "content": "Greedy selection does not always produce optimal answers for 0/1 Knapsack."
+          "content": "Greedy value/weight ratios do not produce optimal answers for 0/1 Knapsack because discrete shapes trap wasted space. You must evaluate the full DP matrix."
         },
         {
           "id": "fractional-confusion",
           "title": "Mistake: Confusing 0/1 Knapsack with Fractional Knapsack",
-          "content": "0/1 Knapsack only allows complete selection or rejection of items, while Fractional Knapsack allows partial selection."
+          "content": "0/1 Knapsack only allows complete selection or complete rejection. **Fractional Knapsack** allows taking 30% of an item (like loose gold dust), and for Fractional Knapsack, a Greedy value-to-weight ratio *does* mathematically work perfectly."
         },
         {
           "id": "matrix-meaning",
-          "title": "Mistake: Misunderstanding DP matrix meaning",
-          "content": "Each DP cell represents the best achievable value for a specific subproblem."
+          "title": "Mistake: Misunderstanding the DP matrix meaning",
+          "content": "Cell `dp[i][w]` does *not* mean you MUST use item `i`. It means you are evaluating the absolute best loadout selecting from *any* of the items `0` through `i`."
         }
       ]
     },
@@ -186,12 +167,12 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "The 0/1 Knapsack Problem focuses on optimal selection under constraints.",
-        "Each item can either be selected or skipped.",
-        "Greedy selection does not always work correctly.",
-        "Dynamic Programming stores optimal subproblem solutions.",
-        "The DP matrix represents capacities and item decisions.",
-        "Knapsack optimization demonstrates powerful DP reasoning."
+        "0/1 Knapsack focuses on optimal discrete selection under a **hard constraint**.",
+        "Items must be taken entirely (1) or left entirely (0).",
+        "**Greedy selection fails** because discrete sizes trap wasted capacity.",
+        "Dynamic Programming uses a **2D matrix** to test all sub-capacities.",
+        "The recurrence chooses `max(exclude_item, include_item)`.",
+        "The algorithm runs in **`O(n * W)` time**, saving it from `O(2^n)` exponential death."
       ]
     }
   ],
@@ -209,8 +190,8 @@
       "url": "https://en.wikipedia.org/wiki/Knapsack_problem"
     },
     {
-      "title": "MIT OpenCourseWare - Dynamic Programming",
-      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
+      "title": "Kleinberg, J., & Tardos, E. (2005). Algorithm Design. Pearson Education.",
+      "url": "https://www.pearson.com/en-us/subject-catalog/p/algorithm-design/P200000003348/9780321295354"
     }
   ]
 }
