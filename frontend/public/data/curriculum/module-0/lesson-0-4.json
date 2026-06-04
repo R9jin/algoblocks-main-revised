@@ -107,6 +107,11 @@
           "id": "arr-off-by-one",
           "title": "Catching Index Errors",
           "content": "Common bugs like **off-by-one errors** become obvious. If you try to access index 5 in an array with only 5 items, the visualizer will show that index 5 does not exist, helping you catch the error immediately."
+        },
+        {
+          "id": "arr-defensive-programming",
+          "title": "Defensive Programming",
+          "content": "Use the memory visualizer to observe what happens when an algorithm is fed an empty array `[]`. If your code immediately tries to access the first item of an empty list, it will crash because that memory index doesn't exist. To prevent this, always practice **Defensive Programming**. Teach yourself to build an 'Edge Case Check' at the very top of your functions (e.g., *If length of array == 0, return...*). This ensures your code safely halts before executing invalid memory operations."
         }
       ]
     },
@@ -135,6 +140,24 @@
           "id": "cs-overflow",
           "title": "Stack Overflow",
           "content": "Each recursive frame has its own independent `n` value. When the **base case** is reached, frames pop off in reverse order. If your recursion logic is broken and never reaches the base case, you will see frames piling up endlessly in the visualizer—this is what causes a **Stack Overflow** bug!"
+        },
+        {
+          "id": "cs-variable-scoping",
+          "title": "Variable Scoping: Local vs. Global",
+          "content": "When writing recursive algorithms, variable scoping is critical. Variables created generically in the workspace might act as global variables, meaning deeper recursive calls will overwrite the data of higher calls. To prevent stack frames from corrupting each other, it is vital to use **local function parameters** to safely isolate your data within each specific level of recursion."
+        }
+      ]
+    },
+    {
+      "id": "state-tracking",
+      "type": "concept",
+      "title": "State Tracking & Rollback",
+      "content": "Advanced algorithms, such as Backtracking, heavily rely on a pattern known as **'choose, explore, unchoose'**. Because memory persists, if you append an item to a list to test a potential path, you must remember to undo that action when exploring alternative routes.",
+      "subsections": [
+        {
+          "id": "st-rollback",
+          "title": "The Importance of Popping",
+          "content": "If you add an element to an array before making a recursive call (the 'choose' phase), you must explicitly `pop()` it off the list immediately after the recursive call finishes (the 'unchoose' phase). The Memory Visualizer is the perfect tool to verify that your arrays are correctly rolling back to their previous states rather than accumulating incorrect guesses."
         }
       ]
     },

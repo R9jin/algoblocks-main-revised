@@ -1,6 +1,6 @@
 # Configuration
 $outputPrefix = "Project_Code_Snapshot_Part_"
-$numParts = 5
+$numParts = 10
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 Write-Host "Gathering files and splitting into $numParts parts... please wait." -ForegroundColor Cyan

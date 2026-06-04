@@ -31,13 +31,84 @@ function formatText(text) {
   });
 }
 
+// FIXED: Now properly handles single \n characters to preserve bullet point lists
 function renderParagraphs(content, className = "lesson-section-content") {
   if (!content) return null;
+
   return (
     <div className={className}>
-      {content.split("\n\n").map((paragraph, index) => (
-        <p key={index}>{formatText(paragraph)}</p>
-      ))}
+      {content.split("\n\n").map((paragraph, index) => {
+        const lines = paragraph.split("\n");
+
+        // Check if any line in this paragraph block starts with a bullet (* or -)
+        const hasBullets = lines.some(
+          (line) =>
+            line.trim().startsWith("* ") || line.trim().startsWith("- "),
+        );
+
+        // If no bullets, render normally with line breaks
+        if (!hasBullets) {
+          return (
+            <p key={index}>
+              {lines.map((line, lineIndex) => (
+                <span key={lineIndex}>
+                  {formatText(line)}
+                  {lineIndex !== lines.length - 1 && <br />}
+                </span>
+              ))}
+            </p>
+          );
+        }
+
+        // If bullets exist, group them into an actual <ul> HTML list
+        const elements = [];
+        let currentList = [];
+
+        lines.forEach((line, i) => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+            // Remove the asterisk/dash and push to the active list
+            currentList.push(
+              <li key={`li-${i}`}>
+                {formatText(trimmed.substring(2).trim())}
+              </li>,
+            );
+          } else {
+            // If we hit regular text, render any accumulated bullets first
+            if (currentList.length > 0) {
+              elements.push(
+                <ul key={`ul-${i}`} className="lesson-bullet-list">
+                  {currentList}
+                </ul>,
+              );
+              currentList = []; // Reset list tracker
+            }
+            // Add the normal text line
+            elements.push(
+              <span key={`span-${i}`}>
+                {formatText(line)}
+                <br />
+              </span>,
+            );
+          }
+        });
+
+        // Catch any trailing list items at the end of the block
+        if (currentList.length > 0) {
+          elements.push(
+            <ul key="ul-end" className="lesson-bullet-list">
+              {currentList}
+            </ul>,
+          );
+        }
+
+        // Return a div (instead of p) because nesting <ul> inside <p> is invalid HTML
+        return (
+          <div key={index} style={{ marginBottom: "1em" }}>
+            {elements}
+          </div>
+        );
+      })}
     </div>
   );
 }

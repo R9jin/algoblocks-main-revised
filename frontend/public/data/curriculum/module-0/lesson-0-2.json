@@ -110,6 +110,11 @@
           ]
         },
         {
+          "id": "loops-pointer-paradigm",
+          "title": "The Pointer Paradigm",
+          "content": "As you advance, you must often transition from automatic For-Each loops to manual state manipulation. Using a **While loop** combined with custom variables (like `left` and `right` pointers) allows you to traverse arrays from both ends simultaneously. This manual control is a fundamental technique for writing optimized algorithms."
+        },
+        {
           "id": "loops-pitfalls",
           "title": "Common Pitfalls to Avoid",
           "content": "When working with loops, beginners frequently encounter two major logical errors:",
@@ -182,6 +187,11 @@
           "id": "arr-iteration",
           "title": "Iterating Through Arrays",
           "content": "Arrays and Loops are best friends. The most common algorithmic pattern is combining a **'For-Each' loop** with an Array to **iterate** (travel through) the data. This allows you to inspect, modify, or print every single item inside the collection automatically."
+        },
+        {
+          "id": "arr-advanced-structures",
+          "title": "Advanced Structures: 2D Matrices and Hash Sets",
+          "content": "As you build more complex algorithms, you will need structures beyond a standard 1D list. A **2D Matrix** is simply an \"Array of Arrays\" used for grid traversal and mapping coordinates. Additionally, **Hash Sets and Dictionaries** act as \"Key-Value Boxes.\" They are incredibly useful for optimization because they enable instant $O(1)$ lookups, allowing you to replace slow nested $O(n)$ loops."
         }
       ]
     },

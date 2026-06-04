@@ -159,6 +159,34 @@
       ]
     },
     {
+      "id": "python-to-blocks",
+      "type": "concept",
+      "title": "Translating Python to Blocks",
+      "content": "Throughout this curriculum, you will see algorithms explained using standard Python code snippets. However, you will build your actual solutions using visual blocks in the workspace. To bridge this gap, here is a direct mapping key to help you translate text syntax into your visual toolbox:",
+      "subsections": [
+        {
+          "id": "translate-functions",
+          "title": "Defining Functions",
+          "content": "When you see `def my_function():` in a Python snippet, you should open the **Procedures/Functions** toolbox and use the block labeled `to [do] something`."
+        },
+        {
+          "id": "translate-loops",
+          "title": "Iterating with Loops",
+          "content": "When you see `for i in range(n):` in a Python snippet, you should open the **Loops** toolbox and use the block labeled `count with i from 0 to n`."
+        },
+        {
+          "id": "translate-arrays",
+          "title": "Appending to Arrays",
+          "content": "When you see `arr.append(x)` in a Python snippet, you should open the **Arrays** toolbox and use the block labeled `in list [arr] insert at end [x]`."
+        },
+        {
+          "id": "translate-dictionaries",
+          "title": "Using Hash Maps",
+          "content": "When you see `hash_map[key] = value` in a Python snippet, you should open the **Dictionary** toolbox and use the block labeled `set key in dictionary`."
+        }
+      ]
+    },
+    {
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",

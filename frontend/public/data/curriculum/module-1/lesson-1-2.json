@@ -329,6 +329,11 @@
           "id": "log-means-tiny",
           "title": "Misconception: O(log n) means no real work",
           "content": "Logarithmic algorithms still perform work. For `n=1 million`, log base 2 of `n` is about 20, meaning 20 operations. That is tiny, but it is not zero. The work is minimal and scales beautifully, but it still exists."
+        },
+        {
+          "id": "single-blocks-o1",
+          "title": "Misconception: Single Blocks always mean O(1) time",
+          "content": "In visual programming environments, it is easy to assume that a single block executes in constant time. However, blocks like 'Find item in Array' or 'List Count' hide internal **O(n)** loops. If you place a 'Find' block inside a standard 'For' loop, you are silently creating an **O(n²)** bottleneck. Always consider the hidden algorithmic costs of the blocks you drag into your workspace."
         }
       ]
     },

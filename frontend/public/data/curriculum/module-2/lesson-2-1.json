@@ -6,7 +6,7 @@
   "difficulty": "Beginner",
   "estimatedTime": "35 min",
   "prerequisites": "Space Complexity",
-  "tags": ["brute force", "searching", "algorithm strategies"],
+  "tags": ["brute force", "searching", "algorithm strategies", "backtracking"],
   "activities": [
     {
       "id": "m2_l1_a1",
@@ -100,6 +100,12 @@
         "normalize": true,
         "curves": ["O(n)", "O(n^2)", "O(2^n)"]
       }
+    },
+    {
+      "id": "backtracking-smart-brute-force",
+      "type": "deep_dive",
+      "title": "Backtracking: Smart Brute Force",
+      "content": "While traditional brute force generates every possible candidate at once, this approach can easily crash or run out of memory on complex problems like N-Queens or generating a Power Set. To solve these problems efficiently, we use a strategy called **Backtracking**.\n\nBacktracking is a form of \"smart brute force\" that **builds candidates one step at a time** and abandons a path (backtracks) the moment it realizes it cannot lead to a valid solution. Instead of generating a massive set of complete (but invalid) possibilities only to reject them later, backtracking prunes the search space as soon as a condition fails.\n\nMechanically, backtracking follows a classic **\"choose, explore, unchoose\"** pattern. You choose an option, recursively explore that path to see if it leads to a solution, and if it hits a dead end, you unchoose the option (stepping back) to try the next possibility. This makes backtracking a powerful, memory-efficient way to exhaustively search for answers without crashing your system."
     },
     {
       "id": "complexity-analysis",
