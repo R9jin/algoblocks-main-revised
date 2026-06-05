@@ -1184,7 +1184,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 
                 if is_appending_list and len(self.loop_stack) > 0:
                     self.max_space_weight = max(self.max_space_weight, 2)
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append Row")
+                    sp_str = "O(n * m)" if "n * m" in self.max_poly_str else "O(n^2)"
+                    self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override=sp_str, custom_op="Append Row")
                     self.generic_visit(node)
                     self.in_accumulation_context = prev_acc
                     return
@@ -1488,7 +1489,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def get_final_space_badge(self):
         rankings = {
-            "O(n^n)": 8, "O(n^d)": 8, "O(n!)": 8, "O(2^n)": 7.5, "O(n^3)": 7, "O(n^2 log n)": 6.5, "O(n^2)": 6, "O(n log n)": 5, 
+            "O(n^n)": 8, "O(n^d)": 8, "O(n!)": 8, "O(2^n)": 7.5, "O(n^3)": 7, "O(n^2 log n)": 6.5, "O(n * m)": 6.1, "O(n^2)": 6, "O(n log n)": 5, 
             "O(V + E)": 4.5, "O(V)": 4.2, "O(n)": 4, "O(log n)": 3, "O(1)": 1
         }
         
@@ -1506,7 +1507,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if self.max_space_weight >= 5: top_s = "O(n^n)"
         elif self.max_space_weight >= 4: top_s = "O(n^3)"
         elif self.max_space_weight >= 3: top_s = "O(V + E)"
-        elif self.max_space_weight >= 2: top_s = "O(n^2)"
+        elif self.max_space_weight >= 2: top_s = "O(n * m)" if "n * m" in self.max_poly_str else "O(n^2)"
         elif self.max_space_weight >= 1: top_s = "O(n)"
         elif self.max_space_weight >= 0.5: top_s = "O(log n)"
         all_spaces.append(top_s)
@@ -1514,9 +1515,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for s in all_spaces:
             if "C(n,k)" in s or "4^n" in s:
                 s = "O(n)"
-            elif "n * m" in s:
-                s = "O(n^2)"
-            elif any(x in s for x in ["n + m", "n1", "n2", "k"]) and s != "O(1)":
+            elif any(x in s for x in ["n + m", "n1", "n2", "k"]) and s != "O(1)" and "m" not in s:
                 s = "O(n)"
                 
             for key, rank in rankings.items():

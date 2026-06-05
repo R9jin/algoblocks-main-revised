@@ -445,6 +445,10 @@ export default function MainApp() {
     onConfirmAction: null,
   });
 
+  // Added Custom Resizer States 
+  const [panelHeight, setPanelHeight] = useState(300);
+  const isDragging = useRef(false);
+
   // Custom internal navigation blocker state
   const [leaveModal, setLeaveModal] = useState({
     isOpen: false,
@@ -491,6 +495,36 @@ export default function MainApp() {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const toggleLine = (index) =>
     setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
+
+  // Resize Hooks
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging.current) return;
+      const newHeight = window.innerHeight - e.clientY - 48; // Adjust relative to footer
+      if (newHeight >= 150 && newHeight <= window.innerHeight - 150)
+        setPanelHeight(newHeight);
+    };
+    const handleMouseUp = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      document.body.style.cursor = "default";
+      document.body.style.userSelect = "auto";
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const handleDragStart = (e) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = "ns-resize";
+    document.body.style.userSelect = "none";
+  };
+
 
   // --- REQ-6 Experimental Mode Navigation Blocker ---
   const latestTabsRef = useRef(tabs);
@@ -539,7 +573,6 @@ export default function MainApp() {
       }
     };
 
-    // FIX: Tightly scoped click interceptor
     const handleGlobalClick = (e) => {
       if (isNavigatingAwayRef.current) return;
 
@@ -1062,7 +1095,6 @@ export default function MainApp() {
     isEngineReady,
   ]);
 
-  // --- FIX: Prevent Sync To Blocks Execution if Syntax Is Broken ---
   const handleSyncToBlocks = async () => {
     const hasErrors =
       activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
@@ -1625,7 +1657,7 @@ export default function MainApp() {
           X
         </button>
       </div>
-      <div className="panel-body">
+      <div className="panel-body" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "hidden" }}>
         {bottomPanel === "console" ? (
           <div
             className="console-content-wrapper"
@@ -1660,9 +1692,9 @@ export default function MainApp() {
                 </button>
               )}
             </div>
-            <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+            <div style={{ flex: 1, overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" }}>
               {consoleTab === "output" ? (
-                <div className="console-container">
+                <div className="console-container" style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
                   <pre className="console-output">{consoleOutput}</pre>
                   {isWaitingForInput && (
                     <div className="console-input-line">
@@ -1764,7 +1796,7 @@ export default function MainApp() {
             </div>
           </div>
         ) : (
-          <div className="complexity-content">
+          <div className="complexity-content" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
             <div className="complexity-tabs">
               <div className="tab-btn-group">
                 <button
@@ -1854,7 +1886,7 @@ export default function MainApp() {
                 />
               </div>
             ) : (
-              <div className="complexity-table-wrapper">
+              <div className="complexity-table-wrapper" style={{ flex: 1, overflowY: "auto" }}>
                 <table className="complexity-table">
                   <thead>
                     <tr>
@@ -2427,49 +2459,48 @@ export default function MainApp() {
             </button>
           </div>
 
-          <div className="editor-split-vertical">
-            {bottomPanel ? (
-              <Split
-                direction="vertical"
-                sizes={[65, 35]}
-                minSize={[200, 100]}
-                gutterSize={8}
-                className="workspace-vertical-split"
+          <div className="editor-split-vertical" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+            <div
+              className="editor-container"
+              style={{
+                flex: 1,
+                height: "100%",
+                position: "relative",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column"
+              }}
+            >
+              {renderEditorArea()}
+            </div>
+            
+            {bottomPanel && (
+              <div
+                className="bottom-docked-panel"
                 style={{
-                  flex: 1,
+                  height: `${panelHeight}px`,
                   display: "flex",
                   flexDirection: "column",
-                  overflow: "hidden",
+                  backgroundColor: "#1C1236",
+                  borderTop: "1px solid #3A2A6B",
+                  zIndex: 10
                 }}
               >
                 <div
-                  className="editor-container"
-                  style={{ position: "relative", overflow: "hidden" }}
-                >
-                  {renderEditorArea()}
-                </div>
-                <div
-                  className="bottom-docked-panel"
+                  className="panel-resizer"
+                  onMouseDown={handleDragStart}
                   style={{
+                    height: "10px",
+                    cursor: "ns-resize",
                     display: "flex",
-                    height: "100%",
-                    overflow: "hidden",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: "#2D234A"
                   }}
                 >
-                  {renderBottomPanelContent()}
+                  <div style={{ width: "40px", height: "4px", backgroundColor: "#6C5CE7", borderRadius: "2px" }}></div>
                 </div>
-              </Split>
-            ) : (
-              <div
-                className="editor-container"
-                style={{
-                  flex: 1,
-                  height: "100%",
-                  position: "relative",
-                  overflow: "hidden",
-                }}
-              >
-                {renderEditorArea()}
+                {renderBottomPanelContent()}
               </div>
             )}
           </div>
