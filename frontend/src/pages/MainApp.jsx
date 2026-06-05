@@ -1,7 +1,11 @@
 // frontend/src/pages/MainApp.jsx
 import DOMPurify from "dompurify";
 import React, { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import {
+  UNSAFE_NavigationContext as NavigationContext,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
@@ -361,6 +365,16 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     .filter(Boolean);
 };
 
+// --- FIX: Clean invisible characters immediately on paste ---
+const sanitizePythonCode = (code) => {
+  if (!code) return "";
+  // Replaces all weird unicode spaces (like non-breaking spaces \xa0) with a standard space
+  return code.replace(
+    /[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g,
+    " ",
+  );
+};
+
 const getToken = () =>
   localStorage.getItem("token") ||
   sessionStorage.getItem("token") ||
@@ -381,6 +395,7 @@ const getAuthHeaders = () => {
 export default function MainApp() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { navigator } = React.useContext(NavigationContext);
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
   const { worker, isEngineReady, resetWorker } = usePyodide();
@@ -421,7 +436,6 @@ export default function MainApp() {
   const [expandedLines, setExpandedLines] = useState({});
 
   const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
-
   const [allTemplates, setAllTemplates] = useState([]);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [modalConfig, setModalConfig] = useState({
@@ -433,11 +447,8 @@ export default function MainApp() {
     onConfirmAction: null,
   });
 
-  // Custom navigation blocker state
-  const [leaveModal, setLeaveModal] = useState({
-    isOpen: false,
-    targetPath: null,
-  });
+  // Custom internal navigation blocker state (Fixes bypass bug)
+  const [leaveModal, setLeaveModal] = useState({ isOpen: false, tx: null });
   const isNavigatingAwayRef = useRef(false);
 
   const [saveModal, setSaveModal] = useState({
@@ -479,14 +490,36 @@ export default function MainApp() {
   const toggleLine = (index) =>
     setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
-  // --- REQ-6 Custom Experimental Mode Navigation Interceptor ---
+  // --- REQ-6 Experimental Mode Navigation Blocker ---
   const latestTabsRef = useRef(tabs);
   useEffect(() => {
     latestTabsRef.current = tabs;
   }, [tabs]);
 
+  // Hook into React Router v6's internal history engine
   useEffect(() => {
-    // 1. Trap Hard Refresh / Tab Close
+    if (!navigator || !navigator.block) return;
+    const unblock = navigator.block((tx) => {
+      const hasUnsavedChanges = latestTabsRef.current.some((t) => {
+        const hasCode =
+          t.pythonCode &&
+          t.pythonCode !== "# Drag blocks to generate Python code";
+        const hasBlocks =
+          t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
+        return hasCode || hasBlocks || t.isEditingCode;
+      });
+
+      if (hasUnsavedChanges && !isNavigatingAwayRef.current) {
+        setLeaveModal({ isOpen: true, tx });
+      } else {
+        tx.retry();
+      }
+    });
+    return unblock;
+  }, [navigator]);
+
+  // Hook into Browser Native Events (Tab closing, F5 Refresh)
+  useEffect(() => {
     const handleBeforeUnload = (e) => {
       const hasUnsavedChanges = latestTabsRef.current.some((t) => {
         const hasCode =
@@ -504,90 +537,19 @@ export default function MainApp() {
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    // 2. Trap the Browser Back Button
-    window.history.pushState(null, null, window.location.pathname);
-    const handlePopState = (e) => {
-      if (isNavigatingAwayRef.current) return;
-
-      const hasUnsavedChanges = latestTabsRef.current.some((t) => {
-        const hasCode =
-          t.pythonCode &&
-          t.pythonCode !== "# Drag blocks to generate Python code";
-        const hasBlocks =
-          t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
-        return hasCode || hasBlocks || t.isEditingCode;
-      });
-
-      if (hasUnsavedChanges) {
-        // Push state again to trap the user
-        window.history.pushState(null, null, window.location.pathname);
-        setLeaveModal({ isOpen: true, targetPath: "POPSTATE" });
-      } else {
-        isNavigatingAwayRef.current = true;
-        navigate(-1);
-      }
-    };
-    window.addEventListener("popstate", handlePopState);
-
-    // 3. Trap Internal React Router Links (Soft Navigations)
-    const handleGlobalClick = (e) => {
-      if (isNavigatingAwayRef.current) return;
-
-      const anchor = e.target.closest("a");
-
-      // FIX: BYPASS FOR FILE DOWNLOADS (JSON EXPORTS)
-      if (
-        anchor &&
-        (anchor.hasAttribute("download") || anchor.href.startsWith("blob:"))
-      ) {
-        return; // Allow natural download behavior, do not trigger modal
-      }
-
-      if (anchor && anchor.href && anchor.origin === window.location.origin) {
-        const hasUnsavedChanges = latestTabsRef.current.some((t) => {
-          const hasCode =
-            t.pythonCode &&
-            t.pythonCode !== "# Drag blocks to generate Python code";
-          const hasBlocks =
-            t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
-          return hasCode || hasBlocks || t.isEditingCode;
-        });
-
-        if (hasUnsavedChanges) {
-          e.preventDefault();
-          e.stopPropagation();
-          setLeaveModal({ isOpen: true, targetPath: anchor.pathname });
-        }
-      }
-    };
-    document.addEventListener("click", handleGlobalClick, { capture: true });
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-      document.removeEventListener("click", handleGlobalClick, {
-        capture: true,
-      });
-    };
-  }, [navigate]);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   const confirmLeaveSite = () => {
     isNavigatingAwayRef.current = true;
-    const target = leaveModal.targetPath;
-    setLeaveModal({ isOpen: false, targetPath: null });
-
-    if (target === "POPSTATE") {
-      navigate(-1);
-    } else if (target) {
-      navigate(target);
-    }
+    if (leaveModal.tx) leaveModal.tx.retry();
+    setLeaveModal({ isOpen: false, tx: null });
   };
 
   const cancelLeaveSite = () => {
-    setLeaveModal({ isOpen: false, targetPath: null });
+    setLeaveModal({ isOpen: false, tx: null });
   };
-  // -----------------------------------------------------------
+  // ----------------------------------------------------
 
   const initWorker = () => {
     if (!workerRef.current) return;
@@ -615,18 +577,19 @@ export default function MainApp() {
           });
           setIsErrorDropdownOpen(false);
         } else {
-          // --- DEEP STACK FIX: Process multiple errors simultaneously ---
           if (data.multiple_errors && data.multiple_errors.length > 0) {
-            const mappedErrors = data.multiple_errors.map((err) => {
-              const hint = translatePythonError(err.message);
-              return { line: err.line, message: `${err.message}. ${hint}` };
-            });
+            const mappedErrors = data.multiple_errors.map((err) => ({
+              line: err.line,
+              message: `${err.message}. ${translatePythonError(err.message)}`,
+            }));
             updateTab(targetId, { syntaxErrors: mappedErrors });
           } else {
-            const hint = translatePythonError(data.message);
             updateTab(targetId, {
               syntaxErrors: [
-                { line: data.line, message: `${data.message}. ${hint}` },
+                {
+                  line: data.line,
+                  message: `${data.message}. ${translatePythonError(data.message)}`,
+                },
               ],
             });
           }
@@ -645,7 +608,6 @@ export default function MainApp() {
         );
         if (counts)
           updateTab(analyzingTabId.current, { lineExecutions: counts });
-
         setIsEvaluating(false);
         setIsWaitingForInput(false);
       } else if (type === "OUTPUT") {
@@ -679,14 +641,15 @@ export default function MainApp() {
         clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
-        const hint = translatePythonError(data);
         setConsoleOutput(
           (prev) =>
             prev +
             flushed +
             "\n Runtime Error:\n" +
             data +
-            (hint ? `\n${hint}\n` : ""),
+            (translatePythonError(data)
+              ? `\n${translatePythonError(data)}\n`
+              : ""),
         );
         setIsEvaluating(false);
         setIsWaitingForInput(false);
@@ -799,11 +762,9 @@ export default function MainApp() {
           );
           if (pRes.ok) {
             const pData = await pRes.json();
-            const cloudProjects = pData.projects || pData || [];
-            for (const cp of cloudProjects) {
-              if (cp.owner_id === user.email || cp.userId === user.email) {
+            for (const cp of pData.projects || pData || []) {
+              if (cp.owner_id === user.email || cp.userId === user.email)
                 await projectsDB.setItem(cp._id, { ...cp, synced: true });
-              }
             }
           }
           const tRes = await fetch(
@@ -812,11 +773,9 @@ export default function MainApp() {
           );
           if (tRes.ok) {
             const tData = await tRes.json();
-            const cloudTemplates = tData.templates || tData || [];
-            for (const ct of cloudTemplates) {
-              if (ct.owner_id === user.email || ct.userId === user.email) {
+            for (const ct of tData.templates || tData || []) {
+              if (ct.owner_id === user.email || ct.userId === user.email)
                 await templatesDB.setItem(ct._id, { ...ct, synced: true });
-              }
             }
           }
         } catch (e) {
@@ -963,12 +922,14 @@ export default function MainApp() {
       return;
     analyzingTabId.current = tabId;
 
+    const cleanCode = sanitizePythonCode(code); // Ensure safe payload format
+
     if (isOnline && API_BASE) {
       try {
         const response = await fetch(`${API_BASE}/api/analyze`, {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code: cleanCode }),
         });
         if (!response.ok) throw new Error("FastAPI analyze failed");
         const data = await response.json();
@@ -992,10 +953,12 @@ export default function MainApp() {
           });
           setIsErrorDropdownOpen(false);
         } else {
-          const hint = translatePythonError(data.message);
           updateTab(tabId, {
             syntaxErrors: [
-              { line: data.line, message: `${data.message}. ${hint}` },
+              {
+                line: data.line,
+                message: `${data.message}. ${translatePythonError(data.message)}`,
+              },
             ],
           });
         }
@@ -1008,20 +971,17 @@ export default function MainApp() {
       }
     }
     if (workerRef.current)
-      workerRef.current.postMessage({ type: "ANALYZE_CODE", code });
+      workerRef.current.postMessage({ type: "ANALYZE_CODE", code: cleanCode });
   };
 
   const handleBlocklyChange = (tabId, json, pythonCode) => {
     const tab = tabs.find((t) => t.id === tabId);
     if (!tab) return;
-
     const oldCode = (tab.pythonCode || "").trim();
     const newCode = (pythonCode || "").trim();
 
     if (!tab.isEditingCode) {
-      if (oldCode !== newCode) {
-        analyzeCode(tabId, pythonCode);
-      }
+      if (oldCode !== newCode) analyzeCode(tabId, newCode);
       updateTab(tabId, { blocklyJson: json, pythonCode: newCode });
     } else {
       updateTab(tabId, { blocklyJson: json });
@@ -1048,14 +1008,23 @@ export default function MainApp() {
     isEngineReady,
   ]);
 
+  // --- FIX: Prevent Fallback execution if Python syntax is broken ---
   const handleSyncToBlocks = async () => {
+    const hasErrors =
+      activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
+    if (hasErrors) {
+      showToast(
+        "Cannot sync to blocks. Please fix Python syntax errors first.",
+        "error",
+      );
+      return;
+    }
     if (workspaceRefs.current[activeTabId] && activeTab.pythonCode) {
       try {
-        await workspaceRefs.current[activeTabId].loadFromPython(
-          activeTab.pythonCode,
-        );
+        const cleanCode = sanitizePythonCode(activeTab.pythonCode);
+        await workspaceRefs.current[activeTabId].loadFromPython(cleanCode);
         updateTab(activeTabId, { isEditingCode: false, viewMode: "workspace" });
-        showToast("Code successfully synced to Blocks");
+        showToast("Code successfully synced to Blocks", "success");
       } catch (e) {
         showToast(`Sync Failed: ${e.message}`, "error");
       }
@@ -1109,7 +1078,6 @@ export default function MainApp() {
       setConsoleTab("output");
       return;
     }
-
     clearTimeout(runTimeoutRef.current);
     clearInterval(renderIntervalRef.current);
     setIsEvaluating(true);
@@ -1117,20 +1085,19 @@ export default function MainApp() {
     setBottomPanel("console");
     setConsoleTab("output");
     setConsoleOutput((prev) => prev + "\n> Running the program...\n");
-
     outputCountRef.current = 0;
     pendingOutputRef.current = "";
+
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
-        const flushed = pendingOutputRef.current;
+        setConsoleOutput((prev) => prev + pendingOutputRef.current);
         pendingOutputRef.current = "";
-        setConsoleOutput((prev) => prev + flushed);
       }
     }, 100);
-    workerRef.current.postMessage({
-      type: "RUN_CODE",
-      code: activeTab.pythonCode,
-    });
+
+    const safePayload = sanitizePythonCode(activeTab.pythonCode);
+    workerRef.current.postMessage({ type: "RUN_CODE", code: safePayload });
+
     runTimeoutRef.current = setTimeout(() => {
       resetWorker();
       const flushed = pendingOutputRef.current;
@@ -1158,9 +1125,8 @@ export default function MainApp() {
       setIsWaitingForInput(false);
       renderIntervalRef.current = setInterval(() => {
         if (pendingOutputRef.current) {
-          const flushed = pendingOutputRef.current;
+          setConsoleOutput((prev) => prev + pendingOutputRef.current);
           pendingOutputRef.current = "";
-          setConsoleOutput((prev) => prev + flushed);
         }
       }, 100);
       runTimeoutRef.current = setTimeout(() => {
@@ -1188,12 +1154,10 @@ export default function MainApp() {
       showToast("The workspace is empty. Nothing to save!", "error");
       return;
     }
-
     if (!getUser()) {
       showToast("You must be logged in to save.", "error");
       return;
     }
-
     setSaveModal({
       isOpen: true,
       isEditMetadataOnly: false,
@@ -1206,7 +1170,6 @@ export default function MainApp() {
     });
   };
 
-  // --- REQ-4 Keyboard Save Interception ---
   const openSaveModalRef = useRef(openSaveModal);
   useEffect(() => {
     openSaveModalRef.current = openSaveModal;
@@ -1223,14 +1186,12 @@ export default function MainApp() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // --- FIXED BUG: EXPORT JSON ---
   const handleExportJson = () => {
     const hasBlocks =
       activeTab.blocklyJson && Object.keys(activeTab.blocklyJson).length > 0;
     const hasCode =
       activeTab.pythonCode &&
       activeTab.pythonCode !== "# Drag blocks to generate Python code";
-
     if (!hasBlocks && !hasCode) {
       showToast("The workspace is empty. Nothing to export!", "error");
       return;
@@ -1246,7 +1207,6 @@ export default function MainApp() {
       blocklyJson: activeTab.blocklyJson || {},
       pythonCode: activeTab.pythonCode || "",
     };
-
     const jsonString = JSON.stringify(exportPayload, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1254,7 +1214,6 @@ export default function MainApp() {
     const downloadAnchorNode = document.createElement("a");
     downloadAnchorNode.href = url;
     downloadAnchorNode.download = `${exportPayload.title}.json`;
-
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     document.body.removeChild(downloadAnchorNode);
@@ -1262,11 +1221,9 @@ export default function MainApp() {
     setTimeout(() => {
       URL.revokeObjectURL(url);
     }, 150);
-
     showToast("Workspace exported as JSON", "success");
   };
 
-  // --- FIXED BUG: IMPORT JSON ---
   const handleImportJson = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -1274,12 +1231,9 @@ export default function MainApp() {
     reader.onload = (e) => {
       try {
         const json = JSON.parse(e.target.result);
-
-        let blocks = json; // Default to pure blockly payload
+        let blocks = json;
         let pythonCode = "# Drag blocks to generate Python code";
         let title = file.name.replace(".json", "");
-
-        // Determine if it's the new Full Project format or legacy format
         if (json.type === "algoblocks_project") {
           blocks = json.blocklyJson;
           pythonCode = json.pythonCode;
@@ -1291,7 +1245,6 @@ export default function MainApp() {
 
         if (workspaceRefs.current[activeTabId]) {
           workspaceRefs.current[activeTabId].loadTemplate(blocks);
-
           updateTab(activeTabId, {
             title: title,
             saveType: "project",
@@ -1299,7 +1252,6 @@ export default function MainApp() {
             isEditingCode:
               pythonCode !== "# Drag blocks to generate Python code",
           });
-
           showToast("Workspace imported successfully", "success");
         }
       } catch (err) {
@@ -1383,13 +1335,11 @@ export default function MainApp() {
                 workspace: { blocklyJson: payload.data },
                 pythonCode: activeTab.pythonCode || "",
               };
-
         const res = await fetch(`${API_BASE}${endpoint}`, {
           method: "POST",
           headers: getAuthHeaders(),
           body: JSON.stringify(apiPayload),
         });
-
         if (res.ok) {
           const responseData = await res.json();
           const realId =
@@ -1401,7 +1351,6 @@ export default function MainApp() {
           payload.synced = true;
           if (realId !== id) await db.removeItem(id);
           await db.setItem(realId, payload);
-
           showToast("Saved directly to cloud!", "success");
           setSaveModal({ ...saveModal, isOpen: false });
           if (!saveModal.isEditMetadataOnly)
@@ -1412,10 +1361,6 @@ export default function MainApp() {
             });
           fetchTemplates();
           return;
-        } else {
-          console.warn(
-            `Server returned ${res.status}, falling back to local queue`,
-          );
         }
       } catch (err) {
         console.warn(
@@ -1505,8 +1450,9 @@ export default function MainApp() {
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
   const pythonLines = (activeTab.pythonCode || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(activeTab.lineExecutions));
+  const hasSyntaxErrors =
+    activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
 
-  // Extracted modular renderers so we can use them inside react-split cleanly
   const renderEditorArea = () => (
     <>
       <div
@@ -1546,11 +1492,10 @@ export default function MainApp() {
           </span>
           <button
             onClick={handleSyncToBlocks}
-            disabled={!activeTab.isEditingCode}
-            className={`python-sync-btn ${activeTab.isEditingCode ? "active" : "disabled"}`}
+            disabled={!activeTab.isEditingCode || hasSyntaxErrors}
+            className={`python-sync-btn ${activeTab.isEditingCode && !hasSyntaxErrors ? "active" : "disabled"}`}
           >
-            {" "}
-            Sync to Blocks{" "}
+            Sync to Blocks
           </button>
         </div>
 
@@ -1562,8 +1507,9 @@ export default function MainApp() {
             beforeMount={handleEditorWillMount}
             value={activeTab.pythonCode}
             onChange={(value) => {
+              const cleanValue = sanitizePythonCode(value);
               updateTab(activeTabId, {
-                pythonCode: value || "",
+                pythonCode: cleanValue,
                 isEditingCode: true,
                 syntaxErrors: [],
               });
@@ -1578,7 +1524,7 @@ export default function MainApp() {
             }}
           />
 
-          {activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0 && (
+          {hasSyntaxErrors && (
             <div className="floating-error-container">
               {isErrorDropdownOpen && (
                 <div className="error-dropdown-menu">
@@ -1624,7 +1570,6 @@ export default function MainApp() {
           X
         </button>
       </div>
-
       <div className="panel-body">
         {bottomPanel === "console" ? (
           <div
@@ -1840,7 +1785,6 @@ export default function MainApp() {
                 </span>
               </div>
             </div>
-
             {activeComplexityTab === "memory" ? (
               <div
                 style={{ flex: 1, overflow: "hidden", padding: "10px 15px" }}
@@ -2139,16 +2083,9 @@ export default function MainApp() {
   return (
     <div className="workspace-app-container">
       <style>{`
-        .workspace-split.sidebar-hidden .templates-sidebar {
-          display: none !important;
-          width: 0 !important;
-        }
-        .workspace-split.sidebar-hidden .gutter.gutter-horizontal {
-          display: none !important;
-        }
-        .workspace-split.sidebar-hidden .workspace-main {
-          width: 100% !important;
-        }
+        .workspace-split.sidebar-hidden .templates-sidebar { display: none !important; width: 0 !important; }
+        .workspace-split.sidebar-hidden .gutter.gutter-horizontal { display: none !important; }
+        .workspace-split.sidebar-hidden .workspace-main { width: 100% !important; }
       `}</style>
 
       {/* Manual Interceptor Modal for React Router Links and Back Button */}
@@ -2456,7 +2393,6 @@ export default function MainApp() {
                 >
                   {renderEditorArea()}
                 </div>
-
                 <div
                   className="bottom-docked-panel"
                   style={{
