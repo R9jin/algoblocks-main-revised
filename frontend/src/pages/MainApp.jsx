@@ -1,7 +1,7 @@
 // frontend/src/pages/MainApp.jsx
 import DOMPurify from "dompurify";
 import React, { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
@@ -380,6 +380,7 @@ const getAuthHeaders = () => {
 
 export default function MainApp() {
   const location = useLocation();
+  const navigate = useNavigate();
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
   const { worker, isEngineReady, resetWorker } = usePyodide();
@@ -431,6 +432,14 @@ export default function MainApp() {
     isDanger: false,
     onConfirmAction: null,
   });
+
+  // Custom navigation blocker state
+  const [leaveModal, setLeaveModal] = useState({
+    isOpen: false,
+    targetPath: null,
+  });
+  const isNavigatingAwayRef = useRef(false);
+
   const [saveModal, setSaveModal] = useState({
     isOpen: false,
     isEditMetadataOnly: false,
@@ -469,6 +478,116 @@ export default function MainApp() {
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
   const toggleLine = (index) =>
     setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
+
+  // --- REQ-6 Custom Experimental Mode Navigation Interceptor ---
+  const latestTabsRef = useRef(tabs);
+  useEffect(() => {
+    latestTabsRef.current = tabs;
+  }, [tabs]);
+
+  useEffect(() => {
+    // 1. Trap Hard Refresh / Tab Close
+    const handleBeforeUnload = (e) => {
+      const hasUnsavedChanges = latestTabsRef.current.some((t) => {
+        const hasCode =
+          t.pythonCode &&
+          t.pythonCode !== "# Drag blocks to generate Python code";
+        const hasBlocks =
+          t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
+        return hasCode || hasBlocks || t.isEditingCode;
+      });
+
+      if (hasUnsavedChanges && !isNavigatingAwayRef.current) {
+        e.preventDefault();
+        e.returnValue =
+          "You have unsaved changes. Are you sure you want to leave?";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // 2. Trap the Browser Back Button
+    window.history.pushState(null, null, window.location.pathname);
+    const handlePopState = (e) => {
+      if (isNavigatingAwayRef.current) return;
+
+      const hasUnsavedChanges = latestTabsRef.current.some((t) => {
+        const hasCode =
+          t.pythonCode &&
+          t.pythonCode !== "# Drag blocks to generate Python code";
+        const hasBlocks =
+          t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
+        return hasCode || hasBlocks || t.isEditingCode;
+      });
+
+      if (hasUnsavedChanges) {
+        // Push state again to trap the user
+        window.history.pushState(null, null, window.location.pathname);
+        setLeaveModal({ isOpen: true, targetPath: "POPSTATE" });
+      } else {
+        isNavigatingAwayRef.current = true;
+        navigate(-1);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+
+    // 3. Trap Internal React Router Links (Soft Navigations)
+    const handleGlobalClick = (e) => {
+      if (isNavigatingAwayRef.current) return;
+
+      const anchor = e.target.closest("a");
+
+      // FIX: BYPASS FOR FILE DOWNLOADS (JSON EXPORTS)
+      if (
+        anchor &&
+        (anchor.hasAttribute("download") || anchor.href.startsWith("blob:"))
+      ) {
+        return; // Allow natural download behavior, do not trigger modal
+      }
+
+      if (anchor && anchor.href && anchor.origin === window.location.origin) {
+        const hasUnsavedChanges = latestTabsRef.current.some((t) => {
+          const hasCode =
+            t.pythonCode &&
+            t.pythonCode !== "# Drag blocks to generate Python code";
+          const hasBlocks =
+            t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
+          return hasCode || hasBlocks || t.isEditingCode;
+        });
+
+        if (hasUnsavedChanges) {
+          e.preventDefault();
+          e.stopPropagation();
+          setLeaveModal({ isOpen: true, targetPath: anchor.pathname });
+        }
+      }
+    };
+    document.addEventListener("click", handleGlobalClick, { capture: true });
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+      document.removeEventListener("click", handleGlobalClick, {
+        capture: true,
+      });
+    };
+  }, [navigate]);
+
+  const confirmLeaveSite = () => {
+    isNavigatingAwayRef.current = true;
+    const target = leaveModal.targetPath;
+    setLeaveModal({ isOpen: false, targetPath: null });
+
+    if (target === "POPSTATE") {
+      navigate(-1);
+    } else if (target) {
+      navigate(target);
+    }
+  };
+
+  const cancelLeaveSite = () => {
+    setLeaveModal({ isOpen: false, targetPath: null });
+  };
+  // -----------------------------------------------------------
 
   const initWorker = () => {
     if (!workerRef.current) return;
@@ -1087,24 +1206,67 @@ export default function MainApp() {
     });
   };
 
+  // --- REQ-4 Keyboard Save Interception ---
+  const openSaveModalRef = useRef(openSaveModal);
+  useEffect(() => {
+    openSaveModalRef.current = openSaveModal;
+  }, [openSaveModal]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+        openSaveModalRef.current();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // --- FIXED BUG: EXPORT JSON ---
   const handleExportJson = () => {
-    if (!activeTab.blocklyJson) {
+    const hasBlocks =
+      activeTab.blocklyJson && Object.keys(activeTab.blocklyJson).length > 0;
+    const hasCode =
+      activeTab.pythonCode &&
+      activeTab.pythonCode !== "# Drag blocks to generate Python code";
+
+    if (!hasBlocks && !hasCode) {
       showToast("The workspace is empty. Nothing to export!", "error");
       return;
     }
-    const jsonString = JSON.stringify(activeTab.blocklyJson, null, 2);
+
+    const exportPayload = {
+      type: "algoblocks_project",
+      version: "1.0",
+      title:
+        activeTab.title !== "Untitled Project"
+          ? activeTab.title
+          : "algoblocks_workspace",
+      blocklyJson: activeTab.blocklyJson || {},
+      pythonCode: activeTab.pythonCode || "",
+    };
+
+    const jsonString = JSON.stringify(exportPayload, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
+
     const downloadAnchorNode = document.createElement("a");
     downloadAnchorNode.href = url;
-    downloadAnchorNode.download = `${activeTab.title !== "Untitled Project" ? activeTab.title : "algoblocks_workspace"}.json`;
+    downloadAnchorNode.download = `${exportPayload.title}.json`;
+
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(downloadAnchorNode);
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 150);
+
     showToast("Workspace exported as JSON", "success");
   };
 
+  // --- FIXED BUG: IMPORT JSON ---
   const handleImportJson = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -1112,17 +1274,36 @@ export default function MainApp() {
     reader.onload = (e) => {
       try {
         const json = JSON.parse(e.target.result);
+
+        let blocks = json; // Default to pure blockly payload
+        let pythonCode = "# Drag blocks to generate Python code";
+        let title = file.name.replace(".json", "");
+
+        // Determine if it's the new Full Project format or legacy format
+        if (json.type === "algoblocks_project") {
+          blocks = json.blocklyJson;
+          pythonCode = json.pythonCode;
+          title = json.title || title;
+        } else if (json.workspace && json.workspace.blocklyJson) {
+          blocks = json.workspace.blocklyJson;
+          pythonCode = json.pythonCode || pythonCode;
+        }
+
         if (workspaceRefs.current[activeTabId]) {
-          workspaceRefs.current[activeTabId].loadTemplate(json);
+          workspaceRefs.current[activeTabId].loadTemplate(blocks);
+
           updateTab(activeTabId, {
-            title: file.name.replace(".json", ""),
+            title: title,
             saveType: "project",
-            isEditingCode: false,
+            pythonCode: pythonCode,
+            isEditingCode:
+              pythonCode !== "# Drag blocks to generate Python code",
           });
+
           showToast("Workspace imported successfully", "success");
         }
       } catch (err) {
-        showToast("Invalid JSON file", "error");
+        showToast("Invalid JSON file format", "error");
       }
       event.target.value = "";
     };
@@ -1970,6 +2151,29 @@ export default function MainApp() {
         }
       `}</style>
 
+      {/* Manual Interceptor Modal for React Router Links and Back Button */}
+      <ConfirmModal
+        isOpen={leaveModal.isOpen}
+        title="Unsaved Changes"
+        message="You have unsaved changes in your workspace. Are you sure you want to leave? All unsaved progress will be lost."
+        confirmText="Leave Page"
+        cancelText="Stay"
+        isDanger={true}
+        onCancel={cancelLeaveSite}
+        onConfirm={confirmLeaveSite}
+      />
+
+      {/* Action Modal (Load, Clear, etc.) */}
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText={modalConfig.confirmText}
+        isDanger={modalConfig.isDanger}
+        onCancel={closeModal}
+        onConfirm={modalConfig.onConfirmAction}
+      />
+
       {toast.show && (
         <div
           className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}
@@ -2231,7 +2435,6 @@ export default function MainApp() {
             </button>
           </div>
 
-          {/* DYNAMIC VERTICAL SPLIT IMPLEMENTED HERE */}
           <div className="editor-split-vertical">
             {bottomPanel ? (
               <Split
@@ -2334,15 +2537,6 @@ export default function MainApp() {
           </footer>
         </main>
       </Split>
-      <ConfirmModal
-        isOpen={modalConfig.isOpen}
-        title={modalConfig.title}
-        message={modalConfig.message}
-        confirmText={modalConfig.confirmText}
-        isDanger={modalConfig.isDanger}
-        onCancel={closeModal}
-        onConfirm={modalConfig.onConfirmAction}
-      />
       <BigOModal
         isOpen={isBigOModalOpen}
         onClose={() => setIsBigOModalOpen(false)}
