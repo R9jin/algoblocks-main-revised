@@ -365,10 +365,8 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     .filter(Boolean);
 };
 
-// --- FIX: Clean invisible characters immediately on paste ---
 const sanitizePythonCode = (code) => {
   if (!code) return "";
-  // Replaces all weird unicode spaces (like non-breaking spaces \xa0) with a standard space
   return code.replace(
     /[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g,
     " ",
@@ -447,8 +445,12 @@ export default function MainApp() {
     onConfirmAction: null,
   });
 
-  // Custom internal navigation blocker state (Fixes bypass bug)
-  const [leaveModal, setLeaveModal] = useState({ isOpen: false, tx: null });
+  // Custom internal navigation blocker state
+  const [leaveModal, setLeaveModal] = useState({
+    isOpen: false,
+    tx: null,
+    targetPath: null,
+  });
   const isNavigatingAwayRef = useRef(false);
 
   const [saveModal, setSaveModal] = useState({
@@ -510,7 +512,7 @@ export default function MainApp() {
       });
 
       if (hasUnsavedChanges && !isNavigatingAwayRef.current) {
-        setLeaveModal({ isOpen: true, tx });
+        setLeaveModal({ isOpen: true, tx, targetPath: null });
       } else {
         tx.retry();
       }
@@ -518,7 +520,7 @@ export default function MainApp() {
     return unblock;
   }, [navigator]);
 
-  // Hook into Browser Native Events (Tab closing, F5 Refresh)
+  // Hook into Browser Native Events (Tab closing, F5 Refresh, Link clicks)
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       const hasUnsavedChanges = latestTabsRef.current.some((t) => {
@@ -536,18 +538,71 @@ export default function MainApp() {
           "You have unsaved changes. Are you sure you want to leave?";
       }
     };
+
+    // FIX: Tightly scoped click interceptor
+    const handleGlobalClick = (e) => {
+      if (isNavigatingAwayRef.current) return;
+
+      // ONLY target elements that are actually meant for page navigation
+      const el = e.target.closest("a, [class*='back-btn']");
+      if (!el) return;
+
+      const isDownloadLink =
+        el.hasAttribute("download") || (el.href && el.href.startsWith("blob:"));
+      if (isDownloadLink) return; // Completely ignore JSON exports
+
+      const isInternalNav =
+        el.tagName === "A" && el.origin === window.location.origin;
+      const isBackButton =
+        el.className &&
+        typeof el.className === "string" &&
+        el.className.includes("back-btn");
+
+      if (isInternalNav || isBackButton) {
+        const hasUnsavedChanges = latestTabsRef.current.some((t) => {
+          const hasCode =
+            t.pythonCode &&
+            t.pythonCode !== "# Drag blocks to generate Python code";
+          const hasBlocks =
+            t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
+          return hasCode || hasBlocks || t.isEditingCode;
+        });
+
+        if (hasUnsavedChanges) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          let targetUrl = "/dashboard";
+          if (el.tagName === "A") targetUrl = el.getAttribute("href");
+
+          setLeaveModal({ isOpen: true, tx: null, targetPath: targetUrl });
+        }
+      }
+    };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleGlobalClick, { capture: true });
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleGlobalClick, {
+        capture: true,
+      });
+    };
   }, []);
 
   const confirmLeaveSite = () => {
     isNavigatingAwayRef.current = true;
-    if (leaveModal.tx) leaveModal.tx.retry();
-    setLeaveModal({ isOpen: false, tx: null });
+    if (leaveModal.tx) {
+      leaveModal.tx.retry();
+    } else {
+      navigate(leaveModal.targetPath || "/dashboard");
+    }
+    setLeaveModal({ isOpen: false, tx: null, targetPath: null });
   };
 
   const cancelLeaveSite = () => {
-    setLeaveModal({ isOpen: false, tx: null });
+    setLeaveModal({ isOpen: false, tx: null, targetPath: null });
   };
   // ----------------------------------------------------
 
@@ -641,15 +696,14 @@ export default function MainApp() {
         clearInterval(renderIntervalRef.current);
         const flushed = pendingOutputRef.current;
         pendingOutputRef.current = "";
+        const hint = translatePythonError(data);
         setConsoleOutput(
           (prev) =>
             prev +
             flushed +
             "\n Runtime Error:\n" +
             data +
-            (translatePythonError(data)
-              ? `\n${translatePythonError(data)}\n`
-              : ""),
+            (hint ? `\n${hint}\n` : ""),
         );
         setIsEvaluating(false);
         setIsWaitingForInput(false);
@@ -922,7 +976,7 @@ export default function MainApp() {
       return;
     analyzingTabId.current = tabId;
 
-    const cleanCode = sanitizePythonCode(code); // Ensure safe payload format
+    const cleanCode = sanitizePythonCode(code);
 
     if (isOnline && API_BASE) {
       try {
@@ -1008,7 +1062,7 @@ export default function MainApp() {
     isEngineReady,
   ]);
 
-  // --- FIX: Prevent Fallback execution if Python syntax is broken ---
+  // --- FIX: Prevent Sync To Blocks Execution if Syntax Is Broken ---
   const handleSyncToBlocks = async () => {
     const hasErrors =
       activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
@@ -1019,6 +1073,7 @@ export default function MainApp() {
       );
       return;
     }
+
     if (workspaceRefs.current[activeTabId] && activeTab.pythonCode) {
       try {
         const cleanCode = sanitizePythonCode(activeTab.pythonCode);
@@ -1085,9 +1140,9 @@ export default function MainApp() {
     setBottomPanel("console");
     setConsoleTab("output");
     setConsoleOutput((prev) => prev + "\n> Running the program...\n");
+
     outputCountRef.current = 0;
     pendingOutputRef.current = "";
-
     renderIntervalRef.current = setInterval(() => {
       if (pendingOutputRef.current) {
         setConsoleOutput((prev) => prev + pendingOutputRef.current);
