@@ -108,8 +108,6 @@ class BlocklyASTConverter:
         try:
             tree = ast.parse(clean_code)
         except SyntaxError as se:
-            # FIX: Explicitly intercept Syntax Errors and refuse conversion.
-            # This prevents the system from wrapping garbage text into massive Raw Python blocks.
             return {
                 "status": "error",
                 "message": f"SyntaxError: Invalid Python syntax on line {se.lineno}."
@@ -122,6 +120,10 @@ class BlocklyASTConverter:
             current_chain_tail = None
 
             for node in tree.body:
+                # FIX: Explicitly ignore Docstrings and floating string expressions 
+                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                    continue
+
                 block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block: continue
 
@@ -182,6 +184,10 @@ class BlocklyASTConverter:
         first, prev = None, None
 
         for node in nodes:
+            # FIX: Explicitly ignore Docstrings and floating string expressions inside function bodies
+            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                continue
+
             block = self.serialize_node(node, is_top_level=False) or self.make_raw_statement(node)
             if not block: continue
             if not first:
