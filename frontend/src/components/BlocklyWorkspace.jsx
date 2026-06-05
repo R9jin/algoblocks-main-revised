@@ -53,8 +53,6 @@ const sanitizePythonCode = (code) => {
 };
 
 const customBlocks = [
-  { type: "python_docstring", message0: '""" \n %1 \n """', colour: 120, tooltip: "Multi-line Python docstring or comment",
-    args0: [{ type: "field_multilinetext", name: "TEXT", text: "Comment here...", spellcheck: false }], previousStatement: null, nextStatement: null },
   { type: "comment_block", message0: "Comment %1", colour: "#999999", tooltip: "Adds a comment to the Python code",
     args0: [{ type: "field_input", name: "TEXT", text: "write note here" }], previousStatement: null, nextStatement: null },
   { type: "math_assignment", message0: "%1 %2 %3", colour: "#4C97FF", tooltip: "Modify a variable using Add, Subtract, Multiply, or Divide",
@@ -230,8 +228,7 @@ const toolbox = {
         { kind: "block", type: "text_append" }, { kind: "block", type: "text_length" },
         { kind: "block", type: "text_isEmpty" }, { kind: "block", type: "text_indexOf" },
         { kind: "block", type: "text_charAt" }, { kind: "block", type: "text_getSubstring" },
-        { kind: "block", type: "text_changeCase" }, { kind: "block", type: "text_trim" },
-        { kind: "block", type: "python_docstring" }
+        { kind: "block", type: "text_changeCase" }, { kind: "block", type: "text_trim" }
       ]
     },
     {
@@ -520,7 +517,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
 
       pythonGenerator.forBlock["math_min_max"] = b => [`${b.getFieldValue("OP") === "MAX" ? "max" : "min"}(${getCode(b, "A") || "0"}, ${getCode(b, "B") || "0"})`, pythonGenerator.ORDER_FUNCTION_CALL];
       pythonGenerator.forBlock["comment_block"] = b => `# ${b.getFieldValue("TEXT") || ""}\n`;
-      pythonGenerator.forBlock["python_docstring"] = b => `"""\n${b.getFieldValue("TEXT") || ""}\n"""\n`;
+      pythonGenerator.forBlock["multi_line_comment"] = b => `"""\n${b.getFieldValue("TEXT") || ""}\n"""\n`;
       
       pythonGenerator.forBlock["text_join"] = function (block) {
         let fStr = "";
@@ -534,7 +531,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       pythonGenerator.forBlock["dict_create_empty"] = () => ["{}", pythonGenerator.ORDER_ATOMIC];
       pythonGenerator.forBlock["dict_set"] = b => `${getCode(b, "DICT", pythonGenerator.ORDER_MEMBER) || "{}"}[${getCode(b, "KEY") || '""'}] = ${getCode(b, "VALUE") || "None"}\n`;
       pythonGenerator.forBlock["dict_get"] = b => [`${getCode(b, "DICT", pythonGenerator.ORDER_MEMBER) || "{}"}[${getCode(b, "KEY") || '""'}]`, pythonGenerator.ORDER_MEMBER];
-      pythonGenerator.forBlock["multi_line_comment"] = b => `"""\n${b.getFieldValue("TEXT") || ""}\n"""\n`;
       pythonGenerator.forBlock["dict_pair"] = b => [`${getCode(b, "KEY") || '""'}: ${getCode(b, "VALUE") || "None"}`, pythonGenerator.ORDER_NONE];
 
       pythonGenerator.forBlock["dict_from_pairs"] = function (block) {

@@ -1,4 +1,3 @@
-# frontend/public/python_engine/blockly_ast.py
 import ast
 import uuid
 
@@ -120,10 +119,6 @@ class BlocklyASTConverter:
             current_chain_tail = None
 
             for node in tree.body:
-                # FIX: Explicitly ignore Docstrings and floating string expressions 
-                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                    continue
-
                 block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block: continue
 
@@ -153,7 +148,6 @@ class BlocklyASTConverter:
                 }
             }
         except Exception as e:
-            # Fallback for valid Python that Blockly simply doesn't have an equivalent block for
             return self.raw_fallback(code)
         
     def raw_fallback(self, code):
@@ -184,10 +178,6 @@ class BlocklyASTConverter:
         first, prev = None, None
 
         for node in nodes:
-            # FIX: Explicitly ignore Docstrings and floating string expressions inside function bodies
-            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                continue
-
             block = self.serialize_node(node, is_top_level=False) or self.make_raw_statement(node)
             if not block: continue
             if not first:
@@ -673,73 +663,83 @@ class BlocklyASTConverter:
                     self.add_input(block, "VALUE", self.serialize_expr(node.value))
                 return block
 
-            elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-                if isinstance(node.value.func, ast.Name):
-                    name = node.value.func.id
-                    if name == "print":
-                        block = {"type": "text_print", "id": gen_uid()}
-                        if node.value.args:
-                            self.add_input(block, "TEXT", self.serialize_expr(node.value.args[0]))
-                        return block
-
-                    block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
-                    for i, arg in enumerate(node.value.args):
-                        self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
-                    return block
+            elif isinstance(node, ast.Expr):
+                # Handle Docstrings and floating strings mapping them to multi_line_comment
+                if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                    return {
+                        "type": "multi_line_comment",
+                        "id": gen_uid(),
+                        "fields": {"TEXT": node.value.value.strip()}
+                    }
                 
-                elif isinstance(node.value.func, ast.Attribute):
-                    method = node.value.func.attr
-                    obj = node.value.func.value
-                    
-                    if method == "sort" and len(node.value.args) == 0:
-                        reverse_val = "FALSE"
-                        for kw in node.value.keywords:
-                            if kw.arg == "reverse" and getattr(kw.value, 'value', False):
-                                reverse_val = "TRUE"
-                        block = {"type": "list_sort", "id": gen_uid(), "fields": {"REVERSE": reverse_val}}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        return block
-                        
-                    if method == "insert" and len(node.value.args) == 2:
-                        block = {"type": "list_insert", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        self.add_input(block, "INDEX", self.serialize_expr(node.value.args[0]))
-                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[1]))
-                        return block
+                # Handle function calls like print()
+                if isinstance(node.value, ast.Call):
+                    if isinstance(node.value.func, ast.Name):
+                        name = node.value.func.id
+                        if name == "print":
+                            block = {"type": "text_print", "id": gen_uid()}
+                            if node.value.args:
+                                self.add_input(block, "TEXT", self.serialize_expr(node.value.args[0]))
+                            return block
 
-                    if method == "append" and len(node.value.args) == 1:
-                        block = {"type": "list_append", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                        block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
+                        for i, arg in enumerate(node.value.args):
+                            self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
                         return block
+                    
+                    elif isinstance(node.value.func, ast.Attribute):
+                        method = node.value.func.attr
+                        obj = node.value.func.value
                         
-                    if method == "remove" and len(node.value.args) == 1:
-                        block = {"type": "list_remove_value", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
-                        return block
-                        
-                    if method == "reverse" and len(node.value.args) == 0:
-                        block = {"type": "list_reverse", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        return block
-                        
-                    if method == "clear" and len(node.value.args) == 0:
-                        block = {"type": "list_clear", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        return block
-                        
-                    if method == "pop":
-                        if len(node.value.args) == 0:
-                            block = {"type": "list_pop_statement", "id": gen_uid()}
+                        if method == "sort" and len(node.value.args) == 0:
+                            reverse_val = "FALSE"
+                            for kw in node.value.keywords:
+                                if kw.arg == "reverse" and getattr(kw.value, 'value', False):
+                                    reverse_val = "TRUE"
+                            block = {"type": "list_sort", "id": gen_uid(), "fields": {"REVERSE": reverse_val}}
                             self.add_input(block, "LIST", self.serialize_expr(obj))
                             return block
-                        elif len(node.value.args) == 1:
-                            arg = node.value.args[0]
-                            if isinstance(arg, ast.Constant) and arg.value == 0:
-                                block = {"type": "queue_dequeue_statement", "id": gen_uid()}
-                                self.add_input(block, "QUEUE", self.serialize_expr(obj))
+                            
+                        if method == "insert" and len(node.value.args) == 2:
+                            block = {"type": "list_insert", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            self.add_input(block, "INDEX", self.serialize_expr(node.value.args[0]))
+                            self.add_input(block, "ITEM", self.serialize_expr(node.value.args[1]))
+                            return block
+
+                        if method == "append" and len(node.value.args) == 1:
+                            block = {"type": "list_append", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                            return block
+                            
+                        if method == "remove" and len(node.value.args) == 1:
+                            block = {"type": "list_remove_value", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                            return block
+                            
+                        if method == "reverse" and len(node.value.args) == 0:
+                            block = {"type": "list_reverse", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            return block
+                            
+                        if method == "clear" and len(node.value.args) == 0:
+                            block = {"type": "list_clear", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            return block
+                            
+                        if method == "pop":
+                            if len(node.value.args) == 0:
+                                block = {"type": "list_pop_statement", "id": gen_uid()}
+                                self.add_input(block, "LIST", self.serialize_expr(obj))
                                 return block
+                            elif len(node.value.args) == 1:
+                                arg = node.value.args[0]
+                                if isinstance(arg, ast.Constant) and arg.value == 0:
+                                    block = {"type": "queue_dequeue_statement", "id": gen_uid()}
+                                    self.add_input(block, "QUEUE", self.serialize_expr(obj))
+                                    return block
 
             elif isinstance(node, (ast.Import, ast.ImportFrom)):
                 return {"type": "raw_python_statement", "id": gen_uid(), "fields": {"CODE": ast.unparse(node)}}

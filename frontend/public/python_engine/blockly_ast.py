@@ -1,4 +1,3 @@
-# frontend/public/python_engine/blockly_ast.py
 import ast
 import uuid
 
@@ -43,6 +42,7 @@ class BlocklyASTConverter:
                 if node.func.id in ["list", "tuple", "sorted"]: return "Array"
                 if node.func.id in ["dict"]: return "Dictionary"
                 if node.func.id in ["bool"]: return "Boolean"
+                if node.func.id in ["set"]: return "Set"
             elif isinstance(node.func, ast.Attribute):
                 if node.func.attr in ["upper", "lower", "title", "capitalize", "replace"]: return "String"
                 if node.func.attr in ["count", "index", "find"]: return "Number"
@@ -120,10 +120,6 @@ class BlocklyASTConverter:
             current_chain_tail = None
 
             for node in tree.body:
-                # FIX: Explicitly ignore Docstrings and floating string expressions 
-                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                    continue
-
                 block = self.serialize_node(node, is_top_level=True) or self.make_raw_statement(node)
                 if not block: continue
 
@@ -153,7 +149,6 @@ class BlocklyASTConverter:
                 }
             }
         except Exception as e:
-            # Fallback for valid Python that Blockly simply doesn't have an equivalent block for
             return self.raw_fallback(code)
         
     def raw_fallback(self, code):
@@ -184,10 +179,6 @@ class BlocklyASTConverter:
         first, prev = None, None
 
         for node in nodes:
-            # FIX: Explicitly ignore Docstrings and floating string expressions inside function bodies
-            if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                continue
-
             block = self.serialize_node(node, is_top_level=False) or self.make_raw_statement(node)
             if not block: continue
             if not first:
@@ -216,26 +207,55 @@ class BlocklyASTConverter:
     def serialize_expr(self, node):
         if node is None: return None
         try:
-            if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "list":
-                if len(node.args) == 1 and isinstance(node.args[0], ast.Call) and getattr(node.args[0].func, "id", "") == "range":
-                    range_args = node.args[0].args
-                    start = ast.Constant(value=0)
-                    if len(range_args) == 1:
-                        end = range_args[0]
-                    elif len(range_args) >= 2:
-                        start = range_args[0]
-                        end = range_args[1]
-                    block = {"type": "list_range", "id": gen_uid()}
-                    self.add_input(block, "START", self.serialize_expr_safe(start, ["Number"]))
-                    self.add_input(block, "END", self.serialize_expr_safe(end, ["Number"]))
+            if isinstance(node, ast.Dict):
+                if not node.keys:
+                    return {"type": "dict_create_empty", "id": gen_uid()}
+                else:
+                    list_block = {"type": "lists_create_with", "id": gen_uid(), "extraState": {"itemCount": len(node.keys)}, "output": "Array"}
+                    for i, (k, v) in enumerate(zip(node.keys, node.values)):
+                        pair_block = {"type": "dict_pair", "id": gen_uid(), "output": "DictPair"}
+                        self.add_input(pair_block, "KEY", self.serialize_expr(k))
+                        self.add_input(pair_block, "VALUE", self.serialize_expr(v))
+                        self.add_input(list_block, f"ADD{i}", pair_block)
+                    
+                    dict_block = {"type": "dict_from_pairs", "id": gen_uid(), "output": "Dictionary"}
+                    self.add_input(dict_block, "LIST", list_block)
+                    return dict_block
+
+            if isinstance(node, ast.Set):
+                if not node.elts:
+                    return {"type": "set_create_empty", "id": gen_uid()}
+                else:
+                    block = {"type": "set_from_list", "id": gen_uid()}
+                    list_block = {"type": "lists_create_with", "id": gen_uid(), "extraState": {"itemCount": len(node.elts)}, "output": "Array"}
+                    for i, elt in enumerate(node.elts):
+                        self.add_input(list_block, f"ADD{i}", self.serialize_expr(elt))
+                    self.add_input(block, "LIST", list_block)
                     return block
 
-            if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "isinstance":
-                if len(node.args) == 2:
-                    block = {"type": "python_isinstance", "id": gen_uid()}
-                    self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
-                    self.add_input(block, "TYPE", self.serialize_expr(node.args[1]))
+            if isinstance(node, ast.Tuple):
+                if len(node.elts) == 2:
+                    block = {"type": "tuple_create", "id": gen_uid()}
+                    self.add_input(block, "A", self.serialize_expr(node.elts[0]))
+                    self.add_input(block, "B", self.serialize_expr(node.elts[1]))
                     return block
+                else:
+                    block = {"type": "lists_create_with", "id": gen_uid(), "extraState": {"itemCount": len(node.elts)}, "output": "Array"}
+                    for i, elt in enumerate(node.elts):
+                        child = self.serialize_expr(elt)
+                        if child is None:
+                            child = {"type": "math_number", "id": gen_uid(), "fields": {"NUM": "0"}, "output": "Number"}
+                        self.add_input(block, f"ADD{i}", child)
+                    return block
+
+            if isinstance(node, (ast.List, ast.Tuple)):
+                block = {"type": "lists_create_with", "id": gen_uid(), "extraState": {"itemCount": len(node.elts)}, "output": "Array"}
+                for i, elt in enumerate(node.elts):
+                    child = self.serialize_expr(elt)
+                    if child is None:
+                        child = {"type": "math_number", "id": gen_uid(), "fields": {"NUM": "0"}, "output": "Number"}
+                    self.add_input(block, f"ADD{i}", child)
+                return block
 
             if isinstance(node, ast.JoinedStr):
                 parts = []
@@ -293,6 +313,21 @@ class BlocklyASTConverter:
                 return {"type": "variables_get", "id": gen_uid(), "fields": {"VAR": {"id": node.id, "name": node.id}}}
 
             if isinstance(node, ast.BinOp):
+                # Advanced Bitwise / Math Operators
+                bitwise_map = {
+                    ast.FloorDiv: "FLOOR_DIV", 
+                    ast.Pow: "POWER", 
+                    ast.RShift: "RSHIFT", 
+                    ast.LShift: "LSHIFT", 
+                    ast.BitAnd: "BIT_AND", 
+                    ast.BitOr: "BIT_OR"
+                }
+                if type(node.op) in bitwise_map:
+                    block = {"type": "math_advanced_operators", "id": gen_uid(), "fields": {"OP": bitwise_map[type(node.op)]}}
+                    self.add_input(block, "A", self.serialize_expr_safe(node.left, ["Number"]))
+                    self.add_input(block, "B", self.serialize_expr_safe(node.right, ["Number"]))
+                    return block
+
                 if isinstance(node.op, ast.Add):
                     if self._infer_type(node.left) == "Array" or self._infer_type(node.right) == "Array" or isinstance(node.left, (ast.List, ast.Tuple)):
                         block = {"type": "list_concat", "id": gen_uid(), "output": "Array"}
@@ -316,7 +351,8 @@ class BlocklyASTConverter:
                     self.add_input(block, "DIVIDEND", self.serialize_expr_safe(node.left, ["Number"]))
                     self.add_input(block, "DIVISOR", self.serialize_expr_safe(node.right, ["Number"]))
                     return block
-                arith = {ast.Add: "ADD", ast.Sub: "MINUS", ast.Mult: "MULTIPLY", ast.Div: "DIVIDE", ast.Pow: "POWER", ast.FloorDiv: "DIVIDE"}
+                    
+                arith = {ast.Add: "ADD", ast.Sub: "MINUS", ast.Mult: "MULTIPLY", ast.Div: "DIVIDE"}
                 if type(node.op) in arith:
                     block = {"type": "math_arithmetic", "id": gen_uid(), "fields": {"OP": arith[type(node.op)]}}
                     self.add_input(block, "A", self.serialize_expr_safe(node.left, ["Number"]))
@@ -377,23 +413,6 @@ class BlocklyASTConverter:
                     return block
                 return chain_bools(node.values)
 
-            if isinstance(node, (ast.List, ast.Tuple)):
-                block = {"type": "lists_create_with", "id": gen_uid(), "extraState": {"itemCount": len(node.elts)}, "output": "Array"}
-                for i, elt in enumerate(node.elts):
-                    child = self.serialize_expr(elt)
-                    if child is None:
-                        child = {"type": "math_number", "id": gen_uid(), "fields": {"NUM": "0"}, "output": "Number"}
-                    if child and child.get("type") == "math_number":
-                        child = {"type": "math_number", "id": gen_uid(), "fields": child.get("fields"), "output": "Number"}
-                    self.add_input(block, f"ADD{i}", child)
-                return block
-
-            if isinstance(node, ast.Dict):
-                expr = self.make_raw_expr(node)
-                if expr and isinstance(expr, dict):
-                    expr["output"] = "Dictionary"
-                return expr
-
             if isinstance(node, ast.Subscript):
                 if isinstance(node.slice, ast.Slice):
                     block = {"type": "list_slice_advanced", "id": gen_uid()}
@@ -404,17 +423,64 @@ class BlocklyASTConverter:
                         self.add_input(block, "END", self.serialize_expr(node.slice.upper))
                     return block
                 
-                block = {"type": "lists_getIndex", "id": gen_uid(), "fields": {"MODE": "GET", "WHERE": "FROM_START"}}
-                self.add_input(block, "VALUE", self.serialize_expr(node.value))
-                slice_node = node.slice
-                if hasattr(ast, 'Index') and isinstance(slice_node, getattr(ast, 'Index')):
-                    slice_node = slice_node.value
-                self.add_input(block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
-                return block
+                slice_val = self.serialize_expr(node.slice)
+                target_type = self._infer_type(node.value)
+                
+                # Use dict_get if we confidently know it's a Dictionary
+                if target_type == "Dictionary":
+                    block = {"type": "dict_get", "id": gen_uid()}
+                    self.add_input(block, "DICT", self.serialize_expr(node.value))
+                    self.add_input(block, "KEY", slice_val)
+                    return block
+                else:
+                    block = {"type": "lists_getIndex", "id": gen_uid(), "fields": {"MODE": "GET", "WHERE": "FROM_START"}}
+                    self.add_input(block, "VALUE", self.serialize_expr(node.value))
+                    self.add_input(block, "AT", slice_val)
+                    return block
 
             if isinstance(node, ast.Call):
                 if isinstance(node.func, ast.Name):
                     name = node.func.id
+                    
+                    if name == "set":
+                        if len(node.args) == 0:
+                            return {"type": "set_create_empty", "id": gen_uid()}
+                        elif len(node.args) == 1:
+                            block = {"type": "set_from_list", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(node.args[0]))
+                            return block
+                            
+                    if name == "list":
+                        if len(node.args) == 1:
+                            arg = node.args[0]
+                            # Handle list(range(...))
+                            if isinstance(arg, ast.Call) and getattr(arg.func, "id", "") == "range":
+                                range_args = arg.args
+                                start = ast.Constant(value=0)
+                                if len(range_args) == 1: end = range_args[0]
+                                elif len(range_args) >= 2: start, end = range_args[0], range_args[1]
+                                block = {"type": "list_range", "id": gen_uid()}
+                                self.add_input(block, "START", self.serialize_expr_safe(start, ["Number"]))
+                                self.add_input(block, "END", self.serialize_expr_safe(end, ["Number"]))
+                                return block
+                            
+                            # Handle list(dict.keys())
+                            if isinstance(arg, ast.Call) and isinstance(arg.func, ast.Attribute) and arg.func.attr in ["keys", "values", "items"]:
+                                block = {"type": "dict_keys_values", "id": gen_uid(), "fields": {"OP": arg.func.attr}}
+                                self.add_input(block, "DICT", self.serialize_expr(arg.func.value))
+                                return block
+                                
+                            # Handle list("string")
+                            if self._infer_type(arg) == "String" or (isinstance(arg, ast.Constant) and isinstance(arg.value, str)):
+                                block = {"type": "string_to_list", "id": gen_uid()}
+                                self.add_input(block, "STRING", self.serialize_expr(arg))
+                                return block
+                                
+                            # Default cast to list
+                            block = {"type": "type_cast_advanced", "id": gen_uid(), "fields": {"TYPE": "list"}}
+                            self.add_input(block, "VALUE", self.serialize_expr(arg))
+                            return block
+
                     if name == "type" and len(node.args) == 1:
                         block = {"type": "python_type", "id": gen_uid()}
                         self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
@@ -427,12 +493,11 @@ class BlocklyASTConverter:
                         block = {"type": "lists_length", "id": gen_uid()}
                         self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
                         return block
-                    
                     if name == "int" and len(node.args) == 1:
                         block = {"type": "type_cast_int", "id": gen_uid()}
                         self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
                         return block
-                    if name in ["float", "bool", "str", "list"] and len(node.args) == 1:
+                    if name in ["float", "bool", "str"] and len(node.args) == 1:
                         block = {"type": "type_cast_advanced", "id": gen_uid(), "fields": {"TYPE": name}}
                         self.add_input(block, "VALUE", self.serialize_expr(node.args[0]))
                         return block
@@ -440,7 +505,7 @@ class BlocklyASTConverter:
                         block = {"type": "math_abs_round", "id": gen_uid(), "fields": {"OP": name}}
                         self.add_input(block, "VALUE", self.serialize_expr_safe(node.args[0], ["Number"]))
                         return block
-                    if name == "sorted" and len(node.args) == 1:
+                    if name == "sorted" and len(node.args) >= 1:
                         reverse_val = "FALSE"
                         for kw in node.keywords:
                             if kw.arg == "reverse" and getattr(kw.value, 'value', False):
@@ -464,6 +529,12 @@ class BlocklyASTConverter:
                     method = node.func.attr
                     obj = node.func.value
                     
+                    if method == "join" and len(node.args) == 1:
+                        block = {"type": "custom_string_join", "id": gen_uid()}
+                        self.add_input(block, "LIST", self.serialize_expr(node.args[0]))
+                        self.add_input(block, "DELIMITER", self.serialize_expr(obj))
+                        return block
+
                     if method in ["upper", "lower", "title", "capitalize"] and len(node.args) == 0:
                         block = {"type": "string_case_formatting", "id": gen_uid(), "fields": {"CASE": method}}
                         self.add_input(block, "STRING", self.serialize_expr(obj))
@@ -561,21 +632,29 @@ class BlocklyASTConverter:
                     return block
                 
                 elif isinstance(target, ast.Subscript):
-                    block = {
-                        "type": "lists_setIndex", 
-                        "id": gen_uid(), 
-                        "fields": {"MODE": "SET", "WHERE": "FROM_START"}
-                    }
-                    
-                    self.add_input(block, "LIST", self.serialize_expr(target.value))
-                    
                     slice_node = target.slice
                     if hasattr(ast, 'Index') and isinstance(slice_node, getattr(ast, 'Index')):
                         slice_node = slice_node.value
-                        
-                    self.add_input(block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
-                    self.add_input(block, "TO", self.serialize_expr(node.value))
-                    return block
+
+                    target_type = self._infer_type(target.value)
+                    slice_type = self._infer_type(slice_node)
+
+                    if target_type == "Dictionary" or slice_type == "String":
+                        block = {"type": "dict_set", "id": gen_uid()}
+                        self.add_input(block, "DICT", self.serialize_expr(target.value))
+                        self.add_input(block, "KEY", self.serialize_expr(slice_node))
+                        self.add_input(block, "VALUE", self.serialize_expr(node.value))
+                        return block
+                    else:
+                        block = {
+                            "type": "lists_setIndex", 
+                            "id": gen_uid(), 
+                            "fields": {"MODE": "SET", "WHERE": "FROM_START"}
+                        }
+                        self.add_input(block, "LIST", self.serialize_expr(target.value))
+                        self.add_input(block, "AT", self.serialize_expr_safe(slice_node, ["Number"]))
+                        self.add_input(block, "TO", self.serialize_expr(node.value))
+                        return block
 
                 else:
                     return self.make_raw_statement(node)
@@ -619,12 +698,25 @@ class BlocklyASTConverter:
 
             elif isinstance(node, ast.FunctionDef):
                 if not is_top_level: return self.make_raw_statement(node)
-                has_ret = any(isinstance(n, ast.Return) for n in ast.walk(node))
-                block = {"type": "procedures_defreturn" if has_ret else "procedures_defnoreturn", "id": gen_uid(), "fields": {"NAME": node.name}}
+                
+                last_stmt = node.body[-1] if node.body else None
+                is_defreturn = isinstance(last_stmt, ast.Return)
+                
+                block = {"type": "procedures_defreturn" if is_defreturn else "procedures_defnoreturn", "id": gen_uid(), "fields": {"NAME": node.name}}
                 params = [{"name": a.arg, "id": a.arg} for a in node.args.args]
                 for p in params: self.variables.add(p["id"])
                 if params: block["extraState"] = {"params": params}
-                self.add_input(block, "STACK", self.serialize_body(node.body))
+                
+                if is_defreturn:
+                    if last_stmt.value:
+                        self.add_input(block, "RETURN", self.serialize_expr(last_stmt.value))
+                    
+                    body_nodes = node.body[:-1]
+                    if body_nodes:
+                        self.add_input(block, "STACK", self.serialize_body(body_nodes))
+                else:
+                    self.add_input(block, "STACK", self.serialize_body(node.body))
+                
                 return block
 
             elif isinstance(node, ast.If):
@@ -673,73 +765,93 @@ class BlocklyASTConverter:
                     self.add_input(block, "VALUE", self.serialize_expr(node.value))
                 return block
 
-            elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-                if isinstance(node.value.func, ast.Name):
-                    name = node.value.func.id
-                    if name == "print":
-                        block = {"type": "text_print", "id": gen_uid()}
-                        if node.value.args:
-                            self.add_input(block, "TEXT", self.serialize_expr(node.value.args[0]))
-                        return block
-
-                    block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
-                    for i, arg in enumerate(node.value.args):
-                        self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
-                    return block
+            elif isinstance(node, ast.Expr):
+                # Handle Docstrings and floating strings mapping them to multi_line_comment
+                if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                    return {
+                        "type": "multi_line_comment",
+                        "id": gen_uid(),
+                        "fields": {"TEXT": node.value.value.strip()}
+                    }
                 
-                elif isinstance(node.value.func, ast.Attribute):
-                    method = node.value.func.attr
-                    obj = node.value.func.value
-                    
-                    if method == "sort" and len(node.value.args) == 0:
-                        reverse_val = "FALSE"
-                        for kw in node.value.keywords:
-                            if kw.arg == "reverse" and getattr(kw.value, 'value', False):
-                                reverse_val = "TRUE"
-                        block = {"type": "list_sort", "id": gen_uid(), "fields": {"REVERSE": reverse_val}}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        return block
-                        
-                    if method == "insert" and len(node.value.args) == 2:
-                        block = {"type": "list_insert", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        self.add_input(block, "INDEX", self.serialize_expr(node.value.args[0]))
-                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[1]))
-                        return block
+                # Handle function calls like print()
+                if isinstance(node.value, ast.Call):
+                    if isinstance(node.value.func, ast.Name):
+                        name = node.value.func.id
+                        if name == "print":
+                            block = {"type": "text_print", "id": gen_uid()}
+                            if node.value.args:
+                                self.add_input(block, "TEXT", self.serialize_expr(node.value.args[0]))
+                            return block
 
-                    if method == "append" and len(node.value.args) == 1:
-                        block = {"type": "list_append", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                        block = {"type": "procedures_callnoreturn", "id": gen_uid(), "extraState": {"name": name, "params": [f"arg{i}" for i in range(len(node.value.args))]}}
+                        for i, arg in enumerate(node.value.args):
+                            self.add_input(block, f"ARG{i}", self.serialize_expr(arg))
                         return block
+                    
+                    elif isinstance(node.value.func, ast.Attribute):
+                        method = node.value.func.attr
+                        obj = node.value.func.value
                         
-                    if method == "remove" and len(node.value.args) == 1:
-                        block = {"type": "list_remove_value", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
-                        return block
-                        
-                    if method == "reverse" and len(node.value.args) == 0:
-                        block = {"type": "list_reverse", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        return block
-                        
-                    if method == "clear" and len(node.value.args) == 0:
-                        block = {"type": "list_clear", "id": gen_uid()}
-                        self.add_input(block, "LIST", self.serialize_expr(obj))
-                        return block
-                        
-                    if method == "pop":
-                        if len(node.value.args) == 0:
-                            block = {"type": "list_pop_statement", "id": gen_uid()}
+                        if method == "add" and len(node.value.args) == 1:
+                            block = {"type": "set_add", "id": gen_uid()}
+                            self.add_input(block, "SET", self.serialize_expr(obj))
+                            self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                            return block
+                            
+                        if method == "sort" and len(node.value.args) == 0:
+                            reverse_val = "FALSE"
+                            for kw in node.value.keywords:
+                                if kw.arg == "reverse" and getattr(kw.value, 'value', False):
+                                    reverse_val = "TRUE"
+                            block = {"type": "list_sort", "id": gen_uid(), "fields": {"REVERSE": reverse_val}}
                             self.add_input(block, "LIST", self.serialize_expr(obj))
                             return block
-                        elif len(node.value.args) == 1:
-                            arg = node.value.args[0]
-                            if isinstance(arg, ast.Constant) and arg.value == 0:
-                                block = {"type": "queue_dequeue_statement", "id": gen_uid()}
-                                self.add_input(block, "QUEUE", self.serialize_expr(obj))
+                            
+                        if method == "insert" and len(node.value.args) == 2:
+                            block = {"type": "list_insert", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            self.add_input(block, "INDEX", self.serialize_expr(node.value.args[0]))
+                            self.add_input(block, "ITEM", self.serialize_expr(node.value.args[1]))
+                            return block
+
+                        if method == "append" and len(node.value.args) == 1:
+                            block = {"type": "list_append", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                            return block
+                            
+                        if method == "remove" and len(node.value.args) == 1:
+                            if self._infer_type(obj) == "Set":
+                                block = {"type": "set_remove", "id": gen_uid()}
+                                self.add_input(block, "SET", self.serialize_expr(obj))
+                            else:
+                                block = {"type": "list_remove_value", "id": gen_uid()}
+                                self.add_input(block, "LIST", self.serialize_expr(obj))
+                            self.add_input(block, "ITEM", self.serialize_expr(node.value.args[0]))
+                            return block
+                            
+                        if method == "reverse" and len(node.value.args) == 0:
+                            block = {"type": "list_reverse", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            return block
+                            
+                        if method == "clear" and len(node.value.args) == 0:
+                            block = {"type": "list_clear", "id": gen_uid()}
+                            self.add_input(block, "LIST", self.serialize_expr(obj))
+                            return block
+                            
+                        if method == "pop":
+                            if len(node.value.args) == 0:
+                                block = {"type": "list_pop_statement", "id": gen_uid()}
+                                self.add_input(block, "LIST", self.serialize_expr(obj))
                                 return block
+                            elif len(node.value.args) == 1:
+                                arg = node.value.args[0]
+                                if isinstance(arg, ast.Constant) and arg.value == 0:
+                                    block = {"type": "queue_dequeue_statement", "id": gen_uid()}
+                                    self.add_input(block, "QUEUE", self.serialize_expr(obj))
+                                    return block
 
             elif isinstance(node, (ast.Import, ast.ImportFrom)):
                 return {"type": "raw_python_statement", "id": gen_uid(), "fields": {"CODE": ast.unparse(node)}}
