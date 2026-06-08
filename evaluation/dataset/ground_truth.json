@@ -136,13 +136,13 @@
     "id": "logarithmic_gcd_09",
     "name": "Euclidean GCD (Iterative)",
     "code": "def gcd(a, b):\n    while b != 0:\n        temp = b\n        b = a % b\n        a = temp\n    return a",
-    "expected_overall_time": "O(log n)",
+    "expected_overall_time": "O(log min(a, b))",
     "expected_overall_space": "O(1)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(log n)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(log min(a,b))", "global_time": "O(log min(a,b))", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(log min(a,b))", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(log min(a,b))", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log min(a,b))", "space": "O(1)"},
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
@@ -208,7 +208,7 @@
   },
   {
     "id": "quadratic_bad_loop_14",
-    "name": "Nested Loops but Inner is Constant (Student Edge Case)",
+    "name": "Nested Loops but Inner is Constant",
     "code": "def fake_quadratic(arr):\n    for i in range(len(arr)):\n        for j in range(5):\n            print(arr[i])",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
@@ -354,17 +354,17 @@
     "id": "nested_loop_multi_var_26",
     "name": "Nested Loops with Independent Variables",
     "code": "def print_pairs(arrA, arrB):\n    for a in arrA:\n        for b in arrB:\n            print(a, b)",
-    "expected_overall_time": "O(n^2)",
+    "expected_overall_time": "O(n * m)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n^2)", "space": "O(1)"}
+      {"lineno": 3, "local_time": "O(m)", "global_time": "O(n * m)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"}
     ]
   },
   {
     "id": "loop_with_sort_27",
-    "name": "Sorting Inside a Loop (Bad Student Code)",
+    "name": "Sorting Inside a Loop",
     "code": "def repeatedly_sort(arr):\n    for i in range(len(arr)):\n        sorted(arr)\n    return arr",
     "expected_overall_time": "O(n^2 log n)",
     "expected_overall_space": "O(n)",
@@ -555,7 +555,7 @@
   },
   {
     "id": "student_error_infinite_loop_prevention_41",
-    "name": "While True Edge Case (Timeout Prevention)",
+    "name": "While True Edge Case",
     "code": "def bad_loop(arr):\n    i = 0\n    while True:\n        if i >= len(arr):\n            break\n        i += 1",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
@@ -657,20 +657,20 @@
   {
     "id": "bfs_graph_48",
     "name": "Breadth-First Search (Iterative Graph Traversal)",
-    "code": "def bfs(graph, start):\n    visited = set()\n    queue = [start]\n    visited.add(start)\n    while queue:\n        node = queue.pop(0)\n        for neighbor in graph[node]:\n            if neighbor not in visited:\n                visited.add(neighbor)\n                queue.append(neighbor)\n    return visited",
+    "code": "from collections import deque\n\ndef bfs(graph, start):\n    visited = set()\n    queue = deque([start])\n    visited.add(start)\n    while queue:\n        node = queue.popleft()\n        for neighbor in graph[node]:\n            if neighbor not in visited:\n                visited.add(neighbor)\n                queue.append(neighbor)\n    return visited",
     "expected_overall_time": "O(V + E)",
     "expected_overall_space": "O(V)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 6, "local_time": "O(n)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
       {"lineno": 7, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
       {"lineno": 8, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 9, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 10, "local_time": "O(1) amortized", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 11, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+      {"lineno": 9, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 10, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 11, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 12, "local_time": "O(1) amortized", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 13, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
   {
@@ -684,7 +684,7 @@
       {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
       {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 6, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
       {"lineno": 7, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(1)"},
       {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
@@ -693,20 +693,20 @@
     "id": "permutations_50",
     "name": "Permutations (Recursive Backtracking)",
     "code": "def permute(arr):\n    res = []\n    if len(arr) == 1:\n        return [arr[:]]\n    for i in range(len(arr)):\n        n = arr.pop(0)\n        perms = permute(arr)\n        for p in perms:\n            p.append(n)\n        res.extend(perms)\n        arr.append(n)\n    return res",
-    "expected_overall_time": "O(n!)",
+    "expected_overall_time": "O(n * n!)",
     "expected_overall_space": "O(n!)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n!)", "space": "O(n!)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(n)"},
-      {"lineno": 5, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 6, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(n!)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(n)"},
+      {"lineno": 5, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(1)"},
       {"lineno": 7, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(1)"},
-      {"lineno": 8, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 9, "local_time": "O(1) amortized", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 10, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 11, "local_time": "O(1) amortized", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 12, "local_time": "O(1)", "global_time": "O(n!)", "space": "O(1)"}
+      {"lineno": 8, "local_time": "O(n!)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 9, "local_time": "O(1) amortized", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 10, "local_time": "O(n!)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 11, "local_time": "O(1) amortized", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(1)"}
     ]
   },
   {

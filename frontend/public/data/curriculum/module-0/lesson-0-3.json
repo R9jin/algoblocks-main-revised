@@ -10,23 +10,23 @@
   "activities": [
     {
       "id": "m0_l3_a1",
-      "title": "The Constant O(1) Test"
+      "title": "Checking How Fast Code Runs"
     },
     {
       "id": "m0_l3_a2",
-      "title": "The Linear O(n) Test"
+      "title": "Loops Make Code Take Longer"
     },
     {
       "id": "m0_l3_a3",
-      "title": "The Quadratic O(n²) Test"
+      "title": "Loops Inside Loops"
     },
     {
       "id": "m0_l3_a4",
-      "title": "Conditional Cost"
+      "title": "Checking Both Paths"
     },
     {
       "id": "m0_l3_a5",
-      "title": "Loop vs Math"
+      "title": "Math is Faster than Loops"
     }
   ],
   "sections": [
@@ -75,6 +75,11 @@
             "**O(log n) - Logarithmic Time:** Extremely efficient. The algorithm splits the data in half each step. Example: *Binary search.*",
             "**O(2^n) - Exponential Time:** Highly inefficient and generally only usable for tiny inputs."
           ]
+        },
+        {
+          "id": "micro-transition-o-n-squared",
+          "title": "Micro-Transition: Stepping Up to O(n²)",
+          "content": "Jumping straight to understanding O(n²) (Quadratic Time) can be scary. Think of it as a grid. If you have 5 friends, and every friend has to shake hands with every other friend, the amount of handshakes multiplies quickly! This happens when you put a loop inside a loop. The Complexity Analyzer will instantly show your performance meter rise to a slow O(n²) when it detects this handshake pattern."
         }
       ]
     },

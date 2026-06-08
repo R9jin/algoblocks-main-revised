@@ -127,7 +127,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if is_recurrence: return 200
         if complexity_str in ["O(1)", "Definition", "Dead Code"]: return 1 if complexity_str != "Dead Code" else -1
         w = 0
-        if "O(n!)" in complexity_str: w = 110
+        if "O(n * n!)" in complexity_str: w = 115
+        elif "O(n!)" in complexity_str: w = 110
         elif "O(n^d)" in complexity_str: w = 100
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
         elif "n^3" in complexity_str or "n³" in complexity_str: w = 30
@@ -142,7 +143,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def _get_space_weight(self, complexity_str):
         if complexity_str == "S(placeholder)": return 0
         s_w = 0
-        if "n^n" in complexity_str or "n!" in complexity_str: s_w = 5
+        if "n^n" in complexity_str or "n!" in complexity_str or "n * n!" in complexity_str: s_w = 5
         elif "O(n^d)" in complexity_str: s_w = 4
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: s_w = 4
         elif "n * m" in complexity_str or "n^2" in complexity_str or "n²" in complexity_str: s_w = 2
@@ -896,7 +897,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.custom_functions[node.name] = relation
 
         lookup = {
-            "T(n) = n * T(n-1)": "O(n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
+            "T(n) = n * T(n-1)": "O(n * n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
             "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
             "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
             "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
@@ -904,7 +905,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
             "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)", 
             "O(V + E)": "O(V + E)", "O(n * m)": "O(n * m)", "O(2^n)": "O(2^n)", 
-            "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)"
+            "O(n * n!)": "O(n * n!)", "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)"
         }
 
         call_idx = 0
@@ -963,8 +964,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 else:
                     if is_factorial_or_fib:
                         self._details[i]["global_time"] = resolved_rel
-                    elif resolved_rel == "O(n!)":
-                        self._details[i]["global_time"] = "O(n!)"
+                    elif resolved_rel in ["O(n!)", "O(n * n!)"]:
+                        self._details[i]["global_time"] = resolved_rel
         else:
             self._details[start_idx]["local_time"] = "O(1)"
             func_top_str = self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve)
@@ -1436,7 +1437,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def get_final_asymptotic_badge(self):
         lookup = {
-            "T(n) = n * T(n-1)": ("O(n!)", 9), "O(n!)": ("O(n!)", 9), "O(n^d)": ("O(n^d)", 9),
+            "T(n) = n * T(n-1)": ("O(n * n!)", 9.5), "O(n * n!)": ("O(n * n!)", 9.5),
+            "O(n!)": ("O(n!)", 9), "O(n^d)": ("O(n^d)", 9),
             "T(n) = T(n-1) + T(n-2) + O(1)": ("O(2^n)", 8), "O(2^n)": ("O(2^n)", 8),
             "O(n^3)": ("O(n^3)", 7), "O(n^2 * m)": ("O(n^3)", 7.1), "O(n * m^2)": ("O(n^3)", 7.1),
             "O(n^2 log n)": ("O(n^2 log n)", 6.5),
@@ -1489,7 +1491,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def get_final_space_badge(self):
         rankings = {
-            "O(n^n)": 8, "O(n^d)": 8, "O(n!)": 8, "O(2^n)": 7.5, "O(n^3)": 7, "O(n^2 log n)": 6.5, "O(n * m)": 6.1, "O(n^2)": 6, "O(n log n)": 5, 
+            "O(n^n)": 8, "O(n^d)": 8, "O(n * n!)": 8, "O(n!)": 8, "O(2^n)": 7.5, "O(n^3)": 7, "O(n^2 log n)": 6.5, "O(n * m)": 6.1, "O(n^2)": 6, "O(n log n)": 5, 
             "O(V + E)": 4.5, "O(V)": 4.2, "O(n)": 4, "O(log n)": 3, "O(1)": 1
         }
         
@@ -1531,38 +1533,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return best_space
         
     def _apply_strict_dataset_overrides(self):
-        code_str = "\n".join(self.source_lines)
-        
-        if "def coin_change(" in code_str:
-            for d in self._details:
-                if "for x in range" in d["lineOfCode"]: d["local_time"] = "O(n)"
-                
-        if "def multiply_matrices" in code_str or ("for i in" in code_str and "for j in" in code_str and "for k in" in code_str):
-            for d in self._details:
-                if d["global_time"] in ["O(n^2 * m)", "O(n * m^2)"]: d["global_time"] = "O(n^3)"
-                if "for k in" in d["lineOfCode"]: d["local_time"] = "O(n)"
-                if "+=" in d["lineOfCode"]: d["global_time"] = "O(n^3)"
-                
-        if "def quick_sort" in code_str:
-            for d in self._details:
-                if d["local_time"] in ["T(n-1)", "T(n-2)"]:
-                    d["local_time"] = "T(n/2)"
-                    d["global_time"] = "T(n/2)"
-                    
-        if "def nested_independent" in code_str or "for j in arr2" in code_str:
-            for d in self._details:
-                if "for j in" in d["lineOfCode"]: 
-                    d["local_time"] = "O(m)"
-                    d["global_time"] = "O(n * m)"
-                if "arr1" in d["lineOfCode"] and "arr2" in d["lineOfCode"]:
-                    d["global_time"] = "O(n * m)"
-                if "print" in d["lineOfCode"]:
-                    d["global_time"] = "O(n * m)"
-                    
-        if "def permute" in code_str:
-            for d in self._details:
-                if "extend(" in d["lineOfCode"] or "pop(" in d["lineOfCode"]:
-                    d["local_time"] = "O(n)"
+        # Removed dataset-specific hardcoded hacks to allow the AST to process natively.
+        pass
 
     def get_final_badge(self):
         return self.get_final_asymptotic_badge()

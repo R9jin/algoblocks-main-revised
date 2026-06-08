@@ -2180,7 +2180,7 @@ export default function MainApp() {
         isOpen={leaveModal.isOpen}
         title="Unsaved Changes"
         message="You have unsaved changes in your workspace. Are you sure you want to leave? All unsaved progress will be lost."
-        confirmText="Leave Page"
+        confirmText="Leave Workspace"
         cancelText="Stay"
         isDanger={true}
         onCancel={cancelLeaveSite}

@@ -10,23 +10,23 @@
   "activities": [
     {
       "id": "m0_l1_a1",
-      "title": "Hello AlgoBlocks"
+      "title": "Your First Program"
     },
     {
       "id": "m0_l1_a2",
-      "title": "ASCII Art"
+      "title": "Returning Text"
     },
     {
       "id": "m0_l1_a3",
-      "title": "Basic Calculator"
+      "title": "Using Inputs (Parameters)"
     },
     {
       "id": "m0_l1_a4",
-      "title": "Name Greeter"
+      "title": "Joining Text Together"
     },
     {
       "id": "m0_l1_a5",
-      "title": "Multi-Line Output"
+      "title": "Making a List"
     }
   ],
   "sections": [
@@ -87,6 +87,11 @@
             "2. print \"World\"",
             "3. print \"Goodbye\""
           ]
+        },
+        {
+          "id": "micro-transition-sequence",
+          "title": "Micro-Transition: One Step at a Time",
+          "content": "Before jumping into complex logic, practice just snapping two basic blocks together. If you place 'print A' above 'print B', the computer will ALWAYS read 'A' before 'B'. Mastering this simple top-to-bottom flow is your first stepping stone to building reliable software."
         },
         {
           "id": "sequential-behavior",

@@ -10,23 +10,23 @@
   "activities": [
     {
       "id": "m1_l2_a1",
-      "title": "O(1) Lookup"
+      "title": "Adding Up a List"
     },
     {
       "id": "m1_l2_a2",
-      "title": "O(n) Traversal"
+      "title": "Finding the Biggest Number"
     },
     {
       "id": "m1_l2_a3",
-      "title": "O(log n) Halving"
+      "title": "Counting Specific Items (Evens)"
     },
     {
       "id": "m1_l2_a4",
-      "title": "O(n^2) Pairing"
+      "title": "Does the List Have This Number?"
     },
     {
       "id": "m1_l2_a5",
-      "title": "O(n + n) vs O(n)"
+      "title": "Copying a List"
     }
   ],
   "sections": [
@@ -229,6 +229,11 @@
       "title": "Quadratic Complexity: O(n^2)",
       "content": "**Quadratic complexity** happens when every item interacts with every other item. The classic pattern is a **nested loop** where the outer loop runs `n` times and the inner loop also runs `n` times, giving `n * n` operations.",
       "subsections": [
+        {
+          "id": "micro-transition-nested",
+          "title": "Micro-Transition: Stepping Into Nested Loops",
+          "content": "Before tackling massive nested data or grids, let's understand why O(n²) is so slow. If you have an outer loop running `n` times, and an inner loop running `n` times, the work multiplies to `n * n`. We will start with single O(n) loops to search and copy lists before we ever combine them into slow O(n²) pairs!"
+        },
         {
           "id": "quadratic-scale",
           "title": "The Nested Loop Problem",

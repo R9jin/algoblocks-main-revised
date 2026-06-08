@@ -10,23 +10,23 @@
   "activities": [
     {
       "id": "m0_l2_a1",
-      "title": "Odd or Even"
+      "title": "Storing Data in Variables"
     },
     {
       "id": "m0_l2_a2",
-      "title": "Number Counter"
+      "title": "Making Decisions (If/Else)"
     },
     {
       "id": "m0_l2_a3",
-      "title": "Array Printer"
+      "title": "Repeating Actions (Loops)"
     },
     {
       "id": "m0_l2_a4",
-      "title": "Grade Evaluator"
+      "title": "Getting Items from a List"
     },
     {
       "id": "m0_l2_a5",
-      "title": "Sum of Range"
+      "title": "Adding to a List"
     }
   ],
   "sections": [
@@ -110,6 +110,11 @@
           ]
         },
         {
+          "id": "micro-transition-loops",
+          "title": "Micro-Transition: The Clock Analogy",
+          "content": "Before jumping into complex 'nested' loops (putting a loop inside another loop), let's take a small stepping stone. Think of a clock: the minute hand loops 60 times, and only then does the hour hand move 1 time! That is exactly how nested loops work. But before you try putting one loop inside another, make sure you practice running just ONE loop by itself so you can confidently watch how a single variable counts up."
+        },
+        {
           "id": "loops-pointer-paradigm",
           "title": "The Pointer Paradigm",
           "content": "As you advance, you must often transition from automatic For-Each loops to manual state manipulation. Using a **While loop** combined with custom variables (like `left` and `right` pointers) allows you to traverse arrays from both ends simultaneously. This manual control is a fundamental technique for writing optimized algorithms."
@@ -172,6 +177,11 @@
             "The 2nd item in the array is located at **Index 1**.",
             "The last item is always located at **(Length of Array - 1)**."
           ]
+        },
+        {
+          "id": "micro-transition-arrays",
+          "title": "Micro-Transition: Safe Array Reading",
+          "content": "Changing items in a list (mutating) can be tricky for a beginner. A great stepping stone is to practice just *reading* from a list first using a simple loop. Only once you are comfortable reading items out loud should you try adding or deleting items. Small, safe steps prevent your program from crashing!"
         },
         {
           "id": "arr-operations",
@@ -267,7 +277,7 @@
         {
           "id": "sum-next-steps",
           "title": "Next Steps",
-          "content": "You are now fully prepared to tackle the module activities: Odd or Even, Number Counter, Array Printer, Grade Evaluator, and Sum of Range. As you build these programs visually, watch the Python panel to see how your logical blocks are instantly converted into **real, syntax-perfect Python code**."
+          "content": "You are now fully prepared to tackle the module activities. As you build these programs visually, watch the Python panel to see how your logical blocks are instantly converted into **real, syntax-perfect Python code**."
         }
       ]
     }
