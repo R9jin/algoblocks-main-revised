@@ -1,16 +1,16 @@
 // frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
-  FiCheckCircle,
-  FiChevronDown,
-  FiCircle,
-  FiClipboard,
-  FiDatabase,
-  FiFilter,
-  FiLock,
-  FiRefreshCw,
-  FiShare2,
-  FiUsers,
+    FiCheckCircle,
+    FiChevronDown,
+    FiCircle,
+    FiClipboard,
+    FiDatabase,
+    FiFilter,
+    FiLock,
+    FiRefreshCw,
+    FiShare2,
+    FiUsers,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -261,7 +261,7 @@ export default function LearningPath() {
             const lastLessonId =
               module.lessons[module.lessons.length - 1]?.lessonId;
 
-            // ADMIN OVERRIDES FOR OPTIMIZATION AND POST-ASSESSMENT
+            // ADMIN OVERRIDES FOR OPTIMIZATION AND Quiz
             const optimizationsLocked = isAdmin
               ? false
               : lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
@@ -575,7 +575,7 @@ export default function LearningPath() {
                       <div className="assessment-row-left">
                         <FiClipboard size={16} />
                         <span className="assessment-row-label">
-                          Post-Assessment
+                          Quiz
                         </span>
                         {postScore !== null && (
                           <span className="assessment-score-badge post">
@@ -612,7 +612,7 @@ export default function LearningPath() {
                               navigate(`/assessment/${module.moduleId}/post`);
                             }}
                           >
-                            Take Post-Assessment
+                            Take Quiz
                           </button>
                         )}
                       </div>

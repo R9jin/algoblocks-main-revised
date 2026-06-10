@@ -413,7 +413,7 @@ export default function AssessmentPage() {
               </div>
               <h1 className="results-score" style={{ color }}>{score}%</h1>
               <p className="results-subtitle">
-                {isPre ? "Pre-Assessment" : "Post-Assessment"} — Module {moduleNum}: {moduleTitle}
+                {isPre ? "Pre-Assessment" : "Quiz"} — Module {moduleNum}: {moduleTitle}
               </p>
               <p className="results-attempt">
                 Attempt #{(prevResult?.attempts ?? 0) + 1} &nbsp;·&nbsp; {formatTime(timeElapsed)} taken
@@ -507,7 +507,7 @@ export default function AssessmentPage() {
       <div className="assessment-wrapper">
         <div className="assessment-header">
           <div className="assessment-title-block">
-            <div className="assessment-tag">{isPre ? "PRE-ASSESSMENT" : "POST-ASSESSMENT"}</div>
+            <div className="assessment-tag">{isPre ? "PRE-ASSESSMENT" : "Quiz"}</div>
             <h1>Module {moduleNum}: {moduleTitle}</h1>
             <p className="assessment-subtitle">
               {isPre

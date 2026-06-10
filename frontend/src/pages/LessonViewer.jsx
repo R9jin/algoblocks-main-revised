@@ -31,7 +31,6 @@ function formatText(text) {
   });
 }
 
-// FIXED: Now properly handles single \n characters to preserve bullet point lists
 function renderParagraphs(content, className = "lesson-section-content") {
   if (!content) return null;
 
@@ -40,13 +39,11 @@ function renderParagraphs(content, className = "lesson-section-content") {
       {content.split("\n\n").map((paragraph, index) => {
         const lines = paragraph.split("\n");
 
-        // Check if any line in this paragraph block starts with a bullet (* or -)
         const hasBullets = lines.some(
           (line) =>
             line.trim().startsWith("* ") || line.trim().startsWith("- "),
         );
 
-        // If no bullets, render normally with line breaks
         if (!hasBullets) {
           return (
             <p key={index}>
@@ -60,30 +57,26 @@ function renderParagraphs(content, className = "lesson-section-content") {
           );
         }
 
-        // If bullets exist, group them into an actual <ul> HTML list
         const elements = [];
         let currentList = [];
 
         lines.forEach((line, i) => {
           const trimmed = line.trim();
           if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
-            // Remove the asterisk/dash and push to the active list
             currentList.push(
               <li key={`li-${i}`}>
                 {formatText(trimmed.substring(2).trim())}
               </li>,
             );
           } else {
-            // If we hit regular text, render any accumulated bullets first
             if (currentList.length > 0) {
               elements.push(
                 <ul key={`ul-${i}`} className="lesson-bullet-list">
                   {currentList}
                 </ul>,
               );
-              currentList = []; // Reset list tracker
+              currentList = [];
             }
-            // Add the normal text line
             elements.push(
               <span key={`span-${i}`}>
                 {formatText(line)}
@@ -93,7 +86,6 @@ function renderParagraphs(content, className = "lesson-section-content") {
           }
         });
 
-        // Catch any trailing list items at the end of the block
         if (currentList.length > 0) {
           elements.push(
             <ul key="ul-end" className="lesson-bullet-list">
@@ -102,7 +94,6 @@ function renderParagraphs(content, className = "lesson-section-content") {
           );
         }
 
-        // Return a div (instead of p) because nesting <ul> inside <p> is invalid HTML
         return (
           <div key={index} style={{ marginBottom: "1em" }}>
             {elements}
@@ -118,7 +109,23 @@ function renderBullets(items) {
   return (
     <ul className="lesson-bullet-list">
       {items.map((item, index) => (
-        <li key={index}>{formatText(item)}</li>
+        <li key={index}>
+          {/* Split by double line breaks for paragraph spacing */}
+          {item.split("\n\n").map((paragraph, pIndex, pArray) => (
+            <div 
+              key={pIndex} 
+              style={{ marginBottom: pIndex !== pArray.length - 1 ? "0.5em" : "0" }}
+            >
+              {/* Split by single line breaks for <br /> */}
+              {paragraph.split("\n").map((line, lIndex, lArray) => (
+                <span key={lIndex}>
+                  {formatText(line)}
+                  {lIndex !== lArray.length - 1 && <br />}
+                </span>
+              ))}
+            </div>
+          ))}
+        </li>
       ))}
     </ul>
   );
@@ -164,13 +171,15 @@ export default function LessonViewer() {
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedModules, setExpandedModules] = useState(new Set([moduleId]));
+  
+  // NEW: Sidebar toggle state
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const [userProgress, setUserProgress] = useState({});
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
 
-  // ADMIN OVERRIDE FLAG
   const storedUser = JSON.parse(
     localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
   );
@@ -317,7 +326,6 @@ export default function LessonViewer() {
       const preComplete = hasPreAssessment(module.moduleId);
       let isNextLocked = !preComplete;
       for (const l of module.lessons) {
-        // ADMIN OVERRIDE FOR SIDEBAR
         lockMap[l.lessonId] = isAdmin ? false : isNextLocked;
         if (!isNextLocked) {
           const details = lessonDetails[l.lessonId];
@@ -353,13 +361,13 @@ export default function LessonViewer() {
 
   return (
     <div className="lesson-viewer-wrapper">
-      <aside className="lesson-modules-sidebar">
+      <aside className={`lesson-modules-sidebar ${!isSidebarVisible ? "hidden" : ""}`}>
         <div className="sidebar-header">
           <button
             className="back-button"
             onClick={() => navigate("/learning-path")}
           >
-            <FiChevronLeft /> Back to Dashboard
+            <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
           </button>
         </div>
         <div className="modules-header">
@@ -379,7 +387,6 @@ export default function LessonViewer() {
             const lastLessonId =
               module.lessons[module.lessons.length - 1]?.lessonId;
 
-            // ADMIN OVERRIDES FOR OPTIMIZATION AND POST-ASSESSMENT
             const optimizationsLocked = isAdmin
               ? false
               : lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
@@ -574,6 +581,17 @@ export default function LessonViewer() {
       </aside>
 
       <main className="lesson-viewer-container">
+        {/* NEW: Sticky toggle button */}
+        <div style={{ position: 'sticky', top: '50vh', zIndex: 1000, width: 0, height: 0, left: 0 }}>
+          <button
+            className="lesson-sidebar-toggle-btn"
+            onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+            title="Toggle Sidebar"
+          >
+            {isSidebarVisible ? <FiChevronLeft size={16} /> : <FiChevronRight size={16} />}
+          </button>
+        </div>
+
         {isCurrentLessonLocked ? (
           <div
             style={{

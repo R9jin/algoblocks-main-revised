@@ -2,11 +2,15 @@
   "lessonId": "lesson-0-3",
   "moduleId": "module-0",
   "title": "The Complexity Analyzer",
-  "description": "Learn how the AlgoBlocks Complexity Analyzer helps visualize **algorithm efficiency** and **performance growth**. This lesson introduces **time complexity**, **space complexity**, and **bottleneck detection** using **Big O notation**. By the end, you will understand why some algorithms slow down dramatically with larger inputs and how to choose or design more efficient solutions.",
+  "description": "Learn how the Complexity Analyzer helps evaluate algorithm efficiency and performance scalability.\n\nThis lesson introduces time complexity, space complexity, and Big-O notation. By the end, you will understand why some algorithms slow down dramatically with larger inputs, how your block arrangements dictate memory usage, and how to use the built-in system tools to design more efficient solutions.",
   "difficulty": "Beginner",
-  "estimatedTime": "20 min",
+  "estimatedTime": "25 min",
   "prerequisites": "Core Blockly Components",
-  "tags": ["complexity", "performance", "analysis"],
+  "tags": [
+    "complexity",
+    "performance",
+    "analysis"
+  ],
   "activities": [
     {
       "id": "m0_l3_a1",
@@ -33,28 +37,18 @@
     {
       "id": "introduction",
       "type": "introduction",
-      "title": "Introduction",
-      "content": "Efficient algorithms are important because modern applications process **massive amounts of data**. Google handles over 40,000 searches per second, and Amazon processes millions of orders daily. If the algorithms behind these systems were inefficient, simple actions would take minutes or hours instead of milliseconds.",
+      "title": "Introduction to Scalability",
+      "content": "Efficient algorithms are critical because modern applications must process massive amounts of data instantly. An algorithm that works perfectly when sorting 10 items might completely freeze a computer when asked to sort 10,000 items.\n\nInstead of only caring if an algorithm gets the right answer, a good software engineer asks: What happens when the input size doubles? Is there a mathematical shortcut I can use to avoid a loop entirely? Am I creating new lists that unnecessarily consume extra computer memory?",
       "subsections": [
         {
           "id": "intro-analyzer",
-          "title": "The AlgoBlocks Complexity Analyzer",
-          "content": "The Complexity Analyzer inside AlgoBlocks helps you understand how algorithm performance changes as input size grows. It provides **visual feedback** that makes abstract performance concepts concrete and observable:",
-          "bullets": [
-            "**Graphs:** Visualize exactly how execution time scales as data increases.",
-            "**Step Counters:** Track the exact number of operations your computer performs.",
-            "**Execution Time Estimates:** See how long the algorithm takes to run in real-time."
-          ]
+          "title": "The Complexity Tab",
+          "content": "The system provides a dedicated Complexity tab to evaluate the structural efficiency of the blocks you have placed on the canvas. When you open this panel, the system performs an automated mathematical analysis of your algorithm.\n\nIt calculates two primary scores: Time Complexity (how the number of operations scales) and Space Complexity (how the memory usage scales). It outputs these scores using standard computer science Big-O notation."
         },
         {
-          "id": "intro-questions",
-          "title": "Asking the Right Questions",
-          "content": "Instead of only seeing the final output, you can analyze how much work an algorithm performs internally. A good software engineer always asks:",
-          "bullets": [
-            "How many **internal operations** did the program execute?",
-            "How did that number change when the **input size doubled**?",
-            "Did **memory usage** spike unexpectedly?"
-          ]
+          "id": "intro-graph",
+          "title": "The Complexity Graph",
+          "content": "Below your score, you will see the Complexity Graph. It is important to understand that this line chart does not trace the exact, real-time execution speed of your program.\n\nInstead, it provides a visual representation of the ideal Big-O curve for the notation you achieved. If your code is evaluated as O(n²), the graph will plot a steep quadratic curve. This visual aid exists strictly to help you understand the theoretical shape of your algorithm's growth and visualize how punishing that specific complexity class becomes as data increases."
         }
       ]
     },
@@ -62,24 +56,23 @@
       "id": "time-complexity",
       "type": "concept",
       "title": "Understanding Time Complexity",
-      "content": "**Time complexity** describes how the running time of an algorithm changes as the input size increases. It answers the question: *If I double the amount of data, how much longer will the algorithm take?* Computer scientists use **Big O notation** to express this.",
+      "content": "Time complexity describes how the theoretical amount of work a computer must do changes as the input size (n) increases. It answers the question: If I double the amount of data, how much more work will the computer do? We express this using Big-O notation.\n\nBig-O focuses on the 'worst-case scenario' and drops constant numbers. For example, whether your loop runs exactly 'n' times or '2n' times, the system will evaluate it simply as O(n) because the growth is still a straight, linear line.",
       "subsections": [
         {
           "id": "tc-common",
           "title": "Common Time Complexities",
-          "content": "The Complexity Analyzer will help you identify these common growth patterns as you test different input sizes:",
+          "content": "As you build algorithms, the analyzer will grade your logic into one of these common growth patterns:",
           "bullets": [
-            "**O(1) - Constant Time:** The algorithm takes the exact same amount of time regardless of input size. Example: *Accessing the very first element of an array.*",
-            "**O(n) - Linear Time:** Time grows proportionally to the input size. Example: *A single loop that prints every item in a list.*",
-            "**O(n²) - Quadratic Time:** Time grows with the **square** of the input size. If you double the input, the time quadruples! For 10,000 items, it needs 100,000,000 operations. Example: *Nested loops.*",
-            "**O(log n) - Logarithmic Time:** Extremely efficient. The algorithm splits the data in half each step. Example: *Binary search.*",
-            "**O(2^n) - Exponential Time:** Highly inefficient and generally only usable for tiny inputs."
+            "**O(1) Constant Time:** The graph is a perfectly flat, horizontal line. The algorithm takes the exact same amount of work regardless of input size. Example: Doing a single math equation or accessing the first element of an array.",
+            "**O(n) Linear Time:** The graph is a straight diagonal line. Operations grow directly in proportion to the input size. Example: A single loop that looks at every item in a list one by one.",
+            "**O(n²) Quadratic Time:** The graph curves upward steeply. Operations grow with the square of the input size. If you double the input, the work quadruples! Example: A loop placed inside another loop (Nested Loops).",
+            "**O(log n) Logarithmic Time:** The graph slowly bends flat. Extremely efficient. The algorithm splits the data in half each step, discarding half the work immediately. Example: Binary Search."
           ]
         },
         {
           "id": "micro-transition-o-n-squared",
-          "title": "Micro-Transition: Stepping Up to O(n²)",
-          "content": "Jumping straight to understanding O(n²) (Quadratic Time) can be scary. Think of it as a grid. If you have 5 friends, and every friend has to shake hands with every other friend, the amount of handshakes multiplies quickly! This happens when you put a loop inside a loop. The Complexity Analyzer will instantly show your performance meter rise to a slow O(n²) when it detects this handshake pattern."
+          "title": "Visualizing the O(n²) Trap",
+          "content": "Jumping straight to understanding Quadratic Time can be confusing. Think of it as a grid of handshakes. If you have 5 friends, and every friend has to shake hands with every other friend, the amount of handshakes multiplies into a 5x5 grid (25 actions). This is exactly what happens when you place a loop inside another loop. The Complexity Graph will instantly reflect this handshake trap by curving sharply upward into the sky."
         }
       ]
     },
@@ -87,68 +80,30 @@
       "id": "space-complexity",
       "type": "concept",
       "title": "Understanding Space Complexity",
-      "content": "**Space complexity** measures how much memory (RAM) an algorithm consumes while executing. While time complexity asks *how long*, space complexity asks *how much room*. Both are critical for real-world software, especially on devices with limited memory like smartphones.",
+      "content": "While Time Complexity measures work, Space Complexity measures memory allocation (RAM). It evaluates how much extra computer memory your algorithm consumes as the input size grows.\n\nUnderstanding how memory allocation works is the secret to writing highly optimized code. The specific programming blocks you choose directly dictate your Big-O Space score.",
       "subsections": [
         {
-          "id": "sc-common",
-          "title": "Common Space Complexities",
-          "content": "Just like time, memory usage is also measured using Big O notation:",
-          "bullets": [
-            "**O(1) Space:** The algorithm uses a fixed, small amount of memory regardless of input size. Example: *A loop that uses a single counter variable.*",
-            "**O(n) Space:** Memory grows strictly with the input size. Example: *Copying all items from one array into a brand new array.*",
-            "**O(n²) Space:** Memory grows with the square of the input size. Example: *Creating an n-by-n matrix or grid. For an input of 1,000, that is 1,000,000 memory cells!*"
-          ]
-        },
-        {
-          "id": "sc-visualizing",
-          "title": "Visualizing Memory",
-          "content": "The Complexity Analyzer tracks how many variables are created, how large arrays grow, and memory allocation peaks. You can watch a **memory meter** that rises and falls as your program runs, helping you weigh the trade-offs between speed and memory efficiency."
+          "id": "sc-memory-allocation",
+          "title": "Creating vs. Modifying",
+          "content": "When you create a brand new list block or use blocks that dynamically append items to an existing list based on an input 'n', your program must request brand new physical memory boxes from the computer to store each new item. Because the memory required grows directly with the amount of data, the analyzer will grade this as O(n) Space.\n\nConversely, when you update an existing variable's value or use a swap block to exchange two variables, you are not creating new memory boxes. You are simply changing what is inside the existing boxes. This is called modifying 'in-place'. Because no new memory scales with the data, the analyzer rewards this highly efficient technique with an O(1) Space grade."
         }
       ]
     },
     {
-      "id": "bottlenecks",
+      "id": "system-tools",
       "type": "deep_dive",
-      "title": "Identifying Bottlenecks",
-      "content": "A **bottleneck** is a specific part of an algorithm that significantly slows down overall performance. It is the section where the program gets stuck spending most of its time. Find the bottleneck and fix it, and the whole program becomes faster.",
+      "title": "System Tools for Optimization",
+      "content": "The workspace provides built-in tools to help you identify bad mathematical patterns and correct them.",
       "subsections": [
         {
-          "id": "bottleneck-culprits",
-          "title": "Common Culprits",
-          "content": "Bottlenecks usually take one of these forms:",
-          "bullets": [
-            "**Nested Loops:** The most common culprit, creating slow **O(n²)** behavior.",
-            "**Redundant Calculations:** Repeating the exact same expensive math operation inside a loop when the result never actually changes.",
-            "**Unnecessary Data Copies:** Copying massive arrays over and over instead of just referencing them."
-          ]
+          "id": "tool-bigo-modal",
+          "title": "The Big O Reference Modal",
+          "content": "At the bottom of your workspace in the footer, you will find a button labeled 'Big O Reference'. Clicking this opens a detailed cheat sheet table. This modal is a static reference library designed for looking up descriptions, analogies, and examples of the different Big-O complexities. It helps you understand what each distinct complexity class means in computer science, rather than directly evaluating your current code."
         },
         {
-          "id": "bottleneck-heatmaps",
-          "title": "Using Heat Maps",
-          "content": "The Complexity Analyzer helps find bottlenecks using **Heat Maps**. Blocks that execute most frequently are **highlighted in bright red**. If you write a slow nested loop, the blocks inside will glow red, instantly showing you exactly where the computer is struggling the most."
-        }
-      ]
-    },
-    {
-      "id": "real-world",
-      "type": "real_world_connection",
-      "title": "Why Performance Analysis Matters",
-      "content": "Large systems like search engines, banking platforms, and social media apps rely on efficient algorithms. Poor performance directly impacts user experience and business revenue. In fact, Amazon found that **every 100 milliseconds of delay costs them 1 percent in sales**.",
-      "subsections": [
-        {
-          "id": "rw-examples",
-          "title": "Real-World Examples",
-          "content": "Even small inefficiencies become catastrophic when handling millions of users:",
-          "bullets": [
-            "**Search Engines:** Google scans billions of web pages in milliseconds using **O(log n)** data structures. A slow algorithm would take days.",
-            "**Navigation:** Google Maps must calculate routes instantly. A slow algorithm would make rerouting during heavy traffic impossible.",
-            "**E-Commerce:** A checkout cart algorithm that accidentally runs in **O(n²)** could crash an entire website during Black Friday sales."
-          ]
-        },
-        {
-          "id": "rw-engineer",
-          "title": "Thinking Like an Engineer",
-          "content": "The Complexity Analyzer prepares you for these scenarios. Before writing code, ask yourself: *How will this scale to 1 million items?* Measure performance with different input sizes, compare approaches, and spot **O(n²)** patterns early before they break your software."
+          "id": "tool-bottlenecks",
+          "title": "Spotting Bottlenecks",
+          "content": "A bottleneck is a specific part of an algorithm that degrades overall performance. The most common bottleneck is missing a math shortcut.\n\nFor example, if you need to calculate the sum of numbers from 1 to 100, you could use a loop that runs 100 times, resulting in an O(n) Time Complexity. However, using Gauss's formula (n * (n + 1) / 2) does the exact same calculation in a single step. Replacing the loop with math blocks instantly drops your complexity to O(1), entirely removing the bottleneck."
         }
       ]
     },
@@ -156,22 +111,7 @@
       "id": "summary",
       "type": "summary",
       "title": "Lesson Summary",
-      "content": "The Complexity Analyzer is your primary tool for evaluating algorithm scalability. An algorithm that works perfectly for 100 items might completely crash when given 1,000,000 items. Always consider both **Time** and **Space** complexity when designing solutions.",
-      "subsections": [
-        {
-          "id": "sum-workflow",
-          "title": "The Analysis Workflow",
-          "content": "To effectively use the Complexity Analyzer in AlgoBlocks, follow these steps:",
-          "bullets": [
-            "1. **Build** your algorithm visually on the canvas.",
-            "2. **Open** the Complexity Analyzer panel.",
-            "3. **Run** the program using multiple, increasing input sizes.",
-            "4. **Observe** how the graphs and step counters scale.",
-            "5. **Locate** any bright red blocks (Heat Maps) indicating a bottleneck.",
-            "6. **Refactor** your logic to eliminate the bottleneck and improve efficiency."
-          ]
-        }
-      ]
+      "content": "The Complexity Analyzer is your primary tool for evaluating algorithm scalability. Always consider both Time and Space complexity when designing solutions, and strive to flatten your complexity curve.\n\nTo effectively use the analyzer, follow this workflow:\n\n1. Build your algorithm visually on the workspace canvas.\n2. Open the Complexity tab to trigger the automated mathematical analysis.\n3. Check your generated Time and Space Big-O grades.\n4. Observe the Complexity Graph to visualize how steep your growth curve is.\n5. If you see an O(n²) curve, look for nested loops to refactor.\n6. Use the Big O Reference table in the footer to learn about different algorithmic approaches."
     }
   ],
   "references": [
