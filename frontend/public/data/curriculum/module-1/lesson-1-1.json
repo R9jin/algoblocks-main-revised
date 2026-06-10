@@ -138,15 +138,103 @@
       "type": "deep_dive",
       "title": "Common Big-O Complexity Classes",
       "content": "These are the standard, universal complexity classes you will frequently encounter when analyzing fundamental algorithmic structures. They are categorized based on their order of growth from most efficient to least efficient:",
-      "bullets": [
-        "**O(1) Constant Time**: \n The algorithm takes the exact same amount of time regardless of how large the input size is. It is the pinnacle of scalability, as its running time remains entirely flat when its input size increases infinitesimally or massively.\n\u2003\u2003 **example:** Accessing a specific array index, performing basic mathematical arithmetic, assigning a variable, pushing to a stack, or adding an element to the front of a linked list.\n\u2003\u2003 **Loop:** No loops involved, or an artificial loop that strictly executes a fixed, constant number of times (e.g., `for i from 1 to 5`).",
-        "**O(log n) Logarithmic Time**: \n Highly efficient. The algorithm repeatedly divides the problem size by a fraction (usually in half) at each step. Doubling the input size only adds one extra operation. All of the input or even a fixed portion of it cannot be fully inspected by a logarithmic algorithm.\n\u2003\u2003 **example:** Binary Search on a sorted list, or finding an element in a balanced binary search tree.\n\u2003\u2003 **Loop:** A `while` or `for` loop where the main tracking variable is repeatedly multiplied, divided, or bit-shifted (e.g., `i = i * 2` or `n = n / 2`).",
-        "**O(n) Linear Time**: \n The workload scales directly in proportion to the input size. If the data doubles, the required work exactly doubles. Any algorithm that must inspect all input elements will have a running time that is at least linear.\n\u2003\u2003 **example:** Linear Search, summing all elements in an array, finding the maximum value in an unsorted list, or copying a collection.\n\u2003\u2003 **Loop:** A standard, single loop that iterates from 0 to n sequentially.",
-        "**O(n log n) Linearithmic Time**: \n Linear processing combined with logarithmic division. This is typically the absolute best possible worst-case time for highly efficient sorting algorithms utilizing the divide-and-conquer strategy.\n\u2003\u2003 **example:** Merge Sort, Heap Sort, Timsort.\n\u2003\u2003 **Loop:** An outer `O(n)` loop containing an inner `O(log n)` loop, or a recursive divide-and-conquer function that performs a linear amount of merging work per logarithmic recursive level.",
-        "**O(n²) Quadratic Time**: \n The computational work grows exponentially with the square of the input size. The efficiency of algorithms with two embedded loops is typically described in this way. Very inefficient and unscalable for large datasets.\n\u2003\u2003 **example:** Standard educational sorting algorithms like Bubble Sort, Selection Sort, or Insertion Sort, and specific `n x n` matrix traversal operations.\n\u2003\u2003 **Loop:** A loop perfectly nested inside another loop, where both the outer and inner loops iterate dependently on the input size `n`.",
-        "**O(n³) Cubic Time**: \n An extremely slow polynomial time where the workload grows with the cube of the input. Generally, the effectiveness of algorithms with three embedded loops is described by this class. It includes a number of nontrivial linear algebraic algorithms.\n\u2003\u2003 **example:** Dense graph operations, basic unoptimized matrix multiplication, or solving specific 3D mathematical coordinate arrangements.\n\u2003\u2003 **Loop:** Three perfectly nested loops that all directly traverse or depend on the dataset size `n`.",
-        "**O(2^n) Exponential Time**: \n A dangerous complexity where the workload doubles with every single new item added to the input. It is common for algorithms that produce all subsets of an n-element set. It will quickly freeze modern computers for inputs greater than n=40.\n\u2003\u2003 **example:** Naive recursive Fibonacci sequences without optimization, generating power sets, or solving the Towers of Hanoi problem.\n\u2003\u2003 **Loop:** A recursive function that calls itself multiple times per execution branch, leading to a massive, exponentially growing binary execution tree.",
-        "**O(n!) Factorial Time**: \n The slowest common complexity class. It is typical for algorithms to produce all possible combinations or permutations from an n-element set. The total amount of operations multiplies drastically with each new input.\n\u2003\u2003 **example:** The brute-force solution to the Traveling Salesman Problem or generating all permutations of an array using sheer brute force.\n\u2003\u2003 **Loop:** Advanced recursive back-tracking structures placed inside loops to systematically generate every mathematical arrangement."
+      "subsections": [
+        {
+          "id": "o-1",
+          "title": "O(1) Constant Time",
+          "content": "**Description:** The algorithm takes the exact same amount of time regardless of how large the input size is. It is the pinnacle of scalability, as its running time remains entirely flat when its input size increases infinitesimally or massively.\n\n**Example:** Accessing a specific array index, performing basic mathematical arithmetic, assigning a variable, pushing to a stack, or adding an element to the front of a linked list.\n\n**Loop:** No loops involved, or an artificial loop that strictly executes a fixed, constant number of times (e.g., `for i from 1 to 5`).",
+          "chart": {
+            "title": "O(1) Constant Time Growth",
+            "description": "Notice how the execution time remains perfectly flat regardless of the input size (n).",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(1)"]
+          }
+        },
+        {
+          "id": "o-log-n",
+          "title": "O(log n) Logarithmic Time",
+          "content": "**Description:** Highly efficient. The algorithm repeatedly divides the problem size by a fraction (usually in half) at each step. Doubling the input size only adds one extra operation. All of the input or even a fixed portion of it cannot be fully inspected by a logarithmic algorithm.\n\n**Example:** Binary Search on a sorted list, or finding an element in a balanced binary search tree.\n\n**Loop:** A `while` or `for` loop where the main tracking variable is repeatedly multiplied, divided, or bit-shifted (e.g., `i = i * 2` or `n = n / 2`).",
+          "chart": {
+            "title": "O(log n) Logarithmic Time Growth",
+            "description": "The curve rises very slowly as data increases, representing extreme efficiency at scale.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(log n)"]
+          }
+        },
+        {
+          "id": "o-n",
+          "title": "O(n) Linear Time",
+          "content": "**Description:** The workload scales directly in proportion to the input size. If the data doubles, the required work exactly doubles. Any algorithm that must inspect all input elements will have a running time that is at least linear.\n\n**Example:** Linear Search, summing all elements in an array, finding the maximum value in an unsorted list, or copying a collection.\n\n**Loop:** A standard, single loop that iterates from 0 to n sequentially.",
+          "chart": {
+            "title": "O(n) Linear Time Growth",
+            "description": "The execution time climbs steadily and diagonally in direct correlation to the input.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n)"]
+          }
+        },
+        {
+          "id": "o-n-log-n",
+          "title": "O(n log n) Linearithmic Time",
+          "content": "**Description:** Linear processing combined with logarithmic division. This is typically the absolute best possible worst-case time for highly efficient sorting algorithms utilizing the divide-and-conquer strategy.\n\n**Example:** Merge Sort, Heap Sort, Timsort.\n\n**Loop:** An outer `O(n)` loop containing an inner `O(log n)` loop, or a recursive divide-and-conquer function that performs a linear amount of merging work per logarithmic recursive level.",
+          "chart": {
+            "title": "O(n log n) Linearithmic Time Growth",
+            "description": "The curve bends slightly upward from linear, representing the cost of the logarithmic operation applied across the linear dataset.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n log n)"]
+          }
+        },
+        {
+          "id": "o-n-squared",
+          "title": "O(n²) Quadratic Time",
+          "content": "**Description:** The computational work grows exponentially with the square of the input size. The efficiency of algorithms with two embedded loops is typically described in this way. Very inefficient and unscalable for large datasets.\n\n**Example:** Standard educational sorting algorithms like Bubble Sort, Selection Sort, or Insertion Sort, and specific `n x n` matrix traversal operations.\n\n**Loop:** A loop perfectly nested inside another loop, where both the outer and inner loops iterate dependently on the input size `n`.",
+          "chart": {
+            "title": "O(n²) Quadratic Time Growth",
+            "description": "The graph shoots up steeply. For a dataset of 10, it takes 100 operations. For 100, it takes 10,000.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n^2)"]
+          }
+        },
+        {
+          "id": "o-n-cubed",
+          "title": "O(n³) Cubic Time",
+          "content": "**Description:** An extremely slow polynomial time where the workload grows with the cube of the input. Generally, the effectiveness of algorithms with three embedded loops is described by this class. It includes a number of nontrivial linear algebraic algorithms.\n\n**Example:** Dense graph operations, basic unoptimized matrix multiplication, or solving specific 3D mathematical coordinate arrangements.\n\n**Loop:** Three perfectly nested loops that all directly traverse or depend on the dataset size `n`.",
+          "chart": {
+            "title": "O(n³) Cubic Time Growth",
+            "description": "The curve is even steeper than quadratic, rendering the algorithm useless for even moderately sized datasets.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n^3)"]
+          }
+        },
+        {
+          "id": "o-2-n",
+          "title": "O(2^n) Exponential Time",
+          "content": "**Description:** A dangerous complexity where the workload doubles with every single new item added to the input. It is common for algorithms that produce all subsets of an n-element set. It will quickly freeze modern computers for inputs greater than n=40.\n\n**Example:** Naive recursive Fibonacci sequences without optimization, generating power sets, or solving the Towers of Hanoi problem.\n\n**Loop:** A recursive function that calls itself multiple times per execution branch, leading to a massive, exponentially growing binary execution tree.",
+          "chart": {
+            "title": "O(2^n) Exponential Time Growth",
+            "description": "The graph explodes vertically almost instantly. Adding just a single data point drastically alters the execution time.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(2^n)"]
+          }
+        },
+        {
+          "id": "o-n-factorial",
+          "title": "O(n!) Factorial Time",
+          "content": "**Description:** The slowest common complexity class. It is typical for algorithms to produce all possible combinations or permutations from an n-element set. The total amount of operations multiplies drastically with each new input.\n\n**Example:** The brute-force solution to the Traveling Salesman Problem or generating all permutations of an array using sheer brute force.\n\n**Loop:** Advanced recursive back-tracking structures placed inside loops to systematically generate every mathematical arrangement.",
+          "chart": {
+            "title": "O(n!) Factorial Time Growth",
+            "description": "The absolute worst scalability limit in software engineering. Execution is strictly limited to microscopic inputs.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n!)"]
+          }
+        }
       ]
     },
     {
@@ -154,14 +242,91 @@
       "type": "deep_dive",
       "title": "Special Case Big-O Notations",
       "content": "Beyond the standard classes, the system's internal Complexity Analyzer utilizes advanced structural tracking to detect highly specific mathematical edge cases based on recursive interactions and multidimensional data. These bounds reflect specialized computational patterns:",
-      "bullets": [
-        "**O(sqrt n) Square Root Time**: \n The workload scales with the square root of the input. It sits comfortably between Logarithmic and Linear time, remaining highly efficient for mathematical evaluations.\n\u2003\u2003 **example:** Algorithms heavily used in cryptography and number theory, such as checking if a number is prime by only testing factors up to its mathematical square root.\n\u2003\u2003 **Loop:** Identified by a loop condition where tracking variables are multiplied by themselves or squared against the boundary limit (e.g., `while i * i <= n`).",
-        "**O(n * m) Multi-Variable Time**: \n Occurs when an algorithm's performance is strictly bound by two distinctly different input dimensions, rather than a single unified input parameter.\n\u2003\u2003 **example:** Processing a rectangular 2D matrix (rows and columns), or performing string matching between two distinct words of different lengths.\n\u2003\u2003 **Loop:** An outer loop running `n` times containing an inner loop running `m` times.",
-        "**O(V + E) Graph Traversal Time**: \n The standard benchmark metric for Graph algorithms. Performance scales based on both the total number of Vertices (V) and the total number of Edges (E) across the network structure.\n\u2003\u2003 **example:** Breadth-First Search (BFS) and Depth-First Search (DFS) traversals across an adjacency list.\n\u2003\u2003 **Loop:** A `while` loop popping nodes from a queue or stack (evaluating V), containing a nested `for` loop that strictly iterates over only the specific adjacent neighbors of the current node (evaluating E across the entire run).",
-        "**O(log min(a, b)) Euclidean Modulo Time**: \n A highly specialized logarithmic reduction that occurs when using modulo operations to rapidly shrink two distinct numerical inputs simultaneously.\n\u2003\u2003 **example:** Finding the Greatest Common Divisor (GCD) using the classic Euclidean algorithm.\n\u2003\u2003 **Loop:** A recursive call or `while` loop where tracking variables are continuously updated by swapping the remainder via the modulo operator.",
-        "**O(n² log n) Log-Quadratic Time**: \n A hybrid complexity class that occurs when a quadratic operation sequence is combined directly with a logarithmic scale-down or binary splitting mechanism.\n\u2003\u2003 **example:** Sorting a 2D matrix of elements row by row using an advanced linearithmic sort on each row, or solving highly specialized computational geometry problems.\n\u2003\u2003 **Loop:** A quadratic nested loop structure that internally executes a logarithmic search, or an outer linear loop managing inner O(n log n) operations.",
-        "**O(n^d) Higher Polynomial Time**: \n Any polynomial time where the exponent `d` is strictly greater than 3. Extremely slow and practically unusable for most real-world engineering scenarios.\n\u2003\u2003 **example:** Highly complex brute-force combination generation or unoptimized dynamic programming tables with excessive dimensions.\n\u2003\u2003 **Loop:** Deeply nested loop architectures where four or more separate loops explicitly and sequentially depend on the scaling data size.",
-        "**O(n * n!) Extreme Factorial Time**: \n An explosive, catastrophic complexity class triggered when a factorial permutation structure is needlessly multiplied by a linear accumulation, copying, or shifting process.\n\u2003\u2003 **example:** Poorly optimized combinatorial generations where full deep copies or massive linear array shifts occur sequentially on every single permutation step.\n\u2003\u2003 **Loop:** A recursive factorial generator dynamically bound inside an outer linear loop structure, multiplying the factorial branching by an extra scaling factor of n."
+      "subsections": [
+        {
+          "id": "o-sqrt-n",
+          "title": "O(sqrt n) Square Root Time",
+          "content": "**Description:** The workload scales with the square root of the input. It sits comfortably between Logarithmic and Linear time, remaining highly efficient for mathematical evaluations.\n\n**Example:** Algorithms heavily used in cryptography and number theory, such as checking if a number is prime by only testing factors up to its mathematical square root.\n\n**Loop:** Identified by a loop condition where tracking variables are multiplied by themselves or squared against the boundary limit (e.g., `while i * i <= n`).",
+          "chart": {
+            "title": "O(sqrt n) Square Root Growth",
+            "description": "Notice how it bridges the gap between the speed of O(log n) and the diagonal march of O(n).",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(sqrt n)"]
+          }
+        },
+        {
+          "id": "o-n-m",
+          "title": "O(n * m) Multi-Variable Time",
+          "content": "**Description:** Occurs when an algorithm's performance is strictly bound by two distinctly different input dimensions, rather than a single unified input parameter.\n\n**Example:** Processing a rectangular 2D matrix (rows and columns), or performing string matching between two distinct words of different lengths.\n\n**Loop:** An outer loop running `n` times containing an inner loop running `m` times.",
+          "chart": {
+            "title": "Multi-Variable Growth Representation",
+            "description": "Often visualized identically to Quadratic time, assuming worst-case where n approximately equals m.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n^2)"]
+          }
+        },
+        {
+          "id": "o-v-e",
+          "title": "O(V + E) Graph Traversal Time",
+          "content": "**Description:** The standard benchmark metric for Graph algorithms. Performance scales based on both the total number of Vertices (V) and the total number of Edges (E) across the network structure.\n\n**Example:** Breadth-First Search (BFS) and Depth-First Search (DFS) traversals across an adjacency list.\n\n**Loop:** A `while` loop popping nodes from a queue or stack (evaluating V), containing a nested `for` loop that strictly iterates over only the specific adjacent neighbors of the current node (evaluating E across the entire run).",
+          "chart": {
+            "title": "Graph Traversal Growth",
+            "description": "Growth is largely linear in relation to the combined structural components of the graph.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n)"]
+          }
+        },
+        {
+          "id": "o-euclidean",
+          "title": "O(log min(a, b)) Euclidean Modulo Time",
+          "content": "**Description:** A highly specialized logarithmic reduction that occurs when using modulo operations to rapidly shrink two distinct numerical inputs simultaneously.\n\n**Example:** Finding the Greatest Common Divisor (GCD) using the classic Euclidean algorithm.\n\n**Loop:** A recursive call or `while` loop where tracking variables are continuously updated by swapping the remainder via the modulo operator.",
+          "chart": {
+            "title": "Euclidean Reduction Growth",
+            "description": "A logarithmic reduction that scales against the smallest constraint provided to the algorithm.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(log n)"]
+          }
+        },
+        {
+          "id": "o-log-quadratic",
+          "title": "O(n² log n) Log-Quadratic Time",
+          "content": "**Description:** A hybrid complexity class that occurs when a quadratic operation sequence is combined directly with a logarithmic scale-down or binary splitting mechanism.\n\n**Example:** Sorting a 2D matrix of elements row by row using an advanced linearithmic sort on each row, or solving highly specialized computational geometry problems.\n\n**Loop:** A quadratic nested loop structure that internally executes a logarithmic search, or an outer linear loop managing inner O(n log n) operations.",
+          "chart": {
+            "title": "O(n² log n) Log-Quadratic Growth",
+            "description": "Grows slightly faster than pure quadratic, acting as an expensive hybrid penalty.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n^2 log n)"]
+          }
+        },
+        {
+          "id": "o-polynomial-d",
+          "title": "O(n^d) Higher Polynomial Time",
+          "content": "**Description:** Any polynomial time where the exponent `d` is strictly greater than 3. Extremely slow and practically unusable for most real-world engineering scenarios.\n\n**Example:** Highly complex brute-force combination generation or unoptimized dynamic programming tables with excessive dimensions.\n\n**Loop:** Deeply nested loop architectures where four or more separate loops explicitly and sequentially depend on the scaling data size.",
+          "chart": {
+            "title": "Higher Polynomial Growth",
+            "description": "Rapid acceleration demonstrating the unscalable nature of deep, unoptimized loop structures.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n^4)"]
+          }
+        },
+        {
+          "id": "o-n-n-factorial",
+          "title": "O(n * n!) Extreme Factorial Time",
+          "content": "**Description:** An explosive, catastrophic complexity class triggered when a factorial permutation structure is needlessly multiplied by a linear accumulation, copying, or shifting process.\n\n**Example:** Poorly optimized combinatorial generations where full deep copies or massive linear array shifts occur sequentially on every single permutation step.\n\n**Loop:** A recursive factorial generator dynamically bound inside an outer linear loop structure, multiplying the factorial branching by an extra scaling factor of n.",
+          "chart": {
+            "title": "O(n * n!) Extreme Factorial Growth",
+            "description": "The ultimate anti-pattern. Growth renders execution impossible beyond single-digit data inputs.",
+            "maxN": 20,
+            "normalize": true,
+            "curves": ["O(n!)"]
+          }
+        }
       ]
     },
     {
