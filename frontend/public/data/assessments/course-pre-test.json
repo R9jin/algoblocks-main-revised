@@ -1,0 +1,427 @@
+{
+  "moduleId": "course-pre-test",
+  "moduleTitle": "Comprehensive Algorithmic Foundations Pre-Test",
+  "description": "This diagnostic assessment evaluates your baseline knowledge across all topics in AlgoBlocks, from basic logic to advanced algorithm optimization. Don't worry if you don't know all the answers yet—this helps track your learning growth!",
+  "questions": [
+    {
+      "id": "pre_01",
+      "question": "What is the primary advantage of using a visual, block-based programming environment when learning algorithms?",
+      "options": [
+        "It forces programs to run faster on the computer hardware.",
+        "It reduces the cognitive load of memorizing exact syntax, allowing focus on logic.",
+        "It automatically optimizes the Big-O time complexity of any code.",
+        "It translates directly into machine code without a compiler."
+      ],
+      "answer": 1,
+      "explanation": "Visual programming removes the barrier of syntax errors (like missing semicolons), allowing learners to focus entirely on algorithmic reasoning and control flow."
+    },
+    {
+      "id": "pre_02",
+      "question": "If a program contains a sequential list of 'print' blocks without any loops or conditionals, how will the computer execute them?",
+      "options": [
+        "From top to bottom, exactly in the order they are connected.",
+        "All at the exact same time simultaneously.",
+        "From bottom to top.",
+        "In a random order determined by the operating system."
+      ],
+      "answer": 0,
+      "explanation": "Sequential execution follows a strict top-to-bottom evaluation model, processing one instruction completely before moving to the next."
+    },
+    {
+      "id": "pre_03",
+      "question": "What is the purpose of a 'Variable' in computer programming?",
+      "options": [
+        "To permanently save data to the hard drive.",
+        "To perform complex mathematical calculations automatically.",
+        "To act as a labeled storage box in memory that holds temporary information.",
+        "To repeat a specific set of instructions."
+      ],
+      "answer": 2,
+      "explanation": "Variables are the memory of a program, storing values (like numbers or text) that can be read or changed while the algorithm runs."
+    },
+    {
+      "id": "pre_04",
+      "question": "Which programming structure is used to execute a specific sequence of blocks repeatedly?",
+      "options": [
+        "A Variable",
+        "An Array",
+        "A Conditional (If/Else)",
+        "A Loop"
+      ],
+      "answer": 3,
+      "explanation": "Loops are the engines of repetition. They run connected blocks multiple times, either for a set count or while a condition remains true."
+    },
+    {
+      "id": "pre_05",
+      "question": "In computer science, counting positions inside an Array (List) usually starts at what number?",
+      "options": [
+        "1",
+        "0",
+        "-1",
+        "It depends on the length of the list"
+      ],
+      "answer": 1,
+      "explanation": "Zero-based indexing is a crucial concept. The first item in an array is always located at index 0."
+    },
+    {
+      "id": "pre_06",
+      "question": "What does Big-O Notation specifically measure in algorithm analysis?",
+      "options": [
+        "The exact number of seconds a program takes to run.",
+        "The amount of battery power consumed by the CPU.",
+        "The upper bound of how operations scale as the input data approaches infinity.",
+        "The minimum possible time an algorithm takes to finish."
+      ],
+      "answer": 2,
+      "explanation": "Big-O evaluates the worst-case scalability trend. It measures operation growth relative to input size, ignoring hardware speed."
+    },
+    {
+      "id": "pre_07",
+      "question": "If an algorithm is graded as O(1) Constant Time, what does its performance graph look like?",
+      "options": [
+        "A straight diagonal line climbing upward.",
+        "A perfectly flat, horizontal line.",
+        "A steeply curving exponential line.",
+        "A jagged, unpredictable line."
+      ],
+      "answer": 1,
+      "explanation": "O(1) means the algorithm takes the exact same amount of work regardless of the input size, resulting in a flat performance curve."
+    },
+    {
+      "id": "pre_08",
+      "question": "According to the rules of Asymptotic Analysis, how would you simplify an algorithm that takes O(n² + 5n + 1000) operations?",
+      "options": [
+        "O(n² + n)",
+        "O(n³)",
+        "O(n)",
+        "O(n²)"
+      ],
+      "answer": 3,
+      "explanation": "We drop constants and non-dominant terms. As 'n' gets massive, the n² term completely overshadows the rest, simplifying the expression to O(n²)."
+    },
+    {
+      "id": "pre_09",
+      "question": "Which mathematical notation is used to describe the absolute BEST-case scenario (the lower bound) of an algorithm?",
+      "options": [
+        "Big-O (O)",
+        "Big-Theta (Θ)",
+        "Big-Omega (Ω)",
+        "Big-Alpha (α)"
+      ],
+      "answer": 2,
+      "explanation": "Big-Omega (Ω) describes the minimum possible resources an algorithm will require in the most favorable data arrangement."
+    },
+    {
+      "id": "pre_10",
+      "question": "Space Complexity measures what aspect of an algorithm?",
+      "options": [
+        "The physical size of the source code file.",
+        "The peak additional memory (RAM) allocated beyond the input data.",
+        "The amount of hard drive storage required to install the program.",
+        "The screen resolution required to display the visual blocks."
+      ],
+      "answer": 1,
+      "explanation": "Space Complexity evaluates how much extra auxiliary memory an algorithm consumes (like creating new lists) as the input grows."
+    },
+    {
+      "id": "pre_11",
+      "question": "Placing a loop that runs 'n' times directly inside another loop that runs 'n' times creates what Time Complexity?",
+      "options": [
+        "O(n)",
+        "O(2n)",
+        "O(n²)",
+        "O(log n)"
+      ],
+      "answer": 2,
+      "explanation": "Nested loops multiply their operations. If the outer runs 'n' times and the inner runs 'n' times per outer step, it evaluates to n * n, or O(n²)."
+    },
+    {
+      "id": "pre_12",
+      "question": "What hidden algorithmic cost occurs when you remove an item from the very beginning of a standard List/Array?",
+      "options": [
+        "There is no hidden cost; it is O(1).",
+        "The computer must shift every subsequent item to the left to fill the gap, taking O(n) time.",
+        "The list must be entirely duplicated into a new variable.",
+        "The computer must sort the array."
+      ],
+      "answer": 1,
+      "explanation": "Arrays are contiguous in memory. Deleting from the front forces a linear O(n) loop to shift all remaining elements over by one index."
+    },
+    {
+      "id": "pre_13",
+      "question": "Adding an item to the end of a dynamic list (appending) is generally extremely fast, but occasionally triggers an expensive memory resize. How is this mathematically classified?",
+      "options": [
+        "O(n) Linear Time",
+        "O(n²) Quadratic Time",
+        "O(1) Amortized Time",
+        "O(log n) Logarithmic Time"
+      ],
+      "answer": 2,
+      "explanation": "Because the O(n) resize happens very rarely, the average cost per insertion remains flat. This is called Amortized Analysis."
+    },
+    {
+      "id": "pre_14",
+      "question": "If you write two completely separate loops sequentially (one after the other), and both run 'n' times, what is the final Time Complexity?",
+      "options": [
+        "O(n)",
+        "O(n²)",
+        "O(log n)",
+        "O(2^n)"
+      ],
+      "answer": 0,
+      "explanation": "Sequential loops are added (O(n) + O(n) = O(2n)). Because we drop constant multipliers in Big-O, it simplifies to O(n)."
+    },
+    {
+      "id": "pre_15",
+      "question": "Why is adding characters to an immutable String inside a loop considered a massive performance trap?",
+      "options": [
+        "Strings take up more memory than numbers.",
+        "Immutable strings cannot be changed; the computer must allocate a brand new string and copy all characters over on every single loop iteration.",
+        "Loops cannot process text data.",
+        "It confuses the Complexity Analyzer."
+      ],
+      "answer": 1,
+      "explanation": "Repeatedly concatenating immutable strings forces geometric memory expansion, resulting in a disastrous O(n²) Time Complexity."
+    },
+    {
+      "id": "pre_16",
+      "question": "What is the strict prerequisite for using Binary Search on a dataset?",
+      "options": [
+        "The dataset must contain only numbers.",
+        "The dataset must be perfectly sorted.",
+        "The dataset must be smaller than 100 items.",
+        "The dataset must have no duplicate values."
+      ],
+      "answer": 1,
+      "explanation": "Binary Search relies on knowing which half of the data to discard. If the data is not sorted, the algorithm completely fails."
+    },
+    {
+      "id": "pre_17",
+      "question": "What is the Time Complexity of a Binary Search?",
+      "options": [
+        "O(1)",
+        "O(n)",
+        "O(log n)",
+        "O(n²)"
+      ],
+      "answer": 2,
+      "explanation": "Because Binary Search cuts the problem size in half at every step, it achieves highly scalable O(log n) Logarithmic Time."
+    },
+    {
+      "id": "pre_18",
+      "question": "Which of the following sorting algorithms utilizes a 'Divide and Conquer' strategy to achieve an optimal O(n log n) worst-case time?",
+      "options": [
+        "Bubble Sort",
+        "Selection Sort",
+        "Merge Sort",
+        "Insertion Sort"
+      ],
+      "answer": 2,
+      "explanation": "Merge Sort recursively divides the array into halves (log n) and then merges them back together linearly (n), achieving O(n log n)."
+    },
+    {
+      "id": "pre_19",
+      "question": "How does Bubble Sort organize data?",
+      "options": [
+        "By dividing the array in half and sorting the left side first.",
+        "By repeatedly swapping adjacent elements if they are in the wrong order until the largest elements 'float' to the top.",
+        "By creating a hash map of all values.",
+        "By selecting the smallest item and placing it at the front."
+      ],
+      "answer": 1,
+      "explanation": "Bubble Sort relies on adjacent neighbor swapping. This requires an O(n²) nested loop structure."
+    },
+    {
+      "id": "pre_20",
+      "question": "If a Linear Search is looking for a target that is NOT in the array, how many items must it check?",
+      "options": [
+        "Half of the items.",
+        "Only the first item.",
+        "Every single item in the array.",
+        "None, it throws an error."
+      ],
+      "answer": 2,
+      "explanation": "The worst-case scenario for Linear Search occurs when the item is missing; it is forced to check all 'n' items, yielding O(n) time."
+    },
+    {
+      "id": "pre_21",
+      "question": "What is the primary performance advantage of using a Hash Set over a standard List?",
+      "options": [
+        "Sets maintain a perfectly sorted order automatically.",
+        "Checking if an item exists inside a Set takes instant O(1) time.",
+        "Sets use significantly less computer memory.",
+        "Sets can hold an infinite amount of data."
+      ],
+      "answer": 1,
+      "explanation": "Hash Sets use mathematical hash tables to verify membership instantly (O(1)), completely eliminating the need for slow O(n) array searches."
+    },
+    {
+      "id": "pre_22",
+      "question": "The 'Two-Pointer Trick' modifies arrays directly using a left and right index tracker. What is the main benefit of this approach?",
+      "options": [
+        "It keeps Space Complexity at a flawless O(1) because no duplicate arrays are created.",
+        "It allows you to sort the array in O(1) time.",
+        "It prevents the computer from crashing.",
+        "It converts text into numbers."
+      ],
+      "answer": 0,
+      "explanation": "By swapping items in-place within the existing array boundaries, the Two-Pointer trick entirely avoids O(n) memory allocations."
+    },
+    {
+      "id": "pre_23",
+      "question": "If you use a 'Slice' block to extract a portion of an array, what happens in the computer's memory?",
+      "options": [
+        "Nothing, it just creates a visual window to the original data.",
+        "It deletes the original array.",
+        "It allocates brand new memory and physically copies the elements over.",
+        "It compresses the data."
+      ],
+      "answer": 2,
+      "explanation": "Slicing is not an in-place operation. It incurs an O(k) Time and Space penalty because a new chunk of memory must be filled with copied data."
+    },
+    {
+      "id": "pre_24",
+      "question": "What does it mean for an algorithm to operate 'in-place'?",
+      "options": [
+        "It executes completely within a single function without calling other functions.",
+        "It modifies the original data structure directly, requiring zero extra scaling memory.",
+        "It must be run locally on a machine, not on a server.",
+        "It saves data to the local hard drive."
+      ],
+      "answer": 1,
+      "explanation": "In-place algorithms achieve O(1) Space Complexity by manipulating existing structures rather than allocating new arrays."
+    },
+    {
+      "id": "pre_25",
+      "question": "Why is checking if a List is empty (e.g., length == 0) considered an O(1) operation?",
+      "options": [
+        "Because the computer randomly guesses.",
+        "Because zero is the smallest number.",
+        "Because it only evaluates a single, pre-tracked integer property of the structure, avoiding any loops.",
+        "Because empty lists have no memory."
+      ],
+      "answer": 2,
+      "explanation": "Checking emptiness does not require looking at elements; it simply reads the length metadata variable, making it an instant lookup."
+    },
+    {
+      "id": "pre_26",
+      "question": "When a function calls itself recursively, where does the computer temporarily store the data for each separate function call?",
+      "options": [
+        "The Hard Drive",
+        "The Hash Table",
+        "The Call Stack",
+        "The Cloud"
+      ],
+      "answer": 2,
+      "explanation": "The Call Stack pushes a new execution frame into memory for every recursive step. If recursion goes too deep, it causes a Stack Overflow."
+    },
+    {
+      "id": "pre_27",
+      "question": "What is the most critical component required in any recursive algorithm to prevent an infinite loop?",
+      "options": [
+        "A For Loop",
+        "A Base Case",
+        "A Global Variable",
+        "A Try/Catch Block"
+      ],
+      "answer": 1,
+      "explanation": "The Base Case acts as the stopping condition. Once triggered, the Call Stack stops building and begins popping frames in reverse order."
+    },
+    {
+      "id": "pre_28",
+      "question": "Breadth-First Search (BFS) explores a graph layer-by-layer. What data structure does it use to keep track of nodes?",
+      "options": [
+        "A Queue (First-In, First-Out)",
+        "A Stack (Last-In, First-Out)",
+        "A Binary Tree",
+        "A Hash Map"
+      ],
+      "answer": 0,
+      "explanation": "BFS uses a Queue to ensure nodes are visited in the exact order they were discovered, radiating outward evenly."
+    },
+    {
+      "id": "pre_29",
+      "question": "What is the standard Time Complexity metric for analyzing Graph Traversal algorithms like BFS and DFS?",
+      "options": [
+        "O(n²)",
+        "O(log n)",
+        "O(V + E)",
+        "O(V * E)"
+      ],
+      "answer": 2,
+      "explanation": "Graph complexity scales based on evaluating every Vertex (V) and traversing every Edge (E), making the complexity O(V + E)."
+    },
+    {
+      "id": "pre_30",
+      "question": "What coding pattern typically causes a catastrophic O(2^n) Exponential Time complexity?",
+      "options": [
+        "Sorting an array backward.",
+        "Writing a single 'While' loop.",
+        "A recursive function that calls itself multiple times per execution branch, creating a massive binary tree of duplicate work.",
+        "Using a dictionary."
+      ],
+      "answer": 2,
+      "explanation": "Multiple branching recursive calls (like naive Fibonacci) double the workload at every step, creating explosive geometric growth."
+    },
+    {
+      "id": "pre_31",
+      "question": "What core characteristic must a problem have to be efficiently solved using Dynamic Programming?",
+      "options": [
+        "It must involve alphabetical text.",
+        "It must contain Overlapping Subproblems.",
+        "It must be solved in O(1) time.",
+        "It must not use variables."
+      ],
+      "answer": 1,
+      "explanation": "Dynamic Programming works by solving repeating, overlapping subproblems only once and saving the answer."
+    },
+    {
+      "id": "pre_32",
+      "question": "What is 'Memoization' in algorithmic optimization?",
+      "options": [
+        "Writing comments to remember what your code does.",
+        "Caching (saving) the results of expensive recursive function calls so they don't have to be recalculated.",
+        "Deleting variables to save memory.",
+        "Sorting an array before searching it."
+      ],
+      "answer": 1,
+      "explanation": "Memoization trades Space for Time by storing computed results in a dictionary, instantly dropping exponential O(2^n) logic down to O(n)."
+    },
+    {
+      "id": "pre_33",
+      "question": "In the advanced Knapsack problem, how do engineers optimize Space Complexity from O(N*W) to O(W)?",
+      "options": [
+        "By zipping the files.",
+        "By compressing the 2D Dynamic Programming matrix into a single 1D array.",
+        "By ignoring the weights.",
+        "By using an infinite loop."
+      ],
+      "answer": 1,
+      "explanation": "Because each row in the 2D DP table only looks at the row directly above it, you can overwrite a single 1D array, drastically saving memory."
+    },
+    {
+      "id": "pre_34",
+      "question": "The 0/1 Knapsack Problem is a classic example of evaluating combinations. What does the '0/1' mean?",
+      "options": [
+        "The items weigh exactly 0 or 1 pound.",
+        "You can either fully take an item (1) or completely leave it (0); you cannot break it into fractions.",
+        "The algorithm only uses binary math.",
+        "The complexity is exactly O(1)."
+      ],
+      "answer": 1,
+      "explanation": "The 0/1 constraint means items are indivisible. You must make a discrete mathematical choice to include or exclude the entire item."
+    },
+    {
+      "id": "pre_35",
+      "question": "What is the main difference between 'Divide and Conquer' algorithms (like Merge Sort) and 'Dynamic Programming'?",
+      "options": [
+        "Dynamic Programming uses loops, Divide and Conquer does not.",
+        "Divide and Conquer subproblems are independent and non-overlapping, while DP subproblems overlap and repeat.",
+        "Divide and Conquer is always faster.",
+        "There is no difference."
+      ],
+      "answer": 1,
+      "explanation": "Divide and Conquer splits a dataset into distinct, separate halves. DP deals with recursive trees that recalculate the exact same state repeatedly."
+    }
+  ]
+}

@@ -49,7 +49,6 @@ def get_submission(
             {"userId": user_email, "activityId": activityId}, 
             {"_id": 0}
         )
-        # CRITICAL FIX: Unpack single submissions
         if submission and "data" in submission and isinstance(submission["data"], dict):
             nested = submission.pop("data")
             submission.update(nested)
@@ -64,7 +63,6 @@ def get_all_submissions(user_email: str = Depends(get_current_user_email)):
 
     try:
         submissions_data = list(db["submissions"].find({"userId": user_email}, {"_id": 0}))
-        # CRITICAL FIX: Unpack nested submission arrays
         for item in submissions_data:
             if "data" in item and isinstance(item["data"], dict):
                 nested = item.pop("data")
@@ -141,7 +139,6 @@ def sync_submission(payload: dict = Body(...), user_email: str = Depends(get_cur
         raise HTTPException(status_code=401, detail="Invalid user token")
 
     try:
-        # CRITICAL FIX: Ensure incoming queue data isn't nested
         actual_data = payload.get("data", payload)
         if isinstance(actual_data, dict) and actual_data is not payload:
             for k, v in payload.items():

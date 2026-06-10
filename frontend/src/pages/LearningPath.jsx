@@ -1,16 +1,17 @@
 // frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
-    FiCheckCircle,
-    FiChevronDown,
-    FiCircle,
-    FiClipboard,
-    FiDatabase,
-    FiFilter,
-    FiLock,
-    FiRefreshCw,
-    FiShare2,
-    FiUsers,
+  FiAward,
+  FiCheckCircle,
+  FiChevronDown,
+  FiCircle,
+  FiClipboard,
+  FiDatabase,
+  FiFilter,
+  FiLock,
+  FiRefreshCw,
+  FiShare2,
+  FiUsers
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -75,24 +76,18 @@ export default function LearningPath() {
   const [userProgress, setUserProgress] = useState({});
   const [assessments, setAssessments] = useState({});
   const [submissions, setSubmissions] = useState({});
-
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
-
   const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(true);
 
   const storedUser = JSON.parse(
-    localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
+    localStorage.getItem("user") || sessionStorage.getItem("user") || "{}"
   );
   const userEmail = storedUser.email || "";
-
-  // ADMIN OVERRIDE FLAG
   const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
 
   const checkActivityDone = (moduleId, actId) => {
-    return (
-      submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`]
-    );
+    return submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`];
   };
 
   const loadData = async () => {
@@ -160,16 +155,21 @@ export default function LearningPath() {
     setExpandedModules(newExpanded);
   };
 
-  const hasPreAssessment = (moduleId) =>
-    assessments[`${moduleId}_pre_assessment`] !== undefined;
-  const hasPostAssessment = (moduleId) =>
-    assessments[`${moduleId}_post_assessment`] !== undefined;
-  const getAssessmentScore = (moduleId, type) =>
-    assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
+  // GLOBAL PRE-TEST CHECK
+  const globalPreTestKey = "course-pre-test_pre_assessment";
+  const isGlobalPreTestDone = assessments[globalPreTestKey] !== undefined;
+  const globalPreTestScore = assessments[globalPreTestKey]?.score ?? null;
+
+  // GLOBAL POST-TEST CHECK
+  const globalPostTestKey = "course-post-test_post_assessment";
+  const isGlobalPostTestDone = assessments[globalPostTestKey] !== undefined;
+  const globalPostTestScore = assessments[globalPostTestKey]?.score ?? null;
+
+  const hasPostAssessment = (moduleId) => assessments[`${moduleId}_post_assessment`] !== undefined;
+  const getAssessmentScore = (moduleId, type) => assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
 
   const isModuleComplete = (moduleId) => {
     if (isLoadingCurriculum) return false;
-
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
 
@@ -178,8 +178,7 @@ export default function LearningPath() {
       if (!details) return false;
 
       const activities = details.activities || [];
-      if (activities.length === 0)
-        return (userProgress[lesson.lessonId] || 0) >= 1;
+      if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1;
       return activities.every((a) => checkActivityDone(moduleId, a.id));
     });
   };
@@ -188,12 +187,11 @@ export default function LearningPath() {
     const lockMap = {};
     if (isLoadingCurriculum) return lockMap;
 
-    for (const module of curriculumIndex) {
-      const preComplete = hasPreAssessment(module.moduleId);
-      let isNextLocked = !preComplete;
+    // Everything is locked if the global pre-test is not done
+    let isNextLocked = isAdmin ? false : !isGlobalPreTestDone;
 
+    for (const module of curriculumIndex) {
       for (const lesson of module.lessons) {
-        // ADMIN OVERRIDE FOR LESSONS
         lockMap[lesson.lessonId] = isAdmin ? false : isNextLocked;
 
         if (!isNextLocked) {
@@ -201,29 +199,33 @@ export default function LearningPath() {
           const activities = details?.activities || [];
 
           if (activities.length > 0) {
-            const allDone = activities.every((a) =>
-              checkActivityDone(module.moduleId, a.id),
-            );
+            const allDone = activities.every((a) => checkActivityDone(module.moduleId, a.id));
             if (!allDone) isNextLocked = true;
           } else {
             if ((userProgress[lesson.lessonId] || 0) < 1) isNextLocked = true;
           }
         }
       }
+      // Lock next module if the current module's post-test isn't done
+      const postComplete = hasPostAssessment(module.moduleId);
+      if (!postComplete && !isAdmin) isNextLocked = true;
     }
     return lockMap;
   };
 
   const lockMap = buildLockMap();
 
+  // Check if entire curriculum is complete to unlock the Final Post-Test
+  const isCurriculumComplete = curriculumIndex.every((module) => {
+    return isModuleComplete(module.moduleId) && hasPostAssessment(module.moduleId);
+  });
+  const isGlobalPostTestUnlocked = isAdmin || isCurriculumComplete;
+
   if (isLoadingCurriculum) {
     return (
       <div className="learning-path-page">
         <DashboardHeader />
-        <div
-          className="learning-path-container"
-          style={{ textAlign: "center", padding: "100px 20px" }}
-        >
+        <div className="learning-path-container" style={{ textAlign: "center", padding: "100px 20px" }}>
           <h2>Loading Curriculum Data...</h2>
         </div>
       </div>
@@ -243,68 +245,78 @@ export default function LearningPath() {
         </div>
 
         <div className="modules-container">
+          {/* ========================================== */}
+          {/* GLOBAL PRE-TEST BANNER                   */}
+          {/* ========================================== */}
+          <div className="module-card-v2" style={{ border: "2px solid #7c5cff", marginBottom: "30px", background: "linear-gradient(145deg, rgba(124, 92, 255, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
+            <div className="module-card-icon" style={{ backgroundColor: "#7c5cff15" }}>
+              <FiAward size={32} color="#7c5cff" />
+            </div>
+            <div className="module-card-content" style={{ paddingRight: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
+                <div style={{ flex: 1 }}>
+                  <h3 className="module-card-title" style={{ margin: "0 0 8px 0" }}>Comprehensive Course Pre-Test</h3>
+                  <p className="module-card-description" style={{ margin: 0, color: "#94a3b8" }}>
+                    A diagnostic assessment evaluating your baseline knowledge across all modules. This must be completed to unlock the curriculum.
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                  {isGlobalPreTestDone && (
+                    <span style={{ fontWeight: "bold", fontSize: "1.2rem", color: "#22c55e" }}>{globalPreTestScore}%</span>
+                  )}
+                  {isGlobalPreTestDone ? (
+                    <button
+                      className="btn-assessment retake"
+                      onClick={() => navigate(`/assessment/course-pre-test/pre`)}
+                      style={{ padding: "10px 20px" }}
+                    >
+                      <FiCheckCircle style={{ marginRight: "8px" }} />
+                      Retake Diagnostic
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-assessment start"
+                      onClick={() => navigate(`/assessment/course-pre-test/pre`)}
+                      style={{ padding: "12px 24px", fontSize: "1rem" }}
+                    >
+                      Start Diagnostic Exam
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MODULES LIST */}
           {curriculumIndex.map((module) => {
             const moduleNum = module.moduleId.split("-").pop();
             const iconConfig = moduleIcons[module.moduleId];
             const IconComponent = iconConfig?.icon || FiUsers;
             const isExpanded = expandedModules.has(module.moduleId);
 
-            const preComplete = hasPreAssessment(module.moduleId);
-            const preScore = getAssessmentScore(module.moduleId, "pre");
             const moduleComplete = isModuleComplete(module.moduleId);
             const postComplete = hasPostAssessment(module.moduleId);
             const postScore = getAssessmentScore(module.moduleId, "post");
 
-            const optimizations =
-              activitiesData[module.moduleId]?.optimizations || [];
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
             const hasOptimizations = optimizations.length > 0;
-            const lastLessonId =
-              module.lessons[module.lessons.length - 1]?.lessonId;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
 
-            // ADMIN OVERRIDES FOR OPTIMIZATION AND Quiz
-            const optimizationsLocked = isAdmin
-              ? false
-              : lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
-            const postAssessmentLocked = isAdmin
-              ? false
-              : !moduleComplete && !postComplete;
+            const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
+            const postAssessmentLocked = isAdmin ? false : !moduleComplete && !postComplete;
+            const isModuleCompletelyLocked = isAdmin ? false : lockMap[module.lessons[0]?.lessonId];
 
             return (
               <div key={module.moduleId}>
-                <div
-                  className="module-card-v2"
-                  onClick={() => toggleModule(module.moduleId)}
-                >
-                  <div
-                    className="module-card-icon"
-                    style={{
-                      backgroundColor: `${iconConfig?.color || "#7c5cff"}15`,
-                    }}
-                  >
-                    <IconComponent
-                      size={32}
-                      color={iconConfig?.color || "#7c5cff"}
-                    />
+                <div className={`module-card-v2 ${isModuleCompletelyLocked ? "locked" : ""}`} onClick={() => !isModuleCompletelyLocked && toggleModule(module.moduleId)}>
+                  <div className="module-card-icon" style={{ backgroundColor: `${iconConfig?.color || "#7c5cff"}15` }}>
+                    {isModuleCompletelyLocked ? <FiLock size={32} color="#64748b" /> : <IconComponent size={32} color={iconConfig?.color || "#7c5cff"} />}
                   </div>
                   <div className="module-card-content">
-                    <div
-                      className="module-card-header"
-                      style={{ alignItems: "flex-start" }}
-                    >
+                    <div className="module-card-header" style={{ alignItems: "flex-start" }}>
                       <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            marginBottom: "8px",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <h3
-                            className="module-card-title"
-                            style={{ margin: 0 }}
-                          >
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", flexWrap: "wrap" }}>
+                          <h3 className="module-card-title" style={{ margin: 0, color: isModuleCompletelyLocked ? "#64748b" : "" }}>
                             Module {moduleNum}: {module.title}
                           </h3>
                           <div style={{ display: "flex", gap: "6px" }}>
@@ -316,18 +328,8 @@ export default function LearningPath() {
                                   padding: "3px 10px",
                                   borderRadius: "12px",
                                   textTransform: "uppercase",
-                                  backgroundColor:
-                                    iconConfig.difficulty === "Beginner"
-                                      ? "rgba(34, 197, 94, 0.15)"
-                                      : iconConfig.difficulty === "Intermediate"
-                                        ? "rgba(249, 115, 22, 0.15)"
-                                        : "rgba(236, 72, 153, 0.15)",
-                                  color:
-                                    iconConfig.difficulty === "Beginner"
-                                      ? "#22c55e"
-                                      : iconConfig.difficulty === "Intermediate"
-                                        ? "#ea580c"
-                                        : "#ec4899",
+                                  backgroundColor: isModuleCompletelyLocked ? "rgba(100, 116, 139, 0.15)" : iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)",
+                                  color: isModuleCompletelyLocked ? "#64748b" : iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899",
                                 }}
                               >
                                 {iconConfig.difficulty}
@@ -335,116 +337,43 @@ export default function LearningPath() {
                             )}
                           </div>
                         </div>
-                        <p
-                          className="module-card-description"
-                          style={{ marginTop: 0 }}
-                        >
-                          {iconConfig?.description || module.title}
+                        <p className="module-card-description" style={{ marginTop: 0 }}>
+                          {isModuleCompletelyLocked ? "Complete previous topics to unlock." : iconConfig?.description || module.title}
                         </p>
                       </div>
-                      <FiChevronDown
-                        size={24}
-                        color={iconConfig?.color || "#7c5cff"}
-                        className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
-                      />
+                      {!isModuleCompletelyLocked && (
+                        <FiChevronDown
+                          size={24}
+                          color={iconConfig?.color || "#7c5cff"}
+                          className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {isExpanded && (
+                {isExpanded && !isModuleCompletelyLocked && (
                   <div className="module-lessons-dropdown">
-                    <div
-                      className={`assessment-row pre ${preComplete ? "done" : "pending"}`}
-                    >
-                      <div className="assessment-row-left">
-                        <FiClipboard size={16} />
-                        <span className="assessment-row-label">
-                          Pre-Assessment
-                        </span>
-                        {preScore !== null && (
-                          <span className="assessment-score-badge">
-                            {preScore}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="assessment-row-right">
-                        {preComplete ? (
-                          <>
-                            <FiCheckCircle color="#22c55e" size={16} />
-                            <button
-                              className="btn-assessment retake"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/assessment/${module.moduleId}/pre`);
-                              }}
-                            >
-                              Retake
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            className="btn-assessment start"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/assessment/${module.moduleId}/pre`);
-                            }}
-                          >
-                            Take Pre-Assessment
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
                     {module.lessons.map((lesson) => {
                       const details = lessonDetails[lesson.lessonId];
                       const activities = details?.activities || [];
                       const totalActivities = activities.length;
-                      const completedCount = activities.filter((a) =>
-                        checkActivityDone(module.moduleId, a.id),
-                      ).length;
+                      const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
 
-                      const allDone =
-                        totalActivities > 0
-                          ? completedCount === totalActivities
-                          : (userProgress[lesson.lessonId] || 0) >= 1;
+                      const allDone = totalActivities > 0 ? completedCount === totalActivities : (userProgress[lesson.lessonId] || 0) >= 1;
                       const isLocked = lockMap[lesson.lessonId];
-                      const lessonDisplay = lesson.lessonId
-                        .replace("lesson-", "")
-                        .replace(/-/g, ".");
+                      const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
                       const firstActivityId = activities[0]?.id;
 
                       return (
-                        <div
-                          key={lesson.lessonId}
-                          className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}
-                        >
+                        <div key={lesson.lessonId} className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}>
                           <div className="lesson-info">
-                            <span className="lesson-number">
-                              {lessonDisplay}
-                            </span>
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                              }}
-                            >
-                              <span className="lesson-title">
-                                {lesson.title}
-                              </span>
+                            <span className="lesson-number">{lessonDisplay}</span>
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <span className="lesson-title">{lesson.title}</span>
                               {totalActivities > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    marginTop: "2px",
-                                    fontWeight: "bold",
-                                    color:
-                                      completedCount === totalActivities
-                                        ? "#22c55e"
-                                        : "#a8a8a8",
-                                  }}
-                                >
-                                  {completedCount} / {totalActivities}{" "}
-                                  Activities Done
+                                <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: completedCount === totalActivities ? "#22c55e" : "#a8a8a8" }}>
+                                  {completedCount} / {totalActivities} Activities Done
                                 </span>
                               )}
                             </div>
@@ -455,10 +384,7 @@ export default function LearningPath() {
                               disabled={isLocked}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!isLocked)
-                                  navigate(
-                                    `/learning-path/${module.moduleId}/${lesson.lessonId}`,
-                                  );
+                                if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lesson.lessonId}`);
                               }}
                             >
                               Read Lesson
@@ -468,125 +394,55 @@ export default function LearningPath() {
                               disabled={isLocked || !firstActivityId}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!isLocked && firstActivityId)
-                                  navigate(
-                                    `/activity/${module.moduleId}/${firstActivityId}`,
-                                  );
+                                if (!isLocked && firstActivityId) navigate(`/activity/${module.moduleId}/${firstActivityId}`);
                               }}
                             >
-                              {firstActivityId
-                                ? "Start Activity"
-                                : "No Activity"}
+                              {firstActivityId ? "Start Activity" : "No Activity"}
                             </button>
                           </div>
                           <span className="lesson-status-icon">
-                            {isLocked ? (
-                              <FiLock color="#bdbdbd" />
-                            ) : allDone ? (
-                              <FiCheckCircle color="#22c55e" />
-                            ) : (
-                              <FiCircle color="#7c5cff" />
-                            )}
+                            {isLocked ? <FiLock color="#bdbdbd" /> : allDone ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#7c5cff" />}
                           </span>
                         </div>
                       );
                     })}
 
                     {hasOptimizations && (
-                      <div
-                        className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`}
-                        style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}
-                      >
+                      <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
                         <div className="lesson-info">
-                          <span
-                            className="lesson-number"
-                            style={{ color: "#f39c12", fontSize: "1.2rem" }}
-                          >
-                            ★
-                          </span>
-                          <div
-                            style={{ display: "flex", flexDirection: "column" }}
-                          >
-                            <span
-                              className="lesson-title"
-                              style={{ fontWeight: "bold", color: "#d35400" }}
-                            >
-                              Optimization Challenges
-                            </span>
-                            <span
-                              style={{
-                                fontSize: "0.75rem",
-                                marginTop: "2px",
-                                fontWeight: "bold",
-                                color:
-                                  optimizations.filter((o) =>
-                                    checkActivityDone(module.moduleId, o.id),
-                                  ).length === optimizations.length
-                                    ? "#22c55e"
-                                    : "#d35400",
-                              }}
-                            >
-                              {
-                                optimizations.filter((o) =>
-                                  checkActivityDone(module.moduleId, o.id),
-                                ).length
-                              }{" "}
-                              / {optimizations.length} Challenges Done
+                          <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
+                            <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? "#22c55e" : "#d35400" }}>
+                              {optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length} / {optimizations.length} Challenges Done
                             </span>
                           </div>
                         </div>
                         <div className="lesson-actions">
                           <button
                             className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`}
-                            style={{
-                              backgroundColor: optimizationsLocked
-                                ? ""
-                                : "#f39c12",
-                            }}
+                            style={{ backgroundColor: optimizationsLocked ? "" : "#f39c12" }}
                             disabled={optimizationsLocked}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!optimizationsLocked)
-                                navigate(
-                                  `/activity/${module.moduleId}/${optimizations[0].id}`,
-                                );
+                              if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
                             }}
                           >
                             Start Challenges
                           </button>
                         </div>
                         <span className="lesson-status-icon">
-                          {optimizationsLocked ? (
-                            <FiLock color="#bdbdbd" />
-                          ) : optimizations.filter((o) =>
-                              checkActivityDone(module.moduleId, o.id),
-                            ).length === optimizations.length ? (
-                            <FiCheckCircle color="#22c55e" />
-                          ) : (
-                            <FiCircle color="#f39c12" />
-                          )}
+                          {optimizationsLocked ? <FiLock color="#bdbdbd" /> : optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#f39c12" />}
                         </span>
                       </div>
                     )}
 
-                    <div
-                      className={`assessment-row post ${postComplete ? "done" : postAssessmentLocked ? "locked" : "pending"}`}
-                    >
+                    <div className={`assessment-row post ${postComplete ? "done" : postAssessmentLocked ? "locked" : "pending"}`}>
                       <div className="assessment-row-left">
                         <FiClipboard size={16} />
-                        <span className="assessment-row-label">
-                          Quiz
-                        </span>
-                        {postScore !== null && (
-                          <span className="assessment-score-badge post">
-                            {postScore}%
-                          </span>
-                        )}
-                        {postAssessmentLocked && (
-                          <span className="assessment-gate-note">
-                            (Complete all lessons first)
-                          </span>
-                        )}
+                        <span className="assessment-row-label">Quiz</span>
+                        {postScore !== null && <span className="assessment-score-badge post">{postScore}%</span>}
+                        {postAssessmentLocked && <span className="assessment-gate-note">(Complete all lessons first)</span>}
                       </div>
                       <div className="assessment-row-right">
                         {postAssessmentLocked ? (
@@ -622,6 +478,55 @@ export default function LearningPath() {
               </div>
             );
           })}
+
+          {/* ========================================== */}
+          {/* GLOBAL POST-TEST BANNER                  */}
+          {/* ========================================== */}
+          <div className={`module-card-v2 ${!isGlobalPostTestUnlocked ? "locked" : ""}`} style={{ border: "2px solid #f59e0b", marginTop: "30px", background: "linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
+            <div className="module-card-icon" style={{ backgroundColor: "#f59e0b15" }}>
+              {isGlobalPostTestUnlocked ? <FiAward size={32} color="#f59e0b" /> : <FiLock size={32} color="#64748b" />}
+            </div>
+            <div className="module-card-content" style={{ paddingRight: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
+                <div style={{ flex: 1 }}>
+                  <h3 className="module-card-title" style={{ margin: "0 0 8px 0", color: !isGlobalPostTestUnlocked ? "#64748b" : "" }}>Comprehensive Course Post-Test</h3>
+                  <p className="module-card-description" style={{ margin: 0, color: "#94a3b8" }}>
+                    {!isGlobalPostTestUnlocked 
+                      ? "Complete all modules and their respective quizzes to unlock the final exam." 
+                      : "The final challenge! Prove your mastery of all concepts covered in the curriculum."}
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                  {isGlobalPostTestDone && (
+                    <span style={{ fontWeight: "bold", fontSize: "1.2rem", color: "#22c55e" }}>{globalPostTestScore}%</span>
+                  )}
+                  {!isGlobalPostTestUnlocked ? (
+                    <button className="btn-assessment start disabled" disabled style={{ padding: "12px 24px", fontSize: "1rem", backgroundColor: "#334155", color: "#94a3b8" }}>
+                      <FiLock style={{ marginRight: "8px" }} /> Locked
+                    </button>
+                  ) : isGlobalPostTestDone ? (
+                    <button
+                      className="btn-assessment retake"
+                      onClick={() => navigate(`/assessment/course-post-test/post`)}
+                      style={{ padding: "10px 20px" }}
+                    >
+                      <FiCheckCircle style={{ marginRight: "8px" }} />
+                      Retake Final Exam
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-assessment start"
+                      onClick={() => navigate(`/assessment/course-post-test/post`)}
+                      style={{ padding: "12px 24px", fontSize: "1rem", backgroundColor: "#f59e0b", color: "#1e293b", fontWeight: "bold" }}
+                    >
+                      Start Final Exam
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

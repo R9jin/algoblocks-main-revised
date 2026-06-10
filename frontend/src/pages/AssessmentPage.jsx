@@ -46,17 +46,6 @@ function shuffleArray(arr) {
   return a;
 }
 
-// ── Module routing maps ──────────────────────────────────────────────────────
-const MODULE_FIRST_LESSON = {
-  "module-0": "lesson-0-1",
-  "module-1": "lesson-1-1",
-  "module-2": "lesson-2-1",
-  "module-3": "lesson-3-1",
-  "module-4": "lesson-4-1",
-  "module-5": "lesson-5-1",
-  "module-6": "lesson-6-1",
-};
-
 // ── Code Block component ─────────────────────────────────────────────────────
 function CodeBlock({ code }) {
   if (!code) return null;
@@ -105,7 +94,6 @@ export default function AssessmentPage() {
         const existingResult = await assessmentsDB.getItem(assessmentKey);
         
         if (existingResult) {
-          // Normalize locally corrupted nested data to fix the blank UI
           const normalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
           setPrevResult(normalized);
         }
@@ -270,11 +258,9 @@ export default function AssessmentPage() {
       attempts: (prevResult?.attempts ?? 0) + 1,
     };
 
-    // 1. Offline-First: Save to IndexedDB
     await assessmentsDB.setItem(assessmentKey, result);
     await progressDB.setItem(assessmentKey, { score: finalScore });
 
-    // Update local user object for immediate UI reflection
     const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
     const user = JSON.parse(userStr || "{}");
     
@@ -288,14 +274,9 @@ export default function AssessmentPage() {
 
     clearDraft(moduleId, type);
 
-    // ==========================================
-    // 2. Cloud Sync (or Queue) 
-    // ==========================================
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken"); 
-    
     const API_TARGET = `${API_BASE.replace(/\/$/, '')}/api`;
 
-    // FIX: Format exactly how syncManager expects it
     const queuePayloadAssm = {
         url: `${API_TARGET}/update-assessment`,
         method: "POST",
@@ -345,11 +326,7 @@ export default function AssessmentPage() {
   };
 
   const handleProceed = () => {
-    if (type === "pre") {
-      navigate(`/learning-path/${moduleId}/${MODULE_FIRST_LESSON[moduleId]}`);
-    } else {
-      navigate("/learning-path");
-    }
+    navigate("/learning-path");
   };
 
   const handleRetake = () => {
@@ -373,8 +350,9 @@ export default function AssessmentPage() {
   };
 
   // ── Derived values ───────────────────────────────────────────────────────────
-  const isPre = type === "pre";
-  const moduleNum = moduleId?.split("-").pop();
+  const isGlobalPreTest = moduleId === "course-pre-test";
+  const isGlobalPostTest = moduleId === "course-post-test";
+  const moduleNum = (isGlobalPreTest || isGlobalPostTest) ? "Overall" : moduleId?.split("-").pop();
   const answeredCount = Object.keys(selectedAnswers).length;
   const currentQuestion = questions[currentIndex];
 
@@ -413,7 +391,7 @@ export default function AssessmentPage() {
               </div>
               <h1 className="results-score" style={{ color }}>{score}%</h1>
               <p className="results-subtitle">
-                {isPre ? "Pre-Assessment" : "Quiz"} — Module {moduleNum}: {moduleTitle}
+                {isGlobalPreTest ? "Comprehensive Course Diagnostic" : isGlobalPostTest ? "Comprehensive Course Final Exam" : `Module ${moduleNum} Quiz: ${moduleTitle}`}
               </p>
               <p className="results-attempt">
                 Attempt #{(prevResult?.attempts ?? 0) + 1} &nbsp;·&nbsp; {formatTime(timeElapsed)} taken
@@ -478,17 +456,21 @@ export default function AssessmentPage() {
             <div className="results-actions">
               <button className="btn-retake" onClick={handleRetake}>Retake Assessment</button>
               <button className="btn-proceed" onClick={handleProceed}>
-                {isPre ? `Start Module ${moduleNum} →` : "Back to Learning Path →"}
+                {isGlobalPreTest ? "Start Curriculum →" : "Back to Learning Path →"}
               </button>
             </div>
 
-            {isPre && score < 60 && (
+            {isGlobalPreTest && (
               <p className="results-note">
-                📌 Your pre-assessment score suggests this module will introduce new concepts.
-                That's perfectly fine — the lessons are designed to build your understanding from the ground up.
+                📌 The curriculum is now fully unlocked. Use this score as a baseline to track your growth over the course!
               </p>
             )}
-            {!isPre && score >= 75 && (
+            {isGlobalPostTest && (
+              <p className="results-note" style={{ color: "#f59e0b", fontSize: "1.1rem" }}>
+                🎉 Congratulations on completing the AlgoBlocks curriculum! You have proven your mastery of algorithmic foundations.
+              </p>
+            )}
+            {!(isGlobalPreTest || isGlobalPostTest) && score >= 75 && (
               <p className="results-note" style={{ color: "#22c55e" }}>
                 ✅ Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
               </p>
@@ -507,11 +489,13 @@ export default function AssessmentPage() {
       <div className="assessment-wrapper">
         <div className="assessment-header">
           <div className="assessment-title-block">
-            <div className="assessment-tag">{isPre ? "PRE-ASSESSMENT" : "Quiz"}</div>
-            <h1>Module {moduleNum}: {moduleTitle}</h1>
+            <div className="assessment-tag">{isGlobalPreTest ? "DIAGNOSTIC EXAM" : isGlobalPostTest ? "FINAL EXAM" : "QUIZ"}</div>
+            <h1>{isGlobalPreTest ? "Comprehensive Course Pre-Test" : isGlobalPostTest ? "Comprehensive Course Post-Test" : `Module ${moduleNum}: ${moduleTitle}`}</h1>
             <p className="assessment-subtitle">
-              {isPre
-                ? "This assessment measures your prior knowledge before starting the module. It does not affect your progress."
+              {isGlobalPreTest
+                ? "This assessment measures your prior knowledge across the entire course. It does not affect your grades."
+                : isGlobalPostTest
+                ? "This final assessment evaluates your complete mastery of algorithms across all modules."
                 : "This assessment evaluates your understanding after completing the module."}
             </p>
           </div>
@@ -586,7 +570,6 @@ export default function AssessmentPage() {
                 )}
               </div>
 
-              {/* Code block — shown above the question text */}
               {currentQuestion.type === "code" && currentQuestion.code && (
                 <CodeBlock code={currentQuestion.code} />
               )}
