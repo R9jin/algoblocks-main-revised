@@ -1,19 +1,19 @@
-/*frontend\src\styles\Dashboard.css*/
-.dashboard-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: #ffffff;
-  color: #3C2D76;
-}
+/* frontend/src/styles/Dashboard.css */
 
+/* =========================================================
+   1. Dashboard Header (Restored Original Linkages)
+========================================================= */
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 15px 30px;
-  border-bottom: 1px solid #e0e0e0;
-  background: white;
+  border-bottom: 1px solid rgba(60, 45, 118, 0.08);
+  background: #FFFFFF;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .dashboard-header .header-left,
@@ -27,10 +27,14 @@
   text-decoration: none;
   color: #5A1398;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  transition: color 0.2s ease;
 }
 
-/* Update the existing class to align the image and text */
+.back-home:hover {
+  color: #7F57F9;
+}
+
 .btn-open-project {
   background: transparent;
   color: #5A1398;
@@ -41,818 +45,498 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  /* Adds space between the icon and the text */
 }
 
-/* Add this new class to control the size of your icon */
-.btn-icon-open {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-}
-
-.btn-new-project {
-  background: #5A1398;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.user-profile-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  /* <-- Changed from '1px solid #5A1398' to 'none' */
+/* =========================================================
+   2. Base Layout & Bento Grid
+========================================================= */
+.bento-dashboard-layout {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  overflow: hidden;
-  background-color: transparent;
-  /* Changed to transparent so there's no background box */
-}
-
-.user-profile-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.dashboard-body {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-.dashboard-main {
-  flex: 3;
-  padding: 40px;
-  overflow-y: auto;
-}
-
-.dashboard-sidebar {
-  flex: 1;
-  border-left: 1px solid #e0e0e0;
-  padding: 40px;
-  background-color: #fcfcff;
-}
-
-/* Learning Path Banner */
-.learning-path-banner {
-  display: flex;
-  align-items: center;
-  border: 1px solid #BCA1FC;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 40px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.learning-path-banner:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(90, 19, 152, 0.1);
-}
-
-/* --- Update Banner Icon --- */
-.banner-icon {
-  background: #C994FF;
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  margin-right: 20px;
-}
-
-/* Add this to constrain the banner image */
-.banner-icon img {
-  width: 50px;
-  height: 50px;
-  object-fit: contain;
-  /* Prevents image stretching */
-}
-
-.banner-text h2 {
-  margin: 0 0 5px 0;
-  color: #1a1a1a;
-}
-
-.banner-text p {
-  margin: 0;
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.banner-arrow {
-  margin-left: auto;
-  font-size: 1.5rem;
-  color: #5A1398;
-  font-weight: bold;
-}
-
-/* Templates Section */
-.section-title {
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #F4F7F9;
   color: #3C2D76;
-  font-size: 2rem;
-  margin-bottom: 30px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-.category-label {
-  color: #6e6e8e;
-  font-size: 0.85rem;
-  letter-spacing: 1px;
-  margin-bottom: 15px;
-}
-
-/* ... keep your other existing dashboard CSS ... */
-
-.template-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
-  align-items: start;
-  /* Prevents cards from stretching heights to match neighbors */
-}
-
-.template-card {
-  background-color: #EBE4FF;
-  border: 1px solid #BCA1FC;
-  border-radius: 10px;
-  padding: 20px;
-  cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.template-card:hover {
-  transform: translateY(-3px);
-  background-color: #e0d4ff;
-}
-
-.card-header {
+.bento-dashboard-content {
+  flex: 1;
+  padding: 32px 24px;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 0;
-  transition: margin-bottom 0.3s ease;
-}
-
-/* Header of the card */
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  /* Removed the hardcoded margin-bottom so the card is compact when collapsed */
-  margin-bottom: 0;
-  transition: margin-bottom 0.3s ease;
-}
-
-.card-header h4 {
-  margin: 0;
-  color: #1a1a1a;
-  font-size: 1.1rem;
-}
-
-.card-icon-img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-/* --- HOVER ANIMATION LOGIC --- */
-
-/* Base state: The container for both description and button is hidden */
-.card-hover-content {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
-}
-
-/* Hover state: Expand the container to reveal both text and button */
-.template-card:hover .card-hover-content {
-  max-height: 250px;
-  /* Made slightly taller to ensure long descriptions + button fit */
-  opacity: 1;
-  margin-top: 12px;
-}
-
-/* Base text styling */
-.template-card-desc {
-  margin: 0;
-  color: #555;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  margin-bottom: 15px;
-  /* Adds space between the text and the button */
-}
-
-/* Test Template Button Styling */
-.try-template-btn {
-  background-color: #5A1398;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.2s, transform 0.2s;
-  box-shadow: 0 4px 10px rgba(90, 19, 152, 0.2);
-}
-
-.try-template-btn:hover {
-  background-color: #7F57F9;
-  transform: translateY(-1px);
-}
-
-/* ... keep sidebar and banner CSS ... */
-
-/* Sidebar */
-.sidebar-label {
-  color: #3C2D76;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-  margin-bottom: 20px;
-}
-
-.empty-projects-box {
-  background-color: #EBE4FF;
-  border: 1px solid #BCA1FC;
-  border-radius: 8px;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #8a8a8a;
-  font-size: 0.9rem;
-}
-
-/* User Profile Menu & Button Resets */
-.user-menu {
-  margin-left: 15px;
-  position: relative; /* Keeps the dropdown anchored to the menu */
-}
-
-.user-menu-btn {
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
   justify-content: center;
 }
 
-/* User Profile Image Styling */
-.user-profile-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%; /* Forces the square image into a circle */
-  object-fit: cover;  /* Prevents image distortion */
-  background-color: #EBE4FF; 
-  border: 2px solid #A594DC; 
-  transition: transform 0.2s ease;
-}
-
-.user-profile-img:hover {
-  transform: scale(1.05); /* Slight zoom effect on hover */
-}
-
-/* =========================================
-   USER PROFILE DROPDOWN MENU
-   ========================================= */
-
-/* =========================================
-   USER PROFILE DROPDOWN MENU (LIGHT MODE)
-   ========================================= */
-
-/* The floating menu container */
-.user-dropdown {
-  position: absolute;
-  top: 55px; 
-  right: 0;
-  background-color: #ffffff; /* Clean white background */
-  border: 1px solid #e2e8f0; /* Light gray border */
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* Soft, airy drop shadow */
-  width: 220px;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: slideDown 0.2s ease-out;
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* The header area inside the dropdown */
-.user-dropdown-head {
-  padding: 16px;
-  background-color: #f8fafc; /* Very soft gray background for the header */
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.dropdown-avatar-img {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: #f1f5f9;
-  border: 2px solid #cbd5e1; /* Subtle outline for the image */
-  object-fit: cover;
-  margin-bottom: 10px;
-}
-
-.user-name {
-  color: #1e293b; /* Dark, high-contrast text */
-  font-weight: bold;
-  font-size: 1rem;
-  margin-bottom: 4px;
-}
-
-.user-email {
-  color: #64748b; /* Muted gray text for secondary info */
-  font-size: 0.8rem;
-  word-break: break-all;
-}
-
-/* The clickable buttons inside the menu */
-.user-dd-item {
-  background: none;
-  border: none;
-  color: #334155; 
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.95rem;
-  cursor: pointer;
-  text-align: left;
-  transition: background-color 0.2s ease;
+.bento-grid-container {
   width: 100%;
-}
-
-.user-dd-item:hover {
-  background-color: #f1f5f9; /* Light gray hover state */
-}
-
-.user-dd-item svg {
-  color: #64748b; /* Muted icon color */
-}
-
-/* Specific styling for the Sign Out button */
-.user-dd-item.danger {
-  color: #ef4444; /* Clean, modern red */
-}
-
-.user-dd-item.danger svg {
-  color: #ef4444;
-}
-
-.user-dd-item.danger:hover {
-  background-color: #fef2f2; /* Very faint red hover background */
-}
-
-/* The line that separates the items */
-.user-dd-divider {
-  height: 1px;
-  background-color: #e2e8f0;
-  margin: 4px 0;
-}
-
-/* ========================= */
-/* Responsive Improvements */
-/* ========================= */
-
-/* Large Tablets */
-@media (max-width: 1024px) {
-
-  .dashboard-main,
-  .dashboard-sidebar {
-    padding: 25px;
-  }
-
-  .section-title {
-    font-size: 1.7rem;
-  }
-}
-
-/* Tablets */
-@media (max-width: 768px) {
-
-  /* Stack sidebar below main content */
-  .dashboard-body {
-    flex-direction: column;
-  }
-
-  .dashboard-sidebar {
-    border-left: none;
-    border-top: 1px solid #e0e0e0;
-  }
-
-  /* Header wraps properly */
-  .dashboard-header {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
-    padding: 15px 20px;
-  }
-
-  .dashboard-header .header-left,
-  .dashboard-header .header-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .dashboard-main,
-  .dashboard-sidebar {
-    padding: 20px;
-  }
-
-  .section-title {
-    font-size: 1.5rem;
-  }
-
-  .learning-path-banner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-
-  .banner-arrow {
-    align-self: flex-end;
-  }
-}
-
-/* Mobile */
-@media (max-width: 480px) {
-
-  .dashboard-main,
-  .dashboard-sidebar {
-    padding: 15px;
-  }
-
-  .section-title {
-    font-size: 1.3rem;
-  }
-
-  /* Make buttons full width on small screens */
-  .btn-new-project,
-  .btn-open-project {
-    width: 100%;
-    text-align: center;
-  }
-
-  /* Smaller profile icon */
-  .user-profile-icon {
-    width: 35px;
-    height: 35px;
-    font-size: 1rem;
-  }
-
-  /* Grid becomes tighter */
-  .template-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Banner icon smaller */
-  .banner-icon {
-    width: 50px;
-    height: 50px;
-  }
-
-  .banner-icon img {
-    width: 40px;
-    height: 40px;
-  }
-}
-
-.algorithm-library-grid {
+  max-width: 1280px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  /* 3 columns for Sorting, Searching, Recursive */
-  gap: 40px;
-  /* space between columns */
-  margin-bottom: 50px;
+  grid-template-columns: 1fr 340px;
+  gap: 32px;
+  animation: slideFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.algorithm-column {
+.bento-main-column {
   display: flex;
   flex-direction: column;
+  gap: 32px;
 }
 
-.column-title {
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-  color: #6e6e8e;
-  margin-bottom: 15px;
-  text-transform: uppercase;
-}
-
-.algorithm-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  cursor: pointer;
-  transition: transform 0.2s, color 0.2s;
-}
-
-.algorithm-item:hover {
-  transform: translateX(5px);
-  color: #5A1398;
-}
-
-.algo-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
-
-@media (max-width: 900px) {
-  .algorithm-library-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .algorithm-library-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.algorithm-library-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  /* 3 columns for Sorting / Searching / Recursive */
-  gap: 40px;
-  /* spacing between columns */
-  margin-bottom: 50px;
-}
-
-.algorithm-column {
-  display: flex;
-  flex-direction: column;
-}
-
-.column-title {
-  font-size: 0.85rem;
-  letter-spacing: 1px;
-  color: #6e6e8e;
-  margin-bottom: 15px;
-  text-transform: uppercase;
-}
-
-/* Reuse your old card styles */
-.algorithm-card {
-  background-color: #EBE4FF;
-  border: 1px solid #BCA1FC;
-  border-radius: 10px;
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.algorithm-card:hover {
-  transform: translateY(-3px);
-  background-color: #e0d4ff;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 0;
-}
-
-.card-header h4 {
-  margin: 0;
-  color: #1a1a1a;
-  font-size: 1.05rem;
-}
-
-.card-icon-img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-/* Hover content */
-.card-hover-content {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
-}
-
-.algorithm-card:hover .card-hover-content {
-  max-height: 250px;
-  /* enough space for desc + button */
-  opacity: 1;
-  margin-top: 12px;
-}
-
-.template-card-desc {
-  margin: 0 0 10px 0;
-  color: #555;
-  font-size: 0.85rem;
-  line-height: 1.4;
-}
-
-.try-template-btn {
-  background-color: #5A1398;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.2s, transform 0.2s;
-}
-
-.try-template-btn:hover {
-  background-color: #7F57F9;
-  transform: translateY(-1px);
-}
-
-.algorithm-library-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  /* 3 columns for Sorting / Searching / Recursive */
-  gap: 40px;
-  /* spacing between columns */
-  margin-bottom: 50px;
-}
-
-.algorithm-column {
-  display: flex;
-  flex-direction: column;
-}
-
-.column-title {
-  font-size: 0.85rem;
-  letter-spacing: 1px;
-  color: #6e6e8e;
-  margin-bottom: 15px;
-  text-transform: uppercase;
-}
-
-/* Reuse your old card styles */
-.algorithm-card {
-  background-color: #EBE4FF;
-  border: 1px solid #BCA1FC;
-  border-radius: 10px;
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.algorithm-card:hover {
-  transform: translateY(-3px);
-  background-color: #e0d4ff;
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 0;
-}
-
-.card-header h4 {
-  margin: 0;
-  color: #1a1a1a;
-  font-size: 1.05rem;
-}
-
-.card-icon-img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-}
-
-/* Hover content */
-.card-hover-content {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-top 0.3s ease-in-out;
-}
-
-.algorithm-card:hover .card-hover-content {
-  max-height: 250px;
-  /* enough space for desc + button */
-  opacity: 1;
-  margin-top: 12px;
-}
-
-.template-card-desc {
-  margin: 0 0 10px 0;
-  color: #555;
-  font-size: 0.85rem;
-  line-height: 1.4;
-}
-
-.try-template-btn {
-  background-color: #5A1398;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.2s, transform 0.2s;
-}
-
-.try-template-btn:hover {
-  background-color: #7F57F9;
-  transform: translateY(-1px);
-}
-
-.dashboard-body>* {
-  height: 100%;
-}
-
-.dashboard-body {
-  height: calc(100vh - 80px);
-  /* adjust if your header height is 80px */
-}
-
-.custom-template-card {
-  border-left: 4px solid #7F57F9; /* Add a purple accent to user templates */
-}
-
-/* Sidebar Project Item Adjustments */
-.recent-project-item {
+/* =========================================================
+   3. Hero Card
+========================================================= */
+.bento-hero-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 36px 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 15px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(60, 45, 118, 0.04);
+  border: 1px solid rgba(60, 45, 118, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.bento-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  background: linear-gradient(180deg, #5A1398 0%, #7F57F9 100%);
+}
+
+.hero-text { max-width: 500px; }
+
+.hero-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.hero-subtitle {
+  font-size: 1.05rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.hero-primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #5A1398 0%, #7F57F9 100%);
+  color: #FFFFFF;
+  border: none;
+  padding: 16px 28px;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(127, 87, 249, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(127, 87, 249, 0.4);
+}
+
+.hero-primary-btn:active { transform: translateY(1px); }
+
+/* =========================================================
+   4. Restored Learning Path Card
+========================================================= */
+.bento-learning-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 28px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(60, 45, 118, 0.04);
+  border: 1px solid rgba(60, 45, 118, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bento-learning-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(60, 45, 118, 0.08);
+}
+
+.learning-content { flex: 1; padding-right: 32px; }
+
+.module-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 800;
+  color: #7F57F9;
+  background: rgba(127, 87, 249, 0.1);
+  padding: 6px 12px;
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.learning-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0 0 8px 0;
+}
+
+.learning-desc {
+  font-size: 0.95rem;
+  color: #64748B;
+  margin: 0 0 24px 0;
+}
+
+.progress-container { width: 100%; }
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background-color: #F1F5F9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #5A1398 0%, #7F57F9 100%);
+  border-radius: 10px;
+  transition: width 1s ease-in-out;
+}
+
+.play-btn {
+  background: rgba(127, 87, 249, 0.1);
+  color: #7F57F9;
+  border: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.recent-project-item:hover {
-  border-color: #BCA1FC;
-  background-color: #f8fafc;
+.play-btn:hover {
+  background: #7F57F9;
+  color: #FFFFFF;
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(127, 87, 249, 0.3);
+}
+
+/* =========================================================
+   5. Template Library
+========================================================= */
+.bento-library-section {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.bento-library-section .section-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 6px 0;
+}
+
+.bento-library-section .section-header p {
+  color: #64748B;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.category-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #5A1398;
+  margin: 0 0 16px 0;
+  letter-spacing: 1px;
+  padding-left: 4px;
+}
+
+.bento-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.bento-template-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(60, 45, 118, 0.02);
+}
+
+.bento-template-card:hover {
+  transform: translateY(-4px);
+  border-color: #7F57F9;
+  box-shadow: 0 12px 24px rgba(127, 87, 249, 0.12);
+}
+
+.custom-template-card { border-left: 4px solid #7F57F9; }
+
+.template-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.template-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #F8FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.template-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.template-desc {
+  font-size: 0.85rem;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  flex-grow: 1;
+}
+
+.template-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #7F57F9;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding-top: 12px;
+  border-top: 1px solid #F1F5F9;
+  transition: color 0.2s ease;
+}
+
+.bento-template-card:hover .template-card-footer { color: #5A1398; }
+
+/* =========================================================
+   6. Sidebar Column (Recent Projects)
+========================================================= */
+.bento-sidebar-column { display: flex; flex-direction: column; }
+
+.bento-recent-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(60, 45, 118, 0.04);
+  border: 1px solid rgba(60, 45, 118, 0.05);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.recent-header h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0;
+}
+
+.recent-badge {
+  background: #F1F5F9;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.recent-projects-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.bento-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bento-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: #F8FAFC;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bento-recent-item:hover {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  box-shadow: 0 4px 12px rgba(60, 45, 118, 0.05);
   transform: translateX(4px);
 }
 
-.project-item-info {
+.recent-item-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(127, 87, 249, 0.1);
+  color: #7F57F9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recent-item-content {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.project-item-title {
-  font-weight: 600;
-  color: #1a1a1a;
+.recent-item-title {
   font-size: 0.95rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
 }
 
-.project-item-meta {
+.recent-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.75rem;
-  color: #64748b;
+  color: #64748B;
 }
 
-.project-item-status {
-  font-size: 0.7rem;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: 600;
+.dot-separator { color: #CBD5E1; }
+.sync-status { font-weight: 700; }
+.sync-status.synced { color: #10B981; }
+.sync-status.local { color: #F59E0B; }
+
+.view-all-projects-btn {
+  margin-top: 24px;
+  width: 100%;
+  padding: 12px;
+  background: #F8FAFC;
+  color: #5A1398;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.project-item-status.synced {
-  background-color: #ecfdf5;
-  color: #059669;
+.view-all-projects-btn:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  color: #3C2D76;
 }
 
-.project-item-status.local {
-  background-color: #fff7ed;
-  color: #d97706;
+.bento-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748B;
+  height: 100%;
+}
+
+.bento-empty-state .empty-icon {
+  width: 48px;
+  height: 48px;
+  background: #F1F5F9;
+  color: #94A3B8;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.bento-empty-state p {
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 4px 0;
+}
+
+/* =========================================================
+   7. Animations & Responsive
+========================================================= */
+@keyframes slideFadeUp {
+  0% { opacity: 0; transform: translateY(15px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1024px) {
+  .bento-grid-container { grid-template-columns: 1fr; }
+  .bento-sidebar-column { order: -1; }
+}
+
+@media (max-width: 768px) {
+  .bento-hero-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 24px;
+  }
+  .bento-template-grid { grid-template-columns: 1fr; }
+  .bento-learning-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .learning-content { padding-right: 0; width: 100%; }
 }

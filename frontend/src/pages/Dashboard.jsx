@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { projectsDB, templatesDB } from "../db";
+import { projectsDB } from "../db"; // Fully restored original imports
 import "../styles/Dashboard.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -13,290 +13,266 @@ const SYSTEM_TEMPLATES = {
     { name: "Selection Sort", path: "sort/selection_sort", desc: "Repeatedly selects the smallest element from the unsorted sublist and swaps it with the leftmost unsorted element.", icon: "/assets/sort-icon.png", isSystem: true },
     { name: "Insertion Sort", path: "sort/insertion_sort", desc: "Builds the final sorted array one item at a time by comparing the current element to the sorted portion.", icon: "/assets/sort-icon.png", isSystem: true },
     { name: "Merge Sort", path: "sort/merge_sort", desc: "A highly efficient divide-and-conquer algorithm that recursively splits and merges lists.", icon: "/assets/sort-icon.png", isSystem: true },
-    { name: "Quick Sort", path: "sort/quick_sort", desc: "Uses a divide-and-conquer approach by partitioning elements around a pivot.", icon: "/assets/sort-icon.png", isSystem: true }
+    { name: "Quick Sort", path: "sort/quick_sort", desc: "Uses a divide-and-conquer approach by picking a pivot and partitioning the array around it.", icon: "/assets/sort-icon.png", isSystem: true },
   ],
-  searching: [
-    { name: "Linear Search", path: "search/linear_search", desc: "Checks every element in the list sequentially until the desired element is found.", icon: "/assets/search-icon.png", isSystem: true },
-    { name: "Binary Search", path: "search/binary_search", desc: "Finds the position of a target value within a sorted array by repeatedly dividing the search interval in half.", icon: "/assets/search-icon.png", isSystem: true },
-    { name: "Exponential Search", path: "search/exponential_search", desc: "Locates a range by doubling the index, then performs a binary search within that range.", icon: "/assets/search-icon.png", isSystem: true }
+  graph: [
+    { name: "Breadth-First Search", path: "graph/bfs", desc: "Explores a graph level by level using a queue.", icon: "/assets/complexity-icon.png", isSystem: true },
+    { name: "Depth-First Search", path: "graph/dfs", desc: "Explores a graph by going as deep as possible using a stack or recursion.", icon: "/assets/complexity-icon.png", isSystem: true },
   ],
-  recursive: [
-    { name: "Factorial", path: "recursive/recursive_factorial", desc: "Calculates the factorial of a non-negative integer using a recursive function.", icon: "/assets/recursive-icon.png", isSystem: true },
-    { name: "Fibonacci", path: "recursive/recursive_fibonacci", desc: "Generates the Fibonacci sequence where each number is the sum of the two preceding ones.", icon: "/assets/recursive-icon.png", isSystem: true },
-    { name: "Permutation", path: "recursive/recursive_permutation", desc: "Generates all possible arrangements using recursive backtracking.", icon: "/assets/recursive-icon.png", isSystem: true },
-    { name: "Tower of Hanoi", path: "recursive/recursive_tower_of_hanoi", desc: "Moves disks between rods following specific recursive rules.", icon: "/assets/recursive-icon.png", isSystem: true }
+  trees: [
+    { name: "Binary Search Tree", path: "tree/bst_insert", desc: "Inserts elements into a BST while maintaining the left-child right-child property.", icon: "/assets/recursive-icon.png", isSystem: true },
+    { name: "Inorder Traversal", path: "tree/inorder", desc: "Visits the left subtree, the root, and then the right subtree.", icon: "/assets/recursive-icon.png", isSystem: true },
+  ],
+  recursion: [
+    { name: "Factorial", path: "recursive/recursive_factorial", desc: "Calculates the product of an integer and all the integers below it.", icon: "/assets/recursive-icon.png", isSystem: true },
+    { name: "Fibonacci Sequence", path: "recursive/recursive_fibonacci", desc: "Generates the Fibonacci sequence where each number is the sum of the two preceding ones.", icon: "/assets/recursive-icon.png", isSystem: true },
+    { name: "Tower of Hanoi", path: "recursive/recursive_tower_of_hanoi", desc: "A mathematical puzzle where the objective is to move a stack of disks from one peg to another.", icon: "/assets/recursive-icon.png", isSystem: true },
+    { name: "Permutations", path: "recursive/recursive_permutation", desc: "Generates all possible arrangements of a given set of elements.", icon: "/assets/recursive-icon.png", isSystem: true },
+  ],
+  search: [
+    { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element of the list until a match is found.", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "Binary Search", path: "search/binary_search", desc: "Efficiently searches a sorted array by repeatedly dividing the search interval in half.", icon: "/assets/search-icon.png", isSystem: true },
+    { name: "Exponential Search", path: "search/exponential_search", desc: "Finds the range where the element should be, then performs a binary search.", icon: "/assets/search-icon.png", isSystem: true },
+  ],
+  dp: [
+    { name: "0/1 Knapsack", path: "dp/knapsack", desc: "Finds the maximum value that can be put in a knapsack of a given capacity.", icon: "/assets/book-icon.png", isSystem: true },
+    { name: "Longest Common Subsequence", path: "dp/lcs", desc: "Finds the longest subsequence present in given sequences.", icon: "/assets/book-icon.png", isSystem: true },
   ]
 };
 
-// Helper: Centralized Token Retrieval
-const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+// SVG Icons
+const PlusIcon = () => <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>;
+const CodeIcon = () => <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>;
+const ClockIcon = () => <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const ArrowRightIcon = () => <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>;
+const PlayIcon = () => <svg width="36" height="36" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>;
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [recentProjects, setRecentProjects] = useState([]);
-  const [userTemplatesGrouped, setUserTemplatesGrouped] = useState({});
+  const [templates, setTemplates] = useState(SYSTEM_TEMPLATES);
   const [loading, setLoading] = useState(true);
 
-  // 1. Core function to load data to UI
-  const loadLocalData = useCallback(async () => {
-    const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!storedUserStr) {
-      setLoading(false);
-      return;
-    }
-    const storedUser = JSON.parse(storedUserStr);
-
-    // Pull Fresh Cloud Data (Removed restrictive API_BASE check)
-    if (navigator.onLine) {
-      try {
-        const token = getToken();
-        const headers = { "Content-Type": "application/json", ...(token && { "Authorization": `Bearer ${token}` }) };
-
-        const pRes = await fetch(`${API_BASE}/api/projects?userId=${storedUser.email}`, { headers });
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
-          for (const cp of cloudProjects) {
-            if (cp.owner_id === storedUser.email || cp.userId === storedUser.email) {
-              await projectsDB.setItem(cp._id, { ...cp, synced: true });
-            }
-          }
-        }
-
-        const tRes = await fetch(`${API_BASE}/api/templates?userId=${storedUser.email}`, { headers });
-        if (tRes.ok) {
-          const tData = await tRes.json();
-          const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
-          for (const ct of cloudTemplates) {
-            if (ct.owner_id === storedUser.email || ct.userId === storedUser.email) {
-              await templatesDB.setItem(ct._id, { ...ct, synced: true });
-            }
-          }
-        }
-      } catch (fetchErr) {
-        console.error("Failed to sync cloud data down:", fetchErr);
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Robust Dexie fetching fallback
+      let allProjects = [];
+      if (projectsDB && typeof projectsDB.toArray === 'function') {
+        allProjects = await projectsDB.toArray();
+      } else if (projectsDB && typeof projectsDB.getAll === 'function') {
+        allProjects = await projectsDB.getAll();
       }
+
+      const sorted = allProjects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setRecentProjects(sorted.slice(0, 5));
+
+      // Custom Templates fetch
+      try {
+        const token = localStorage.getItem("token");
+        if (token) {
+          const res = await fetch(`${API_BASE}/api/templates/all`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const customTemplates = await res.json();
+            if (customTemplates.length > 0) {
+              setTemplates((prev) => ({
+                ...prev,
+                custom: customTemplates.map(t => ({
+                  ...t,
+                  isSystem: false,
+                  icon: "/assets/blocks-icon.png", 
+                  desc: t.description || "User-created template"
+                }))
+              }));
+            }
+          }
+        }
+      } catch (templateError) {
+        console.warn("Could not fetch custom templates, using default system templates.", templateError);
+      }
+
+    } catch (error) {
+      console.error("Failed to load dashboard data:", error);
+    } finally {
+      setLoading(false);
     }
-
-    // Refresh UI from local DB
-    const userProjects = [];
-    await projectsDB.iterate((value) => {
-      if (value.owner_id === storedUser.email || value.userId === storedUser.email) userProjects.push(value);
-    });
-
-    setRecentProjects(userProjects.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 5));
-
-    const userTemplates = [];
-    await templatesDB.iterate((value) => {
-      if (value.owner_id === storedUser.email || value.userId === storedUser.email) userTemplates.push(value);
-    });
-
-    const grouped = {};
-    userTemplates.forEach((t) => {
-      const category = t.category || "Custom Templates";
-      if (!grouped[category]) grouped[category] = [];
-      grouped[category].push({ ...t, name: t.title || t.name, desc: t.description || t.desc });
-    });
-
-    setUserTemplatesGrouped(grouped);
-    setLoading(false);
   }, []);
 
-  // 2. Background function to sweep unsynced items and push to MongoDB
-  const syncOfflineItems = useCallback(async () => {
-    // FIX: Removed the API_BASE check that blocked the sync process
-    if (!navigator.onLine) return;
-    
-    const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-    const token = getToken();
-    if (!storedUserStr || !token) return;
-    
-    const user = JSON.parse(storedUserStr);
-    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
-    let syncedSomething = false;
-
-    // FIX: Safely loop projects instead of uncontrolled iterate
-    try {
-      const pKeys = await projectsDB.keys();
-      for (const key of pKeys) {
-        const proj = await projectsDB.getItem(key);
-        if (proj && !proj.synced && (proj.owner_id === user.email || proj.userId === user.email)) {
-          const apiPayload = { 
-              projectId: key.startsWith('local_') ? null : key, 
-              userId: user.email, 
-              name: proj.title || proj.name || "Untitled Project", 
-              workspace: { blocklyJson: proj.data || proj.workspace?.blocklyJson }, 
-              pythonCode: proj.pythonCode || "" 
-          };
-          
-          const res = await fetch(`${API_BASE}/api/projects/save`, { method: 'POST', headers, body: JSON.stringify(apiPayload) });
-          
-          if (res.ok) {
-            const resData = await res.json();
-            const newId = resData.projectId || resData._id || key;
-            await projectsDB.setItem(newId, { ...proj, _id: newId, synced: true });
-            if (newId !== key) await projectsDB.removeItem(key); // Cleanup local temp ID
-            syncedSomething = true;
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("Background sync failed for projects:", err);
-    }
-
-    // FIX: Safely loop templates instead of uncontrolled iterate
-    try {
-      const tKeys = await templatesDB.keys();
-      for (const key of tKeys) {
-        const temp = await templatesDB.getItem(key);
-        if (temp && !temp.synced && (temp.owner_id === user.email || temp.userId === user.email)) {
-          const apiPayload = { 
-              templateId: key.startsWith('local_') ? null : key, 
-              userId: user.email, 
-              name: temp.title || temp.name || "Untitled Template", 
-              description: temp.description || temp.desc || "", 
-              category: temp.category || "Custom Templates", 
-              workspace: { blocklyJson: temp.data || temp.workspace?.blocklyJson } 
-          };
-          
-          const res = await fetch(`${API_BASE}/api/templates/save`, { method: 'POST', headers, body: JSON.stringify(apiPayload) });
-          
-          if (res.ok) {
-            const resData = await res.json();
-            const newId = resData.templateId || resData._id || key;
-            await templatesDB.setItem(newId, { ...temp, _id: newId, synced: true });
-            if (newId !== key) await templatesDB.removeItem(key); // Cleanup local temp ID
-            syncedSomething = true;
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("Background sync failed for templates:", err);
-    }
-
-    // Update the UI if backgrounds saves worked
-    if (syncedSomething) {
-      loadLocalData();
-    }
-  }, [loadLocalData]);
-
-  // 3. Effect lifecycle
   useEffect(() => {
-    // Initial Load & Sync check
-    loadLocalData().then(() => syncOfflineItems());
+    loadDashboardData();
+  }, [loadDashboardData]);
 
-    // Listen for internet connection restoration
-    const handleOnline = () => {
-      syncOfflineItems();
-    };
-
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [loadLocalData, syncOfflineItems]);
-
-  const handleItemClick = (item) => {
-    const confirmMsg = item.isSystem
-      ? `Start a new project using "${item.name}"?`
-      : `Load your custom template "${item.name}"?`;
-
-    if (!window.confirm(confirmMsg)) return;
-
-    if (item.isSystem) {
-      navigate("/workspace", { state: { templatePath: item.path } });
-    } else {
-      navigate("/workspace", {
-        state: { projectToLoad: { title: item.name, data: item.data, _id: item._id } }
-      });
+  const handleTryTemplate = async (template) => {
+    try {
+      if (template.isSystem) {
+        const response = await fetch(`/templates/${template.path}.json`);
+        if (!response.ok) throw new Error("Template file not found");
+        const data = await response.json();
+        const proj = { ...data, isTemplate: true, templateId: template.path, name: template.name };
+        navigate("/workspace", { state: { projectToLoad: proj } });
+      } else {
+        const proj = { 
+          blocks: template.blocks, 
+          variables: template.variables || [], 
+          isTemplate: true, 
+          templateId: template._id, 
+          name: template.name 
+        };
+        navigate("/workspace", { state: { projectToLoad: proj } });
+      }
+    } catch (err) {
+      console.error("Error loading template:", err);
+      alert("Failed to load template.");
     }
   };
 
   return (
-    <div className="dashboard-container">
+    <div className="bento-dashboard-layout">
       <DashboardHeader />
-
-      <div className="dashboard-body">
-        <main className="dashboard-main">
-          {/* Learning Path Banner */}
-          <div className="learning-path-banner" onClick={() => navigate("/learning-path")}>
-            <div className="banner-icon">
-              <img src="/assets/learning-icon.png" alt="Learning Path" />
-            </div>
-            <div className="banner-text">
-              <h2>Learning Path</h2>
-              <p>Follow a structured curriculum to master algorithms step-by-step.</p>
-            </div>
-            <div className="banner-arrow">→</div>
-          </div>
-
-          <h1 className="section-title">Algorithm Library</h1>
-
-          <div className="algorithm-library-grid">
-            {/* SYSTEM TEMPLATES */}
-            {Object.entries(SYSTEM_TEMPLATES).map(([catKey, items]) => (
-              <div key={catKey} className="algorithm-column">
-                <h3 className="column-title">{catKey.toUpperCase()}</h3>
-                {items.map((temp) => (
-                  <div key={temp.name} className="algorithm-card" onClick={() => handleItemClick(temp)}>
-                    <div className="card-header">
-                      <img src={temp.icon} alt={temp.name} className="card-icon-img" />
-                      <h4>{temp.name}</h4>
-                    </div>
-                    <div className="card-hover-content">
-                      <p className="template-card-desc">{temp.desc}</p>
-                      <button className="try-template-btn">Test Template →</button>
-                    </div>
-                  </div>
-                ))}
+      
+      <main className="bento-dashboard-content">
+        <div className="bento-grid-container">
+          
+          {/* Main Content Column */}
+          <div className="bento-main-column">
+            
+            {/* Hero Card */}
+            <section className="bento-hero-card">
+              <div className="hero-text">
+                <h1 className="hero-title">Welcome to AlgoBlocks</h1>
+                <p className="hero-subtitle">
+                  Build, visualize, and analyze algorithms with real-time Big-O feedback.
+                </p>
               </div>
-            ))}
+              <button 
+                className="hero-primary-btn" 
+                onClick={() => navigate("/workspace")}
+              >
+                <PlusIcon />
+                <span>Blank Workspace</span>
+              </button>
+            </section>
 
-            {/* USER TEMPLATES */}
-            {Object.entries(userTemplatesGrouped).map(([category, items]) => (
-              <div key={category} className="algorithm-column">
-                <h3 className="column-title">{category.toUpperCase()}</h3>
-                {items.map((temp) => (
-                  <div key={temp._id} className="algorithm-card custom-template-card" onClick={() => handleItemClick(temp)}>
-                    <div className="card-header">
-                      <img src={temp.icon || "/assets/folder-icon.png"} alt={temp.name} className="card-icon-img" />
-                      <h4>{temp.name}</h4>
-                    </div>
-                    <div className="card-hover-content">
-                      <p className="template-card-desc">{temp.desc || "User defined template."}</p>
-                      <button className="try-template-btn">Load Template →</button>
-                    </div>
+            {/* Restored Learning Path Card */}
+            <section className="bento-learning-card">
+              <div className="learning-content">
+                <span className="module-badge">Up Next • Module 3</span>
+                <h3 className="learning-title">Divide and Conquer Strategies</h3>
+                <p className="learning-desc">Master recursive decomposition and logarithmic time complexity boundaries.</p>
+                <div className="progress-container">
+                  <div className="progress-header">
+                    <span>Course Progress</span>
+                    <span>60%</span>
                   </div>
-                ))}
+                  <div className="progress-bar-bg">
+                    <div className="progress-bar-fill" style={{ width: "60%" }}></div>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        </main>
+              <div className="learning-action">
+                <button className="play-btn" onClick={() => navigate("/learning-path")}>
+                  <PlayIcon />
+                </button>
+              </div>
+            </section>
 
-        <aside className="dashboard-sidebar">
-          <h3 className="sidebar-label">RECENT PROJECTS</h3>
-          {loading ? (
-            <div className="empty-projects-box">Loading database...</div>
-          ) : recentProjects.length === 0 ? (
-            <div className="empty-projects-box">No recent projects yet.</div>
-          ) : (
-            <div className="recent-projects-list">
-              {recentProjects.map((proj) => (
-                <div key={proj._id} className="recent-project-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
-                  <div className="project-item-info">
-                    <div className="project-item-title">{proj.title || proj.name}</div>
-                    <div className="project-item-meta">
-                      Last modified: {new Date(proj.updatedAt || Date.now()).toLocaleDateString()}
-                    </div>
-                  </div>
+            {/* Template Library Grid */}
+            <section className="bento-library-section">
+              <div className="section-header">
+                <h2>Algorithm Templates</h2>
+                <p>Start with a pre-built structure and explore its complexity.</p>
+              </div>
 
-                  <div className={`project-item-status ${proj.synced ? "synced" : "local"}`}>
-                    {proj.synced ? "Cloud Synced" : "Local Only"}
+              {Object.entries(templates).map(([category, items]) => (
+                <div key={category} className="bento-category-group">
+                  <h3 className="category-title">{category.toUpperCase()}</h3>
+                  <div className="bento-template-grid">
+                    {items.map((tpl, i) => (
+                      <div 
+                        key={i} 
+                        className={`bento-template-card ${!tpl.isSystem ? "custom-template-card" : ""}`}
+                        onClick={() => handleTryTemplate(tpl)}
+                      >
+                        <div className="template-card-header">
+                          <div className="template-icon-wrapper">
+                            <img src={tpl.icon} alt="icon" className="template-icon" />
+                          </div>
+                          <h4 className="template-name">{tpl.name}</h4>
+                        </div>
+                        <p className="template-desc">{tpl.desc}</p>
+                        <div className="template-card-footer">
+                          <span className="template-action-text">Load Template</span>
+                          <ArrowRightIcon />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
+            </section>
+          </div>
+
+          {/* Sidebar Column */}
+          <aside className="bento-sidebar-column">
+            <div className="bento-recent-card">
+              <div className="recent-header">
+                <h3>Recent Projects</h3>
+                <span className="recent-badge">{recentProjects.length}</span>
+              </div>
+
+              <div className="recent-projects-container">
+                {loading ? (
+                  <div className="bento-empty-state">Loading workspace data...</div>
+                ) : recentProjects.length === 0 ? (
+                  <div className="bento-empty-state">
+                    <div className="empty-icon"><CodeIcon /></div>
+                    <p>No recent projects.</p>
+                    <span>Your saved work will appear here.</span>
+                  </div>
+                ) : (
+                  <div className="bento-recent-list">
+                    {recentProjects.map((proj) => (
+                      <div 
+                        key={proj._id || proj.id} 
+                        className="bento-recent-item" 
+                        onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}
+                      >
+                        <div className="recent-item-icon">
+                          <CodeIcon />
+                        </div>
+                        <div className="recent-item-content">
+                          <h4 className="recent-item-title">{proj.title || proj.name}</h4>
+                          <div className="recent-item-meta">
+                            <ClockIcon />
+                            <span>{new Date(proj.updatedAt || Date.now()).toLocaleDateString()}</span>
+                            <span className="dot-separator">•</span>
+                            <span className={`sync-status ${proj.synced ? "synced" : "local"}`}>
+                              {proj.synced ? "Cloud" : "Local"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {recentProjects.length > 0 && (
+                <button 
+                  className="view-all-projects-btn"
+                  onClick={() => navigate("/projects")}
+                >
+                  View All Projects
+                </button>
+              )}
             </div>
-          )}
-        </aside>
-      </div>
+          </aside>
+
+        </div>
+      </main>
     </div>
   );
 }
