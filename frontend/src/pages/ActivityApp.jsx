@@ -138,7 +138,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
     return parsed;
   };
 
-  // Uses positive lookahead to safely group multiple paragraphs belonging to a single insight header
   const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
   const sections = text.split(headerRegex);
   
@@ -210,7 +209,6 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
         return renderBlock(trimmedSec.replace(/\*/g, "").trim(), "Runtime Diagnostic", "#8e44ad", "rgba(142, 68, 173, 0.08)");
       }
 
-      // Fallback parsing for the action intro or older unformatted text
       let parsedSec = parseMarkdown(trimmedSec);
       return (
         <p
@@ -300,7 +298,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   });
   const [isEditingCode, setIsEditingCode] = useState(false);
 
-  // DEEP STACK ERROR STATE
   const [syntaxErrors, setSyntaxErrors] = useState([]);
   const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
 
@@ -322,7 +319,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }
   }, [viewMode, isLeftPanelVisible, isRightPanelVisible]);
 
-  // --- REQ-4 Keyboard Save Interception ---
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
@@ -406,11 +402,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         });
         setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
 
-        // DEEP STACK FIX: Clear errors on success
         setSyntaxErrors([]);
         setIsErrorDropdownOpen(false);
       } else {
-        // DEEP STACK FIX: Process multiple errors simultaneously
         if (data.multiple_errors && data.multiple_errors.length > 0) {
           const mappedErrors = data.multiple_errors.map((err) => {
             const hint = translatePythonError(err.message);
@@ -1288,10 +1282,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           action: "UPSERT",
           data: payload,
         });
-        showToast(
-          "Progress could not be saved to the cloud. Saved locally.",
-          "error",
-        );
       }
     } else if (!user.isGuest) {
       await syncQueueDB.setItem(`sync_prog_${topicId}_${Date.now()}`, {
@@ -1299,10 +1289,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         action: "UPSERT",
         data: payload,
       });
-      showToast(
-        "Progress could not be saved to the cloud. Saved locally.",
-        "error",
-      );
     }
   };
 
@@ -1329,6 +1315,40 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
+  // SYSTEM THRESHOLD LOGIC INJECTED HERE
+  const checkLessonCompletion = async () => {
+    if (!latestStateRef.current.userId || !lessonActivitiesResolved.length) {
+      return { passedCount: 0, threshold: 1, isCompleted: false };
+    }
+    
+    const diffs = lessonActivitiesResolved.map(a => (a.difficulty || 'Easy').toLowerCase());
+    const types = lessonActivitiesResolved.map(a => (a.type || 'activity').toLowerCase());
+
+    let threshold = 3; 
+    if (types.includes('optimization') || lessonActivitiesResolved.some(a => a.id.includes('opt'))) {
+      threshold = 2;
+    } else if (diffs.includes('hard') || diffs.includes('advanced')) {
+      threshold = 1;
+    } else if (diffs.includes('medium') || diffs.includes('intermediate')) {
+      threshold = 2;
+    }
+    
+    threshold = Math.min(threshold, lessonActivitiesResolved.length);
+
+    let passedCount = 0;
+    for (const act of lessonActivitiesResolved) {
+      const subId = `${latestStateRef.current.userId}_${moduleId}_${act.id}`;
+      try {
+        const sub = await submissionsDB.getItem(subId);
+        if (sub && (sub.score >= 1 || sub.status === "passed" || sub.passed_tests > 0)) {
+          passedCount++;
+        }
+      } catch(e) {}
+    }
+    
+    return { passedCount, threshold, isCompleted: passedCount >= threshold };
+  };
+
   const handleSuccess = async (score, maxScore, funcPassed, funcTotal) => {
     const currentIndex = lessonActivitiesResolved.findIndex(
       (a) => a.id === activityId,
@@ -1338,48 +1358,73 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       ? lessonActivitiesResolved[currentIndex + 1]
       : null;
 
-    if (funcPassed === funcTotal) {
-      await completeFullTopic(activityId);
+    const completionData = await checkLessonCompletion();
+    const meetsThreshold = completionData.isCompleted;
+
+    if (meetsThreshold && topicIdResolved) {
+      await completeFullTopic(topicIdResolved);
     }
 
     let promptMsg = "";
     if (score === 5) {
-      promptMsg = `Perfect execution!\nYou earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!\n\nReady for the next challenge?`;
+      promptMsg = `Perfect execution!\nYou earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!`;
     } else if (funcPassed < funcTotal) {
-      promptMsg = `Keep trying!\nYou earned a score of ${score}/${maxScore}.\n\nYou passed ${funcPassed}/${funcTotal} functional test cases.\nSome hidden test cases or edge cases failed.\n\nReady to proceed or want to try fixing it?`;
+      promptMsg = `Keep trying!\nYou earned a score of ${score}/${maxScore}.\n\nYou passed ${funcPassed}/${funcTotal} functional test cases.\nSome hidden test cases or edge cases failed.`;
     } else if (score === 4) {
-      promptMsg = `Great job!\nYou earned a Silver Medal (4/5).\n\nYou passed all functional tests, but mastered only one of the Time or Space complexities.\nCan you optimize it further to get the Gold?\n\nReady to proceed?`;
+      promptMsg = `Great job!\nYou earned a Silver Medal (4/5).\n\nYou passed all functional tests, but mastered only one of the Time or Space complexities.\nCan you optimize it further to get the Gold?`;
     } else {
-      promptMsg = `Good effort!\nYou earned a Bronze Medal (${score}/5).\n\nYour code works and passed all functional tests!\nHowever, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster or leaner to get the Gold Medal?\n\nReady to proceed?`;
+      promptMsg = `Good effort!\nYou earned a Bronze Medal (${score}/5).\n\nYour code works and passed all functional tests!\nHowever, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster or leaner to get the Gold Medal?`;
+    }
+
+    if (meetsThreshold) {
+       promptMsg += `\n\n🎉 Lesson Unlocked! You've successfully passed ${completionData.passedCount}/${completionData.threshold} required activities to unlock the next lesson.`;
+    } else {
+       promptMsg += `\n\nProgress: ${completionData.passedCount}/${completionData.threshold} required activities passed to advance.`;
     }
 
     if (!isLast && nextActivity) {
-      setModalConfig({
-        isOpen: true,
-        title: "Activity Completed!",
-        message: promptMsg,
-        confirmText: "Next Activity",
-        cancelText: "Stay Here",
-        isDanger: false,
-        onConfirmAction: () => {
-          closeModal();
-          navigate(`/activity/${moduleId}/${nextActivity.id}`);
-        },
-        onCancelAction: closeModal,
-      });
+      if (meetsThreshold) {
+          setModalConfig({
+            isOpen: true,
+            title: "Lesson Unlocked!",
+            message: promptMsg + "\n\nYou can move on to the next lesson now, or stay here to complete the remaining optional practice activities.",
+            confirmText: "Go to Next Lesson",
+            cancelText: "Continue Practicing",
+            isDanger: false,
+            onConfirmAction: () => {
+              closeModal();
+              navigate("/learning-path"); 
+            },
+            onCancelAction: () => {
+              closeModal();
+              navigate(`/activity/${moduleId}/${nextActivity.id}`);
+            }
+          });
+      } else {
+          setModalConfig({
+            isOpen: true,
+            title: "Activity Completed!",
+            message: promptMsg + "\n\nReady for the next challenge?",
+            confirmText: "Next Activity",
+            cancelText: "Stay Here",
+            isDanger: false,
+            onConfirmAction: () => {
+              closeModal();
+              navigate(`/activity/${moduleId}/${nextActivity.id}`);
+            },
+            onCancelAction: closeModal,
+          });
+      }
     } else {
       setModalConfig({
         isOpen: true,
         title: "Section Completed!",
-        message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to unlock the next topic.`,
+        message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to explore the next topic.`,
         confirmText: "Finish",
         cancelText: "Stay Here",
         isDanger: false,
         onConfirmAction: async () => {
           closeModal();
-          if (topicIdResolved) {
-            await completeFullTopic(topicIdResolved);
-          }
           navigate("/learning-path");
         },
         onCancelAction: closeModal,
@@ -1560,8 +1605,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, score);
 
-    if (score >= 1)
+    if (score >= 1) {
       await handleSuccess(score, 5, functionalPassed, functionalTotal);
+    }
   };
 
   const lines = analysisResult?.lines || [];
@@ -1884,7 +1930,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                     const newCode = value || "";
                     setGeneratedPython(newCode);
                     setIsEditingCode(true);
-                    setSyntaxErrors([]); // DEEP STACK: Clear errors immediately on typing
+                    setSyntaxErrors([]);
                     latestStateRef.current.pythonCode = newCode;
                     handleWorkspaceAutoSave(
                       latestStateRef.current.json,
