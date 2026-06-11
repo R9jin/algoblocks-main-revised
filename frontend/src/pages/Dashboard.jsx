@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
+import curriculumIndex from "../data/curriculumIndex";
 import { projectsDB } from "../db";
 import "../styles/Dashboard.css";
 
@@ -15,14 +16,6 @@ const SYSTEM_TEMPLATES = {
     { name: "Merge Sort", path: "sort/merge_sort", desc: "A highly efficient divide-and-conquer algorithm that recursively splits and merges lists.", icon: "/assets/sort-icon.png", isSystem: true },
     { name: "Quick Sort", path: "sort/quick_sort", desc: "Uses a divide-and-conquer approach by picking a pivot and partitioning the array around it.", icon: "/assets/sort-icon.png", isSystem: true },
   ],
-  graph: [
-    { name: "Breadth-First Search", path: "graph/bfs", desc: "Explores a graph level by level using a queue.", icon: "/assets/complexity-icon.png", isSystem: true },
-    { name: "Depth-First Search", path: "graph/dfs", desc: "Explores a graph by going as deep as possible using a stack or recursion.", icon: "/assets/complexity-icon.png", isSystem: true },
-  ],
-  trees: [
-    { name: "Binary Search Tree", path: "tree/bst_insert", desc: "Inserts elements into a BST while maintaining the left-child right-child property.", icon: "/assets/recursive-icon.png", isSystem: true },
-    { name: "Inorder Traversal", path: "tree/inorder", desc: "Visits the left subtree, the root, and then the right subtree.", icon: "/assets/recursive-icon.png", isSystem: true },
-  ],
   recursion: [
     { name: "Factorial", path: "recursive/recursive_factorial", desc: "Calculates the product of an integer and all the integers below it.", icon: "/assets/recursive-icon.png", isSystem: true },
     { name: "Fibonacci Sequence", path: "recursive/recursive_fibonacci", desc: "Generates the Fibonacci sequence where each number is the sum of the two preceding ones.", icon: "/assets/recursive-icon.png", isSystem: true },
@@ -33,10 +26,6 @@ const SYSTEM_TEMPLATES = {
     { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element of the list until a match is found.", icon: "/assets/search-icon.png", isSystem: true },
     { name: "Binary Search", path: "search/binary_search", desc: "Efficiently searches a sorted array by repeatedly dividing the search interval in half.", icon: "/assets/search-icon.png", isSystem: true },
     { name: "Exponential Search", path: "search/exponential_search", desc: "Finds the range where the element should be, then performs a binary search.", icon: "/assets/search-icon.png", isSystem: true },
-  ],
-  dp: [
-    { name: "0/1 Knapsack", path: "dp/knapsack", desc: "Finds the maximum value that can be put in a knapsack of a given capacity.", icon: "/assets/book-icon.png", isSystem: true },
-    { name: "Longest Common Subsequence", path: "dp/lcs", desc: "Finds the longest subsequence present in given sequences.", icon: "/assets/book-icon.png", isSystem: true },
   ]
 };
 
@@ -68,8 +57,17 @@ const ArrowRightIcon = () => (
 export default function Dashboard() {
   const navigate = useNavigate();
   const [recentProjects, setRecentProjects] = useState([]);
-  const [templates, setTemplates] = useState(SYSTEM_TEMPLATES);
+  const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
+  const [userTemplates, setUserTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Dynamic progress state
+  const [progressData, setProgressData] = useState({
+    percent: 0,
+    moduleTitle: "Welcome",
+    moduleBadge: "Up Next • Module 0",
+    moduleDesc: "Start your journey into algorithm visualization and complexity analysis."
+  });
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -77,6 +75,51 @@ export default function Dashboard() {
       const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
       const user = storedUser ? JSON.parse(storedUser) : null;
 
+      // 1. Compute User Learning Progress
+      let total = 0;
+      let completed = 0;
+      let nextMod = curriculumIndex[0];
+      let foundNext = false;
+
+      for (const mod of curriculumIndex) {
+        let modCompleted = 0;
+        for (const les of mod.lessons) {
+          total++;
+          if (user && user.progress && user.progress[les.lessonId]) {
+            completed++;
+            modCompleted++;
+          }
+        }
+        if (modCompleted < mod.lessons.length && !foundNext) {
+          nextMod = mod;
+          foundNext = true;
+        }
+      }
+
+      if (!foundNext && curriculumIndex.length > 0) {
+        nextMod = curriculumIndex[curriculumIndex.length - 1]; 
+      }
+
+      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+      const modDescriptions = {
+        "module-0": "Start your journey into algorithm visualization and complexity analysis.",
+        "module-1": "Understand Big-O notation, Time, and Space Complexity boundaries.",
+        "module-2": "Explore Brute Force strategies and basic searching & sorting.",
+        "module-3": "Master recursive decomposition and logarithmic time complexity boundaries.",
+        "module-4": "Learn how to make locally optimal choices to solve global problems.",
+        "module-5": "Solve complex problems by breaking them down into overlapping subproblems.",
+        "module-6": "Explore all possible solutions efficiently using backtracking techniques."
+      };
+
+      setProgressData({
+        percent,
+        moduleTitle: nextMod?.title || "Algorithms",
+        moduleBadge: `Up Next • ${nextMod?.moduleId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Module"}`,
+        moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
+      });
+
+      // 2. Load User Projects
       if (navigator.onLine && user) {
         try {
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -111,29 +154,30 @@ export default function Dashboard() {
       const sorted = loadedProjects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
       setRecentProjects(sorted.slice(0, 5));
 
+      // 3. Load Custom User Templates
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
         if (token) {
           const res = await fetch(`${API_BASE}/api/templates/all`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {
-            const customTemplates = await res.json();
-            if (customTemplates.length > 0) {
-              setTemplates((prev) => ({
-                ...prev,
-                custom: customTemplates.map(t => ({
-                  ...t,
-                  isSystem: false,
-                  icon: "/assets/blocks-icon.png", 
-                  desc: t.description || "User-created template"
-                }))
-              }));
+            const customTemplatesData = await res.json();
+            const templatesArray = Array.isArray(customTemplatesData) ? customTemplatesData : (customTemplatesData.templates || []);
+            
+            if (templatesArray.length > 0) {
+              setUserTemplates(templatesArray.map(t => ({
+                ...t,
+                isSystem: false,
+                icon: "/assets/blocks-icon.png", 
+                desc: t.description || "User-created template",
+                name: t.name || t.title || "Untitled Template"
+              })));
             }
           }
         }
       } catch (templateError) {
-        console.warn("Could not fetch custom templates, using default system templates.", templateError);
+        console.warn("Could not fetch custom templates. Defaulting to empty.", templateError);
       }
 
     } catch (error) {
@@ -157,11 +201,11 @@ export default function Dashboard() {
         navigate("/workspace", { state: { projectToLoad: proj } });
       } else {
         const proj = { 
-          blocks: template.blocks, 
+          blocks: template.blocks || template.data || template.workspace?.blocklyJson, 
           variables: template.variables || [], 
           isTemplate: true, 
           templateId: template._id, 
-          name: template.name 
+          name: template.name || template.title 
         };
         navigate("/workspace", { state: { projectToLoad: proj } });
       }
@@ -184,9 +228,9 @@ export default function Dashboard() {
             {/* Hero Card */}
             <section className="bento-hero-card">
               <div className="hero-text">
-                <h1 className="hero-title">Welcome to AlgoBlocks</h1>
+                <h1 className="hero-title">Educational Algorithm Visualizer</h1>
                 <p className="hero-subtitle">
-                  Build, visualize, and analyze algorithms with real-time Big-O feedback.
+                  An interactive thesis platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
                 </p>
               </div>
               <button 
@@ -201,16 +245,16 @@ export default function Dashboard() {
             {/* Learning Path Card */}
             <section className="bento-learning-card">
               <div className="learning-content">
-                <span className="module-badge">Up Next • Module 3</span>
-                <h3 className="learning-title">Divide and Conquer Strategies</h3>
-                <p className="learning-desc">Master recursive decomposition and logarithmic time complexity boundaries.</p>
+                <span className="module-badge">{progressData.moduleBadge}</span>
+                <h3 className="learning-title">{progressData.moduleTitle}</h3>
+                <p className="learning-desc">{progressData.moduleDesc}</p>
                 <div className="progress-container">
                   <div className="progress-header">
                     <span>Course Progress</span>
-                    <span>60%</span>
+                    <span>{progressData.percent}%</span>
                   </div>
                   <div className="progress-bar-bg">
-                    <div className="progress-bar-fill" style={{ width: "60%" }}></div>
+                    <div className="progress-bar-fill" style={{ width: `${progressData.percent}%` }}></div>
                   </div>
                 </div>
               </div>
@@ -225,21 +269,61 @@ export default function Dashboard() {
               </div>
             </section>
 
-            {/* Template Library Grid */}
-            <section className="bento-library-section">
+            {/* Custom User Templates Section */}
+            <section className="bento-library-section" style={{ marginTop: "20px" }}>
               <div className="section-header">
-                <h2>Algorithm Templates</h2>
+                <h2>Your Custom Templates</h2>
+                <p>Templates you have designed and saved for reuse.</p>
+              </div>
+
+              {userTemplates.length === 0 ? (
+                <div className="bento-empty-state" style={{ padding: "30px", background: "rgba(255,255,255,0.02)", borderRadius: "12px", border: "1px dashed rgba(255,255,255,0.05)" }}>
+                  <p>You haven't saved any custom templates yet.</p>
+                  <span style={{ fontSize: "0.85rem", color: "#888" }}>Build an algorithm in the workspace and save it as a template!</span>
+                </div>
+              ) : (
+                <div className="bento-category-group">
+                  <div className="bento-template-grid">
+                    {userTemplates.map((tpl, i) => (
+                      <div 
+                        key={i} 
+                        className="bento-template-card custom-template-card"
+                        onClick={() => handleTryTemplate(tpl)}
+                        style={{ borderTop: "3px solid #db7fff" }}
+                      >
+                        <div className="template-card-header">
+                          <div className="template-icon-wrapper" style={{ background: "rgba(108, 92, 231, 0.2)" }}>
+                            <img src={tpl.icon} alt="icon" className="template-icon" />
+                          </div>
+                          <h4 className="template-name">{tpl.name}</h4>
+                        </div>
+                        <p className="template-desc">{tpl.desc}</p>
+                        <div className="template-card-footer">
+                          <span className="template-action-text" style={{ color: "#db7fff" }}>Load Custom</span>
+                          <ArrowRightIcon />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* System Template Library Grid */}
+            <section className="bento-library-section" style={{ marginTop: "20px" }}>
+              <div className="section-header">
+                <h2>System Algorithm Library</h2>
                 <p>Start with a pre-built structure and explore its complexity.</p>
               </div>
 
-              {Object.entries(templates).map(([category, items]) => (
+              {Object.entries(systemTemplates).map(([category, items]) => (
                 <div key={category} className="bento-category-group">
                   <h3 className="category-title">{category.toUpperCase()}</h3>
                   <div className="bento-template-grid">
                     {items.map((tpl, i) => (
                       <div 
                         key={i} 
-                        className={`bento-template-card ${!tpl.isSystem ? "custom-template-card" : ""}`}
+                        className="bento-template-card"
                         onClick={() => handleTryTemplate(tpl)}
                       >
                         <div className="template-card-header">

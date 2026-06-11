@@ -169,24 +169,32 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
-// Custom formatter to parse the new NLG outputs and LaTeX math formats
+// Formatter to parse NLG outputs and deeply nested LaTeX math formats securely
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
 
   const parseMarkdown = (str) => {
     let parsed = str.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    // Parse LaTeX $$ into styled purple math badges
+    
+    // Auto-bold labels like "Best Practice:" or "Mathematical Optimization:" at the start of new lines
+    parsed = parsed.replace(/^([A-Z][A-Za-z\s-]+):/gm, "<strong>$1:</strong>");
+
+    // Parse LaTeX $$ into styled purple math badges, supporting complex nested braces
     parsed = parsed.replace(/\$([^$]+)\$/g, (match, math) => {
       let cleanMath = math.replace(/\\log\b/g, "log").replace(/\\/g, "");
+      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>");
       cleanMath = cleanMath.replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
       return `<span style="font-family: 'Fira Code', monospace; font-weight: bold; color: #5A1398; background: rgba(90, 19, 152, 0.08); padding: 2px 6px; border-radius: 6px;">${cleanMath}</span>`;
     });
+
     // Parse inline code backticks
     parsed = parsed.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.06); padding: 2px 4px; border-radius: 4px; font-family: monospace; color: #d35400;">$1</code>');
     return parsed;
   };
 
-  const sections = text.split(/\n\n+/);
+  // Uses positive lookahead to safely group multiple paragraphs belonging to a single insight header
+  const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
+  const sections = text.split(headerRegex);
   
   return sections
     .map((sec, idx) => {
@@ -233,7 +241,9 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
         );
       };
 
-      // Extract new semantic_nlg format headers
+      if (trimmedSec.startsWith("**Local & Global Analysis:**")) {
+        return renderBlock(trimmedSec.replace("**Local & Global Analysis:**", "").trim(), "Dead Code Analysis", "#7f8c8d", "rgba(127, 140, 141, 0.08)");
+      }
       if (trimmedSec.startsWith("**Local Analysis:**")) {
         return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "#3498db", "rgba(52, 152, 219, 0.08)");
       }
@@ -264,6 +274,7 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
             margin: "0 0 10px 0",
             fontSize: "0.95rem",
             lineHeight: "1.6",
+            whiteSpace: "pre-wrap"
           }}
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}
         ></p>

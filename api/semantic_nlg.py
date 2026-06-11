@@ -35,6 +35,7 @@ class MemorySignals:
     set_and_dict_updates: bool = False
     caches_results: bool = False
     dp_tabulation_array: bool = False
+    array_preallocation: bool = False  # Agnostic detection of [val] * N
     inplace_swap: bool = False
 
 @dataclass
@@ -44,6 +45,7 @@ class ComplexitySignals:
     repeated_sort: bool = False             
     membership_in_list: bool = False        
     heavy_math_operations: bool = False     
+    quadratic_math: bool = False            # Agnostic detection of x ** 2
     set_mathematical_ops: bool = False
     dict_lookup_constant: bool = False
     amortized_operation: bool = False
@@ -56,18 +58,22 @@ class ComplexitySignals:
 class AlgorithmicParadigms:
     is_halving: bool = False                     # Binary Search / Divide & Conquer
     is_doubling: bool = False                    # Exponential growth
-    is_two_pointer: bool = False                 # while left < right
+    is_two_pointer: bool = False                 # Agnostic: while var1 < var2
     is_sliding_window: bool = False              # window_sum, left++, right++
     is_fast_slow_pointer: bool = False           # Floyd's Cycle finding
-    is_grid_traversal: bool = False              # range(rows), range(cols)
-    is_memoization_check: bool = False           # if n in memo
-    is_tabulation_setup: bool = False            # dp = [0] * n
+    is_grid_traversal: bool = False              # Nested loops or 2D array accessing
+    is_memoization_check: bool = False           # Agnostic: if key in struct
+    is_tabulation_setup: bool = False            # Agnostic: struct = [val] * n
     is_brian_kernighan: bool = False             # n & (n - 1)
     is_fibonacci_sequence: bool = False          # a, b = b, a + b
     is_bfs_queue: bool = False                   # queue.popleft()
     is_dfs_stack: bool = False                   # stack.pop()
     is_modulo_arithmetic: bool = False           # n % 2
     is_matrix_math: bool = False                 # nested array indexing
+    is_combinatorics: bool = False               # math.comb, math.factorial
+    is_euclidean_distance: bool = False          # math.sqrt((x2-x1)**2 + (y2-y1)**2)
+    is_prefix_sum: bool = False                  # Agnostic: arr[i] = arr[i] + arr[i-1]
+    is_bitmasking: bool = False                  # Advanced bitwise context (1 << n)
 
 @dataclass
 class PatternSignals:
@@ -110,6 +116,8 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
     """
     Analyzes the AST to detect specific structural patterns, exact algorithmic
     paradigms, and behaviors that impact time and space complexity.
+    It utilizes variable-name agnostic logic wherever possible to ensure robust
+    detection across diverse coding styles.
     """
     def __init__(self, ctx):
         self.ctx = ctx
@@ -145,6 +153,14 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             
             if isinstance(node.func.value, ast.Name):
                 self._modified_structures.add(f"{node.func.value.id}.{method_name}")
+                
+                # Math library agnostic detection
+                if node.func.value.id == 'math':
+                    self.signals.complexity_signals.heavy_math_operations = True
+                    if method_name in ['comb', 'perm', 'factorial']:
+                        self.signals.paradigms.is_combinatorics = True
+                    elif method_name in ['sqrt', 'dist', 'hypot']:
+                        self.signals.paradigms.is_euclidean_distance = True
             
             # Detect pop(0) vs pop()
             if method_name == 'pop':
@@ -167,7 +183,8 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 
             elif method_name == 'append':
                 self.signals.complexity_signals.amortized_operation = True
-                if isinstance(node.func.value, ast.Name) and 'visit' in node.func.value.id.lower():
+                # Agnostic visited tracking: adding items to a collection inside a loop or graph context
+                if self._in_loop or getattr(self.ctx, "in_graph_context", False):
                     self.signals.visited_tracking = True
                 
             elif method_name == 'extend':
@@ -183,7 +200,8 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
 
             elif method_name in ['update', 'add']:
                 self.signals.memory_signals.set_and_dict_updates = True
-                if isinstance(node.func.value, ast.Name) and 'visit' in node.func.value.id.lower():
+                # Agnostic visited tracking
+                if self._in_loop or getattr(self.ctx, "in_graph_context", False):
                     self.signals.visited_tracking = True
 
         elif isinstance(node.func, ast.Name):
@@ -192,6 +210,10 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             
             if func_name in ['sum', 'max', 'min', 'all', 'any'] and self._in_loop:
                 self.signals.complexity_signals.aggregation_in_loop = True
+                
+            # Generic math functions without 'math.' prefix
+            if func_name in ['sqrt', 'pow', 'abs']:
+                self.signals.complexity_signals.heavy_math_operations = True
 
             current_fn = getattr(self.ctx, "current_function_name", None)
             indirect_fns = getattr(self.ctx, "indirect_recursive_funcs", set())
@@ -215,17 +237,17 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                     self.signals.membership_in_loop = True
                     self.signals.complexity_signals.membership_in_list = True
                 
-                # Dynamic Programming / Memoization check
-                if isinstance(node.comparators[0], ast.Name) and any(k in node.comparators[0].id.lower() for k in ['memo', 'cache', 'dp']):
+                # Agnostic Dynamic Programming / Memoization check
+                # If we are checking membership inside a dictionary/set (represented by a variable)
+                if isinstance(node.comparators[0], (ast.Name, ast.Attribute)):
                     self.signals.has_memoization = True
                     self.signals.paradigms.is_memoization_check = True
                     self.signals.memory_signals.caches_results = True
 
-            # Two Pointer Paradigm Detection (left < right)
-            if isinstance(op, ast.Lt) or isinstance(op, ast.LtE):
-                if isinstance(node.left, ast.Name) and any(k in node.left.id.lower() for k in ['left', 'l', 'start', 'low', 'front']):
-                    if isinstance(node.comparators[0], ast.Name) and any(k in node.comparators[0].id.lower() for k in ['right', 'r', 'end', 'high', 'back']):
-                        self.signals.paradigms.is_two_pointer = True
+            # Two Pointer Paradigm Agnostic Detection (var1 < var2)
+            if isinstance(op, (ast.Lt, ast.LtE)):
+                if isinstance(node.left, ast.Name) and isinstance(node.comparators[0], ast.Name):
+                    self.signals.paradigms.is_two_pointer = True
 
         self.generic_visit(node)
 
@@ -233,6 +255,9 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         # Bitwise Ops
         if isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.BitXor, ast.LShift, ast.RShift)):
             self.signals.complexity_signals.bitwise_operations = True
+            
+            if isinstance(node.op, ast.LShift):
+                self.signals.paradigms.is_bitmasking = True
             
             # Brian Kernighan's Algorithm snippet: n & (n - 1)
             if isinstance(node.op, ast.BitAnd) and isinstance(node.right, ast.BinOp) and isinstance(node.right.op, ast.Sub):
@@ -252,6 +277,12 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         # Modulo
         if isinstance(node.op, ast.Mod):
             self.signals.paradigms.is_modulo_arithmetic = True
+            
+        # Power / Quadratic / Euclidean
+        if isinstance(node.op, ast.Pow):
+            self.signals.complexity_signals.heavy_math_operations = True
+            if getattr(node.right, 'value', None) == 2:
+                self.signals.complexity_signals.quadratic_math = True
 
         self.generic_visit(node)
         
@@ -299,7 +330,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         if isinstance(node.slice, ast.Slice):
             self.signals.memory_signals.performs_slicing = True
         
-        # Matrix Math Detection (e.g. dp[i][j])
+        # Matrix Math Detection (e.g. arr[i][j])
         if isinstance(node.slice, ast.Tuple) or (hasattr(node, 'value') and isinstance(node.value, ast.Subscript)):
             self.signals.paradigms.is_matrix_math = True
 
@@ -312,6 +343,8 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             elif isinstance(node.target, ast.Name) and isinstance(node.value, ast.Name) and node.value.id == node.target.id:
                 self.signals.memory_signals.geometric_capacity_growth = True
                 self.signals.paradigms.is_doubling = True
+            elif isinstance(node.target, ast.Subscript):
+                self.signals.paradigms.is_prefix_sum = True
                 
         elif self._in_loop and isinstance(node.op, ast.Mult) and isinstance(node.target, ast.Name):
             self.signals.memory_signals.geometric_capacity_growth = True
@@ -329,12 +362,11 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             if len(node.value.elts) == 2 and isinstance(node.value.elts[1], ast.BinOp) and isinstance(node.value.elts[1].op, ast.Add):
                 self.signals.paradigms.is_fibonacci_sequence = True
                 
-        # Tabulation Setup: dp = [0] * (n + 1)
+        # Agnostic Tabulation Setup: array = [val] * N
         if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and isinstance(node.value.left, ast.List):
-            for t in node.targets:
-                if isinstance(t, ast.Name) and 'dp' in t.id.lower():
-                    self.signals.paradigms.is_tabulation_setup = True
-                    self.signals.memory_signals.dp_tabulation_array = True
+            self.signals.paradigms.is_tabulation_setup = True
+            self.signals.memory_signals.dp_tabulation_array = True
+            self.signals.memory_signals.array_preallocation = True
 
         if isinstance(node.value, ast.ListComp):
             if isinstance(node.value.elt, ast.ListComp) or (isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List)):
@@ -395,7 +427,8 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             self.signals.memory_signals.tracks_visited_nodes = True
 
     def _evaluate_memoization(self):
-        if getattr(self.ctx, "current_function_name", None) in getattr(self.ctx, "memoized_funcs", set()):
+        # We also check the agnostic signal captured in visit_Compare
+        if getattr(self.ctx, "current_function_name", None) in getattr(self.ctx, "memoized_funcs", set()) or self.signals.has_memoization:
             self.signals.has_memoization = True
             self.signals.memory_signals.caches_results = True
 
@@ -459,40 +492,44 @@ class EducationalInsightGenerator:
         if sig.paradigms.is_halving:
             return f"Looking at `{code_snippet}`, the algorithm performs a crucial mathematical division, actively halving the problem space."
         if sig.paradigms.is_two_pointer:
-            return f"In this line (`{code_snippet}`), we see the classic 'Two-Pointer' convergence check, ensuring our pointers haven't crossed."
+            return f"In this line (`{code_snippet}`), we see a convergence check—a foundational signature of the 'Two-Pointer' or 'Sliding Window' technique."
         if sig.paradigms.is_tabulation_setup:
-            return f"Looking at `{code_snippet}`, the code pre-allocates an entire array for Dynamic Programming tabulation."
+            return f"Looking at `{code_snippet}`, the code pre-allocates an entire memory block upfront, a classic setup for Tabulation."
         if sig.paradigms.is_fibonacci_sequence:
-            return f"Here in `{code_snippet}`, we are performing a simultaneous tuple unpacking to cleanly shift variables forward—a staple of the Fibonacci sequence."
+            return f"Here in `{code_snippet}`, we are performing a simultaneous tuple unpacking to cleanly shift variables forward—a staple of sequence progression."
         if sig.paradigms.is_brian_kernighan:
-            return f"This specific line (`{code_snippet}`) utilizes a brilliant bitwise trick (Brian Kernighan's algorithm) to drop the lowest set bit."
+            return f"This specific line (`{code_snippet}`) utilizes a brilliant bitwise trick to drop the lowest set bit instantly."
+        if sig.paradigms.is_combinatorics:
+            return f"This step (`{code_snippet}`) executes a heavy combinatorial math equation (like permutations or factorials), which scales incredibly fast."
+        if sig.paradigms.is_euclidean_distance:
+            return f"Looking at `{code_snippet}`, the engine is calculating a spatial distance metric, applying quadratic squaring and rooting."
 
         snippet_ref = f"Looking at `{code_snippet}`" if code_snippet else "Reviewing this specific line"
 
         if isinstance(node, ast.Assign):
-            return f"{snippet_ref}, the code assigns a value, capturing a specific state."
+            return f"{snippet_ref}, the code assigns a calculated value, capturing a specific state."
         elif isinstance(node, ast.AugAssign):
-            return f"{snippet_ref}, we are updating or mutating an existing variable."
+            return f"{snippet_ref}, we are directly updating or mutating an existing variable."
         elif isinstance(node, ast.Call):
             if isinstance(node.func, ast.Attribute):
-                return f"{snippet_ref}, the `.{node.func.attr}()` method is invoked to manipulate the data structure."
+                return f"{snippet_ref}, a method (`.{node.func.attr}()`) is invoked to manipulate the targeted data structure."
             elif isinstance(node.func, ast.Name):
-                return f"{snippet_ref}, the code triggers the `{node.func.id}()` function."
-            return f"{snippet_ref}, a function call is being executed."
+                return f"{snippet_ref}, the code triggers the core `{node.func.id}()` function."
+            return f"{snippet_ref}, a complex function call is being executed."
         elif isinstance(node, ast.For):
-            return f"{snippet_ref}, a `for` loop is initiated to sequentially process a collection."
+            return f"{snippet_ref}, an iterative loop is established to sequentially process a collection."
         elif isinstance(node, ast.While):
-            return f"{snippet_ref}, a `while` loop is established to run dynamically based on a condition."
+            return f"{snippet_ref}, a dynamic `while` loop is engaged to continuously run based on an evolving condition."
         elif isinstance(node, ast.If):
-            return f"{snippet_ref}, the execution flow hits a conditional branch."
+            return f"{snippet_ref}, the execution flow hits a conditional branch, slicing the logic path."
         elif isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp)):
-            return f"{snippet_ref}, Python leverages a syntactic comprehension to construct a collection dynamically."
+            return f"{snippet_ref}, Python leverages a syntactic comprehension to construct a collection dynamically in one pass."
         elif isinstance(node, ast.Return):
-            return f"{snippet_ref}, the function completes its evaluation and returns the payload."
+            return f"{snippet_ref}, the function completes its mathematical evaluation and returns the final payload."
         elif isinstance(node, ast.Subscript):
             if isinstance(getattr(node, 'slice', None), ast.Slice):
-                return f"{snippet_ref}, the array is being sliced to extract a segment."
-            return f"{snippet_ref}, a specific element is accessed via index or key."
+                return f"{snippet_ref}, the array is being explicitly sliced to extract a localized segment."
+            return f"{snippet_ref}, a specific precise element is accessed via index or dictionary key."
         
         return f"{snippet_ref}, we observe a distinct operational step."
 
@@ -506,7 +543,7 @@ class EducationalInsightGenerator:
             return "In isolation, this evaluates to amortized constant time. Usually, it happens instantly, but occasionally it requires a heavier background operation (like resizing an array). On average, it remains a highly efficient $O(1)$ step."
         
         if family == "constant":
-            return "Evaluated strictly on its own, this is an instant $O(1)$ operation. The CPU executes it directly without needing to iterate or scan through data."
+            return "Evaluated strictly on its own, this is an instant $O(1)$ operation. The CPU executes it directly without needing to iterate or scan through external data."
         elif family == "linear":
             return f"Locally, this step inherently takes linear time ({local_info.raw}). Under the hood, Python is forced to traverse the involved elements one by one."
         elif family == "logarithmic":
@@ -585,66 +622,70 @@ class EducationalInsightGenerator:
         
         # Paradigms
         if sig.paradigms.is_halving:
-            insights.append("Mathematical Optimization: By explicitly halving the input (`// 2`), the algorithm safely discards 50% of the remaining search space. This is the cornerstone of Logarithmic ($O(\\log n)$) efficiency, making it blisteringly fast even for arrays with billions of items.")
+            insights.append("Mathematical Optimization: By explicitly halving the input (often via `// 2`), the algorithm safely discards 50% of the remaining search space. This is the cornerstone of Logarithmic ($O(\\log n)$) efficiency, making it blisteringly fast even for huge datasets.")
         if sig.paradigms.is_two_pointer:
-            insights.append("Algorithmic Technique: The 'Two-Pointer' conditional (`left < right`) is a highly elegant way to traverse an array from both ends simultaneously. It frequently reduces what would be a slow nested $O(n^2)$ loop down to a clean, single-pass $O(n)$ scan.")
+            insights.append("Algorithmic Technique: Monitoring variables converging upon one another (like pointers approaching from opposite ends) frequently reduces what would be a slow nested $O(n^2)$ loop down to a clean, single-pass $O(n)$ scan.")
         if sig.paradigms.is_brian_kernighan:
-            insights.append("Bitwise Mastery: The operation `n & (n - 1)` directly flips the least significant set bit of a number to zero. This allows the algorithm to skip over zeroes and count bits exponentially faster than iterating through every single binary digit.")
+            insights.append("Bitwise Mastery: The bitwise operation here elegantly drops the least significant set bit directly. This allows the algorithm to skip over zeroes completely, counting bits exponentially faster than an iterative scan.")
         if sig.paradigms.is_memoization_check:
-            insights.append("Dynamic Programming: Checking if a state already exists in the `memo` or `cache` is the heart of Top-Down DP. By intercepting redundant recursive calls and instantly returning the saved answer, you prune massive branches off the execution tree.")
+            insights.append("Dynamic Programming: Intercepting execution to check if a state already exists inside a dictionary or hash map is the essence of Memoization. By instantly returning the saved answer, you drastically prune massive calculation branches off the execution tree.")
         if sig.paradigms.is_fibonacci_sequence:
-            insights.append("State Advancement: Updating multiple variables on a single line (`a, b = b, a + b`) is not just syntactic sugar. It evaluates the right side entirely before assigning to the left, seamlessly shifting the 'sliding window' of state forward without needing temporary variables.")
+            insights.append("State Advancement: Updating multiple variables on a single line evaluates the right side entirely before assigning to the left, seamlessly shifting the 'sliding window' of mathematical state forward without needing temporary variables.")
+        if sig.paradigms.is_combinatorics:
+            insights.append("Combinatorial Math: Operations dealing with permutations or factorials grow at an intensely aggressive rate ($O(n!)$ or worse). They mathematically force the CPU to account for every possible permutation, creating monumental workloads even for small inputs.")
+        if sig.complexity_signals.quadratic_math:
+            insights.append("Mathematical Overhead: Squaring numbers (`**2`) or dealing with quadratic distance equations introduces heavier arithmetic operations, though modern CPUs pipeline these specific instructions extremely efficiently.")
 
         # Complexity Traps
         if sig.memory_signals.geometric_capacity_growth:
             insights.append("Architectural Warning: Continuously multiplying or adding a sequence to itself inside a loop forces the computer to reallocate exponentially doubling chunks of memory. This turns what appears to be a simple loop into an incredibly slow, volatile process.")
         elif sig.memory_signals.string_concatenation_in_loop:
-            insights.append("Common Trap: Python strings are fully immutable. Appending to a string with `+=` inside a loop forces Python to construct a brand new string from scratch every single cycle. For better performance, append to a list and use `.join()` at the end.")
+            insights.append("Common Trap: Python strings are fully immutable. Appending to a string directly inside a loop forces Python to construct a brand new string from scratch every single cycle. For better performance, append to a list and use `.join()` at the end.")
         elif sig.complexity_signals.f_string_usage:
-            insights.append("Best Practice: Utilizing modern f-strings or `.join()` is an exceptionally efficient technique. It calculates and builds the full string directly in C in one pass, avoiding the creation of slow intermediate copies.")
+            insights.append("Best Practice: Utilizing modern interpolation techniques (like f-strings) is exceptionally efficient. It calculates and builds the full string natively in C in one pass, avoiding the creation of slow intermediate memory copies.")
         
         if sig.complexity_signals.aggregation_in_loop:
             insights.append("Bottleneck Risk: Placing aggregation functions like `sum()`, `max()`, or `min()` directly inside a loop causes Python to secretly scan the entire sub-array over and over. Maintaining a running total variable instead will drastically improve speed.")
         
         if sig.complexity_signals.inefficient_list_pop:
-            insights.append("Data Structure Risk: Triggering `.pop(0)` on a standard Python list is structurally slow. Because elements are packed tightly in memory, Python must manually drag every remaining item one slot to the left. If you need a queue, `collections.deque` provides instant $O(1)$ pops from both ends.")
+            insights.append("Data Structure Risk: Triggering a removal at the very start of a standard Python list is structurally slow. Because elements are packed tightly, Python must manually drag every remaining item one slot to the left. If you need a queue, `collections.deque` provides instant $O(1)$ pops.")
         if sig.complexity_signals.inefficient_list_insert:
             insights.append("Data Structure Risk: Mechanically inserting an item at the exact start of a populated list forces Python to push all existing elements backward to make room. This is a heavy $O(n)$ operation that stalls large arrays.")
         if sig.complexity_signals.repeated_sort:
-            insights.append("Bottleneck Risk: Sorting is fundamentally heavy ($O(n \\log n)$). Placing a `sort()` command directly inside a loop forces the CPU to repeat that intense mathematical lifting unnecessarily. Gather the data first, then sort exactly once outside the loop.")
+            insights.append("Bottleneck Risk: Sorting is fundamentally heavy ($O(n \\log n)$). Placing a sorting mechanism directly inside a loop forces the CPU to repeat that intense mathematical lifting unnecessarily. Gather the data first, then sort exactly once outside the loop.")
         if sig.complexity_signals.set_mathematical_ops:
             insights.append("Best Practice: Native Set operations (like unions or intersections) are implemented at the lowest hardware levels in Python. Utilizing them is exponentially faster and cleaner than writing manual nested loops to check for duplication.")
         if sig.complexity_signals.dict_lookup_constant:
-            insights.append("Best Practice: Leveraging the `.get()` syntax on dictionaries yields a fast, instant $O(1)$ lookup while safely returning a default value (like `None`) instead of crashing the program with a KeyError.")
+            insights.append("Best Practice: Leveraging specific dictionary getter methods or native hashed lookups yields an instant $O(1)$ data retrieval, bypassing the need to search linearly.")
         if sig.has_early_exits:
-            insights.append("Optimization: The `break` or `return` interrupt here is an excellent functional optimization. It grants the algorithm permission to completely halt its work the exact moment the answer is found, avoiding pointless iteration.")
+            insights.append("Optimization: The interrupt (early return or break) observed here is an excellent functional optimization. It grants the algorithm permission to completely halt its work the exact moment the answer is found, avoiding pointless iteration.")
 
         return insights
 
     def _gather_space_insights(self, sig: PatternSignals, mem_state: dict) -> List[str]:
         insights = []
         
-        if sig.paradigms.is_tabulation_setup:
-            insights.append("Dynamic Programming: Pre-allocating an array initialized with zeroes (e.g., `[0] * n`) is the foundation of Bottom-Up Tabulation. By reserving the exact needed memory upfront, the algorithm avoids the overhead and stack limits of recursive function calls.")
+        if sig.paradigms.is_tabulation_setup or sig.memory_signals.array_preallocation:
+            insights.append("Memory Optimization: Pre-allocating an array directly with a specific size (e.g., `[val] * n`) is a highly optimized way to reserve memory. It forces the system to grab exactly what it needs upfront, avoiding the constant reallocation penalties of `.append()`.")
         if sig.memory_signals.inplace_swap:
             insights.append("Memory Optimization: This operation modifies the data pointers strictly in-place. Because it doesn't require instantiating a completely new array, it is incredibly friendly to the computer's memory management system.")
             
         if sig.memory_signals.allocates_2d_lists:
             insights.append("Memory Footprint: Creating nested arrays, such as a grid or a matrix, commands a significantly denser memory reservation from the Operating System than generating a standard flat list.")
         elif sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
-            insights.append("Memory Footprint: When instantiating a new list, the computer actively searches for and reserves a fresh, contiguous block of RAM to permanently house the incoming data elements.")
+            insights.append("Memory Footprint: When instantiating a new list or array, the computer actively searches for and reserves a fresh, contiguous block of RAM to permanently house the incoming data elements.")
             
         if sig.memory_signals.allocates_sets or sig.memory_signals.uses_set_comprehension:
             insights.append("Trade-off: Sets are astonishingly fast for lookups, but they achieve this by generating an invisible 'hash table'. This table intentionally leaves blank memory gaps to prevent data collisions, meaning a Set occupies substantially more raw RAM than a List of the exact same length.")
         if sig.memory_signals.performs_slicing:
-            insights.append("Common Trap: Slicing a list using brackets `[:]` does not simply reference the old list; it forcibly creates a complete duplicate array in memory. Executing slices inside recursive calls or loops will rapidly exhaust memory.")
+            insights.append("Common Trap: Explicit array slicing physically cuts out and copies the targeted data, creating a complete duplicate array in memory. Executing slices inside recursive calls or loops will rapidly exhaust memory.")
         if sig.memory_signals.recursive_stack_risk:
             insights.append("System Risk: Every time a recursive function calls itself, Python saves a 'frame' of the current variable state directly to the call stack. If the sequence plunges thousands of levels deep, Python will intentionally crash with a `RecursionError` to protect system RAM.")
 
         if mem_state:
             largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
             if largest and largest[1]['size'] > 1:
-                insights.append(f"Runtime Diagnostic: The internal profiler directly observed that during live execution, the variable `{largest[0]}` aggressively expanded to hold {largest[1]['size']} elements in memory.")
+                insights.append(f"Runtime Diagnostic: The internal profiler directly observed that during live execution, the tracked variable `{largest[0]}` aggressively expanded to hold {largest[1]['size']} active elements in memory.")
 
         return insights
 
