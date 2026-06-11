@@ -2,7 +2,7 @@
 import Editor from "@monaco-editor/react";
 import DOMPurify from "dompurify";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
@@ -307,6 +307,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [activityDataResolved, setActivityDataResolved] = useState(null);
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
+
+  // Editor and Monaco Refs for Markers
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
 
   useEffect(() => {
     if (workspaceRef.current && viewMode === "workspace") {
@@ -1315,7 +1319,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
-  // SYSTEM THRESHOLD LOGIC INJECTED HERE
   const checkLessonCompletion = async () => {
     if (!latestStateRef.current.userId || !lessonActivitiesResolved.length) {
       return { passedCount: 0, threshold: 1, isCompleted: false };
@@ -1631,6 +1634,26 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const pythonLines = (generatedPython || "").split("\n");
   const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
 
+  // -------------------------------------------------------------------------
+  // MONACO EDITOR MARKER SYSTEM
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (monacoRef.current && editorRef.current) {
+      const model = editorRef.current.getModel();
+      if (model) {
+        const markers = (syntaxErrors || []).map(err => ({
+          startLineNumber: err.line || 1,
+          startColumn: 1,
+          endLineNumber: err.line || 1,
+          endColumn: 1000,
+          message: err.message,
+          severity: monacoRef.current.MarkerSeverity.Error,
+        }));
+        monacoRef.current.editor.setModelMarkers(model, "owner", markers);
+      }
+    }
+  }, [syntaxErrors]);
+
   return (
     <div className="activity-app-container">
       <style>{`
@@ -1925,6 +1948,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                   language="python"
                   theme="algoblocks-purple"
                   beforeMount={handleEditorWillMount}
+                  onMount={(editor, monaco) => {
+                    editorRef.current = editor;
+                    monacoRef.current = monaco;
+                  }}
                   value={generatedPython}
                   onChange={(value) => {
                     const newCode = value || "";
@@ -1952,34 +1979,58 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                 />
 
                 {syntaxErrors && syntaxErrors.length > 0 && (
-                  <div className="floating-error-container">
+                  <div className="floating-error-container" style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 100 }}>
                     {isErrorDropdownOpen && (
-                      <div className="error-dropdown-menu">
-                        <div className="error-dropdown-header">
-                          Detected Issues ({syntaxErrors.length})
+                      <div 
+                        className="error-dropdown-menu" 
+                        style={{
+                          resize: "both",
+                          overflow: "hidden",
+                          minWidth: "350px",
+                          maxWidth: "800px",
+                          minHeight: "150px",
+                          maxHeight: "60vh",
+                          display: "flex",
+                          flexDirection: "column",
+                          backgroundColor: "#2D234A",
+                          border: "1px solid #ff375f",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <div className="error-dropdown-header" style={{ flexShrink: 0, padding: "10px", borderBottom: "1px solid rgba(255, 55, 95, 0.3)", backgroundColor: "rgba(255, 55, 95, 0.1)" }}>
+                          <strong style={{ color: "#ff375f" }}>Detected Issues ({syntaxErrors.length})</strong>
                         </div>
-                        <div className="error-dropdown-list">
+                        <div className="error-dropdown-list" style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
                           {syntaxErrors.map((err, idx) => (
-                            <div key={idx} className="error-dropdown-item">
-                              <span className="error-line-badge">
+                            <div key={idx} className="error-dropdown-item" style={{ marginBottom: "15px", paddingBottom: "10px", borderBottom: "1px dashed rgba(255,255,255,0.1)" }}>
+                              <span className="error-line-badge" style={{ backgroundColor: "#ff375f", color: "white", padding: "2px 6px", borderRadius: "4px", fontSize: "0.8rem", marginRight: "8px" }}>
                                 Line {err.line}
                               </span>
-                              <span className="error-message">
-                                {err.message}
-                              </span>
+                              <span className="error-message" style={{ color: "#EBE4FF", fontSize: "0.9rem", lineHeight: "1.5" }}>{err.message}</span>
                             </div>
                           ))}
                         </div>
+                        <div style={{ position: "absolute", bottom: 0, right: 0, width: "15px", height: "15px", cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.3) 50%)" }} />
                       </div>
                     )}
                     <button
                       className={`floating-error-btn ${isErrorDropdownOpen ? "open" : ""}`}
-                      onClick={() =>
-                        setIsErrorDropdownOpen(!isErrorDropdownOpen)
-                      }
+                      onClick={() => setIsErrorDropdownOpen(!isErrorDropdownOpen)}
+                      style={{
+                        backgroundColor: "#ff375f",
+                        color: "white",
+                        border: "none",
+                        padding: "8px 16px",
+                        borderRadius: "20px",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                        boxShadow: "0 2px 8px rgba(255, 55, 95, 0.4)",
+                        float: "right"
+                      }}
                     >
-                      ⚠️ {syntaxErrors.length} Error
-                      {syntaxErrors.length > 1 ? "s" : ""}
+                      ⚠️ {syntaxErrors.length} Error{syntaxErrors.length > 1 ? "s" : ""}
                     </button>
                   </div>
                 )}
@@ -2696,16 +2747,5 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         onClose={() => setIsBigOModalOpen(false)}
       />
     </div>
-  );
-};
-
-export default function ActivityApp() {
-  const { moduleId, activityId } = useParams();
-  return (
-    <ActivityAppInner
-      key={`${moduleId}-${activityId}`}
-      moduleId={moduleId}
-      activityId={activityId}
-    />
   );
 }
