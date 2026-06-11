@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { projectsDB } from "../db";
+import { projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -119,7 +119,7 @@ export default function Dashboard() {
         moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
       });
 
-      // 2. Load User Projects
+      // 2. Fetch and Sync Projects and Templates from Cloud
       if (navigator.onLine && user) {
         try {
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -128,57 +128,59 @@ export default function Dashboard() {
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           };
 
-          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
-          if (res.ok) {
-            const data = await res.json();
-            let cloudProjects = Array.isArray(data.projects) ? data.projects : (Array.isArray(data) ? data : []);
-
+          // Fetch Projects
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
             for (const cp of cloudProjects) {
               if (cp.owner_id === user.email || cp.userId === user.email) {
                 await projectsDB.setItem(cp._id, { ...cp, synced: true });
               }
             }
           }
+
+          // Fetch Custom Templates
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`, { headers });
+          if (tRes.ok) {
+            const tData = await tRes.json();
+            const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
+            for (const ct of cloudTemplates) {
+              if (ct.owner_id === user.email || ct.userId === user.email) {
+                await templatesDB.setItem(ct._id, { ...ct, synced: true });
+              }
+            }
+          }
+
         } catch (fetchErr) {
-          console.error("Failed to fetch cloud projects:", fetchErr);
+          console.error("Failed to fetch cloud projects or templates:", fetchErr);
         }
       }
 
+      // 3. Load from local IndexedDB (handles offline or newly synced data)
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
         if (!user || value.owner_id === user.email || value.userId === user.email) {
           loadedProjects.push(value);
         }
       });
-      
-      const sorted = loadedProjects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-      setRecentProjects(sorted.slice(0, 5));
+      const sortedProjects = loadedProjects.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      setRecentProjects(sortedProjects.slice(0, 5));
 
-      // 3. Load Custom User Templates
-      try {
-        const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-        if (token) {
-          const res = await fetch(`${API_BASE}/api/templates/all`, {
-            headers: { Authorization: `Bearer ${token}` }
+      const loadedTemplates = [];
+      await templatesDB.iterate((value) => {
+        if (!user || value.owner_id === user.email || value.userId === user.email) {
+          loadedTemplates.push({
+            ...value,
+            isSystem: false,
+            icon: "/assets/blocks-icon.png", 
+            desc: value.description || "User-created template",
+            name: value.title || value.name || "Untitled Template"
           });
-          if (res.ok) {
-            const customTemplatesData = await res.json();
-            const templatesArray = Array.isArray(customTemplatesData) ? customTemplatesData : (customTemplatesData.templates || []);
-            
-            if (templatesArray.length > 0) {
-              setUserTemplates(templatesArray.map(t => ({
-                ...t,
-                isSystem: false,
-                icon: "/assets/blocks-icon.png", 
-                desc: t.description || "User-created template",
-                name: t.name || t.title || "Untitled Template"
-              })));
-            }
-          }
         }
-      } catch (templateError) {
-        console.warn("Could not fetch custom templates. Defaulting to empty.", templateError);
-      }
+      });
+      const sortedTemplates = loadedTemplates.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      setUserTemplates(sortedTemplates);
 
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
@@ -286,7 +288,7 @@ export default function Dashboard() {
                   <div className="bento-template-grid">
                     {userTemplates.map((tpl, i) => (
                       <div 
-                        key={i} 
+                        key={tpl._id || i} 
                         className="bento-template-card custom-template-card"
                         onClick={() => handleTryTemplate(tpl)}
                         style={{ borderTop: "3px solid #db7fff" }}
