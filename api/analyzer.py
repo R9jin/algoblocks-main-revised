@@ -231,7 +231,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not var_name: return 'n'
         if isinstance(var_name, str):
             lower_name = var_name.lower()
-            if lower_name in ['m', 'amount', 'capacity', 'weight', 'cols', 'width', 'target', 'arr2', 'list2', 'arrb', 'b', 'val']: return 'm'
+            if lower_name in ['m', 'amount', 'capacity', 'cols', 'width', 'target', 'arr2', 'list2', 'arrb', 'b', 'val']: return 'm'
             return 'n'
         return 'n'
 
@@ -265,7 +265,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         parts = []
         if poly_dims:
-            counts = Counter(poly_dims)
+            # Sort dimensions alphabetically to prevent "m * n" vs "n * m" mismatches
+            sorted_dims = sorted(poly_dims, key=lambda x: (x != 'n', x)) 
+            counts = Counter(sorted_dims)
             terms = []
             for dim, count in counts.items():
                 if count == 1: terms.append(dim)
@@ -538,8 +540,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 
             if var_t == 'str':
                 if loop_multiplier > 0:
-                    return "O(n^2)", "O(n)", "String Concatenation (Immutable)"
-                return "O(n)", "O(n)", "String Build"
+                    return "O(n^2)", "O(1)", "String Concatenation (Immutable)"
+                return "O(n)", "O(1)", "String Build"
 
             if loop_multiplier > 0:
                 dim_str = "n^2" if loop_multiplier == 1 else f"n^{loop_multiplier + 1}"
@@ -720,17 +722,21 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "hits": hits, "memory_state": mem_state
         }
         
-        if self._details and self._details[-1]["lineOfCode"] == line_text:
+        # STRICT LINE-OVERWRITE CONFLICT RESOLUTION
+        if self._details and self._details[-1]["lineno"] == line_num:
             prev_w = self._details[-1].get("weight", -1)
             prev_op = self._details[-1].get("operation", "")
+            structural_ops = ["Loop", "Condition", "Definition", "Return", "Try-Except Block", "Context Manager"]
             
             if t_w > prev_w:
+                if prev_op in structural_ops and operation_name not in structural_ops:
+                    entry["operation"] = prev_op
                 self._details[-1].update(entry)
             elif t_w == prev_w:
-                generics = ["Expression", "Assignment", "Update", "Binary Operation", "Function Call"]
+                generics = ["Expression", "Assignment", "Update", "Binary Operation", "Function Call", "Compare"]
                 if prev_op in generics and operation_name not in generics:
                     self._details[-1].update(entry)
-                elif operation_name not in generics and custom_op:
+                elif prev_op not in structural_ops and operation_name not in generics and custom_op:
                     self._details[-1].update(entry)
         else: 
             self._details.append(entry)
@@ -1306,6 +1312,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
                 else:
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
+            elif node.func.attr == 'popleft':
+                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop Left (Deque)")
             elif node.func.attr == 'remove':
                 is_set = isinstance(node.func.value, ast.Name) and self.var_types.get(node.func.value.id) == 'set'
                 if is_set: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
@@ -1544,7 +1552,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             slice_str = ast.dump(node.slice).lower()
             if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
                 self.has_partitioning = True
-            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Array Slicing")
+            self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Array Slicing")
         self.generic_visit(node)  
 
     def visit_BinOp(self, node):
@@ -1704,7 +1712,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     best_space = "O(n)"
                     
         return best_space
-        
 
 def analyze_source_code(source_code):
     start_time = time.perf_counter()
