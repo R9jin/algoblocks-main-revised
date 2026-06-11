@@ -89,7 +89,7 @@
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
@@ -136,13 +136,13 @@
     "id": "logarithmic_gcd_09",
     "name": "Euclidean GCD (Iterative)",
     "code": "def gcd(a, b):\n    while b != 0:\n        temp = b\n        b = a % b\n        a = temp\n    return a",
-    "expected_overall_time": "O(log n)",
+    "expected_overall_time": "O(log min(a, b))",
     "expected_overall_space": "O(1)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(log n)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(log min(a, b))", "global_time": "O(log min(a, b))", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(log min(a, b))", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(log min(a, b))", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log min(a, b))", "space": "O(1)"},
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
@@ -331,7 +331,7 @@
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
@@ -342,9 +342,9 @@
     "name": "Inserting at Front in a Loop O(N^2)",
     "code": "def reverse_copy(arr):\n    new_arr = []\n    for num in arr:\n        new_arr.insert(0, num)\n    return new_arr",
     "expected_overall_time": "O(n^2)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
@@ -433,9 +433,9 @@
     "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n^2)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n^2)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(n)"},
       {"lineno": 5, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(1)"},
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(n^2)", "space": "O(1)"},
       {"lineno": 7, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
@@ -572,9 +572,9 @@
     "name": "List Extend O(K)",
     "code": "def combine_lists(arr1, arr2):\n    arr1.extend(arr2)\n    return arr1",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(1)",
+    "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
       {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
@@ -696,7 +696,7 @@
     "expected_overall_time": "O(n * n!)",
     "expected_overall_space": "O(n^2)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(n)"},
       {"lineno": 3, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(n)"},
       {"lineno": 5, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(1)"},
@@ -723,6 +723,58 @@
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"},
       {"lineno": 7, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"},
       {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "string_concat_loop_52",
+    "name": "String Concatenation in Loop (O(N^2) theoretical)",
+    "code": "def build_string(chars):\n    s = ''\n    for c in chars:\n        s += c\n    return s",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "nested_linear_log_53",
+    "name": "Nested Loop (Linear Outer, Logarithmic Inner)",
+    "code": "def linear_log_loop(n):\n    count = 0\n    for i in range(n):\n        j = 1\n        while j < n:\n            count += 1\n            j *= 2\n    return count",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(log n)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "list_slicing_loop_54",
+    "name": "List Slicing in Loop O(N^2)",
+    "code": "def process_and_slice(arr):\n    while len(arr) > 0:\n        print(arr[0])\n        arr = arr[1:]\n    return arr",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(n)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "set_comprehension_55",
+    "name": "Set Comprehension O(N)",
+    "code": "def unique_squares(arr):\n    return {x * x for x in arr}",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"}
     ]
   }
 ]

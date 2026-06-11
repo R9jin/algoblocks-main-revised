@@ -1,7 +1,277 @@
 ﻿--- PROJECT SNAPSHOT (PART 8 OF 10) ---
 
---- TIMESTAMP: 2026-06-10 12:10:08 ---
+--- TIMESTAMP: 2026-06-10 22:58:01 ---
 
+
+--- FILE: frontend/src/components/MemoryVisualizer.jsx ---
+
+// frontend/src/components/MemoryVisualizer.jsx
+import { useState } from 'react';
+import '../styles/MemoryVisualizer.css';
+import { formatComplexity } from '../utils/formatters';
+
+const MemoryVisualizer = ({ analysisData, currentStep }) => {
+  const [hoveredAlloc, setHoveredAlloc] = useState(null);
+
+  if (!analysisData || analysisData.length === 0) {
+    return <div className="memory-empty">Run the code to map memory usage.</div>;
+  }
+
+  // Slice the data up to the current execution step to simulate memory build-up
+  const executedLines = analysisData.slice(0, currentStep + 1);
+  
+  // Filter allocations that consume space (ignoring basic O(1) primitives to reduce noise)
+  const allocations = executedLines
+    .map((step, index) => ({ ...step, displayLine: index + 1 }))
+    .filter(step => step.local_space && step.local_space.toLowerCase() !== "o(1)");
+
+  const currentGlobalSpace = executedLines[executedLines.length - 1]?.global_space || "O(1)";
+
+  // Color palette for distinct memory blocks
+  const colors = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502', '#9b59b6', '#ff7f50', '#00d8d6'];
+
+  // Heuristic: Map complexity to a relative number of visual grid blocks
+  const getBlockCount = (comp) => {
+    const c = String(comp).toLowerCase();
+    if (c.includes('2^') || c.includes('!')) return 64; // Massive allocation
+    if (c.includes('^2') || c.includes('Â²')) return 32; // Matrix / 2D Array
+    if (c.includes('n log')) return 16; // Mergesort buffers
+    if (c.includes('n') || c.includes('v') || c.includes('e')) return 8; // Linear arrays
+    if (c.includes('log')) return 4; // Call stacks
+    return 2; // Default small alloc
+  };
+
+  // Process allocations and pre-calculate exact grid boundaries
+  let currentOffset = 0;
+  const processedAllocs = allocations.map((alloc, idx) => {
+    const codeStr = alloc.lineOfCode || alloc.code;
+    const varNameMatch = codeStr.match(/^\s*([a-zA-Z0-9_]+)\s*=/);
+    const varName = varNameMatch ? varNameMatch[1] : `Ptr_${idx + 1}`;
+    
+    const blockCount = getBlockCount(alloc.local_space);
+    const startIndex = currentOffset;
+    const endIndex = currentOffset + blockCount;
+    
+    currentOffset += blockCount; // Advance the offset for the next allocation
+
+    return {
+      ...alloc,
+      varName,
+      blockCount,
+      startIndex,
+      endIndex,
+      color: colors[idx % colors.length],
+      id: `alloc-${idx}`
+    };
+  });
+
+  // Calculate total grid size (min 128 blocks for visual effect, expanding if memory grows heavily)
+  const totalAllocatedBlocks = currentOffset;
+  const GRID_COLUMNS = 16;
+  const GRID_SIZE = Math.max(128, Math.ceil((totalAllocatedBlocks + 16) / GRID_COLUMNS) * GRID_COLUMNS);
+
+  // Map individual grid cells based on pre-calculated boundaries
+  const gridCells = Array.from({ length: GRID_SIZE }).map((_, i) => {
+    const foundAlloc = processedAllocs.find(a => i >= a.startIndex && i < a.endIndex) || null;
+    return { index: i, alloc: foundAlloc };
+  });
+
+  return (
+    <div className="memory-visualizer-container">
+      <div className="memory-summary-dashboard">
+        <div className="mem-stat-box">
+          <span className="mem-stat-title">Peak Space Complexity</span>
+          <span className="mem-stat-value">{formatComplexity(currentGlobalSpace)}</span>
+        </div>
+        <div className="mem-stat-box">
+          <span className="mem-stat-title">Heap Allocations</span>
+          <span className="mem-stat-value">{allocations.length} structures</span>
+        </div>
+      </div>
+
+      <div className="memory-split-view">
+        {/* Left: The Visual Memory Matrix */}
+        <div className="memory-matrix-panel">
+          <div className="matrix-header">
+            <span>0x0000</span>
+            <span>SYSTEM HEAP</span>
+            <span>0xFFFF</span>
+          </div>
+          
+          <div className="memory-grid">
+            {gridCells.map(cell => (
+              <div 
+                key={cell.index} 
+                className={`memory-cell ${cell.alloc ? 'allocated' : 'free'} ${hoveredAlloc === cell.alloc?.id ? 'highlighted' : ''}`}
+                style={{ 
+                  backgroundColor: cell.alloc ? cell.alloc.color : undefined,
+                  opacity: hoveredAlloc && hoveredAlloc !== cell.alloc?.id ? 0.3 : 1
+                }}
+                onMouseEnter={() => setHoveredAlloc(cell.alloc?.id)}
+                onMouseLeave={() => setHoveredAlloc(null)}
+              />
+            ))}
+          </div>
+          <div className="matrix-footer">
+            <span className="legend-free">â–  Free Space</span>
+            <span className="legend-used">â–  Allocated</span>
+          </div>
+        </div>
+
+        {/* Right: Allocation Ledger */}
+        <div className="memory-ledger-panel">
+          <h4 className="ledger-title">Allocation Registry</h4>
+          {processedAllocs.length === 0 ? (
+            <div className="ledger-empty">
+              <span className="safe-icon">âœ…</span> O(1) - No dynamic memory detected.
+            </div>
+          ) : (
+            <div className="ledger-list">
+              {processedAllocs.map(alloc => (
+                <div 
+                  key={alloc.id} 
+                  className={`ledger-item ${hoveredAlloc === alloc.id ? 'active' : ''}`}
+                  onMouseEnter={() => setHoveredAlloc(alloc.id)}
+                  onMouseLeave={() => setHoveredAlloc(null)}
+                  style={{ borderLeftColor: alloc.color }}
+                >
+                  <div className="ledger-item-header">
+                    <div className="ledger-var">
+                      <span className="color-dot" style={{ backgroundColor: alloc.color }}></span>
+                      {alloc.varName}
+                    </div>
+                    <div className="ledger-complexity" style={{ color: alloc.color }}>
+                      {formatComplexity(alloc.local_space)}
+                    </div>
+                  </div>
+                  <div className="ledger-code-line">
+                    <span className="line-num">L{alloc.displayLine}:</span>
+                    <code>{alloc.lineOfCode || alloc.code}</code>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MemoryVisualizer;
+
+--- FILE: frontend/src/components/OfflineIndicator.jsx ---
+
+// frontend/src/components/OfflineIndicator.jsx
+import { useEffect, useRef, useState } from 'react';
+
+export default function OfflineIndicator() {
+    const [status, setStatus] = useState('online'); 
+    const [isVisible, setIsVisible] = useState(false);
+    
+    // We no longer need the isFaded state since it's going to disappear completely
+    
+    const statusRef = useRef('online');
+    
+    // Use refs for the timeouts so they persist across renders
+    const hideTimeoutRef = useRef(null);
+
+    useEffect(() => {
+        const triggerOnline = () => {
+            if (statusRef.current === 'offline') {
+                statusRef.current = 'restored';
+                setStatus('restored');
+                setIsVisible(true);
+
+                // Clear any existing timeout so it doesn't hide prematurely
+                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+
+                // Hide the "Back Online" banner after 3 seconds
+                hideTimeoutRef.current = setTimeout(() => {
+                    setIsVisible(false);
+                    // Give the CSS slide-up animation time to finish (400ms) before resetting status
+                    setTimeout(() => {
+                        statusRef.current = 'online';
+                        setStatus('online');
+                    }, 400); 
+                }, 3000);
+            }
+        };
+
+        const triggerOffline = () => {
+            if (statusRef.current !== 'offline') {
+                statusRef.current = 'offline';
+                setStatus('offline');
+                setIsVisible(true);
+                
+                // Clear any existing timeout
+                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+
+                // Hide the "Connection Lost" banner completely after 10 seconds
+                hideTimeoutRef.current = setTimeout(() => {
+                    setIsVisible(false);
+                }, 10000); 
+            }
+        };
+
+        window.addEventListener('online', triggerOnline);
+        window.addEventListener('offline', triggerOffline);
+
+        const checkRealConnectivity = async () => {
+            if (!navigator.onLine) {
+                triggerOffline();
+                return;
+            }
+            try {
+                await fetch('https://www.google.com/favicon.ico?t=' + Date.now(), {
+                    mode: 'no-cors',
+                    cache: 'no-store',
+                });
+                triggerOnline();
+            } catch (error) {
+                triggerOffline();
+            }
+        };
+
+        const pollingInterval = setInterval(checkRealConnectivity, 5000);
+        checkRealConnectivity();
+
+        return () => {
+            window.removeEventListener('online', triggerOnline);
+            window.removeEventListener('offline', triggerOffline);
+            clearInterval(pollingInterval);
+            if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+        };
+    }, []);
+
+    // DO NOT ADD THE EARLY RETURN BACK IN!
+    // if (!isVisible && status === 'online') return null;
+
+    return (
+        // Removed the faded class logic
+        <div className={`network-popup ${status} ${isVisible ? 'show' : 'hide'}`}>
+            <div className="network-popup-content">
+                {status === 'offline' ? (
+                    <>
+                        <span className="network-icon">âš ï¸</span>
+                        <div>
+                            <strong>Connection Lost</strong>
+                            <p>You are working offline. Changes will sync later.</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <span className="network-icon">âœ…</span>
+                        <div>
+                            <strong>Back Online</strong>
+                            <p>Your connection has been restored.</p>
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
 
 --- FILE: frontend/src/components/TestCaseTester.jsx ---
 
@@ -3900,17 +4170,6 @@ function shuffleArray(arr) {
   return a;
 }
 
-// â”€â”€ Module routing maps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const MODULE_FIRST_LESSON = {
-  "module-0": "lesson-0-1",
-  "module-1": "lesson-1-1",
-  "module-2": "lesson-2-1",
-  "module-3": "lesson-3-1",
-  "module-4": "lesson-4-1",
-  "module-5": "lesson-5-1",
-  "module-6": "lesson-6-1",
-};
-
 // â”€â”€ Code Block component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CodeBlock({ code }) {
   if (!code) return null;
@@ -3959,7 +4218,6 @@ export default function AssessmentPage() {
         const existingResult = await assessmentsDB.getItem(assessmentKey);
         
         if (existingResult) {
-          // Normalize locally corrupted nested data to fix the blank UI
           const normalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
           setPrevResult(normalized);
         }
@@ -4124,11 +4382,9 @@ export default function AssessmentPage() {
       attempts: (prevResult?.attempts ?? 0) + 1,
     };
 
-    // 1. Offline-First: Save to IndexedDB
     await assessmentsDB.setItem(assessmentKey, result);
     await progressDB.setItem(assessmentKey, { score: finalScore });
 
-    // Update local user object for immediate UI reflection
     const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
     const user = JSON.parse(userStr || "{}");
     
@@ -4142,14 +4398,9 @@ export default function AssessmentPage() {
 
     clearDraft(moduleId, type);
 
-    // ==========================================
-    // 2. Cloud Sync (or Queue) 
-    // ==========================================
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken"); 
-    
     const API_TARGET = `${API_BASE.replace(/\/$/, '')}/api`;
 
-    // FIX: Format exactly how syncManager expects it
     const queuePayloadAssm = {
         url: `${API_TARGET}/update-assessment`,
         method: "POST",
@@ -4199,11 +4450,7 @@ export default function AssessmentPage() {
   };
 
   const handleProceed = () => {
-    if (type === "pre") {
-      navigate(`/learning-path/${moduleId}/${MODULE_FIRST_LESSON[moduleId]}`);
-    } else {
-      navigate("/learning-path");
-    }
+    navigate("/learning-path");
   };
 
   const handleRetake = () => {
@@ -4227,8 +4474,9 @@ export default function AssessmentPage() {
   };
 
   // â”€â”€ Derived values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const isPre = type === "pre";
-  const moduleNum = moduleId?.split("-").pop();
+  const isGlobalPreTest = moduleId === "course-pre-test";
+  const isGlobalPostTest = moduleId === "course-post-test";
+  const moduleNum = (isGlobalPreTest || isGlobalPostTest) ? "Overall" : moduleId?.split("-").pop();
   const answeredCount = Object.keys(selectedAnswers).length;
   const currentQuestion = questions[currentIndex];
 
@@ -4267,7 +4515,7 @@ export default function AssessmentPage() {
               </div>
               <h1 className="results-score" style={{ color }}>{score}%</h1>
               <p className="results-subtitle">
-                {isPre ? "Pre-Assessment" : "Quiz"} â€” Module {moduleNum}: {moduleTitle}
+                {isGlobalPreTest ? "Comprehensive Course Diagnostic" : isGlobalPostTest ? "Comprehensive Course Final Exam" : `Module ${moduleNum} Quiz: ${moduleTitle}`}
               </p>
               <p className="results-attempt">
                 Attempt #{(prevResult?.attempts ?? 0) + 1} &nbsp;Â·&nbsp; {formatTime(timeElapsed)} taken
@@ -4332,17 +4580,21 @@ export default function AssessmentPage() {
             <div className="results-actions">
               <button className="btn-retake" onClick={handleRetake}>Retake Assessment</button>
               <button className="btn-proceed" onClick={handleProceed}>
-                {isPre ? `Start Module ${moduleNum} â†’` : "Back to Learning Path â†’"}
+                {isGlobalPreTest ? "Start Curriculum â†’" : "Back to Learning Path â†’"}
               </button>
             </div>
 
-            {isPre && score < 60 && (
+            {isGlobalPreTest && (
               <p className="results-note">
-                ðŸ“Œ Your pre-assessment score suggests this module will introduce new concepts.
-                That's perfectly fine â€” the lessons are designed to build your understanding from the ground up.
+                ðŸ“Œ The curriculum is now fully unlocked. Use this score as a baseline to track your growth over the course!
               </p>
             )}
-            {!isPre && score >= 75 && (
+            {isGlobalPostTest && (
+              <p className="results-note" style={{ color: "#f59e0b", fontSize: "1.1rem" }}>
+                ðŸŽ‰ Congratulations on completing the AlgoBlocks curriculum! You have proven your mastery of algorithmic foundations.
+              </p>
+            )}
+            {!(isGlobalPreTest || isGlobalPostTest) && score >= 75 && (
               <p className="results-note" style={{ color: "#22c55e" }}>
                 âœ… Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
               </p>
@@ -4361,11 +4613,13 @@ export default function AssessmentPage() {
       <div className="assessment-wrapper">
         <div className="assessment-header">
           <div className="assessment-title-block">
-            <div className="assessment-tag">{isPre ? "PRE-ASSESSMENT" : "Quiz"}</div>
-            <h1>Module {moduleNum}: {moduleTitle}</h1>
+            <div className="assessment-tag">{isGlobalPreTest ? "DIAGNOSTIC EXAM" : isGlobalPostTest ? "FINAL EXAM" : "QUIZ"}</div>
+            <h1>{isGlobalPreTest ? "Comprehensive Course Pre-Test" : isGlobalPostTest ? "Comprehensive Course Post-Test" : `Module ${moduleNum}: ${moduleTitle}`}</h1>
             <p className="assessment-subtitle">
-              {isPre
-                ? "This assessment measures your prior knowledge before starting the module. It does not affect your progress."
+              {isGlobalPreTest
+                ? "This assessment measures your prior knowledge across the entire course. It does not affect your grades."
+                : isGlobalPostTest
+                ? "This final assessment evaluates your complete mastery of algorithms across all modules."
                 : "This assessment evaluates your understanding after completing the module."}
             </p>
           </div>
@@ -4440,7 +4694,6 @@ export default function AssessmentPage() {
                 )}
               </div>
 
-              {/* Code block â€” shown above the question text */}
               {currentQuestion.type === "code" && currentQuestion.code && (
                 <CodeBlock code={currentQuestion.code} />
               )}
@@ -5015,6 +5268,7 @@ export default function LandingPage() {
 // frontend/src/pages/LearningPath.jsx
 import { useEffect, useState } from "react";
 import {
+  FiAward,
   FiCheckCircle,
   FiChevronDown,
   FiCircle,
@@ -5024,7 +5278,7 @@ import {
   FiLock,
   FiRefreshCw,
   FiShare2,
-  FiUsers,
+  FiUsers
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -5089,24 +5343,18 @@ export default function LearningPath() {
   const [userProgress, setUserProgress] = useState({});
   const [assessments, setAssessments] = useState({});
   const [submissions, setSubmissions] = useState({});
-
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
-
   const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(true);
 
   const storedUser = JSON.parse(
-    localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
+    localStorage.getItem("user") || sessionStorage.getItem("user") || "{}"
   );
   const userEmail = storedUser.email || "";
-
-  // ADMIN OVERRIDE FLAG
   const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
 
   const checkActivityDone = (moduleId, actId) => {
-    return (
-      submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`]
-    );
+    return submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`];
   };
 
   const loadData = async () => {
@@ -5174,16 +5422,21 @@ export default function LearningPath() {
     setExpandedModules(newExpanded);
   };
 
-  const hasPreAssessment = (moduleId) =>
-    assessments[`${moduleId}_pre_assessment`] !== undefined;
-  const hasPostAssessment = (moduleId) =>
-    assessments[`${moduleId}_post_assessment`] !== undefined;
-  const getAssessmentScore = (moduleId, type) =>
-    assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
+  // GLOBAL PRE-TEST CHECK
+  const globalPreTestKey = "course-pre-test_pre_assessment";
+  const isGlobalPreTestDone = assessments[globalPreTestKey] !== undefined;
+  const globalPreTestScore = assessments[globalPreTestKey]?.score ?? null;
+
+  // GLOBAL POST-TEST CHECK
+  const globalPostTestKey = "course-post-test_post_assessment";
+  const isGlobalPostTestDone = assessments[globalPostTestKey] !== undefined;
+  const globalPostTestScore = assessments[globalPostTestKey]?.score ?? null;
+
+  const hasPostAssessment = (moduleId) => assessments[`${moduleId}_post_assessment`] !== undefined;
+  const getAssessmentScore = (moduleId, type) => assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
 
   const isModuleComplete = (moduleId) => {
     if (isLoadingCurriculum) return false;
-
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
 
@@ -5192,8 +5445,7 @@ export default function LearningPath() {
       if (!details) return false;
 
       const activities = details.activities || [];
-      if (activities.length === 0)
-        return (userProgress[lesson.lessonId] || 0) >= 1;
+      if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1;
       return activities.every((a) => checkActivityDone(moduleId, a.id));
     });
   };
@@ -5202,12 +5454,11 @@ export default function LearningPath() {
     const lockMap = {};
     if (isLoadingCurriculum) return lockMap;
 
-    for (const module of curriculumIndex) {
-      const preComplete = hasPreAssessment(module.moduleId);
-      let isNextLocked = !preComplete;
+    // Everything is locked if the global pre-test is not done
+    let isNextLocked = isAdmin ? false : !isGlobalPreTestDone;
 
+    for (const module of curriculumIndex) {
       for (const lesson of module.lessons) {
-        // ADMIN OVERRIDE FOR LESSONS
         lockMap[lesson.lessonId] = isAdmin ? false : isNextLocked;
 
         if (!isNextLocked) {
@@ -5215,29 +5466,33 @@ export default function LearningPath() {
           const activities = details?.activities || [];
 
           if (activities.length > 0) {
-            const allDone = activities.every((a) =>
-              checkActivityDone(module.moduleId, a.id),
-            );
+            const allDone = activities.every((a) => checkActivityDone(module.moduleId, a.id));
             if (!allDone) isNextLocked = true;
           } else {
             if ((userProgress[lesson.lessonId] || 0) < 1) isNextLocked = true;
           }
         }
       }
+      // Lock next module if the current module's post-test isn't done
+      const postComplete = hasPostAssessment(module.moduleId);
+      if (!postComplete && !isAdmin) isNextLocked = true;
     }
     return lockMap;
   };
 
   const lockMap = buildLockMap();
 
+  // Check if entire curriculum is complete to unlock the Final Post-Test
+  const isCurriculumComplete = curriculumIndex.every((module) => {
+    return isModuleComplete(module.moduleId) && hasPostAssessment(module.moduleId);
+  });
+  const isGlobalPostTestUnlocked = isAdmin || isCurriculumComplete;
+
   if (isLoadingCurriculum) {
     return (
       <div className="learning-path-page">
         <DashboardHeader />
-        <div
-          className="learning-path-container"
-          style={{ textAlign: "center", padding: "100px 20px" }}
-        >
+        <div className="learning-path-container" style={{ textAlign: "center", padding: "100px 20px" }}>
           <h2>Loading Curriculum Data...</h2>
         </div>
       </div>
@@ -5257,68 +5512,78 @@ export default function LearningPath() {
         </div>
 
         <div className="modules-container">
+          {/* ========================================== */}
+          {/* GLOBAL PRE-TEST BANNER                   */}
+          {/* ========================================== */}
+          <div className="module-card-v2" style={{ border: "2px solid #7c5cff", marginBottom: "30px", background: "linear-gradient(145deg, rgba(124, 92, 255, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
+            <div className="module-card-icon" style={{ backgroundColor: "#7c5cff15" }}>
+              <FiAward size={32} color="#7c5cff" />
+            </div>
+            <div className="module-card-content" style={{ paddingRight: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
+                <div style={{ flex: 1 }}>
+                  <h3 className="module-card-title" style={{ margin: "0 0 8px 0" }}>Comprehensive Course Pre-Test</h3>
+                  <p className="module-card-description" style={{ margin: 0, color: "#94a3b8" }}>
+                    A diagnostic assessment evaluating your baseline knowledge across all modules. This must be completed to unlock the curriculum.
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                  {isGlobalPreTestDone && (
+                    <span style={{ fontWeight: "bold", fontSize: "1.2rem", color: "#22c55e" }}>{globalPreTestScore}%</span>
+                  )}
+                  {isGlobalPreTestDone ? (
+                    <button
+                      className="btn-assessment retake"
+                      onClick={() => navigate(`/assessment/course-pre-test/pre`)}
+                      style={{ padding: "10px 20px" }}
+                    >
+                      <FiCheckCircle style={{ marginRight: "8px" }} />
+                      Retake Diagnostic
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-assessment start"
+                      onClick={() => navigate(`/assessment/course-pre-test/pre`)}
+                      style={{ padding: "12px 24px", fontSize: "1rem" }}
+                    >
+                      Start Diagnostic Exam
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MODULES LIST */}
           {curriculumIndex.map((module) => {
             const moduleNum = module.moduleId.split("-").pop();
             const iconConfig = moduleIcons[module.moduleId];
             const IconComponent = iconConfig?.icon || FiUsers;
             const isExpanded = expandedModules.has(module.moduleId);
 
-            const preComplete = hasPreAssessment(module.moduleId);
-            const preScore = getAssessmentScore(module.moduleId, "pre");
             const moduleComplete = isModuleComplete(module.moduleId);
             const postComplete = hasPostAssessment(module.moduleId);
             const postScore = getAssessmentScore(module.moduleId, "post");
 
-            const optimizations =
-              activitiesData[module.moduleId]?.optimizations || [];
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
             const hasOptimizations = optimizations.length > 0;
-            const lastLessonId =
-              module.lessons[module.lessons.length - 1]?.lessonId;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
 
-            // ADMIN OVERRIDES FOR OPTIMIZATION AND Quiz
-            const optimizationsLocked = isAdmin
-              ? false
-              : lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
-            const postAssessmentLocked = isAdmin
-              ? false
-              : !moduleComplete && !postComplete;
+            const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
+            const postAssessmentLocked = isAdmin ? false : !moduleComplete && !postComplete;
+            const isModuleCompletelyLocked = isAdmin ? false : lockMap[module.lessons[0]?.lessonId];
 
             return (
               <div key={module.moduleId}>
-                <div
-                  className="module-card-v2"
-                  onClick={() => toggleModule(module.moduleId)}
-                >
-                  <div
-                    className="module-card-icon"
-                    style={{
-                      backgroundColor: `${iconConfig?.color || "#7c5cff"}15`,
-                    }}
-                  >
-                    <IconComponent
-                      size={32}
-                      color={iconConfig?.color || "#7c5cff"}
-                    />
+                <div className={`module-card-v2 ${isModuleCompletelyLocked ? "locked" : ""}`} onClick={() => !isModuleCompletelyLocked && toggleModule(module.moduleId)}>
+                  <div className="module-card-icon" style={{ backgroundColor: `${iconConfig?.color || "#7c5cff"}15` }}>
+                    {isModuleCompletelyLocked ? <FiLock size={32} color="#64748b" /> : <IconComponent size={32} color={iconConfig?.color || "#7c5cff"} />}
                   </div>
                   <div className="module-card-content">
-                    <div
-                      className="module-card-header"
-                      style={{ alignItems: "flex-start" }}
-                    >
+                    <div className="module-card-header" style={{ alignItems: "flex-start" }}>
                       <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "12px",
-                            marginBottom: "8px",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <h3
-                            className="module-card-title"
-                            style={{ margin: 0 }}
-                          >
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px", flexWrap: "wrap" }}>
+                          <h3 className="module-card-title" style={{ margin: 0, color: isModuleCompletelyLocked ? "#64748b" : "" }}>
                             Module {moduleNum}: {module.title}
                           </h3>
                           <div style={{ display: "flex", gap: "6px" }}>
@@ -5330,18 +5595,8 @@ export default function LearningPath() {
                                   padding: "3px 10px",
                                   borderRadius: "12px",
                                   textTransform: "uppercase",
-                                  backgroundColor:
-                                    iconConfig.difficulty === "Beginner"
-                                      ? "rgba(34, 197, 94, 0.15)"
-                                      : iconConfig.difficulty === "Intermediate"
-                                        ? "rgba(249, 115, 22, 0.15)"
-                                        : "rgba(236, 72, 153, 0.15)",
-                                  color:
-                                    iconConfig.difficulty === "Beginner"
-                                      ? "#22c55e"
-                                      : iconConfig.difficulty === "Intermediate"
-                                        ? "#ea580c"
-                                        : "#ec4899",
+                                  backgroundColor: isModuleCompletelyLocked ? "rgba(100, 116, 139, 0.15)" : iconConfig.difficulty === "Beginner" ? "rgba(34, 197, 94, 0.15)" : iconConfig.difficulty === "Intermediate" ? "rgba(249, 115, 22, 0.15)" : "rgba(236, 72, 153, 0.15)",
+                                  color: isModuleCompletelyLocked ? "#64748b" : iconConfig.difficulty === "Beginner" ? "#22c55e" : iconConfig.difficulty === "Intermediate" ? "#ea580c" : "#ec4899",
                                 }}
                               >
                                 {iconConfig.difficulty}
@@ -5349,116 +5604,43 @@ export default function LearningPath() {
                             )}
                           </div>
                         </div>
-                        <p
-                          className="module-card-description"
-                          style={{ marginTop: 0 }}
-                        >
-                          {iconConfig?.description || module.title}
+                        <p className="module-card-description" style={{ marginTop: 0 }}>
+                          {isModuleCompletelyLocked ? "Complete previous topics to unlock." : iconConfig?.description || module.title}
                         </p>
                       </div>
-                      <FiChevronDown
-                        size={24}
-                        color={iconConfig?.color || "#7c5cff"}
-                        className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
-                      />
+                      {!isModuleCompletelyLocked && (
+                        <FiChevronDown
+                          size={24}
+                          color={iconConfig?.color || "#7c5cff"}
+                          className={`module-card-chevron ${isExpanded ? "expanded" : ""}`}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {isExpanded && (
+                {isExpanded && !isModuleCompletelyLocked && (
                   <div className="module-lessons-dropdown">
-                    <div
-                      className={`assessment-row pre ${preComplete ? "done" : "pending"}`}
-                    >
-                      <div className="assessment-row-left">
-                        <FiClipboard size={16} />
-                        <span className="assessment-row-label">
-                          Pre-Assessment
-                        </span>
-                        {preScore !== null && (
-                          <span className="assessment-score-badge">
-                            {preScore}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="assessment-row-right">
-                        {preComplete ? (
-                          <>
-                            <FiCheckCircle color="#22c55e" size={16} />
-                            <button
-                              className="btn-assessment retake"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/assessment/${module.moduleId}/pre`);
-                              }}
-                            >
-                              Retake
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            className="btn-assessment start"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/assessment/${module.moduleId}/pre`);
-                            }}
-                          >
-                            Take Pre-Assessment
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
                     {module.lessons.map((lesson) => {
                       const details = lessonDetails[lesson.lessonId];
                       const activities = details?.activities || [];
                       const totalActivities = activities.length;
-                      const completedCount = activities.filter((a) =>
-                        checkActivityDone(module.moduleId, a.id),
-                      ).length;
+                      const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
 
-                      const allDone =
-                        totalActivities > 0
-                          ? completedCount === totalActivities
-                          : (userProgress[lesson.lessonId] || 0) >= 1;
+                      const allDone = totalActivities > 0 ? completedCount === totalActivities : (userProgress[lesson.lessonId] || 0) >= 1;
                       const isLocked = lockMap[lesson.lessonId];
-                      const lessonDisplay = lesson.lessonId
-                        .replace("lesson-", "")
-                        .replace(/-/g, ".");
+                      const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
                       const firstActivityId = activities[0]?.id;
 
                       return (
-                        <div
-                          key={lesson.lessonId}
-                          className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}
-                        >
+                        <div key={lesson.lessonId} className={`dropdown-lesson-item ${isLocked ? "locked" : ""}`}>
                           <div className="lesson-info">
-                            <span className="lesson-number">
-                              {lessonDisplay}
-                            </span>
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                              }}
-                            >
-                              <span className="lesson-title">
-                                {lesson.title}
-                              </span>
+                            <span className="lesson-number">{lessonDisplay}</span>
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <span className="lesson-title">{lesson.title}</span>
                               {totalActivities > 0 && (
-                                <span
-                                  style={{
-                                    fontSize: "0.75rem",
-                                    marginTop: "2px",
-                                    fontWeight: "bold",
-                                    color:
-                                      completedCount === totalActivities
-                                        ? "#22c55e"
-                                        : "#a8a8a8",
-                                  }}
-                                >
-                                  {completedCount} / {totalActivities}{" "}
-                                  Activities Done
+                                <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: completedCount === totalActivities ? "#22c55e" : "#a8a8a8" }}>
+                                  {completedCount} / {totalActivities} Activities Done
                                 </span>
                               )}
                             </div>
@@ -5469,10 +5651,7 @@ export default function LearningPath() {
                               disabled={isLocked}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!isLocked)
-                                  navigate(
-                                    `/learning-path/${module.moduleId}/${lesson.lessonId}`,
-                                  );
+                                if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lesson.lessonId}`);
                               }}
                             >
                               Read Lesson
@@ -5482,125 +5661,55 @@ export default function LearningPath() {
                               disabled={isLocked || !firstActivityId}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!isLocked && firstActivityId)
-                                  navigate(
-                                    `/activity/${module.moduleId}/${firstActivityId}`,
-                                  );
+                                if (!isLocked && firstActivityId) navigate(`/activity/${module.moduleId}/${firstActivityId}`);
                               }}
                             >
-                              {firstActivityId
-                                ? "Start Activity"
-                                : "No Activity"}
+                              {firstActivityId ? "Start Activity" : "No Activity"}
                             </button>
                           </div>
                           <span className="lesson-status-icon">
-                            {isLocked ? (
-                              <FiLock color="#bdbdbd" />
-                            ) : allDone ? (
-                              <FiCheckCircle color="#22c55e" />
-                            ) : (
-                              <FiCircle color="#7c5cff" />
-                            )}
+                            {isLocked ? <FiLock color="#bdbdbd" /> : allDone ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#7c5cff" />}
                           </span>
                         </div>
                       );
                     })}
 
                     {hasOptimizations && (
-                      <div
-                        className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`}
-                        style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}
-                      >
+                      <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
                         <div className="lesson-info">
-                          <span
-                            className="lesson-number"
-                            style={{ color: "#f39c12", fontSize: "1.2rem" }}
-                          >
-                            â˜…
-                          </span>
-                          <div
-                            style={{ display: "flex", flexDirection: "column" }}
-                          >
-                            <span
-                              className="lesson-title"
-                              style={{ fontWeight: "bold", color: "#d35400" }}
-                            >
-                              Optimization Challenges
-                            </span>
-                            <span
-                              style={{
-                                fontSize: "0.75rem",
-                                marginTop: "2px",
-                                fontWeight: "bold",
-                                color:
-                                  optimizations.filter((o) =>
-                                    checkActivityDone(module.moduleId, o.id),
-                                  ).length === optimizations.length
-                                    ? "#22c55e"
-                                    : "#d35400",
-                              }}
-                            >
-                              {
-                                optimizations.filter((o) =>
-                                  checkActivityDone(module.moduleId, o.id),
-                                ).length
-                              }{" "}
-                              / {optimizations.length} Challenges Done
+                          <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>â˜…</span>
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
+                            <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? "#22c55e" : "#d35400" }}>
+                              {optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length} / {optimizations.length} Challenges Done
                             </span>
                           </div>
                         </div>
                         <div className="lesson-actions">
                           <button
                             className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`}
-                            style={{
-                              backgroundColor: optimizationsLocked
-                                ? ""
-                                : "#f39c12",
-                            }}
+                            style={{ backgroundColor: optimizationsLocked ? "" : "#f39c12" }}
                             disabled={optimizationsLocked}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!optimizationsLocked)
-                                navigate(
-                                  `/activity/${module.moduleId}/${optimizations[0].id}`,
-                                );
+                              if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
                             }}
                           >
                             Start Challenges
                           </button>
                         </div>
                         <span className="lesson-status-icon">
-                          {optimizationsLocked ? (
-                            <FiLock color="#bdbdbd" />
-                          ) : optimizations.filter((o) =>
-                              checkActivityDone(module.moduleId, o.id),
-                            ).length === optimizations.length ? (
-                            <FiCheckCircle color="#22c55e" />
-                          ) : (
-                            <FiCircle color="#f39c12" />
-                          )}
+                          {optimizationsLocked ? <FiLock color="#bdbdbd" /> : optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#f39c12" />}
                         </span>
                       </div>
                     )}
 
-                    <div
-                      className={`assessment-row post ${postComplete ? "done" : postAssessmentLocked ? "locked" : "pending"}`}
-                    >
+                    <div className={`assessment-row post ${postComplete ? "done" : postAssessmentLocked ? "locked" : "pending"}`}>
                       <div className="assessment-row-left">
                         <FiClipboard size={16} />
-                        <span className="assessment-row-label">
-                          Quiz
-                        </span>
-                        {postScore !== null && (
-                          <span className="assessment-score-badge post">
-                            {postScore}%
-                          </span>
-                        )}
-                        {postAssessmentLocked && (
-                          <span className="assessment-gate-note">
-                            (Complete all lessons first)
-                          </span>
-                        )}
+                        <span className="assessment-row-label">Quiz</span>
+                        {postScore !== null && <span className="assessment-score-badge post">{postScore}%</span>}
+                        {postAssessmentLocked && <span className="assessment-gate-note">(Complete all lessons first)</span>}
                       </div>
                       <div className="assessment-row-right">
                         {postAssessmentLocked ? (
@@ -5636,6 +5745,55 @@ export default function LearningPath() {
               </div>
             );
           })}
+
+          {/* ========================================== */}
+          {/* GLOBAL POST-TEST BANNER                  */}
+          {/* ========================================== */}
+          <div className={`module-card-v2 ${!isGlobalPostTestUnlocked ? "locked" : ""}`} style={{ border: "2px solid #f59e0b", marginTop: "30px", background: "linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
+            <div className="module-card-icon" style={{ backgroundColor: "#f59e0b15" }}>
+              {isGlobalPostTestUnlocked ? <FiAward size={32} color="#f59e0b" /> : <FiLock size={32} color="#64748b" />}
+            </div>
+            <div className="module-card-content" style={{ paddingRight: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
+                <div style={{ flex: 1 }}>
+                  <h3 className="module-card-title" style={{ margin: "0 0 8px 0", color: !isGlobalPostTestUnlocked ? "#64748b" : "" }}>Comprehensive Course Post-Test</h3>
+                  <p className="module-card-description" style={{ margin: 0, color: "#94a3b8" }}>
+                    {!isGlobalPostTestUnlocked 
+                      ? "Complete all modules and their respective quizzes to unlock the final exam." 
+                      : "The final challenge! Prove your mastery of all concepts covered in the curriculum."}
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+                  {isGlobalPostTestDone && (
+                    <span style={{ fontWeight: "bold", fontSize: "1.2rem", color: "#22c55e" }}>{globalPostTestScore}%</span>
+                  )}
+                  {!isGlobalPostTestUnlocked ? (
+                    <button className="btn-assessment start disabled" disabled style={{ padding: "12px 24px", fontSize: "1rem", backgroundColor: "#334155", color: "#94a3b8" }}>
+                      <FiLock style={{ marginRight: "8px" }} /> Locked
+                    </button>
+                  ) : isGlobalPostTestDone ? (
+                    <button
+                      className="btn-assessment retake"
+                      onClick={() => navigate(`/assessment/course-post-test/post`)}
+                      style={{ padding: "10px 20px" }}
+                    >
+                      <FiCheckCircle style={{ marginRight: "8px" }} />
+                      Retake Final Exam
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-assessment start"
+                      onClick={() => navigate(`/assessment/course-post-test/post`)}
+                      style={{ padding: "12px 24px", fontSize: "1rem", backgroundColor: "#f59e0b", color: "#1e293b", fontWeight: "bold" }}
+                    >
+                      Start Final Exam
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -5665,7 +5823,6 @@ import curriculumIndex from "../data/curriculumIndex";
 import { assessmentsDB, progressDB } from "../db";
 import "../styles/LessonViewer.css";
 
-// Utility to parse **bold** text in JSON strings
 function formatText(text) {
   if (!text) return null;
   const parts = text.split(/(\*\*.*?\*\*)/g);
@@ -5677,7 +5834,6 @@ function formatText(text) {
   });
 }
 
-// FIXED: Now properly handles single \n characters to preserve bullet point lists
 function renderParagraphs(content, className = "lesson-section-content") {
   if (!content) return null;
 
@@ -5686,13 +5842,10 @@ function renderParagraphs(content, className = "lesson-section-content") {
       {content.split("\n\n").map((paragraph, index) => {
         const lines = paragraph.split("\n");
 
-        // Check if any line in this paragraph block starts with a bullet (* or -)
         const hasBullets = lines.some(
-          (line) =>
-            line.trim().startsWith("* ") || line.trim().startsWith("- "),
+          (line) => line.trim().startsWith("* ") || line.trim().startsWith("- "),
         );
 
-        // If no bullets, render normally with line breaks
         if (!hasBullets) {
           return (
             <p key={index}>
@@ -5706,30 +5859,26 @@ function renderParagraphs(content, className = "lesson-section-content") {
           );
         }
 
-        // If bullets exist, group them into an actual <ul> HTML list
         const elements = [];
         let currentList = [];
 
         lines.forEach((line, i) => {
           const trimmed = line.trim();
           if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
-            // Remove the asterisk/dash and push to the active list
             currentList.push(
               <li key={`li-${i}`}>
                 {formatText(trimmed.substring(2).trim())}
               </li>,
             );
           } else {
-            // If we hit regular text, render any accumulated bullets first
             if (currentList.length > 0) {
               elements.push(
                 <ul key={`ul-${i}`} className="lesson-bullet-list">
                   {currentList}
                 </ul>,
               );
-              currentList = []; // Reset list tracker
+              currentList = [];
             }
-            // Add the normal text line
             elements.push(
               <span key={`span-${i}`}>
                 {formatText(line)}
@@ -5739,7 +5888,6 @@ function renderParagraphs(content, className = "lesson-section-content") {
           }
         });
 
-        // Catch any trailing list items at the end of the block
         if (currentList.length > 0) {
           elements.push(
             <ul key="ul-end" className="lesson-bullet-list">
@@ -5748,7 +5896,6 @@ function renderParagraphs(content, className = "lesson-section-content") {
           );
         }
 
-        // Return a div (instead of p) because nesting <ul> inside <p> is invalid HTML
         return (
           <div key={index} style={{ marginBottom: "1em" }}>
             {elements}
@@ -5764,7 +5911,18 @@ function renderBullets(items) {
   return (
     <ul className="lesson-bullet-list">
       {items.map((item, index) => (
-        <li key={index}>{formatText(item)}</li>
+        <li key={index}>
+          {item.split("\n\n").map((paragraph, pIndex, pArray) => (
+            <div key={pIndex} style={{ marginBottom: pIndex !== pArray.length - 1 ? "0.5em" : "0" }}>
+              {paragraph.split("\n").map((line, lIndex, lArray) => (
+                <span key={lIndex}>
+                  {formatText(line)}
+                  {lIndex !== lArray.length - 1 && <br />}
+                </span>
+              ))}
+            </div>
+          ))}
+        </li>
       ))}
     </ul>
   );
@@ -5794,11 +5952,7 @@ function renderChart(chart) {
           {chart.description && <span>{formatText(chart.description)}</span>}
         </figcaption>
       )}
-      <BigOChart
-        maxN={chart.maxN}
-        curves={chart.curves}
-        normalize={chart.normalize}
-      />
+      <BigOChart maxN={chart.maxN} curves={chart.curves} normalize={chart.normalize} />
     </figure>
   );
 }
@@ -5810,13 +5964,13 @@ export default function LessonViewer() {
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedModules, setExpandedModules] = useState(new Set([moduleId]));
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   const [userProgress, setUserProgress] = useState({});
   const [lessonDetails, setLessonDetails] = useState({});
   const [activitiesData, setActivitiesData] = useState({});
   const [assessments, setAssessments] = useState({});
 
-  // ADMIN OVERRIDE FLAG
   const storedUser = JSON.parse(
     localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
   );
@@ -5841,17 +5995,11 @@ export default function LessonViewer() {
 
         if (navigator.onLine && storedUser.email && !storedUser.isGuest) {
           try {
-            const token =
-              localStorage.getItem("authToken") ||
-              sessionStorage.getItem("authToken");
+            const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
             const headers = { "Content-Type": "application/json" };
-            if (token) {
-              headers["Authorization"] = `Bearer ${token}`;
-            }
+            if (token) headers["Authorization"] = `Bearer ${token}`;
 
-            const progRes = await fetch(`${API_BASE}/api/get-progress`, {
-              headers,
-            });
+            const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
             if (progRes.ok) {
               const data = await progRes.json();
               const progData = data.progress || data;
@@ -5861,9 +6009,7 @@ export default function LessonViewer() {
               }
             }
 
-            const assRes = await fetch(`${API_BASE}/api/get-assessments`, {
-              headers,
-            });
+            const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
             if (assRes.ok) {
               const data = await assRes.json();
               const assData = data.assessments || data;
@@ -5927,8 +6073,7 @@ export default function LessonViewer() {
 
         const fetchPath = `/data/curriculum/${moduleId}/${lessonId}.json`;
         const response = await fetch(fetchPath);
-        if (!response.ok)
-          throw new Error(`Failed to fetch lesson: ${response.status}`);
+        if (!response.ok) throw new Error(`Failed to fetch lesson: ${response.status}`);
 
         const data = await response.json();
         setLesson(data);
@@ -5941,10 +6086,7 @@ export default function LessonViewer() {
     loadLesson();
   }, [moduleId, lessonId]);
 
-  const hasPreAssessment = (mId) =>
-    assessments[`${mId}_pre_assessment`] !== undefined;
-  const hasPostAssessment = (mId) =>
-    assessments[`${mId}_post_assessment`] !== undefined;
+  const hasPostAssessment = (mId) => assessments[`${mId}_post_assessment`] !== undefined;
 
   const isModuleComplete = (mId) => {
     const module = curriculumIndex.find((m) => m.moduleId === mId);
@@ -5952,28 +6094,30 @@ export default function LessonViewer() {
     return module.lessons.every((l) => {
       const details = lessonDetails[l.lessonId];
       const firstActivityId = details?.activities?.[0]?.id;
-      if (!firstActivityId) return true;
-      return (userProgress[l.lessonId] || 0) >= 1;
+      if (!firstActivityId) return (userProgress[l.lessonId] || 0) >= 1;
+      return (userProgress[l.lessonId] || 0) >= 1; 
     });
   };
 
   const buildLockMap = () => {
     const lockMap = {};
+    const isGlobalPreTestDone = assessments["course-pre-test_pre_assessment"] !== undefined;
+    let isNextLocked = isAdmin ? false : !isGlobalPreTestDone;
+
     for (const module of curriculumIndex) {
-      const preComplete = hasPreAssessment(module.moduleId);
-      let isNextLocked = !preComplete;
       for (const l of module.lessons) {
-        // ADMIN OVERRIDE FOR SIDEBAR
         lockMap[l.lessonId] = isAdmin ? false : isNextLocked;
         if (!isNextLocked) {
           const details = lessonDetails[l.lessonId];
           const firstActivityId = details?.activities?.[0]?.id;
           const prog = userProgress[l.lessonId] || 0;
-          if (firstActivityId && prog < 1) {
+          if (prog < 1) {
             isNextLocked = true;
           }
         }
       }
+      const postComplete = hasPostAssessment(module.moduleId);
+      if (!postComplete && !isAdmin) isNextLocked = true;
     }
     return lockMap;
   };
@@ -5993,19 +6137,16 @@ export default function LessonViewer() {
   const lessonNum = lessonId?.split("-").pop();
   const currentActivityId = lesson?.activities?.[0]?.id;
 
-  if (loading || Object.keys(lessonDetails).length === 0) {
+  if (Object.keys(lessonDetails).length === 0) {
     return <div className="lesson-loading">Loading curriculum data...</div>;
   }
 
   return (
     <div className="lesson-viewer-wrapper">
-      <aside className="lesson-modules-sidebar">
+      <aside className={`lesson-modules-sidebar ${!isSidebarVisible ? "hidden" : ""}`}>
         <div className="sidebar-header">
-          <button
-            className="back-button"
-            onClick={() => navigate("/learning-path")}
-          >
-            <FiChevronLeft /> Back to Dashboard
+          <button className="back-button" onClick={() => navigate("/learning-path")}>
+            <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
           </button>
         </div>
         <div className="modules-header">
@@ -6015,22 +6156,15 @@ export default function LessonViewer() {
           {curriculumIndex.map((module) => {
             const modNumber = module.moduleId.split("-").pop();
             const isExpanded = expandedModules.has(module.moduleId);
-            const preComplete = hasPreAssessment(module.moduleId);
             const modComplete = isModuleComplete(module.moduleId);
             const postComplete = hasPostAssessment(module.moduleId);
 
-            const optimizations =
-              activitiesData[module.moduleId]?.optimizations || [];
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
             const hasOptimizations = optimizations.length > 0;
-            const lastLessonId =
-              module.lessons[module.lessons.length - 1]?.lessonId;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
 
-            // ADMIN OVERRIDES FOR OPTIMIZATION AND Quiz
-            const optimizationsLocked = isAdmin
-              ? false
-              : lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
-            const postAssessmentUnlocked =
-              isAdmin || modComplete || postComplete;
+            const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
+            const postAssessmentUnlocked = isAdmin || modComplete || postComplete;
 
             return (
               <div key={module.moduleId} className="module-group">
@@ -6042,55 +6176,15 @@ export default function LessonViewer() {
                     <FiBookOpen className="module-icon" />
                     <span>
                       <span className="module-number">Module {modNumber}</span>
-                      <span
-                        className="module-name"
-                        style={{ fontSize: "0.85rem" }}
-                      >
-                        {module.title}
-                      </span>
+                      <span className="module-name" style={{ fontSize: "0.85rem" }}>{module.title}</span>
                     </span>
                   </span>
                   <span className="expand-icon">v</span>
                 </button>
 
                 {isExpanded && (
-                  <div
-                    className="lessons-list"
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "4px",
-                      padding: "8px 0",
-                    }}
-                  >
-                    <div
-                      onClick={() =>
-                        navigate(`/assessment/${module.moduleId}/pre`)
-                      }
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "10px 15px",
-                        paddingLeft: "45px",
-                        cursor: "pointer",
-                        color: preComplete ? "#22c55e" : "#2b005c",
-                        fontSize: "0.85rem",
-                        fontWeight: "bold",
-                        backgroundColor: "rgba(0,0,0,0.02)",
-                      }}
-                    >
-                      <FiClipboard size={14} />
-                      <span>Pre-Assessment</span>
-                      <span style={{ marginLeft: "auto" }}>
-                        {preComplete ? (
-                          <FiCheckCircle size={14} color="#22c55e" />
-                        ) : (
-                          <FiCircle size={14} color="#7c5cff" />
-                        )}
-                      </span>
-                    </div>
-
+                  <div className="lessons-list" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px 0" }}>
+                    
                     {module.lessons.map((lessonItem) => {
                       const lesNumber = lessonItem.lessonId.split("-").pop();
                       const isActive = lessonId === lessonItem.lessonId;
@@ -6109,28 +6203,13 @@ export default function LessonViewer() {
                           }}
                           onClick={(e) => {
                             e.preventDefault();
-                            if (!isLocked)
-                              navigate(
-                                `/learning-path/${module.moduleId}/${lessonItem.lessonId}`,
-                              );
+                            if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lessonItem.lessonId}`);
                           }}
                         >
-                          <span className="lesson-number">
-                            {modNumber}.{lesNumber}
-                          </span>
-                          <span className="lesson-title">
-                            {lessonItem.title}
-                          </span>
+                          <span className="lesson-number">{modNumber}.{lesNumber}</span>
+                          <span className="lesson-title">{lessonItem.title}</span>
                           <span className="lesson-indicator">
-                            {isLocked ? (
-                              <FiLock size={12} />
-                            ) : prog >= 1 ? (
-                              <FiCheckCircle size={12} color="#22c55e" />
-                            ) : isActive ? (
-                              "â—"
-                            ) : (
-                              "â—‹"
-                            )}
+                            {isLocked ? <FiLock size={12} /> : prog >= 1 ? <FiCheckCircle size={12} color="#22c55e" /> : isActive ? "â—" : "â—‹"}
                           </span>
                         </a>
                       );
@@ -6139,76 +6218,36 @@ export default function LessonViewer() {
                     {hasOptimizations && (
                       <div
                         onClick={() => {
-                          if (!optimizationsLocked)
-                            navigate(
-                              `/activity/${module.moduleId}/${optimizations[0].id}`,
-                            );
+                          if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
                         }}
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px",
-                          padding: "10px 15px",
-                          paddingLeft: "45px",
-                          cursor: optimizationsLocked
-                            ? "not-allowed"
-                            : "pointer",
-                          opacity: optimizationsLocked ? 0.5 : 1,
-                          color: "#d35400",
-                          fontSize: "0.85rem",
-                          fontWeight: "bold",
-                          backgroundColor: "rgba(243, 156, 18, 0.05)",
+                          display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
+                          cursor: optimizationsLocked ? "not-allowed" : "pointer", opacity: optimizationsLocked ? 0.5 : 1,
+                          color: "#d35400", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(243, 156, 18, 0.05)",
                         }}
                       >
-                        <span style={{ color: "#f39c12", fontSize: "1.1rem" }}>
-                          â˜…
-                        </span>
+                        <span style={{ color: "#f39c12", fontSize: "1.1rem" }}>â˜…</span>
                         <span>Optimization Challenges</span>
                         <span style={{ marginLeft: "auto" }}>
-                          {optimizationsLocked ? (
-                            <FiLock size={12} />
-                          ) : userProgress[
-                              `lesson-${modNumber}-optimizations`
-                            ] ? (
-                            <FiCheckCircle size={14} color="#22c55e" />
-                          ) : (
-                            <FiCircle size={14} color="#f39c12" />
-                          )}
+                          {optimizationsLocked ? <FiLock size={12} /> : userProgress[`lesson-${modNumber}-optimizations`] ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#f39c12" />}
                         </span>
                       </div>
                     )}
 
                     <div
                       onClick={() => {
-                        if (postAssessmentUnlocked)
-                          navigate(`/assessment/${module.moduleId}/post`);
+                        if (postAssessmentUnlocked) navigate(`/assessment/${module.moduleId}/post`);
                       }}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "10px 15px",
-                        paddingLeft: "45px",
-                        cursor: postAssessmentUnlocked
-                          ? "pointer"
-                          : "not-allowed",
-                        opacity: postAssessmentUnlocked ? 1 : 0.5,
-                        color: postComplete ? "#22c55e" : "#2b005c",
-                        fontSize: "0.85rem",
-                        fontWeight: "bold",
-                        backgroundColor: "rgba(0,0,0,0.02)",
+                        display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
+                        cursor: postAssessmentUnlocked ? "pointer" : "not-allowed", opacity: postAssessmentUnlocked ? 1 : 0.5,
+                        color: postComplete ? "#22c55e" : "#2b005c", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(0,0,0,0.02)",
                       }}
                     >
                       <FiClipboard size={14} />
-                      <span>Quiz</span>
+                      <span>Post-Assessment Quiz</span>
                       <span style={{ marginLeft: "auto" }}>
-                        {!postAssessmentUnlocked ? (
-                          <FiLock size={14} />
-                        ) : postComplete ? (
-                          <FiCheckCircle size={14} color="#22c55e" />
-                        ) : (
-                          <FiCircle size={14} color="#7c5cff" />
-                        )}
+                        {!postAssessmentUnlocked ? <FiLock size={14} /> : postComplete ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#7c5cff" />}
                       </span>
                     </div>
                   </div>
@@ -6220,41 +6259,27 @@ export default function LessonViewer() {
       </aside>
 
       <main className="lesson-viewer-container">
+        <div style={{ position: 'sticky', top: '50vh', zIndex: 1000, width: 0, height: 0, left: 0 }}>
+          <button className="lesson-sidebar-toggle-btn" onClick={() => setIsSidebarVisible(!isSidebarVisible)} title="Toggle Sidebar">
+            {isSidebarVisible ? <FiChevronLeft size={16} /> : <FiChevronRight size={16} />}
+          </button>
+        </div>
+
         {isCurrentLessonLocked ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              color: "#64748b",
-            }}
-          >
-            <FiLock
-              size={64}
-              style={{ marginBottom: "20px", color: "#cbd5e1" }}
-            />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b" }}>
+            <FiLock size={64} style={{ marginBottom: "20px", color: "#cbd5e1" }} />
             <h2>Lesson Locked</h2>
-            <p>
-              Please complete the pre-assessment and preceding activities to
-              unlock this lesson.
-            </p>
+            <p>Please complete the Global Course Pre-Test and preceding activities to unlock this lesson.</p>
             <button
               onClick={() => navigate("/learning-path")}
-              style={{
-                marginTop: "20px",
-                padding: "10px 20px",
-                backgroundColor: "#7c5cff",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontWeight: "bold",
-              }}
+              style={{ marginTop: "20px", padding: "10px 20px", backgroundColor: "#7c5cff", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
             >
               Return to Path
             </button>
+          </div>
+        ) : loading ? (
+          <div style={{ display: "flex", flex: 1, justifyContent: "center", alignItems: "center", height: "100%", color: "#7c5cff" }}>
+            <h3>Loading lesson content...</h3>
           </div>
         ) : (
           <>
@@ -6262,64 +6287,36 @@ export default function LessonViewer() {
               <div className="breadcrumb">
                 <a href="/learning-path">Learning Path</a>
                 <FiChevronRight className="breadcrumb-icon" />
-                <span>
-                  Module {moduleNum}: {currentModule?.title}
-                </span>
+                <span>Module {moduleNum}: {currentModule?.title}</span>
                 <FiChevronRight className="breadcrumb-icon" />
-                <span className="breadcrumb-current">
-                  Lesson {moduleNum}.{lessonNum}: {lesson?.title}
-                </span>
+                <span className="breadcrumb-current">Lesson {moduleNum}.{lessonNum}: {lesson?.title}</span>
               </div>
             </div>
 
             <div className="lesson-content-wrapper">
               <div className="lesson-header">
-                <div className="lesson-label">
-                  LESSON {moduleNum}.{lessonNum}
-                </div>
+                <div className="lesson-label">LESSON {moduleNum}.{lessonNum}</div>
                 <h1>{lesson?.title}</h1>
                 <p>{formatText(lesson?.description)}</p>
                 <div className="lesson-meta-grid">
-                  <div className="lesson-meta-card">
-                    <FiClock className="meta-icon" />
-                    <span>Estimated Time</span>
-                    <strong>{lesson?.estimatedTime}</strong>
-                  </div>
-                  <div className="lesson-meta-card">
-                    <FiBarChart2 className="meta-icon" />
-                    <span>Difficulty</span>
-                    <strong>{lesson?.difficulty}</strong>
-                  </div>
-                  <div className="lesson-meta-card">
-                    <FiTarget className="meta-icon" />
-                    <span>Prerequisites</span>
-                    <strong>{lesson?.prerequisites}</strong>
-                  </div>
+                  <div className="lesson-meta-card"><FiClock className="meta-icon" /><span>Estimated Time</span><strong>{lesson?.estimatedTime}</strong></div>
+                  <div className="lesson-meta-card"><FiBarChart2 className="meta-icon" /><span>Difficulty</span><strong>{lesson?.difficulty}</strong></div>
+                  <div className="lesson-meta-card"><FiTarget className="meta-icon" /><span>Prerequisites</span><strong>{lesson?.prerequisites}</strong></div>
                 </div>
               </div>
 
               <article className="lesson-article">
                 {lesson?.sections?.map((section) => (
-                  <section
-                    key={section.id}
-                    id={section.id}
-                    className={`lesson-section ${section.type}`}
-                  >
+                  <section key={section.id} id={section.id} className={`lesson-section ${section.type}`}>
                     <h2>{section.title}</h2>
                     {renderParagraphs(section.content)}
                     {renderBullets(section.bullets)}
                     {renderChart(section.chart)}
                     {renderCodeSnippets(section.codeSnippets)}
                     {section.subsections?.map((subsection) => (
-                      <div
-                        key={subsection.id || subsection.title}
-                        className="lesson-subsection"
-                      >
+                      <div key={subsection.id || subsection.title} className="lesson-subsection">
                         <h3>{subsection.title}</h3>
-                        {renderParagraphs(
-                          subsection.content,
-                          "lesson-subsection-content",
-                        )}
+                        {renderParagraphs(subsection.content, "lesson-subsection-content")}
                         {renderBullets(subsection.bullets)}
                         {renderChart(subsection.chart)}
                         {renderCodeSnippets(subsection.codeSnippets)}
@@ -6334,72 +6331,21 @@ export default function LessonViewer() {
                   <h2>References</h2>
                   <ul>
                     {lesson.references?.map((reference, index) => (
-                      <li key={index}>
-                        <a
-                          href={reference.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {reference.title}
-                        </a>
-                      </li>
+                      <li key={index}><a href={reference.url} target="_blank" rel="noreferrer">{reference.title}</a></li>
                     ))}
                   </ul>
                 </div>
               )}
 
               {currentActivityId && (
-                <div
-                  style={{
-                    marginTop: "50px",
-                    padding: "30px",
-                    backgroundColor: "rgba(124, 92, 255, 0.05)",
-                    borderRadius: "12px",
-                    border: "1px solid rgba(124, 92, 255, 0.3)",
-                    textAlign: "center",
-                  }}
-                >
-                  <h3
-                    style={{
-                      color: "#2b005c",
-                      marginBottom: "10px",
-                      fontSize: "1.5rem",
-                    }}
-                  >
-                    Ready to practice?
-                  </h3>
-                  <p
-                    style={{
-                      marginBottom: "25px",
-                      color: "#4b5563",
-                      fontSize: "1.05rem",
-                    }}
-                  >
-                    Put your knowledge to the test with an interactive coding
-                    activity.
-                  </p>
+                <div style={{ marginTop: "50px", padding: "30px", backgroundColor: "rgba(124, 92, 255, 0.05)", borderRadius: "12px", border: "1px solid rgba(124, 92, 255, 0.3)", textAlign: "center" }}>
+                  <h3 style={{ color: "#2b005c", marginBottom: "10px", fontSize: "1.5rem" }}>Ready to practice?</h3>
+                  <p style={{ marginBottom: "25px", color: "#4b5563", fontSize: "1.05rem" }}>Put your knowledge to the test with an interactive coding activity.</p>
                   <button
-                    onClick={() =>
-                      navigate(`/activity/${moduleId}/${currentActivityId}`)
-                    }
-                    style={{
-                      padding: "14px 28px",
-                      backgroundColor: "#7c5cff",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "6px",
-                      fontSize: "1.1rem",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                      boxShadow: "0 4px 14px rgba(124, 92, 255, 0.4)",
-                      transition: "transform 0.2s",
-                    }}
-                    onMouseOver={(e) =>
-                      (e.currentTarget.style.transform = "translateY(-2px)")
-                    }
-                    onMouseOut={(e) =>
-                      (e.currentTarget.style.transform = "translateY(0)")
-                    }
+                    onClick={() => navigate(`/activity/${moduleId}/${currentActivityId}`)}
+                    style={{ padding: "14px 28px", backgroundColor: "#7c5cff", color: "white", border: "none", borderRadius: "6px", fontSize: "1.1rem", fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 14px rgba(124, 92, 255, 0.4)", transition: "transform 0.2s" }}
+                    onMouseOver={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
+                    onMouseOut={(e) => (e.currentTarget.style.transform = "translateY(0)")}
                   >
                     Start Activity
                   </button>
@@ -9242,489 +9188,5 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
-  );
-}
-
---- FILE: frontend/src/pages/Projects.jsx ---
-
-// frontend/src/pages/Projects.jsx
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import DashboardHeader from "../components/DashboardHeader";
-import { projectsDB, syncQueueDB } from "../db";
-import "../styles/Projects.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-
-// --- Minimal Inline SVG Icons ---
-const FolderIcon = () => (
-  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-  </svg>
-);
-
-const DocumentIcon = () => (
-  <svg width="56" height="56" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
-
-export default function Projects() {
-  const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const loadProjects = async () => {
-    try {
-      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-      if (!storedUser) {
-        setLoading(false);
-        return;
-      }
-      const user = JSON.parse(storedUser);
-
-      // --- 1. PULL CLOUD DATA FIRST ---
-      if (navigator.onLine) {
-        try {
-          // FIX: Grab the token and prepare headers
-          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-          const headers = {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
-          };
-
-          // FIX: Pass the headers object into the fetch request
-          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
-          if (res.ok) {
-            const data = await res.json();
-            
-            let cloudProjects = [];
-            if (data && Array.isArray(data.projects)) {
-                cloudProjects = data.projects;
-            } else if (Array.isArray(data)) {
-                cloudProjects = data;
-            }
-
-            for (const cp of cloudProjects) {
-              if (cp.owner_id === user.email || cp.userId === user.email) {
-                await projectsDB.setItem(cp._id, { ...cp, synced: true });
-              }
-            }
-          }
-        } catch (fetchErr) {
-          console.error("Failed to fetch cloud projects:", fetchErr);
-        }
-      }
-
-      // --- 2. LOAD FROM LOCAL DB ---
-      const loadedProjects = [];
-      await projectsDB.iterate((value) => {
-        if (value.owner_id === user.email || value.userId === user.email) {
-          loadedProjects.push(value);
-        }
-      });
-      setProjects(loadedProjects.sort((a, b) => b.updatedAt - a.updatedAt));
-    } catch (error) {
-      console.error("Failed to load projects:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteProject = async (e, projectId) => {
-    e.stopPropagation();
-    const confirmDelete = window.confirm("Are you sure you want to delete this project? This action cannot be undone.");
-    if (!confirmDelete) return;
-
-    try {
-      // 1. Delete locally
-      await projectsDB.removeItem(projectId);
-
-      // 2. Queue for Cloud Sync Deletion
-      if (projectId.startsWith('local_')) {
-        await syncQueueDB.removeItem(projectId);
-      } else {
-        await syncQueueDB.setItem(`delete_${projectId}`, {
-          type: 'PROJECT',
-          action: 'DELETE',
-          data: { _id: projectId }
-        });
-      }
-
-      // 3. Update UI
-      setProjects(projects.filter(p => p._id !== projectId));
-    } catch (error) {
-      console.error("Failed to delete project:", error);
-    }
-  };
-
-  return (
-    <div className="page-container">
-      <DashboardHeader />
-
-      <div className="page-body">
-        <main className="page-main">
-          <div className="page-header-row">
-            <div>
-              <h1 className="section-title">My Projects</h1>
-              <p className="page-subtitle">Manage and load your saved algorithm workspaces.</p>
-            </div>
-            <button className="btn-new-project-large" onClick={() => navigate('/workspace')}>
-              <PlusIcon /> Blank Workspace
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="loading-state">Loading projects...</div>
-          ) : projects.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon"><DocumentIcon /></div>
-              <h3 className="empty-title">No projects found</h3>
-              <p className="empty-desc">You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!</p>
-              <button className="btn-new-project-large" onClick={() => navigate('/workspace')}>
-                <PlusIcon /> Create First Project
-              </button>
-            </div>
-          ) : (
-            <div className="projects-grid">
-              {projects.map(proj => (
-                <div key={proj._id} className="project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
-                  <div className="project-card-header">
-                    <div className="project-icon-wrapper">
-                      <FolderIcon />
-                    </div>
-                    <button
-                      className="btn-delete"
-                      title="Delete Project"
-                      onClick={(e) => handleDeleteProject(e, proj._id)}
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                  <div className="project-details">
-                    <h3>{proj.title || proj.name || "Untitled Project"}</h3>
-                    <p>{proj.synced ? "Saved to Cloud" : "Local Draft"}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
-  );
-}
-
---- FILE: frontend/src/pages/SignIn.jsx ---
-
-import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
-import { useState } from "react";
-import { FiLock, FiMail } from "react-icons/fi";
-import { Link, useNavigate } from "react-router-dom";
-import { projectsDB, syncQueueDB, templatesDB } from "../db";
-import "../styles/Auth.css";
-
-export default function SignIn() {
-  const [email, setEmail] = useState(""); 
-  const [password, setPassword] = useState(""); 
-  const [isLoading, setIsLoading] = useState(false); 
-  const [rememberMe, setRememberMe] = useState(false);
-  
-  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
-  
-  const navigate = useNavigate(); 
-
-  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
-  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
-
-  const showToast = (message, type = "error") => {
-    setToast({ visible: true, message, type });
-    setTimeout(() => {
-      setToast({ visible: false, message: "", type: "error" });
-    }, 4000);
-  };
-
-  const syncUserCloudData = async (userEmail, token) => {
-    try {
-      await Promise.all([
-        projectsDB.clear(),
-        templatesDB.clear(),
-        syncQueueDB.clear()
-      ]); 
-
-      const headers = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      };
-
-      const [projRes, tempRes] = await Promise.all([
-        fetch(`${API_BASE}/api/projects`, { headers }),
-        fetch(`${API_BASE}/api/templates`, { headers })
-      ]); 
-
-      if (projRes.ok) {
-        const projData = await projRes.json();
-        if (projData.status === 'success') {
-          for (let p of projData.projects) {
-            if (p.owner_id === userEmail) {
-              await projectsDB.setItem(p._id, { ...p, synced: true });
-            }
-          }
-        }
-      } 
-
-      if (tempRes.ok) {
-        const tempData = await tempRes.json();
-        if (tempData.status === 'success') {
-          for (let t of tempData.templates) {
-            if (t.owner_id === userEmail) {
-              await templatesDB.setItem(t._id, { ...t, synced: true });
-            }
-          }
-        }
-      } 
-    } catch (error) {
-      console.warn("Could not pull data from cloud. Proceeding with local data.", error); 
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true); 
-
-    try {
-      const response = await fetch(`${API_BASE}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      }); 
-
-      const data = await response.json(); 
-
-      if (!response.ok || data.status !== "success") {
-        showToast(data.detail || "Invalid email or password"); 
-        setIsLoading(false);
-        return;
-      }
-
-      const activeStorage = rememberMe ? localStorage : sessionStorage;
-      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
-      
-      // FIX: Wipe BOTH key variations from the inactive storage to prevent leakage
-      inactiveStorage.removeItem("authToken");
-      inactiveStorage.removeItem("token");
-      inactiveStorage.removeItem("user");
-
-      // FIX: Save BOTH key variations to active storage so ALL pages pass auth checks
-      activeStorage.setItem("authToken", data.token);
-      activeStorage.setItem("token", data.token);
-      
-      // Save full user object to ensure offline loading functions properly
-      activeStorage.setItem("user", JSON.stringify({
-        email: data.email,
-        name: data.name,
-        progress: data.progress || {},
-        assessments: data.assessments || {}
-      })); 
-
-      await syncUserCloudData(data.email, data.token); 
-      navigate("/dashboard"); 
-      
-    } catch (error) {
-      console.error(error); 
-      showToast("Server not reachable. Check backend connection."); 
-    } finally {
-      setIsLoading(false); 
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    setIsLoading(true); 
-    try {
-      await Promise.all([
-        projectsDB.clear(),
-        templatesDB.clear(),
-        syncQueueDB.clear()
-      ]); 
-
-      // FIX: Wipe ALL token keys
-      localStorage.removeItem("authToken");
-      sessionStorage.removeItem("authToken");
-      localStorage.removeItem("token");
-      sessionStorage.removeItem("token");
-
-      sessionStorage.setItem("user", JSON.stringify({
-        email: `guest_${Date.now()}@algoblocks.local`,
-        name: "Guest User",
-        isGuest: true,
-        progress: {},
-        assessments: {}
-      })); 
-
-      navigate("/dashboard"); 
-    } catch (error) {
-      console.error("Guest login failed:", error); 
-      showToast("Failed to initialize guest session.");
-    } finally {
-      setIsLoading(false); 
-    }
-  };
-
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: credentialResponse.credential }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || data.status !== "success") {
-        showToast(data.detail || "Google authentication failed");
-        return;
-      }
-
-      const activeStorage = rememberMe ? localStorage : sessionStorage;
-      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
-      
-      // FIX: Wipe BOTH key variations from inactive storage
-      inactiveStorage.removeItem("authToken");
-      inactiveStorage.removeItem("token");
-      inactiveStorage.removeItem("user");
-
-      // FIX: Save BOTH key variations so ALL pages pass auth checks
-      activeStorage.setItem("authToken", data.token);
-      activeStorage.setItem("token", data.token);
-      
-      // Save full user object to ensure offline loading functions properly
-      activeStorage.setItem("user", JSON.stringify({
-        email: data.email,
-        name: data.name,
-        progress: data.progress || {},
-        assessments: data.assessments || {}
-      }));
-
-      await syncUserCloudData(data.email, data.token);
-      navigate("/dashboard");
-      
-    } catch (error) {
-      console.error("Google Authentication error:", error);
-      showToast("Server not reachable. Check backend connection.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
-        {toast.message}
-      </div>
-
-      <div className="auth-container">
-        <div className="auth-card">
-          <h2>Sign In to AlgoBlocks</h2>
-          <form onSubmit={handleSubmit}>
-            
-            <div className="form-group">
-              <label>Email</label>
-              <div className="auth-input-wrap">
-                <FiMail className="auth-input-icon" aria-hidden="true" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  required
-                  disabled={isLoading}
-                /> 
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label>Password</label>
-              <div className="auth-input-wrap">
-                <FiLock className="auth-input-icon" aria-hidden="true" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  disabled={isLoading}
-                /> 
-              </div>
-            </div>
-            
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                disabled={isLoading}
-                style={{ cursor: "pointer", width: "16px", height: "16px" }}
-              />
-              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
-                Stay signed in
-              </label>
-            </div>
-            
-            <button type="submit" className="auth-button" disabled={isLoading}>
-              {isLoading ? "Signing In..." : "Sign In"}
-            </button> 
-
-            <div className="social-divider">
-              <span>OR</span>
-            </div> 
-
-            <div className="google-auth-wrapper">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => showToast("Google Sign-In sequence interrupted.")}
-                theme="outline" 
-                size="large"
-                shape="rectangular"
-                text="signin_with"
-              />
-            </div>
-
-            <button
-              type="button"
-              className="auth-button guest-button"
-              onClick={handleGuestLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? "Preparing..." : "Continue as Guest"}
-            </button> 
-
-          </form>
-
-          <div className="auth-links">
-            <Link to="/forgot-password">Forgot password?</Link>
-            <p>Don't have an account? <Link to="/signup">Sign up</Link></p>
-          </div> 
-        </div>
-      </div>
-    </GoogleOAuthProvider>
   );
 }

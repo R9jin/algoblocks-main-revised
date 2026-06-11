@@ -1,7 +1,462 @@
 ﻿--- PROJECT SNAPSHOT (PART 4 OF 10) ---
 
---- TIMESTAMP: 2026-06-10 12:10:08 ---
+--- TIMESTAMP: 2026-06-10 22:58:01 ---
 
+
+--- FILE: frontend/public/data/curriculum/module-3/lesson-3-1.json ---
+
+{
+  "lessonId": "lesson-3-1",
+  "moduleId": "module-3",
+  "title": "Divide and Conquer Strategy & The Call Stack",
+  "description": "Learn how **Divide and Conquer** reduces large computational problems into **smaller independent subproblems** and why **recursive decomposition** leads to scalable algorithms. Visualize how memory physically stacks during recursion.",
+  "difficulty": "Beginner",
+  "estimatedTime": "45 min",
+  "prerequisites": "Brute Force Strategy",
+  "tags": [
+    "divide and conquer",
+    "recursion",
+    "algorithm strategies",
+    "call stack"
+  ],
+  "activities": [
+    {
+      "id": "m3_l1_a1",
+      "title": "The Base Case Stack Frame"
+    },
+    {
+      "id": "m3_l1_a2",
+      "title": "Drawing Fractal Trees"
+    },
+    {
+      "id": "m3_l1_a3",
+      "title": "Nested Geometric Spirals"
+    },
+    {
+      "id": "m3_l1_a4",
+      "title": "Sierpinski Triangle Visualizer"
+    },
+    {
+      "id": "m3_l1_a5",
+      "title": "Koch Curve Decomposition"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction to Divide and Conquer",
+      "content": "Some computational problems become infinitely complex when treated as one massive task.\nInstead of attacking the entire problem directly, programmers use a powerful structural strategy called **Divide and Conquer**. This technique aggressively breaks the main problem down into smaller, identical subproblems until they become simple enough to solve instantly.\n\nThink about searching a physical dictionary for a word:\n* **Linear approach:** You flip page 1, page 2, page 3, checking every word. This takes hours.\n* **Divide and Conquer:** You open to the exact middle. If your word is alphabetically later, you tear the book in half, throw away the first half, and repeat the process on the remaining pages.\n\nBecause the problem shrinks so rapidly, Divide and Conquer algorithms often run in **O(log n)** or **O(n log n)** time. When block sequences are parsed into an Abstract Syntax Tree (AST) and evaluated line-by-line, you can actively watch the required computational steps drop logarithmically with each division. Understanding this physical decomposition is the first step toward high-performance software engineering."
+    },
+    {
+      "id": "why-divide-and-conquer-matters",
+      "type": "concept",
+      "title": "Why Divide and Conquer Matters",
+      "content": "As data scales into the millions and billions, brute-force sequential loops physically fail. They take too much time and use too much processing power.\n\nDivide and Conquer is the theoretical foundation that makes modern computing possible.\n* Every time you query a massive database, it uses Divide and Conquer (via B-Trees) to find your data instantly.\n* Every time your operating system sorts thousands of files by size, it uses Divide and Conquer algorithms (like Merge Sort or Quick Sort) to prevent the CPU from freezing.\n* Advanced graphics rendering, physics engines, and networking protocols all rely on recursively breaking down large spatial or data structures.\n\nBy mastering this approach, you transition from writing code that merely *works* to writing code that *scales*. You stop looking at problems as a flat list of tasks and start seeing them as nested layers of identical, smaller tasks.",
+      "bullets": [
+        "It aggressively **reduces execution time** from linear to logarithmic.",
+        "It naturally translates into **recursive functions**.",
+        "It is the backbone of the world's **fastest sorting and searching algorithms**.",
+        "It allows processing of datasets that are otherwise **too large to compute**."
+      ]
+    },
+    {
+      "id": "the-three-steps",
+      "type": "deep_dive",
+      "title": "The Three Core Steps",
+      "content": "Every Divide and Conquer algorithm follows a strict, repeating three-step architecture. This is not just a concept; it is the physical sequence the computer executes.",
+      "subsections": [
+        {
+          "id": "step-1-divide",
+          "title": "1. Divide",
+          "content": "The algorithm splits the original problem into two or more smaller subproblems. The subproblems must be absolutely identical in nature to the original problem, just smaller in scale. For example, slicing an array directly in half, or splitting a geometric line into thirds."
+        },
+        {
+          "id": "step-2-conquer",
+          "title": "2. Conquer (Recursion)",
+          "content": "The algorithm solves the subproblems by calling itself recursively. It keeps dividing and calling itself until it hits a **Base Case**â€”a problem so fundamentally small that it requires no computation to solve (e.g., an array with only 1 item is naturally sorted; a line of length 1 pixel cannot be divided further)."
+        },
+        {
+          "id": "step-3-combine",
+          "title": "3. Combine",
+          "content": "Once the smallest base cases are solved, the algorithm merges the answers back together, returning them up the chain to form the final solution to the original massive problem."
+        }
+      ]
+    },
+    {
+      "id": "visual-call-stack",
+      "type": "deep_dive",
+      "title": "Visualizing the Call Stack: Push and Pop",
+      "content": "Recursion is not magic puzzle pieces snapping togetherâ€”it is a strict, physical sequence of memory states inside the computer's RAM. Every time a recursive block executes, the underlying engine does something very specific.\n\nWhen a function calls itself, the computer pauses the *current* execution, freezes its variables, and **'pushes'** a brand new, isolated memory frame onto the **Call Stack** to track the new subproblem.\n\nWhen a subproblem finally hits the base case, the computer **'pops'** that frame off the top of the stack, destroying it, and passes the result down to the frozen function below it, waking it up.\n\nIf you do not define a base case, the computer will push frames onto the stack infinitely until the physical memory limit is breached, resulting in a **Stack Overflow Error**."
+    },
+    {
+      "id": "visual-tracing-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Call Stack Trace",
+      "content": "Let's trace a highly visual recursion task: drawing a shrinking geometric spiral. Imagine a function `draw_spiral(size)` that draws a line, turns 90 degrees, and calls itself with a smaller size until the size is 0.\n\nWe start by calling `draw_spiral(3)`:\n\n**Step 1: Pushing onto the Stack**\n* **Frame 1 (Push):** `draw_spiral(3)` is added to the stack. It draws a line of length 3, turns, then calls `draw_spiral(2)`. Frame 1 is now suspended in memory.\n* **Frame 2 (Push):** `draw_spiral(2)` is added to the stack. It draws a line of length 2, turns, then calls `draw_spiral(1)`. Frame 2 is suspended.\n* **Frame 3 (Push):** `draw_spiral(1)` is added to the stack. It draws a line of length 1, turns, then calls `draw_spiral(0)`. Frame 3 is suspended.\n\n**Step 2: Hitting the Base Case**\n* **Frame 4 (Base Case!):** `draw_spiral(0)` is called. The logic states \"If size is 0, stop.\" No drawing happens. No further recursive calls are made.\n\n**Step 3: Popping off the Stack**\n* **Frame 4 (Pop):** `draw_spiral(0)` finishes its sequence and is instantly cleared from memory.\n* **Frame 3 (Pop):** `draw_spiral(1)` wakes up, realizes it has no more blocks to execute, finishes, and is popped.\n* **Frame 2 (Pop):** `draw_spiral(2)` finishes and is popped.\n* **Frame 1 (Pop):** `draw_spiral(3)` finishes. The call stack is completely empty. The visual spiral is complete on screen."
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation of Recursive Decomposition",
+      "content": "To implement Divide and Conquer, your code must explicitly separate the base case from the recursive case. The base case acts as the emergency brake for the call stack.\n\nThe code snippets below demonstrate how physical tasks, like drawing nested geometric shapes or summing arrays, are decomposed. Notice how the function physically calls its own name inside its own logic block.",
+      "codeSnippets": [
+        {
+          "title": "Recursive Spiral Drawing (Conceptual)",
+          "language": "python",
+          "code": "def draw_spiral(size):\n    # 1. Base Case: Stop dividing\n    if size <= 0:\n        return\n    \n    # 2. Work for this specific frame\n    draw_forward(size)\n    turn_right(90)\n    \n    # 3. Conquer: Recursive Call with a smaller subproblem\n    draw_spiral(size - 1)\n\n# Initiate the first stack frame\ndraw_spiral(5)"
+        },
+        {
+          "title": "Divide & Conquer Array Summation",
+          "language": "python",
+          "code": "def recursive_sum(arr):\n    # Base Case: Array is empty\n    if len(arr) == 0:\n        return 0\n    \n    # Base Case: Array has 1 element\n    if len(arr) == 1:\n        return arr[0]\n        \n    # Divide: Split array in half\n    mid = len(arr) // 2\n    left_half = arr[:mid]\n    right_half = arr[mid:]\n    \n    # Conquer & Combine: Sum both halves recursively\n    return recursive_sum(left_half) + recursive_sum(right_half)\n\nprint(recursive_sum([2, 4, 6, 8]))"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis & Scalability",
+      "content": "The true power of Divide and Conquer lies in its time complexity. By halving the problem space at each step, you change the nature of the algorithm's growth from linear `O(n)` to logarithmic `O(log n)` or linearithmic `O(n log n)`.\n\nIf an algorithm repeatedly divides an array of size `n` in half, the recursion tree has a depth of exactly `log base 2 of n`. \n* For 8 items, it takes 3 divisions to reach size 1.\n* For 1,000,000 items, it takes only 20 divisions.\n\nWhile the time complexity becomes incredibly efficient, it is vital to remember the **Space Complexity**. Because the computer pushes a new frame onto the stack for every recursive call, a Divide and Conquer algorithm will consume memory proportional to its maximum stack depth. An algorithm that divides by half uses **O(log n) stack memory**. This is highly efficient, but not completely free.",
+      "chart": {
+        "title": "Impact of Recursive Halving",
+        "description": "Logarithmic growth demonstrates how dividing a problem space dramatically flattens the execution time curve as data sets scale to infinity.",
+        "maxN": 64,
+        "normalize": true,
+        "curves": [
+          "O(log n)",
+          "O(n)",
+          "O(n log n)"
+        ]
+      }
+    },
+    {
+      "id": "recursion-vs-iteration",
+      "type": "concept",
+      "title": "Recursion vs. Iteration",
+      "content": "Anything that can be written recursively can also be written iteratively using `for` or `while` loops. So why use Recursion and Divide and Conquer?\n\n1.  **State Management:** Loops require you to manually track variables, counters, and boundaries. Recursion delegates state management entirely to the computer's Call Stack. The memory frame inherently remembers where it was.\n2.  **Tree Structures:** When dealing with branching data (like a file system on a computer, or a visual Fractal Tree), iterative loops become incredibly complex and messy. Recursion naturally traverses branching structures because each branch maps perfectly to a recursive call.\n3.  **Readability:** Divide and Conquer algorithms written recursively are mathematically elegant. They map perfectly to the logical definition of the problem.\n\nHowever, iterative approaches use **O(1) memory**, completely bypassing the overhead of the Call Stack. For linear tasks, loops are better. For branching tasks and massive data halving, recursive Divide and Conquer reigns supreme."
+    },
+    {
+      "id": "applications",
+      "type": "real_world_connection",
+      "title": "Real-World Applications",
+      "content": "This strategy is the backbone of many core computer science technologies:\n\n* **Database Searching:** Relational databases (like SQL or NoSQL document stores) use B-Trees, which rely heavily on Divide and Conquer to find user records instantly among billions of rows.\n* **System Sorting:** When you sort files on your computer by date or size, the operating system uses Divide and Conquer algorithms (like Merge Sort or Quick Sort) because brute-force sorting would freeze the computer.\n* **Graphics Pipelines:** Rendering complex 3D environments often involves spatially dividing the screen into smaller bounding boxes to calculate lighting and collisions efficiently."
+    },
+    {
+      "id": "advantages-limitations",
+      "type": "concept",
+      "title": "Advantages and Limitations",
+      "subsections": [
+        {
+          "id": "advantages",
+          "title": "Advantages",
+          "bullets": [
+            "Provides **dramatic performance increases** for massive datasets.",
+            "Simplifies the logic for handling **branching data** and trees.",
+            "Delegates state management naturally to the **memory stack**.",
+            "Enables highly parallel processing (different CPU cores can handle different branches)."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "bullets": [
+            "Consumes physical **stack memory** (Space complexity overhead).",
+            "Missing a base case causes catastrophic **system crashes**.",
+            "Can be highly abstract and difficult to debug without tracing.",
+            "Slower than loops for very small datasets due to function call overhead."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Misconceptions",
+      "subsections": [
+        {
+          "id": "magic-puzzle",
+          "title": "Mistake: Treating Recursion like Magic Puzzle Pieces",
+          "content": "Beginners often write recursive calls without tracing them, hoping the code just works. Recursion is not magic; it is a rigid sequence of pushes and pops on a memory stack. If you cannot physically trace the exact state of the stack on a piece of paper, you do not fully understand the algorithm's execution."
+        },
+        {
+          "id": "forgetting-base-case",
+          "title": "Mistake: The Infinite Stack (Missing Base Case)",
+          "content": "Forgetting the base case is the most common and fatal error. The computer is obedient; it will continue allocating memory for new stack frames until it completely runs out of physical RAM, immediately crashing your program with a Stack Overflow Error."
+        },
+        {
+          "id": "confusing-dc-and-dp",
+          "title": "Misconception: All recursion is Divide and Conquer",
+          "content": "Some recursive algorithms solve the *exact same* subproblem over and over again redundantly (like naive Fibonacci calculation). Divide and Conquer strictly implies that the subproblems are **independent** and non-overlapping. Overlapping recursion requires a completely different strategy called Dynamic Programming."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
+      "type": "summary",
+      "title": "Key Takeaways",
+      "bullets": [
+        "Divide and Conquer solves large problems through strict **recursive decomposition**.",
+        "The architecture is exactly three steps: **Divide, Conquer, Combine**.",
+        "The **Call Stack** physically manages the suspended states of subproblems.",
+        "A missing **Base Case** guarantees a Stack Overflow memory crash.",
+        "Replacing mathematical abstraction with **visual fractal tracing** exposes the true nature of the stack.",
+        "Decomposition transforms linear execution times into highly scalable **logarithmic times**."
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "Programiz - Divide and Conquer Algorithm",
+      "url": "https://www.programiz.com/dsa/divide-and-conquer"
+    },
+    {
+      "title": "GeeksforGeeks - Introduction to Divide and Conquer",
+      "url": "https://www.geeksforgeeks.org/introduction-to-divide-and-conquer-algorithm/"
+    },
+    {
+      "title": "VisuAlgo - Recursion Trees",
+      "url": "https://visualgo.net/en/recursion"
+    }
+  ]
+}
+
+--- FILE: frontend/public/data/curriculum/module-3/lesson-3-2.json ---
+
+{
+  "lessonId": "lesson-3-2",
+  "moduleId": "module-3",
+  "title": "Binary Search & Pointer Tracking",
+  "description": "Learn how **Binary Search** uses **Divide and Conquer** to repeatedly halve a sorted search space. Master the physical tracking of low, high, and mid pointers, and visualize the logarithmic reduction in execution time.",
+  "difficulty": "Beginner",
+  "estimatedTime": "45 min",
+  "prerequisites": "Divide and Conquer Strategy",
+  "tags": [
+    "binary search",
+    "searching",
+    "divide and conquer",
+    "pointers",
+    "call stack"
+  ],
+  "activities": [
+    {
+      "id": "m3_l2_a1",
+      "title": "Visual Array Halving"
+    },
+    {
+      "id": "m3_l2_a2",
+      "title": "The 1000-Page Dictionary Flip"
+    },
+    {
+      "id": "m3_l2_a3",
+      "title": "Tracing the Midpoint Pointer"
+    },
+    {
+      "id": "m3_l2_a4",
+      "title": "Recursive Binary Search Stack"
+    },
+    {
+      "id": "m3_l2_a5",
+      "title": "Logarithmic Decay Graphing"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction to Binary Search",
+      "content": "**Binary Search** is an efficient searching algorithm used to locate a specific element inside a **sorted array**.\nInstead of checking elements one by one like a sequential linear search, Binary Search applies the Divide and Conquer strategy to aggressively eliminate data. It works by:\n1.  **Finding the middle element** of the current search space.\n2.  **Comparing it** with the target.\n3.  **Removing half** of the remaining search space entirely.\n\nImagine searching for a specific word in a 1000-page dictionary:\n* **Linear search** would check page 1, 2, 3, up to 1000 in the worst case.\n* **Binary search** opens the book to page 500, decides whether the target word is alphabetically before or after, and **physically discards 500 pages instantly**.\n* It then opens to page 250 or 750, discarding another 250 pages.\n* Within just 10 page turns, you have found the exact word.\n\nWhen block sequences are evaluated line-by-line via AST parsing, you can actively watch the required computational steps drop logarithmically with each division. This makes Binary Search one of the most fundamentally important algorithms for scalable software."
+    },
+    {
+      "id": "why-binary-search-matters",
+      "type": "concept",
+      "title": "Why Binary Search Matters",
+      "content": "Searching is one of the most common operations in computing.\nLarge systems constantly locate records, files, usernames, database entries, and indexed values.\nEvery time you type a query into a search engine, look for a contact on your phone, or filter products on an e-commerce site, **a search algorithm is working behind the scenes**.\n\nSequential searching becomes computationally unviable as datasets grow into the millions.\n* Consider a database with 1 billion records.\n* Linear search would need up to 1 billion comparisons. The processor would stall.\n* Binary Search **improves scalability by repeatedly eliminating half of the remaining search space** after every single comparison.\n\nFor 1 billion records, binary search needs only about 30 comparisons.\nThis is the difference between a 30-second loading screen and a millisecond instant response. Binary Search introduces **logarithmic growth behavior**, which is a core concept in algorithm analysis.",
+      "bullets": [
+        "It **dramatically reduces comparisons** from billions down to dozens.",
+        "It **scales efficiently** for massive, real-world datasets.",
+        "It effectively demonstrates **Divide and Conquer** decomposition.",
+        "It introduces the power of **logarithmic growth behavior**."
+      ]
+    },
+    {
+      "id": "sorted-data-requirement",
+      "type": "deep_dive",
+      "title": "The Absolute Requirement: Sorted Data",
+      "content": "Binary Search **only works correctly when the data is sorted** in non-decreasing (or non-increasing) order.\nThis is not a suggestion; it is a rigid physical requirement of the algorithm.\nThe sorting requirement is exactly what **enables the halving strategy**.\n\nFor example, the array `[2, 4, 6, 8, 10, 12]` allows the algorithm to safely eliminate half of the remaining search space. If the target is 10 and the middle element is 8, you know the target **must physically be to the right** because all elements to the left are guaranteed to be less than or equal to 8.\n\nIf the array is unsorted like `[10, 2, 8, 6, 12, 4]`, comparisons lose all meaning.\n* The middle might be 8, but the target 10 could be anywhere.\n* The algorithm may discard the wrong half of the array.\n* This makes Binary Search **completely unreliable on unordered data**.\n\nIf you have unsorted data but want to use binary search, you must sort it first. Sorting costs O(n log n) time. If you only plan to search the array once, a simple linear search might actually be faster. **If you search many times, sorting once pays off massively.**"
+    },
+    {
+      "id": "core-idea",
+      "type": "concept",
+      "title": "The Core Idea of Binary Search",
+      "content": "Binary Search repeatedly **divides the problem in half** until the target is found or no elements remain to be checked.\nThe core insight is that you do not need to read every element. You just need to **narrow down the boundaries of where the target could possibly be**.\n\nThe algorithm executes these core steps in a loop:\n1.  **Find the middle element.**\n2.  **Compare it with the target.**\n3.  **Remove the unnecessary half.** If the target is less than the middle, discard the right half. If greater, discard the left half.\n4.  **Repeat the process** on the remaining section.\n\nThis reduction continues until the target is found (returning the index) or the search space physically shrinks to zero. At that point, the algorithm returns -1 or another **not found sentinel** value.\n\nEvery step dramatically shrinks the remaining workload. For an array of size n, the maximum number of steps is roughly **log base 2 of n + 1**."
+    },
+    {
+      "id": "search-pointers",
+      "type": "deep_dive",
+      "title": "Understanding the Search Pointers",
+      "content": "To implement Binary Search without creating \"magic puzzle pieces,\" you must understand the physical memory pointers. Binary Search uses three important positions called **low, high, and mid**.\nThese pointers define and navigate the boundaries of the current search range:\n* The **low pointer** marks the beginning of the valid search range.\n* The **high pointer** marks the end of the valid search range.\n* The **mid pointer** represents the middle index currently being checked.\n\nInitially, `low` starts at index 0 and `high` starts at the last index (`len - 1`). The midpoint is dynamically calculated from the current low and high positions.\n\nThe search range is inclusive.\n* The algorithm continues while **`low <= high`**.\n* When `low == high`, only one element is left to check in the array.\n* When `low > high`, the search space has collapsed. The target does not exist.\n\nPointer updates physically dictate the search space reduction:\n1.  If the target is greater than the middle, **set `low = mid + 1`** to search the right half.\n2.  If the target is less than the middle, **set `high = mid - 1`** to search the left half.\n3.  These updates must be mathematically precise. Using `mid` instead of `mid + 1` or `mid - 1` will trap your program in an infinite loop."
+    },
+    {
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Pointer Execution",
+      "content": "Let's physically trace the pointers to search for the number `11` inside the sorted array `[1, 3, 5, 7, 9, 11, 15]`.\n\n**Step 1:**\n* Initially, `low` is 0 and `high` is 6.\n* The **`mid` index is 3** `(0 + 6) // 2`, which holds the value `7`.\n* Compare 7 with 11. Since 11 > 7, we eliminate the entire left half.\n* **Update:** Set `low = mid + 1` (low becomes 4). The remaining search space is indices 4 to 6 `[9, 11, 15]`.\n\n**Step 2:**\n* Now `low` is 4 and `high` is 6.\n* The **`mid` index is 5** `(4 + 6) // 2`, which holds the value `11`.\n* Compare 11 with 11. They are equal!\n* The target is found at index 5. The **algorithm returns 5**. Only 2 comparisons were needed.\n\n**Not-Found Scenario:**\n* If we search for a value that does not exist, like `10`, the algorithm continues until the pointers cross.\n* After checking index 4 (value 9) and index 5 (value 11), `low` will eventually be pushed to 5 and `high` will be pulled to 4.\n* Because **`low` (5) is now greater than `high` (4)**, the loop breaks and returns -1.\n\nFrom 7 elements, only 2 comparisons were needed. For 1 million elements, only about 20 comparisons would be needed."
+    },
+    {
+      "id": "why-binary-search-fast",
+      "type": "concept",
+      "title": "Why Binary Search Is Fast (Logarithmic Decay)",
+      "content": "The defining feature of Binary Search is **geometric reduction**.\nEvery comparison physically removes 50% of the remaining elements from consideration.\n\nSuppose a dataset contains 1,000,000 elements:\n* After 1 comparison, ~500,000 remain.\n* After 2 comparisons, ~250,000 remain.\n* After 3 comparisons, ~125,000 remain.\n* After 10 comparisons, ~977 remain.\n* After 20 comparisons, ~1 remains.\n\n**The workload decays logarithmically.**\nFor 1 billion elements, only about 30 comparisons are needed. Linear search would need up to 1 billion comparisons. Binary search is **30 million times faster** in this scenario.\nThis `O(log n)` curve is incredibly flat compared to the steep linear `O(n)` curve, making it the gold standard for lookup operations.",
+      "chart": {
+        "title": "Binary Search Logarithmic Decay",
+        "description": "Binary Search repeatedly halves the remaining search space, producing a flat logarithmic curve that scales far better than sequential scanning.",
+        "maxN": 64,
+        "normalize": true,
+        "curves": [
+          "O(log n)",
+          "O(n)",
+          "O(n^2)"
+        ]
+      }
+    },
+    {
+      "id": "implementation",
+      "type": "concept",
+      "title": "Python Implementation",
+      "content": "Binary Search implementations must strictly update the `low` and `high` pointers. The **iterative loop version is generally preferred** in production environments because it uses constant `O(1)` memory and completely avoids hitting recursion depth limits.\n\nNotice how the `while` loop condition `low <= high` serves as the engine, automatically stopping the algorithm when the search space collapses.",
+      "codeSnippets": [
+        {
+          "title": "Iterative Binary Search (Recommended)",
+          "language": "python",
+          "code": "def binary_search(arr, target):\n    low = 0\n    high = len(arr) - 1\n\n    while low <= high:\n        mid = (low + high) // 2\n\n        if arr[mid] == target:\n            return mid       # Found it!\n        elif target > arr[mid]:\n            low = mid + 1    # Target is to the right\n        else:\n            high = mid - 1   # Target is to the left\n\n    return -1                # Pointers crossed, not found\n\nprint(binary_search([1, 3, 5, 7, 9, 11, 15], 11))"
+        },
+        {
+          "title": "Boolean Check (Contains Target)",
+          "language": "python",
+          "code": "def contains_target(arr, target):\n    low = 0\n    high = len(arr) - 1\n\n    while low <= high:\n        mid = (low + high) // 2\n\n        if arr[mid] == target:\n            return True\n        elif target > arr[mid]:\n            low = mid + 1\n        else:\n            high = mid - 1\n\n    return False\n\nprint(contains_target([2, 4, 6, 8, 10], 6))"
+        }
+      ]
+    },
+    {
+      "id": "recursive-binary-search",
+      "type": "concept",
+      "title": "Recursive Binary Search & The Call Stack",
+      "content": "Binary Search can also be implemented recursively, leaning heavily into Divide and Conquer principles. Instead of using a `while` loop to update variables, the function **repeatedly calls itself, passing in new pointer boundaries**.\n\nWe must map how this executes line-by-line via AST parsing to see the memory states. Every time recursion triggers, the current block pauses, and a new frame is pushed onto the memory stack with its own unique `low`, `high`, and `mid` values.\n\n**Visual Call Stack Trace:** Let's search for `9` in `[1, 3, 5, 7, 9, 11, 15]`\n\n* **Push Frame 1:** `search(arr, target=9, low=0, high=6)`. `mid` calculates to 3 (value 7). Since 9 > 7, we discard the left. Frame 1 pauses and calls `search(arr, 9, 4, 6)`.\n* **Push Frame 2:** `search(arr, target=9, low=4, high=6)`. `mid` calculates to 5 (value 11). Since 9 < 11, we discard the right. Frame 2 pauses and calls `search(arr, 9, 4, 4)`.\n* **Push Frame 3:** `search(arr, target=9, low=4, high=4)`. `mid` calculates to 4 (value 9). `arr[4] == 9`! The base case condition is met. It returns the exact index `4`.\n* **Pop Frame 3:** Returns `4` to Frame 2 and is instantly cleared from memory.\n* **Pop Frame 2:** Receives `4`, immediately returns `4` to Frame 1, and is cleared.\n* **Pop Frame 1:** Receives `4`, returns the final matched index `4` back to your main logic structure, leaving an empty stack.\n\nRecursive versions consume **O(log n) stack memory**, while iterative loop versions use pure O(1) space.",
+      "codeSnippets": [
+        {
+          "title": "Recursive Binary Search",
+          "language": "python",
+          "code": "def recursive_binary_search(arr, target, low, high):\n    # Base Case: Search space has collapsed\n    if low > high:\n        return -1\n\n    mid = (low + high) // 2\n\n    if arr[mid] == target:\n        return mid\n\n    # Conquer: Push new memory frame for the right half\n    if target > arr[mid]:\n        return recursive_binary_search(arr, target, mid + 1, high)\n\n    # Conquer: Push new memory frame for the left half\n    return recursive_binary_search(arr, target, low, mid - 1)\n\narr = [1, 3, 5, 7, 9, 11, 15]\nprint(recursive_binary_search(arr, 9, 0, len(arr) - 1))"
+        }
+      ]
+    },
+    {
+      "id": "complexity-analysis",
+      "type": "deep_dive",
+      "title": "Complexity Analysis",
+      "content": "Binary Search provides incredible performance guarantees because the search space strictly halves during every single execution cycle.\n\n* **Time Complexity:**\n    * **Best Case: O(1)**. This occurs when the target happens to be exactly the middle element of the array on the very first check. Only 1 comparison is needed.\n    * **Average & Worst Case: O(log n)**. The maximum number of divisions needed until the array size shrinks to 1 is `log base 2 of n`.\n* **Space Complexity:**\n    * **O(1) for Iterative:** Only three integer variables (`low`, `high`, `mid`) are allocated in RAM, regardless of whether the array has ten elements or ten billion elements.\n    * **O(log n) for Recursive:** Each recursive call pushes a new frame onto the Call Stack. For 1 billion elements, this creates roughly 30 stack frames. This is perfectly safe (Python's default limit is 1000), but technically uses more memory than the iterative loop.",
+      "chart": {
+        "title": "Execution Complexity",
+        "description": "Logarithmic performance flattens out entirely as data scales toward infinity.",
+        "maxN": 64,
+        "normalize": true,
+        "curves": [
+          "O(log n)",
+          "O(n)",
+          "O(n^2)"
+        ]
+      }
+    },
+    {
+      "id": "binary-vs-linear",
+      "type": "concept",
+      "title": "Binary Search vs Linear Search",
+      "content": "Linear Search and Binary Search represent two fundamentally different architectural approaches to parsing data.\n\n* **Linear Search:** Works on unsorted, chaotic data. It scans sequentially line-by-line. It takes **O(n)** time. For n = 1 billion, it takes up to 1 billion operations.\n* **Binary Search:** Absolutely requires sorted data. It takes **O(log n)** time. For n = 1 billion, it takes 30 operations.\n\nHowever, Binary Search has strict architectural requirements:\n1.  **Sorting Tax:** If the data is unsorted, you must sort it first. Sorting algorithms (like Merge Sort) cost `O(n log n)` time. If you only need to run a search *one single time*, running a linear search `O(n)` is mathematically faster than sorting and then binary searching `O(n log n) + O(log n)`.\n2.  **Random Access:** Binary search requires the ability to instantly jump to any index in memory. It works perfectly on Arrays, but it **fails terribly on Linked Lists** because finding the middle element of a Linked List requires traversing it sequentially, destroying the speed advantage."
+    },
+    {
+      "id": "advantages-limitations",
+      "type": "concept",
+      "title": "Advantages and Limitations",
+      "subsections": [
+        {
+          "id": "advantages",
+          "title": "Advantages",
+          "bullets": [
+            "Provides **blistering efficiency** for massive datasets.",
+            "Utilizes pure **logarithmic geometric reduction**.",
+            "Requires **constant O(1) memory** when written iteratively.",
+            "Is the foundation for all complex database indexing."
+          ]
+        },
+        {
+          "id": "limitations",
+          "title": "Limitations",
+          "bullets": [
+            "Requires the overhead of maintaining **sorted data**.",
+            "Fails on data structures without random access (like Linked Lists).",
+            "Off-by-one errors in pointer math create catastrophic infinite loops."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "applications",
+      "type": "real_world_connection",
+      "title": "Real-World Applications",
+      "content": "Binary Search concepts physically power the data infrastructure of the modern web:\n\n* **Database Indexes (SQL):** Relational databases use B-Trees (a balanced, multi-branching version of binary search) to locate records instantly. When you query `SELECT * WHERE id = 12345`, the database does not scan millions of rows; it binary searches the index.\n* **Version Control Debugging:** Git features a command called `git bisect`. If your code breaks, you mark an old commit as \"Good\" and the current commit as \"Bad\". Git will binary search the commit history, checking out the middle commit and asking you to test it, rapidly zeroing in on the exact line of code that introduced the bug.\n* **Search Engine Lookups:** Systems use inverted indexes (massive sorted dictionaries). Finding a specific keyword requires binary searching the dictionary before fetching the associated documents."
+    },
+    {
+      "id": "misconceptions",
+      "type": "key_concept",
+      "title": "Common Beginner Mistakes",
+      "subsections": [
+        {
+          "id": "unsorted-array",
+          "title": "Mistake: Using Binary Search on chaotic arrays",
+          "content": "Binary Search **requires ordered data**. Without sorting, comparisons cannot safely eliminate the other half of the array. The algorithm will blindly discard the wrong section and return `-1` even if the target is sitting right there. Always ensure your structure is sorted before executing."
+        },
+        {
+          "id": "wrong-midpoint",
+          "title": "Mistake: Incorrect midpoint math",
+          "content": "Using standard division `/` instead of integer floor division `//` in Python will crash the program because array indices must be whole numbers. In strongly typed languages (like Java/C++), using `(low + high) / 2` can cause Integer Overflow on massive arrays. The safer systems-level math is `low + (high - low) / 2`."
+        },
+        {
+          "id": "pointer-updates",
+          "title": "Mistake: Infinite Pointer Loops",
+          "content": "If you forget to add or subtract 1 from the midpoint, the search range will freeze.\nIf you write `low = mid` instead of `low = mid + 1`, and the remaining array is just 2 elements long, the midpoint will calculate to the same `low` index forever. Your execution blocks will be trapped in an infinite loop."
+        }
+      ]
+    },
+    {
+      "id": "takeaways",
+      "type": "summary",
+      "title": "Key Takeaways",
+      "bullets": [
+        "Binary Search is useless unless applied to **sorted data**.",
+        "The algorithm repeatedly **divides the problem space geometrically in half**.",
+        "Physical tracking relies on **`low`, `high`, and `mid` index pointers**.",
+        "Updating boundaries with **`mid + 1` or `mid - 1`** prevents infinite loops.",
+        "The logarithmic reduction achieves **O(log n)** time complexity.",
+        "It can be implemented iteratively (O(1) memory) or recursively via the **Call Stack**."
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "Programiz - Binary Search",
+      "url": "https://www.programiz.com/dsa/binary-search"
+    },
+    {
+      "title": "GeeksforGeeks - Binary Search",
+      "url": "https://www.geeksforgeeks.org/binary-search/"
+    },
+    {
+      "title": "VisuAlgo - Binary Search Visualizations",
+      "url": "https://visualgo.net/en/binarysearch"
+    }
+  ]
+}
 
 --- FILE: frontend/public/data/curriculum/module-3/lesson-3-3.json ---
 
@@ -3667,662 +4122,6 @@ const curriculumIndex = [
     {
       "name": "num",
       "id": "num"
-    }
-  ],
-  "backpack": []
-}
-
---- FILE: frontend/public/data/optimizations/m2-2.1.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defreturn",
-        "id": "f60ca8f7-8bcb-4",
-        "x": 20,
-        "y": 20,
-        "extraState": {
-          "params": [
-            {
-              "name": "arr",
-              "id": "arr"
-            },
-            {
-              "name": "target",
-              "id": "target"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "two_sum"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "controls_for",
-              "id": "7529c43c-e6da-4",
-              "fields": {
-                "VAR": {
-                  "id": "i"
-                }
-              },
-              "inputs": {
-                "FROM": {
-                  "block": {
-                    "type": "math_number",
-                    "id": "d93971d0-5214-4",
-                    "fields": {
-                      "NUM": 0
-                    }
-                  }
-                },
-                "TO": {
-                  "block": {
-                    "type": "lists_length",
-                    "id": "30f83578-a58f-4",
-                    "inputs": {
-                      "VALUE": {
-                        "block": {
-                          "type": "variables_get",
-                          "id": "2f691d4e-7155-4",
-                          "fields": {
-                            "VAR": {
-                              "id": "arr"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "BY": {
-                  "block": {
-                    "type": "math_number",
-                    "id": "fa2d979f-06fe-4",
-                    "fields": {
-                      "NUM": 1
-                    }
-                  }
-                },
-                "DO": {
-                  "block": {
-                    "type": "controls_for",
-                    "id": "6115a75e-5929-4",
-                    "fields": {
-                      "VAR": {
-                        "id": "j"
-                      }
-                    },
-                    "inputs": {
-                      "FROM": {
-                        "block": {
-                          "type": "math_number",
-                          "id": "080840e5-7b4e-4",
-                          "fields": {
-                            "NUM": 0
-                          }
-                        }
-                      },
-                      "TO": {
-                        "block": {
-                          "type": "lists_length",
-                          "id": "9894ed5e-15d7-4",
-                          "inputs": {
-                            "VALUE": {
-                              "block": {
-                                "type": "variables_get",
-                                "id": "90d2e6b3-7dd0-4",
-                                "fields": {
-                                  "VAR": {
-                                    "id": "arr"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "BY": {
-                        "block": {
-                          "type": "math_number",
-                          "id": "83a9e233-6bc3-4",
-                          "fields": {
-                            "NUM": 1
-                          }
-                        }
-                      },
-                      "DO": {
-                        "block": {
-                          "type": "controls_if",
-                          "id": "4a824839-52f4-4",
-                          "inputs": {
-                            "IF0": {
-                              "block": {
-                                "type": "logic_operation",
-                                "id": "c53c54f6-b1d8-4",
-                                "fields": {
-                                  "OP": "AND"
-                                },
-                                "inputs": {
-                                  "A": {
-                                    "block": {
-                                      "type": "logic_compare",
-                                      "id": "e28dfdfe-3569-4",
-                                      "fields": {
-                                        "OP": "NEQ"
-                                      },
-                                      "inputs": {
-                                        "A": {
-                                          "block": {
-                                            "type": "variables_get",
-                                            "id": "f1126414-d11f-4",
-                                            "fields": {
-                                              "VAR": {
-                                                "id": "i"
-                                              }
-                                            }
-                                          }
-                                        },
-                                        "B": {
-                                          "block": {
-                                            "type": "variables_get",
-                                            "id": "e80914d5-5f2d-4",
-                                            "fields": {
-                                              "VAR": {
-                                                "id": "j"
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  },
-                                  "B": {
-                                    "block": {
-                                      "type": "logic_compare",
-                                      "id": "27851637-58b2-4",
-                                      "fields": {
-                                        "OP": "EQ"
-                                      },
-                                      "inputs": {
-                                        "A": {
-                                          "block": {
-                                            "type": "math_arithmetic",
-                                            "id": "b4a35e05-13a1-4",
-                                            "fields": {
-                                              "OP": "ADD"
-                                            },
-                                            "inputs": {
-                                              "A": {
-                                                "block": {
-                                                  "type": "lists_getIndex",
-                                                  "id": "1d38bfa5-b22f-4",
-                                                  "fields": {
-                                                    "MODE": "GET",
-                                                    "WHERE": "FROM_START"
-                                                  },
-                                                  "inputs": {
-                                                    "VALUE": {
-                                                      "block": {
-                                                        "type": "variables_get",
-                                                        "id": "63e3e941-6662-4",
-                                                        "fields": {
-                                                          "VAR": {
-                                                            "id": "arr"
-                                                          }
-                                                        }
-                                                      }
-                                                    },
-                                                    "AT": {
-                                                      "block": {
-                                                        "type": "variables_get",
-                                                        "id": "29207387-711b-4",
-                                                        "fields": {
-                                                          "VAR": {
-                                                            "id": "i"
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              },
-                                              "B": {
-                                                "block": {
-                                                  "type": "lists_getIndex",
-                                                  "id": "e656f729-c56f-4",
-                                                  "fields": {
-                                                    "MODE": "GET",
-                                                    "WHERE": "FROM_START"
-                                                  },
-                                                  "inputs": {
-                                                    "VALUE": {
-                                                      "block": {
-                                                        "type": "variables_get",
-                                                        "id": "28f6df3c-4783-4",
-                                                        "fields": {
-                                                          "VAR": {
-                                                            "id": "arr"
-                                                          }
-                                                        }
-                                                      }
-                                                    },
-                                                    "AT": {
-                                                      "block": {
-                                                        "type": "variables_get",
-                                                        "id": "c3f71160-16bb-4",
-                                                        "fields": {
-                                                          "VAR": {
-                                                            "id": "j"
-                                                          }
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        },
-                                        "B": {
-                                          "block": {
-                                            "type": "variables_get",
-                                            "id": "bec2176f-4bb2-4",
-                                            "fields": {
-                                              "VAR": {
-                                                "id": "target"
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            "DO0": {
-                              "block": {
-                                "type": "procedure_return_value",
-                                "id": "a18d9883-52c4-4",
-                                "inputs": {
-                                  "VALUE": {
-                                    "block": {
-                                      "type": "lists_create_with",
-                                      "id": "45c1a53c-09b0-4",
-                                      "extraState": {
-                                        "itemCount": 2
-                                      },
-                                      "inputs": {
-                                        "ADD0": {
-                                          "block": {
-                                            "type": "variables_get",
-                                            "id": "ec295fab-577c-4",
-                                            "fields": {
-                                              "VAR": {
-                                                "id": "i"
-                                              }
-                                            }
-                                          }
-                                        },
-                                        "ADD1": {
-                                          "block": {
-                                            "type": "variables_get",
-                                            "id": "d41d55a8-9fe5-4",
-                                            "fields": {
-                                              "VAR": {
-                                                "id": "j"
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "RETURN": {
-            "block": {
-              "type": "lists_create_with",
-              "id": "4ff0316a-fac8-4",
-              "extraState": {
-                "itemCount": 0
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
-    {
-      "name": "i",
-      "id": "i"
-    },
-    {
-      "name": "arr",
-      "id": "arr"
-    },
-    {
-      "name": "j",
-      "id": "j"
-    },
-    {
-      "name": "target",
-      "id": "target"
-    }
-  ],
-  "backpack": []
-}
-
---- FILE: frontend/public/data/optimizations/m2-2.2.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defreturn",
-        "id": "3784a96f-572d-4",
-        "x": 20,
-        "y": 20,
-        "extraState": {
-          "params": [
-            {
-              "name": "arr",
-              "id": "arr"
-            },
-            {
-              "name": "target",
-              "id": "target"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "linear_search"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "variables_set",
-              "id": "90536478-d3f4-4",
-              "fields": {
-                "VAR": {
-                  "id": "found_items"
-                }
-              },
-              "inputs": {
-                "VALUE": {
-                  "block": {
-                    "type": "lists_create_with",
-                    "id": "c473cb59-de6a-4",
-                    "extraState": {
-                      "itemCount": 0
-                    }
-                  }
-                }
-              },
-              "next": {
-                "block": {
-                  "type": "controls_forEach",
-                  "id": "56a49f42-d519-4",
-                  "fields": {
-                    "VAR": {
-                      "id": "x"
-                    }
-                  },
-                  "inputs": {
-                    "LIST": {
-                      "block": {
-                        "type": "variables_get",
-                        "id": "bf1d76d9-b4e0-4",
-                        "fields": {
-                          "VAR": {
-                            "id": "arr"
-                          }
-                        }
-                      }
-                    },
-                    "DO": {
-                      "block": {
-                        "type": "controls_if",
-                        "id": "197a1f7c-e52d-4",
-                        "inputs": {
-                          "IF0": {
-                            "block": {
-                              "type": "logic_compare",
-                              "id": "df910e68-05cd-4",
-                              "fields": {
-                                "OP": "EQ"
-                              },
-                              "inputs": {
-                                "A": {
-                                  "block": {
-                                    "type": "variables_get",
-                                    "id": "ef23d328-a119-4",
-                                    "fields": {
-                                      "VAR": {
-                                        "id": "x"
-                                      }
-                                    }
-                                  }
-                                },
-                                "B": {
-                                  "block": {
-                                    "type": "variables_get",
-                                    "id": "d91b4fa1-0800-4",
-                                    "fields": {
-                                      "VAR": {
-                                        "id": "target"
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "DO0": {
-                            "block": {
-                              "type": "list_append",
-                              "id": "7f265abd-df81-4",
-                              "inputs": {
-                                "ITEM": {
-                                  "block": {
-                                    "type": "variables_get",
-                                    "id": "6c9c1f4c-731d-4",
-                                    "fields": {
-                                      "VAR": {
-                                        "id": "x"
-                                      }
-                                    }
-                                  }
-                                },
-                                "LIST": {
-                                  "block": {
-                                    "type": "variables_get",
-                                    "id": "c105dff7-ddb2-4",
-                                    "fields": {
-                                      "VAR": {
-                                        "id": "found_items"
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              "next": {
-                                "block": {
-                                  "type": "controls_if",
-                                  "id": "075d1474-461b-4",
-                                  "inputs": {
-                                    "IF0": {
-                                      "block": {
-                                        "type": "logic_compare",
-                                        "id": "af73d572-d11e-4",
-                                        "fields": {
-                                          "OP": "GT"
-                                        },
-                                        "inputs": {
-                                          "A": {
-                                            "block": {
-                                              "type": "lists_length",
-                                              "id": "8ff1eca3-9ee0-4",
-                                              "inputs": {
-                                                "VALUE": {
-                                                  "block": {
-                                                    "type": "variables_get",
-                                                    "id": "2bae671e-57a9-4",
-                                                    "fields": {
-                                                      "VAR": {
-                                                        "id": "found_items"
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          },
-                                          "B": {
-                                            "block": {
-                                              "type": "math_number",
-                                              "id": "3c45ba6e-7145-4",
-                                              "fields": {
-                                                "NUM": 0
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    },
-                                    "DO0": {
-                                      "block": {
-                                        "type": "procedure_return_value",
-                                        "id": "ad556bb3-c6da-4",
-                                        "inputs": {
-                                          "VALUE": {
-                                            "block": {
-                                              "type": "lists_getIndex",
-                                              "id": "aa6d2dc8-d71f-4",
-                                              "fields": {
-                                                "MODE": "GET",
-                                                "WHERE": "FROM_START"
-                                              },
-                                              "inputs": {
-                                                "VALUE": {
-                                                  "block": {
-                                                    "type": "variables_get",
-                                                    "id": "36d6b53e-f19a-4",
-                                                    "fields": {
-                                                      "VAR": {
-                                                        "id": "found_items"
-                                                      }
-                                                    }
-                                                  }
-                                                },
-                                                "AT": {
-                                                  "block": {
-                                                    "type": "math_number",
-                                                    "id": "c83a1cb9-023a-4",
-                                                    "fields": {
-                                                      "NUM": 0
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "RETURN": {
-            "block": {
-              "type": "math_arithmetic",
-              "id": "37439803-c42b-4",
-              "fields": {
-                "OP": "MINUS"
-              },
-              "inputs": {
-                "A": {
-                  "block": {
-                    "type": "math_number",
-                    "id": "04b7a604-2126-4",
-                    "fields": {
-                      "NUM": 0
-                    }
-                  }
-                },
-                "B": {
-                  "block": {
-                    "type": "math_number",
-                    "id": "40cc740d-56e7-4",
-                    "fields": {
-                      "NUM": 1
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
-    {
-      "name": "x",
-      "id": "x"
-    },
-    {
-      "name": "arr",
-      "id": "arr"
-    },
-    {
-      "name": "found_items",
-      "id": "found_items"
-    },
-    {
-      "name": "target",
-      "id": "target"
     }
   ],
   "backpack": []

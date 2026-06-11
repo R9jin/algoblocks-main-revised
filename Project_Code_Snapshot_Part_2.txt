@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 2 OF 10) ---
 
---- TIMESTAMP: 2026-06-10 12:10:08 ---
+--- TIMESTAMP: 2026-06-10 22:58:01 ---
 
 
 --- FILE: api/semantic_nlg.py ---
@@ -11790,91 +11790,6 @@ export default defineConfig([
         { "call": "insert_at_front([2, 3], 1)", "expected": "[1, 2, 3]", "isHidden": false },
         { "call": "insert_at_front([], 99)", "expected": "[99]", "isHidden": false },
         { "call": "insert_at_front([10, 20], 0)", "expected": "[0, 10, 20]", "isHidden": false }
-      ]
-    }
-  ],
-  "optimizations": [
-    {
-      "id": "m1_opt_1",
-      "title": "Optimization Challenge: Reversing In-Place",
-      "task": [
-        "Our old reverse list task required us to build a completely brand new list, which takes up extra memory! Let's do it faster by just swapping the items in the list we already have.",
-        "",
-        "Optimization Guidelines:",
-        "1. Remove the empty `result` list.",
-        "2. Create two trackers (pointers). Make `left` start at 0, and `right` start at the very last index of the list (`length - 1`).",
-        "3. Open the 'Loops' tab and make a `while` loop that runs as long as `left < right`.",
-        "4. Inside the loop, use your custom 'swap variable' block (or manually swap them) to swap `arr[left]` with `arr[right]`.",
-        "5. Add 1 to `left` and subtract 1 from `right` so they move closer to the middle.",
-        "6. Return the `arr`.",
-        "",
-        "Sample Outputs:",
-        "optimize_reverse([1, 2, 3, 4]) â†’ [4, 3, 2, 1]",
-        "optimize_reverse([10, 20, 30]) â†’ [30, 20, 10]"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m1-1.1.json",
-      "testCasesPool": [
-        { "call": "optimize_reverse([1, 2, 3, 4])", "expected": "[4, 3, 2, 1]", "isHidden": false },
-        { "call": "optimize_reverse([10, 20, 30])", "expected": "[30, 20, 10]", "isHidden": false },
-        { "call": "optimize_reverse([5])", "expected": "[5]", "isHidden": false },
-        { "call": "optimize_reverse([])", "expected": "[]", "isHidden": false },
-        { "call": "optimize_reverse([-1, -2, -3, -4])", "expected": "[-4, -3, -2, -1]", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m1_opt_2",
-      "title": "Optimization Challenge: Max and Min Together",
-      "task": [
-        "If you want to find BOTH the biggest and the smallest number in a list, you don't need to loop through the list twice. You can do it all in one single loop to save time!",
-        "",
-        "Optimization Guidelines:",
-        "1. Set both `max_val` and `min_val` to the first item in the list.",
-        "2. Make a single 'for each item' loop to look at every item in the list.",
-        "3. Inside the loop, if the item is bigger than `max_val`, update `max_val`. Also, if the item is smaller than `min_val`, update `min_val`!",
-        "4. Create a list block and put `min_val` in the first slot and `max_val` in the second slot, then return it.",
-        "",
-        "Sample Outputs:",
-        "optimize_min_max([5, 1, 9, 3]) â†’ [1, 9]",
-        "optimize_min_max([-5, 0, 5]) â†’ [-5, 5]"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m1-1.2.json",
-      "testCasesPool": [
-        { "call": "optimize_min_max([5, 1, 9, 3])", "expected": "[1, 9]", "isHidden": false },
-        { "call": "optimize_min_max([10, 10, 10])", "expected": "[10, 10]", "isHidden": false },
-        { "call": "optimize_min_max([-5, 0, 5])", "expected": "[-5, 5]", "isHidden": false },
-        { "call": "optimize_min_max([7])", "expected": "[7, 7]", "isHidden": false },
-        { "call": "optimize_min_max([100, 2, 50, 1])", "expected": "[1, 100]", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m1_opt_3",
-      "title": "Optimization Challenge: Quick Cleanup (Sets)",
-      "task": [
-        "In programming, a 'Set' is a special container that is not allowed to have any duplicate items. If you put a messy list into a Set, it instantly cleans out all the duplicates for you!",
-        "",
-        "Optimization Guidelines:",
-        "1. Delete any slow loops you have that check for duplicates.",
-        "2. Open the 'Sets & Tuples' tab and grab the 'create set from list' block. Apply it to your list.",
-        "3. Open the 'Lists (Built-in Type)' tab and grab the 'create list from' block. Apply it to your Set to turn it back into a list.",
-        "4. Return the new, clean list. It's much faster than checking items one by one!",
-        "",
-        "Sample Outputs:",
-        "optimize_remove_dupes([1, 2, 2, 3, 1]) â†’ [1, 2, 3]",
-        "optimize_remove_dupes([5, 5, 5]) â†’ [5]"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m1-1.3.json",
-      "testCasesPool": [
-        { "call": "optimize_remove_dupes([1, 2, 2, 3, 1])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "optimize_remove_dupes([5, 5, 5])", "expected": "[5]", "isHidden": false },
-        { "call": "optimize_remove_dupes([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "optimize_remove_dupes([])", "expected": "[]", "isHidden": false },
-        { "call": "optimize_remove_dupes([0, -1, 0, -1])", "expected": "[-1, 0]", "isHidden": true }
       ]
     }
   ]

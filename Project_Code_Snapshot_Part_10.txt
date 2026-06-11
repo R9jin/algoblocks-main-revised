@@ -1,7 +1,613 @@
 ﻿--- PROJECT SNAPSHOT (PART 10 OF 10) ---
 
---- TIMESTAMP: 2026-06-10 12:10:08 ---
+--- TIMESTAMP: 2026-06-10 22:58:01 ---
 
+
+--- FILE: frontend/src/styles/ProfilePage.css ---
+
+/* frontend/src/styles/ProfilePage.css */
+
+.profile-page-v2 {
+  min-height: 100vh;
+  background-color: #f4f7f9; /* Aligned with standard app background */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #2b005c; /* Deep App Purple */
+  padding-bottom: 60px;
+}
+
+.profile-container-v2 {
+  max-width: 1050px;
+  width: 92%;
+  margin: 30px auto 0;
+  animation: slideFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* =========================================================
+   1. Hero Cover Area 
+========================================================= */
+.profile-cover {
+  height: 180px;
+  border-radius: 20px 20px 0 0;
+  /* Aligned exactly with AlgoBlocks Primary Purple and Deep Purple */
+  background: linear-gradient(135deg, #5A1398 0%, #961fff 100%);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.cover-pattern {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px);
+  background-size: 30px 30px;
+  opacity: 0.8;
+}
+
+/* =========================================================
+   2. Main Profile Header (Overlapping Card)
+========================================================= */
+.profile-header-card {
+  background: #ffffff;
+  border-radius: 0 0 20px 20px;
+  padding: 0 40px 30px;
+  display: flex;
+  align-items: flex-end;
+  gap: 30px;
+  box-shadow: 0 12px 40px rgba(124, 92, 255, 0.08); /* Brand shadow */
+  position: relative;
+  margin-bottom: 30px;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  margin-top: -65px; 
+}
+
+.profile-avatar-v2 {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #5A1398; /* Primary Brand Purple */
+  border: 6px solid #ffffff;
+  box-shadow: 0 8px 25px rgba(124, 92, 255, 0.3); /* Brand shadow */
+  text-transform: uppercase;
+}
+
+.avatar-status-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  background-color: #22c55e;
+  border: 4px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.profile-user-details {
+  flex: 1;
+  padding-bottom: 5px;
+}
+
+.user-title-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 4px;
+}
+
+.profile-user-details h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #2b005c; /* Deep App Purple */
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.role-badge {
+  background: rgba(124, 92, 255, 0.1);
+  color: #5A1398;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+}
+
+.user-email {
+  margin: 0;
+  color: #64748b;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.profile-header-actions {
+  padding-bottom: 10px;
+}
+
+.btn-resume-learning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #5A1398; /* Primary Brand Purple */
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 1rem;
+  box-shadow: 0 6px 15px rgba(124, 92, 255, 0.4);
+  transition: all 0.2s ease;
+}
+
+.btn-resume-learning:hover {
+  transform: translateY(-2px);
+  background: #6344e6; /* Secondary Hover Purple */
+  box-shadow: 0 8px 20px rgba(124, 92, 255, 0.5);
+}
+
+/* =========================================================
+   3. Dashboard Grid Layout 
+========================================================= */
+.profile-content-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+/* Left Sidebar (Stats) */
+.profile-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sidebar-title {
+  margin: 0 0 5px 5px;
+  font-size: 1.1rem;
+  color: #2b005c; /* Deep App Purple */
+  font-weight: 700;
+}
+
+.stat-box {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(124, 92, 255, 0.05); /* Brand shadow */
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.2s;
+  border: 1px solid rgba(124, 92, 255, 0.1);
+}
+
+.stat-box:hover {
+  transform: translateX(5px);
+  border-color: rgba(124, 92, 255, 0.3);
+}
+
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.stat-icon-wrapper.blue { background: rgba(52, 152, 219, 0.1); color: #3498db; }
+.stat-icon-wrapper.purple { background: rgba(124, 92, 255, 0.1); color: #5A1398; }
+.stat-icon-wrapper.green { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
+
+.stat-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.stat-info p {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #2b005c; /* Deep App Purple */
+}
+
+.text-muted {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Right Main Content (Mastery Feed) */
+.profile-main-content {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 4px 15px rgba(124, 92, 255, 0.05); /* Brand shadow */
+  border: 1px solid rgba(124, 92, 255, 0.1);
+}
+
+.content-header-row {
+  margin-bottom: 25px;
+}
+
+.content-header-row h2 {
+  margin: 0 0 4px 0;
+  font-size: 1.4rem;
+  color: #2b005c; /* Deep App Purple */
+  font-weight: 800;
+}
+
+.mastery-subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.mastery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mastery-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(124, 92, 255, 0.02); /* Faint brand purple */
+  border: 1px solid rgba(124, 92, 255, 0.15);
+  transition: all 0.2s ease;
+}
+
+.mastery-card:hover {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(124, 92, 255, 0.08);
+  border-color: rgba(124, 92, 255, 0.3);
+}
+
+.mastery-card.completed {
+  background: rgba(46, 204, 113, 0.04); /* Subdued green for completion */
+  border-color: rgba(46, 204, 113, 0.2);
+}
+
+.mastery-card-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mastery-module-number {
+  width: 44px;
+  height: 44px;
+  background: rgba(124, 92, 255, 0.1);
+  color: #5A1398;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.mastery-card.completed .mastery-module-number {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+
+.mastery-details h4 {
+  margin: 0 0 4px 0;
+  font-size: 1.05rem;
+  color: #2b005c;
+  font-weight: 700;
+}
+
+.mastery-fraction {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.mastery-card-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 250px;
+}
+
+.progress-bar-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(124, 92, 255, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #5A1398; /* Primary Brand Purple */
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.progress-bar-fill.gold {
+  background: #2ecc71; /* Green to match other completed states */
+}
+
+.progress-percentage {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #2b005c;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Animations & Media Queries */
+@keyframes slideFadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .profile-content-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-sidebar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-header-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0 20px 25px;
+  }
+  
+  .user-title-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .mastery-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .mastery-card-right {
+    width: 100%;
+    padding-left: 60px;
+    box-sizing: border-box;
+  }
+}
+
+--- FILE: frontend/src/styles/Projects.css ---
+
+/*frontend\src\styles\Projects.css*/
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f8fafc; /* Crisp, cool light gray */
+}
+
+.page-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  padding: 2rem;
+}
+
+.page-main {
+  flex: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 40px 48px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+}
+
+.page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.section-title {
+  color: #0f172a; /* Slate 900 */
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  color: #64748b; /* Slate 500 */
+  margin: 8px 0 0 0;
+  font-size: 1.05rem;
+}
+
+/* ==========================================================================
+   BUTTONS
+   ========================================================================== */
+
+.btn-new-project-large {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #7F57F9;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(127, 87, 249, 0.2);
+}
+
+.btn-new-project-large:hover {
+  background: #6a48d7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(127, 87, 249, 0.3);
+}
+
+/* ==========================================================================
+   PROJECTS GRID & CARDS
+   ========================================================================== */
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.project-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.project-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  transform: translateY(-2px);
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.project-icon-wrapper {
+  background: #f3e8ff; /* Light purple tint */
+  color: #9333ea;      /* Solid purple icon */
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-details h3 {
+  margin: 0 0 6px 0;
+  color: #1e293b;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.project-details p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+/* Delete Button */
+.btn-delete {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-card:hover .btn-delete {
+  color: #94a3b8; /* Make icon slightly darker on card hover */
+}
+
+.btn-delete:hover {
+  background: #fee2e2 !important; /* Light red background */
+  color: #ef4444 !important; /* Red icon */
+}
+
+/* ==========================================================================
+   EMPTY STATE & LOADING
+   ========================================================================== */
+
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+}
+
+.empty-icon {
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.empty-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 8px 0;
+}
+
+.empty-desc {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0 0 24px 0;
+  max-width: 450px;
+  line-height: 1.5;
+}
 
 --- FILE: frontend/src/styles/TestCaseTester.css ---
 
