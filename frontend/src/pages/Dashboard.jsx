@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
-import { projectsDB } from "../db"; // Fully restored original imports
+import { projectsDB } from "../db";
 import "../styles/Dashboard.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -40,12 +40,30 @@ const SYSTEM_TEMPLATES = {
   ]
 };
 
-// SVG Icons
-const PlusIcon = () => <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>;
-const CodeIcon = () => <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>;
-const ClockIcon = () => <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-const ArrowRightIcon = () => <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>;
-const PlayIcon = () => <svg width="36" height="36" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>;
+// SVG Icons for modern UI
+const PlusIcon = () => (
+  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+  </svg>
+);
+
+const CodeIcon = () => (
+  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const ArrowRightIcon = () => (
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+  </svg>
+);
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -56,19 +74,43 @@ export default function Dashboard() {
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Robust Dexie fetching fallback
-      let allProjects = [];
-      if (projectsDB && typeof projectsDB.toArray === 'function') {
-        allProjects = await projectsDB.toArray();
-      } else if (projectsDB && typeof projectsDB.getAll === 'function') {
-        allProjects = await projectsDB.getAll();
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+      const user = storedUser ? JSON.parse(storedUser) : null;
+
+      if (navigator.onLine && user) {
+        try {
+          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          };
+
+          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
+          if (res.ok) {
+            const data = await res.json();
+            let cloudProjects = Array.isArray(data.projects) ? data.projects : (Array.isArray(data) ? data : []);
+
+            for (const cp of cloudProjects) {
+              if (cp.owner_id === user.email || cp.userId === user.email) {
+                await projectsDB.setItem(cp._id, { ...cp, synced: true });
+              }
+            }
+          }
+        } catch (fetchErr) {
+          console.error("Failed to fetch cloud projects:", fetchErr);
+        }
       }
 
-      const sorted = allProjects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      const loadedProjects = [];
+      await projectsDB.iterate((value) => {
+        if (!user || value.owner_id === user.email || value.userId === user.email) {
+          loadedProjects.push(value);
+        }
+      });
+      
+      const sorted = loadedProjects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
       setRecentProjects(sorted.slice(0, 5));
 
-      // Custom Templates fetch
       try {
         const token = localStorage.getItem("token");
         if (token) {
@@ -156,7 +198,7 @@ export default function Dashboard() {
               </button>
             </section>
 
-            {/* Restored Learning Path Card */}
+            {/* Learning Path Card */}
             <section className="bento-learning-card">
               <div className="learning-content">
                 <span className="module-badge">Up Next • Module 3</span>
@@ -173,8 +215,12 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="learning-action">
-                <button className="play-btn" onClick={() => navigate("/learning-path")}>
-                  <PlayIcon />
+                <button className="banner-icon-btn" onClick={() => navigate("/learning-path")}>
+                  <img 
+                    src="/assets/learning-icon.png" 
+                    alt="Learning Path" 
+                    className="learning-path-img"
+                  />
                 </button>
               </div>
             </section>
@@ -213,6 +259,7 @@ export default function Dashboard() {
                 </div>
               ))}
             </section>
+
           </div>
 
           {/* Sidebar Column */}
@@ -222,6 +269,16 @@ export default function Dashboard() {
                 <h3>Recent Projects</h3>
                 <span className="recent-badge">{recentProjects.length}</span>
               </div>
+
+              {/* View All Projects Moved to Top */}
+              {recentProjects.length > 0 && (
+                <button 
+                  className="view-all-projects-btn"
+                  onClick={() => navigate("/projects")}
+                >
+                  View All Projects
+                </button>
+              )}
 
               <div className="recent-projects-container">
                 {loading ? (
@@ -260,14 +317,6 @@ export default function Dashboard() {
                 )}
               </div>
               
-              {recentProjects.length > 0 && (
-                <button 
-                  className="view-all-projects-btn"
-                  onClick={() => navigate("/projects")}
-                >
-                  View All Projects
-                </button>
-              )}
             </div>
           </aside>
 

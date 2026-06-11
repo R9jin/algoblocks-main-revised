@@ -1,7 +1,7 @@
 /* frontend/src/styles/Dashboard.css */
 
 /* =========================================================
-   1. Dashboard Header (Restored Original Linkages)
+   1. Dashboard Header
 ========================================================= */
 .dashboard-header {
   display: flex;
@@ -221,25 +221,31 @@
   transition: width 1s ease-in-out;
 }
 
-.play-btn {
-  background: rgba(127, 87, 249, 0.1);
-  color: #7F57F9;
+.banner-icon-btn {
+  background: #C994FF;
   border: none;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(127, 87, 249, 0.15);
 }
 
-.play-btn:hover {
-  background: #7F57F9;
-  color: #FFFFFF;
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(127, 87, 249, 0.3);
+.banner-icon-btn:hover {
+  background: #BCA1FC;
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 24px rgba(127, 87, 249, 0.3);
+}
+
+.learning-path-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  opacity: 1; /* Ensures no fading occurs */
 }
 
 /* =========================================================
@@ -464,7 +470,8 @@
 .sync-status.local { color: #F59E0B; }
 
 .view-all-projects-btn {
-  margin-top: 24px;
+  margin-top: 0;
+  margin-bottom: 20px;
   width: 100%;
   padding: 12px;
   background: #F8FAFC;
