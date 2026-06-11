@@ -35,53 +35,45 @@ const handleEditorWillMount = (monaco) => {
 const renderFormattedTask = (text) => {
   if (!text) return null;
 
+  const parseStr = (str) => {
+    let out = str.replace(/\n/g, "<br/>");
+    out = out.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #26004a;">$1</strong>');
+    out = out.replace(/\$([^$]+)\$/g, (match, math) => {
+      let cleanMath = math.replace(/\\log\b/g, "log").replace(/\\/g, "");
+      cleanMath = cleanMath.replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+      return `<span style="font-family: 'Fira Code', monospace; font-weight: bold; color: #5A1398; background: rgba(90, 19, 152, 0.08); padding: 2px 6px; border-radius: 6px;">${cleanMath}</span>`;
+    });
+    out = out.replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>');
+    return out;
+  };
+
   if (Array.isArray(text)) {
     return (
       <div className="activity-task-description">
-        {text.map((line, idx) => {
-          const formattedLine = line
-            .replace(
-              /\*\*(.*?)\*\*/g,
-              '<strong style="color: #26004a;">$1</strong>',
-            )
-            .replace(
-              /`([^`]+)`/g,
-              '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>',
-            );
-
-          return (
-            <p
-              key={idx}
-              style={{
-                minHeight: line === "" ? "1rem" : "auto",
-                margin: "4px 0",
-                color: "#1e293b",
-                fontSize: "0.9rem",
-                lineHeight: "1.6",
-              }}
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(formattedLine),
-              }}
-            />
-          );
-        })}
+        {text.map((line, idx) => (
+          <p
+            key={idx}
+            style={{
+              minHeight: line === "" ? "1rem" : "auto",
+              margin: "4px 0",
+              color: "#1e293b",
+              fontSize: "0.9rem",
+              lineHeight: "1.6",
+            }}
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(parseStr(line)),
+            }}
+          />
+        ))}
       </div>
     );
   }
 
   if (typeof text !== "string") return null;
 
-  const formattedHtml = text
-    .replace(/\n/g, "<br/>")
-    .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #26004a;">$1</strong>')
-    .replace(
-      /`([^`]+)`/g,
-      '<code style="background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; font-family: monospace; color: #4400ff;">$1</code>',
-    );
-
   return (
     <div
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formattedHtml) }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(text)) }}
     />
   );
 };
@@ -122,181 +114,98 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
-const formatExplanation = (text, isBottleneck, isLocal) => {
-  if (!text) return "No explanation available.";
-  const sections = text.split(
-    /(TIME BOTTLENECK:|SPACE BOTTLENECK:|ALGORITHM MASTERY:|Runtime Observation:)/g,
-  );
+// Custom formatter to parse the new NLG outputs exactly like MainApp
+const formatExplanation = (text, isBottleneck, isLocalTab) => {
+  if (!text) return null;
+
+  const parseMarkdown = (str) => {
+    let parsed = str.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    // Parse LaTeX $$ into styled purple math badges
+    parsed = parsed.replace(/\$([^$]+)\$/g, (match, math) => {
+      let cleanMath = math.replace(/\\log\b/g, "log").replace(/\\/g, "");
+      cleanMath = cleanMath.replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+      return `<span style="font-family: 'Fira Code', monospace; font-weight: bold; color: #5A1398; background: rgba(90, 19, 152, 0.08); padding: 2px 6px; border-radius: 6px;">${cleanMath}</span>`;
+    });
+    // Parse inline code backticks
+    parsed = parsed.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.06); padding: 2px 4px; border-radius: 4px; font-family: monospace; color: #d35400;">$1</code>');
+    return parsed;
+  };
+
+  const sections = text.split(/\n\n+/);
+  
   return sections
     .map((sec, idx) => {
-      const trimmedSec = sec.trim();
-      if (
-        trimmedSec === "TIME BOTTLENECK:" ||
-        trimmedSec === "SPACE BOTTLENECK:" ||
-        trimmedSec === "ALGORITHM MASTERY:" ||
-        trimmedSec === "Runtime Observation:"
-      )
-        return null;
-      if (trimmedSec.startsWith("-")) {
-        const items = trimmedSec.split("\n").map((i) => i.replace(/^- /, ""));
-        return (
-          <div key={idx} style={{ marginTop: "8px" }}>
-            <ul
-              style={{
-                margin: 0,
-                paddingLeft: "20px",
-                color: "#1e293b",
-                fontSize: "0.85rem",
-              }}
-            >
-              {items.map((item, i) => (
-                <li
-                  key={i}
-                  style={{ marginBottom: "4px" }}
-                  dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(
-                      item.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
-                    ),
-                  }}
-                ></li>
-              ))}
-            </ul>
-          </div>
-        );
-      }
-      if (
-        trimmedSec.includes("TIME BOTTLENECK:") ||
-        trimmedSec.includes("SPACE BOTTLENECK:")
-      ) {
-        const content = trimmedSec
-          .replace(/TIME BOTTLENECK:|SPACE BOTTLENECK:/g, "")
-          .trim();
+      let trimmedSec = sec.trim();
+      if (!trimmedSec) return null;
+
+      const renderBlock = (content, title, color, bgColor) => {
+        const parsedContent = parseMarkdown(content);
         return (
           <div
             key={idx}
             style={{
               marginTop: "12px",
               marginBottom: "12px",
-              padding: "10px 14px",
-              backgroundColor: "rgba(255, 55, 95, 0.08)",
-              borderLeft: "4px solid #ff375f",
-              borderRadius: "0 6px 6px 0",
+              padding: "12px 16px",
+              backgroundColor: bgColor,
+              borderLeft: `4px solid ${color}`,
+              borderRadius: "0 8px 8px 0",
             }}
           >
             <strong
               style={{
                 display: "block",
-                color: "#d63031",
-                fontSize: "0.8rem",
+                color: color,
+                fontSize: "0.85rem",
                 textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "6px",
+                letterSpacing: "0.8px",
+                marginBottom: "8px",
               }}
             >
-              Performance Bottleneck
+              {title}
             </strong>
-            <p
+            <div
               style={{
                 margin: 0,
                 color: "#1e293b",
-                fontSize: "0.85rem",
-                lineHeight: "1.5",
+                fontSize: "0.9rem",
+                lineHeight: "1.6",
+                whiteSpace: "pre-wrap"
               }}
-            >
-              {content}
-            </p>
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedContent) }}
+            />
           </div>
         );
+      };
+
+      if (trimmedSec.startsWith("**Local Analysis:**")) {
+        return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "#3498db", "rgba(52, 152, 219, 0.08)");
       }
-      if (trimmedSec.includes("ALGORITHM MASTERY:")) {
-        const content = trimmedSec.replace("ALGORITHM MASTERY:", "").trim();
-        return (
-          <div
-            key={idx}
-            style={{
-              marginTop: "12px",
-              marginBottom: "12px",
-              padding: "10px 14px",
-              backgroundColor: "rgba(46, 204, 113, 0.08)",
-              borderLeft: "4px solid #2ecc71",
-              borderRadius: "0 6px 6px 0",
-            }}
-          >
-            <strong
-              style={{
-                display: "block",
-                color: "#27ae60",
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "6px",
-              }}
-            >
-              Optimized Design
-            </strong>
-            <p
-              style={{
-                margin: 0,
-                color: "#1e293b",
-                fontSize: "0.85rem",
-                lineHeight: "1.5",
-              }}
-            >
-              {content}
-            </p>
-          </div>
-        );
+      if (trimmedSec.startsWith("**Global Impact:**")) {
+        return renderBlock(trimmedSec.replace("**Global Impact:**", "").trim(), "Global Impact", "#9b59b6", "rgba(155, 89, 182, 0.08)");
       }
-      if (trimmedSec.startsWith("Runtime Observation:")) {
-        const content = trimmedSec.replace("Runtime Observation:", "").trim();
-        return (
-          <div
-            key={idx}
-            style={{
-              marginTop: "12px",
-              marginBottom: "12px",
-              padding: "8px 12px",
-              backgroundColor: "rgba(155, 89, 182, 0.08)",
-              borderLeft: "4px solid #9b59b6",
-              borderRadius: "0 6px 6px 0",
-            }}
-          >
-            <strong
-              style={{
-                display: "block",
-                color: "#8e44ad",
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "4px",
-              }}
-            >
-              Runtime Data
-            </strong>
-            <p
-              style={{
-                margin: 0,
-                color: "#1e293b",
-                fontSize: "0.85rem",
-                lineHeight: "1.5",
-              }}
-            >
-              {content}
-            </p>
-          </div>
-        );
+      if (trimmedSec.startsWith("**Educational Insight:**")) {
+        return renderBlock(trimmedSec.replace("**Educational Insight:**", "").trim(), "Educational Insight", "#f39c12", "rgba(243, 156, 18, 0.08)");
       }
-      let parsedSec = trimmedSec.replace(
-        /\*\*(.*?)\*\*/g,
-        "<strong>$1</strong>",
-      );
+      if (trimmedSec.startsWith("**Bottleneck Warning:**") || trimmedSec.startsWith("**Space Bottleneck:**")) {
+        const cleanText = trimmedSec.replace(/\*\*(Bottleneck Warning:|Space Bottleneck:|Space Bottleneck)\*\*/g, "").trim();
+        return renderBlock(cleanText, "Performance Bottleneck", "#e74c3c", "rgba(231, 76, 60, 0.08)");
+      }
+      if (trimmedSec.startsWith("**Algorithmic Mastery:**")) {
+        return renderBlock(trimmedSec.replace("**Algorithmic Mastery:**", "").trim(), "Algorithmic Mastery", "#2ecc71", "rgba(46, 204, 113, 0.08)");
+      }
+      if (trimmedSec.startsWith("*Profiler verified")) {
+        return renderBlock(trimmedSec.replace(/\*/g, "").trim(), "Runtime Diagnostic", "#8e44ad", "rgba(142, 68, 173, 0.08)");
+      }
+
+      let parsedSec = parseMarkdown(trimmedSec);
       return (
         <p
           key={idx}
           style={{
             color: "#1e293b",
             margin: "0 0 10px 0",
-            fontSize: "0.9rem",
+            fontSize: "0.95rem",
             lineHeight: "1.6",
           }}
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}
@@ -915,7 +824,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               finalSubmissionToLoad.status || "draft";
 
             setTimeout(() => {
-              // FIX: Always load template to init correctly, and pass the pythonCode to preserve it
               if (workspaceRef.current?.loadTemplate && !cancelled) {
                 workspaceRef.current.loadTemplate(json || {}, pythonCode);
               }
@@ -1083,7 +991,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const handleWorkspaceAutoSave = (json, pythonCode) => {
     if (saveDraftTimeoutRef.current) clearTimeout(saveDraftTimeoutRef.current);
     saveDraftTimeoutRef.current = setTimeout(async () => {
-      // FIX: allow save even if blocks (json) are empty, as long as there is custom python code.
       if (
         pythonCode &&
         pythonCode !== "# Drag blocks to generate Python code"
@@ -1103,7 +1010,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }, 1500);
   };
 
-  // DEEP STACK FIX: Debounce Analyzer calls to stop flickering
   useEffect(() => {
     if (!isReadyRef.current) return;
     if (
@@ -1131,12 +1037,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (!isReadyRef.current) return;
     latestBlocksJsonRef.current = json;
 
-    // CRITICAL FIX: If we are currently editing custom python code (unsynced),
-    // we MUST ignore the python code generated by background blockly events!
     let codeToSave = incomingPythonCode;
 
-    // If it's a normal blockly event (!isUnsynced) but we are in "isEditingCode" mode,
-    // we discard the blockly code and preserve the user's custom Monaco code.
     if (isEditingCode && !isUnsynced) {
       codeToSave = generatedPython;
     }
@@ -1249,7 +1151,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }
   };
 
-  // --- REQ-6 Update Backend Failures Log and Toast ---
   const savePartialProgress = async (lessonId, score) => {
     const storedUser =
       localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -1414,7 +1315,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
-  // ----- FIX APPLIED HERE: Changed to async and added immediate topic sync -----
   const handleSuccess = async (score, maxScore, funcPassed, funcTotal) => {
     const currentIndex = lessonActivitiesResolved.findIndex(
       (a) => a.id === activityId,
@@ -1472,9 +1372,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       });
     }
   };
-
-  const toggleTest = (index) =>
-    setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
 
   const runTestCases = async () => {
     if (isEvaluating) return;
@@ -1649,7 +1546,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, score);
 
-    // ----- FIX APPLIED HERE: Added await -----
     if (score >= 1)
       await handleSuccess(score, 5, functionalPassed, functionalTotal);
   };
@@ -1677,7 +1573,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   return (
     <div className="activity-app-container">
-      {/* CSS Block to cleanly hide sidebars without breaking react-split widths */}
       <style>{`
         .activity-main-layout.left-hidden .activity-left-panel { display: none !important; width: 0 !important; }
         .activity-main-layout.left-hidden .gutter.gutter-horizontal:first-of-type { display: none !important; }
@@ -1962,7 +1857,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                 </button>
               </div>
 
-              {/* DEEP STACK: Floating Dropdown Editor Wrapper */}
               <div
                 style={{ position: "relative", flex: 1, overflow: "hidden" }}
               >
@@ -1997,7 +1891,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                   }}
                 />
 
-                {/* DEEP STACK: Floating Error Dropdown */}
                 {syntaxErrors && syntaxErrors.length > 0 && (
                   <div className="floating-error-container">
                     {isErrorDropdownOpen && (

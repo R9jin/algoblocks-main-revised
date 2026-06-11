@@ -169,193 +169,100 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
+// Custom formatter to parse the new NLG outputs and LaTeX math formats
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
+
+  const parseMarkdown = (str) => {
+    let parsed = str.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    // Parse LaTeX $$ into styled purple math badges
+    parsed = parsed.replace(/\$([^$]+)\$/g, (match, math) => {
+      let cleanMath = math.replace(/\\log\b/g, "log").replace(/\\/g, "");
+      cleanMath = cleanMath.replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+      return `<span style="font-family: 'Fira Code', monospace; font-weight: bold; color: #5A1398; background: rgba(90, 19, 152, 0.08); padding: 2px 6px; border-radius: 6px;">${cleanMath}</span>`;
+    });
+    // Parse inline code backticks
+    parsed = parsed.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.06); padding: 2px 4px; border-radius: 4px; font-family: monospace; color: #d35400;">$1</code>');
+    return parsed;
+  };
+
   const sections = text.split(/\n\n+/);
+  
   return sections
     .map((sec, idx) => {
-      const trimmedSec = sec.trim();
+      let trimmedSec = sec.trim();
       if (!trimmedSec) return null;
 
-      if (trimmedSec.startsWith("Architectural Insights:")) {
-        const lines = trimmedSec.split("\n").slice(1);
+      const renderBlock = (content, title, color, bgColor) => {
+        const parsedContent = parseMarkdown(content);
         return (
           <div
             key={idx}
             style={{
               marginTop: "12px",
               marginBottom: "12px",
-              padding: "10px 14px",
-              backgroundColor: "rgba(52, 152, 219, 0.08)",
-              borderLeft: "4px solid #3498db",
-              borderRadius: "0 6px 6px 0",
+              padding: "12px 16px",
+              backgroundColor: bgColor,
+              borderLeft: `4px solid ${color}`,
+              borderRadius: "0 8px 8px 0",
             }}
           >
             <strong
               style={{
                 display: "block",
-                color: "#2980b9",
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "6px",
-              }}
-            >
-              Architectural Insights
-            </strong>
-            <ul
-              style={{
-                margin: 0,
-                paddingLeft: "20px",
-                color: "#1e293b",
+                color: color,
                 fontSize: "0.85rem",
-                lineHeight: "1.5",
-              }}
-            >
-              {lines.map((l, i) => (
-                <li key={i}>{l.replace("- ", "")}</li>
-              ))}
-            </ul>
-          </div>
-        );
-      }
-
-      if (
-        trimmedSec.includes("TIME BOTTLENECK:") ||
-        trimmedSec.includes("SPACE BOTTLENECK:")
-      ) {
-        const content = trimmedSec
-          .replace(/TIME BOTTLENECK:|SPACE BOTTLENECK:/g, "")
-          .trim();
-        return (
-          <div
-            key={idx}
-            style={{
-              marginTop: "12px",
-              marginBottom: "12px",
-              padding: "10px 14px",
-              backgroundColor: "rgba(255, 55, 95, 0.08)",
-              borderLeft: "4px solid #ff375f",
-              borderRadius: "0 6px 6px 0",
-            }}
-          >
-            <strong
-              style={{
-                display: "block",
-                color: "#d63031",
-                fontSize: "0.8rem",
                 textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "6px",
+                letterSpacing: "0.8px",
+                marginBottom: "8px",
               }}
             >
-              Performance Bottleneck
+              {title}
             </strong>
-            <p
+            <div
               style={{
                 margin: 0,
                 color: "#1e293b",
-                fontSize: "0.85rem",
-                lineHeight: "1.5",
+                fontSize: "0.9rem",
+                lineHeight: "1.6",
+                whiteSpace: "pre-wrap"
               }}
-            >
-              {content}
-            </p>
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedContent) }}
+            />
           </div>
         );
+      };
+
+      // Extract new semantic_nlg format headers
+      if (trimmedSec.startsWith("**Local Analysis:**")) {
+        return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "#3498db", "rgba(52, 152, 219, 0.08)");
+      }
+      if (trimmedSec.startsWith("**Global Impact:**")) {
+        return renderBlock(trimmedSec.replace("**Global Impact:**", "").trim(), "Global Impact", "#9b59b6", "rgba(155, 89, 182, 0.08)");
+      }
+      if (trimmedSec.startsWith("**Educational Insight:**")) {
+        return renderBlock(trimmedSec.replace("**Educational Insight:**", "").trim(), "Educational Insight", "#f39c12", "rgba(243, 156, 18, 0.08)");
+      }
+      if (trimmedSec.startsWith("**Bottleneck Warning:**") || trimmedSec.startsWith("**Space Bottleneck:**")) {
+        const cleanText = trimmedSec.replace(/\*\*(Bottleneck Warning:|Space Bottleneck:|Space Bottleneck)\*\*/g, "").trim();
+        return renderBlock(cleanText, "Performance Bottleneck", "#e74c3c", "rgba(231, 76, 60, 0.08)");
+      }
+      if (trimmedSec.startsWith("**Algorithmic Mastery:**")) {
+        return renderBlock(trimmedSec.replace("**Algorithmic Mastery:**", "").trim(), "Algorithmic Mastery", "#2ecc71", "rgba(46, 204, 113, 0.08)");
+      }
+      if (trimmedSec.startsWith("*Profiler verified")) {
+        return renderBlock(trimmedSec.replace(/\*/g, "").trim(), "Runtime Diagnostic", "#8e44ad", "rgba(142, 68, 173, 0.08)");
       }
 
-      if (trimmedSec.includes("ALGORITHM MASTERY:")) {
-        const content = trimmedSec.replace("ALGORITHM MASTERY:", "").trim();
-        return (
-          <div
-            key={idx}
-            style={{
-              marginTop: "12px",
-              marginBottom: "12px",
-              padding: "10px 14px",
-              backgroundColor: "rgba(46, 204, 113, 0.08)",
-              borderLeft: "4px solid #2ecc71",
-              borderRadius: "0 6px 6px 0",
-            }}
-          >
-            <strong
-              style={{
-                display: "block",
-                color: "#27ae60",
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "6px",
-              }}
-            >
-              Optimized Design
-            </strong>
-            <p
-              style={{
-                margin: 0,
-                color: "#1e293b",
-                fontSize: "0.85rem",
-                lineHeight: "1.5",
-              }}
-            >
-              {content}
-            </p>
-          </div>
-        );
-      }
-
-      if (trimmedSec.startsWith("Runtime Observation:")) {
-        const content = trimmedSec.replace("Runtime Observation:", "").trim();
-        return (
-          <div
-            key={idx}
-            style={{
-              marginTop: "12px",
-              marginBottom: "12px",
-              padding: "8px 12px",
-              backgroundColor: "rgba(155, 89, 182, 0.08)",
-              borderLeft: "4px solid #9b59b6",
-              borderRadius: "0 6px 6px 0",
-            }}
-          >
-            <strong
-              style={{
-                display: "block",
-                color: "#8e44ad",
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                marginBottom: "4px",
-              }}
-            >
-              Runtime Data
-            </strong>
-            <p
-              style={{
-                margin: 0,
-                color: "#1e293b",
-                fontSize: "0.85rem",
-                lineHeight: "1.5",
-              }}
-            >
-              {content}
-            </p>
-          </div>
-        );
-      }
-
-      let parsedSec = trimmedSec.replace(
-        /\*\*(.*?)\*\*/g,
-        "<strong>$1</strong>",
-      );
+      // Fallback parsing for the action intro or older unformatted text
+      let parsedSec = parseMarkdown(trimmedSec);
       return (
         <p
           key={idx}
           style={{
             color: "#1e293b",
             margin: "0 0 10px 0",
-            fontSize: "0.9rem",
+            fontSize: "0.95rem",
             lineHeight: "1.6",
           }}
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}
@@ -445,11 +352,9 @@ export default function MainApp() {
     onConfirmAction: null,
   });
 
-  // Added Custom Resizer States 
   const [panelHeight, setPanelHeight] = useState(300);
   const isDragging = useRef(false);
 
-  // Custom internal navigation blocker state
   const [leaveModal, setLeaveModal] = useState({
     isOpen: false,
     tx: null,
@@ -496,11 +401,10 @@ export default function MainApp() {
   const toggleLine = (index) =>
     setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
 
-  // Resize Hooks
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
-      const newHeight = window.innerHeight - e.clientY - 48; // Adjust relative to footer
+      const newHeight = window.innerHeight - e.clientY - 48; 
       if (newHeight >= 150 && newHeight <= window.innerHeight - 150)
         setPanelHeight(newHeight);
     };
@@ -525,14 +429,11 @@ export default function MainApp() {
     document.body.style.userSelect = "none";
   };
 
-
-  // --- REQ-6 Experimental Mode Navigation Blocker ---
   const latestTabsRef = useRef(tabs);
   useEffect(() => {
     latestTabsRef.current = tabs;
   }, [tabs]);
 
-  // Hook into React Router v6's internal history engine
   useEffect(() => {
     if (!navigator || !navigator.block) return;
     const unblock = navigator.block((tx) => {
@@ -554,7 +455,6 @@ export default function MainApp() {
     return unblock;
   }, [navigator]);
 
-  // Hook into Browser Native Events (Tab closing, F5 Refresh, Link clicks)
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       const hasUnsavedChanges = latestTabsRef.current.some((t) => {
@@ -576,13 +476,12 @@ export default function MainApp() {
     const handleGlobalClick = (e) => {
       if (isNavigatingAwayRef.current) return;
 
-      // ONLY target elements that are actually meant for page navigation
       const el = e.target.closest("a, [class*='back-btn']");
       if (!el) return;
 
       const isDownloadLink =
         el.hasAttribute("download") || (el.href && el.href.startsWith("blob:"));
-      if (isDownloadLink) return; // Completely ignore JSON exports
+      if (isDownloadLink) return;
 
       const isInternalNav =
         el.tagName === "A" && el.origin === window.location.origin;
@@ -637,7 +536,6 @@ export default function MainApp() {
   const cancelLeaveSite = () => {
     setLeaveModal({ isOpen: false, tx: null, targetPath: null });
   };
-  // ----------------------------------------------------
 
   const initWorker = () => {
     if (!workerRef.current) return;
