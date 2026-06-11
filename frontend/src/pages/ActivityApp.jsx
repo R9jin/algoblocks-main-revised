@@ -300,6 +300,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const [syntaxErrors, setSyntaxErrors] = useState([]);
   const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
+  const [errorPanelSize, setErrorPanelSize] = useState({ width: 400, height: 250 });
 
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
   const [expandedLines, setExpandedLines] = useState({});
@@ -334,6 +335,50 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [moduleId, activityId]);
+
+  // Independent Custom Resize Handler for the Error Pane
+  const handleErrorResizeStart = (e, direction) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = errorPanelSize.width;
+    const startHeight = errorPanelSize.height;
+
+    const onMouseMove = (moveEvent) => {
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      
+      if (direction.includes('w')) {
+        newWidth = startWidth + (startX - moveEvent.clientX);
+      }
+      if (direction.includes('n')) {
+        newHeight = startHeight + (startY - moveEvent.clientY);
+      }
+
+      setErrorPanelSize({
+        width: Math.max(300, Math.min(newWidth, window.innerWidth * 0.9)),
+        height: Math.max(150, Math.min(newHeight, window.innerHeight * 0.8)),
+      });
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "default";
+      document.body.style.userSelect = "auto";
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    
+    if (direction === 'n') document.body.style.cursor = 'ns-resize';
+    else if (direction === 'w') document.body.style.cursor = 'ew-resize';
+    else document.body.style.cursor = 'nwse-resize';
+    
+    document.body.style.userSelect = "none";
+  };
+
 
   const processedTestCases = useMemo(() => {
     if (!activityDataResolved) return [];
@@ -1979,17 +2024,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                 />
 
                 {syntaxErrors && syntaxErrors.length > 0 && (
-                  <div className="floating-error-container" style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 100 }}>
+                  <div className="floating-error-container" style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 100, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                     {isErrorDropdownOpen && (
                       <div 
                         className="error-dropdown-menu" 
                         style={{
-                          resize: "both",
-                          overflow: "hidden",
-                          minWidth: "350px",
-                          maxWidth: "800px",
-                          minHeight: "150px",
-                          maxHeight: "60vh",
+                          width: `${errorPanelSize.width}px`,
+                          height: `${errorPanelSize.height}px`,
+                          maxWidth: 'none',
+                          maxHeight: 'none',
                           display: "flex",
                           flexDirection: "column",
                           backgroundColor: "#2D234A",
@@ -1997,9 +2040,32 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                           borderRadius: "8px",
                           boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
                           marginBottom: "10px",
+                          position: "relative",
+                          boxSizing: "border-box"
                         }}
                       >
-                        <div className="error-dropdown-header" style={{ flexShrink: 0, padding: "10px", borderBottom: "1px solid rgba(255, 55, 95, 0.3)", backgroundColor: "rgba(255, 55, 95, 0.1)" }}>
+                        {/* Top Resizer */}
+                        <div
+                          onMouseDown={(e) => handleErrorResizeStart(e, 'n')}
+                          style={{ position: 'absolute', top: 0, left: 15, right: 0, height: '6px', cursor: 'ns-resize', zIndex: 10 }}
+                        />
+                        {/* Left Resizer */}
+                        <div
+                          onMouseDown={(e) => handleErrorResizeStart(e, 'w')}
+                          style={{ position: 'absolute', top: 15, left: 0, bottom: 0, width: '6px', cursor: 'ew-resize', zIndex: 10 }}
+                        />
+                        {/* Top-Left Corner Resizer */}
+                        <div
+                          onMouseDown={(e) => handleErrorResizeStart(e, 'nw')}
+                          style={{ position: 'absolute', top: 0, left: 0, width: '15px', height: '15px', cursor: 'nwse-resize', zIndex: 11 }}
+                        >
+                          <svg viewBox="0 0 24 24" style={{ width: '100%', height: '100%' }}>
+                            <path d="M0,0 L24,0 L0,24 Z" fill="rgba(255, 55, 95, 0.4)" />
+                            <line x1="4" y1="4" x2="14" y2="14" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+                          </svg>
+                        </div>
+
+                        <div className="error-dropdown-header" style={{ flexShrink: 0, padding: "10px 10px 10px 25px", borderBottom: "1px solid rgba(255, 55, 95, 0.3)", backgroundColor: "rgba(255, 55, 95, 0.1)" }}>
                           <strong style={{ color: "#ff375f" }}>Detected Issues ({syntaxErrors.length})</strong>
                         </div>
                         <div className="error-dropdown-list" style={{ flex: 1, overflowY: "auto", padding: "10px" }}>
@@ -2012,7 +2078,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                             </div>
                           ))}
                         </div>
-                        <div style={{ position: "absolute", bottom: 0, right: 0, width: "15px", height: "15px", cursor: "nwse-resize", background: "linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.3) 50%)" }} />
                       </div>
                     )}
                     <button
