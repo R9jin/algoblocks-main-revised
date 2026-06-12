@@ -48,7 +48,6 @@ const pastelTheme = Blockly.Theme.defineTheme("pastelTheme", {
 
 const sanitizePythonCode = (code) => {
   if (!code) return "";
-  // Replaces invisible unicode spaces (like non-breaking spaces) with standard spaces
   return code.replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g, " ");
 };
 
@@ -309,6 +308,48 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
   const blocklyDiv = useRef(null);
   const workspace = useRef(null);
   const onChangeRef = useRef(onChange);
+  
+  // This queue handles the race condition where MainApp calls loadTemplate before Blockly mounts.
+  const pendingLoadRef = useRef(null); 
+
+  // Extracted core loading logic to reuse
+  const executeLoad = (json, preservePythonCode) => {
+    if (!workspace.current) return;
+    try {
+      Blockly.Events.disable(); // Prevent excessive updates while hydrating
+      workspace.current.clear();
+      
+      let parsedJson = json;
+      if (typeof json === "string") {
+        try { 
+          parsedJson = JSON.parse(json); 
+        } catch (e) { 
+          console.warn("Failed to parse JSON string"); 
+        }
+      }
+
+      if (parsedJson && typeof parsedJson === "object" && Object.keys(parsedJson).length > 0) {
+        Blockly.serialization.workspaces.load(parsedJson, workspace.current);
+      }
+    } catch (e) {
+      console.error("Error loading workspace JSON:", e);
+    } finally {
+      Blockly.Events.enable();
+    }
+
+    setTimeout(() => {
+      if (!workspace.current) return;
+      const code = pythonGenerator.workspaceToCode(workspace.current);
+      const currentJson = Blockly.serialization.workspaces.save(workspace.current);
+
+      if (preservePythonCode !== undefined && preservePythonCode !== null) {
+        const isUnsynced = preservePythonCode.trim() !== code.trim() && preservePythonCode !== "# Drag blocks to generate Python code";
+        if (onChangeRef.current) onChangeRef.current(currentJson, preservePythonCode, isUnsynced);
+      } else {
+        if (onChangeRef.current) onChangeRef.current(currentJson, code, false);
+      }
+    }, 100);
+  };
 
   useImperativeHandle(ref, () => ({
     clear: () => {
@@ -317,25 +358,13 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       try { workspace.current.clear(); } finally { Blockly.Events.enable(); }
     },
     loadTemplate: (json, preservePythonCode = undefined) => {
-      if (!workspace.current) return;
-      try { 
-        workspace.current.clear(); 
-        if (json && Object.keys(json).length > 0) {
-          Blockly.serialization.workspaces.load(json, workspace.current);
-        }
-      } catch (e) { console.error("Error loading workspace JSON:", e); }
-
-      setTimeout(() => {
-        const code = pythonGenerator.workspaceToCode(workspace.current);
-        const currentJson = Blockly.serialization.workspaces.save(workspace.current);
-
-        if (preservePythonCode !== undefined && preservePythonCode !== null) {
-          const isUnsynced = preservePythonCode.trim() !== code.trim() && preservePythonCode !== "# Drag blocks to generate Python code";
-          if (onChangeRef.current) onChangeRef.current(currentJson, preservePythonCode, isUnsynced);
-        } else {
-          if (onChangeRef.current) onChangeRef.current(currentJson, code, false);
-        }
-      }, 100);
+      if (!workspace.current) {
+        // Safe-catch: The workspace isn't mounted yet, let's queue the load.
+        console.log("Workspace not fully mounted yet, queuing template load...");
+        pendingLoadRef.current = { json, preservePythonCode };
+        return;
+      }
+      executeLoad(json, preservePythonCode);
     },
     setTheme: (themeName) => {
       if (workspace.current) workspace.current.setTheme(themeName === "dark" ? DarkTheme : pastelTheme);
@@ -612,6 +641,15 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       });
       observer.observe(blocklyDiv.current); 
       blocklyDiv.current.resizeObserver = observer;
+
+      // ==========================================
+      // EXECUTE THE QUEUED LOAD AFTER INJECTING
+      // ==========================================
+      if (pendingLoadRef.current) {
+        console.log("Executing queued template load...");
+        executeLoad(pendingLoadRef.current.json, pendingLoadRef.current.preservePythonCode);
+        pendingLoadRef.current = null;
+      }
     }
 
     return () => {
