@@ -1,194 +1,161 @@
 // frontend/src/pages/SignUp.jsx
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
-import { FiLock, FiMail, FiUser } from "react-icons/fi";
+import { FiAlertTriangle, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
 
-export default function SignUp() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  
-  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
-  
-  const navigate = useNavigate();
-  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
-  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-  const showToast = (message, type = "error") => {
-    setToast({ visible: true, message, type });
-    setTimeout(() => {
-      setToast({ visible: false, message: "", type: "error" });
-    }, 4000);
-  };
+export default function SignUp() {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/signup`, {
+      const res = await fetch(`${API_BASE}/api/signup`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Sign up failed");
 
-      if (response.ok && data.status === "success") {
-        const activeStorage = rememberMe ? localStorage : sessionStorage;
-        const inactiveStorage = rememberMe ? sessionStorage : localStorage;
-        
-        inactiveStorage.removeItem("authToken");
-        inactiveStorage.removeItem("user");
+      // Auto login after successful signup
+      const loginRes = await fetch(`${API_BASE}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
+      });
 
-        // FIXED: Adjusted to map the restored backend top-level dictionary
-        activeStorage.setItem("authToken", data.token);
-        activeStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
-
-        navigate("/home");
+      if (loginRes.ok) {
+        const loginData = await loginRes.json();
+        localStorage.setItem("authToken", loginData.access_token);
+        localStorage.setItem("user", JSON.stringify({ email: formData.email, name: formData.name }));
+        navigate("/dashboard");
       } else {
-        let errorMessage = "Sign up failed. Please try again.";
-        if (typeof data.detail === "string") {
-            errorMessage = data.detail;
-        } else if (Array.isArray(data.detail)) {
-            errorMessage = data.detail.map(err => err.msg).join(" | ");
-        }
-        
-        showToast(errorMessage);
+        navigate("/signin");
       }
-    } catch (error) {
-      console.error("Error connecting to server:", error);
-      showToast("Failed to connect to the server.");
+
+    } catch (err) {
+      setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleGuestLogin = async () => {
-    setIsLoading(true);
+  const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      await Promise.all([
-        projectsDB.clear(), 
-        templatesDB.clear(), 
-        syncQueueDB.clear()
-      ]);
+      const res = await fetch(`${API_BASE}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+      });
 
-      localStorage.removeItem("authToken");
-      sessionStorage.removeItem("authToken");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Google signup failed");
 
-      sessionStorage.setItem("user", JSON.stringify({
-          email: `guest_${Date.now()}@algoblocks.local`,
-          name: "Guest User",
-          isGuest: true,
-          progress: {} 
-      }));
+      localStorage.setItem("authToken", data.access_token);
+      localStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
 
       navigate("/dashboard");
-    } catch (error) {
-      console.error("Guest login failed:", error);
-      showToast("Failed to initialize guest session.");
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      setError(err.message);
     }
   };
 
   return (
-    <>
-      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
-        {toast.message}
-      </div>
-
-      <div className="auth-container">
-        <div className="auth-card">
-          <h2>Create Account</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Full Name</label>
-              <div className="auth-input-wrap">
-                <FiUser className="auth-input-icon" aria-hidden="true" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Email</label>
-              <div className="auth-input-wrap">
-                <FiMail className="auth-input-icon" aria-hidden="true" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Password</label>
-              <div className="auth-input-wrap">
-                <FiLock className="auth-input-icon" aria-hidden="true" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-            
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                disabled={isLoading}
-                style={{ cursor: "pointer", width: "16px", height: "16px" }}
-              />
-              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
-                Stay signed in
-              </label>
-            </div>
-            
-            <button type="submit" className="auth-button" disabled={isLoading}>
-              {isLoading ? "Signing Up..." : "Sign Up"}
-            </button>
-
-            <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "0.9rem" }}>
-              <span>— OR —</span>
-            </div>
-            <button 
-              type="button" 
-              className="auth-button" 
-              onClick={handleGuestLogin} 
-              disabled={isLoading}
-              style={{ backgroundColor: "#6c757d", border: "none" }}
-            >
-              {isLoading ? "Preparing..." : "Continue as Guest"}
-            </button>
-
-          </form>
-
-          <div className="auth-links">
-            <p>Already have an account?<Link to="/signin">Sign in</Link></p>
+    <div className="auth-container">
+      <div className="auth-card">
+        
+        {/* ACADEMIC RESEARCH NOTICE */}
+        <div className="auth-research-banner">
+          <div className="banner-icon-wrapper">
+            <FiAlertTriangle size={18} />
+          </div>
+          <div className="banner-text">
+            <strong>Participant Protocol</strong>
+            <p>
+              By creating an account, you agree to participate in an educational system evaluation. 
+              <b> Please do not create multiple accounts.</b> Your learning data, assessments, and code executions are monitored strictly for research integrity.
+            </p>
           </div>
         </div>
+
+        <div className="auth-header">
+          <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks" className="auth-logo" />
+          <h2>Create Account</h2>
+          <p>Join the study and master algorithms visually.</p>
+        </div>
+
+        {error && <div className="auth-error-banner">{error}</div>}
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label>Full Name</label>
+            <div className="input-wrapper">
+              <FiUser className="input-icon" />
+              <input type="text" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required />
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label>Email Address</label>
+            <div className="input-wrapper">
+              <FiMail className="input-icon" />
+              <input type="email" name="email" placeholder="you@student.edu" value={formData.email} onChange={handleChange} required />
+            </div>
+          </div>
+
+          <div className="input-group split-group">
+            <div style={{ flex: 1 }}>
+              <label>Password</label>
+              <div className="input-wrapper">
+                <FiLock className="input-icon" />
+                <input type="password" name="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Confirm</label>
+              <div className="input-wrapper">
+                <FiLock className="input-icon" />
+                <input type="password" name="confirmPassword" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} required />
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" className="auth-submit-btn" disabled={loading}>
+            {loading ? "Registering..." : "Sign Up"}
+          </button>
+        </form>
+
+        <div className="auth-divider"><span>OR</span></div>
+
+        <div className="google-auth-wrapper">
+          <GoogleOAuthProvider clientId={CLIENT_ID}>
+            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError("Google Registration Failed")} theme="filled_blue" size="large" width="100%" text="signup_with" />
+          </GoogleOAuthProvider>
+        </div>
+
+        <p className="auth-redirect">
+          Already have an account? <Link to="/signin">Sign in here</Link>
+        </p>
       </div>
-    </>
+    </div>
   );
 }

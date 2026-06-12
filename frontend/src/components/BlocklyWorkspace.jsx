@@ -168,11 +168,8 @@ const customBlocks = [
     args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], output: null },
 ];
 
-if (Blockly.common && Blockly.common.defineBlocksWithJsonArray) {
-  Blockly.common.defineBlocksWithJsonArray(customBlocks);
-} else {
-  Blockly.defineBlocksWithJsonArray(customBlocks);
-}
+if (Blockly.common && Blockly.common.defineBlocksWithJsonArray) { Blockly.common.defineBlocksWithJsonArray(customBlocks); } 
+else { Blockly.defineBlocksWithJsonArray(customBlocks); }
 
 const toolbox = {
   kind: "categoryToolbox",
@@ -304,32 +301,32 @@ const toolbox = {
   ]
 };
 
-const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
+const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref) => {
   const blocklyDiv = useRef(null);
   const workspace = useRef(null);
   const onChangeRef = useRef(onChange);
-  
-  // This queue handles the race condition where MainApp calls loadTemplate before Blockly mounts.
   const pendingLoadRef = useRef(null); 
 
-  // Extracted core loading logic to reuse
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
     try {
-      Blockly.Events.disable(); // Prevent excessive updates while hydrating
+      Blockly.Events.disable(); 
       workspace.current.clear();
       
       let parsedJson = json;
       if (typeof json === "string") {
-        try { 
-          parsedJson = JSON.parse(json); 
-        } catch (e) { 
-          console.warn("Failed to parse JSON string"); 
-        }
+        try { parsedJson = JSON.parse(json); } 
+        catch (e) { console.warn("Failed to parse JSON string"); }
       }
 
       if (parsedJson && typeof parsedJson === "object" && Object.keys(parsedJson).length > 0) {
-        Blockly.serialization.workspaces.load(parsedJson, workspace.current);
+        if (Array.isArray(parsedJson)) {
+          Blockly.serialization.workspaces.load({ blocks: { languageVersion: 0, blocks: parsedJson } }, workspace.current);
+        } else if (parsedJson.blocks && Array.isArray(parsedJson.blocks) && !parsedJson.blocks.blocks) {
+          Blockly.serialization.workspaces.load({ blocks: { languageVersion: 0, blocks: parsedJson.blocks } }, workspace.current);
+        } else {
+          Blockly.serialization.workspaces.load(parsedJson, workspace.current);
+        }
       }
     } catch (e) {
       console.error("Error loading workspace JSON:", e);
@@ -359,8 +356,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     },
     loadTemplate: (json, preservePythonCode = undefined) => {
       if (!workspace.current) {
-        // Safe-catch: The workspace isn't mounted yet, let's queue the load.
-        console.log("Workspace not fully mounted yet, queuing template load...");
         pendingLoadRef.current = { json, preservePythonCode };
         return;
       }
@@ -371,9 +366,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
     },
     loadFromPython: async (pythonCode) => {
       if (!workspace.current || !pythonCode) return;
-      
       const cleanCode = sanitizePythonCode(pythonCode);
-      
       try {
         const data = await convertPythonToBlocks(cleanCode);
         if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
@@ -391,17 +384,9 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
             onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonCode);
           }
         }, 100);
-      } catch (e) { 
-        console.error("AST Parsing failed:", e.message); 
-        throw e; 
-      }
+      } catch (e) { throw e; }
     },
-    resize: () => { 
-      if (workspace.current) { 
-        Blockly.svgResize(workspace.current); 
-        workspace.current.markFocused(); 
-      } 
-    }
+    resize: () => { if (workspace.current) { Blockly.svgResize(workspace.current); workspace.current.markFocused(); } }
   }));
 
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
@@ -416,13 +401,11 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         const crossTabPlugin = new CrossTabCopyPaste(); 
         crossTabPlugin.init({ contextMenu: true, shortcut: true }); 
         crossTabPluginInitialized = true; 
-      } catch (e) { console.warn("CrossTabCopyPaste init skipped:", e.message); }
+      } catch (e) { }
     }
 
     if (blocklyDiv.current) {
-      if (Blockly.ShortcutRegistry.registry.getRegistry()["startSearch"]) {
-        Blockly.ShortcutRegistry.registry.unregister("startSearch");
-      }
+      if (Blockly.ShortcutRegistry.registry.getRegistry()["startSearch"]) Blockly.ShortcutRegistry.registry.unregister("startSearch");
 
       Blockly.Variables.flyoutCategory = function (ws) {
         let xmlList = [];
@@ -431,11 +414,9 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         btn.setAttribute("callbackKey", "CREATE_VARIABLE");
         ws.registerButtonCallback("CREATE_VARIABLE", (b) => Blockly.Variables.createVariableButtonHandler(b.getTargetWorkspace()));
         xmlList.push(btn);
-
         let blk = document.createElement("block"); 
         blk.setAttribute("type", "variable_swap"); 
         xmlList.push(blk);
-
         return xmlList.concat(Blockly.Variables.flyoutCategoryBlocks(ws));
       };
 
@@ -451,13 +432,12 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
         (backpackPlugin = new Backpack(workspace.current)).init(); 
         (highlightPlugin = new ContentHighlight(workspace.current)).init();
         workspace.current.addChangeListener(shadowBlockConversionChangeListener);
-      } catch (e) { console.warn("Plugin init skipped:", e.message); }
+      } catch (e) { }
 
       minimapDelay = setTimeout(() => {
         if (workspace.current && blocklyDiv.current) {
           Blockly.svgResize(workspace.current);
-          try { (minimapPlugin = new PositionedMinimap(workspace.current)).init(); } 
-          catch (e) { console.warn("Minimap skipped:", e.message); }
+          try { (minimapPlugin = new PositionedMinimap(workspace.current)).init(); } catch (e) { }
         }
       }, 150);
 
@@ -626,11 +606,10 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       workspace.current.addChangeListener((event) => {
         if (event.isUiEvent) return;
         if (changeTimeout) clearTimeout(changeTimeout);
-        
         changeTimeout = setTimeout(() => {
           try { 
             if (onChangeRef.current) onChangeRef.current(Blockly.serialization.workspaces.save(workspace.current), pythonGenerator.workspaceToCode(workspace.current)); 
-          } catch (e) { console.warn("Blockly Workspace Update Error: ", e); }
+          } catch (e) {}
         }, 400);
       });
 
@@ -642,21 +621,18 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError }, ref) => {
       observer.observe(blocklyDiv.current); 
       blocklyDiv.current.resizeObserver = observer;
 
-      // ==========================================
-      // EXECUTE THE QUEUED LOAD AFTER INJECTING
-      // ==========================================
-      if (pendingLoadRef.current) {
-        console.log("Executing queued template load...");
-        executeLoad(pendingLoadRef.current.json, pendingLoadRef.current.preservePythonCode);
-        pendingLoadRef.current = null;
+      // Declarative Initialization Load
+      if (initialJson) {
+         executeLoad(initialJson);
+      } else if (pendingLoadRef.current) {
+         executeLoad(pendingLoadRef.current.json, pendingLoadRef.current.preservePythonCode);
+         pendingLoadRef.current = null;
       }
     }
 
     return () => {
       if (minimapDelay) clearTimeout(minimapDelay);
-      try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } 
-      catch (e) { console.warn("Plugin dispose skipped:", e.message); }
-      
+      try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
       if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
       if (blocklyDiv.current?.resizeObserver) blocklyDiv.current.resizeObserver.disconnect();
     };

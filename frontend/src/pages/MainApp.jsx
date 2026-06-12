@@ -85,75 +85,48 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
-// ========================================================
-// ADVANCED MARKDOWN PARSER (FIXES WALL OF TEXT & BIG O BADGES)
-// ========================================================
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
-
   const parseMarkdown = (str) => {
     let html = str.trim();
-    
-    // 1. Bold Text
     html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    
-    // 2. Inline Code Blocks
     html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
     
-    // 3. LaTeX Math Formats ($$...$$ and $...$)
     const mathReplacer = (match, math) => {
-      let cleanMath = math.trim()
-        .replace(/\\mathcal\{?O\}?/g, "O")
-        .replace(/\\log\b/g, "log")
-        .replace(/\\/g, ""); // remove residual slashes
-      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>");
-      cleanMath = cleanMath.replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+      let cleanMath = math.trim().replace(/\\mathcal\{?O\}?/g, "O").replace(/\\log\b/g, "log").replace(/\\/g, "");
+      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
       return `<span class="nlg-math-badge">${cleanMath}</span>`;
     };
     html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
     html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
 
-    // 4. Catch plain O(...) notations that were missed by AI format wrappers
-    html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, text, suffix) {
-       let newText = text.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
+    html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, txt, suffix) {
+       let newText = txt.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
            let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
            return `<span class="nlg-math-badge">O(${cleanMath})</span>`;
        });
        return prefix + newText + suffix;
     });
 
-    // 5. Split content by double newlines into distinct blocks (Paragraphs/Lists)
     let blocks = html.split(/\n\s*\n/);
-    
     let parsedBlocks = blocks.map(block => {
       if (/^[-*]\s+/m.test(block)) {
         let listItems = block.split('\n').reduce((acc, line) => {
            let trimmed = line.trim();
-           if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-               acc.push(`<li>${trimmed.substring(2).trim()}</li>`);
-           } else if (trimmed !== '') {
-               if(acc.length > 0) {
-                   acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
-               } else {
-                   acc.push(`<li>${trimmed}</li>`);
-               }
-           }
+           if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { acc.push(`<li>${trimmed.substring(2).trim()}</li>`); } 
+           else if (trimmed !== '') { if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); else acc.push(`<li>${trimmed}</li>`); }
            return acc;
         }, []).join('');
         return `<ul>${listItems}</ul>`;
-      } else {
-        return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
-      }
+      } else return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
     });
-    
     return parsedBlocks.join('');
   };
 
   const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
   const sections = text.split(headerRegex);
   
-  return sections
-    .map((sec, idx) => {
+  return sections.map((sec, idx) => {
       let trimmedSec = sec.trim();
       if (!trimmedSec) return null;
 
@@ -179,11 +152,8 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
       if (trimmedSec.startsWith("*Profiler verified")) return renderBlock(trimmedSec.replace(/\*Profiler verified\*/g, "").replace(/\*Profiler verified/g, "").trim(), "Runtime Diagnostic", "nlg-profiler");
 
       let parsedSec = parseMarkdown(trimmedSec);
-      return (
-        <div key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></div>
-      );
-    })
-    .filter(Boolean);
+      return <div key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></div>;
+    }).filter(Boolean);
 };
 
 const sanitizePythonCode = (code) => {
@@ -192,13 +162,28 @@ const sanitizePythonCode = (code) => {
 };
 
 const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-const getUser = () => {
-  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-  return userStr ? JSON.parse(userStr) : null;
-};
-const getAuthHeaders = () => {
-  const token = getToken();
-  return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : { "Content-Type": "application/json" };
+const getUser = () => { const userStr = localStorage.getItem("user") || sessionStorage.getItem("user"); return userStr ? JSON.parse(userStr) : null; };
+const getAuthHeaders = () => { const token = getToken(); return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : { "Content-Type": "application/json" }; };
+
+// DECLARATIVE INITIALIZATION: Grabs router state immediately to bypass race conditions
+const createInitialTab = (locState = null) => {
+  const base = {
+    id: `tab-${Date.now()}`, title: "Untitled Project", viewMode: "workspace", blocklyJson: null,
+    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
+    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
+    lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project",
+  };
+
+  if (locState?.projectToLoad) {
+    const proj = locState.projectToLoad;
+    base.blocklyJson = proj.data || proj.workspace?.blocklyJson || proj.blocks || proj;
+    base.title = proj.title || proj.name || "Untitled Project";
+    base.saveType = proj.isTemplate ? "template" : "project";
+    base.pythonCode = proj.pythonCode || "# Drag blocks to generate Python code";
+    base.currentLoadedId = proj._id || proj.templateId;
+    base.isEditingCode = !!(proj.pythonCode && proj.pythonCode !== "# Drag blocks to generate Python code");
+  }
+  return base;
 };
 
 export default function MainApp() {
@@ -209,22 +194,8 @@ export default function MainApp() {
 
   const { worker, isEngineReady, resetWorker } = usePyodide();
 
-  const createInitialTab = () => ({
-    id: `tab-${Date.now()}`,
-    title: "Untitled Project",
-    viewMode: "workspace",
-    blocklyJson: null,
-    pythonCode: "# Drag blocks to generate Python code",
-    isEditingCode: false,
-    syntaxErrors: [],
-    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
-    lineExecutions: {},
-    analysisTime: "0.0",
-    currentLoadedId: null,
-    saveType: "project",
-  });
-
-  const [tabs, setTabs] = useState([createInitialTab()]);
+  // Initializes tabs cleanly with the data payload from Dashboard
+  const [tabs, setTabs] = useState([createInitialTab(location.state)]);
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -266,7 +237,6 @@ export default function MainApp() {
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
   const analyzingTabId = useRef(activeTabId);
-  const hasLoadedInitRef = useRef(false);
 
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -296,17 +266,12 @@ export default function MainApp() {
         height: Math.max(150, Math.min(newHeight, window.innerHeight * 0.8)),
       });
     };
-
     const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("mousemove", onMouseMove); document.removeEventListener("mouseup", onMouseUp);
       document.body.style.cursor = "default"; document.body.style.userSelect = "auto";
     };
-
     document.addEventListener("mousemove", onMouseMove); document.addEventListener("mouseup", onMouseUp);
-    if (direction === 'n') document.body.style.cursor = 'ns-resize';
-    else if (direction === 'w') document.body.style.cursor = 'ew-resize';
-    else document.body.style.cursor = 'nwse-resize';
+    if (direction === 'n') document.body.style.cursor = 'ns-resize'; else if (direction === 'w') document.body.style.cursor = 'ew-resize'; else document.body.style.cursor = 'nwse-resize';
     document.body.style.userSelect = "none";
   };
 
@@ -325,10 +290,7 @@ export default function MainApp() {
     return () => { document.removeEventListener("mousemove", handleMouseMove); document.removeEventListener("mouseup", handleMouseUp); };
   }, []);
 
-  const handleDragStart = (e) => {
-    e.preventDefault(); isDragging.current = true;
-    document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none";
-  };
+  const handleDragStart = (e) => { e.preventDefault(); isDragging.current = true; document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none"; };
 
   const latestTabsRef = useRef(tabs);
   useEffect(() => { latestTabsRef.current = tabs; }, [tabs]);
@@ -354,17 +316,14 @@ export default function MainApp() {
         const hasBlocks = t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
         return hasCode || hasBlocks || t.isEditingCode;
       });
-      if (hasUnsavedChanges && !isNavigatingAwayRef.current) e.preventDefault(); e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+      if (hasUnsavedChanges && !isNavigatingAwayRef.current) { e.preventDefault(); e.returnValue = "You have unsaved changes. Are you sure you want to leave?"; }
     };
-
     const handleGlobalClick = (e) => {
       if (isNavigatingAwayRef.current) return;
       const el = e.target.closest("a, [class*='wh-back-btn']");
       if (!el) return;
-
       const isDownloadLink = el.hasAttribute("download") || (el.href && el.href.startsWith("blob:"));
       if (isDownloadLink) return;
-
       const isInternalNav = el.tagName === "A" && el.origin === window.location.origin;
       const isBackButton = el.className && typeof el.className === "string" && el.className.includes("wh-back-btn");
 
@@ -374,7 +333,6 @@ export default function MainApp() {
           const hasBlocks = t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
           return hasCode || hasBlocks || t.isEditingCode;
         });
-
         if (hasUnsavedChanges) {
           e.preventDefault(); e.stopPropagation();
           let targetUrl = "/dashboard";
@@ -383,9 +341,7 @@ export default function MainApp() {
         }
       }
     };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    document.addEventListener("click", handleGlobalClick, { capture: true });
+    window.addEventListener("beforeunload", handleBeforeUnload); document.addEventListener("click", handleGlobalClick, { capture: true });
     return () => { window.removeEventListener("beforeunload", handleBeforeUnload); document.removeEventListener("click", handleGlobalClick, { capture: true }); };
   }, []);
 
@@ -471,56 +427,6 @@ export default function MainApp() {
     if (consoleEndRef.current && consoleTab === "output") consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [consoleOutput, isWaitingForInput, consoleTab]);
 
-  // FIX: Replaced location.state loading logic to aggressively await DOM readiness using timeouts instead of failing early.
-  useEffect(() => {
-    if (hasLoadedInitRef.current) return;
-    
-    if (location.state?.projectToLoad) {
-      hasLoadedInitRef.current = true;
-      const proj = location.state.projectToLoad;
-      
-      const jsonToLoad = proj.data || proj.workspace?.blocklyJson || proj.blocks || proj;
-      
-      updateTab(activeTabId, { 
-        currentLoadedId: proj._id || proj.templateId, 
-        title: proj.title || proj.name || "Untitled Project", 
-        saveType: proj.isTemplate ? "template" : "project",
-        pythonCode: proj.pythonCode || "# Drag blocks to generate Python code",
-        isEditingCode: !!(proj.pythonCode && proj.pythonCode !== "# Drag blocks to generate Python code")
-      });
-
-      const attemptLoad = () => {
-        if (workspaceRefs.current[activeTabId] && workspaceRefs.current[activeTabId].loadTemplate) {
-          workspaceRefs.current[activeTabId].loadTemplate(jsonToLoad);
-        } else {
-          setTimeout(attemptLoad, 100);
-        }
-      };
-      attemptLoad();
-    } else if (location.state?.templatePath) {
-      hasLoadedInitRef.current = true;
-      const attemptLoadSystem = async () => {
-        try {
-          const response = await fetch(`/templates/${location.state.templatePath}.json`);
-          if (response.ok) {
-            const json = await response.json();
-            updateTab(activeTabId, { currentLoadedId: null, saveType: "project" });
-            
-            const waitRef = () => {
-              if (workspaceRefs.current[activeTabId] && workspaceRefs.current[activeTabId].loadTemplate) {
-                workspaceRefs.current[activeTabId].loadTemplate(json);
-              } else {
-                setTimeout(waitRef, 100);
-              }
-            };
-            waitRef();
-          }
-        } catch (e) { console.error("Failed to load template", e); }
-      };
-      attemptLoadSystem();
-    }
-  }, [location.state, activeTabId]);
-
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map((t) => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
     try {
@@ -592,7 +498,7 @@ export default function MainApp() {
     delete workspaceRefs.current[id];
   };
 
-  const executeLoad = async (item) => {
+  const executeSidebarLoad = async (item) => {
     try {
       let json;
       if (item.isSystem) {
@@ -604,25 +510,30 @@ export default function MainApp() {
       const isClean = activeTab.title === "Untitled Project" && !activeTab.blocklyJson;
       const targetId = isClean ? activeTab.id : `tab-${Date.now()}`;
 
-      const newTabState = {
-        id: targetId, title: item.title, viewMode: "workspace", blocklyJson: json,
-        pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
-        analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
-        lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id,
-        saveType: item.isSystem ? "project" : item.saveType || "project",
-      };
-      
-      if (isClean) setTabs((prev) => prev.map((t) => (t.id === targetId ? newTabState : t)));
-      else { setTabs((prev) => [...prev, newTabState]); setActiveTabId(targetId); }
-
-      setTimeout(() => { if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json); }, 100);
+      if (isClean) {
+        updateTab(targetId, {
+          title: item.title, blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
+          isEditingCode: false, syntaxErrors: [], analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
+          lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
+        });
+        if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json);
+      } else {
+        const newTabState = {
+          id: targetId, title: item.title, viewMode: "workspace", blocklyJson: json,
+          pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
+          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
+          lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
+        };
+        setTabs((prev) => [...prev, newTabState]);
+        setActiveTabId(targetId);
+      }
     } catch (error) { showToast("Failed to load template", "error"); }
   };
 
   const loadConfirm = (item) => {
     setModalConfig({
       isOpen: true, title: `Load ${item.title}?`, message: "This will open the template in your workspace.",
-      confirmText: "Load", isDanger: false, onConfirmAction: () => { closeModal(); executeLoad(item); },
+      confirmText: "Load", isDanger: false, onConfirmAction: () => { closeModal(); executeSidebarLoad(item); },
     });
   };
 
@@ -633,9 +544,7 @@ export default function MainApp() {
 
     if (isOnline && API_BASE) {
       try {
-        const response = await fetch(`${API_BASE}/api/analyze`, {
-          method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ code: cleanCode }),
-        });
+        const response = await fetch(`${API_BASE}/api/analyze`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ code: cleanCode }) });
         if (!response.ok) throw new Error("FastAPI analyze failed");
         const data = await response.json();
         if (data.status === "success") {
@@ -932,7 +841,12 @@ export default function MainApp() {
       <div className={activeTab.viewMode === "workspace" ? "workspace-view d-flex" : "workspace-view d-none"}>
         {tabs.map((tab) => (
           <div key={tab.id} className={activeTabId === tab.id ? "d-block" : "d-none"} style={{ width: "100%", height: "100%" }}>
-            <BlocklyWorkspace ref={(el) => (workspaceRefs.current[tab.id] = el)} onChange={(json, py) => handleBlocklyChange(tab.id, json, py)} />
+            {/* Inject initialJson directly to eliminate race conditions completely */}
+            <BlocklyWorkspace 
+              initialJson={tab.blocklyJson}
+              ref={(el) => (workspaceRefs.current[tab.id] = el)} 
+              onChange={(json, py) => handleBlocklyChange(tab.id, json, py)} 
+            />
           </div>
         ))}
       </div>
@@ -1124,9 +1038,7 @@ export default function MainApp() {
                           <tr
                             className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`}
                             onClick={() => toggleLine(i)}
-                            style={{
-                              borderLeftColor: isBottleneck ? "#EF4444" : isEfficient ? "#10B981" : expandedLines[i] ? timeColor : "transparent",
-                            }}
+                            style={{ borderLeftColor: isBottleneck ? "#EF4444" : isEfficient ? "#10B981" : expandedLines[i] ? timeColor : "transparent", }}
                           >
                             <td className="code-cell" style={{ paddingLeft: line.indent ? `${line.indent * 15 + 20}px` : "20px" }}>{line.lineOfCode || line.code}</td>
                             <td className="operation-cell">
@@ -1145,26 +1057,18 @@ export default function MainApp() {
                                 <div className="explanation-grid" style={{ borderLeftColor: timeColor }}>
                                   
                                   <div className="explanation-section">
-                                    <div className="explanation-icon-wrapper" style={{color: timeColor}}>
-                                      <FiInfo size={20} />
-                                    </div>
+                                    <div className="explanation-icon-wrapper" style={{color: timeColor}}><FiInfo size={20} /></div>
                                     <div className="explanation-text-content">
                                       <strong className="explanation-header" style={{ color: timeColor }}>Time Complexity</strong>
-                                      <div className="explanation-body">
-                                        {formatExplanation(timeExp, isBottleneck, activeComplexityTab === "local")}
-                                      </div>
+                                      <div className="explanation-body">{formatExplanation(timeExp, isBottleneck, activeComplexityTab === "local")}</div>
                                     </div>
                                   </div>
                                   
                                   <div className="explanation-section space-section">
-                                    <div className="explanation-icon-wrapper" style={{color: spaceColor}}>
-                                      <FiInfo size={20} />
-                                    </div>
+                                    <div className="explanation-icon-wrapper" style={{color: spaceColor}}><FiInfo size={20} /></div>
                                     <div className="explanation-text-content">
                                       <strong className="explanation-header" style={{ color: spaceColor }}>Space Complexity</strong>
-                                      <div className="explanation-body">
-                                        {formatExplanation(spaceExp, isBottleneck, activeComplexityTab === "local")}
-                                      </div>
+                                      <div className="explanation-body">{formatExplanation(spaceExp, isBottleneck, activeComplexityTab === "local")}</div>
                                     </div>
                                   </div>
                                   
