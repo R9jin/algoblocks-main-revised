@@ -1,7 +1,5 @@
 // frontend/src/pages/HomePage.jsx
-import { FaPython, FaUserCircle } from "react-icons/fa";
-import { IoArrowForward, IoCheckmarkCircle } from "react-icons/io5";
-import { LuChartBar, LuPuzzle } from "react-icons/lu";
+import { FaArrowRight, FaChartBar, FaCheckCircle, FaPuzzlePiece, FaPython, FaUserCircle } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import "../styles/HomePage.css";
@@ -53,7 +51,7 @@ export default function LandingPage() {
             <div className="hero-action-row">
               <Link to="/signup" className="btn-mega-primary">
                 Start Now
-                <IoArrowForward className="icon-pulse" aria-hidden="true" />
+                <FaArrowRight className="icon-pulse" aria-hidden="true" />
               </Link>
               <button 
                 type="button" 
@@ -94,7 +92,7 @@ export default function LandingPage() {
           <div className="bento-grid">
             <div className="bento-item item-large">
               <div className="bento-icon logic-icon">
-                <LuPuzzle size={36} />
+                <FaPuzzlePiece size={36} />
               </div>
               <div className="bento-text">
                 <h3>Block-Based Logic</h3>
@@ -104,7 +102,7 @@ export default function LandingPage() {
             
             <div className="bento-item item-tall">
               <div className="bento-icon feedback-icon">
-                <LuChartBar size={36} />
+                <FaChartBar size={36} />
               </div>
               <div className="bento-text">
                 <h3>Line-by-Line Feedback</h3>
@@ -131,19 +129,19 @@ export default function LandingPage() {
             <h2>Everything You Need to Learn Algorithms</h2>
             <ul className="impact-list">
               <li>
-                <div className="impact-icon"><IoCheckmarkCircle /></div>
+                <div className="impact-icon"><FaCheckCircle /></div>
                 <span>Built-in algorithm templates with real Python code</span>
               </li>
               <li>
-                <div className="impact-icon"><IoCheckmarkCircle /></div>
+                <div className="impact-icon"><FaCheckCircle /></div>
                 <span>Instant code generation from your block arrangements</span>
               </li>
               <li>
-                <div className="impact-icon"><IoCheckmarkCircle /></div>
+                <div className="impact-icon"><FaCheckCircle /></div>
                 <span>Line-by-line complexity analysis with O-notation</span>
               </li>
               <li>
-                <div className="impact-icon"><IoCheckmarkCircle /></div>
+                <div className="impact-icon"><FaCheckCircle /></div>
                 <span>Save and manage your projects</span>
               </li>
             </ul>
@@ -161,8 +159,6 @@ export default function LandingPage() {
         </section>
 
       </main>
-      
-      {/* Footer has been completely removed from here */}
     </div>
   );
 }
