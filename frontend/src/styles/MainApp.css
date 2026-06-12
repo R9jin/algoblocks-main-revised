@@ -231,16 +231,12 @@ body {
 
 /* =========================================
    DARK THEME FIXES: CONSOLE & MEMORY MAPPING
-   These use the unified dark palette to fix the "too contrast" problem
    ========================================= */
-
-/* MEMORY WRAPPER FIX */
 .memory-wrapper { 
   flex: 1; overflow: hidden; padding: 0; 
-  background: var(--dark-bg); /* Deep, soft violet instead of stark black */
+  background: var(--dark-bg); 
   border-radius: 8px; border: 1px solid var(--dark-border);
 }
-/* Force internal memory elements to use soft lavender text */
 .memory-wrapper * {
   color: var(--text-on-dark) !important;
   border-color: var(--dark-border) !important;
@@ -255,7 +251,7 @@ body {
 .console-view-area { flex: 1; overflow: hidden; position: relative; display: flex; flex-direction: column; padding: 10px 20px 20px 20px;}
 .console-container {
   flex: 1; display: flex; flex-direction: column; overflow-y: auto;
-  background-color: var(--dark-bg); /* Deep, soft violet */
+  background-color: var(--dark-bg);
   padding: 16px; font-family: "Fira Code", monospace; border-radius: 8px; border: 1px solid var(--dark-border);
 }
 .console-output { margin: 0; padding: 0; white-space: pre-wrap; word-wrap: break-word; color: var(--text-on-dark); line-height: 1.6; font-size: 13px; }
@@ -278,7 +274,7 @@ body {
 .freq-bar.max-freq { background-color: #F59E0B; }
 
 /* =========================================
-   EXPLANATION ROWS (LIGHT)
+   EXPLANATION ROWS (WALL OF TEXT FIX)
    ========================================= */
 .explanation-row td { padding: 0 !important; border: none; }
 .explanation-grid {
@@ -292,13 +288,71 @@ body {
 .space-section { padding-left: 20px; border-left: 1px solid var(--border-light); }
 .explanation-text-content { flex: 1; }
 .explanation-header { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;}
-.explanation-body { color: #333; font-size: 0.95rem; line-height: 1.6; }
+
+/* We explicitly target internal HTML tags created by our parser to fix layout */
+.explanation-body { color: var(--text-main); font-size: 0.95rem; }
 
 .explanation-graph-wrapper { position: relative; width: 100%; height: 100%; background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-light); overflow: hidden;}
 .space-graph-wrapper { margin-left: 20px; }
 
+/* NLG Render Blocks */
+.nlg-block { margin: 12px 0; padding: 16px; border-radius: 0 8px 8px 0; border-left: 4px solid; background: #FFFFFF; border-top: 1px solid var(--border-light); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);}
+.nlg-block-title { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; font-weight: 800;}
+
+.nlg-block-content { font-size: 0.95rem; color: var(--text-main); }
+.nlg-paragraph { margin: 0 0 10px 0; font-size: 0.95rem; color: var(--text-main); }
+
+/* Paragraph & List Spacing Fixes (Prevents Wall of Text) */
+.nlg-block-content p, .nlg-paragraph p, .explanation-body p { margin: 0 0 12px 0; line-height: 1.6; }
+.nlg-block-content p:last-child, .nlg-paragraph p:last-child, .explanation-body p:last-child { margin-bottom: 0; }
+
+.nlg-block-content ul, .nlg-paragraph ul, .explanation-body ul { margin: 8px 0 12px 0; padding-left: 24px; list-style-type: disc; }
+.nlg-block-content li, .nlg-paragraph li, .explanation-body li { margin-bottom: 8px; line-height: 1.6; }
+.nlg-block-content li:last-child, .nlg-paragraph li:last-child, .explanation-body li:last-child { margin-bottom: 0; }
+
+
+/* Specific NLG Variants */
+.nlg-deadcode { border-left-color: #64748B; } .nlg-deadcode .nlg-block-title { color: #64748B; }
+.nlg-local { border-left-color: #0EA5E9; background: rgba(14, 165, 233, 0.05); } .nlg-local .nlg-block-title { color: #0EA5E9; }
+.nlg-global { border-left-color: #7928CA; background: rgba(121, 40, 202, 0.05); } .nlg-global .nlg-block-title { color: #7928CA; }
+.nlg-educational { border-left-color: #F59E0B; background: rgba(245, 158, 11, 0.05); } .nlg-educational .nlg-block-title { color: #F59E0B; }
+.nlg-bottleneck { border-left-color: #EF4444; background: rgba(239, 68, 68, 0.05); } .nlg-bottleneck .nlg-block-title { color: #EF4444; }
+.nlg-mastery { border-left-color: #10B981; background: rgba(16, 185, 129, 0.05); } .nlg-mastery .nlg-block-title { color: #10B981; }
+.nlg-profiler { border-left-color: #EC4899; background: rgba(236, 72, 153, 0.05); } .nlg-profiler .nlg-block-title { color: #EC4899; }
+
+.nlg-math-badge { font-family: 'Fira Code', monospace; font-weight: bold; color: var(--purple-main); background: var(--purple-alpha); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(121, 40, 202, 0.2);}
+.nlg-inline-code { background: var(--app-bg); padding: 2px 6px; border-radius: 4px; font-family: 'Fira Code', monospace; color: #EA580C; font-size: 0.85em; border: 1px solid var(--border-light);}
+
+.bottleneck-badge { background-color: #FEE2E2; color: #EF4444; border: 1px solid #FECACA; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; animation: pulse-light 2s infinite;}
+.bottleneck-active { background-color: rgba(239, 68, 68, 0.05) !important; }
+.efficient-badge { background-color: #D1FAE5; color: #059669; border: 1px solid #A7F3D0; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 12px; text-transform: uppercase;}
+.efficient-active { background-color: rgba(16, 185, 129, 0.05) !important; }
+@keyframes pulse-light { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
 /* =========================================
-   FOOTER (DARK UNIFIED)
+   FLOATING ERROR DROPDOWN
+   ========================================= */
+.floating-error-container { position: absolute; bottom: 20px; right: 25px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; }
+.floating-error-btn { background-color: #EF4444; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 8px; }
+.floating-error-btn:hover { background-color: #DC2626; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5); }
+.floating-error-btn.open { border-radius: 0 0 12px 12px; transform: translateY(0); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+.error-dropdown-menu { background-color: #FFFFFF; border: 1px solid #EF4444; border-radius: 12px 12px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; position: relative; box-sizing: border-box; animation: slideUpModal 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes slideUpModal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.error-resizer-top { position: absolute; top: 0; left: 15px; right: 0; height: 6px; cursor: ns-resize; z-index: 10; }
+.error-resizer-left { position: absolute; top: 15px; left: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 10; }
+.error-resizer-nw { position: absolute; top: 0; left: 0; width: 16px; height: 16px; cursor: nwse-resize; z-index: 11; padding: 2px;}
+.error-dropdown-header { flex-shrink: 0; padding: 12px 16px 12px 28px; border-bottom: 1px solid rgba(239, 68, 68, 0.2); background-color: #FEF2F2; display: flex; align-items: center;}
+.error-dropdown-header strong { color: #DC2626; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;}
+.error-dropdown-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;}
+.error-dropdown-list::-webkit-scrollbar { width: 6px; }
+.error-dropdown-list::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+.error-dropdown-item { display: flex; align-items: flex-start; gap: 12px; padding-bottom: 12px; border-bottom: 1px dashed #E2E8F0; }
+.error-dropdown-item:last-child { border-bottom: none; padding-bottom: 0; }
+.error-line-badge { background-color: #EF4444; color: white; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; white-space: nowrap; font-family: "JetBrains Mono", monospace;}
+.error-message { color: var(--text-main); font-size: 0.85rem; line-height: 1.5; font-weight: 500;}
+
+/* =========================================
+   FOOTER (DARK BOOKEND)
    ========================================= */
 .workspace-footer { 
   height: 48px; background-color: var(--dark-bg); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; border-top: 1px solid var(--dark-border); z-index: 2000; 
@@ -308,7 +362,7 @@ body {
   background: transparent; color: var(--text-on-dark-muted); border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; 
 }
 .footer-tab:hover { color: #FFFFFF; background: rgba(255,255,255,0.05); }
-.footer-tab.active { background: rgba(255,255,255,0.1); color: #E9D8FD; box-shadow: inset 0 -3px 0 var(--purple-main); }
+.footer-tab.active { background: rgba(255,255,255,0.1); color: var(--text-on-dark); box-shadow: inset 0 -3px 0 var(--purple-main); }
 .footer-tab.big-o-btn { color: var(--text-on-dark); border: 1px solid var(--dark-border);}
 .footer-tab.big-o-btn:hover { background: var(--dark-surface); border-color: #A78BFA; color: #FFFFFF;}
 

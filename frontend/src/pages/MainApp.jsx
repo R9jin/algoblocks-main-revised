@@ -27,7 +27,7 @@ const handleEditorWillMount = (monaco) => {
     base: "vs",
     inherit: true,
     rules: [
-      { token: "keyword", foreground: "5A1398", fontStyle: "bold" },
+      { token: "keyword", foreground: "7928CA", fontStyle: "bold" },
       { token: "string", foreground: "10B981" },
       { token: "comment", foreground: "94A3B8", fontStyle: "italic" },
       { token: "number", foreground: "F59E0B" },
@@ -37,7 +37,7 @@ const handleEditorWillMount = (monaco) => {
       "editor.foreground": "#1E293B",
       "editorLineNumber.foreground": "#CBD5E1",
       "editor.lineHighlightBackground": "#F8FAFC",
-      "editorCursor.foreground": "#7F57F9",
+      "editorCursor.foreground": "#7928CA",
       "editor.selectionBackground": "#E2E8F0",
       "editor.inactiveSelectionBackground": "#F1F5F9",
     },
@@ -66,7 +66,7 @@ const getComplexityColor = (complexity) => {
   if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B"; 
   if (comp.includes("n log n")) return "#F97316"; 
   if (comp.includes("n^2") || comp.includes("n²")) return "#EF4444"; 
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#8B5CF6"; 
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA"; 
   return "#64748B"; 
 };
 
@@ -85,20 +85,68 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
+// ========================================================
+// ADVANCED MARKDOWN PARSER (FIXES WALL OF TEXT & BIG O BADGES)
+// ========================================================
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
 
   const parseMarkdown = (str) => {
-    let parsed = str.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    parsed = parsed.replace(/^([A-Z][A-Za-z\s-]+):/gm, "<strong>$1:</strong>");
-    parsed = parsed.replace(/\$([^$]+)\$/g, (match, math) => {
-      let cleanMath = math.replace(/\\log\b/g, "log").replace(/\\/g, "");
+    let html = str.trim();
+    
+    // 1. Bold Text
+    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    
+    // 2. Inline Code Blocks
+    html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
+    
+    // 3. LaTeX Math Formats ($$...$$ and $...$)
+    const mathReplacer = (match, math) => {
+      let cleanMath = math.trim()
+        .replace(/\\mathcal\{?O\}?/g, "O")
+        .replace(/\\log\b/g, "log")
+        .replace(/\\/g, ""); // remove residual slashes
       cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>");
       cleanMath = cleanMath.replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
       return `<span class="nlg-math-badge">${cleanMath}</span>`;
+    };
+    html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
+    html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
+
+    // 4. Catch plain O(...) notations that were missed by AI format wrappers
+    html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, text, suffix) {
+       let newText = text.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
+           let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+           return `<span class="nlg-math-badge">O(${cleanMath})</span>`;
+       });
+       return prefix + newText + suffix;
     });
-    parsed = parsed.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
-    return parsed;
+
+    // 5. Split content by double newlines into distinct blocks (Paragraphs/Lists)
+    let blocks = html.split(/\n\s*\n/);
+    
+    let parsedBlocks = blocks.map(block => {
+      if (/^[-*]\s+/m.test(block)) {
+        let listItems = block.split('\n').reduce((acc, line) => {
+           let trimmed = line.trim();
+           if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+               acc.push(`<li>${trimmed.substring(2).trim()}</li>`);
+           } else if (trimmed !== '') {
+               if(acc.length > 0) {
+                   acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
+               } else {
+                   acc.push(`<li>${trimmed}</li>`);
+               }
+           }
+           return acc;
+        }, []).join('');
+        return `<ul>${listItems}</ul>`;
+      } else {
+        return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
+      }
+    });
+    
+    return parsedBlocks.join('');
   };
 
   const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
@@ -128,11 +176,11 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
         return renderBlock(cleanText, "Performance Bottleneck", "nlg-bottleneck");
       }
       if (trimmedSec.startsWith("**Algorithmic Mastery:**")) return renderBlock(trimmedSec.replace("**Algorithmic Mastery:**", "").trim(), "Algorithmic Mastery", "nlg-mastery");
-      if (trimmedSec.startsWith("*Profiler verified")) return renderBlock(trimmedSec.replace(/\*/g, "").trim(), "Runtime Diagnostic", "nlg-profiler");
+      if (trimmedSec.startsWith("*Profiler verified")) return renderBlock(trimmedSec.replace(/\*Profiler verified\*/g, "").replace(/\*Profiler verified/g, "").trim(), "Runtime Diagnostic", "nlg-profiler");
 
       let parsedSec = parseMarkdown(trimmedSec);
       return (
-        <p key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></p>
+        <div key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></div>
       );
     })
     .filter(Boolean);
@@ -1198,7 +1246,6 @@ export default function MainApp() {
         </aside>
 
         <main className="workspace-main">
-          {/* UPDATED: Solid Purple Toggle Button with White Icon */}
           <button className={`sidebar-toggle-btn ${!isSidebarVisible ? "closed" : ""}`} onClick={() => setIsSidebarVisible(!isSidebarVisible)} title="Toggle Sidebar">
             <FiChevronRight className="toggle-icon" size={16} />
           </button>
