@@ -11,10 +11,54 @@ const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 export default function SignIn() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const saveAuthSession = (token, userObj) => {
+    if (rememberMe) {
+      localStorage.setItem("token", token);
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("user", JSON.stringify(userObj));
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("authToken");
+      sessionStorage.removeItem("user");
+    } else {
+      sessionStorage.setItem("token", token);
+      sessionStorage.setItem("authToken", token);
+      sessionStorage.setItem("user", JSON.stringify(userObj));
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+    }
+  };
+
+  const handleGuestLogin = () => {
+    setLoading(true);
+    const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
+    const guestUser = {
+      _id: guestId,
+      name: "Guest Explorer",
+      email: `${guestId}@guest.local`,
+      isGuest: true,
+      progress: {},
+      assessments: {}
+    };
+    const guestToken = `guest_token_${Date.now()}`;
+    
+    // Guest always uses localStorage to persist across refreshes reliably
+    localStorage.setItem("user", JSON.stringify(guestUser));
+    localStorage.setItem("token", guestToken);
+    localStorage.setItem("authToken", guestToken);
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("authToken");
+    
+    // Hard redirect to clear React Router cache
+    window.location.href = "/dashboard";
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,22 +75,18 @@ export default function SignIn() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Login failed");
 
-      // FIX: Store as BOTH "token" and "authToken" to satisfy all route guards and API calls
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("authToken", data.access_token);
-      sessionStorage.setItem("token", data.access_token);
-      sessionStorage.setItem("authToken", data.access_token);
-      localStorage.setItem("user", JSON.stringify({ email: formData.email, name: formData.email.split("@")[0] }));
+      const userObj = { email: formData.email, name: formData.email.split("@")[0] };
+      saveAuthSession(data.access_token, userObj);
 
-      navigate("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/auth/google`, {
         method: "POST",
@@ -57,16 +97,13 @@ export default function SignIn() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Google login failed");
 
-      // FIX: Synchronize tokens here as well
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("authToken", data.access_token);
-      sessionStorage.setItem("token", data.access_token);
-      sessionStorage.setItem("authToken", data.access_token);
-      localStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
+      const userObj = { email: data.email, name: data.name };
+      saveAuthSession(data.access_token, userObj);
 
-      navigate("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       setError(err.message);
+      setLoading(false);
     }
   };
 
@@ -112,8 +149,20 @@ export default function SignIn() {
             </div>
           </div>
 
-          <div className="auth-actions">
-            <Link to="/forgot-password" className="forgot-password-link">Forgot password?</Link>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "-5px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <input 
+                type="checkbox" 
+                id="rememberMe" 
+                checked={rememberMe} 
+                onChange={(e) => setRememberMe(e.target.checked)} 
+                style={{ cursor: "pointer", width: "15px", height: "15px", accentColor: "var(--auth-purple)" }}
+              />
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.85rem", color: "var(--auth-text-muted)", fontWeight: "600", margin: 0 }}>
+                Stay signed in
+              </label>
+            </div>
+            <Link to="/forgot-password" style={{ color: "var(--auth-purple)", fontSize: "0.85rem", fontWeight: "600", textDecoration: "none" }}>Forgot password?</Link>
           </div>
 
           <button type="submit" className="auth-submit-btn" disabled={loading}>
@@ -129,7 +178,17 @@ export default function SignIn() {
           </GoogleOAuthProvider>
         </div>
 
-        <p className="auth-redirect">
+        <button 
+          type="button" 
+          className="auth-submit-btn" 
+          onClick={handleGuestLogin} 
+          disabled={loading}
+          style={{ backgroundColor: "var(--auth-border)", color: "var(--auth-text-main)", width: "100%", marginTop: "15px", boxShadow: "none" }}
+        >
+          {loading ? "Preparing..." : "Continue as Guest"}
+        </button>
+
+        <p className="auth-redirect" style={{ marginTop: "20px" }}>
           Don't have an account? <Link to="/signup">Sign up here</Link>
         </p>
       </div>
