@@ -270,7 +270,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             counts = Counter(sorted_dims)
             terms = []
             for dim, count in counts.items():
-                if count == 1: terms.append(dim)
+                if dim == 'n!': terms.append("n!")
+                elif count == 1: terms.append(dim)
                 else: terms.append(f"{dim}^{count}")
             parts.append(" * ".join(terms))
                 
@@ -617,11 +618,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             node_dims = ['n']
         else:
             if not is_recurrence:
+                # Correctly extract overridden dimensions to properly project global bottleneck
                 if "n log n" in time_override: node_dims.append('n'); node_log = 1
                 elif "O(V + E)" in time_override or "O(V)" in time_override: node_graph = 1
                 elif "O(log n)" in time_override: node_log = 1
                 elif "O(sqrt n)" in time_override: node_sqrt = 1
                 elif "O(n * m)" in time_override: node_dims.extend(['n', 'm'])
+                elif "O(n^3)" in time_override or "n³" in time_override: node_dims.extend(['n', 'n', 'n'])
+                elif "O(n^2)" in time_override or "n²" in time_override: node_dims.extend(['n', 'n'])
+                elif "O(3^n)" in time_override: self.max_exp = 1 
+                elif "O(2^n)" in time_override or "2ⁿ" in time_override: self.max_exp = 1
+                elif "O(n!)" in time_override or "n!" in time_override: node_dims.append('n!') 
                 elif "O(n)" in time_override: node_dims.append('n')
                 elif "O(m)" in time_override: node_dims.append('m')
 
@@ -650,7 +657,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 tot_sqrt = getattr(self, 'sqrt_loop_depth', 0) + node_sqrt
                 tot_graph = getattr(self, 'graph_depth', 0) + node_graph
             else:
-                tot_dims = self.active_poly_dims
+                tot_dims = self.active_poly_dims + node_dims 
                 tot_log = self.log_loop_depth
                 tot_sqrt = getattr(self, 'sqrt_loop_depth', 0)
                 tot_graph = getattr(self, 'graph_depth', 0)
@@ -722,7 +729,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             "hits": hits, "memory_state": mem_state
         }
         
-        # STRICT LINE-OVERWRITE CONFLICT RESOLUTION
         if self._details and self._details[-1]["lineno"] == line_num:
             prev_w = self._details[-1].get("weight", -1)
             prev_op = self._details[-1].get("operation", "")
@@ -1025,14 +1031,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
                 self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
+        # Apply global time resolutions to internal calls, but NOT to the def line itself
         if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect:
-            self._details[start_idx]["local_time"] = relation
             resolved_rel = relation
             for k, v in lookup.items():
                 if k in relation:
                     resolved_rel = v
                     break
-            self._details[start_idx]["global_time"] = resolved_rel
             
             for i in range(start_idx + 1, len(self._details)):
                 loc_t = str(self._details[i]["local_time"])
@@ -1046,13 +1051,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self._details[i]["global_time"] = resolved_rel
                 else:
                     self._details[i]["global_time"] = resolved_rel
-        else:
-            self._details[start_idx]["local_time"] = "O(1)"
-            func_top_str = self.max_poly_str if self.max_poly_str != "O(1)" else self._build_time_str([], self.max_log, self.max_sqrt, 0, self.max_graph_ve, getattr(self, 'function_gcd_vars', None))
-            self._details[start_idx]["global_time"] = func_top_str
-            
-        self._details[start_idx]["local_space"] = self.custom_space.get(node.name, "O(1)")
-        self._details[start_idx]["global_space"] = self.custom_space.get(node.name, "O(1)")
+
+        # FIX: Force the actual `def` statement to strictly be O(1) constant time/space overhead
+        self._details[start_idx]["local_time"] = "O(1)"
+        self._details[start_idx]["global_time"] = "O(1)"
+        self._details[start_idx]["local_space"] = "O(1)"
+        self._details[start_idx]["global_space"] = "O(1)"
+        self._details[start_idx]["weight"] = 1 # Guarantee it is not flagged as the bottleneck
+        self._details[start_idx]["time_explanation"] = "Function declaration creates a function object in memory and binds it to a name. This is strictly an O(1) constant-time operation."
+        self._details[start_idx]["space_explanation"] = "O(1) memory overhead to store the function reference in the local namespace."
 
         if not is_dead:
             self.max_exp, self.max_graph_ve = max(prev_data[5], self.max_exp), max(prev_data[6], self.max_graph_ve)
