@@ -224,7 +224,7 @@ export default function LearningPath() {
   if (isLoadingCurriculum) {
     return (
       <div className="learning-path-page">
-        <DashboardHeader />
+        <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
         <div className="learning-path-container" style={{ textAlign: "center", padding: "100px 20px" }}>
           <h2>Loading Curriculum Data...</h2>
         </div>
@@ -234,7 +234,7 @@ export default function LearningPath() {
 
   return (
     <div className="learning-path-page">
-      <DashboardHeader />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
       <div className="learning-path-container">
         <div className="learning-path-header">
           <h1>Learning Path</h1>

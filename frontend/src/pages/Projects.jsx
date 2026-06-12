@@ -101,7 +101,7 @@ export default function Projects() {
 
   return (
     <div className="projects-bento-layout">
-      <DashboardHeader />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
 
       <main className="projects-bento-content">
         <div className="projects-grid-container">
