@@ -3,195 +3,309 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
 import { FiAlertTriangle, FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-
 export default function SignIn() {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [email, setEmail] = useState(""); 
+  const [password, setPassword] = useState(""); 
+  const [isLoading, setIsLoading] = useState(false); 
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  
+  const navigate = useNavigate(); 
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
 
-  const saveAuthSession = (token, userObj) => {
-    if (rememberMe) {
-      localStorage.setItem("token", token);
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("user", JSON.stringify(userObj));
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("authToken");
-      sessionStorage.removeItem("user");
-    } else {
-      sessionStorage.setItem("token", token);
-      sessionStorage.setItem("authToken", token);
-      sessionStorage.setItem("user", JSON.stringify(userObj));
-      localStorage.removeItem("token");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-    }
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
   };
 
-  const handleGuestLogin = () => {
-    setLoading(true);
-    const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
-    const guestUser = {
-      _id: guestId,
-      name: "Guest Explorer",
-      email: `${guestId}@guest.local`,
-      isGuest: true,
-      progress: {},
-      assessments: {}
-    };
-    const guestToken = `guest_token_${Date.now()}`;
-    
-    // Guest always uses localStorage to persist across refreshes reliably
-    localStorage.setItem("user", JSON.stringify(guestUser));
-    localStorage.setItem("token", guestToken);
-    localStorage.setItem("authToken", guestToken);
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("authToken");
-    
-    // Hard redirect to clear React Router cache
-    window.location.href = "/dashboard";
+  const syncUserCloudData = async (userEmail, token) => {
+    try {
+      await Promise.all([
+        projectsDB.clear(),
+        templatesDB.clear(),
+        syncQueueDB.clear()
+      ]); 
+
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      };
+
+      const [projRes, tempRes] = await Promise.all([
+        fetch(`${API_BASE}/api/projects`, { headers }),
+        fetch(`${API_BASE}/api/templates`, { headers })
+      ]); 
+
+      if (projRes.ok) {
+        const projData = await projRes.json();
+        if (projData.status === 'success') {
+          for (let p of projData.projects) {
+            if (p.owner_id === userEmail) {
+              await projectsDB.setItem(p._id, { ...p, synced: true });
+            }
+          }
+        }
+      } 
+
+      if (tempRes.ok) {
+        const tempData = await tempRes.json();
+        if (tempData.status === 'success') {
+          for (let t of tempData.templates) {
+            if (t.owner_id === userEmail) {
+              await templatesDB.setItem(t._id, { ...t, synced: true });
+            }
+          }
+        }
+      } 
+    } catch (error) {
+      console.warn("Could not pull data from cloud. Proceeding with local data.", error); 
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    setIsLoading(true); 
 
     try {
-      const res = await fetch(`${API_BASE}/api/login`, {
+      const response = await fetch(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+        body: JSON.stringify({ email, password }),
+      }); 
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Login failed");
+      const data = await response.json(); 
 
-      const userObj = { email: formData.email, name: formData.email.split("@")[0] };
-      saveAuthSession(data.access_token, userObj);
+      if (!response.ok || data.status !== "success") {
+        showToast(data.detail || "Invalid email or password"); 
+        setIsLoading(false);
+        return;
+      }
 
-      window.location.href = "/dashboard";
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
+      const activeStorage = rememberMe ? localStorage : sessionStorage;
+      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+      
+      // FIX: Wipe BOTH key variations from the inactive storage to prevent leakage
+      inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
+      inactiveStorage.removeItem("user");
+
+      // FIX: Save BOTH key variations to active storage so ALL pages pass auth checks
+      activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
+      activeStorage.setItem("user", JSON.stringify({
+        email: data.email,
+        name: data.name,
+        progress: data.progress || {},
+        assessments: data.assessments || {}
+      })); 
+
+      await syncUserCloudData(data.email, data.token); 
+      navigate("/dashboard"); 
+      
+    } catch (error) {
+      console.error(error); 
+      showToast("Server not reachable. Check backend connection."); 
+    } finally {
+      setIsLoading(false); 
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsLoading(true); 
+    try {
+      await Promise.all([
+        projectsDB.clear(),
+        templatesDB.clear(),
+        syncQueueDB.clear()
+      ]); 
+
+      // FIX: Wipe ALL token keys
+      localStorage.removeItem("authToken");
+      sessionStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+
+      sessionStorage.setItem("user", JSON.stringify({
+        email: `guest_${Date.now()}@algoblocks.local`,
+        name: "Guest User",
+        isGuest: true,
+        progress: {},
+        assessments: {}
+      })); 
+
+      navigate("/dashboard"); 
+    } catch (error) {
+      console.error("Guest login failed:", error); 
+      showToast("Failed to initialize guest session.");
+    } finally {
+      setIsLoading(false); 
     }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    setLoading(true);
+    setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/google`, {
+      const response = await fetch(`${API_BASE}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: credentialResponse.credential }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Google login failed");
+      const data = await response.json();
 
-      const userObj = { email: data.email, name: data.name };
-      saveAuthSession(data.access_token, userObj);
+      if (!response.ok || data.status !== "success") {
+        showToast(data.detail || "Google authentication failed");
+        return;
+      }
 
-      window.location.href = "/dashboard";
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
+      const activeStorage = rememberMe ? localStorage : sessionStorage;
+      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+      
+      // FIX: Wipe BOTH key variations from inactive storage
+      inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
+      inactiveStorage.removeItem("user");
+
+      // FIX: Save BOTH key variations so ALL pages pass auth checks
+      activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
+      activeStorage.setItem("user", JSON.stringify({
+        email: data.email,
+        name: data.name,
+        progress: data.progress || {},
+        assessments: data.assessments || {}
+      }));
+
+      await syncUserCloudData(data.email, data.token);
+      navigate("/dashboard");
+      
+    } catch (error) {
+      console.error("Google Authentication error:", error);
+      showToast("Server not reachable. Check backend connection.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        {/* ACADEMIC RESEARCH NOTICE */}
-        <div className="auth-research-banner">
-          <div className="banner-icon-wrapper">
-            <FiAlertTriangle size={18} />
-          </div>
-          <div className="banner-text">
-            <strong>Academic Research Notice</strong>
-            <p>
-              To ensure data validity for this thesis, please use <b>strictly one account</b> throughout your evaluation. 
-              Progress, assessments, and learning analytics are being actively monitored and recorded to a single ID.
-            </p>
-          </div>
-        </div>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
+        {toast.message}
+      </div>
 
-        <div className="auth-header">
-          <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks" className="auth-logo" />
-          <h2>Welcome Back</h2>
-          <p>Sign in to continue your algorithmic journey.</p>
-        </div>
+      <div className="auth-container">
+        <div className="auth-card">
 
-        {error && <div className="auth-error-banner">{error}</div>}
-
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>Email Address</label>
-            <div className="input-wrapper">
-              <FiMail className="input-icon" />
-              <input type="email" name="email" placeholder="you@student.edu" value={formData.email} onChange={handleChange} required />
+          {/* ACADEMIC RESEARCH NOTICE */}
+          <div className="auth-research-banner">
+            <div className="banner-icon-wrapper">
+              <FiAlertTriangle size={18} />
+            </div>
+            <div className="banner-text">
+              <strong>Academic Research Notice</strong>
+              <p>
+                To ensure data validity for this thesis, please use <b>strictly one account</b> throughout your evaluation. 
+                Progress, assessments, and learning analytics are being actively monitored and recorded to a single ID.
+              </p>
             </div>
           </div>
 
-          <div className="input-group">
-            <label>Password</label>
-            <div className="input-wrapper">
-              <FiLock className="input-icon" />
-              <input type="password" name="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
+          <h2>Sign In to AlgoBlocks</h2>
+          <form onSubmit={handleSubmit}>
+            
+            <div className="form-group">
+              <label>Email</label>
+              <div className="auth-input-wrap">
+                <FiMail className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  disabled={isLoading}
+                /> 
+              </div>
             </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "-5px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input 
-                type="checkbox" 
-                id="rememberMe" 
-                checked={rememberMe} 
-                onChange={(e) => setRememberMe(e.target.checked)} 
-                style={{ cursor: "pointer", width: "15px", height: "15px", accentColor: "var(--auth-purple)" }}
+            
+            <div className="form-group">
+              <label>Password</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  disabled={isLoading}
+                /> 
+              </div>
+            </div>
+            
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
               />
-              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.85rem", color: "var(--auth-text-muted)", fontWeight: "600", margin: 0 }}>
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
                 Stay signed in
               </label>
             </div>
-            <Link to="/forgot-password" style={{ color: "var(--auth-purple)", fontSize: "0.85rem", fontWeight: "600", textDecoration: "none" }}>Forgot password?</Link>
-          </div>
+            
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              {isLoading ? "Signing In..." : "Sign In"}
+            </button> 
 
-          <button type="submit" className="auth-submit-btn" disabled={loading}>
-            {loading ? "Authenticating..." : "Sign In"}
-          </button>
-        </form>
+            <div className="social-divider">
+              <span>OR</span>
+            </div> 
 
-        <div className="auth-divider"><span>OR</span></div>
+            <div className="google-auth-wrapper">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => showToast("Google Sign-In sequence interrupted.")}
+                theme="outline" 
+                size="large"
+                shape="rectangular"
+                text="signin_with"
+              />
+            </div>
 
-        <div className="google-auth-wrapper">
-          <GoogleOAuthProvider clientId={CLIENT_ID}>
-            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError("Google Login Failed")} theme="filled_blue" size="large" width="100%" text="signin_with" />
-          </GoogleOAuthProvider>
+            <button
+              type="button"
+              className="auth-button guest-button"
+              onClick={handleGuestLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? "Preparing..." : "Continue as Guest"}
+            </button> 
+
+          </form>
+
+          <div className="auth-links">
+            <Link to="/forgot-password">Forgot password?</Link>
+            <p>Don't have an account? <Link to="/signup">Sign up</Link></p>
+          </div> 
         </div>
-
-        <button 
-          type="button" 
-          className="auth-submit-btn" 
-          onClick={handleGuestLogin} 
-          disabled={loading}
-          style={{ backgroundColor: "var(--auth-border)", color: "var(--auth-text-main)", width: "100%", marginTop: "15px", boxShadow: "none" }}
-        >
-          {loading ? "Preparing..." : "Continue as Guest"}
-        </button>
-
-        <p className="auth-redirect" style={{ marginTop: "20px" }}>
-          Don't have an account? <Link to="/signup">Sign up here</Link>
-        </p>
       </div>
-    </div>
+    </GoogleOAuthProvider>
   );
 }

@@ -1,229 +1,209 @@
 // frontend/src/pages/SignUp.jsx
-import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
 import { FiAlertTriangle, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-
 export default function SignUp() {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  
+  const navigate = useNavigate();
+  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const saveAuthSession = (token, userObj) => {
-    if (rememberMe) {
-      localStorage.setItem("token", token);
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("user", JSON.stringify(userObj));
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("authToken");
-      sessionStorage.removeItem("user");
-    } else {
-      sessionStorage.setItem("token", token);
-      sessionStorage.setItem("authToken", token);
-      sessionStorage.setItem("user", JSON.stringify(userObj));
-      localStorage.removeItem("token");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-    }
-  };
-
-  const handleGuestLogin = () => {
-    setLoading(true);
-    const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
-    const guestUser = {
-      _id: guestId,
-      name: "Guest Explorer",
-      email: `${guestId}@guest.local`,
-      isGuest: true,
-      progress: {},
-      assessments: {}
-    };
-    const guestToken = `guest_token_${Date.now()}`;
-    
-    // Guest always uses localStorage to persist across refreshes reliably
-    localStorage.setItem("user", JSON.stringify(guestUser));
-    localStorage.setItem("token", guestToken);
-    localStorage.setItem("authToken", guestToken);
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("authToken");
-    
-    // Hard redirect to clear React Router cache
-    window.location.href = "/dashboard";
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
+    setIsLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/signup`, {
+      const response = await fetch(`${API_BASE}/api/signup`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Sign up failed");
+      const data = await response.json();
 
-      // Auto login after successful signup
-      const loginRes = await fetch(`${API_BASE}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email, password: formData.password }),
-      });
+      if (response.ok && data.status === "success") {
+        const activeStorage = rememberMe ? localStorage : sessionStorage;
+        const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+        
+        inactiveStorage.removeItem("authToken");
+        inactiveStorage.removeItem("user");
 
-      if (loginRes.ok) {
-        const loginData = await loginRes.json();
-        const userObj = { email: formData.email, name: formData.name };
-        saveAuthSession(loginData.access_token, userObj);
-        window.location.href = "/dashboard";
+        // FIXED: Adjusted to map the restored backend top-level dictionary
+        activeStorage.setItem("authToken", data.token);
+        activeStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
+
+        navigate("/home");
       } else {
-        navigate("/signin");
+        let errorMessage = "Sign up failed. Please try again.";
+        if (typeof data.detail === "string") {
+            errorMessage = data.detail;
+        } else if (Array.isArray(data.detail)) {
+            errorMessage = data.detail.map(err => err.msg).join(" | ");
+        }
+        
+        showToast(errorMessage);
       }
-
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    } 
+    } catch (error) {
+      console.error("Error connecting to server:", error);
+      showToast("Failed to connect to the server.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setLoading(true);
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: credentialResponse.credential }),
-      });
+      await Promise.all([
+        projectsDB.clear(), 
+        templatesDB.clear(), 
+        syncQueueDB.clear()
+      ]);
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Google signup failed");
+      localStorage.removeItem("authToken");
+      sessionStorage.removeItem("authToken");
 
-      const userObj = { email: data.email, name: data.name };
-      saveAuthSession(data.access_token, userObj);
+      sessionStorage.setItem("user", JSON.stringify({
+          email: `guest_${Date.now()}@algoblocks.local`,
+          name: "Guest User",
+          isGuest: true,
+          progress: {} 
+      }));
 
-      window.location.href = "/dashboard";
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Guest login failed:", error);
+      showToast("Failed to initialize guest session.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        
-        {/* ACADEMIC RESEARCH NOTICE */}
-        <div className="auth-research-banner">
-          <div className="banner-icon-wrapper">
-            <FiAlertTriangle size={18} />
-          </div>
-          <div className="banner-text">
-            <strong>Participant Protocol</strong>
-            <p>
-              By creating an account, you agree to participate in an educational system evaluation. 
-              <b> Please do not create multiple accounts.</b> Your learning data, assessments, and code executions are monitored strictly for research integrity.
-            </p>
-          </div>
-        </div>
-
-        <div className="auth-header">
-          <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks" className="auth-logo" />
-          <h2>Create Account</h2>
-          <p>Join the study and master algorithms visually.</p>
-        </div>
-
-        {error && <div className="auth-error-banner">{error}</div>}
-
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label>Full Name</label>
-            <div className="input-wrapper">
-              <FiUser className="input-icon" />
-              <input type="text" name="name" placeholder="John Doe" value={formData.name} onChange={handleChange} required />
-            </div>
-          </div>
-
-          <div className="input-group">
-            <label>Email Address</label>
-            <div className="input-wrapper">
-              <FiMail className="input-icon" />
-              <input type="email" name="email" placeholder="you@student.edu" value={formData.email} onChange={handleChange} required />
-            </div>
-          </div>
-
-          <div className="input-group split-group">
-            <div style={{ flex: 1 }}>
-              <label>Password</label>
-              <div className="input-wrapper">
-                <FiLock className="input-icon" />
-                <input type="password" name="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required />
-              </div>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label>Confirm</label>
-              <div className="input-wrapper">
-                <FiLock className="input-icon" />
-                <input type="password" name="confirmPassword" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} required />
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "-5px" }}>
-            <input 
-              type="checkbox" 
-              id="rememberMe" 
-              checked={rememberMe} 
-              onChange={(e) => setRememberMe(e.target.checked)} 
-              style={{ cursor: "pointer", width: "15px", height: "15px", accentColor: "var(--auth-purple)" }}
-            />
-            <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.85rem", color: "var(--auth-text-muted)", fontWeight: "600", margin: 0 }}>
-              Stay signed in
-            </label>
-          </div>
-
-          <button type="submit" className="auth-submit-btn" disabled={loading}>
-            {loading ? "Registering..." : "Sign Up"}
-          </button>
-        </form>
-
-        <div className="auth-divider"><span>OR</span></div>
-
-        <div className="google-auth-wrapper">
-          <GoogleOAuthProvider clientId={CLIENT_ID}>
-            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError("Google Registration Failed")} theme="filled_blue" size="large" width="100%" text="signup_with" />
-          </GoogleOAuthProvider>
-        </div>
-
-        <button 
-          type="button" 
-          className="auth-submit-btn" 
-          onClick={handleGuestLogin} 
-          disabled={loading}
-          style={{ backgroundColor: "var(--auth-border)", color: "var(--auth-text-main)", width: "100%", marginTop: "15px", boxShadow: "none" }}
-        >
-          {loading ? "Preparing..." : "Continue as Guest"}
-        </button>
-
-        <p className="auth-redirect" style={{ marginTop: "20px" }}>
-          Already have an account? <Link to="/signin">Sign in here</Link>
-        </p>
+    <>
+      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
+        {toast.message}
       </div>
-    </div>
+
+      <div className="auth-container">
+        <div className="auth-card">
+          
+          {/* ACADEMIC RESEARCH NOTICE */}
+          <div className="auth-research-banner">
+            <div className="banner-icon-wrapper">
+              <FiAlertTriangle size={18} />
+            </div>
+            <div className="banner-text">
+              <strong>Participant Protocol</strong>
+              <p>
+                By creating an account, you agree to participate in an educational system evaluation. 
+                <b> Please do not create multiple accounts.</b> Your learning data, assessments, and code executions are monitored strictly for research integrity.
+              </p>
+            </div>
+          </div>
+
+          <h2>Create Account</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Full Name</label>
+              <div className="auth-input-wrap">
+                <FiUser className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <div className="auth-input-wrap">
+                <FiMail className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+                Stay signed in
+              </label>
+            </div>
+            
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              {isLoading ? "Signing Up..." : "Sign Up"}
+            </button>
+
+            <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "0.9rem" }}>
+              <span>— OR —</span>
+            </div>
+            <button 
+              type="button" 
+              className="auth-button" 
+              onClick={handleGuestLogin} 
+              disabled={isLoading}
+              style={{ backgroundColor: "#6c757d", border: "none" }}
+            >
+              {isLoading ? "Preparing..." : "Continue as Guest"}
+            </button>
+
+          </form>
+
+          <div className="auth-links">
+            <p>Already have an account?<Link to="/signin">Sign in</Link></p>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
