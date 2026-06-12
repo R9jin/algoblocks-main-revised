@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { FiCheckCircle, FiChevronDown, FiClock, FiCpu, FiLock, FiPlay, FiXCircle } from "react-icons/fi";
 import "../styles/TestCaseTester.css";
 
 // Helper copied from original formatters/utils logic to accurately grade complexity tests
@@ -22,6 +23,7 @@ export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(
   const [isTesting, setIsTesting] = useState(false);
   const [error, setError] = useState(null);
   const [analysisData, setAnalysisData] = useState(null);
+  const [expandedTests, setExpandedTests] = useState({});
   const workerRef = useRef(null);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(
     workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url));
 
     workerRef.current.onmessage = (event) => {
-      const { type, results, error, data } = event.data;
+      const { type, results: workerResults, error: workerError, data } = event.data;
       
       if (type === "ANALYZE_RESULT") {
         setAnalysisData(data);
@@ -48,8 +50,8 @@ export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(
       } else if (type === "TEST_RESULTS") {
         
         // Segregate original tests to inject the complexity checks inside
-        const visibleTests = results.filter(r => !r.isHidden);
-        const hiddenTests = results.filter(r => r.isHidden);
+        const visibleTests = workerResults.filter(r => !r.isHidden);
+        const hiddenTests = workerResults.filter(r => r.isHidden);
 
         const actualTime = analysisData?.total || "O(1)";
         const actualSpace = analysisData?.space_total || "O(1)";
@@ -63,15 +65,17 @@ export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(
         const spacePassed = actualSpaceWeight > 0 && actualSpaceWeight <= targetSpaceWeight;
 
         const compTests = [
-          { isComplexityTest: true, title: "Time Complexity Check", expected: `≤ ${targetTime}`, actual: actualTime, passed: timePassed, isHidden: false, call: "Static Code Analysis" },
-          { isComplexityTest: true, title: "Space Complexity Check", expected: `≤ ${targetSpace}`, actual: actualSpace, passed: spacePassed, isHidden: false, call: "Static Code Analysis" }
+          { isComplexityTest: true, isTime: true, title: "Time Complexity Check", expected: `≤ ${targetTime}`, actual: actualTime, passed: timePassed, isHidden: false, call: "Static Code Analysis" },
+          { isComplexityTest: true, isTime: false, title: "Space Complexity Check", expected: `≤ ${targetSpace}`, actual: actualSpace, passed: spacePassed, isHidden: false, call: "Static Code Analysis" }
         ];
 
-        // Ensure array conforms to layout: 3 regular, 2 complexity, 2 hidden tests
+        // Ensure array conforms to layout: regular, complexity, then hidden tests
         const finalResults = [...visibleTests, ...compTests, ...hiddenTests];
 
         setResults(finalResults);
         setIsTesting(false);
+        // Reset expansions on new test run
+        setExpandedTests({});
         
         const passedCount = finalResults.filter(r => r.passed).length;
         if (onTestComplete) {
@@ -79,7 +83,7 @@ export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(
         }
 
       } else if (type === "ERROR") {
-        setError(error);
+        setError(workerError);
         setIsTesting(false);
       }
     };
@@ -103,67 +107,112 @@ export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(
     });
   };
 
+  const toggleTest = (index) => {
+    setExpandedTests(prev => ({ ...prev, [index]: !prev[index] }));
+  };
+
+  const getTestIcon = (res) => {
+    if (res.isHidden) return <FiLock className="tct-icon locked" />;
+    if (res.isComplexityTest) {
+      return res.isTime ? <FiClock className={`tct-icon ${res.passed ? 'passed' : 'failed'}`} /> 
+                        : <FiCpu className={`tct-icon ${res.passed ? 'passed' : 'failed'}`} />;
+    }
+    return res.passed ? <FiCheckCircle className="tct-icon passed" /> : <FiXCircle className="tct-icon failed" />;
+  };
+
+  const passedCount = results.filter(r => r.passed).length;
+  const totalCount = results.length;
+
   return (
-    <div className="test-case-tester">
-      <div className="tester-header">
-        <h3>Test Cases</h3>
+    <div className="tct-container">
+      <div className="tct-header">
+        <div className="tct-header-title">
+          <h3>Test Cases</h3>
+          {totalCount > 0 && !isTesting && (
+            <span className={`tct-counter ${passedCount === totalCount ? 'perfect' : ''}`}>
+              {passedCount}/{totalCount} Passed
+            </span>
+          )}
+        </div>
         <button 
-          className="run-tests-btn" 
+          className={`tct-run-btn ${isTesting ? 'running' : ''}`} 
           onClick={handleRunTests} 
           disabled={isTesting || !pythonCode}
         >
-          {isTesting ? "Evaluating..." : "Run Tests"}
+          <FiPlay /> {isTesting ? "Evaluating..." : "Run Tests"}
         </button>
       </div>
 
-      {error && <div className="tester-error">Execution Error: {error}</div>}
+      {error && (
+        <div className="tct-error-banner">
+          <strong>Execution Error:</strong>
+          <p>{error}</p>
+        </div>
+      )}
 
-      <div className="results-container">
+      <div className="tct-results-list">
+        {results.length === 0 && !isTesting && !error && (
+          <div className="tct-empty-state">
+            <FiPlay size={32} className="tct-empty-icon" />
+            <p>Click "Run Tests" to evaluate your code against the required conditions.</p>
+          </div>
+        )}
+
         {results.map((res, index) => {
           const displayTitle = res.isComplexityTest ? res.title : res.isHidden ? `Hidden Test` : `Test Case ${index + 1}`;
+          const isExpanded = expandedTests[index];
+          const statusClass = res.passed ? "passed" : "failed";
 
           return (
-            <div key={index} className={`test-result-card ${res.passed ? "passed" : "failed"}`}>
-              <div className="test-card-header">
-                <h4>{displayTitle}</h4>
-                <span className={`status-badge ${res.passed ? "passed" : "failed"}`}>
-                  {res.passed ? "Passed" : "Failed"}
-                </span>
+            <div key={index} className={`tct-card ${statusClass}`}>
+              <div 
+                className="tct-card-header" 
+                onClick={() => !res.isHidden && toggleTest(index)}
+                style={{ cursor: res.isHidden ? "default" : "pointer" }}
+              >
+                <div className="tct-card-title-group">
+                  {getTestIcon(res)}
+                  <strong className={`tct-card-title ${statusClass}`}>{displayTitle}</strong>
+                </div>
+                
+                <div className="tct-card-status-group">
+                  {res.isHidden && <span className="tct-hidden-badge">Locked</span>}
+                  {!res.isHidden && (
+                    <FiChevronDown className={`tct-chevron ${isExpanded ? 'open' : ''} ${statusClass}`} />
+                  )}
+                </div>
               </div>
               
-              {!res.isHidden && (
-                <div className="test-details">
-                  <div className="detail-row">
-                    <strong>{res.isComplexityTest ? "Metric Check:" : "Function Call / Input:"}</strong>
-                    <pre>{res.call || res.input || "No Input"}</pre>
+              {isExpanded && !res.isHidden && (
+                <div className="tct-card-body">
+                  <div className="tct-detail-row">
+                    <span className="tct-detail-label">{res.isComplexityTest ? "Metric Constraint:" : "Input:"}</span>
+                    <code className="tct-detail-code">{res.call || res.input || "No Input"}</code>
                   </div>
-                  <div className="detail-row">
-                    <strong>{res.isComplexityTest ? "Requirement:" : "Expected Output:"}</strong>
-                    <pre>{res.expected}</pre>
+                  <div className="tct-detail-row">
+                    <span className="tct-detail-label">{res.isComplexityTest ? "Requirement:" : "Expected Output:"}</span>
+                    <code className="tct-detail-code">{res.expected}</code>
                   </div>
-                  <div className="detail-row">
-                    <strong>{res.isComplexityTest ? "Your Assessment:" : "Your Output:"}</strong>
-                    <pre className={res.error ? "error-text" : ""}>
-                      {res.error ? res.error : (res.actual !== undefined ? res.actual : "No Output")}
-                    </pre>
+                  <div className="tct-detail-row status-row">
+                    <span className="tct-detail-label">Result:</span>
+                    <span className={`tct-detail-status ${statusClass}`}>
+                       {res.passed ? "Passed" : res.error ? "Failed (Execution Error)" : "Failed (Incorrect Output)"}
+                    </span>
                   </div>
-                </div>
-              )}
-              
-              {res.isHidden && !res.passed && (
-                <div className="test-details">
-                  <p className="hidden-fail-msg">Your code failed on a hidden test case. Re-check your algorithm constraints and edge cases.</p>
+                  
+                  {(!res.passed || res.error) && (
+                    <div className="tct-detail-row error-row">
+                       <span className="tct-detail-label">{res.isComplexityTest ? "Your Assessment:" : "Your Output:"}</span>
+                       <pre className={`tct-error-output ${res.error ? "has-error" : ""}`}>
+                         {res.error ? res.error : (res.actual !== undefined ? res.actual : "No Output")}
+                       </pre>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           );
         })}
-        
-        {results.length === 0 && !isTesting && (
-          <div className="no-results-msg">
-            <p>Click "Run Tests" to evaluate your code against the required conditions.</p>
-          </div>
-        )}
       </div>
     </div>
   );
