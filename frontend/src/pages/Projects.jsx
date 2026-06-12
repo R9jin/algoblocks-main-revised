@@ -1,36 +1,12 @@
 // frontend/src/pages/Projects.jsx
 import { useEffect, useState } from "react";
+import { FiChevronRight, FiClock, FiCloud, FiFileText, FiFolder, FiHardDrive, FiPlus, FiTrash2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { projectsDB, syncQueueDB } from "../db";
 import "../styles/Projects.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
-
-// --- Minimal Inline SVG Icons ---
-const FolderIcon = () => (
-  <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-  </svg>
-);
-
-const DocumentIcon = () => (
-  <svg width="56" height="56" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
 
 export default function Projects() {
   const navigate = useNavigate();
@@ -53,14 +29,12 @@ export default function Projects() {
       // --- 1. PULL CLOUD DATA FIRST ---
       if (navigator.onLine) {
         try {
-          // FIX: Grab the token and prepare headers
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
           const headers = {
             "Content-Type": "application/json",
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           };
 
-          // FIX: Pass the headers object into the fetch request
           const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
           if (res.ok) {
             const data = await res.json();
@@ -126,58 +100,99 @@ export default function Projects() {
   };
 
   return (
-    <div className="page-container">
+    <div className="projects-bento-layout">
       <DashboardHeader />
 
-      <div className="page-body">
-        <main className="page-main">
-          <div className="page-header-row">
-            <div>
-              <h1 className="section-title">My Projects</h1>
-              <p className="page-subtitle">Manage and load your saved algorithm workspaces.</p>
+      <main className="projects-bento-content">
+        <div className="projects-grid-container">
+          
+          {/* Hero Section */}
+          <section className="bento-hero-card projects-hero">
+            <div className="hero-text">
+              <h1 className="hero-title">My Projects</h1>
+              <p className="hero-subtitle">
+                Manage, edit, and load your saved algorithm workspaces.
+              </p>
             </div>
-            <button className="btn-new-project-large" onClick={() => navigate('/workspace')}>
-              <PlusIcon /> Blank Workspace
+            <button 
+              className="hero-primary-btn" 
+              onClick={() => navigate('/workspace')}
+            >
+              <FiPlus size={20} strokeWidth={3} />
+              <span>Blank Workspace</span>
             </button>
-          </div>
+          </section>
 
-          {loading ? (
-            <div className="loading-state">Loading projects...</div>
-          ) : projects.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon"><DocumentIcon /></div>
-              <h3 className="empty-title">No projects found</h3>
-              <p className="empty-desc">You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!</p>
-              <button className="btn-new-project-large" onClick={() => navigate('/workspace')}>
-                <PlusIcon /> Create First Project
-              </button>
-            </div>
-          ) : (
-            <div className="projects-grid">
-              {projects.map(proj => (
-                <div key={proj._id} className="project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
-                  <div className="project-card-header">
-                    <div className="project-icon-wrapper">
-                      <FolderIcon />
-                    </div>
-                    <button
-                      className="btn-delete"
-                      title="Delete Project"
-                      onClick={(e) => handleDeleteProject(e, proj._id)}
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                  <div className="project-details">
-                    <h3>{proj.title || proj.name || "Untitled Project"}</h3>
-                    <p>{proj.synced ? "Saved to Cloud" : "Local Draft"}</p>
-                  </div>
+          {/* Projects List Section */}
+          <section className="projects-list-section">
+            {loading ? (
+              <div className="projects-loading-state">
+                <div className="spinner"></div>
+                <p>Syncing your workspace data...</p>
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="projects-empty-state">
+                <div className="empty-state-icon">
+                  <FiFileText size={48} />
                 </div>
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
+                <h3 className="empty-title">No projects found</h3>
+                <p className="empty-desc">
+                  You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!
+                </p>
+                <button className="empty-action-btn" onClick={() => navigate('/workspace')}>
+                  <FiPlus size={18} strokeWidth={3} /> Create First Project
+                </button>
+              </div>
+            ) : (
+              <div className="projects-bento-grid">
+                {projects.map(proj => (
+                  <div 
+                    key={proj._id} 
+                    className="bento-project-card" 
+                    onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}
+                  >
+                    <div className="project-card-top">
+                      <div className="project-icon-wrapper">
+                        <FiFolder size={24} />
+                      </div>
+                      <button
+                        className="btn-delete-project"
+                        title="Delete Project"
+                        onClick={(e) => handleDeleteProject(e, proj._id)}
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
+                    
+                    <div className="project-card-body">
+                      <h3 className="project-title">{proj.title || proj.name || "Untitled Project"}</h3>
+                      <div className="project-meta-info">
+                        <span className="meta-date">
+                          <FiClock size={14} /> 
+                          {new Date(proj.updatedAt || Date.now()).toLocaleDateString()}
+                        </span>
+                        <span className={`sync-status ${proj.synced ? "synced" : "local"}`}>
+                          {proj.synced ? (
+                            <><FiCloud size={14} /> Cloud</>
+                          ) : (
+                            <><FiHardDrive size={14} /> Local</>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="project-card-footer">
+                      <span className="open-text">Open Project</span>
+                      <FiChevronRight size={18} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+        </div>
+      </main>
     </div>
   );
 }

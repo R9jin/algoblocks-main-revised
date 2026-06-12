@@ -1,108 +1,138 @@
-/*frontend\src\styles\Projects.css*/
-.page-container {
+/* frontend/src/styles/Projects.css */
+
+/* =========================================================
+   1. Base Layout
+========================================================= */
+.projects-bento-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background-color: #f8fafc; /* Crisp, cool light gray */
+  min-height: 100vh;
+  background-color: #F4F7F9;
+  color: #3C2D76;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-.page-body {
+.projects-bento-content {
+  flex: 1;
+  padding: 32px 24px;
   display: flex;
-  flex: 1;
-  overflow: hidden;
-  padding: 2rem;
+  justify-content: center;
 }
 
-.page-main {
-  flex: 1;
-  max-width: 1100px;
-  margin: 0 auto;
+.projects-grid-container {
   width: 100%;
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 40px 48px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
-  overflow-y: auto;
-  border: 1px solid #e2e8f0;
+  max-width: 1280px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  animation: slideFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.page-header-row {
+@keyframes slideFadeUp {
+  0% { opacity: 0; transform: translateY(15px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   2. Hero Section
+========================================================= */
+.projects-hero {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 36px 40px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 32px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(60, 45, 118, 0.04);
+  border: 1px solid rgba(60, 45, 118, 0.05);
+  position: relative;
+  overflow: hidden;
 }
 
-.section-title {
-  color: #0f172a; /* Slate 900 */
-  margin: 0;
-  font-size: 2.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.projects-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  background: linear-gradient(180deg, #5A1398 0%, #7F57F9 100%);
 }
 
-.page-subtitle {
-  color: #64748b; /* Slate 500 */
-  margin: 8px 0 0 0;
+.hero-text {
+  max-width: 500px;
+}
+
+.hero-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.hero-subtitle {
   font-size: 1.05rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.5;
 }
 
-/* ==========================================================================
-   BUTTONS
-   ========================================================================== */
-
-.btn-new-project-large {
+.hero-primary-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #7F57F9;
-  color: white;
+  gap: 10px;
+  background: linear-gradient(135deg, #5A1398 0%, #7F57F9 100%);
+  color: #FFFFFF;
   border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
+  padding: 16px 28px;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(127, 87, 249, 0.2);
+  box-shadow: 0 6px 16px rgba(127, 87, 249, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
 
-.btn-new-project-large:hover {
-  background: #6a48d7;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(127, 87, 249, 0.3);
+.hero-primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(127, 87, 249, 0.4);
 }
 
-/* ==========================================================================
-   PROJECTS GRID & CARDS
-   ========================================================================== */
+.hero-primary-btn:active {
+  transform: translateY(1px);
+}
 
-.projects-grid {
+/* =========================================================
+   3. Projects Bento Grid
+========================================================= */
+.projects-bento-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
 }
 
-.project-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+.bento-project-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
   padding: 24px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(60, 45, 118, 0.02);
+  height: 100%;
 }
 
-.project-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-  transform: translateY(-2px);
+.bento-project-card:hover {
+  transform: translateY(-4px);
+  border-color: #7F57F9;
+  box-shadow: 0 12px 24px rgba(127, 87, 249, 0.12);
 }
 
-.project-card-header {
+.project-card-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -110,34 +140,20 @@
 }
 
 .project-icon-wrapper {
-  background: #f3e8ff; /* Light purple tint */
-  color: #9333ea;      /* Solid purple icon */
+  background: rgba(127, 87, 249, 0.1);
+  color: #7F57F9;
   width: 48px;
   height: 48px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.project-details h3 {
-  margin: 0 0 6px 0;
-  color: #1e293b;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
-.project-details p {
-  margin: 0;
-  color: #64748b;
-  font-size: 0.85rem;
-}
-
-/* Delete Button */
-.btn-delete {
+.btn-delete-project {
   background: transparent;
   border: none;
-  color: #cbd5e1;
+  color: #CBD5E1;
   padding: 8px;
   border-radius: 8px;
   cursor: pointer;
@@ -147,54 +163,183 @@
   justify-content: center;
 }
 
-.project-card:hover .btn-delete {
-  color: #94a3b8; /* Make icon slightly darker on card hover */
+.bento-project-card:hover .btn-delete-project {
+  color: #94A3B8;
 }
 
-.btn-delete:hover {
-  background: #fee2e2 !important; /* Light red background */
-  color: #ef4444 !important; /* Red icon */
+.btn-delete-project:hover {
+  background: #FEE2E2 !important;
+  color: #EF4444 !important;
 }
 
-/* ==========================================================================
-   EMPTY STATE & LOADING
-   ========================================================================== */
-
-.loading-state {
-  text-align: center;
-  padding: 40px;
-  color: #64748b;
-  font-size: 1.1rem;
+.project-card-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.empty-state {
+.project-title {
+  margin: 0;
+  color: #1E293B;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.project-meta-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meta-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.sync-status.synced {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10B981;
+}
+
+.sync-status.local {
+  background: rgba(245, 158, 11, 0.1);
+  color: #F59E0B;
+}
+
+.project-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #7F57F9;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid #F1F5F9;
+  transition: color 0.2s ease;
+}
+
+.bento-project-card:hover .project-card-footer {
+  color: #5A1398;
+}
+
+
+/* =========================================================
+   4. Loading & Empty States
+========================================================= */
+.projects-loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  background: #f8fafc;
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
+  padding: 80px 20px;
+  color: #64748B;
+  font-size: 1.1rem;
+  gap: 16px;
 }
 
-.empty-icon {
-  color: #cbd5e1;
-  margin-bottom: 16px;
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(127, 87, 249, 0.2);
+  border-top-color: #7F57F9;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.projects-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  background: #FFFFFF;
+  border: 2px dashed #CBD5E1;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(60, 45, 118, 0.02);
+}
+
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  background: #F8FAFC;
+  color: #94A3B8;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
 .empty-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #334155;
-  margin: 0 0 8px 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0 0 12px 0;
 }
 
 .empty-desc {
-  font-size: 0.95rem;
-  color: #64748b;
-  margin: 0 0 24px 0;
-  max-width: 450px;
-  line-height: 1.5;
+  font-size: 1rem;
+  color: #64748B;
+  margin: 0 0 32px 0;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+.empty-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #F8FAFC;
+  color: #5A1398;
+  border: 1px solid #E2E8F0;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.empty-action-btn:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  color: #3C2D76;
+}
+
+/* =========================================================
+   5. Responsive Adjustments
+========================================================= */
+@media (max-width: 768px) {
+  .projects-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 24px;
+  }
+  
+  .projects-bento-grid {
+    grid-template-columns: 1fr;
+  }
 }

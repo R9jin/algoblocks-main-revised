@@ -156,7 +156,7 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page-v2">
-      <DashboardHeader />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
 
       <div className="profile-container-v2">
         <div className="profile-cover">
