@@ -11,7 +11,8 @@ import "../styles/UserHeader.css";
 import { startBackgroundSync } from "../utils/syncManager.js";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 
-export default function UserHeader({ user }) {
+// FIX: Added onLogoutClick to the component props
+export default function UserHeader({ user, onLogoutClick }) {
   const [open, setOpen] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
   const menuRef = useRef(null);
@@ -69,7 +70,6 @@ export default function UserHeader({ user }) {
             alt="AlgoBlocks Logo"
             className="logo-img"
           />
-          {/* Enforced light color for dark backgrounds */}
           <h1 className="logo-text user-header-logo-text" style={{ color: "#EBE4FF" }}>
             ALGOBLOCKS
           </h1>
@@ -113,7 +113,22 @@ export default function UserHeader({ user }) {
                   <LuFolder size={18} aria-hidden="true" /> Projects
                 </button>
                 <div className="user-dd-divider" />
-                <button type="button" className="user-dd-item danger" onClick={(e) => { e.stopPropagation(); setOpen(false); setShowLogout(true); }} role="menuitem">
+                
+                {/* FIX: Trigger the parent prop if it exists, otherwise use fallback */}
+                <button 
+                  type="button" 
+                  className="user-dd-item danger" 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setOpen(false); 
+                    if (onLogoutClick) {
+                      onLogoutClick(); 
+                    } else {
+                      setShowLogout(true);
+                    }
+                  }} 
+                  role="menuitem"
+                >
                   <LuLogOut size={18} aria-hidden="true" /> Sign Out
                 </button>
               </div>
@@ -122,6 +137,7 @@ export default function UserHeader({ user }) {
         </div>
       </nav>
 
+      {/* Fallback modal for pages that don't pass onLogoutClick */}
       <LogoutConfirmModal isOpen={showLogout} onClose={() => setShowLogout(false)} onLogoutClick={handleLogout} />
     </>
   );

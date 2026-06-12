@@ -38,10 +38,11 @@ export default function UserHomePage() {
     <div className="landing-container user-homepage">
       <UserHeader user={user} onLogoutClick={() => setShowLogoutModal(true)} />
       <main className="landing-main">
+        {/* Hero Section */}
         <section className="hero home-hero">
           <div className="home-hero-copy">
-            <p className="welcome-text">Welcome Back, {user.name}!</p>
-
+            <div className="hero-badge">Welcome Back, {user.name}!</div>
+            
             <h1 className="slogan-text">
               Think in <span className="accent">Steps</span>.<br />
               <span className="accent">Analyze</span> in Depth.
@@ -69,6 +70,7 @@ export default function UserHomePage() {
           </div>
 
           <div className="home-hero-media" aria-hidden="true">
+            <div className="hero-glow"></div>
             <img
               src="/assets/programming-code-editor-illustration-design-vector-removebg-preview.png"
               alt="Programming code editor illustration"
@@ -77,37 +79,40 @@ export default function UserHomePage() {
           </div>
         </section>
 
+        {/* Feature Cards Section */}
         <section className="feature-cards">
-          <h2>Your Learning Hub</h2>
-          <p className="section-subtitle">
-            Quick actions to practice, review projects, and improve your algorithm solutions.
-          </p>
+          <div className="section-header">
+            <h2>Your Learning Hub</h2>
+            <p className="section-subtitle">
+              Quick actions to practice, review projects, and improve your algorithm solutions.
+            </p>
+          </div>
 
           <div className="cards-grid">
-            <div className="card" onClick={() => navigate("/projects")} style={{ cursor: "pointer" }}>
+            <div className="card glass-panel" onClick={() => navigate("/projects")} style={{ cursor: "pointer" }}>
               <div className="card-icon">
                 <span className="card-icon-badge">
-                  <LuFolder size={24} color="#7F57F9" aria-hidden="true" />
+                  <LuFolder size={28} color="#E058FB" aria-hidden="true" />
                 </span>
               </div>
               <h3>Open Saved Projects</h3>
               <p>Resume previous sessions and refine your logic with line-by-line complexity insights.</p>
             </div>
 
-            <div className="card" onClick={() => navigate("/learning-path")} style={{ cursor: "pointer" }}>
+            <div className="card glass-panel" onClick={() => navigate("/learning-path")} style={{ cursor: "pointer" }}>
               <div className="card-icon">
                 <span className="card-icon-badge">
-                  <LuBookOpen size={24} color="#7F57F9" aria-hidden="true" />
+                  <LuBookOpen size={28} color="#E058FB" aria-hidden="true" />
                 </span>
               </div>
               <h3>Learning Mode</h3>
               <p>Practice guided tasks with structured hints to strengthen your step-by-step understanding.</p>
             </div>
 
-            <div className="card" onClick={() => navigate('/workspace')} style={{ cursor: "pointer" }}>
+            <div className="card glass-panel" onClick={() => navigate('/workspace')} style={{ cursor: "pointer" }}>
               <div className="card-icon">
                 <span className="card-icon-badge">
-                  <LuChartBar size={24} color="#7F57F9" aria-hidden="true" />
+                  <LuChartBar size={28} color="#E058FB" aria-hidden="true" />
                 </span>
               </div>
               <h3>Performance Feedback</h3>
@@ -116,25 +121,47 @@ export default function UserHomePage() {
           </div>
         </section>
 
+        {/* Everything You Need Section */}
         <section className="features-list">
           <div className="features-content">
             <h2>Everything You Need, in One Place</h2>
-            <ul>
-              <li>Continue learning with saved sessions and templates</li>
-              <li>Line-by-line time and space complexity feedback</li>
-              <li>Python code output for review and submission</li>
-              <li>Access dashboard, history, and settings anytime</li>
+            <p className="features-description">
+              Master the fundamentals of computer science with tools designed to make complex theories visual and interactive.
+            </p>
+            <ul className="modern-list">
+              <li>
+                <div className="list-icon">✓</div>
+                <span>Continue learning with saved sessions and templates</span>
+              </li>
+              <li>
+                <div className="list-icon">✓</div>
+                <span>Line-by-line time and space complexity feedback</span>
+              </li>
+              <li>
+                <div className="list-icon">✓</div>
+                <span>Python code output for review and submission</span>
+              </li>
+              <li>
+                <div className="list-icon">✓</div>
+                <span>Access dashboard, history, and settings anytime</span>
+              </li>
             </ul>
           </div>
 
-          <div className="feature-image-container">
-            <img src="/assets/example.png" alt="AlgoBlocks Interface Example" className="feature-example-image" />
+          <div className="feature-image-container relative-container">
+            <div className="feature-glow"></div>
+            <img 
+              src="/assets/example.png" 
+              alt="AlgoBlocks Interface Example" 
+              className="feature-example-image glass-border" 
+            />
           </div>
         </section>
       </main>
 
       <Footer />
 
+      {/* Logout Confirmation Modal */}
       {showLogoutModal && (
         <div className="logout-modal-overlay">
           <div className="logout-modal">
