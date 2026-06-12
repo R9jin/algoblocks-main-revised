@@ -1,0 +1,25 @@
+/* frontend/src/styles/Footer.css */
+
+.landing-footer {
+    padding: 24px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.footer-title {
+    margin: 0 0 8px 0;
+    color: #EBE4FF;
+}
+
+.footer-subtitle {
+    margin: 0;
+    color: #BCA1FC;
+    font-size: 0.85rem;
+}
+
+.footer-disclaimer {
+    margin: 8px 0 0 0;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    color: #A096B9;
+}
