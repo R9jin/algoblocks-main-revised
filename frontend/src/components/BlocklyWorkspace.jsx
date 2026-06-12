@@ -1,3 +1,4 @@
+// frontend/src/components/BlocklyWorkspace.jsx
 import { registerFieldMultilineInput } from "@blockly/field-multilineinput";
 import { CrossTabCopyPaste } from "@blockly/plugin-cross-tab-copy-paste";
 import { Modal } from "@blockly/plugin-modal";
@@ -310,7 +311,9 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
     try {
-      Blockly.Events.disable(); 
+      // Fix: Use setGroup to allow events to fire so plugins like Minimap can correctly render 
+      // the incoming blocks. Disabling events completely blanks the Minimap.
+      Blockly.Events.setGroup(true); 
       workspace.current.clear();
       
       let parsedJson = json;
@@ -331,7 +334,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
     } catch (e) {
       console.error("Error loading workspace JSON:", e);
     } finally {
-      Blockly.Events.enable();
+      Blockly.Events.setGroup(false);
     }
 
     setTimeout(() => {
@@ -351,8 +354,8 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
   useImperativeHandle(ref, () => ({
     clear: () => {
       if (!workspace.current) return;
-      Blockly.Events.disable();
-      try { workspace.current.clear(); } finally { Blockly.Events.enable(); }
+      Blockly.Events.setGroup(true);
+      try { workspace.current.clear(); } finally { Blockly.Events.setGroup(false); }
     },
     loadTemplate: (json, preservePythonCode = undefined) => {
       if (!workspace.current) {
@@ -371,13 +374,14 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
         const data = await convertPythonToBlocks(cleanCode);
         if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
         
-        Blockly.Events.disable();
         try { 
+          // Fix: Allow events to group rather than disable so minimap updates on Sync to Blocks
+          Blockly.Events.setGroup(true);
           workspace.current.clear(); 
           if (data.status === "success" && data.blocks) {
             Blockly.serialization.workspaces.load(data.blocks, workspace.current);
           }
-        } finally { Blockly.Events.enable(); }
+        } finally { Blockly.Events.setGroup(false); }
 
         setTimeout(() => {
           if (workspace.current && onChangeRef.current) {
@@ -394,7 +398,7 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
   useEffect(() => {
     if (workspace.current) return;
 
-    let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin, minimapDelay;
+    let searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin;
 
     if (!crossTabPluginInitialized) {
       try { 
@@ -432,14 +436,13 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
         (backpackPlugin = new Backpack(workspace.current)).init(); 
         (highlightPlugin = new ContentHighlight(workspace.current)).init();
         workspace.current.addChangeListener(shadowBlockConversionChangeListener);
-      } catch (e) { }
-
-      minimapDelay = setTimeout(() => {
-        if (workspace.current && blocklyDiv.current) {
-          Blockly.svgResize(workspace.current);
-          try { (minimapPlugin = new PositionedMinimap(workspace.current)).init(); } catch (e) { }
-        }
-      }, 150);
+        
+        // Fix: Initialize minimap synchronously with the rest of the plugins. No unreliable setTimeouts
+        minimapPlugin = new PositionedMinimap(workspace.current);
+        minimapPlugin.init();
+      } catch (e) { 
+        console.error("Plugin Init Error:", e);
+      }
 
       if (!pythonGenerator.__originalInit) {
         pythonGenerator.__originalInit = pythonGenerator.init;
@@ -631,7 +634,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
     }
 
     return () => {
-      if (minimapDelay) clearTimeout(minimapDelay);
       try { [searchPlugin, minimapPlugin, modalPlugin, backpackPlugin, highlightPlugin].forEach(p => p?.dispose && p.dispose()); } catch (e) {}
       if (workspace.current) { workspace.current.dispose(); workspace.current = null; }
       if (blocklyDiv.current?.resizeObserver) blocklyDiv.current.resizeObserver.disconnect();

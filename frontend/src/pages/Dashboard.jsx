@@ -239,7 +239,7 @@ export default function Dashboard() {
             {/* Hero Card */}
             <section className="bento-hero-card">
               <div className="hero-text">
-                <h1 className="hero-title">Educational Algorithm Visualizer</h1>
+                <h1 className="hero-title">Welcome to AlgoBlocks!</h1>
                 <p className="hero-subtitle">
                   An interactive thesis platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
                 </p>
