@@ -199,15 +199,24 @@ export default function Dashboard() {
         const response = await fetch(`/templates/${template.path}.json`);
         if (!response.ok) throw new Error("Template file not found");
         const data = await response.json();
-        const proj = { ...data, isTemplate: true, templateId: template.path, name: template.name };
+        
+        // Wrap system template securely inside `data` property
+        const proj = { 
+          data: data, 
+          isTemplate: true, 
+          templateId: template.path, 
+          name: template.name,
+          title: template.name 
+        };
         navigate("/workspace", { state: { projectToLoad: proj } });
       } else {
+        // Extract dynamically located blocks securely into `data` property
         const proj = { 
-          blocks: template.blocks || template.data || template.workspace?.blocklyJson, 
-          variables: template.variables || [], 
+          data: template.blocks || template.data || template.workspace?.blocklyJson, 
           isTemplate: true, 
           templateId: template._id, 
-          name: template.name || template.title 
+          name: template.name || template.title,
+          title: template.name || template.title 
         };
         navigate("/workspace", { state: { projectToLoad: proj } });
       }

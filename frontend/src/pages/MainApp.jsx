@@ -471,27 +471,55 @@ export default function MainApp() {
     if (consoleEndRef.current && consoleTab === "output") consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [consoleOutput, isWaitingForInput, consoleTab]);
 
+  // FIX: Replaced location.state loading logic to aggressively await DOM readiness using timeouts instead of failing early.
   useEffect(() => {
-    if (hasLoadedInitRef.current || !workspaceRefs.current[activeTabId]) return;
+    if (hasLoadedInitRef.current) return;
+    
     if (location.state?.projectToLoad) {
       hasLoadedInitRef.current = true;
       const proj = location.state.projectToLoad;
-      updateTab(activeTabId, { currentLoadedId: proj._id, title: proj.title || proj.name, saveType: "project" });
-      setTimeout(() => workspaceRefs.current[activeTabId].loadTemplate(proj.data || proj.workspace?.blocklyJson), 500);
+      
+      const jsonToLoad = proj.data || proj.workspace?.blocklyJson || proj.blocks || proj;
+      
+      updateTab(activeTabId, { 
+        currentLoadedId: proj._id || proj.templateId, 
+        title: proj.title || proj.name || "Untitled Project", 
+        saveType: proj.isTemplate ? "template" : "project",
+        pythonCode: proj.pythonCode || "# Drag blocks to generate Python code",
+        isEditingCode: !!(proj.pythonCode && proj.pythonCode !== "# Drag blocks to generate Python code")
+      });
+
+      const attemptLoad = () => {
+        if (workspaceRefs.current[activeTabId] && workspaceRefs.current[activeTabId].loadTemplate) {
+          workspaceRefs.current[activeTabId].loadTemplate(jsonToLoad);
+        } else {
+          setTimeout(attemptLoad, 100);
+        }
+      };
+      attemptLoad();
     } else if (location.state?.templatePath) {
       hasLoadedInitRef.current = true;
-      setTimeout(async () => {
+      const attemptLoadSystem = async () => {
         try {
           const response = await fetch(`/templates/${location.state.templatePath}.json`);
           if (response.ok) {
             const json = await response.json();
-            workspaceRefs.current[activeTabId].loadTemplate(json);
             updateTab(activeTabId, { currentLoadedId: null, saveType: "project" });
+            
+            const waitRef = () => {
+              if (workspaceRefs.current[activeTabId] && workspaceRefs.current[activeTabId].loadTemplate) {
+                workspaceRefs.current[activeTabId].loadTemplate(json);
+              } else {
+                setTimeout(waitRef, 100);
+              }
+            };
+            waitRef();
           }
         } catch (e) { console.error("Failed to load template", e); }
-      }, 500);
+      };
+      attemptLoadSystem();
     }
-  }, [location.state]);
+  }, [location.state, activeTabId]);
 
   const fetchTemplates = async () => {
     const baseTemplates = SIDEBAR_TEMPLATES.map((t) => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
