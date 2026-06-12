@@ -31,7 +31,11 @@ export default function SignIn() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Login failed");
 
+      // FIX: Store as BOTH "token" and "authToken" to satisfy all route guards and API calls
+      localStorage.setItem("token", data.access_token);
       localStorage.setItem("authToken", data.access_token);
+      sessionStorage.setItem("token", data.access_token);
+      sessionStorage.setItem("authToken", data.access_token);
       localStorage.setItem("user", JSON.stringify({ email: formData.email, name: formData.email.split("@")[0] }));
 
       navigate("/dashboard");
@@ -53,7 +57,11 @@ export default function SignIn() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Google login failed");
 
+      // FIX: Synchronize tokens here as well
+      localStorage.setItem("token", data.access_token);
       localStorage.setItem("authToken", data.access_token);
+      sessionStorage.setItem("token", data.access_token);
+      sessionStorage.setItem("authToken", data.access_token);
       localStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
 
       navigate("/dashboard");

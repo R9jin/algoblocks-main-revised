@@ -45,8 +45,14 @@ export default function SignUp() {
 
       if (loginRes.ok) {
         const loginData = await loginRes.json();
+        
+        // FIX: Store as BOTH "token" and "authToken" to satisfy all route guards
+        localStorage.setItem("token", loginData.access_token);
         localStorage.setItem("authToken", loginData.access_token);
+        sessionStorage.setItem("token", loginData.access_token);
+        sessionStorage.setItem("authToken", loginData.access_token);
         localStorage.setItem("user", JSON.stringify({ email: formData.email, name: formData.name }));
+        
         navigate("/dashboard");
       } else {
         navigate("/signin");
@@ -70,7 +76,11 @@ export default function SignUp() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Google signup failed");
 
+      // FIX: Synchronize tokens
+      localStorage.setItem("token", data.access_token);
       localStorage.setItem("authToken", data.access_token);
+      sessionStorage.setItem("token", data.access_token);
+      sessionStorage.setItem("authToken", data.access_token);
       localStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
 
       navigate("/dashboard");
