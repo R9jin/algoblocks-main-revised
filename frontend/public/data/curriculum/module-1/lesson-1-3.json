@@ -10,23 +10,23 @@
   "activities": [
     {
       "id": "m1_l3_a1",
-      "title": "Array vs. Variable"
+      "title": "Removing the Last Item"
     },
     {
       "id": "m1_l3_a2",
-      "title": "String Builder"
+      "title": "Removing a Specific Value"
     },
     {
       "id": "m1_l3_a3",
-      "title": "2D Array Allocation"
+      "title": "Checking if a List is Empty"
     },
     {
       "id": "m1_l3_a4",
-      "title": "In-Place Modification"
+      "title": "Counting Occurrences Quickly"
     },
     {
       "id": "m1_l3_a5",
-      "title": "Out-of-Place Creation"
+      "title": "Sorting a List"
     }
   ],
   "sections": [
@@ -302,6 +302,11 @@
       "title": "In-Place Algorithms",
       "content": "An **in-place algorithm** modifies data directly within the existing input structure without creating large extra structures. This is a critical technique for processing large datasets with limited memory.",
       "subsections": [
+        {
+          "id": "micro-transition-mutations",
+          "title": "Micro-Transition: Stepping Into Array Mutations",
+          "content": "Before you start building massive new lists and eating up all your computer's memory, we are going to practice 'mutating' (changing) a list in-place. By using built-in blocks to simply remove an item or sort a list, you learn to manipulate data efficiently without accidentally doubling your memory usage (O(n) space)."
+        },
         {
           "id": "in-place-def",
           "title": "What is In-Place?",

@@ -2,31 +2,35 @@
   "lessonId": "lesson-0-4",
   "moduleId": "module-0",
   "title": "Memory Visualizer",
-  "description": "Understand how **variables, arrays, and function calls** change during algorithm execution using the Memory Visualizer. This lesson provides a **real-time window** into computer memory, showing exactly how data is stored, updated, and removed as your algorithm runs. By the end, you will be able to debug variable state issues, track array modifications, and understand function call behavior including **recursion** without guessing.",
+  "description": "Understand how variables, arrays, and function calls change during algorithm execution using the Memory Visualizer. This lesson provides a real-time window into computer memory, showing exactly how data is stored, updated, and removed as your algorithm runs. By the end, you will be able to debug variable state issues, track array modifications, and understand function call behavior including recursion without guessing.",
   "difficulty": "Beginner",
   "estimatedTime": "20 min",
   "prerequisites": "The Complexity Analyzer",
-  "tags": ["memory", "variables", "visualization"],
+  "tags": [
+    "memory",
+    "variables",
+    "visualization"
+  ],
   "activities": [
     {
       "id": "m0_l4_a1",
-      "title": "Swap Variables"
+      "title": "Memory Usage"
     },
     {
       "id": "m0_l4_a2",
-      "title": "Array Fill Trace"
+      "title": "Fixed Memory Sizes"
     },
     {
       "id": "m0_l4_a3",
-      "title": "Counter Memory"
+      "title": "Growing Lists Use More Memory"
     },
     {
       "id": "m0_l4_a4",
-      "title": "Scope Lifetime"
+      "title": "Growing Text Uses Memory Too"
     },
     {
       "id": "m0_l4_a5",
-      "title": "Pointer Movement"
+      "title": "Swapping Variables Cleanly"
     }
   ],
   "sections": [
@@ -34,22 +38,22 @@
       "id": "introduction",
       "type": "introduction",
       "title": "Introduction",
-      "content": "Algorithms use memory to store information while executing. Every time you create a variable, add an item to an array, or call a function, your program consumes memory. Understanding how memory works is essential for writing **correct and bug-free code**.",
+      "content": "Algorithms use memory to store information while executing. Every time you create a variable, add an item to an array, or call a function, your program consumes memory. Understanding how memory works is essential for writing correct and bug-free code.",
       "subsections": [
         {
           "id": "intro-visualizer",
           "title": "The X-Ray Machine for Code",
-          "content": "Unlike traditional debugging where you only see the final output, the **Memory Visualizer** shows you the internal lifecycle of your data. You can watch exactly:",
+          "content": "Unlike traditional debugging where you only see the final output, the Memory Visualizer shows you the internal lifecycle of your data. You can watch exactly:",
           "bullets": [
-            "When a variable is **created**.",
-            "When its value **changes** or is **overwritten**.",
-            "When it is **destroyed** (removed from memory)."
+            "When a variable is created.",
+            "When its value changes or is overwritten.",
+            "When it is destroyed (removed from memory)."
           ]
         },
         {
           "id": "intro-real-time",
           "title": "Real-Time State Tracking",
-          "content": "This makes abstract programming concepts easier to understand because you can visually track **state changes in real time**. You can watch a counter variable increment step-by-step, see what happens when you swap two variables, and observe how an array grows as items are added."
+          "content": "This makes abstract programming concepts easier to understand because you can visually track state changes in real time. You can watch a counter variable increment step-by-step, see what happens when you swap two variables, and observe how an array grows as items are added."
         }
       ]
     },
@@ -57,28 +61,33 @@
       "id": "variables-memory",
       "type": "concept",
       "title": "Variable State Changes",
-      "content": "Variables store temporary information while a program runs. Think of each variable as a **labeled box in memory**. The label is the variable name (like `score`), and the content of the box is the current value.",
+      "content": "Variables store temporary information while a program runs. Think of each variable as a labeled box in memory. The label is the variable name (like `score`), and the content of the box is the current value.",
       "subsections": [
         {
           "id": "var-tracking",
           "title": "Tracking the Boxes",
-          "content": "The Memory Visualizer shows you the variable name, its current value, its data type, and a **history of how the value changed**. You can step through each change to see the algorithm's logic unfold."
+          "content": "The Memory Visualizer shows you the variable name, its current value, its data type, and a history of how the value changed. You can step through each change to see the algorithm's logic unfold."
+        },
+        {
+          "id": "micro-transition-swapping",
+          "title": "Micro-Transition: The Swapping Trick",
+          "content": "A great stepping stone to understanding memory management is swapping variables. If you want to put juice in the milk glass, and milk in the juice glass, you need a third, empty 'temp' glass! The visualizer shows you exactly why this third temporary variable is needed so you don't accidentally overwrite and delete your data."
         },
         {
           "id": "var-swapping",
           "title": "The Swapping Problem",
-          "content": "A classic example of memory manipulation is **swapping two variables**. To swap `a` and `b`, you need a third, temporary variable. The visualizer shows this clearly:",
+          "content": "A classic example of memory manipulation is swapping two variables. To swap `a` and `b`, you need a third, temporary variable. The visualizer shows this clearly:",
           "bullets": [
             "1. Initially: `a = 5`, `b = 10`",
-            "2. Create temp: `temp = a` *(temp becomes 5)*",
-            "3. Overwrite a: `a = b` *(a becomes 10)*",
-            "4. Overwrite b: `b = temp` *(b becomes 5)*"
+            "2. Create temp: `temp = a` (temp becomes 5)",
+            "3. Overwrite a: `a = b` (a becomes 10)",
+            "4. Overwrite b: `b = temp` (b becomes 5)"
           ]
         },
         {
           "id": "var-mistakes",
           "title": "Visualizing Mistakes",
-          "content": "If you forget the temporary variable and just do `a = b` then `b = a`, the visualizer would show both `a` and `b` becoming `10`, and the original value `5` is **permanently lost**. The visualizer makes this mistake obvious immediately!"
+          "content": "If you forget the temporary variable and just do `a = b` then `b = a`, the visualizer would show both `a` and `b` becoming `10`, and the original value `5` is permanently lost. The visualizer makes this mistake obvious immediately!"
         }
       ]
     },
@@ -86,50 +95,56 @@
       "id": "arrays-memory",
       "type": "concept",
       "title": "Tracking Arrays",
-      "content": "Arrays store multiple related values inside a single structure. Think of an array as a **row of numbered lockers**. The array name is the row label, and each locker has an index number.",
+      "content": "Arrays store multiple related values inside a single structure. Think of an array as a row of numbered lockers. The array name is the row label, and each locker has an index number.",
       "subsections": [
         {
           "id": "arr-zero-index",
           "title": "The Rule of Zero",
-          "content": "Remember, counting in computer science always starts at 0. The first item is at **index 0**, the second at **index 1**, and so on. If an array has 5 items, the valid indices are 0 to 4."
+          "content": "Remember, counting in computer science always starts at 0. The first item is at index 0, the second at index 1, and so on. If an array has 5 items, the valid indices are 0 to 4."
         },
         {
           "id": "arr-visualizing",
           "title": "Visualizing Array Operations",
           "content": "The Memory Visualizer displays arrays as expandable lists. It highlights operations visually:",
           "bullets": [
-            "When an element changes, that row **flashes**.",
-            "Newly added elements **glow**.",
-            "Removed elements **fade out** and remaining items shift their indices automatically."
+            "When an element changes, that row flashes.",
+            "Newly added elements glow.",
+            "Removed elements fade out and remaining items shift their indices automatically."
           ]
         },
         {
           "id": "arr-off-by-one",
           "title": "Catching Index Errors",
-          "content": "Common bugs like **off-by-one errors** become obvious. If you try to access index 5 in an array with only 5 items, the visualizer will show that index 5 does not exist, helping you catch the error immediately."
+          "content": "Common bugs like off-by-one errors become obvious. If you try to access index 5 in an array with only 5 items, the visualizer will show that index 5 does not exist, helping you catch the error immediately."
         },
         {
           "id": "arr-defensive-programming",
           "title": "Defensive Programming",
-          "content": "Use the memory visualizer to observe what happens when an algorithm is fed an empty array `[]`. If your code immediately tries to access the first item of an empty list, it will crash because that memory index doesn't exist. To prevent this, always practice **Defensive Programming**. Teach yourself to build an 'Edge Case Check' at the very top of your functions (e.g., *If length of array == 0, return...*). This ensures your code safely halts before executing invalid memory operations."
+          "content": "Use the memory visualizer to observe what happens when an algorithm is fed an empty array `[]`. If your code immediately tries to access the first item of an empty list, it will crash because that memory index doesn't exist. To prevent this, always practice Defensive Programming. Teach yourself to build an 'Edge Case Check' at the very top of your functions (e.g., If length of array == 0, return...). This ensures your code safely halts before executing invalid memory operations."
         }
       ]
+    },
+    {
+      "id": "introduction-to-memory",
+      "type": "concept",
+      "title": "Introduction to Memory",
+      "content": "Understanding how memory allocation works is critical for writing efficient algorithms. When you create a brand new list or dynamically add items to an existing one, your program must request additional physical memory from the computer to store each new item. Because the memory required grows directly with the number of items you add, creating lists takes up O(n) space. Conversely, when you update an existing variable's value or use a swap block to exchange two variables, you are not creating new memory boxes; you are simply changing what is inside the existing boxes. This is called modifying 'in-place'. Because no new memory is allocated, updating and swapping variables takes a highly efficient O(1) space."
     },
     {
       "id": "call-stack",
       "type": "deep_dive",
       "title": "Understanding the Call Stack",
-      "content": "When functions are executed, the computer stores information about each function call inside a structure called the **Call Stack**. Think of it as a stack of sticky notes.",
+      "content": "When functions are executed, the computer stores information about each function call inside a structure called the Call Stack. Think of it as a stack of sticky notes.",
       "subsections": [
         {
           "id": "cs-frames",
           "title": "Stack Frames",
-          "content": "Each time a function is called, a new note (called a **stack frame**) is placed on top. When the function finishes, the top note is removed. The visualizer shows each active function call as a separate frame, displaying its own local variables."
+          "content": "Each time a function is called, a new note (called a stack frame) is placed on top. When the function finishes, the top note is removed. The visualizer shows each active function call as a separate frame, displaying its own local variables."
         },
         {
           "id": "cs-recursion",
           "title": "Visualizing Recursion",
-          "content": "**Recursion** is when a function calls itself. This becomes much clearer when visualized. For a countdown function called with 3, the visualizer shows frames building up:",
+          "content": "Recursion is when a function calls itself. This becomes much clearer when visualized. For a countdown function called with 3, the visualizer shows frames building up:",
           "bullets": [
             "Bottom: `countdown(3)`",
             "Middle: `countdown(2)`",
@@ -139,12 +154,12 @@
         {
           "id": "cs-overflow",
           "title": "Stack Overflow",
-          "content": "Each recursive frame has its own independent `n` value. When the **base case** is reached, frames pop off in reverse order. If your recursion logic is broken and never reaches the base case, you will see frames piling up endlessly in the visualizer—this is what causes a **Stack Overflow** bug!"
+          "content": "Each recursive frame has its own independent `n` value. When the base case is reached, frames pop off in reverse order. If your recursion logic is broken and never reaches the base case, you will see frames piling up endlessly in the visualizer—this is what causes a Stack Overflow bug!"
         },
         {
           "id": "cs-variable-scoping",
           "title": "Variable Scoping: Local vs. Global",
-          "content": "When writing recursive algorithms, variable scoping is critical. Variables created generically in the workspace might act as global variables, meaning deeper recursive calls will overwrite the data of higher calls. To prevent stack frames from corrupting each other, it is vital to use **local function parameters** to safely isolate your data within each specific level of recursion."
+          "content": "When writing recursive algorithms, variable scoping is critical. Variables created generically in the workspace might act as global variables, meaning deeper recursive calls will overwrite the data of higher calls. To prevent stack frames from corrupting each other, it is vital to use local function parameters to safely isolate your data within each specific level of recursion."
         }
       ]
     },
@@ -152,7 +167,7 @@
       "id": "state-tracking",
       "type": "concept",
       "title": "State Tracking & Rollback",
-      "content": "Advanced algorithms, such as Backtracking, heavily rely on a pattern known as **'choose, explore, unchoose'**. Because memory persists, if you append an item to a list to test a potential path, you must remember to undo that action when exploring alternative routes.",
+      "content": "Advanced algorithms, such as Backtracking, heavily rely on a pattern known as 'choose, explore, unchoose'. Because memory persists, if you append an item to a list to test a potential path, you must remember to undo that action when exploring alternative routes.",
       "subsections": [
         {
           "id": "st-rollback",
@@ -177,9 +192,9 @@
           "title": "Professional Tools",
           "content": "Professional developers use similar memory visualization tools every day:",
           "bullets": [
-            "**Browser DevTools** show JavaScript variables in real time.",
-            "IDE debuggers like **VS Code** and **PyCharm** have watch panels that track variable changes.",
-            "**Memory profilers** help find leaks and inefficiencies in large servers."
+            "Browser DevTools show JavaScript variables in real time.",
+            "IDE debuggers like VS Code and PyCharm have watch panels that track variable changes.",
+            "Memory profilers help find leaks and inefficiencies in large servers."
           ]
         },
         {
@@ -201,10 +216,10 @@
           "content": "To effectively use the Memory Visualizer while building your algorithms:",
           "bullets": [
             "1. Open the visualizer panel.",
-            "2. Run your code **step-by-step**.",
-            "3. **Watch variables change** to ensure your logic is mathematically correct.",
-            "4. **Inspect arrays** after each operation to catch off-by-one errors.",
-            "5. **Observe the Call Stack** when using functions to ensure you don't cause a Stack Overflow."
+            "2. Run your code step-by-step.",
+            "3. Watch variables change to ensure your logic is mathematically correct.",
+            "4. Inspect arrays after each operation to catch off-by-one errors.",
+            "5. Observe the Call Stack when using functions to ensure you don't cause a Stack Overflow."
           ]
         }
       ]

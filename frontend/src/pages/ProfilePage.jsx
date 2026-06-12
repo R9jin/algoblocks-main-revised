@@ -1,6 +1,6 @@
 // frontend/src/pages/ProfilePage.jsx
 import { useEffect, useState } from "react";
-import { FiActivity, FiAward, FiBookOpen, FiCheckCircle, FiCode, FiCpu } from "react-icons/fi";
+import { FiActivity, FiBookOpen, FiCheckCircle, FiCode, FiCpu, FiTrendingUp } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
@@ -13,9 +13,10 @@ export default function ProfilePage() {
     lessonsCompleted: 0,
     totalLessons: 0,
     overallScore: 0,
-    assessmentsTaken: 0
+    assessmentsTaken: 0,
   });
   const [moduleMastery, setModuleMastery] = useState([]);
+  const [userRank, setUserRank] = useState("Novice Coder");
 
   useEffect(() => {
     const loadOfflineData = async () => {
@@ -40,16 +41,9 @@ export default function ProfilePage() {
         if (navigator.onLine && parsed.email && !parsed.isGuest) {
           try {
             const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-
-            // 1. Declare headers first!
             const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
 
-            // 2. Conditionally add the Authorization token
-            if (token) {
-              headers["Authorization"] = `Bearer ${token}`;
-            }
-
-            // 3. Make the fetch request
             const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
             if (progRes.ok) {
               const data = await progRes.json();
@@ -94,34 +88,32 @@ export default function ProfilePage() {
     let scoreSum = 0;
 
     const masteryData = curriculumIndex.map((module) => {
-      const lessonsInModule = module.lessons.length;
+      const lessonsInModule = module.lessons ? module.lessons.length : 0;
       let completedInModule = 0;
       tLessons += lessonsInModule;
 
-      module.lessons.forEach((lesson) => {
+      (module.lessons || []).forEach((lesson) => {
         tActivities += 1;
         const rawScore = user.progress[lesson.lessonId];
 
         let score = 0;
+        let isCompleted = false;
 
-        // Safely extract the score regardless of how it was saved (object, boolean, or number)
         if (typeof rawScore === 'object' && rawScore !== null) {
           score = rawScore.score !== undefined ? Number(rawScore.score) : 0;
+          isCompleted = rawScore.completed || false;
         } else if (rawScore === true) {
           score = 100;
+          isCompleted = true;
         } else {
           score = Number(rawScore) || 0;
         }
 
-        // FIX: Normalize old 5-point scale saves to a 100% scale.
-        if (score > 0 && score <= 5) {
-          score = (score / 5) * 100;
-        }
-
-        // Safety cap to strictly prevent > 100% math explosions
+        // Normalize 5-point scale outputs from ActivityApp to 100%
+        if (score > 0 && score <= 5) score = (score / 5) * 100;
         score = Math.min(score, 100);
 
-        if (score >= 1) {
+        if (score >= 20 || isCompleted) { // Minimum threshold mapped to passing
           cLessons += 1;
           completedInModule += 1;
         }
@@ -138,25 +130,34 @@ export default function ProfilePage() {
       };
     });
 
-    const assessmentsTaken = Object.keys(user.assessments || {}).filter(k => k.includes('_assessment')).length;
+    const assessmentsTaken = Object.keys(user.assessments || {}).filter(k => k.includes('_assessment') || k.includes('test')).length;
+    const avgScore = tActivities > 0 ? Math.round(scoreSum / tActivities) : 0;
 
     setMetrics({
       lessonsCompleted: cLessons,
       totalLessons: tLessons,
       totalActivities: tActivities,
-      // FIX: Calculate true average out of 100% instead of multiplying by random factors
-      overallScore: tActivities > 0 ? Math.round(scoreSum / tActivities) : 0,
+      overallScore: avgScore,
       assessmentsTaken: assessmentsTaken
     });
 
     setModuleMastery(masteryData);
+
+    // Dynamic Rank Evaluation
+    const completionRatio = tLessons > 0 ? cLessons / tLessons : 0;
+    if (completionRatio === 1 && avgScore > 90) setUserRank("Algorithm Grandmaster");
+    else if (completionRatio >= 0.8) setUserRank("Algorithm Scholar");
+    else if (completionRatio >= 0.4) setUserRank("Intermediate Architect");
+    else if (completionRatio > 0) setUserRank("Syntax Explorer");
+    else setUserRank("Novice Coder");
+
   }, [user]);
 
   const initials = user.name ? user.name.charAt(0).toUpperCase() : "U";
 
   return (
     <div className="profile-page-v2">
-      <DashboardHeader />
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
 
       <div className="profile-container-v2">
         <div className="profile-cover">
@@ -166,57 +167,57 @@ export default function ProfilePage() {
         <div className="profile-header-card">
           <div className="profile-avatar-wrapper">
             <div className="profile-avatar-v2">{initials}</div>
-            <div className="avatar-status-badge"></div>
+            <div className="avatar-status-badge" title="Online & Ready"></div>
           </div>
 
           <div className="profile-user-details">
             <div className="user-title-row">
               <h1>{user.name}</h1>
-              <span className="role-badge"><FiCpu style={{ marginRight: '6px' }} /> Algorithm Scholar</span>
+              <span className="role-badge"><FiCpu style={{ marginRight: '6px' }} /> {userRank}</span>
             </div>
             <p className="user-email">{user.email}</p>
           </div>
 
           <div className="profile-header-actions">
             <Link to="/learning-path" className="btn-resume-learning">
-              <FiCode size={18} /> Continue Coding
+              <FiCode size={18} /> Continue Learning
             </Link>
           </div>
         </div>
 
         <div className="profile-content-grid">
           <aside className="profile-sidebar">
-            <h3 className="sidebar-title">Performance Overview</h3>
+            <h3 className="sidebar-title">Performance Metrics</h3>
 
             <div className="stat-box">
               <div className="stat-icon-wrapper blue"><FiBookOpen /></div>
               <div className="stat-info">
-                <h4>Lessons Completed</h4>
+                <h4>Lessons Conquered</h4>
                 <p><strong>{metrics.lessonsCompleted}</strong> <span className="text-muted">/ {metrics.totalLessons}</span></p>
               </div>
             </div>
 
             <div className="stat-box">
-              <div className="stat-icon-wrapper purple"><FiAward /></div>
+              <div className="stat-icon-wrapper purple"><FiTrendingUp /></div>
               <div className="stat-info">
-                <h4>Average Score</h4>
-                <p><strong>{metrics.overallScore}%</strong> <span className="text-muted">accuracy</span></p>
+                <h4>Accuracy Rate</h4>
+                <p><strong>{metrics.overallScore}%</strong> <span className="text-muted">avg score</span></p>
               </div>
             </div>
 
             <div className="stat-box">
               <div className="stat-icon-wrapper green"><FiActivity /></div>
               <div className="stat-info">
-                <h4>Assessments Taken</h4>
-                <p><strong>{metrics.assessmentsTaken}</strong> <span className="text-muted">assessments passed</span></p>
+                <h4>Assessments</h4>
+                <p><strong>{metrics.assessmentsTaken}</strong> <span className="text-muted">evaluations passed</span></p>
               </div>
             </div>
           </aside>
 
           <main className="profile-main-content">
             <div className="content-header-row">
-              <h2>Module Mastery</h2>
-              <span className="mastery-subtitle">Your progress across the curriculum</span>
+              <h2>Curriculum Mastery</h2>
+              <span className="mastery-subtitle">Your progress mapped across the learning path</span>
             </div>
 
             <div className="mastery-list">
@@ -229,7 +230,7 @@ export default function ProfilePage() {
                       <div className="mastery-module-number">M{index + 1}</div>
                       <div className="mastery-details">
                         <h4>{mod.title}</h4>
-                        <span className="mastery-fraction">{mod.completed} of {mod.total} lessons done</span>
+                        <span className="mastery-fraction">{mod.completed} of {mod.total} lessons cleared</span>
                       </div>
                     </div>
 
@@ -243,7 +244,7 @@ export default function ProfilePage() {
                         </div>
                         <span className="progress-percentage">{mod.percentage}%</span>
                       </div>
-                      {isComplete && <FiCheckCircle className="completion-icon" color="#f59e0b" size={24} />}
+                      {isComplete && <FiCheckCircle className="completion-icon" color="#10B981" size={24} />}
                     </div>
                   </div>
                 );

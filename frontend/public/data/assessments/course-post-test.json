@@ -1,0 +1,427 @@
+{
+  "moduleId": "course-post-test",
+  "moduleTitle": "Comprehensive Algorithmic Foundations Post-Test",
+  "description": "Congratulations on reaching the end of the curriculum! This final diagnostic exam evaluates your complete mastery of algorithms, complexity analysis, and optimization strategies across all modules.",
+  "questions": [
+    {
+      "id": "post_01",
+      "question": "When you connect a 'print' block below a 'set variable' block in AlgoBlocks, what core programming concept does this represent?",
+      "options": [
+        "Concurrent execution, running both blocks simultaneously to maximize the CPU thread utilization.",
+        "Event-driven architecture, waiting for specific user interactions before executing the blocks.",
+        "Logarithmic scaling, dynamically reducing the procedural instructions based on the active inputs.",
+        "Sequential execution, processing the first instruction completely before moving down to the next."
+      ],
+      "answer": 3,
+      "explanation": "Sequential execution follows a strict top-to-bottom evaluation model, processing one instruction completely before moving to the next."
+    },
+    {
+      "id": "post_02",
+      "question": "What is the primary benefit of the real-time Python code panel generated alongside your visual blocks?",
+      "options": [
+        "It automatically compiles the visual blocks directly into raw machine code for the operating system.",
+        "It bridges the gap between visual logic and text-based syntax, teaching actual coding structures.",
+        "It preemptively blocks infinite loops from occurring, preventing the browser from ever crashing.",
+        "It automatically optimizes the Big-O Time Complexity of any inefficiently designed student loops."
+      ],
+      "answer": 1,
+      "explanation": "The real-time code panel scaffolds learning by constantly showing the equivalent text-based syntax (like 'for i in range') for the visual blocks you drag."
+    },
+    {
+      "id": "post_03",
+      "question": "If an array has 10 items, what is the index of the very last item?",
+      "options": [
+        "Index 9, because computer science heavily utilizes zero-based indexing for memory structures.",
+        "Index 10, because the array directly maps its length to the final corresponding storage index.",
+        "Index 1, because the first available memory slot is inherently reserved for background metadata.",
+        "Index 0, because reversing the array structure places the absolute final element at the front."
+      ],
+      "answer": 0,
+      "explanation": "Because computer science uses zero-based indexing, the first item is 0, making the 10th item sit at index 9 (Length - 1)."
+    },
+    {
+      "id": "post_04",
+      "question": "What happens if a 'While' loop's condition never becomes False during execution?",
+      "options": [
+        "The computer dynamically skips the loop entirely, executing the remainder of the programmatic logic.",
+        "The program converts it into a standard 'For' loop, automatically assigning a fixed numerical limit.",
+        "The program executes an infinite loop, ultimately freezing the application and locking up the browser.",
+        "The program safely exits the loop structure on its own to explicitly prevent critical memory leaks."
+      ],
+      "answer": 2,
+      "explanation": "A 'While' loop requires the state inside the loop to eventually change the condition to False. If not, it becomes an infinite loop."
+    },
+    {
+      "id": "post_05",
+      "question": "Why do software engineers use functions (procedures)?",
+      "options": [
+        "To intentionally slow down the execution of the code so developers can effectively trace the bugs.",
+        "To systematically transfer all temporary local variables directly into permanent hard drive storage.",
+        "To completely bypass all inherent Time Complexity rules, instantly reducing O(n²) logic to O(1).",
+        "To bundle a specific sequence of logic into a reusable block, preventing massive code repetition."
+      ],
+      "answer": 3,
+      "explanation": "Functions allow you to write logic once and execute it from anywhere, keeping the codebase modular, readable, and DRY (Don't Repeat Yourself)."
+    },
+    {
+      "id": "post_06",
+      "question": "What does Big-O notation specifically evaluate in Asymptotic Analysis?",
+      "options": [
+        "The exact amount of active RAM consumed in megabytes during the runtime of the programmatic task.",
+        "The absolute worst-case scenario, guaranteeing a secure mathematical ceiling for scale processing.",
+        "The precise average-case scenario, assuming the provided dataset perfectly represents random inputs.",
+        "The absolute minimum time theoretically required to successfully execute the code on modern hardware."
+      ],
+      "answer": 1,
+      "explanation": "Big-O evaluates the worst-case upper bound of algorithm growth, which is the strict standard used by engineers to ensure systems don't crash under stress."
+    },
+    {
+      "id": "post_07",
+      "question": "Which complexity class represents an algorithm whose execution time completely doubles every time a single new item is added to the input?",
+      "options": [
+        "O(2^n) Exponential Time",
+        "O(n) Linear Time",
+        "O(log n) Logarithmic Time",
+        "O(n²) Quadratic Time"
+      ],
+      "answer": 0,
+      "explanation": "Exponential Time (O(2^n)) occurs in branching recursive algorithms and causes the workload to double endlessly, quickly freezing the computer."
+    },
+    {
+      "id": "post_08",
+      "question": "How do Hash Sets drastically improve Time Complexity when searching for duplicate values?",
+      "options": [
+        "They utilize background sorting algorithms to silently reorder the provided list for faster searching.",
+        "They permanently compress the stored text strings into tiny binary variables, freeing up system RAM.",
+        "They provide instant O(1) constant time lookups, eliminating the need for slow O(n²) nested loops.",
+        "They bypass the primary Call Stack entirely, utilizing a secondary cache system to execute commands."
+      ],
+      "answer": 2,
+      "explanation": "A Set uses a hash table to instantly verify membership (O(1)), making it the ultimate tool for finding duplicates efficiently in a single O(n) pass."
+    },
+    {
+      "id": "post_09",
+      "question": "If you use a 'Slice' block to extract a portion of an array (length 'k'), what is the hidden computational penalty?",
+      "options": [
+        "It incurs an O(k) Time and Space penalty because it must allocate new memory and copy elements over.",
+        "It is an entirely instantaneous operation, executing with a flawless O(1) Time and Space complexity.",
+        "It inadvertently creates an inescapable infinite loop by misaligning the underlying memory pointers.",
+        "It forcefully deletes the original array from the system's memory to completely prevent data leaks."
+      ],
+      "answer": 0,
+      "explanation": "Slicing is not an in-place operation. It forces the computer to allocate a brand new chunk of memory to hold the copied elements."
+    },
+    {
+      "id": "post_10",
+      "question": "The 'Two-Pointer Trick' optimizes array manipulations by moving 'left' and 'right' trackers inward. What Space Complexity does this achieve?",
+      "options": [
+        "It achieves a bulky O(n²) Space Complexity due to the continuous generation of deep array copies.",
+        "It achieves a standard O(n) Space Complexity because the two pointers must track all element indices.",
+        "It achieves an efficient O(log n) Space Complexity by constantly dividing the required list memory.",
+        "It achieves an optimal O(1) Constant Space Complexity because the array is swapped entirely in-place."
+      ],
+      "answer": 3,
+      "explanation": "Because the Two-Pointer trick swaps items purely within the existing array boundaries, it allocates zero extra scaling memory, achieving O(1) Space."
+    },
+    {
+      "id": "post_11",
+      "question": "What is the worst-case Time Complexity of a standard Linear Search?",
+      "options": [
+        "O(log n) Logarithmic Time, because searching inherently halves the available data.",
+        "O(1) Constant Time, because reading an array index is always an instant process.",
+        "O(n) Linear Time, because the computer might have to inspect every single item.",
+        "O(n²) Quadratic Time, because finding an item requires scanning the array twice."
+      ],
+      "answer": 2,
+      "explanation": "If the target item is at the very end of the array, or missing entirely, a Linear Search must inspect every single item, yielding O(n) Linear Time."
+    },
+    {
+      "id": "post_12",
+      "question": "Binary Search achieves its highly scalable O(log n) Time Complexity by doing what?",
+      "options": [
+        "Relying strictly on an external Hash Map to instantly identify the proper location of the target.",
+        "Geometrically halving the search space at every single step, discarding half the remaining data.",
+        "Systematically copying the targeted array multiple times to run concurrent checks simultaneously.",
+        "Scanning the array backwards from the end to quickly isolate the mathematically largest numbers."
+      ],
+      "answer": 1,
+      "explanation": "Binary Search looks at the midpoint and immediately discards half the array, resulting in rapid logarithmic reduction."
+    },
+    {
+      "id": "post_13",
+      "question": "What is the absolute, strict prerequisite for utilizing a Binary Search algorithm?",
+      "options": [
+        "The targeted array must be perfectly sorted so the algorithm knows which half it should discard.",
+        "The targeted array must contain strictly fewer than one million items to avoid system freezing.",
+        "The targeted array must consist exclusively of numerical integers without any string characters.",
+        "The targeted array must not contain any duplicate values that might deeply confuse the pointers."
+      ],
+      "answer": 0,
+      "explanation": "If the data is unsorted, the algorithm cannot mathematically determine which half of the array to discard, causing the search to fail."
+    },
+    {
+      "id": "post_14",
+      "question": "Brute force algorithms are guaranteed to eventually find the correct solution. What is their primary drawback?",
+      "options": [
+        "They mandate the data to be fully sorted prior to execution, which takes excessive processing time.",
+        "They require far too much auxiliary disk space, frequently crashing the local system's hard drive.",
+        "They are fundamentally incompatible with visual block-based programming environments and languages.",
+        "They typically result in extremely slow Exponential or Factorial time complexities on large datasets."
+      ],
+      "answer": 3,
+      "explanation": "Because brute force checks every conceivable combination, its scaling behavior makes it computationally impossible for large inputs."
+    },
+    {
+      "id": "post_15",
+      "question": "In what specific scenario is an Exponential Search most useful?",
+      "options": [
+        "When you need to accurately re-sort an array containing mostly randomized numerical variables.",
+        "When you are searching for a specific textual string structure instead of a standard integer.",
+        "When the array size is completely unknown, functionally infinite, or procedurally unbounded.",
+        "When the dataset is strictly bounded and heavily constrained within a small local memory space."
+      ],
+      "answer": 2,
+      "explanation": "Exponential Search bounds the search area by jumping outward geometrically (1, 2, 4, 8) until it finds a boundary, making it perfect for infinite lists."
+    },
+    {
+      "id": "post_16",
+      "question": "Merge Sort achieves an optimal O(n log n) Time Complexity utilizing which algorithmic paradigm?",
+      "options": [
+        "Dynamic Programming.",
+        "Divide and Conquer.",
+        "Greedy Algorithms.",
+        "Backtracking."
+      ],
+      "answer": 1,
+      "explanation": "Merge Sort recursively divides the array into halves (log n) and then linearly merges them back together in order (n)."
+    },
+    {
+      "id": "post_17",
+      "question": "Why is Bubble Sort considered highly inefficient for production software?",
+      "options": [
+        "It actively utilizes an advanced Divide and Conquer approach, heavily splitting the physical array.",
+        "It inherently requires a bulky Hash Set to operate, quickly depleting the available system memory.",
+        "It fails entirely when forced to actively process or sort arrays containing strict negative numbers.",
+        "It relies on nested loops to repeatedly swap adjacent neighbors, resulting in O(n²) Time Complexity."
+      ],
+      "answer": 3,
+      "explanation": "Because every item must be compared to every other adjacent item repeatedly, Bubble Sort generates a slow, quadratic growth curve."
+    },
+    {
+      "id": "post_18",
+      "question": "In Quick Sort, what is the specific role of the 'Pivot' element?",
+      "options": [
+        "To partition the array, sequentially moving smaller items to the left and larger items to the right.",
+        "To act strictly as a mathematically unique hash key for organizing the inner underlying dictionary.",
+        "To continuously track and calculate the exact mathematical middle index of the remaining dataset.",
+        "To accurately count the total number of processed elements during the recursive execution phases."
+      ],
+      "answer": 0,
+      "explanation": "The Pivot is the anchor point. Quick Sort recursively organizes the array by pushing elements to either side of the pivot."
+    },
+    {
+      "id": "post_19",
+      "question": "What does it mean for an algorithm to operate 'in-place'?",
+      "options": [
+        "It strictly enforces the algorithm to run locally on a physical machine rather than a cloud server.",
+        "It guarantees that the codebase is completely executed within a single, highly unified 'for' loop.",
+        "It modifies the original data structure directly, requiring zero auxiliary O(n) scaling memory.",
+        "It mandates that the underlying algorithms are exclusively written inside the Python environment."
+      ],
+      "answer": 2,
+      "explanation": "In-place algorithms achieve O(1) Space Complexity by manipulating the existing structure without allocating duplicate arrays."
+    },
+    {
+      "id": "post_20",
+      "question": "How does the computer physically handle removing a single item from the exact middle of an array?",
+      "options": [
+        "It executes an instant, flawless O(1) operation by selectively nullifying the strict element reference.",
+        "It executes a hidden O(n) loop to physically shift all subsequent elements to the left to close the gap.",
+        "It converts the array directly into an advanced Hash Set to prevent memory fragmentation completely.",
+        "It intentionally leaves a permanent, unusable empty gap in the array to maximize processing speed."
+      ],
+      "answer": 1,
+      "explanation": "Because arrays are contiguous in memory, deleting a middle element forces the system to shift everything over, making it an O(n) Time operation."
+    },
+    {
+      "id": "post_21",
+      "question": "What defines a 'Greedy' algorithm?",
+      "options": [
+        "It systematically utilizes deep recursion to securely evaluate all possible probabilistic outcomes.",
+        "It consistently locates the absolute worst possible algorithmic answer to act as a system baseline.",
+        "It forcefully consumes as much computational memory as physically possible to ensure data safety.",
+        "It makes the locally optimal choice at every step, hoping it ultimately leads to the global optimum."
+      ],
+      "answer": 3,
+      "explanation": "Greedy algorithms don't look ahead. They simply pick the best immediate option available at that exact second."
+    },
+    {
+      "id": "post_22",
+      "question": "To maximize profit in the Fractional Knapsack problem, how must the items be sorted before making greedy choices?",
+      "options": [
+        "By descending order of their precise Value-to-Weight ratio.",
+        "By descending order of their absolute maximum weight bounds.",
+        "By descending order of their absolute base profit value sums.",
+        "By strict alphabetical order heavily based upon their string names."
+      ],
+      "answer": 0,
+      "explanation": "The Value-to-Weight ratio identifies which items provide the highest density of profit per pound, which is the mathematically optimal greedy strategy."
+    },
+    {
+      "id": "post_23",
+      "question": "When does a pure Greedy approach fail to find the correct answer?",
+      "options": [
+        "Within the Activity Selection problem, because sorting schedules causes massive system failures.",
+        "When the provided list is already sorted, disabling the greedy logic's core mathematical capability.",
+        "In the 0/1 Knapsack problem, because an item cannot be broken into fractions if partially needed.",
+        "Within the Fractional Knapsack problem, because greedy algorithms fundamentally reject partial items."
+      ],
+      "answer": 2,
+      "explanation": "Because 0/1 items are indivisible, making a greedy choice might prevent you from taking a highly valuable combination of smaller items later."
+    },
+    {
+      "id": "post_24",
+      "question": "In the Activity Selection problem, to maximize the number of non-overlapping activities, you should always greedily pick the activity that:",
+      "options": [
+        "Starts the earliest, thereby quickly initiating the computational task sequence before system lag.",
+        "Ends the earliest, freeing up your schedule immediately and leaving maximum remaining time.",
+        "Takes the longest time, securing the largest singular programmatic process within the queue limit.",
+        "Starts the latest, heavily preserving the initial computational resources for subsequent executions."
+      ],
+      "answer": 1,
+      "explanation": "Picking the activity that ends the earliest frees up your schedule as soon as possible, leaving the maximum remaining time for subsequent activities."
+    },
+    {
+      "id": "post_25",
+      "question": "What is the typical Time Complexity bottleneck of most Greedy algorithms?",
+      "options": [
+        "O(1), because the algorithm simply executes a single optimal choice instantly without processing.",
+        "O(2^n), because the greedy choices consistently double the required memory consumption limits.",
+        "O(n³), because the required mathematical validations demand triple-nested procedural loops.",
+        "O(n log n), because the algorithm almost always requires the dataset to be properly sorted first."
+      ],
+      "answer": 3,
+      "explanation": "Because greedy choices almost always rely on picking the 'best' item from a sorted list, the O(n log n) sorting step is usually the computational bottleneck."
+    },
+    {
+      "id": "post_26",
+      "question": "Dynamic Programming is exclusively used for problems that exhibit which two specific properties?",
+      "options": [
+        "Overlapping Subproblems and Optimal Substructure.",
+        "Constant Execution Time and Constant Physical Space.",
+        "Completely Unsorted Data and Infinite Loop Sequences.",
+        "Greedy Algorithmic Choices and Fractional Base Weights."
+      ],
+      "answer": 0,
+      "explanation": "Dynamic Programming is only effective if a problem can be broken down into smaller pieces (optimal substructure) that repeat themselves constantly (overlapping)."
+    },
+    {
+      "id": "post_27",
+      "question": "In algorithmic optimization, what is 'Memoization'?",
+      "options": [
+        "Systematically deleting inactive variables to violently free up critical amounts of computational RAM.",
+        "A structured, bottom-up logical approach that strictly iteratively fills a standard tracking array.",
+        "Caching the results of expensive recursive calls in a hash map so they are never recalculated.",
+        "Actively writing robust inline text comments to visibly explain your underlying code execution logic."
+      ],
+      "answer": 2,
+      "explanation": "Memoization trades Space for Time. By saving the answer to `fib(5)`, the algorithm can instantly look it up later in O(1) time instead of recalculating the entire tree."
+    },
+    {
+      "id": "post_28",
+      "question": "How does Dynamic Programming fundamentally differ from Divide and Conquer?",
+      "options": [
+        "There is absolutely no functional difference; they are practically the exact same structural paradigm.",
+        "Divide and Conquer splits independent data; DP handles recursive trees with repeating subproblems.",
+        "Dynamic Programming fundamentally relies on standard Hash Maps, while D&C relies on Local Arrays.",
+        "Dynamic Programming is demonstrably slower due to massive structural memory leak vulnerabilities."
+      ],
+      "answer": 1,
+      "explanation": "Merge Sort (Divide and Conquer) never sorts the exact same sub-array twice. Fibonacci (DP) tries to calculate `fib(2)` millions of times unless optimized."
+    },
+    {
+      "id": "post_29",
+      "question": "How does DP optimization mathematically affect the naive recursive Fibonacci algorithm?",
+      "options": [
+        "It physically converts the algorithmic structure into a standard Divide and Conquer array evaluation.",
+        "It significantly increases the Time Complexity by forcefully adding bulky data structure validations.",
+        "It drastically alters the final numerical output variables by dynamically caching erroneous structures.",
+        "It collapses the exponential O(2^n) branching tree into a highly scalable O(n) line of operations."
+      ],
+      "answer": 3,
+      "explanation": "By caching results, DP completely collapses the massive exponential branching tree into a single, straight linear line of operations."
+    },
+    {
+      "id": "post_30",
+      "question": "In the advanced 0/1 Knapsack DP solution, how do engineers optimize the Space Complexity from a massive O(N*W) down to a tiny O(W)?",
+      "options": [
+        "By collapsing the 2D DP matrix into a 1D array and processing iteratively backwards.",
+        "By exclusively prioritizing total profit values and completely ignoring item weight bounds.",
+        "By systematically utilizing an unconstrained Hash Map to completely bypass local arrays.",
+        "By deleting the recursive function entirely and executing basic iterative pointer math."
+      ],
+      "answer": 0,
+      "explanation": "Because each row in the 2D DP table only needs data from the row directly above it, you can overwrite a single 1D array iteratively, saving massive amounts of memory."
+    },
+    {
+      "id": "post_31",
+      "question": "How does a Backtracking algorithm conceptually differ from a pure Brute Force algorithm?",
+      "options": [
+        "It always guarantees a flawless execution run locked securely within O(1) Constant Time.",
+        "It completely removes all foundational elements of standard systematic computational recursion.",
+        "It 'prunes' dead-end paths the moment a rule is violated, avoiding massive useless computations.",
+        "It strictly utilizes a First-In, First-Out Queue instead of a standard LIFO recursive system Stack."
+      ],
+      "answer": 2,
+      "explanation": "Backtracking is an 'intelligent' brute force. The moment a partial solution becomes invalid (like placing two Queens on the same row), it abandons that entire branch immediately."
+    },
+    {
+      "id": "post_32",
+      "question": "What abstract structural concept is commonly used to visualize the execution paths of a Backtracking algorithm?",
+      "options": [
+        "The Linked Structural List",
+        "The State-Space Logic Tree",
+        "The Advanced 2D Grid Matrix",
+        "The Dynamic Hash Map Cache"
+      ],
+      "answer": 1,
+      "explanation": "The State-Space Tree represents all possible mathematical decisions. The algorithm traverses this tree via Depth-First Search (DFS) until it finds a valid leaf node."
+    },
+    {
+      "id": "post_33",
+      "question": "In the N-Queens problem, what specifically does the algorithm do when it places a queen on a square that is being attacked?",
+      "options": [
+        "It actively creates an entirely new virtual board instance to securely test alternate logic patterns.",
+        "It leaves the current queen there and forcibly skips to evaluate the next remaining partial board.",
+        "It crashes immediately, forcefully throwing a strict compiler error to prevent data fragmentation.",
+        "It undoes the placement and backtracks to the previous row to try evaluating a different column."
+      ],
+      "answer": 3,
+      "explanation": "This is the essence of backtracking: stepping back to a previous valid state to explore an alternative path when a failure condition is met."
+    },
+    {
+      "id": "post_34",
+      "question": "In Backtracking code, what is the most critical programmatic step immediately after a recursive call returns?",
+      "options": [
+        "The 'Unchoose' step, popping the addition off the list to properly revert state for the next branch.",
+        "Returning the final algorithmic answer to instantly collapse the active remaining execution tree.",
+        "Systematically sorting the remaining array elements to ensure optimal execution speeds immediately.",
+        "Printing the current algorithmic output to firmly establish a baseline visual tracking confirmation."
+      ],
+      "answer": 0,
+      "explanation": "Because memory persists, if you append an item to explore a path, you MUST pop it off afterwards so the next sibling path starts with a clean slate."
+    },
+    {
+      "id": "post_35",
+      "question": "Despite aggressive pruning, what is the typical Worst-Case Time Complexity for advanced combinatorial Backtracking problems like N-Queens?",
+      "options": [
+        "O(n²), making it surprisingly fast on any standard data.",
+        "O(n log n), allowing it to properly rival standard sorts.",
+        "O(N!) Factorial Time, strictly limiting it to tiny inputs.",
+        "O(1), executing instantly by heavily utilizing Hash Maps."
+      ],
+      "answer": 2,
+      "explanation": "Because Backtracking must evaluate permutations of placement, the worst-case ceiling remains Factorial, making it strictly limited to very small datasets (e.g., N=12)."
+    }
+  ]
+}

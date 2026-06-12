@@ -1,6 +1,6 @@
 // frontend/src/pages/SignUp.jsx
 import { useState } from "react";
-import { FiLock, FiMail, FiUser } from "react-icons/fi";
+import { FiAlertTriangle, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
@@ -106,6 +106,21 @@ export default function SignUp() {
 
       <div className="auth-container">
         <div className="auth-card">
+          
+          {/* ACADEMIC RESEARCH NOTICE */}
+          <div className="auth-research-banner">
+            <div className="banner-icon-wrapper">
+              <FiAlertTriangle size={18} />
+            </div>
+            <div className="banner-text">
+              <strong>Participant Protocol</strong>
+              <p>
+                By creating an account, you agree to participate in an educational system evaluation. 
+                <b> Please do not create multiple accounts.</b> Your learning data, assessments, and code executions are monitored strictly for research integrity.
+              </p>
+            </div>
+          </div>
+
           <h2>Create Account</h2>
           <form onSubmit={handleSubmit}>
             <div className="form-group">

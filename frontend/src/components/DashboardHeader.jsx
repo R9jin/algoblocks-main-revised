@@ -71,13 +71,6 @@ export default function DashboardHeader({
         </div>
 
         <div className="header-right">
-          <button className="btn-open-project" onClick={() => navigate("/projects")}>
-            <LuFolder size={18} /> Projects
-          </button>
-          <button className="btn-new-project" onClick={() => navigate("/workspace")}>
-            + New Workspace
-          </button>
-
           <div className="user-menu" ref={menuRef}>
             <button
               type="button"

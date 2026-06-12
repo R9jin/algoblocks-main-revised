@@ -125,10 +125,10 @@
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
       {"lineno": 3, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 7, "local_time": "T(n/2)", "global_time": "T(n/2)", "space": "O(log n)"},
-      {"lineno": 9, "local_time": "T(n/2)", "global_time": "T(n/2)", "space": "O(log n)"},
+      {"lineno": 7, "local_time": "T(n/2)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 9, "local_time": "T(n/2)", "global_time": "O(log n)", "space": "O(1)"},
       {"lineno": 10, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"}
     ]
   },
@@ -136,13 +136,13 @@
     "id": "logarithmic_gcd_09",
     "name": "Euclidean GCD (Iterative)",
     "code": "def gcd(a, b):\n    while b != 0:\n        temp = b\n        b = a % b\n        a = temp\n    return a",
-    "expected_overall_time": "O(log n)",
+    "expected_overall_time": "O(log min(a, b))",
     "expected_overall_space": "O(1)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(log n)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(log min(a, b))", "global_time": "O(log min(a, b))", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(log min(a, b))", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(log min(a, b))", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log min(a, b))", "space": "O(1)"},
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
@@ -208,7 +208,7 @@
   },
   {
     "id": "quadratic_bad_loop_14",
-    "name": "Nested Loops but Inner is Constant (Student Edge Case)",
+    "name": "Nested Loops but Inner is Constant",
     "code": "def fake_quadratic(arr):\n    for i in range(len(arr)):\n        for j in range(5):\n            print(arr[i])",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
@@ -241,8 +241,8 @@
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(n)"}
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "T(n-1)", "global_time": "O(n)", "space": "O(1)"}
     ]
   },
   {
@@ -254,7 +254,7 @@
     "line_metrics": [
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
       {"lineno": 3, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(n)"}
+      {"lineno": 4, "local_time": "T(n-1)", "global_time": "O(2^n)", "space": "O(1)"}
     ]
   },
   {
@@ -265,11 +265,11 @@
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 6, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(n)"},
-      {"lineno": 7, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "T(n-1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"}
     ]
   },
   {
@@ -331,9 +331,9 @@
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
@@ -344,9 +344,9 @@
     "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(n)"},
+      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
@@ -354,17 +354,17 @@
     "id": "nested_loop_multi_var_26",
     "name": "Nested Loops with Independent Variables",
     "code": "def print_pairs(arrA, arrB):\n    for a in arrA:\n        for b in arrB:\n            print(a, b)",
-    "expected_overall_time": "O(n^2)",
+    "expected_overall_time": "O(n * m)",
     "expected_overall_space": "O(1)",
     "line_metrics": [
       {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n^2)", "space": "O(1)"}
+      {"lineno": 3, "local_time": "O(m)", "global_time": "O(n * m)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"}
     ]
   },
   {
     "id": "loop_with_sort_27",
-    "name": "Sorting Inside a Loop (Bad Student Code)",
+    "name": "Sorting Inside a Loop",
     "code": "def repeatedly_sort(arr):\n    for i in range(len(arr)):\n        sorted(arr)\n    return arr",
     "expected_overall_time": "O(n^2 log n)",
     "expected_overall_space": "O(n)",
@@ -394,9 +394,9 @@
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(n)"},
+      {"lineno": 3, "local_time": "T(n-1)", "global_time": "O(2^n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "T(n-2)", "global_time": "T(n-2)", "space": "O(n)"}
+      {"lineno": 5, "local_time": "T(n-2)", "global_time": "O(2^n)", "space": "O(1)"}
     ]
   },
   {
@@ -433,9 +433,9 @@
     "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n^2)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n^2)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(n)"},
       {"lineno": 5, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(1)"},
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(n^2)", "space": "O(1)"},
       {"lineno": 7, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
@@ -477,9 +477,9 @@
     "name": "Character Counting (Hash Map)",
     "code": "def count_chars(s):\n    counts = {}\n    for char in s:\n        if char in counts:\n            counts[char] += 1\n        else:\n            counts[char] = 1\n    return counts",
     "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(n)",
+    "expected_overall_space": "O(1)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
       {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
@@ -508,11 +508,11 @@
     "expected_overall_space": "O(log n)",
     "line_metrics": [
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "T(n/2)", "global_time": "T(n/2)", "space": "O(log n)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "T(n/2)", "global_time": "O(log n)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
-      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"}
     ]
   },
   {
@@ -534,8 +534,8 @@
     "expected_overall_space": "O(n)",
     "line_metrics": [
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(n)"}
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "T(n-1)", "global_time": "O(n)", "space": "O(1)"}
     ]
   },
   {
@@ -555,7 +555,7 @@
   },
   {
     "id": "student_error_infinite_loop_prevention_41",
-    "name": "While True Edge Case (Timeout Prevention)",
+    "name": "While True Edge Case",
     "code": "def bad_loop(arr):\n    i = 0\n    while True:\n        if i >= len(arr):\n            break\n        i += 1",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
@@ -626,16 +626,16 @@
     "expected_overall_time": "O(n log n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
-      {"lineno": 5, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
-      {"lineno": 6, "local_time": "T(n/2)", "global_time": "T(n/2)", "space": "O(1)"},
-      {"lineno": 7, "local_time": "T(n/2)", "global_time": "T(n/2)", "space": "O(1)"},
-      {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 9, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 18, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 22, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(n)"},
+      {"lineno": 5, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(n)"},
+      {"lineno": 6, "local_time": "T(n/2)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "T(n/2)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 9, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 18, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 22, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"}
     ]
   },
   {
@@ -648,29 +648,29 @@
       {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 12, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 13, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 14, "local_time": "T(n/2)", "global_time": "T(n/2)", "space": "O(1)"},
-      {"lineno": 15, "local_time": "T(n/2)", "global_time": "T(n/2)", "space": "O(1)"}
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 13, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 14, "local_time": "T(n/2)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 15, "local_time": "T(n/2)", "global_time": "O(n log n)", "space": "O(1)"}
     ]
   },
   {
     "id": "bfs_graph_48",
     "name": "Breadth-First Search (Iterative Graph Traversal)",
-    "code": "def bfs(graph, start):\n    visited = set()\n    queue = [start]\n    visited.add(start)\n    while queue:\n        node = queue.pop(0)\n        for neighbor in graph[node]:\n            if neighbor not in visited:\n                visited.add(neighbor)\n                queue.append(neighbor)\n    return visited",
+    "code": "from collections import deque\n\ndef bfs(graph, start):\n    visited = set()\n    queue = deque([start])\n    visited.add(start)\n    while queue:\n        node = queue.popleft()\n        for neighbor in graph[node]:\n            if neighbor not in visited:\n                visited.add(neighbor)\n                queue.append(neighbor)\n    return visited",
     "expected_overall_time": "O(V + E)",
     "expected_overall_space": "O(V)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 5, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 6, "local_time": "O(n)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
       {"lineno": 7, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
       {"lineno": 8, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 9, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 10, "local_time": "O(1) amortized", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 11, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+      {"lineno": 9, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 10, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 11, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 13, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
   {
@@ -680,33 +680,33 @@
     "expected_overall_time": "O(V + E)",
     "expected_overall_space": "O(V)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(V)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
       {"lineno": 5, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
-      {"lineno": 6, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
-      {"lineno": 7, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(1)"},
-      {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "T(n-1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"}
     ]
   },
   {
     "id": "permutations_50",
     "name": "Permutations (Recursive Backtracking)",
     "code": "def permute(arr):\n    res = []\n    if len(arr) == 1:\n        return [arr[:]]\n    for i in range(len(arr)):\n        n = arr.pop(0)\n        perms = permute(arr)\n        for p in perms:\n            p.append(n)\n        res.extend(perms)\n        arr.append(n)\n    return res",
-    "expected_overall_time": "O(n!)",
-    "expected_overall_space": "O(n!)",
+    "expected_overall_time": "O(n * n!)",
+    "expected_overall_space": "O(n^2)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n!)", "space": "O(n!)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(n)"},
-      {"lineno": 5, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 6, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 7, "local_time": "T(n-1)", "global_time": "T(n-1)", "space": "O(1)"},
-      {"lineno": 8, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 9, "local_time": "O(1) amortized", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 10, "local_time": "O(n)", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 11, "local_time": "O(1) amortized", "global_time": "O(n!)", "space": "O(1)"},
-      {"lineno": 12, "local_time": "O(1)", "global_time": "O(n!)", "space": "O(1)"}
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(n)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(n)"},
+      {"lineno": 5, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "T(n-1)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 9, "local_time": "O(1) amortized", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 10, "local_time": "O(n)", "global_time": "O(n * n!)", "space": "O(n)"},
+      {"lineno": 11, "local_time": "O(1) amortized", "global_time": "O(n * n!)", "space": "O(1)"},
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(n * n!)", "space": "O(1)"}
     ]
   },
   {
@@ -723,6 +723,671 @@
       {"lineno": 6, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"},
       {"lineno": 7, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"},
       {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "string_concat_loop_52",
+    "name": "String Concatenation in Loop (O(N^2) theoretical)",
+    "code": "def build_string(chars):\n    s = ''\n    for c in chars:\n        s += c\n    return s",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "nested_linear_log_53",
+    "name": "Nested Loop (Linear Outer, Logarithmic Inner)",
+    "code": "def linear_log_loop(n):\n    count = 0\n    for i in range(n):\n        j = 1\n        while j < n:\n            count += 1\n            j *= 2\n    return count",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(log n)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "list_slicing_loop_54",
+    "name": "List Slicing in Loop O(N^2)",
+    "code": "def process_and_slice(arr):\n    while len(arr) > 0:\n        print(arr[0])\n        arr = arr[1:]\n    return arr",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(n)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "set_comprehension_55",
+    "name": "Set Comprehension O(N)",
+    "code": "def unique_squares(arr):\n    return {x * x for x in arr}",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"}
+    ]
+  },
+  {
+    "id": "comp_matrix_init_56",
+    "name": "Nested List Comprehension (Matrix Allocation)",
+    "code": "def init_matrix(n, m):\n    return [[0] * m for _ in range(n)]",
+    "expected_overall_time": "O(n * m)",
+    "expected_overall_space": "O(n * m)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n * m)", "global_time": "O(n * m)", "space": "O(n * m)"}
+    ]
+  },
+  {
+    "id": "comp_dict_57",
+    "name": "Dictionary Comprehension with Condition",
+    "code": "def even_squares_map(arr):\n    return {x: x**2 for x in arr if x % 2 == 0}",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"}
+    ]
+  },
+  {
+    "id": "comp_generator_58",
+    "name": "Generator Expression (O(1) Space)",
+    "code": "def sum_of_squares(arr):\n    return sum(x * x for x in arr)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "str_join_loop_59",
+    "name": "String Join Array of Strings",
+    "code": "def combine_words(words):\n    return '-'.join(words)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"}
+    ]
+  },
+  {
+    "id": "list_pop_front_60",
+    "name": "List Pop Front in Loop O(N^2)",
+    "code": "def empty_list_slow(arr):\n    while len(arr) > 0:\n        arr.pop(0)\n    return arr",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "deque_pop_front_61",
+    "name": "Deque Popleft in Loop O(N)",
+    "code": "from collections import deque\ndef empty_queue_fast(arr):\n    q = deque(arr)\n    while len(q) > 0:\n        q.popleft()\n    return q",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "set_union_operator_62",
+    "name": "Set Union Bitwise Operator",
+    "code": "def combine_sets(set1, set2):\n    return set1 | set2",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"}
+    ]
+  },
+  {
+    "id": "bitwise_log_loop_63",
+    "name": "Bitwise Right Shift Logarithmic Loop",
+    "code": "def count_bits(n):\n    bits = 0\n    while n > 0:\n        bits += n & 1\n        n >>= 1\n    return bits",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(log n)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "exponential_loop_bounds_64",
+    "name": "Exponential Growth Loop Bound O(2^N)",
+    "code": "def exponential_work(n):\n    count = 0\n    for i in range(2 ** n):\n        count += 1\n    return count",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(2^n)", "global_time": "O(2^n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "list_extend_loop_65",
+    "name": "List Extend inside Loop O(N*M)",
+    "code": "def flatten_2d(matrix):\n    flat = []\n    for row in matrix:\n        flat.extend(row)\n    return flat",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n^2)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(n^2)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "str_replace_66",
+    "name": "String Replace Allocation",
+    "code": "def remove_spaces(text):\n    return text.replace(' ', '')",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"}
+    ]
+  },
+  {
+    "id": "dict_keys_loop_67",
+    "name": "Loop over Dictionary Keys",
+    "code": "def print_keys(d):\n    for key in d.keys():\n        print(key)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "tuple_recreation_68",
+    "name": "Tuple Immutability Recreation O(N^2)",
+    "code": "def append_to_tuple(tup, n):\n    for i in range(n):\n        tup = tup + (i,)\n    return tup",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n^2)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n^2)", "space": "O(n^2)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "sqrt_math_import_69",
+    "name": "Math Sqrt While Loop",
+    "code": "import math\ndef factor_down(n):\n    count = 0\n    while n > 2:\n        n = math.sqrt(n)\n        count += 1\n    return count",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(log n)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(log n)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "bfs_distances_70",
+    "name": "BFS with Distance Dictionary Tracking",
+    "code": "from collections import deque\ndef bfs_distances(graph, start):\n    distances = {start: 0}\n    queue = deque([start])\n    while queue:\n        current = queue.popleft()\n        for neighbor in graph[current]:\n            if neighbor not in distances:\n                distances[neighbor] = distances[current] + 1\n                queue.append(neighbor)\n    return distances",
+    "expected_overall_time": "O(V + E)",
+    "expected_overall_space": "O(V)",
+    "line_metrics": [
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 9, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 10, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 11, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "dfs_iterative_stack_71",
+    "name": "Iterative DFS using List Stack",
+    "code": "def dfs_iterative(graph, start):\n    visited = set()\n    stack = [start]\n    while stack:\n        vertex = stack.pop()\n        if vertex not in visited:\n            visited.add(vertex)\n            stack.extend(graph[vertex])\n    return visited",
+    "expected_overall_time": "O(V + E)",
+    "expected_overall_space": "O(V)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(V)"},
+      {"lineno": 4, "local_time": "O(V + E)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 9, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "matrix_dfs_72",
+    "name": "2D Matrix Implicit Graph Traversal",
+    "code": "def flood_fill(grid, r, c):\n    if r < 0 or r >= len(grid) or c < 0 or c >= len(grid[0]) or grid[r][c] == 1:\n        return\n    grid[r][c] = 1\n    flood_fill(grid, r+1, c)\n    flood_fill(grid, r-1, c)\n    flood_fill(grid, r, c+1)\n    flood_fill(grid, r, c-1)",
+    "expected_overall_time": "O(V + E)",
+    "expected_overall_space": "O(V)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "T(n-1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "T(n-1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "T(n-1)", "global_time": "O(V + E)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "T(n-1)", "global_time": "O(V + E)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "dp_1d_knapsack_73",
+    "name": "1D Space Optimized 0/1 Knapsack",
+    "code": "def knapsack_1d(weights, values, capacity):\n    dp = [0] * (capacity + 1)\n    for i in range(len(weights)):\n        for w in range(capacity, weights[i] - 1, -1):\n            dp[w] = max(dp[w], dp[w - weights[i]] + values[i])\n    return dp[capacity]",
+    "expected_overall_time": "O(n * m)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(m)", "global_time": "O(n * m)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "dp_unbounded_knapsack_74",
+    "name": "Unbounded Knapsack DP",
+    "code": "def unbounded_knapsack(weights, values, capacity):\n    dp = [0] * (capacity + 1)\n    for w in range(capacity + 1):\n        for i in range(len(weights)):\n            if weights[i] <= w:\n                dp[w] = max(dp[w], dp[w - weights[i]] + values[i])\n    return dp[capacity]",
+    "expected_overall_time": "O(n * m)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(m)", "global_time": "O(n * m)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(n * m)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "dp_top_down_memo_75",
+    "name": "Top-Down DP with Lru Cache Emulation",
+    "code": "def climb_stairs_memo(n, memo=None):\n    if memo is None:\n        memo = {}\n    if n in memo:\n        return memo[n]\n    if n <= 2:\n        return n\n    memo[n] = climb_stairs_memo(n-1, memo) + climb_stairs_memo(n-2, memo)\n    return memo[n]",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "T(n-1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 9, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "counting_sort_76",
+    "name": "Counting Sort (O(N+K))",
+    "code": "def counting_sort(arr, max_val):\n    count = [0] * (max_val + 1)\n    for num in arr:\n        count[num] += 1\n    sorted_arr = []\n    for i in range(len(count)):\n        for j in range(count[i]):\n            sorted_arr.append(i)\n    return sorted_arr",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
+      {"lineno": 6, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(m)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(1) amortized", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 9, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "bucket_sort_77",
+    "name": "Bucket Sort with Nested Sort",
+    "code": "def bucket_sort(arr):\n    buckets = [[] for _ in range(10)]\n    for num in arr:\n        index = int(num * 10)\n        buckets[index].append(num)\n    for i in range(10):\n        buckets[i] = sorted(buckets[i])\n    result = []\n    for bucket in buckets:\n        result.extend(bucket)\n    return result",
+    "expected_overall_time": "O(n^2 log n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1) amortized", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(n log n)", "global_time": "O(n^2 log n)", "space": "O(n)"},
+      {"lineno": 8, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
+      {"lineno": 9, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 10, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 11, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "indirect_recursion_a_78",
+    "name": "Indirect Recursion (Ping-Pong A)",
+    "code": "def ping(n):\n    if n <= 0:\n        return\n    pong(n - 1)",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "indirect_recursion_b_79",
+    "name": "Indirect Recursion (Ping-Pong B)",
+    "code": "def pong(n):\n    if n <= 0:\n        return\n    ping(n - 1)",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "tail_recursion_80",
+    "name": "Tail Recursive Accumulator",
+    "code": "def tail_factorial(n, acc=1):\n    if n == 0:\n        return acc\n    return tail_factorial(n - 1, n * acc)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "T(n-1)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "multi_branch_recursion_81",
+    "name": "3-Branch Exponential Recursion O(3^n)",
+    "code": "def tri_fibonacci(n):\n    if n <= 2:\n        return 1\n    return tri_fibonacci(n-1) + tri_fibonacci(n-2) + tri_fibonacci(n-3)",
+    "expected_overall_time": "O(3^n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(3^n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(3^n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "T(n-1)", "global_time": "O(3^n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "loop_with_break_82",
+    "name": "For Loop with Early Break Default",
+    "code": "def check_first(arr):\n    for i in range(len(arr)):\n        if arr[i] > 0:\n            break\n    return True",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "for_else_loop_83",
+    "name": "For-Else Construct Verification",
+    "code": "def search_else(arr, target):\n    for num in arr:\n        if num == target:\n            break\n    else:\n        return False\n    return True",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "while_true_break_84",
+    "name": "While True Array Iteration",
+    "code": "def iterate_while_true(arr):\n    i = 0\n    while True:\n        if i == len(arr):\n            break\n        i += 1\n    return i",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "dict_values_sum_85",
+    "name": "Dictionary Values Traversal",
+    "code": "def sum_values(d):\n    total = 0\n    for val in d.values():\n        total += val\n    return total",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "zip_iteration_86",
+    "name": "Zip Iteration on Two Arrays",
+    "code": "def dot_product(a, b):\n    total = 0\n    for x, y in zip(a, b):\n        total += x * y\n    return total",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "enumerate_loop_87",
+    "name": "Enumerate Array Iteration",
+    "code": "def create_index_map(arr):\n    res = {}\n    for i, val in enumerate(arr):\n        res[val] = i\n    return res",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(n)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "list_reverse_method_88",
+    "name": "In-Place List Reverse Method",
+    "code": "def flip_it(arr):\n    arr.reverse()\n    return arr",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "list_index_method_89",
+    "name": "List Index Search Method",
+    "code": "def find_index(arr, target):\n    if target in arr:\n        return arr.index(target)\n    return -1",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "list_count_method_90",
+    "name": "List Element Counting Method",
+    "code": "def check_frequency(arr, target):\n    return arr.count(target)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "str_find_method_91",
+    "name": "String Find Substring Method",
+    "code": "def search_substring(text, sub):\n    return text.find(sub)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "math_sum_builtin_92",
+    "name": "Built-in Sum Function",
+    "code": "def get_total(arr):\n    return sum(arr)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "math_min_builtin_93",
+    "name": "Built-in Min Array Scan",
+    "code": "def get_smallest(arr):\n    return min(arr)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "math_max_builtin_94",
+    "name": "Built-in Max Array Scan",
+    "code": "def get_largest(arr):\n    return max(arr)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "boolean_all_builtin_95",
+    "name": "Built-in All Boolean Scan",
+    "code": "def check_all_true(arr):\n    return all(arr)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "boolean_any_builtin_96",
+    "name": "Built-in Any Boolean Scan",
+    "code": "def check_any_true(arr):\n    return any(arr)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "str_split_method_97",
+    "name": "String Split Method (Space Allocation)",
+    "code": "def tokenize_sentence(sentence):\n    return sentence.split(' ')",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"}
+    ]
+  },
+  {
+    "id": "list_insert_front_98",
+    "name": "List Insert at Front Explicitly",
+    "code": "def push_front(arr, val):\n    arr.insert(0, val)\n    return arr",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "set_intersection_99",
+    "name": "Set Intersection Method",
+    "code": "def find_common(setA, setB):\n    return setA.intersection(setB)",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "set_difference_100",
+    "name": "Set Difference Method",
+    "code": "def find_unique(setA, setB):\n    return setA.difference(setB)",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "dict_get_default_101",
+    "name": "Dictionary Get with Default",
+    "code": "def safe_fetch(d, key):\n    return d.get(key, 'Not Found')",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "list_clear_102",
+    "name": "List Clear Method",
+    "code": "def purge_data(arr):\n    arr.clear()\n    return arr",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "multiple_var_assignment_103",
+    "name": "Multiple Variable Swap and Packing",
+    "code": "def scramble_vars(a, b, c):\n    a, b, c = c, a, b\n    return a, b, c",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "math_abs_round_104",
+    "name": "Math Absolute and Rounding",
+    "code": "def normalize_val(val):\n    return round(abs(val))",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
+    ]
+  },
+  {
+    "id": "type_casting_alloc_105",
+    "name": "List and String Type Casting",
+    "code": "def type_dance(n):\n    s = str(n)\n    arr = list(s)\n    return arr",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 3, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   }
 ]

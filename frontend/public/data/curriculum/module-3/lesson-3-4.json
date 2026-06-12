@@ -1,169 +1,124 @@
 {
   "lessonId": "lesson-3-4",
   "moduleId": "module-3",
-  "title": "Quick Sort",
-  "description": "Learn how **Quick Sort** uses **pivot partitioning** and Divide and Conquer recursion to efficiently organize data through recursive partition reduction.",
+  "title": "Quick Sort & Pivot Partitioning",
+  "description": "Learn how **Quick Sort** uses **pivot partitioning** and Divide and Conquer recursion to physically organize data in-place. Visualize how the Call Stack handles highly unbalanced recursion trees.",
   "difficulty": "Beginner",
   "estimatedTime": "45 min",
-  "prerequisites": "Merge Sort",
-  "tags": ["quick sort", "sorting", "divide and conquer"],
+  "prerequisites": "Merge Sort, The Call Stack",
+  "tags": [
+    "quick sort",
+    "sorting",
+    "divide and conquer",
+    "pointers",
+    "call stack"
+  ],
   "activities": [
     {
       "id": "m3_l4_a1",
-      "title": "The Partition Step"
+      "title": "Visualizing the Partition Pointers"
     },
     {
       "id": "m3_l4_a2",
-      "title": "Choose First Pivot"
+      "title": "Tracing the Left Branch Dive"
     },
     {
       "id": "m3_l4_a3",
-      "title": "Full Quick Sort Ascending"
+      "title": "Choosing the Worst Pivot"
     },
     {
       "id": "m3_l4_a4",
-      "title": "Quick Sort Descending"
+      "title": "In-Place Swapping Execution"
     },
     {
       "id": "m3_l4_a5",
-      "title": "Pivot Tracker"
+      "title": "Full Quick Sort Stack Trace"
     }
   ],
   "sections": [
     {
       "id": "introduction",
       "type": "introduction",
-      "title": "Introduction",
-      "content": "**Quick Sort** is a highly efficient sorting algorithm based on the **Divide and Conquer strategy**.\n\n*  It was developed by British computer scientist Tony Hoare in 1959.\n*  Instead of repeatedly swapping adjacent elements like Bubble Sort, Quick Sort selects a special element called the **pivot**.\n*  It partitions the array around the pivot, and **recursively sorts** the left and right partitions.\n\nThink of it like organizing a bookshelf by genre:\n1.  You pick a pivot genre like Science Fiction.\n2.  You put all Science Fiction books together in the middle.\n3.  You place all books that come before Science Fiction alphabetically on the left, and all books that come after on the right.\n4.  Then you **repeat the process** on the left section and right section independently.\n\nQuick Sort is often the **fastest comparison-based sort in practice** for random data.\n*  It works **in-place** with minimal memory allocation.\n*  Partitioning has **good cache locality** because it accesses memory sequentially.\n*  The constant factors are lower than Merge Sort.\n\nC++ standard library uses Introsort which is Quick Sort with a fallback.\nJava uses Dual-Pivot Quick Sort for sorting primitives.\nMany programming languages use Quick Sort or its variants as their **default sorting algorithm** for primitive data types."
+      "title": "Introduction to Quick Sort",
+      "content": "**Quick Sort** is a highly efficient sorting algorithm based on the **Divide and Conquer** strategy.\n\nUnlike Merge Sort, which blindly chops the array in half and does all the heavy lifting during the merge phase, Quick Sort does the exact opposite. Quick Sort does all the heavy lifting *first* by picking a **Pivot** element and aggressively reorganizing the array so that everything smaller than the pivot moves to the left, and everything larger moves to the right. \n\nOnce this \"Partitioning\" is complete, the pivot is guaranteed to be in its absolute correct final position. The algorithm then recursively calls itself on the left sub-array and the right sub-array.\n\nWhen block sequences are evaluated by an Abstract Syntax Tree (AST), Quick Sort is often faster in practice than Merge Sort because it sorts **in-place**. It physically swaps items within the original array memory rather than creating expensive, duplicate temporary arrays."
     },
     {
-      "id": "why-quick-sort-matters",
+      "id": "why-quicksort-matters",
       "type": "concept",
       "title": "Why Quick Sort Matters",
-      "content": "Sorting is one of the most common operations in computing.\n\nDatabases, search engines, analytics systems, recommendation systems, and AI pipelines **constantly sort enormous amounts of data**.\nThe choice of sorting algorithm can dramatically impact system performance.\n\nFor n equals 1 million random elements:\n*  **Bubble Sort** takes about 500 billion operations which could take days.\n*  **Merge Sort** takes about 20 million operations plus O(n) memory.\n*  **Quick Sort** takes about 20 million operations plus O(log n) stack space and is **often faster than Merge Sort in practice**.\n\nAlthough Merge Sort guarantees stable O(n log n) performance, Quick Sort is often faster in real-world systems because:\n1.  **Partitioning is efficient**.\n2.  **Memory overhead is smaller**.\n3.  **Cache performance is better**.\n\nQuick Sort has lower constant factors and fewer data movements than Merge Sort.\n\nFor random data of size 10 million, Quick Sort typically takes about 2 to 3 seconds while Merge Sort takes about 4 to 5 seconds due to memory allocation.\nThis is why Quick Sort is the **default choice for general-purpose sorting** in many systems.",
+      "content": "Quick Sort is considered one of the most practically useful sorting algorithms in computer science. \n\n* **In-Place Efficiency:** Because it does not require an O(n) auxiliary array like Merge Sort, it is extremely memory efficient. This makes it ideal for embedded systems or massive datasets where duplicating the data in RAM is impossible.\n* **Cache Performance:** Modern computer processors rely heavily on CPU caches. Quick Sort accesses memory sequentially during its partition phase, which aligns perfectly with how hardware caches data, making its constant factors incredibly fast.\n\nWhile its worst-case mathematical complexity is O(n squared), a well-implemented Quick Sort with randomized pivot selection achieves a highly reliable **O(n log n)** average time, frequently outperforming other O(n log n) algorithms in real-world software.",
       "bullets": [
-        "Quick Sort performs **extremely fast on average**.",
-        "Many implementations work **in-place**.",
-        "It **scales efficiently** for large datasets.",
-        "Modern systems commonly use **Quick Sort variants**."
+        "It executes **in-place**, requiring minimal extra memory.",
+        "It uses **cache-friendly** sequential memory access.",
+        "It relies heavily on **pointer manipulation and swapping**.",
+        "It is the default sorting algorithm under the hood in many programming languages."
       ]
     },
     {
-      "id": "core-idea",
+      "id": "the-partition-phase",
+      "type": "deep_dive",
+      "title": "The Core Engine: The Partition Phase",
+      "content": "If you do not understand the Partition Phase, you do not understand Quick Sort. This is the physical engine of the algorithm.\n\nThe goal of the partition function is simple: Pick a pivot, put smaller things to its left, and put larger things to its right. To do this without creating a new array, it uses a **Two-Pointer Strategy**:\n\n1. **The Pivot:** Usually chosen as the last element in the current array segment.\n2. **Pointer `i` (The Boundary):** This pointer tracks the boundary of the \"smaller than pivot\" section. It starts one index *before* the low boundary (`i = low - 1`).\n3. **Pointer `j` (The Scanner):** This pointer scans through the array from left to right, inspecting every element.\n\n**The Logic Block:**\nAs `j` scans, if it finds an element *smaller* than the pivot, it tells the boundary to expand (`i += 1`). Then, it physically swaps the element at `i` with the element at `j`. This guarantees that everything from the start up to index `i` is strictly smaller than the pivot.\n\nOnce the scanner `j` reaches the end, the algorithm does one final swap: it places the pivot exactly at `i + 1`. The pivot is now locked in its permanent sorted position!"
+    },
+    {
+      "id": "the-call-stack",
+      "type": "deep_dive",
+      "title": "The Call Stack: Left Branch Execution",
+      "content": "Just like Merge Sort, Quick Sort's recursion is not a simultaneous event. The computer executes strictly sequentially using the Call Stack.\n\nLook at the core recursive structure:\n1. `pivot_index = partition(arr, low, high)`\n2. `quick_sort(arr, low, pivot_index - 1)` *(The Left Branch)*\n3. `quick_sort(arr, pivot_index + 1, high)` *(The Right Branch)*\n\nWhen the computer hits line 2, it **pauses the current execution frame**. It pushes a new frame onto the stack for the left side of the pivot. It will completely drill down the left side, partitioning and recursing, until it hits the base case (`low >= high`). \n\n**The right side of the array (Line 3) is completely ignored and suspended in memory until the entire left side is 100% sorted.** Visualizing this push-and-pop sequence is critical to understanding how the memory footprint remains at O(log n)."
+    },
+    {
+      "id": "step-by-step-example",
+      "type": "deep_dive",
+      "title": "Step-by-Step Pointer Trace",
+      "content": "Let's explicitly trace the `i` and `j` pointers for the array segment `[8, 3, 5, 9, 2, 6]` where `low = 0` and `high = 5`.\n\n* **Setup:** Pivot is `6` (last element). Boundary `i` starts at `-1`. Scanner `j` starts at `0`.\n* **j = 0 (Value 8):** Is 8 < 6? No. Do nothing.\n* **j = 1 (Value 3):** Is 3 < 6? Yes! Expand boundary (`i` becomes 0). Swap `arr[0]` (8) and `arr[1]` (3). Array is now `[3, 8, 5, 9, 2, 6]`.\n* **j = 2 (Value 5):** Is 5 < 6? Yes! Expand boundary (`i` becomes 1). Swap `arr[1]` (8) and `arr[2]` (5). Array is now `[3, 5, 8, 9, 2, 6]`.\n* **j = 3 (Value 9):** Is 9 < 6? No. Do nothing.\n* **j = 4 (Value 2):** Is 2 < 6? Yes! Expand boundary (`i` becomes 2). Swap `arr[2]` (8) and `arr[4]` (2). Array is now `[3, 5, 2, 9, 8, 6]`.\n* **Final Step:** Scanner is done. Swap the pivot (6) into the correct boundary spot (`i + 1`, which is index 3). Swap `arr[3]` (9) and `arr[5]` (6). \n* **Result:** `[3, 5, 2, 6, 8, 9]`. The pivot `6` is perfectly placed. The algorithm now pushes `quick_sort([3, 5, 2])` to the call stack."
+    },
+    {
+      "id": "choosing-a-pivot",
       "type": "concept",
-      "title": "Core Idea of Quick Sort",
-      "content": "Quick Sort works through **partitioning**. This is the heart of the algorithm.\n\nThe algorithm follows these core steps:\n1.  It selects a **pivot element**.\n2.  It moves **smaller elements** to the left side.\n3.  It moves **larger elements** to the right side.\n4.  It **recursively sorts** both partitions.\n\nAfter partitioning, the pivot reaches its **correct sorted position**.\nRecursive partitioning repeatedly reduces disorder until the entire array becomes sorted.\n\nThis is classic **Divide and Conquer**:\n*  The **divide step** is partitioning around the pivot.\n*  The **conquer step** is recursively sorting the left and right partitions.\n*  The **combine step** is trivial because the pivot is already in place.\n\nFor example, start with `[8, 3, 5, 1, 7]`. Choose pivot `7`.\nAfter partitioning, the array becomes `[3, 5, 1, 7, 8]`. The pivot `7` is now in its **final position**.\nThen recursively sort `[3, 5, 1]` and `[8]`. Continue until fully sorted.\n\nUnlike Merge Sort which divides first then sorts during merge, Quick Sort **sorts during partition** then recursively processes smaller subproblems.\nThe pivot ends up in its correct position after each partition, so **each recursive call places one more element correctly**."
-    },
-    {
-      "id": "understanding-pivot",
-      "type": "deep_dive",
-      "title": "Understanding the Pivot",
-      "content": "The pivot is the central element used to partition the array.\n**Pivot selection significantly impacts Quick Sort's performance**.\n\n*  A **good pivot** creates balanced partitions with sizes roughly n/2 each, leading to **O(n log n)** performance.\n*  A **bad pivot** creates unbalanced partitions like 1 element on one side and n-1 on the other, leading to **O(n squared)** performance.\n\nCommon pivot selection strategies include:\n1.  **First or last element:** Simple but terrible for already sorted arrays, causing O(n squared).\n2.  **Random element:** Makes worst-case O(n squared) extremely unlikely, with probability approaching zero.\n3.  **Median of three:** Chooses the median of the first, middle, and last elements, providing excellent pivot quality.\n\nFor example, with array `[8, 3, 5, 1, 7]` and pivot `7`, the goal is to place values smaller than 7 on the left and values larger than 7 on the right.\nAfter partitioning, 7 ends up at index 3: `[3, 5, 1, 7, 8]`. The pivot acts as a **dividing boundary**.\n\nChoosing a bad pivot like the smallest or largest element creates a skewed recursion tree with depth O(n) instead of O(log n).\nFor n equals 1 million, balanced depth is about 20 while skewed depth is 1 million, which would cause stack overflow.\nThis is why **pivot selection is critical**."
-    },
-    {
-      "id": "step-by-step-partition",
-      "type": "deep_dive",
-      "title": "Step-by-Step Partition Example",
-      "content": "Suppose we sort the array `[8, 3, 5, 1, 7]` using **pivot 7**.\n\nThe algorithm compares every element with the pivot:\n*  Values 3, 5, and 1 are **smaller** than 7, while 8 is **larger**.\n*  After partitioning, the array becomes `[3, 5, 1, 7, 8]`.\n*  Notice that 7 is now in its **final sorted position** at index 3.\n\nThe algorithm then recursively sorts the left partition `[3, 5, 1]` and the right partition `[8]`.\n1.  For the left partition, choose **pivot 1**. Values 3 and 5 are larger, so after partitioning we get `[1, 3, 5]`.\n2.  For `[3, 5]`, choose **pivot 5** to get `[3, 5]`.\n3.  The right partition `[8]` is **already sorted**.\n\nHere is the complete trace:\n*  Start with `[8, 3, 5, 1, 7]`.\n*  Partition with pivot 7 gives `[3, 5, 1, 7, 8]`.\n*  Recursively sort left `[3, 5, 1]`. Partition with pivot 1 gives `[1, 3, 5]`.\n*  Recursively sort `[3, 5]`. Partition with pivot 5 gives `[3, 5]`.\n*  **Final result is `[1, 3, 5, 7, 8]`**.\n\nIn the **Lomuto partition scheme**, the algorithm works **in-place** within the original array.\nIt uses a pointer `i` to track the boundary of smaller elements.\nFor each element, if it is less than the pivot, it is swapped into the left section. At the end, the pivot is swapped into its correct position."
-    },
-    {
-      "id": "recursive-partitioning",
-      "type": "deep_dive",
-      "title": "Understanding Recursive Partitioning",
-      "content": "Quick Sort repeatedly partitions smaller subarrays. This recursive decomposition is what makes Quick Sort a **Divide and Conquer algorithm**.\n\nWith a **good pivot**, the recursion tree is balanced:\n*  Level 0 has n elements.\n*  Level 1 has n/2 and n/2.\n*  Level 2 has n/4, n/4, n/4, n/4.\n*  The depth is **log base 2 of n**.\n\nWith a **bad pivot**, the recursion tree is skewed:\n*  Level 0 has n elements.\n*  Level 1 has 0 and n-1.\n*  Level 2 has 0 and n-2.\n*  The depth is **n**.\n\nFor n equals 1 billion, balanced depth is about 30, which is safe.\nSkewed depth is 1 billion, which would cause stack overflow.\nThis is why **pivot selection is critical**. Random pivot or median-of-three guarantees reasonable balance.\n\nQuick Sort exemplifies **Divide and Conquer**:\n1.  **Divide step:** Partitions the array around the pivot.\n2.  **Conquer step:** Recursively sorts the left and right partitions.\n3.  **Combine step:** Trivial because the pivot is already in place and partitions are sorted independently.\n\nEach recursive step **reduces disorder further** until the array becomes fully sorted.",
-      "chart": {
-        "title": "Quick Sort recursive reduction",
-        "description": "Quick Sort repeatedly partitions arrays into smaller sections, often producing logarithmic recursive depth for balanced partitions.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(log n)", "O(n log n)", "O(n^2)"]
-      }
-    },
-    {
-      "id": "why-quick-sort-fast",
-      "type": "concept",
-      "title": "Why Quick Sort Is Fast",
-      "content": "Quick Sort becomes efficient because partitioning **rapidly reduces problem size** while operating **in-place with good cache locality**.\nBalanced partitions create recursive trees similar to repeatedly dividing n into n/2, then n/4, then n/8.\n\nEven though both Quick Sort and Merge Sort are O(n log n) in expectation, Quick Sort often **outperforms Merge Sort in practice** for several reasons:\n*  Quick Sort **sorts in-place** using O(log n) stack space, while Merge Sort requires O(n) auxiliary arrays with memory allocation and copying overhead.\n*  Quick Sort's partition phase scans sequentially through the array, which is **cache-friendly**.\n*  Quick Sort moves elements **only during partitioning**, while Merge Sort moves every element during each merge level.\n\nFor random data of size 10 million, Quick Sort typically takes about 2 to 3 seconds.\nMerge Sort takes about 4 to 5 seconds due to memory allocation. Bubble Sort would take weeks.\n\nHowever, Quick Sort is **not always fast**:\n1.  Already sorted data with first or last pivot causes **O(n squared)** behavior.\n2.  Data with many equal elements can also cause problems unless optimized.\n3.  When stable sorting is required, Quick Sort is not suitable because it is **not stable**."
+      "title": "The Pivot Problem",
+      "content": "The efficiency of Quick Sort relies entirely on the pivot splitting the array roughly in half. \n\n* **Ideal Case:** The pivot is the median value. The array is split 50/50. The recursion tree is shallow and balanced (Depth is log n). Time complexity is O(n log n).\n* **Worst Case:** You always pick the largest or smallest value. The array is split into sizes of 0 and n-1. This creates an unbalanced, deep recursion tree (Depth is n). Time complexity drops to O(n squared).\n\nIf you always pick the *last* element as the pivot, and someone hands you an array that is **already sorted**, Quick Sort will experience its absolute worst-case O(n squared) performance! To prevent this in real software, engineers use **Randomized Pivots** or select the \"Median of Three\" (first, middle, last) to ensure the split is never highly unbalanced."
     },
     {
       "id": "implementation",
       "type": "concept",
       "title": "Python Implementation",
-      "content": "Quick Sort implementations usually rely on **recursive partitioning and pivot-based decomposition**.\n\n*  The **simple version** creates new left and right arrays for each partition. This is easy to understand but uses O(n log n) extra space.\n*  The **in-place version** sorts within the original array using O(log n) stack space.\n\nIn the simple version:\n1.  The **base case** is when the array length is less than or equal to 1, in which case it returns the array.\n2.  Otherwise, it chooses a pivot, typically the **last element**.\n3.  It creates left and right lists, placing elements smaller than the pivot into left and elements greater than or equal into right.\n4.  Then it **recursively sorts left and right** and returns left plus pivot plus right.\n\nThe in-place version uses the **Lomuto partition scheme**:\n*  It chooses the last element as pivot.\n*  It uses a pointer `i` to track the boundary of elements less than the pivot.\n*  It iterates `j` from low to high minus 1.\n*  If `arr[j]` is less than or equal to the pivot, it swaps `arr[i]` and `arr[j]` and increments `i`.\n*  After the loop, it swaps the pivot into position `i`.\n*  Then it recursively calls itself on the left and right partitions.\n\n**Random pivot selection avoids worst-case behavior**. Median-of-three pivot selection is even better for production code.\nThe examples below demonstrate both the simple and in-place implementations.",
+      "content": "Notice how the `partition` function physically modifies the array in-place using standard swapping `a, b = b, a`. The `quick_sort` function simply manages the Call Stack, determining which indices to target next based on where the pivot landed.",
       "codeSnippets": [
         {
-          "title": "Quick Sort implementation",
+          "title": "Quick Sort & Partitioning Logic",
           "language": "python",
-          "code": "def quick_sort(arr):\n    if len(arr) <= 1:\n        return arr\n\n    pivot = arr[-1]\n\n    left = []\n    right = []\n\n    for value in arr[:-1]:\n        if value < pivot:\n            left.append(value)\n        else:\n            right.append(value)\n\n    return quick_sort(left) + [pivot] + quick_sort(right)\n\nprint(quick_sort([8, 3, 5, 1, 7]))"
-        },
-        {
-          "title": "Partition demonstration",
-          "language": "python",
-          "code": "def partition_demo(arr, pivot):\n    left = []\n    right = []\n\n    for value in arr:\n        if value < pivot:\n            left.append(value)\n        elif value > pivot:\n            right.append(value)\n\n    return left, pivot, right\n\nprint(partition_demo([8, 3, 5, 1], 5))"
-        },
-        {
-          "title": "Recursive pivot reduction visualization",
-          "language": "python",
-          "code": "def quick_visual(arr):\n    print(arr)\n\n    if len(arr) <= 1:\n        return\n\n    pivot = arr[-1]\n\n    left = []\n    right = []\n\n    for value in arr[:-1]:\n        if value < pivot:\n            left.append(value)\n        else:\n            right.append(value)\n\n    quick_visual(left)\n    quick_visual(right)\n\nquick_visual([8, 3, 5, 1, 7])"
+          "code": "def partition(arr, low, high):\n    pivot = arr[high]  # Choosing last element as pivot\n    i = low - 1        # Pointer for the smaller element boundary\n\n    # The Scanner Loop\n    for j in range(low, high):\n        if arr[j] < pivot:\n            i = i + 1\n            # Swap current element into the smaller section\n            arr[i], arr[j] = arr[j], arr[i]\n\n    # Place the pivot precisely on the boundary\n    arr[i + 1], arr[high] = arr[high], arr[i + 1]\n    return i + 1       # Return the final locked index of the pivot\n\n\ndef quick_sort(arr, low, high):\n    # Base Case: If the array segment is 1 or 0 elements, do nothing.\n    if low < high:\n        # Conquer: Partition the array\n        pivot_index = partition(arr, low, high)\n\n        # Divide: Push Left branch to the Call Stack\n        quick_sort(arr, low, pivot_index - 1)\n        \n        # Divide: Push Right branch to the Call Stack (Executes after left is done)\n        quick_sort(arr, pivot_index + 1, high)\n\n# Execution\ndata = [8, 3, 5, 9, 2, 6]\nquick_sort(data, 0, len(data) - 1)\nprint(data)"
         }
       ]
     },
     {
       "id": "complexity-analysis",
       "type": "deep_dive",
-      "title": "Complexity Analysis",
-      "content": "Quick Sort achieves **O(n log n) average-case complexity** because balanced partitions repeatedly reduce the problem size.\n\n*  The **best case** occurs when the pivot always partitions the array into two equal halves.\n*  The recurrence is T(n) = 2T(n/2) plus O(n), which solves to **O(n log n)**.\n\nHowever, **worst-case performance can become O(n squared)** when partitions become extremely unbalanced.\n*  If the pivot always selects the smallest or largest element, the recurrence becomes T(n) = T(n-1) plus O(n), which solves to **O(n squared)**.\n*  This happens with already sorted data when using first or last element pivot.\n\nFor n equals 1 million:\n1.  **Balanced Quick Sort** takes about 20 million comparisons.\n2.  **Skewed Quick Sort** takes about 500 billion comparisons, which is **25,000 times slower**.\n3.  For sorted data with last element pivot, Quick Sort degrades to **O(n squared)**.\n\nMany Quick Sort implementations also achieve **good memory efficiency** because they sort in-place.\n*  The iterative in-place version uses **O(log n) stack space** on average.\n*  The worst-case stack space is O(n) if partitions are skewed, which can cause stack overflow.\n*  To avoid this, production implementations use **random pivot** or **median-of-three** and may switch to Heap Sort for deep recursion, which is called **Introsort**."
-    },
-    {
-      "id": "worst-case-behavior",
-      "type": "concept",
-      "title": "Why Worst-Case O(n^2) Happens",
-      "content": "Worst-case performance occurs when **partitioning repeatedly produces highly uneven sections**.\n\nSuppose the array is already sorted as `[1, 2, 3, 4, 5]` and the algorithm always chooses the **last element as the pivot**.\nEach partition creates a left partition of size n-1 and a right partition of size 0:\n1.  **Partition 1** with pivot 5 gives left `[1, 2, 3, 4]` and right `[]`.\n2.  **Partition 2** with pivot 4 gives left `[1, 2, 3]` and right `[]`.\n3.  **Partition 3** with pivot 3 gives left `[1, 2]` and right `[]`.\n4.  **Partition 4** with pivot 2 gives left `[1]` and right `[]`.\n\nThis creates a **skewed recursion tree with depth n**.\n\nThe comparison count becomes (n-1) plus (n-2) plus (n-3) plus ... plus 1, which equals n times n-1 divided by 2, which is **O(n squared)**.\nFor n equals 1 million, this is about 500 billion comparisons.\n\nTo avoid worst case, **use random pivot selection**.\n*  This makes worst-case extremely unlikely.\n*  The probability of consistently picking bad pivots is 1 over n factorial, which is practically zero for large n.\n*  **Median-of-three pivot selection** also guarantees a moderate pivot.\n*  **Introsort** switches to Heap Sort if recursion depth exceeds log n, guaranteeing O(n log n) even with bad pivots."
+      "title": "Complexity Analysis & Memory Tradeoffs",
+      "content": "Because Quick Sort relies on pivot selection, its mathematical performance varies wildly based on the input data.\n\n* **Time Complexity:**\n    * **Average & Best Case:** O(n log n). The recursion tree divides neatly, resulting in log n stack frames, with O(n) scanning work done per level.\n    * **Worst Case:** O(n squared). If the data is already sorted and the last element is chosen, the recursion tree becomes a straight line of n frames. \n* **Space Complexity:**\n    * **O(log n) to O(n) Stack Memory:** Quick Sort sorts the array completely in-place, meaning it uses O(1) auxiliary array memory. However, the Call Stack frames physically consume RAM. A balanced tree uses O(log n) stack frames. A worst-case unbalanced tree will push O(n) frames onto the stack, which can cause a Stack Overflow on massive datasets.\n\nDespite the worst-case risks, the constants hidden in O(n log n) are so small that an optimized Quick Sort is historically the fastest general-purpose algorithm.",
+      "chart": {
+        "title": "Quick Sort Variance",
+        "description": "Unlike Merge Sort, Quick Sort's performance curve can snap from a highly efficient O(n log n) directly to a catastrophic O(n^2) if pivot selection fails.",
+        "maxN": 64,
+        "normalize": true,
+        "curves": [
+          "O(log n)",
+          "O(n log n)",
+          "O(n^2)"
+        ]
+      }
     },
     {
       "id": "quick-vs-merge",
       "type": "concept",
-      "title": "Quick Sort vs Merge Sort",
-      "content": "Quick Sort uses partitioning, while Merge Sort uses merging.\nBoth algorithms commonly achieve O(n log n) average performance, but Quick Sort **often performs faster in practice** because memory overhead is lower and cache behavior is better.\n\nFor random data of size 1 million:\n*  **Quick Sort** typically takes about 0.3 to 0.5 seconds in-place.\n*  **Merge Sort** takes about 0.5 to 0.8 seconds due to memory allocation and copying.\n*  Quick Sort is **often 1.5 to 2 times faster**.\n\nHowever, Merge Sort provides **stable sorting** and guaranteed worst-case O(n log n) behavior, while Quick Sort may degrade to O(n squared) with poor pivot selection.\n\nMerge Sort is better when:\n1.  Stability is required.\n2.  Worst-case performance must be guaranteed for real-time systems.\n3.  Data is already sorted or reverse-sorted.\n4.  Sorting linked lists.\n5.  External sorting is needed when data is too large for memory.\n\nLanguage Defaults:\n*  **C++ std::sort** uses Introsort which is Quick Sort with a fallback to Heap Sort.\n*  **Java Arrays.sort** for primitives uses Dual-Pivot Quick Sort.\n*  **Java Arrays.sort** for objects uses Timsort, which is Merge Sort plus Insertion Sort.\n*  **Python sort** uses Timsort because Quick Sort is not stable.\n\n**Choose based on your specific requirements** for speed, memory, stability, and data characteristics."
-    },
-    {
-      "id": "in-place-sorting",
-      "type": "concept",
-      "title": "In-Place Sorting",
-      "content": "Many Quick Sort implementations are considered **in-place algorithms**.\nThis means sorting occurs **directly within the original array** instead of requiring large auxiliary arrays.\nThe partition operation swaps elements within the array rather than creating new lists.\n\nIn-place Quick Sort memory usage:\n*  Uses **O(log n) stack space** for recursion on average and O(n) in the worst case.\n*  For n equals 10 million, in-place Quick Sort uses about 80 megabytes for the array itself plus about 240 bytes for the stack with about 20 frames times 12 bytes.\n*  Merge Sort would use 80 megabytes for the original array plus 80 megabytes for temporary arrays, totaling 160 megabytes.\n\nIn-place sorting **improves memory efficiency, cache performance, and scalability** for large datasets.\nThe original array order is lost, but for sorting large datasets, memory efficiency often outweighs this concern.\n\nThe **Lomuto and Hoare partition schemes** both work in-place:\n1.  They use two pointers to track positions and swap elements when they are on the wrong side of the pivot.\n2.  At the end, the pivot is placed in its correct position.\n3.  The Hoare partition scheme is more efficient but harder to understand.\n4.  The examples in this lesson use the simpler Lomuto scheme."
-    },
-    {
-      "id": "advantages-limitations",
-      "type": "concept",
-      "title": "Advantages and Limitations",
-      "subsections": [
-        {
-          "id": "advantages",
-          "title": "Advantages",
-          "bullets": [
-            "**Extremely fast** average-case performance.",
-            "**Efficient memory usage** by sorting in-place.",
-            "**Scales efficiently** for large datasets.",
-            "**Widely used** in real-world systems."
-          ]
-        },
-        {
-          "id": "limitations",
-          "title": "Limitations",
-          "bullets": [
-            "Worst-case performance may become **O(n^2)**.",
-            "Partition logic may **confuse beginners**.",
-            "Quick Sort is **not stable**.",
-            "**Poor pivot selection** can severely reduce efficiency."
-          ]
-        }
-      ]
+      "title": "Quick Sort vs. Merge Sort",
+      "content": "Both are Divide and Conquer algorithms, but they make opposite structural tradeoffs.\n\n* **Data Modification:** Quick Sort modifies data in-place during the Divide step (Partition). Merge Sort leaves data alone during the Divide step, modifying it only during the Combine step (Merge).\n* **Memory:** Merge Sort absolutely requires O(n) auxiliary memory to hold the merged arrays. Quick Sort requires no auxiliary arrays, only stack memory.\n* **Stability:** Merge Sort is Stable (duplicate items maintain their original order). Quick Sort is Unstable (swapping elements across the pivot boundary scrambles the original order of duplicates).\n* **Predictability:** Merge Sort is fiercely predictable (Always O(n log n)). Quick Sort is volatile, risking O(n squared) behavior."
     },
     {
       "id": "applications",
       "type": "real_world_connection",
       "title": "Real-World Applications",
-      "content": "Quick Sort appears in standard libraries, database systems, analytics pipelines, compiler optimization, search systems, and AI preprocessing systems.\nIts **fast practical performance and low memory overhead** make it one of the most important sorting algorithms in computer science.\n\nStandard Library Usage:\n*  **C++ std::sort** uses Introsort, which is Quick Sort with a Heap Sort fallback to guarantee O(n log n).\n*  **Java Arrays.sort** for primitives uses Dual-Pivot Quick Sort, which is faster than classic Quick Sort.\n*  **Go sort package** uses Quick Sort with optimizations.\n*  **Rust sort_unstable** uses a variant of Quick Sort.\n\nSystem Applications:\n*  **Database systems** use Quick Sort for in-memory sorting of intermediate results in query processing.\n*  **Operating systems** use Quick Sort in various kernel sorting routines.\n*  **ETL pipelines** sort large datasets for aggregation and reporting.\n*  **Gaming** uses Quick Sort for leaderboards and inventory systems.\n\nQuick Sort is the **default choice for general-purpose sorting** in many systems because it works well for most real-world data distributions.\nHowever, it is not used when stability is required (such as in Python which uses Timsort) or when worst-case guarantees are required for real-time systems (which may use Heap Sort or Merge Sort)."
+      "content": "Because of its cache-friendliness and in-place memory usage, Quick Sort variants run the modern digital world.\n\n* **C++ `std::sort`:** This uses Introsort, which starts as a standard Quick Sort. If the Call Stack detects that the recursion tree is getting dangerously deep (approaching worst-case behavior), it dynamically switches to Heap Sort to guarantee O(n log n) finish.\n* **Database Execution:** Sorting intermediate query results (e.g., SQL `ORDER BY` operations) often utilizes Quick Sort logic when the data size easily fits within the processor's active RAM cache.\n* **Game Development:** Physics engines and collision detection systems use Quick Sort to rapidly organize bounding boxes along coordinate axes because the in-place swapping prevents memory allocation stuttering (Garbage Collection spikes)."
     },
     {
       "id": "misconceptions",
@@ -171,19 +126,19 @@
       "title": "Common Beginner Mistakes",
       "subsections": [
         {
-          "id": "pivot-confusion",
-          "title": "Mistake: Confusing pivot selection with sorting itself",
-          "content": "The pivot only **partitions the array into sections**.\nRecursive partitioning and repeated decomposition produce the final sorted result. Partitioning places one element, the pivot, correctly. **Recursion places all other elements correctly**."
+          "id": "magic-execution",
+          "title": "Mistake: Assuming left and right recursion happens simultaneously",
+          "content": "Due to the Call Stack, the `quick_sort` code does not run the left and right halves at the same time. The computer will completely exhaust and sort the entire left side of the initial pivot before the right side is even evaluated once."
         },
         {
-          "id": "wrong-boundaries",
-          "title": "Mistake: Incorrect partition boundaries",
-          "content": "Incorrect boundaries may create infinite recursion, skipped elements, or incorrect sorting behavior.\n**Always exclude the pivot** from recursive calls. Use low to pivot index minus 1 for the left side and pivot index plus 1 to high for the right side."
+          "id": "ignoring-pointers",
+          "title": "Mistake: Hand-waving the Partition loop",
+          "content": "Beginners often try to memorize the code without understanding the physical reality of the pointers. You must be able to draw an array on paper and physically move the boundary `i` and scanner `j` with your fingers. If you skip this, the algorithm will feel like magic puzzle pieces."
         },
         {
-          "id": "always-nlogn",
-          "title": "Mistake: Assuming Quick Sort is always O(n log n)",
-          "content": "Poor pivot selection can produce highly unbalanced partitions and **degrade performance to O(n squared)**.\nThe worst case is not just theoretical. It happens in practice with sorted data when using first or last pivot. **Always use random pivot or median-of-three** in production code."
+          "id": "pivot-inclusion",
+          "title": "Mistake: Including the pivot in the recursive calls",
+          "content": "When calling recursion, you must explicitly exclude the pivot. `quick_sort(arr, low, pivot_index - 1)` is correct. If you use `pivot_index` instead of `-1`, the algorithm will sort the pivot again, potentially causing an infinite recursion loop."
         }
       ]
     },
@@ -192,13 +147,12 @@
       "type": "summary",
       "title": "Key Takeaways",
       "bullets": [
-        "Quick Sort uses **Divide and Conquer**.",
-        "The algorithm **partitions arrays around a pivot**.",
-        "Smaller elements **move left** of the pivot.",
-        "Larger elements **move right** of the pivot.",
-        "**Recursive partitioning** creates efficient sorting.",
-        "Average complexity is **O(n log n)**.",
-        "Poor pivot selection may **cause O(n^2) behavior**."
+        "Quick Sort works by picking a **Pivot** and partitioning the data.",
+        "The **Partition Phase** uses a boundary pointer and a scanner pointer to physically swap items in-place.",
+        "The **Call Stack** forces the computer to completely resolve the left branch before evaluating the right branch.",
+        "Average time complexity is **O(n log n)** with high cache efficiency.",
+        "Poor pivot choices (like picking the last element of an already sorted array) cause **O(n^2)** worst-case performance.",
+        "Unlike Merge Sort, Quick Sort is **Unstable**, but requires no extra array memory."
       ]
     }
   ],

@@ -3,7 +3,6 @@ import { FaPython, FaUserCircle } from "react-icons/fa";
 import { IoArrowForward } from "react-icons/io5";
 import { LuChartBar, LuPuzzle } from "react-icons/lu";
 import { Link } from "react-router-dom";
-import Footer from "../components/Footer";
 import Header from "../components/Header";
 import "../styles/HomePage.css";
 
@@ -34,16 +33,16 @@ export default function LandingPage() {
     <div className="landing-container">
       <Header />
       <main className="landing-main">
+        {/* Hero Section */}
         <section className="hero home-hero">
           <div className="home-hero-copy">
+            <div className="hero-badge">Welcome to AlgoBlocks</div>
             <h1 className="slogan-text">
               Think in <span className="accent">Steps</span>.<br />
               <span className="accent">Analyze</span> in Depth.
             </h1>
             <p className="hero-subtitle">
-              Build algorithms with interactive blocks and<br />
-              get line-by-line feedback on time and space<br />
-              performance in real-time.
+              Build algorithms with interactive blocks and get line-by-line feedback on time and space performance in real-time.
             </p>
             <div className="hero-buttons">
               <Link to="/signup" className="btn-primary">
@@ -61,6 +60,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="home-hero-media" aria-hidden="true">
+            <div className="hero-glow"></div>
             <img
               src="/assets/programming-code-editor-illustration-design-vector-removebg-preview.png"
               alt="Programming code editor illustration"
@@ -71,33 +71,35 @@ export default function LandingPage() {
 
         {/* Feature Cards Section */}
         <section className="feature-cards">
-          <h2>Built for Granular Learning</h2>
-          <p className="section-subtitle">
-            AlgoBlocks bridges the gap between abstract computer science concepts and tangible coding experience.
-          </p>
+          <div className="section-header">
+            <h2>Built for Granular Learning</h2>
+            <p className="section-subtitle">
+              AlgoBlocks bridges the gap between abstract computer science concepts and tangible coding experience.
+            </p>
+          </div>
           <div className="cards-grid">
-            <div className="card">
+            <div className="card glass-panel">
               <div className="card-icon">
                 <span className="card-icon-badge">
-                  <LuPuzzle size={24} color="#7F57F9" aria-hidden="true" />
+                  <LuPuzzle size={28} color="#E058FB" aria-hidden="true" />
                 </span>
               </div>
               <h3>Block-Based Logic</h3>
               <p>Construct complex algorithms using our intuitive drag-and-drop interface. Perfect for beginners and advanced visual learners.</p>
             </div>
-            <div className="card">
+            <div className="card glass-panel">
               <div className="card-icon">
                 <span className="card-icon-badge">
-                  <LuChartBar size={24} color="#7F57F9" aria-hidden="true" />
+                  <LuChartBar size={28} color="#E058FB" aria-hidden="true" />
                 </span>
               </div>
               <h3>Line-by-Line Feedback</h3>
               <p>Get instant time and space complexity metrics for every block you place. Understand the why behind the performance.</p>
             </div>
-            <div className="card">
+            <div className="card glass-panel">
               <div className="card-icon">
                 <span className="card-icon-badge">
-                  <FaPython size={24} color="#7F57F9" aria-hidden="true" />
+                  <FaPython size={28} color="#E058FB" aria-hidden="true" />
                 </span>
               </div>
               <h3>Python Conversion</h3>
@@ -110,24 +112,38 @@ export default function LandingPage() {
         <section className="features-list">
           <div className="features-content">
             <h2>Everything You Need to Learn Algorithms</h2>
-            <ul>
-              <li>Built-in algorithm templates with real Python code</li>
-              <li>Instant code generation from your block arrangements</li>
-              <li>Line-by-line complexity analysis with O-notation</li>
-              <li>Save and manage your projects</li>
+            <p className="features-description">
+              Master the fundamentals of computer science with tools designed to make complex theories visual and interactive.
+            </p>
+            <ul className="modern-list">
+              <li>
+                <div className="list-icon">✓</div>
+                <span>Built-in algorithm templates with real Python code</span>
+              </li>
+              <li>
+                <div className="list-icon">✓</div>
+                <span>Instant code generation from your block arrangements</span>
+              </li>
+              <li>
+                <div className="list-icon">✓</div>
+                <span>Line-by-line complexity analysis with O-notation</span>
+              </li>
+              <li>
+                <div className="list-icon">✓</div>
+                <span>Save and manage your interactive learning projects</span>
+              </li>
             </ul>
           </div>
-          <div className="feature-image-container">
+          <div className="feature-image-container relative-container">
+            <div className="feature-glow"></div>
             <img
               src="/assets/example.png"
               alt="AlgoBlocks Interface Example"
-              className="feature-example-image"
+              className="feature-example-image glass-border"
             />
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   );
 }
