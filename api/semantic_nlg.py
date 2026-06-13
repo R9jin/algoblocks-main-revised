@@ -53,6 +53,7 @@ class ComplexitySignals:
     bitwise_operations: bool = False
     boolean_short_circuit: bool = False
     f_string_usage: bool = False
+    exception_control_flow: bool = False    # Using try/except in a loop
 
 @dataclass
 class AlgorithmicParadigms:
@@ -95,11 +96,21 @@ class PatternSignals:
     
     repeated_calls_in_loop: bool = False
     has_early_exits: bool = False  
+    has_continue: bool = False
 
     inline_ternary: bool = False
     string_interpolation: bool = False
     variable_swapping: bool = False
+    
+    # Text and Structure Recognition
     has_comment_block: bool = False
+    has_docstring: bool = False
+    uses_try_except: bool = False
+    uses_context_manager: bool = False
+    uses_lambda: bool = False
+    uses_yield: bool = False
+    uses_raise: bool = False
+    uses_assert: bool = False
 
     memory_signals: MemorySignals = field(default_factory=MemorySignals)
     complexity_signals: ComplexitySignals = field(default_factory=ComplexitySignals)
@@ -142,6 +153,22 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         self._evaluate_backtracking()
         
         return self.signals
+
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        # Detect if a proper docstring is present at the function level
+        if ast.get_docstring(node):
+            self.signals.has_docstring = True
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node: ast.ClassDef):
+        if ast.get_docstring(node):
+            self.signals.has_docstring = True
+        self.generic_visit(node)
+
+    def visit_Module(self, node: ast.Module):
+        if ast.get_docstring(node):
+            self.signals.has_docstring = True
+        self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call):
         if self._in_loop:
@@ -291,7 +318,11 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Expr(self, node: ast.Expr):
+        # Bare expressions are often string blocks or unassigned variable calls.
+        # Check specifically for multi-line strings or block comments (""" comment """)
         if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            # If it's a bare string expression and wasn't picked up as a module/class/func docstring,
+            # it's acting as an inline block comment.
             self.signals.has_comment_block = True
         self.generic_visit(node)
 
@@ -324,6 +355,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
     def visit_GeneratorExp(self, node: ast.GeneratorExp):
         self.signals.comprehension_expansion = True
         self.signals.memory_signals.uses_generator = True
+        self.signals.uses_yield = True
         self.generic_visit(node)
 
     def visit_Subscript(self, node: ast.Subscript):
@@ -395,6 +427,10 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         self.signals.has_early_exits = True
         self.generic_visit(node)
         
+    def visit_Continue(self, node: ast.Continue):
+        self.signals.has_continue = True
+        self.generic_visit(node)
+
     def visit_Return(self, node: ast.Return):
         if self._in_loop:
             self.signals.has_early_exits = True
@@ -407,6 +443,42 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
     def visit_JoinedStr(self, node: ast.JoinedStr):
         self.signals.string_interpolation = True
         self.signals.complexity_signals.f_string_usage = True
+        self.generic_visit(node)
+
+    def visit_Try(self, node: ast.Try):
+        self.signals.uses_try_except = True
+        if self._in_loop:
+            self.signals.complexity_signals.exception_control_flow = True
+        self.generic_visit(node)
+
+    def visit_With(self, node: ast.With):
+        self.signals.uses_context_manager = True
+        self.generic_visit(node)
+
+    def visit_AsyncWith(self, node: ast.AsyncWith):
+        self.signals.uses_context_manager = True
+        self.generic_visit(node)
+
+    def visit_Lambda(self, node: ast.Lambda):
+        self.signals.uses_lambda = True
+        self.generic_visit(node)
+
+    def visit_Yield(self, node: ast.Yield):
+        self.signals.uses_yield = True
+        self.signals.memory_signals.uses_generator = True
+        self.generic_visit(node)
+
+    def visit_YieldFrom(self, node: ast.YieldFrom):
+        self.signals.uses_yield = True
+        self.signals.memory_signals.uses_generator = True
+        self.generic_visit(node)
+
+    def visit_Raise(self, node: ast.Raise):
+        self.signals.uses_raise = True
+        self.generic_visit(node)
+
+    def visit_Assert(self, node: ast.Assert):
+        self.signals.uses_assert = True
         self.generic_visit(node)
 
     def _evaluate_recursion(self):
@@ -489,6 +561,7 @@ class EducationalInsightGenerator:
     # -------------------------------------------------------------------------
     def _build_action_intro(self, node: ast.AST, code_snippet: str, sig: PatternSignals) -> str:
         """Generates the opening sentence based on the AST node type and paradigms."""
+        # High priority paradigms
         if sig.paradigms.is_halving:
             return f"Looking at `{code_snippet}`, the algorithm performs a crucial mathematical division, actively halving the problem space."
         if sig.paradigms.is_two_pointer:
@@ -506,6 +579,7 @@ class EducationalInsightGenerator:
 
         snippet_ref = f"Looking at `{code_snippet}`" if code_snippet else "Reviewing this specific line"
 
+        # Structural/AST node types
         if isinstance(node, ast.Assign):
             return f"{snippet_ref}, the code assigns a calculated value, capturing a specific state."
         elif isinstance(node, ast.AugAssign):
@@ -530,6 +604,22 @@ class EducationalInsightGenerator:
             if isinstance(getattr(node, 'slice', None), ast.Slice):
                 return f"{snippet_ref}, the array is being explicitly sliced to extract a localized segment."
             return f"{snippet_ref}, a specific precise element is accessed via index or dictionary key."
+        elif isinstance(node, ast.Try):
+            return f"{snippet_ref}, an exception handling block (`try/except`) is established to safely catch runtime errors."
+        elif isinstance(node, ast.With):
+            return f"{snippet_ref}, a context manager (`with` block) is opened to handle sensitive resources cleanly."
+        elif isinstance(node, ast.Yield) or isinstance(node, ast.YieldFrom):
+            return f"{snippet_ref}, execution halts momentarily to `yield` a value, turning this function into a powerful generator."
+        elif isinstance(node, ast.Lambda):
+            return f"{snippet_ref}, an anonymous, inline `lambda` function is declared for quick, on-the-fly execution."
+        elif isinstance(node, ast.Raise):
+            return f"{snippet_ref}, an error or exception is intentionally triggered, stopping normal execution."
+        elif isinstance(node, ast.Assert):
+            return f"{snippet_ref}, a strict assertion check is performed to guarantee program state integrity."
+        elif sig.has_docstring:
+            return f"{snippet_ref}, we observe a formal docstring, embedding vital documentation and metadata directly into the structure."
+        elif sig.has_comment_block:
+            return f"{snippet_ref}, a block string or comment is present to clarify logic or safely disable code."
         
         return f"{snippet_ref}, we observe a distinct operational step."
 
@@ -539,6 +629,10 @@ class EducationalInsightGenerator:
     def _build_local_time_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
         family = local_info.family
         
+        # Meta/Text structures usually cost nothing
+        if sig.has_docstring or sig.has_comment_block:
+            return "This acts strictly as documentation or passive string data; it imposes absolutely zero computational penalty during live execution, resolving to a pure $O(1)$ footprint."
+
         if sig.complexity_signals.amortized_operation:
             return "In isolation, this evaluates to amortized constant time. Usually, it happens instantly, but occasionally it requires a heavier background operation (like resizing an array). On average, it remains a highly efficient $O(1)$ step."
         
@@ -558,6 +652,9 @@ class EducationalInsightGenerator:
     def _build_local_space_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
         family = local_info.family
         
+        if sig.has_docstring or sig.has_comment_block:
+            return "Because this is static metadata parsed only during initial compilation, it consumes no dynamic runtime memory, preserving an immaculate $O(1)$ local environment."
+
         if sig.memory_signals.inplace_swap:
             return "Because this is an elegant in-place swap, it requires absolutely zero additional memory allocations, maintaining a pristine $O(1)$ local footprint."
         
@@ -576,6 +673,9 @@ class EducationalInsightGenerator:
     # PIECE 3: GLOBAL EXPLANATIONS
     # -------------------------------------------------------------------------
     def _build_global_time_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
+        if sig.has_docstring or sig.has_comment_block:
+            return "Its presence has no cascading effects on the global performance. The total systemic time complexity is fundamentally anchored by the actual operational logic of the block."
+
         if local_info.raw == global_info.raw:
             return f"Because this operation dictates the heaviest work done in this path, it establishes the function's overall algorithmic time complexity at {global_info.raw}."
         
@@ -600,6 +700,9 @@ class EducationalInsightGenerator:
         return f"When nested within the surrounding architectural structure, the total global time complexity evaluates to {global_info.raw}."
 
     def _build_global_space_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
+        if sig.has_docstring or sig.has_comment_block:
+            return "Comments and docstrings do not compound globally. The actual global space complexity is entirely dependent on the variables and structures dynamically built within the execution path."
+
         if local_info.raw == global_info.raw:
             return f"As this is the peak structural allocation event in the entire algorithm, it cleanly defines the overarching global space complexity at {global_info.raw}."
         
@@ -636,7 +739,7 @@ class EducationalInsightGenerator:
         if sig.complexity_signals.quadratic_math:
             insights.append("Mathematical Overhead: Squaring numbers (`**2`) or dealing with quadratic distance equations introduces heavier arithmetic operations, though modern CPUs pipeline these specific instructions extremely efficiently.")
 
-        # Complexity Traps
+        # Complexity Traps & Patterns
         if sig.memory_signals.geometric_capacity_growth:
             insights.append("Architectural Warning: Continuously multiplying or adding a sequence to itself inside a loop forces the computer to reallocate exponentially doubling chunks of memory. This turns what appears to be a simple loop into an incredibly slow, volatile process.")
         elif sig.memory_signals.string_concatenation_in_loop:
@@ -657,8 +760,17 @@ class EducationalInsightGenerator:
             insights.append("Best Practice: Native Set operations (like unions or intersections) are implemented at the lowest hardware levels in Python. Utilizing them is exponentially faster and cleaner than writing manual nested loops to check for duplication.")
         if sig.complexity_signals.dict_lookup_constant:
             insights.append("Best Practice: Leveraging specific dictionary getter methods or native hashed lookups yields an instant $O(1)$ data retrieval, bypassing the need to search linearly.")
-        if sig.has_early_exits:
-            insights.append("Optimization: The interrupt (early return or break) observed here is an excellent functional optimization. It grants the algorithm permission to completely halt its work the exact moment the answer is found, avoiding pointless iteration.")
+        if sig.has_early_exits or sig.has_continue:
+            insights.append("Optimization: Interacting with the loop flow (`break`, `continue`, or `return`) here acts as an excellent functional optimization. It grants the algorithm permission to completely bypass useless iterations the exact moment the logic resolves.")
+
+        # New Text / Syntax recognition insights
+        if sig.uses_try_except:
+            if sig.complexity_signals.exception_control_flow:
+                insights.append("Performance Trap: While `try/except` blocks are powerful, relying on exceptions for standard control flow *inside* a heavy loop is surprisingly slow. Generating a traceback object in Python carries a tangible processing penalty.")
+            else:
+                insights.append("Robust Engineering: Utilizing a `try/except` block ensures that unpredictable runtime anomalies are gracefully caught, preventing hard application crashes during execution.")
+        if sig.uses_context_manager:
+            insights.append("Resource Safety: The `with` statement elegantly guarantees that external connections (like files or database locks) are automatically and securely closed the moment execution leaves the block, even if an error violently halts the program.")
 
         return insights
 
@@ -681,6 +793,9 @@ class EducationalInsightGenerator:
             insights.append("Common Trap: Explicit array slicing physically cuts out and copies the targeted data, creating a complete duplicate array in memory. Executing slices inside recursive calls or loops will rapidly exhaust memory.")
         if sig.memory_signals.recursive_stack_risk:
             insights.append("System Risk: Every time a recursive function calls itself, Python saves a 'frame' of the current variable state directly to the call stack. If the sequence plunges thousands of levels deep, Python will intentionally crash with a `RecursionError` to protect system RAM.")
+
+        if sig.uses_yield:
+            insights.append("Memory Mastery: The `yield` generator paradigm is the pinnacle of space optimization. Instead of allocating massive chunks of RAM to hold an entire array of results, `yield` pauses execution and emits exactly one element at a time, sustaining an astonishing $O(1)$ memory footprint regardless of dataset size.")
 
         if mem_state:
             largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)

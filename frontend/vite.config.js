@@ -22,6 +22,10 @@ export default defineConfig({
   ],
   // FIX: Route API requests from the frontend to the Python backend
   server: {
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8000', // Change to 5000 if using Flask
