@@ -49,11 +49,15 @@ const getComplexityColor = (complexity) => {
   return "#64748B"; 
 };
 
+// =========================================================================
+// THESIS METHODOLOGY: ASYMPTOTIC WEIGHT MAPPING
+// =========================================================================
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
   if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
   if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("t(n-1)+t(n-2)")) return 8;
   if (comp.includes("n^3") || comp.includes("n³")) return 7;
+  if (comp.includes("n^2logn") || comp.includes("n²logn")) return 6.5;
   if (comp.includes("n^2") || comp.includes("n²") || comp.includes("t(n-1)+o(n)")) return 6;
   if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 5;
   if (comp.includes("v+e")) return 4.5;
@@ -61,12 +65,9 @@ const getComplexityWeight = (complexity) => {
   if (comp.includes("√n") || comp.includes("sqrt")) return 3;
   if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
   if (comp.includes("o(1)")) return 1;
-  return 0;
+  return 10; // Fallback for worst-case unrecognized loops
 };
 
-// ========================================================
-// ADVANCED MARKDOWN PARSER (FIXES WALL OF TEXT & BIG O BADGES)
-// ========================================================
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
 
@@ -150,94 +151,31 @@ const sanitizePythonCode = (code) => {
   return code.replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g, " ");
 };
 
-// ========================================================
-// REFINED ACTIVITY DESCRIPTION FORMATTER
-// ========================================================
 const renderFormattedTask = (text) => {
   if (!text) return null;
-
-  const parseMarkdown = (str) => {
-    let html = str.trim();
-    
-    // 1. Headers (### Header)
-    html = html.replace(/^###\s+(.*)$/gm, "<h3 style='margin: 20px 0 10px 0; color: var(--purple-main); font-size: 1.1rem;'>$1</h3>");
-    html = html.replace(/^##\s+(.*)$/gm, "<h2 style='margin: 24px 0 12px 0; color: var(--text-main); font-size: 1.25rem;'>$1</h2>");
-    
-    // 2. Bold Text
-    html = html.replace(/\*\*(.*?)\*\*/g, "<strong style='color: var(--purple-main); font-weight: 700;'>$1</strong>");
-    
-    // 3. Inline Code Blocks
-    html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code" style="background: var(--purple-alpha); color: var(--purple-main); padding: 2px 6px; border-radius: 4px; font-family: \'Fira Code\', monospace; font-size: 0.85em;">$1</code>');
-    
-    // 4. LaTeX Math Formats
-    const mathReplacer = (match, math) => {
-      let cleanMath = math.trim()
-        .replace(/\\mathcal\{?O\}?/g, "O")
-        .replace(/\\log\b/g, "log")
-        .replace(/\\/g, "");
-      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>");
-      cleanMath = cleanMath.replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-      return `<span class="nlg-math-badge" style="font-family: 'Fira Code', monospace; font-weight: bold; color: var(--purple-main); background: var(--purple-alpha); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(121, 40, 202, 0.2); margin: 0 2px;">${cleanMath}</span>`;
-    };
-    html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
-    html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
-
-    // 5. Catch plain O(...) notations
-    html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, txt, suffix) {
-       let newText = txt.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
-           let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-           return `<span class="nlg-math-badge" style="font-family: 'Fira Code', monospace; font-weight: bold; color: var(--purple-main); background: var(--purple-alpha); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(121, 40, 202, 0.2); margin: 0 2px;">O(${cleanMath})</span>`;
-       });
-       return prefix + newText + suffix;
+  const parseStr = (str) => {
+    let out = str.replace(/\n/g, "<br/>");
+    out = out.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--purple-main);">$1</strong>');
+    out = out.replace(/\$([^$]+)\$/g, (match, math) => {
+      let cleanMath = math.replace(/\\log\b/g, "log").replace(/\\/g, "");
+      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+      return `<span class="nlg-math-badge">${cleanMath}</span>`;
     });
-
-    // 6. Block Quotes
-    html = html.replace(/^>\s+(.*)$/gm, '<blockquote style="border-left: 4px solid var(--purple-main); margin: 16px 0; color: var(--text-muted); background: var(--purple-alpha); padding: 12px 16px; border-radius: 0 8px 8px 0;">$1</blockquote>');
-
-    // 7. Split into distinct paragraphs and handle lists properly
-    let blocks = html.split(/\n\s*\n/);
-    
-    let parsedBlocks = blocks.map(block => {
-      if (/^[-*]\s+/m.test(block)) {
-        let listItems = block.split('\n').reduce((acc, line) => {
-           let trimmed = line.trim();
-           if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-               acc.push(`<li style="margin-bottom: 8px;">${trimmed.substring(2).trim()}</li>`);
-           } else if (trimmed !== '') {
-               if(acc.length > 0) {
-                   acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
-               } else {
-                   acc.push(`<li style="margin-bottom: 8px;">${trimmed}</li>`);
-               }
-           }
-           return acc;
-        }, []).join('');
-        return `<ul style="margin: 16px 0; padding-left: 24px; list-style-type: disc; color: var(--text-main); font-size: 0.95rem; line-height: 1.6;">${listItems}</ul>`;
-      } else if (block.startsWith('<h') || block.startsWith('<blockquote')) {
-        return block;
-      } else {
-        return `<p style="margin: 0 0 16px 0; line-height: 1.7; font-size: 0.95rem; color: var(--text-main);">${block.replace(/\n/g, '<br/>')}</p>`;
-      }
-    });
-    
-    return parsedBlocks.join('');
+    out = out.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
+    return out;
   };
 
-  let combinedText = "";
   if (Array.isArray(text)) {
-    combinedText = text.join("\n\n");
-  } else if (typeof text === "string") {
-    combinedText = text;
-  } else {
-    return null;
+    return (
+      <div className="activity-task-description">
+        {text.map((line, idx) => (
+          <p key={idx} style={{ minHeight: line === "" ? "1rem" : "auto", margin: "4px 0", color: "var(--text-main)", fontSize: "0.9rem", lineHeight: "1.6" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(line)) }} />
+        ))}
+      </div>
+    );
   }
-
-  return (
-    <div 
-      className="activity-task-description" 
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(combinedText)) }} 
-    />
-  );
+  if (typeof text !== "string") return null;
+  return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(text)) }} />;
 };
 
 const ActivityAppInner = ({ moduleId, activityId }) => {
@@ -259,10 +197,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const testResolveRef = useRef(null);
   const testRejectRef = useRef(null);
   const outputAccumulatorRef = useRef("");
+
+  // =========================================================================
+  // STATE MANAGEMENT: Tracking Initial AES and Final AES for ROG
+  // =========================================================================
   const latestStateRef = useRef({
     userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
     score: 0, passed: 0, testResults: [], actualTime: "O(n^2)", actualSpace: "O(1)",
     status: "draft", type: "activity", targetTime: "O(n)", targetSpace: "O(1)",
+    initial_aes: null, final_aes: null
   });
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -297,7 +240,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
 
-  // Editor and Monaco Refs for Markers
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
 
@@ -320,7 +262,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [moduleId, activityId]);
 
-  // Independent Custom Resize Handler for the Error Pane
   const handleErrorResizeStart = (e, direction) => {
     e.preventDefault(); e.stopPropagation();
     const startX = e.clientX; const startY = e.clientY;
@@ -529,9 +470,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const state = latestStateRef.current;
     if (!state.userId || (state.pythonCode === "# Drag blocks to generate Python code" && (!state.json || Object.keys(state.json).length === 0))) return;
 
+    // Database payload includes initial_aes and final_aes for ROG tracking
     const payload = {
       userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity", status: state.status || "draft",
-      score: state.score, maxScore: 5, passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
+      score: state.score, maxScore: 100, 
+      initial_aes: state.initial_aes, final_aes: state.final_aes,
+      rog: (state.final_aes || 0) - (state.initial_aes || 0),
+      passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
       testCases: state.testResults, target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
       target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
       workspace: { blocklyJson: state.json || {} }, pythonCode: state.pythonCode, timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true,
@@ -591,7 +536,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {};
             const pythonCode = finalSubmissionToLoad.pythonCode;
             latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode;
-            latestStateRef.current.score = finalSubmissionToLoad.score || 0; latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
+            latestStateRef.current.score = finalSubmissionToLoad.score || 0; 
+            latestStateRef.current.initial_aes = finalSubmissionToLoad.initial_aes || null;
+            latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes || null;
+            latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
 
             setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(json || {}, pythonCode); }, 400);
@@ -621,13 +569,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const finalScore = score !== null ? score : latestStateRef.current.score;
     const finalPassed = passed !== null ? passed : latestStateRef.current.passed;
     const finalTestResults = testResults !== null ? testResults : latestStateRef.current.testResults;
-    const finalStatus = isDraft ? (finalScore >= 1 ? "passed" : "draft") : (finalScore >= 1 ? "passed" : "failed");
+    const finalStatus = isDraft ? (finalScore >= 50 ? "passed" : "draft") : (finalScore >= 50 ? "passed" : "failed");
 
     latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode; latestStateRef.current.score = finalScore; latestStateRef.current.passed = finalPassed; latestStateRef.current.testResults = finalTestResults; latestStateRef.current.status = finalStatus;
 
     const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
     const payload = {
-      userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity", status: finalStatus, score: finalScore, maxScore: 5, passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
+      userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity", status: finalStatus, 
+      score: finalScore, maxScore: 100, 
+      initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes,
+      rog: (latestStateRef.current.final_aes || 0) - (latestStateRef.current.initial_aes || 0),
+      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
     };
 
     try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) {}
@@ -796,13 +748,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       const subId = `${latestStateRef.current.userId}_${moduleId}_${act.id}`;
       try {
         const sub = await submissionsDB.getItem(subId);
-        if (sub && (sub.score >= 1 || sub.status === "passed" || sub.passed_tests > 0)) passedCount++;
+        // Using 50% as a baseline to mean "they passed the functional part" to advance.
+        if (sub && (sub.score >= 50 || sub.status === "passed" || sub.passed_tests > 0)) passedCount++;
       } catch(e) {}
     }
     return { passedCount, threshold, isCompleted: passedCount >= threshold };
   };
 
-  const handleSuccess = async (score, maxScore, funcPassed, funcTotal) => {
+  const handleSuccess = async (aesScore, funcPassed, funcTotal, currentRog) => {
     const currentIndex = lessonActivitiesResolved.findIndex((a) => a.id === activityId);
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
@@ -813,10 +766,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (meetsThreshold && topicIdResolved) await completeFullTopic(topicIdResolved);
 
     let promptMsg = "";
-    if (score === 5) promptMsg = `Perfect execution!\nYou earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!`;
-    else if (funcPassed < funcTotal) promptMsg = `Keep trying!\nYou earned a score of ${score}/${maxScore}.\n\nYou passed ${funcPassed}/${funcTotal} functional test cases.\nSome hidden test cases or edge cases failed.`;
-    else if (score === 4) promptMsg = `Great job!\nYou earned a Silver Medal (4/5).\n\nYou passed all functional tests, but mastered only one of the Time or Space complexities.\nCan you optimize it further to get the Gold?`;
-    else promptMsg = `Good effort!\nYou earned a Bronze Medal (${score}/5).\n\nYour code works and passed all functional tests!\nHowever, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster or leaner to get the Gold Medal?`;
+    if (aesScore === 100) {
+      promptMsg = `Perfect execution!\nYou earned an Algorithmic Efficiency Score (AES) of 100%.\n\nYou passed all functional tests and completely mastered both the target Time and Space complexity!`;
+    } else if (funcPassed < funcTotal) {
+      promptMsg = `Keep trying!\nYour logic is incomplete. You passed ${funcPassed}/${funcTotal} functional test cases.\nFocus on fixing your syntax and logic before worrying about complexity.`;
+    } else if (aesScore >= 75) {
+      promptMsg = `Great job!\nYou earned an AES of ${aesScore}%.\n\nYou passed all functional tests, but your algorithm is slightly suboptimal in Time or Space complexity.\nCan you optimize it further to reach 100%?`;
+    } else {
+      promptMsg = `Good effort.\nYou earned an AES of ${aesScore}%.\n\nYour code works and passed all functional tests! However, it requires a lot more execution time or memory than the optimal solution.\nCan you make it faster or leaner?`;
+    }
+
+    if (currentRog > 0) {
+      promptMsg += `\n\n📈 Optimization recognized: Your refactoring improved your score by +${currentRog} ROG points!`;
+    }
 
     if (meetsThreshold) promptMsg += `\n\n🎉 Lesson Unlocked! You've successfully passed ${completionData.passedCount}/${completionData.threshold} required activities to advance.`;
     else promptMsg += `\n\nProgress: ${completionData.passedCount}/${completionData.threshold} required activities passed to advance.`;
@@ -825,7 +787,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       if (meetsThreshold) {
           setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou can move on to the next lesson now, or stay here to complete the remaining optional practice activities.", confirmText: "Go to Next Lesson", cancelText: "Continue Practicing", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); }, onCancelAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); } });
       } else {
-          setModalConfig({ isOpen: true, title: "Activity Completed!", message: promptMsg + "\n\nReady for the next challenge?", confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false, onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
+          setModalConfig({ isOpen: true, title: "Activity Evaluated", message: promptMsg + "\n\nReady for the next challenge?", confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false, onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
       }
     } else {
       setModalConfig({ isOpen: true, title: "Section Completed!", message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to explore the next topic.`, confirmText: "Finish", cancelText: "Stay Here", isDanger: false, onConfirmAction: async () => { closeModal(); navigate("/learning-path"); }, onCancelAction: closeModal });
@@ -894,26 +856,66 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     setIsEvaluating(false);
 
-    let score = 0;
-    if (functionalPassed === 0) score = 0;
-    else if (functionalPassed < functionalTotal) score = Math.max(1, Math.floor((functionalPassed / functionalTotal) * 2));
-    else if (functionalPassed === functionalTotal) {
-      score = 3;
+    // =========================================================================
+    // MATHEMATICAL MODEL IMPLEMENTATION (Algorithmic Efficiency Score - AES)
+    // =========================================================================
+    let aes = 0;
+    const functionalAccuracy = functionalTotal > 0 ? (functionalPassed / functionalTotal) : 0;
+
+    // Constraint 1: A_score MUST be 100% for full complexity evaluation.
+    if (functionalAccuracy < 1.0) {
+      // If code is functionally incorrect, cap score strictly based on logical accuracy (max 50%)
+      aes = Math.floor(functionalAccuracy * 50);
+    } else {
+      // Functional tests passed. Calculate AES based on the Objective Function.
       const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
-      const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(n)");
       const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
+      
+      const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(n)");
       const actualSpaceWeight = getComplexityWeight(analysisResult.space_total || "O(n)");
-      if (actualTimeWeight > 0 && actualTimeWeight <= targetTimeWeight) score += 1;
-      if (actualSpaceWeight > 0 && actualSpaceWeight <= targetSpaceWeight) score += 1;
+
+      const safeActualTime = actualTimeWeight > 0 ? actualTimeWeight : 10; 
+      const safeActualSpace = actualSpaceWeight > 0 ? actualSpaceWeight : 10;
+
+      // Calculate ratios (Target / Actual). Cap at 1.0 (100%) so they don't get bonus points for over-optimizing.
+      let timeRatio = targetTimeWeight / safeActualTime;
+      if (timeRatio > 1.0) timeRatio = 1.0; 
+
+      let spaceRatio = targetSpaceWeight / safeActualSpace;
+      if (spaceRatio > 1.0) spaceRatio = 1.0;
+
+      // Final AES: Average of Time and Space efficiency converted to a 0-100 score
+      const averageEfficiency = (timeRatio + spaceRatio) / 2;
+      aes = Math.round(averageEfficiency * 100);
     }
 
+    // ROG Tracking Logic
+    let initialAes = latestStateRef.current.initial_aes;
+    let finalAes = latestStateRef.current.final_aes;
+    
+    // We only begin tracking ROG once the functional accuracy constraint is satisfied (100%)
+    if (functionalAccuracy === 1.0) {
+        if (initialAes === null || initialAes === undefined) {
+            initialAes = aes; // This is their very first successful completion
+        }
+        finalAes = Math.max(finalAes || 0, aes); // Track highest optimized score
+    }
+
+    latestStateRef.current.initial_aes = initialAes;
+    latestStateRef.current.final_aes = finalAes;
+    
+    const currentRog = finalAes !== null && initialAes !== null ? (finalAes - initialAes) : 0;
+
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
-    await saveSubmission(latestStateRef.current.json, generatedPython, score, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false);
-    localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
+    
+    await saveSubmission(latestStateRef.current.json, generatedPython, aes, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false);
+    localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: aes }));
     
     const lessonKey = `${moduleId}:${activityId}`;
-    await savePartialProgress(lessonKey, score);
-    if (score >= 1) await handleSuccess(score, 5, functionalPassed, functionalTotal);
+    await savePartialProgress(lessonKey, aes);
+
+    // Prompt user on successful evaluation
+    await handleSuccess(aes, functionalPassed, functionalTotal, currentRog);
   };
 
   const lines = analysisResult?.lines || []; let maxWeight = 0; let bottleneckIndices = [];
@@ -961,7 +963,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
              <FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}
            </button>
            <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating}>
-             <FiPlay size={16} /> {isEvaluating ? "..." : "Run Tests"}
+             <FiPlay size={16} /> {isEvaluating ? "..." : "Evaluate Efficiency (AES)"}
            </button>
         </div>
       </header>
