@@ -40,7 +40,7 @@ export default function ProfilePage() {
 
         if (navigator.onLine && parsed.email && !parsed.isGuest) {
           try {
-            const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+            const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
             const headers = { "Content-Type": "application/json" };
             if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -109,11 +109,12 @@ export default function ProfilePage() {
           score = Number(rawScore) || 0;
         }
 
-        // Normalize 5-point scale outputs from ActivityApp to 100%
+        // Backward compatibility: If it's a legacy score (1-5 point scale), convert it gently to percentage
         if (score > 0 && score <= 5) score = (score / 5) * 100;
         score = Math.min(score, 100);
 
-        if (score >= 20 || isCompleted) { // Minimum threshold mapped to passing
+        // AES passing threshold mapped to completing the lesson 
+        if (score >= 50 || isCompleted) {
           cLessons += 1;
           completedInModule += 1;
         }
@@ -143,7 +144,6 @@ export default function ProfilePage() {
 
     setModuleMastery(masteryData);
 
-    // Dynamic Rank Evaluation
     const completionRatio = tLessons > 0 ? cLessons / tLessons : 0;
     if (completionRatio === 1 && avgScore > 90) setUserRank("Algorithm Grandmaster");
     else if (completionRatio >= 0.8) setUserRank("Algorithm Scholar");
@@ -200,8 +200,8 @@ export default function ProfilePage() {
             <div className="stat-box">
               <div className="stat-icon-wrapper purple"><FiTrendingUp /></div>
               <div className="stat-info">
-                <h4>Accuracy Rate</h4>
-                <p><strong>{metrics.overallScore}%</strong> <span className="text-muted">avg score</span></p>
+                <h4>Efficiency Rate</h4>
+                <p><strong>{metrics.overallScore}%</strong> <span className="text-muted">avg AES</span></p>
               </div>
             </div>
 
@@ -251,7 +251,6 @@ export default function ProfilePage() {
               })}
             </div>
           </main>
-
         </div>
       </div>
     </div>
