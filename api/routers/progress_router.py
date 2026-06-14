@@ -1,164 +1,81 @@
-# api/routers/progress_router.py
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from database import db 
-from security import get_current_user_email
+# api/models.py
+from pydantic import BaseModel, EmailStr
+from typing import Dict, Any, Optional, List
 
-router = APIRouter()
+class UserCreate(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
 
-@router.get("/get-progress")
-def get_progress(user_email: str = Depends(get_current_user_email)):
-    if not user_email:
-        raise HTTPException(status_code=401, detail="Invalid user token")
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
-    try:
-        progress_data = list(db["progress"].find({"userId": user_email}, {"_id": 0}))
-        for item in progress_data:
-            if "data" in item and isinstance(item["data"], dict):
-                nested = item.pop("data")
-                item.update(nested)
-        return progress_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
-@router.get("/get-assessments")
-def get_assessments(user_email: str = Depends(get_current_user_email)):
-    if not user_email:
-        raise HTTPException(status_code=401, detail="Invalid user token")
+class GoogleLoginRequest(BaseModel):
+    token: str
 
-    try:
-        assessment_data = list(db["assessments"].find({"userId": user_email}, {"_id": 0}))
-        for item in assessment_data:
-            if "data" in item and isinstance(item["data"], dict):
-                nested = item.pop("data")
-                item.update(nested)
-        return assessment_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+class ProjectSyncRequest(BaseModel):
+    projectId: Optional[str] = None
+    userId: str
+    name: str
+    description: Optional[str] = ""
+    workspace: Dict[str, Any]
+    pythonCode: Optional[str] = ""
 
-@router.get("/get-submission")
-def get_submission(
-    activityId: str = Query(..., description="The ID of the activity"),
-    moduleId: str = Query(None, description="The ID of the module"),
-    user_email: str = Depends(get_current_user_email)
-):
-    if not user_email:
-        raise HTTPException(status_code=401, detail="Invalid user token")
+class TemplateSyncRequest(BaseModel):
+    templateId: Optional[str] = None
+    userId: str
+    name: str
+    description: Optional[str] = ""
+    category: Optional[str] = "Custom Templates"
+    workspace: Dict[str, Any]
 
-    try:
-        submission = db["submissions"].find_one(
-            {"userId": user_email, "activityId": activityId}, 
-            {"_id": 0}
-        )
-        if submission and "data" in submission and isinstance(submission["data"], dict):
-            nested = submission.pop("data")
-            submission.update(nested)
-        return submission if submission else {}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+class SubmissionSyncRequest(BaseModel):
+    userId: str
+    moduleId: str
+    activityId: str
+    type: Optional[str] = "activity"
+    status: Optional[str] = "draft"
+    score: int
+    maxScore: int
     
-@router.get("/get-submissions")
-def get_all_submissions(user_email: str = Depends(get_current_user_email)):
-    if not user_email:
-        raise HTTPException(status_code=401, detail="Invalid user token")
+    # --- THESIS METHODOLOGY METRICS ---
+    initial_aes: Optional[int] = None
+    final_aes: Optional[int] = None
+    rog: Optional[int] = None
+    # ----------------------------------
+    
+    passedTestCases: int
+    totalTestCases: int
+    passed_tests: Optional[int] = 0
+    total_tests: Optional[int] = 0
+    testCases: Optional[List[Any]] = []
+    target_complexity: Optional[str] = "O(n)"
+    actual_complexity: Optional[str] = "O(n^2)"
+    target_space_complexity: Optional[str] = "O(1)"
+    actual_space_complexity: Optional[str] = "O(1)"
+    workspace: Dict[str, Any]
+    pythonCode: str
+    timestamp: float
+    submittedAt: str
+    isSynced: bool
 
-    try:
-        submissions_data = list(db["submissions"].find({"userId": user_email}, {"_id": 0}))
-        for item in submissions_data:
-            if "data" in item and isinstance(item["data"], dict):
-                nested = item.pop("data")
-                item.update(nested)
-        return submissions_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+class ProgressUpdateRequest(BaseModel):
+    email: str
+    lesson_id: str
+    score: int
+    completed: Optional[bool] = False
 
-@router.post("/update-progress")
-def update_progress(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
-    if not user_email:
-        raise HTTPException(status_code=401, detail="Invalid user token")
-
-    try:
-        key = payload.get("key") or payload.get("lesson_id")
-        if not key:
-            raise HTTPException(status_code=400, detail="Missing progress key or lesson_id")
-
-        actual_data = payload.get("data", payload)
-        if isinstance(actual_data, dict) and actual_data is not payload:
-            for k, v in payload.items():
-                if k != "data":
-                    actual_data[k] = v
-        else:
-            actual_data = payload.copy()
-
-        actual_data["key"] = key
-        actual_data["userId"] = user_email
-
-        db["progress"].update_one(
-            {"userId": user_email, "key": key},
-            {"$set": actual_data},
-            upsert=True
-        )
-
-        return {"status": "success", "message": "Progress updated successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update progress: {str(e)}")
-
-@router.post("/update-assessment")
-def update_assessment(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
-    if not user_email:
-        raise HTTPException(status_code=401, detail="Invalid user token")
-
-    try:
-        key = payload.get("key") or payload.get("assessment_key")
-        if not key:
-            raise HTTPException(status_code=400, detail="Missing assessment key")
-
-        actual_data = payload.get("data", payload)
-        if isinstance(actual_data, dict) and actual_data is not payload:
-            for k, v in payload.items():
-                if k != "data":
-                    actual_data[k] = v
-        else:
-            actual_data = payload.copy()
-
-        actual_data["key"] = key
-        actual_data["userId"] = user_email
-
-        db["assessments"].update_one(
-            {"userId": user_email, "key": key},
-            {"$set": actual_data},
-            upsert=True
-        )
-
-        return {"status": "success", "message": "Assessment updated successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update assessment: {str(e)}")
-
-@router.post("/sync-submission")
-def sync_submission(payload: dict = Body(...), user_email: str = Depends(get_current_user_email)):
-    if not user_email:
-        raise HTTPException(status_code=401, detail="Invalid user token")
-
-    try:
-        actual_data = payload.get("data", payload)
-        if isinstance(actual_data, dict) and actual_data is not payload:
-            for k, v in payload.items():
-                if k != "data":
-                    actual_data[k] = v
-        else:
-            actual_data = payload.copy()
-
-        activity_id = actual_data.get("activityId")
-        if not activity_id:
-            raise HTTPException(status_code=400, detail="Missing activityId in payload")
-
-        actual_data["userId"] = user_email
-
-        db["submissions"].update_one(
-            {"userId": user_email, "activityId": activity_id},
-            {"$set": actual_data},
-            upsert=True
-        )
-
-        return {"status": "success", "message": "Submission synced successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to sync submission: {str(e)}")
+class AssessmentUpdateRequest(BaseModel):
+    email: str
+    assessment_key: str
+    score: int
+    correct: int
+    total: int
+    timeElapsed: int
+    completedAt: str
+    attempts: int
