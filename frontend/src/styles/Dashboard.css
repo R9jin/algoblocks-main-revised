@@ -359,7 +359,86 @@
 .bento-template-card:hover .template-card-footer { color: #5A1398; }
 
 /* =========================================================
-   6. Sidebar Column (Recent Projects)
+   6. Help & FAQ Section
+========================================================= */
+.bento-help-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bento-help-section .section-header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 6px 0;
+}
+
+.bento-help-section .section-header p {
+  color: #64748B;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.bento-faq-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bento-faq-item {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(60, 45, 118, 0.02);
+}
+
+.bento-faq-item.expanded {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px rgba(60, 45, 118, 0.05);
+}
+
+.bento-faq-question {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1E293B;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s;
+}
+
+.bento-faq-question:hover {
+  background-color: #F8FAFC;
+}
+
+.bento-faq-question span {
+  padding-right: 16px;
+}
+
+.bento-faq-answer {
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bento-faq-answer p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #64748B;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   7. Sidebar Column (Recent Projects)
 ========================================================= */
 .bento-sidebar-column { display: flex; flex-direction: column; }
 
@@ -520,7 +599,7 @@
 }
 
 /* =========================================================
-   7. Animations & Responsive
+   8. Animations & Responsive
 ========================================================= */
 @keyframes slideFadeUp {
   0% { opacity: 0; transform: translateY(15px); }
