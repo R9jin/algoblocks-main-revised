@@ -1,569 +1,196 @@
 {
-  "lesson_1": [
+  "moduleId": "module-6",
+  "moduleTitle": "Backtracking",
+  "questions": [
     {
-      "id": "m6_l1_a1",
-      "title": "Backtracking Architecture: The Power Set",
-      "task": [
-        "Backtracking is like exploring a branching tree. You make a choice, explore where it leads, and then 'backtrack' (undo the choice) to try a different path. Let's find every possible subset of a list!",
-        "",
-        "Phase 1: The Setup & Base Case",
-        "Define `power_set(arr)`. Inside it, create an empty `results` list. Then define a helper function `backtrack(start_index, current_path)`. The Base Case is simple: instantly append a copy of `current_path` to `results` every single time the function runs.",
-        "",
-        "Phase 2: The Loop (Making Choices)",
-        "Inside `backtrack`, make a 'count with i' loop that starts at `start_index` and goes to the end of `arr`. Inside the loop, append `arr[i]` to your `current_path`. You have now 'chosen' this item!",
-        "",
-        "Phase 3: The Recursive Dive",
-        "Call `backtrack(i + 1, current_path)` so the function dives deeper into the tree to explore what happens when this item is included.",
-        "",
-        "Phase 4: The Backtrack (Undoing Choices)",
-        "After the recursive call finishes, you MUST pop the last item off `current_path`. This 'undoes' your choice so the loop can move on and try the next item!"
+      "id": "m6_q1",
+      "question": "What is Backtracking?",
+      "options": [
+        "An algorithm that always moves forward without revisiting choices",
+        "A brute-force technique that randomly shuffles the search order",
+        "A systematic search algorithm that builds a solution incrementally and abandons a partial solution as soon as it determines it cannot lead to a valid complete solution",
+        "A technique for sorting elements using a recursive pivot"
       ],
-      "hints": [
-        "Hint 1: You must append a COPY of your path to the results (e.g., `list(current_path)` or `current_path[:]`). If you don't, Python just links to the exact same list, and it will end up empty at the end!",
-        "Hint 2: The magic happens in Phase 4. By popping the item off, you revert the list back to exactly how it looked before the loop started."
-      ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "power_set([1, 2])", "expected": "[[], [1], [1, 2], [2]]", "isHidden": false },
-        { "call": "power_set([1])", "expected": "[[], [1]]", "isHidden": false },
-        { "call": "power_set([])", "expected": "[[]]", "isHidden": true }
-      ]
+      "answer": 2,
+      "explanation": "Backtracking explores a solution space incrementally and prunes branches early ('backtracks') when a partial solution violates constraints \u2014 avoiding unnecessary full exploration."
     },
     {
-      "id": "m6_l1_a2",
-      "title": "Subsets with a Target Sum",
-      "task": [
-        "Now that we know the Backtracking Architecture (Choose, Dive, Undo), let's use it to only find subsets that add up to a specific target number.",
-        "",
-        "Instructions:",
-        "1. Define `target_subsets(arr, target)`. Create your `results` list and `backtrack(start_index, current_path, current_sum)` helper.",
-        "2. Base Case: If `current_sum == target`, append a copy of `current_path` to `results`.",
-        "3. Pruning: If `current_sum > target`, just `return` immediately! (This stops the tree from growing down a dead end).",
-        "4. Loop `i` from `start_index` to the end. Append `arr[i]` to the path.",
-        "5. Dive: Call `backtrack(i + 1, current_path, current_sum + arr[i])`.",
-        "6. Undo: Pop the last item off the path."
+      "id": "m6_q2",
+      "type": "code",
+      "code": "def permutations(arr, path=[]):\n    if len(path) == len(arr):\n        print(path)      # base case: complete permutation\n        return\n    for i in range(len(arr)):\n        if arr[i] not in path:\n            path.append(arr[i])       # choose\n            permutations(arr, path)   # explore\n            path.pop()                # unchoose (backtrack)",
+      "question": "What is the time complexity of generating all permutations and what is the base case?",
+      "options": [
+        "O(n\u00b2) \u2014 nested loop; base case is when path is empty",
+        "O(n!) \u2014 n choices for first position, n-1 for second, etc.; base case is when path length equals array length",
+        "O(2\u207f) \u2014 binary choices; base case is when arr is empty",
+        "O(n log n) \u2014 like merge sort; base case is a single element"
       ],
-      "hints": [
-        "Hint 1: 'Pruning' is when you stop a recursive dive early because you know it's already failed. Since all our numbers are positive, if the sum goes over the target, it can never come back down!",
-        "Hint 2: Follow the exact same Choose -> Dive -> Undo pattern from the first activity."
-      ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "target_subsets([2, 3, 6, 7], 7)", "expected": "[[7]]", "isHidden": false },
-        { "call": "target_subsets([2, 3, 5], 8)", "expected": "[[3, 5]]", "isHidden": false },
-        { "call": "target_subsets([1, 2, 3], 6)", "expected": "[[1, 2, 3]]", "isHidden": true }
-      ]
+      "answer": 1,
+      "explanation": "Generating all permutations has O(n!) complexity \u2014 n choices for position 1, n-1 for position 2, down to 1 for the last. The base case is when path.length == arr.length, meaning a complete valid permutation has been built."
     },
     {
-      "id": "m6_l1_a3",
-      "title": "Generating Combinations",
-      "task": [
-        "Let's generate all possible combinations of exactly `k` numbers chosen from the range 1 to `n`. (For example, choosing 2 numbers from 1, 2, 3).",
-        "",
-        "Instructions:",
-        "1. Define `combine(n, k)`. Create `results` and `backtrack(start, path)`.",
-        "2. Base Case: If `len(path) == k`, we have exactly enough numbers! Append a copy to `results` and `return`.",
-        "3. Loop `i` from `start` up to `n + 1`.",
-        "4. Choose: Append `i` to the path.",
-        "5. Dive: Call `backtrack(i + 1, path)`.",
-        "6. Undo: Pop the item off the path."
+      "id": "m6_q3",
+      "question": "How does backtracking differ from brute force?",
+      "options": [
+        "Backtracking is always faster because it sorts data first",
+        "They are identical \u2014 backtracking is just a formal name for brute force",
+        "Backtracking uses pruning to abandon invalid partial solutions early, while pure brute force generates and evaluates all complete candidates",
+        "Brute force uses recursion; backtracking does not"
       ],
-      "hints": [
-        "Hint 1: Notice that we don't pass an array here, just a number `n`. Your loop should use `range(start, n + 1)`.",
-        "Hint 2: The base case stops the dive as soon as your path reaches size `k`. It won't keep adding numbers!"
-      ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "combine(3, 2)", "expected": "[[1, 2], [1, 3], [2, 3]]", "isHidden": false },
-        { "call": "combine(4, 1)", "expected": "[[1], [2], [3], [4]]", "isHidden": false },
-        { "call": "combine(2, 2)", "expected": "[[1, 2]]", "isHidden": true }
-      ]
+      "answer": 2,
+      "explanation": "Pure brute force generates every complete candidate before checking validity. Backtracking checks validity incrementally and abandons branches as soon as a constraint is violated \u2014 often far more efficient."
     },
     {
-      "id": "m6_l1_a4",
-      "title": "Combinations with Repetition",
-      "task": [
-        "What if we are allowed to pick the exact same number multiple times? (Like grabbing multiple $2 coins to make $8).",
-        "",
-        "Instructions:",
-        "1. Define `combine_repeat(arr, target)`. Create your helper.",
-        "2. Base Case: If `sum == target`, append the path and return. If `sum > target`, just return (prune).",
-        "3. Loop `i` from `start_index` to the end. Choose `arr[i]`.",
-        "4. Dive: Call `backtrack(i, path, new_sum)`. Notice we pass `i`, NOT `i + 1`! This allows the function to pick the exact same index again.",
-        "5. Undo: Pop the item."
+      "id": "m6_q4",
+      "question": "What is a permutation?",
+      "options": [
+        "A selection of elements where order does not matter",
+        "An arrangement of all elements of a set in a specific order, where every arrangement is considered distinct",
+        "A subset of elements chosen without replacement",
+        "A sorted version of the original sequence"
       ],
-      "hints": [
-        "Hint 1: The only difference between picking an item once and picking it infinitely is whether your recursive dive moves forward to `i + 1`, or stays on `i`.",
-        "Hint 2: The pruning step (`sum > target`) is critical here, otherwise the function will keep picking the same number forever and crash!"
-      ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "combine_repeat([2, 3], 6)", "expected": "[[2, 2, 2], [3, 3]]", "isHidden": false },
-        { "call": "combine_repeat([2], 3)", "expected": "[]", "isHidden": false },
-        { "call": "combine_repeat([4], 8)", "expected": "[[4, 4]]", "isHidden": true }
-      ]
+      "answer": 1,
+      "explanation": "A permutation is an ordered arrangement of elements. For n distinct items, there are n! possible permutations \u2014 order matters."
     },
     {
-      "id": "m6_l1_a5",
-      "title": "Letter Combinations (Phone Keypad)",
-      "task": [
-        "Old cell phones had letters on the number keys. If you press '23', what are all the possible letter combinations you could have typed?",
-        "",
-        "Instructions:",
-        "1. Define `phone_letters(digits)`. If `digits` is empty, return `[]`. Create a dictionary mapping numbers to letters (e.g., `'2': 'abc'`).",
-        "2. Define `backtrack(index, path)`.",
-        "3. Base Case: If `index == len(digits)`, append the joined `path` to results and return.",
-        "4. Find the letters for the current digit: `letters = map[digits[index]]`.",
-        "5. Loop over each `char` in `letters`. Choose the `char`, Dive to `index + 1`, and Undo."
+      "id": "m6_q5",
+      "type": "code",
+      "code": "def subsets(arr, index=0, current=[]):\n    print(current)               # record current subset\n    for i in range(index, len(arr)):\n        current.append(arr[i])   # include arr[i]\n        subsets(arr, i+1, current)\n        current.pop()            # exclude arr[i] (backtrack)\n\nsubsets([1, 2, 3])  # prints: [], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]",
+      "question": "How many subsets does this generate for an array of size n, and what is the time complexity?",
+      "options": [
+        "n subsets, O(n) time",
+        "n! subsets, O(n!) time",
+        "2\u207f subsets, O(2\u207f) time \u2014 each element has two choices: included or excluded",
+        "n\u00b2 subsets, O(n\u00b2) time"
       ],
-      "hints": [
-        "Hint 1: Instead of looping over an array of numbers, you are grabbing the letters for the current digit, and looping over those letters.",
-        "Hint 2: Since we only pick exactly one letter per digit, our dive always moves cleanly forward to `index + 1`."
-      ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "phone_letters('23')", "expected": "['ad', 'ae', 'af', 'bd', 'be', 'bf', 'cd', 'ce', 'cf']", "isHidden": false },
-        { "call": "phone_letters('2')", "expected": "['a', 'b', 'c']", "isHidden": false },
-        { "call": "phone_letters('')", "expected": "[]", "isHidden": true }
-      ]
-    }
-  ],
-  "lesson_2": [
-    {
-      "id": "m6_l2_a1",
-      "title": "Permutations Architecture",
-      "task": [
-        "Permutations are different from subsets. In permutations, the order matters! [1, 2] is different from [2, 1]. Because we can pick numbers in any order, our loop always starts at 0, but we need to track what we have already used.",
-        "",
-        "Phase 1: The Base Case",
-        "Define `permute(arr)` and `backtrack(path, used)`. Base Case: If `len(path) == len(arr)`, append a copy of the path to results and return.",
-        "",
-        "Phase 2: State Tracking & The Loop",
-        "Loop `i` from 0 to the end of the list. If `arr[i]` is already inside our `used` Set (or list), `continue` (skip it!).",
-        "",
-        "Phase 3 & 4: Choose, Dive, Undo",
-        "Add `arr[i]` to `path` AND add it to the `used` Set. Dive with `backtrack(path, used)`. Undo by removing `arr[i]` from BOTH `path` and `used`."
-      ],
-      "hints": [
-        "Hint 1: In subsets, we move our loop forward (`i + 1`) to avoid going backwards. In permutations, we WANT to go backwards, so the loop always starts at 0.",
-        "Hint 2: Because the loop always starts at 0, we must use a 'used' tracker so we don't accidentally pick the exact same item twice in the same path."
-      ],
-      "targetTime": "O(n!)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "permute([1, 2])", "expected": "[[1, 2], [2, 1]]", "isHidden": false },
-        { "call": "permute([1, 2, 3])", "expected": "[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]", "isHidden": false },
-        { "call": "permute([9])", "expected": "[[9]]", "isHidden": true }
-      ]
+      "answer": 2,
+      "explanation": "For each element there are two choices: include or exclude. With n elements, this gives 2\u207f possible subsets. The recursive backtracking visits each subset exactly once \u2192 O(2\u207f) time complexity."
     },
     {
-      "id": "m6_l2_a2",
-      "title": "Permutations with Duplicates",
-      "task": [
-        "What if our starting list has duplicates, like `[1, 1, 2]`? Standard permutations will print `[1, 1, 2]` twice! We must add a pruning rule to skip identical branches.",
-        "",
-        "Instructions:",
-        "1. Define `permute_unique(arr)`. Sort the array first! (`arr.sort()`).",
-        "2. Instead of tracking the value, our `used` tracker must track the INDEX (`i`).",
-        "3. Loop `i` from 0 to the end. If `i` is in `used`, skip it.",
-        "4. The Magic Pruning Rule: If `i > 0` AND `arr[i] == arr[i-1]` AND `(i - 1)` is NOT in `used`, skip it! (`continue`).",
-        "5. Choose, Dive, and Undo normally."
+      "id": "m6_q6",
+      "question": "What is the N-Queens problem?",
+      "options": [
+        "Placing N queens on an N\u00d7N chessboard such that no two queens attack each other",
+        "Finding the shortest path through an N\u00d7N grid",
+        "Sorting N queens by their row position",
+        "Counting the number of ways to fill an N\u00d7N grid with 0s and 1s"
       ],
-      "hints": [
-        "Hint 1: Sorting groups identical numbers together. The pruning rule basically says: 'If I am the exact same number as the guy next to me, and he just finished his turn, I don't need to take a turn because my tree will look identical to his!'",
-        "Hint 2: Ensure you are adding and removing the INDEX `i` from the `used` set, not the number itself."
-      ],
-      "targetTime": "O(n!)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "permute_unique([1, 1, 2])", "expected": "[[1, 1, 2], [1, 2, 1], [2, 1, 1]]", "isHidden": false },
-        { "call": "permute_unique([3, 3])", "expected": "[[3, 3]]", "isHidden": false },
-        { "call": "permute_unique([2, 1, 2])", "expected": "[[1, 2, 2], [2, 1, 2], [2, 2, 1]]", "isHidden": true }
-      ]
+      "answer": 0,
+      "explanation": "N-Queens places N queens on an N\u00d7N board so no two queens share the same row, column, or diagonal \u2014 a classic constraint satisfaction problem solved with backtracking."
     },
     {
-      "id": "m6_l2_a3",
-      "title": "Word Scrambler",
-      "task": [
-        "Permutations work perfectly on text! Let's generate every single way to scramble a given word.",
-        "",
-        "Instructions:",
-        "1. Define `scramble_word(word)`. Convert the word into a list of characters.",
-        "2. Create a `used` set for indices and an empty `path` string (or list).",
-        "3. Base Case: If the length of the path equals the length of the word, append the joined path to results.",
-        "4. Loop over every index `i`. If `i` is used, skip.",
-        "5. Choose `chars[i]`, Dive, and Undo."
+      "id": "m6_q7",
+      "question": "How do you validate safety in N-Queens?",
+      "options": [
+        "Check that no two queens occupy the same row, same column, or same diagonal",
+        "Verify that queens are placed in increasing row order",
+        "Ensure no two queens are on adjacent cells (including diagonals)",
+        "Check that the total number of queens equals N\u00b2"
       ],
-      "hints": [
-        "Hint 1: This is exactly the same as the first Permutations architecture, just applied to letters instead of numbers.",
-        "Hint 2: When you hit the base case, make sure you use the string join block to turn your list of letters back into a solid word before appending to results."
-      ],
-      "targetTime": "O(n!)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "scramble_word('ab')", "expected": "['ab', 'ba']", "isHidden": false },
-        { "call": "scramble_word('cat')", "expected": "['cat', 'cta', 'act', 'atc', 'tca', 'tac']", "isHidden": false },
-        { "call": "scramble_word('z')", "expected": "['z']", "isHidden": true }
-      ]
+      "answer": 0,
+      "explanation": "A queen placement is safe if no previously placed queen shares the same column, upper-left diagonal, or upper-right diagonal with the new queen."
     },
     {
-      "id": "m6_l2_a4",
-      "title": "Restricted Permutations",
-      "task": [
-        "Let's scramble a word, but add a strict rule: the scrambled word must NEVER start with the letter 'Z'.",
-        "",
-        "Instructions:",
-        "1. Define `safe_scramble(word)`.",
-        "2. Set up your standard permutation architecture (Base Case, Loop, Choose, Dive, Undo).",
-        "3. Add a Pruning Rule: Right after you choose a letter and add it to your path, check if it violates the rule.",
-        "4. If `len(path) == 1` AND `path[0] == 'Z'`, then instantly Undo the choice and `continue` to skip the dive!"
+      "id": "m6_q8",
+      "type": "code",
+      "code": "def is_safe(board, row, col, n):\n    # Check same column\n    for i in range(row):\n        if board[i][col] == 1:\n            return False\n    # Check upper-left diagonal\n    i, j = row-1, col-1\n    while i >= 0 and j >= 0:\n        if board[i][j] == 1: return False\n        i -= 1; j -= 1\n    # Check upper-right diagonal  \n    i, j = row-1, col+1\n    while i >= 0 and j < n:\n        if board[i][j] == 1: return False\n        i -= 1; j += 1\n    return True",
+      "question": "What happens in the N-Queens solver when is_safe() returns False?",
+      "options": [
+        "The algorithm terminates immediately with no solution",
+        "The algorithm places the queen anyway and continues",
+        "The algorithm backtracks \u2014 skips this column placement, tries the next column, and if all columns fail, returns to the previous row to try a different column",
+        "The algorithm restarts from the beginning with a different board size"
       ],
-      "hints": [
-        "Hint 1: Pruning is incredibly powerful. By stopping the path at the very first letter, we save the computer from calculating millions of useless permutations downstream.",
-        "Hint 2: Make sure you still Undo (remove the letter from the path and used set) if you trigger the skip, otherwise your trackers will break."
-      ],
-      "targetTime": "O(n!)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "safe_scramble('Zab')", "expected": "['abZ', 'aZb', 'baZ', 'bZa']", "isHidden": false },
-        { "call": "safe_scramble('aZ')", "expected": "['aZ']", "isHidden": false },
-        { "call": "safe_scramble('cat')", "expected": "['cat', 'cta', 'act', 'atc', 'tca', 'tac']", "isHidden": true }
-      ]
+      "answer": 2,
+      "explanation": "When is_safe() returns False, the constraint is violated and the algorithm backtracks: it skips the current column, tries the next one, and if all columns in the current row fail, it returns (backtracks) to the previous row to undo that placement and try alternatives."
     },
     {
-      "id": "m6_l2_a5",
-      "title": "Counting Arrangements (No Lists)",
-      "task": [
-        "If a list is huge, generating all permutations will crash your computer's memory. If you only need to know HOW MANY permutations exist, you can just use a counter instead of saving lists!",
-        "",
-        "Instructions:",
-        "1. Define `count_permutations(arr)`. Create a variable `count = 0`.",
-        "2. Inside your `backtrack(path, used)` helper, change the base case. Instead of appending to a results list, just do `count += 1` and `return`.",
-        "3. Build the rest of the Choose, Dive, Undo architecture normally.",
-        "4. Return `count` at the end."
+      "id": "m6_q9",
+      "question": "What is state tracking?",
+      "options": [
+        "Recording the current configuration of choices made so far, enabling the algorithm to undo them when backtracking",
+        "A technique for measuring how long the algorithm has been running",
+        "Counting the number of recursive calls made during execution",
+        "Logging every comparison performed during the search"
       ],
-      "hints": [
-        "Hint 1: Because you are never saving lists to memory, your Space Complexity drops from a massive O(N!) down to a tiny O(N) (just the recursion stack).",
-        "Hint 2: Ensure your `count` variable is accessible inside the helper function."
-      ],
-      "targetTime": "O(n!)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "count_permutations([1, 2, 3])", "expected": "6", "isHidden": false },
-        { "call": "count_permutations([1, 2, 3, 4])", "expected": "24", "isHidden": false },
-        { "call": "count_permutations([1])", "expected": "1", "isHidden": true }
-      ]
-    }
-  ],
-  "lesson_3": [
-    {
-      "id": "m6_l3_a1",
-      "title": "Maze Solver: The Rules of the Grid",
-      "task": [
-        "To solve a 2D Maze, we need strict Base Cases to tell our explorer when to stop. The grid uses 0 for empty space, 1 for walls, and 9 for the target.",
-        "",
-        "Phase 1: Boundary Rules",
-        "Define `solve_maze(grid)` and a helper `explore(r, c)`. First rule: If row `r` or col `c` are completely outside the grid limits (`< 0` or `>= length`), return `False`.",
-        "",
-        "Phase 2: Obstacle Rules",
-        "Second rule: If `grid[r][c] == 1` (it's a wall), return `False`.",
-        "",
-        "Phase 3: The Target",
-        "Third rule: If `grid[r][c] == 9` (we found the cheese!), return `True`."
-      ],
-      "hints": [
-        "Hint 1: This activity just sets up the safety barriers. If you try to explore off the edge of the map, the Boundary Rules stop Python from crashing with an 'Index Out of Bounds' error.",
-        "Hint 2: Order matters! Check boundaries FIRST, before you check if the grid space is a wall."
-      ],
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
-      "testCasesPool": [
-        { "call": "explore_rules([[0, 1], [0, 9]], -1, 0)", "expected": "False", "isHidden": false },
-        { "call": "explore_rules([[0, 1], [0, 9]], 0, 1)", "expected": "False", "isHidden": false },
-        { "call": "explore_rules([[0, 1], [0, 9]], 1, 1)", "expected": "True", "isHidden": true }
-      ]
+      "answer": 0,
+      "explanation": "State tracking maintains the current partial solution (e.g., a path array or boolean 'used' array) so it can be correctly restored when the algorithm backtracks from an invalid path."
     },
     {
-      "id": "m6_l3_a2",
-      "title": "Maze Solver: Moving Right and Down",
-      "task": [
-        "Let's make our explorer move! For a simple maze where we only move Right and Down, we don't even need to un-choose our paths.",
-        "",
-        "Instructions:",
-        "1. Define `maze_simple(grid)` with the helper `explore(r, c)`.",
-        "2. Add your three safety rules from the last activity (Boundaries, Walls, Target).",
-        "3. The Recursive Dive: Use an 'If' block. If `explore(r + 1, c)` is True (moving down works), return `True`.",
-        "4. If moving down failed, try moving right: If `explore(r, c + 1)` is True, return `True`.",
-        "5. If both directions fail, return `False`."
+      "id": "m6_q10",
+      "question": "How is a maze solved using backtracking?",
+      "options": [
+        "By computing the shortest path using Dijkstra's algorithm",
+        "By trying each direction (up, down, left, right) recursively, marking cells as visited, and backtracking (unmark) when a dead end is reached",
+        "By sorting all possible paths by length and selecting the shortest",
+        "By using binary search to locate the exit cell"
       ],
-      "hints": [
-        "Hint 1: The 'If explore(...) == True' block is how backtracking checks if a path was successful. If the dive hits the target (9), it sends True all the way back up the chain!",
-        "Hint 2: Because we only move Right and Down, we can never get stuck in an infinite loop going in circles."
-      ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "maze_simple([[0, 0, 1], [1, 0, 9]])", "expected": "True", "isHidden": false },
-        { "call": "maze_simple([[0, 1, 9], [0, 1, 0]])", "expected": "False", "isHidden": false },
-        { "call": "maze_simple([[9]])", "expected": "True", "isHidden": true }
-      ]
+      "answer": 1,
+      "explanation": "Backtracking maze solving explores available moves recursively, marks visited cells to prevent loops, and unmarks them when backtracking from dead ends until the exit is found."
     },
     {
-      "id": "m6_l3_a3",
-      "title": "Maze Solver: All 4 Directions (Avoiding Cycles)",
-      "task": [
-        "If our explorer can move Up, Down, Left, and Right, they might get stuck walking in a circle forever! We must mark where we have been.",
-        "",
-        "Phase 1: The Visited Tracker",
-        "Inside `solve_maze`, create a `visited` Set.",
-        "",
-        "Phase 2: The Choose Step",
-        "In your `explore` helper, add a 4th safety rule: If `(r, c)` is in `visited`, return `False`. If it's safe, add `(r, c)` to `visited`. (You have 'chosen' to step here).",
-        "",
-        "Phase 3: Dive in 4 Directions",
-        "Try diving `r+1`, then `r-1`, then `c+1`, then `c-1`. If any of them return `True`, return `True`.",
-        "",
-        "Phase 4: The Undo Step",
-        "If all 4 directions fail, it's a dead end! REMOVE `(r, c)` from `visited` (undo your step), and return `False`."
+      "id": "m6_q11",
+      "type": "code",
+      "code": "# BROKEN maze solver \u2014 no visited tracking\ndef solve_broken(maze, r, c):\n    if r == EXIT_ROW and c == EXIT_COL:\n        return True\n    # Try all 4 directions \u2014 no visited check!\n    for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:\n        if solve_broken(maze, r+dr, c+dc):\n            return True\n    return False\n\n# FIXED solver\ndef solve_fixed(maze, r, c, visited):\n    if r == EXIT_ROW and c == EXIT_COL:\n        return True\n    visited[r][c] = True             # mark before recursing\n    for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:\n        nr, nc = r+dr, c+dc\n        if not visited[nr][nc]:\n            if solve_fixed(maze, nr, nc, visited):\n                return True\n    visited[r][c] = False            # unmark on backtrack\n    return False",
+      "question": "Why does the broken version cause infinite recursion while the fixed version does not?",
+      "options": [
+        "The broken version uses too many direction variables",
+        "The broken version never marks cells as visited, allowing it to move back to already-explored cells and cycle forever; the fixed version marks/unmarks cells to prevent revisiting",
+        "The fixed version uses more memory, making it slower but correct",
+        "The broken version's base case is wrong \u2014 it never reaches EXIT"
       ],
-      "hints": [
-        "Hint 1: Dropping a 'visited' breadcrumb prevents the explorer from turning around and walking right back onto the square they just came from.",
-        "Hint 2: Removing the breadcrumb at a dead end is the core of backtracking. It clears the path so a different route can try using that square later if needed."
-      ],
-      "targetTime": "O(V + E)",
-      "targetSpace": "O(V)",
-      "testCasesPool": [
-        { "call": "maze_full([[0, 0, 0], [0, 1, 0], [0, 0, 9]])", "expected": "True", "isHidden": false },
-        { "call": "maze_full([[0, 1, 0], [1, 1, 0], [9, 0, 0]])", "expected": "False", "isHidden": false },
-        { "call": "maze_full([[0, 0], [0, 9]])", "expected": "True", "isHidden": true }
-      ]
+      "answer": 1,
+      "explanation": "Without the visited array, the solver can move right then immediately left then right again, cycling infinitely. Marking cells as True before recursing prevents revisiting; unmarking on backtrack (False) allows other valid paths to use those cells."
     },
     {
-      "id": "m6_l3_a4",
-      "title": "Maze Solver: Tracking the Path",
-      "task": [
-        "Knowing the maze is solvable is good, but actually printing the directions is better! Let's record our exact steps.",
-        "",
-        "Instructions:",
-        "1. Define `maze_path(grid)`. Create a `path` list and `visited` set.",
-        "2. In your `explore` helper, append the coordinates `[r, c]` to the `path` when you step on a safe square.",
-        "3. Dive in all 4 directions. If a dive returns `True`, immediately return `True` (do NOT pop the path, because we found the target!).",
-        "4. If all 4 directions fail, pop the last coordinate off the `path`, remove it from `visited`, and return `False`."
+      "id": "m6_q12",
+      "question": "What causes an infinite loop in a recursive maze solver?",
+      "options": [
+        "Using too many variables in the recursive function",
+        "The recursion depth exceeding the stack size",
+        "Failing to mark cells as visited, allowing the algorithm to revisit the same cells repeatedly and cycle infinitely",
+        "Choosing the wrong starting position in the maze"
       ],
-      "hints": [
-        "Hint 1: Because you only pop from the path when a direction FAILS, the final list will only contain the successful route to the target.",
-        "Hint 2: Return `path` from your main function if the initial `explore(0,0)` returns True. If it returns False, return `[]`."
-      ],
-      "targetTime": "O(V + E)",
-      "targetSpace": "O(V)",
-      "testCasesPool": [
-        { "call": "maze_path([[0, 1], [0, 9]])", "expected": "[[0, 0], [1, 0], [1, 1]]", "isHidden": false },
-        { "call": "maze_path([[0, 1], [1, 9]])", "expected": "[]", "isHidden": false },
-        { "call": "maze_path([[0, 0], [0, 9]])", "expected": "[[0, 0], [1, 0], [1, 1]]", "isHidden": true }
-      ]
+      "answer": 2,
+      "explanation": "Without marking visited cells, the solver keeps returning to previously explored cells, creating cycles that never terminate \u2014 the visited flag breaks these cycles."
     },
     {
-      "id": "m6_l3_a5",
-      "title": "Maze Solver: Counting All Paths",
-      "task": [
-        "Instead of stopping at the first successful path, let's count every single possible way to reach the target.",
-        "",
-        "Instructions:",
-        "1. Define `count_maze_paths(grid)`. Set a `count = 0` variable.",
-        "2. In your helper, change the Target rule: If `grid[r][c] == 9`, add 1 to `count`, remove the current step from `visited` (to allow other paths to finish here later), and return.",
-        "3. Dive in all 4 directions. Do NOT use 'If dive is True return True'. Just call all 4 dives back-to-back.",
-        "4. After the 4 dives, remove `(r, c)` from `visited` to fully backtrack and let other routes pass through."
+      "id": "m6_q13",
+      "question": "What serves as the base case in backtracking?",
+      "options": [
+        "When all elements have been compared at least once",
+        "When the recursion depth reaches the maximum stack size",
+        "When a complete valid solution is found (e.g., all queens placed, path reaches exit, all elements assigned)",
+        "When the first invalid constraint is detected"
       ],
-      "hints": [
-        "Hint 1: We remove the 'return True' logic because we don't want the function to stop. We want it to hit a dead end, backtrack, and keep exploring until every single square has been checked.",
-        "Hint 2: Always remember to clear the `visited` set during your Undo phase so alternate paths aren't permanently blocked."
-      ],
-      "targetTime": "O(V + E)",
-      "targetSpace": "O(V)",
-      "testCasesPool": [
-        { "call": "count_maze_paths([[0, 0], [0, 9]])", "expected": "2", "isHidden": false },
-        { "call": "count_maze_paths([[0, 1], [0, 9]])", "expected": "1", "isHidden": false },
-        { "call": "count_maze_paths([[0, 1], [1, 9]])", "expected": "0", "isHidden": true }
-      ]
-    }
-  ],
-  "lesson_4": [
-    {
-      "id": "m6_l4_a1",
-      "title": "DP Matrix: Coin Change Initialization",
-      "task": [
-        "Dynamic Programming uses a 2D Matrix (a grid) to save the answers to small problems so it doesn't have to recalculate them. Let's initialize a DP grid for the Coin Change problem.",
-        "",
-        "Instructions:",
-        "1. Define `init_coin_dp(coins, amount)`. We need a grid where rows represent the `coins`, and columns represent the target `amount` from 0 to target.",
-        "2. Create a list of lists. Set the dimensions to `len(coins) + 1` rows, and `amount + 1` columns.",
-        "3. Fill the entire matrix with `99999` (representing infinity, since we want to find the MINIMUM coins).",
-        "4. Base Case: The first column (amount = 0) requires exactly 0 coins. Loop through the rows and set `dp[i][0] = 0`.",
-        "5. Return the `dp` matrix."
-      ],
-      "hints": [
-        "Hint 1: The grid size is always +1 because we need to include an empty '0' state. 0 coins available, or 0 amount required.",
-        "Hint 2: Visual of the matrix for coins=[1,2], amount=3:\nRow 0 (No coins): [0, 99, 99, 99]\nRow 1 (Coin 1):   [0, 99, 99, 99]\nRow 2 (Coin 2):   [0, 99, 99, 99]"
-      ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
-      "testCasesPool": [
-        { "call": "init_coin_dp([1, 2], 3)", "expected": "[[0, 99999, 99999, 99999], [0, 99999, 99999, 99999], [0, 99999, 99999, 99999]]", "isHidden": false },
-        { "call": "init_coin_dp([5], 1)", "expected": "[[0, 99999], [0, 99999]]", "isHidden": false },
-        { "call": "init_coin_dp([], 0)", "expected": "[[0]]", "isHidden": true }
-      ]
+      "answer": 2,
+      "explanation": "The base case is when a valid complete solution has been constructed \u2014 at this point the algorithm records or prints the solution and returns, stopping further recursion on that branch."
     },
     {
-      "id": "m6_l4_a2",
-      "title": "DP Matrix: Filling Coin Change",
-      "task": [
-        "Now let's populate the matrix. For every cell, we ask: 'Is it better to NOT use this coin (pull the answer from the row above), or to USE this coin (pull the answer from a few columns back)?'",
-        "",
-        "Instructions:",
-        "1. Define `coin_change(coins, amount)`. Initialize your `dp` matrix filled with `99999`, and set column 0 to `0`.",
-        "2. Loop `i` from 1 to `len(coins) + 1` (rows). Loop `j` from 1 to `amount + 1` (cols).",
-        "3. Grab the current coin: `coin = coins[i-1]`.",
-        "4. If `coin <= j` (it fits!), the cell equals the minimum of: the cell above (`dp[i-1][j]`), OR 1 + the cell shifted back by the coin amount (`dp[i][j - coin]`).",
-        "5. Else (it doesn't fit), just copy the cell directly above.",
-        "6. Return `dp[-1][-1]`. If it is still `99999`, return `-1`."
+      "id": "m6_q14",
+      "type": "code",
+      "code": "def subset_sum(arr, index, target, current):\n    if target == 0:\n        print(current)   # found a valid subset!\n        return\n    if index == len(arr) or target < 0:\n        return           # pruning: overshoot or exhausted\n    # Include arr[index]\n    subset_sum(arr, index+1, target-arr[index],\n               current+[arr[index]])\n    # Exclude arr[index]\n    subset_sum(arr, index+1, target, current)",
+      "question": "What is the role of 'target < 0' in this Subset Sum backtracking solution?",
+      "options": [
+        "It's an error \u2014 target should never go below zero",
+        "It handles negative numbers in the input array",
+        "It is a pruning condition \u2014 if the remaining target goes negative, the current path already overshoots the goal so the branch is abandoned immediately without exploring further",
+        "It checks if the array index has gone out of bounds"
       ],
-      "hints": [
-        "Hint 1: `dp[i-1][j]` represents 'What was the best answer before I had access to this new coin?'.",
-        "Hint 2: `dp[i][j - coin]` represents 'If I use this coin, what was the best answer for the remaining leftover amount?'"
-      ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
-      "testCasesPool": [
-        { "call": "coin_change([1, 2, 5], 11)", "expected": "3", "isHidden": false },
-        { "call": "coin_change([2], 3)", "expected": "-1", "isHidden": false },
-        { "call": "coin_change([1], 0)", "expected": "0", "isHidden": true }
-      ]
+      "answer": 2,
+      "explanation": "The 'target < 0' check is pruning \u2014 once the running sum exceeds the target, no further additions can fix it (assuming positive numbers). Returning immediately abandons this dead-end branch, avoiding unnecessary recursive calls and improving performance over pure brute force."
     },
     {
-      "id": "m6_l4_a3",
-      "title": "DP Matrix: Knapsack Initialization",
-      "task": [
-        "The 0/1 Knapsack problem maximizes value without going over a weight limit. Let's initialize a matrix where rows are items, and columns are weight capacities from 0 to W.",
-        "",
-        "Instructions:",
-        "1. Define `init_knapsack(weights, values, max_weight)`.",
-        "2. Create a list of lists with `len(weights) + 1` rows, and `max_weight + 1` columns.",
-        "3. Fill the entire matrix with `0`. (Because 0 weight capacity gives 0 value, and 0 items available gives 0 value).",
-        "4. Return the `dp` matrix."
+      "id": "m6_q15",
+      "question": "Why is backtracking considered an advanced problem-solving technique?",
+      "options": [
+        "Because it requires specialized hardware to run efficiently",
+        "Because it combines recursive state-space exploration with constraint-based pruning, requiring careful design of the choose, explore, unchoose pattern",
+        "Because it always produces exponential time complexity with no improvement over brute force",
+        "Because it can only be applied to graph problems"
       ],
-      "hints": [
-        "Hint 1: This initialization is much easier than Coin Change because we are maximizing value (starting from 0) rather than minimizing coins (starting from infinity).",
-        "Hint 2: Matrix visual for 1 item, max_weight=2:\nRow 0 (No items): [0, 0, 0]\nRow 1 (Item 1):   [0, 0, 0]"
-      ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
-      "testCasesPool": [
-        { "call": "init_knapsack([1], [10], 2)", "expected": "[[0, 0, 0], [0, 0, 0]]", "isHidden": false },
-        { "call": "init_knapsack([2, 3], [10, 20], 1)", "expected": "[[0, 0], [0, 0], [0, 0]]", "isHidden": false },
-        { "call": "init_knapsack([], [], 0)", "expected": "[[0]]", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m6_l4_a4",
-      "title": "DP Matrix: Filling the Knapsack",
-      "task": [
-        "Let's fill the Knapsack matrix. For every cell, we ask: 'Is it better to LEAVE this item (take the value from the row above), or TAKE this item (add its value to the leftover weight capacity)?'",
-        "",
-        "Instructions:",
-        "1. Define `knapsack(weights, values, max_weight)`. Initialize your `dp` matrix of zeroes.",
-        "2. Loop `i` from 1 to `len(weights) + 1`. Loop `w` from 1 to `max_weight + 1`.",
-        "3. If `weights[i-1] <= w` (it fits!): Set `dp[i][w]` to the MAX of: cell above (`dp[i-1][w]`), OR `values[i-1]` + cell above shifted left by weight (`dp[i-1][w - weights[i-1]]`).",
-        "4. Else: Set `dp[i][w]` to the cell directly above.",
-        "5. Return the bottom-right cell: `dp[-1][-1]`."
-      ],
-      "hints": [
-        "Hint 1: `dp[i-1][w]` means 'Leave the item'. You keep the same weight column, but step up to the previous row's value.",
-        "Hint 2: `values[i-1] + dp[i-1][w - weights[i-1]]` means 'Take the item'. You add its value, and step back in the matrix by the item's weight to see what else you could afford with the leftover capacity."
-      ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
-      "testCasesPool": [
-        { "call": "knapsack([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
-        { "call": "knapsack([2, 3, 4], [1, 2, 3], 1)", "expected": "0", "isHidden": false },
-        { "call": "knapsack([1, 1], [10, 20], 1)", "expected": "20", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m6_l4_a5",
-      "title": "DP Matrix: Tracing Back Choices",
-      "task": [
-        "The matrix gives us the max value, but it doesn't tell us WHICH items we packed! To find out, we have to start at the bottom-right cell and walk backwards through the matrix.",
-        "",
-        "Instructions:",
-        "1. Define `knapsack_items(weights, values, max_weight)`. Generate your fully filled `dp` matrix.",
-        "2. Create an empty `chosen_items` list. Set `r = len(weights)` and `c = max_weight`.",
-        "3. Loop `while r > 0 and c > 0`.",
-        "4. If `dp[r][c] != dp[r-1][c]`, the value changed! This means we TOOK item `r-1`. Append `r-1` to `chosen_items` and subtract its weight from `c`.",
-        "5. Subtract 1 from `r` (move up a row).",
-        "6. Return the `chosen_items` array."
-      ],
-      "hints": [
-        "Hint 1: If `dp[r][c] == dp[r-1][c]`, it means the value is exactly the same as the row above. We clearly left the item behind, so we just step up one row.",
-        "Hint 2: We only append to our chosen list when we detect a mathematical difference between the current row and the row above."
-      ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
-      "testCasesPool": [
-        { "call": "knapsack_items([1, 2, 3], [10, 15, 40], 6)", "expected": "[2, 1, 0]", "isHidden": false },
-        { "call": "knapsack_items([10, 20], [50, 60], 5)", "expected": "[]", "isHidden": false },
-        { "call": "knapsack_items([1, 4, 3], [15, 30, 45], 4)", "expected": "[2, 0]", "isHidden": true }
-      ]
-    }
-  ],
-  "optimizations": [
-    {
-      "id": "m6_opt_1",
-      "title": "Optimization Challenge: Memoizing the Matrix",
-      "task": [
-        "Building a massive 2D matrix uses a lot of memory. If we only need the final answer, we can use a Top-Down Recursive approach and a Dictionary (`memo`) to only calculate the cells we actually need!",
-        "",
-        "Optimization Guidelines:",
-        "1. Define `knapsack_memo(weights, values, capacity, index, memo)`. The `memo` starts as `{}`.",
-        "2. Base Case: If `index < 0` or `capacity == 0`, return `0`.",
-        "3. Check Cache: If `(index, capacity)` is in `memo`, return it instantly!",
-        "4. If `weights[index] > capacity`, the item is too heavy. Save and return the recursive call for `index - 1`.",
-        "5. Otherwise, calculate `leave_it` (index - 1) and `take_it` (value + index - 1 with reduced capacity). Save the MAX of these to `memo`, and return it."
-      ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
-      "templateUrl": "/data/optimizations/m6-6.1.json",
-      "testCasesPool": [
-        { "call": "knapsack_memo([1, 2, 3], [10, 15, 40], 6, 2, {})", "expected": "65", "isHidden": false },
-        { "call": "knapsack_memo([2, 3, 4], [1, 2, 3], 1, 2, {})", "expected": "0", "isHidden": false },
-        { "call": "knapsack_memo([1, 1], [10, 20], 1, 1, {})", "expected": "20", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m6_opt_2",
-      "title": "Optimization Challenge: 1D Array Space Compression",
-      "task": [
-        "In the DP Matrix for Knapsack, every row only ever looks at the row directly above it! That means we don't need a massive 2D Grid. We can compress it into a single 1D array to save massive memory.",
-        "",
-        "Optimization Guidelines:",
-        "1. Define `knapsack_1d(weights, values, max_weight)`.",
-        "2. Create a single 1D array `dp` of zeroes, size `max_weight + 1`.",
-        "3. Loop `i` over the items. Loop `w` BACKWARDS from `max_weight` down to `weights[i]`. (Looping backwards is critical so we don't overwrite values we need for the current row!).",
-        "4. Update the cell: `dp[w] = max(dp[w], values[i] + dp[w - weights[i]])`.",
-        "5. Return `dp[-1]`. Your Space Complexity is now a tiny O(n) instead of O(n*m)!"
-      ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m6-6.2.json",
-      "testCasesPool": [
-        { "call": "knapsack_1d([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
-        { "call": "knapsack_1d([2, 3, 4], [1, 2, 3], 1)", "expected": "0", "isHidden": false },
-        { "call": "knapsack_1d([1, 1], [10, 20], 1)", "expected": "20", "isHidden": true }
-      ]
+      "answer": 1,
+      "explanation": "Backtracking requires understanding recursion, state management, constraint formulation, and the choose-explore-unchoose pattern \u2014 making it conceptually more demanding than straightforward iterative approaches."
     }
   ]
 }

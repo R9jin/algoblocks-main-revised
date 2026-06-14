@@ -3,7 +3,7 @@ import { assessmentsDB, progressDB, submissionsDB, syncQueueDB } from "../db";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
     ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-    : "http://localhost:8000/api";
+    : "/api";
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
