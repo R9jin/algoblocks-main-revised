@@ -1,6 +1,7 @@
 # api/services/project_service.py
 from repositories.project_repo import ProjectRepository  # Removed api. prefix
-from models import SaveProjectRequest
+# FIX: Updated import to ProjectSyncRequest
+from models import ProjectSyncRequest
 from fastapi import HTTPException
 from datetime import datetime
 
@@ -13,7 +14,7 @@ class ProjectService:
         return {"status": "success", "projects": projects}
 
     @staticmethod
-    def save_project(req: SaveProjectRequest):
+    def save_project(req: ProjectSyncRequest): # FIX: Updated parameter type hint
         update_data = {
             "name": req.name,
             "workspace": req.workspace,

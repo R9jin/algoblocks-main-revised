@@ -6,7 +6,8 @@ import os
 import bcrypt
 
 from repositories.user_repo import UserRepository
-from models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
+# FIX: Updated imports to match the actual class names defined in models.py
+from models import UserLogin, UserCreate, ProgressUpdateRequest, AssessmentUpdateRequest
 from database import db
 from security import create_access_token
 
@@ -31,7 +32,7 @@ class AuthService:
             return False
 
     @staticmethod
-    def login(req: LoginRequest):
+    def login(req: UserLogin): # Updated to UserLogin
         user = UserRepository.find_by_email(req.email)
         stored_password = user.get("password") if user else None
 
@@ -53,7 +54,7 @@ class AuthService:
         }
 
     @staticmethod
-    def signup(req: SignUpRequest):
+    def signup(req: UserCreate): # Updated to UserCreate
         if UserRepository.find_by_email(req.email):
             raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -77,7 +78,7 @@ class AuthService:
         }
 
     @staticmethod
-    def update_progress(req: ProgressRequest):
+    def update_progress(req: ProgressUpdateRequest): # Updated to ProgressUpdateRequest
         if not req.email or not req.lesson_id:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
@@ -94,18 +95,21 @@ class AuthService:
         }
 
     @staticmethod
-    def update_assessment(req: AssessmentRequest):
-        actual_key = req.assessment_key or req.key
-        if not req.email or not actual_key:
+    def update_assessment(req: AssessmentUpdateRequest): # Updated to AssessmentUpdateRequest
+        if not req.email or not req.assessment_key:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
-        save_data = req.data or {}
-        if req.score is not None:
-            save_data['score'] = req.score
-        if req.passed is not None:
-            save_data['passed'] = req.passed
+        # FIX: Align save_data extraction to explicitly match the new AssessmentUpdateRequest model fields
+        save_data = {
+            "score": req.score,
+            "correct": req.correct,
+            "total": req.total,
+            "timeElapsed": req.timeElapsed,
+            "completedAt": req.completedAt,
+            "attempts": req.attempts
+        }
             
-        UserRepository.update_assessment(req.email, actual_key, save_data)
+        UserRepository.update_assessment(req.email, req.assessment_key, save_data)
         user = UserRepository.find_by_email(req.email)
         return {
             "status": "success",

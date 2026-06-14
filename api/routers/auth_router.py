@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Request, Query, Body, Depends
 from typing import Dict, Any
 
-from models import LoginRequest, SignUpRequest, ProgressRequest, GoogleAuthRequest, AssessmentRequest
+# FIX: Updated imports to match the actual class names defined in models.py
+from models import UserLogin, UserCreate, ProgressUpdateRequest, GoogleLoginRequest, AssessmentUpdateRequest
 from services.auth_service import AuthService
 from limiter import limiter
 from security import get_current_user_email
@@ -11,24 +12,24 @@ router = APIRouter(tags=["Auth & Progress"])
 
 @router.post("/login")
 @limiter.limit("5/minute")
-def login_user(request: Request, req: LoginRequest):
+def login_user(request: Request, req: UserLogin): # Updated from LoginRequest
     return AuthService.login(req)
 
 @router.post("/signup")
 @limiter.limit("5/minute")
-def signup_user(request: Request, req: SignUpRequest):
+def signup_user(request: Request, req: UserCreate): # Updated from SignUpRequest
     return AuthService.signup(req)
 
 @router.post("/auth/google")
 @limiter.limit("5/minute")
-def google_auth(request: Request, req: GoogleAuthRequest):
+def google_auth(request: Request, req: GoogleLoginRequest): # Updated from GoogleAuthRequest
     return AuthService.google_login(req.token)
 
 # 🛡️ PROTECTED ROUTES BELOW 🛡️
 
 @router.post("/update-progress")
 @limiter.limit("30/minute")
-def update_progress(request: Request, req: ProgressRequest, trusted_email: str = Depends(get_current_user_email)):
+def update_progress(request: Request, req: ProgressUpdateRequest, trusted_email: str = Depends(get_current_user_email)): # Updated from ProgressRequest
     req.email = trusted_email 
     return AuthService.update_progress(req)
 
@@ -39,7 +40,7 @@ def get_progress(request: Request, trusted_email: str = Depends(get_current_user
 
 @router.post("/update-assessment")
 @limiter.limit("30/minute")
-def update_assessment(request: Request, req: AssessmentRequest, trusted_email: str = Depends(get_current_user_email)):
+def update_assessment(request: Request, req: AssessmentUpdateRequest, trusted_email: str = Depends(get_current_user_email)): # Updated from AssessmentRequest
     req.email = trusted_email
     return AuthService.update_assessment(req)
 

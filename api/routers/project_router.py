@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Request, Depends
 from typing import Dict, Optional
 
-from models import SaveProjectRequest
+# FIX: Updated to ProjectSyncRequest to match models.py
+from models import ProjectSyncRequest
 from services.project_service import ProjectService
 from limiter import limiter
 from security import get_current_user_email
@@ -33,10 +34,10 @@ def get_user_projects(
 @limiter.limit("20/minute")
 def save_project(
     request: Request, 
-    req: SaveProjectRequest, 
+    req: ProjectSyncRequest, # FIX: Updated type hint
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # FIX: Use userId to match SaveProjectRequest and ProjectService
+    # FIX: Use userId to match ProjectSyncRequest and ProjectService
     req.userId = trusted_email
     return ProjectService.save_project(req)
 
