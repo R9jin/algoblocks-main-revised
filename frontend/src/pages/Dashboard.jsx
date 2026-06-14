@@ -29,39 +29,39 @@ const SYSTEM_TEMPLATES = {
   ]
 };
 
-// Expanded FAQ Data for the Help Section aligned with AlgoBlocks specific features
+// FAQ Data accurately aligned with the system's static structural analysis 
 const FAQ_ITEMS = [
   {
     question: "What is AlgoBlocks and how do I use the Workspace?",
-    answer: "AlgoBlocks is an interactive educational platform designed to teach data structures and algorithm analysis. By clicking 'Blank Workspace', you enter a block-based coding environment. Instead of typing syntax, you drag, drop, and connect logical blocks (like loops, variables, and arrays) to build your algorithm visually. This allows you to focus purely on the logic without worrying about missing semicolons or indentation errors."
+    answer: "AlgoBlocks is an interactive educational platform designed to teach data structures and algorithm analysis. By clicking 'Blank Workspace', you enter a block-based coding environment where you can drag, drop, and connect logical blocks to build your algorithm visually."
   },
   {
     question: "How does the platform calculate Time Complexity (Big-O)?",
-    answer: "When you run an algorithm in the workspace, our dynamic analyzer executes your code behind the scenes using Pyodide. It automatically traces the operations across different scaled input sizes (N) and plots the execution steps on a real-time Complexity Graph. The system mathematically evaluates the resulting curve to give you immediate feedback, categorizing your solution as O(1), O(N), O(N²), O(log N), etc."
+    answer: "The platform analyzes the internal structure of your algorithm (like nested loops and recursive calls) to determine its mathematical Time Complexity. Once it identifies the Big-O classification (e.g., O(N), O(N²)), the Complexity Graph visualizes this by drawing the standard mathematical curve for that specific class, showing you visually how your algorithm will scale."
   },
   {
     question: "Can I visualize memory usage or Space Complexity?",
-    answer: "Yes! The platform includes a dedicated Memory Visualizer alongside the workspace. As your algorithm runs, it actively tracks the allocation of variables, arrays, and recursive call stacks. This helps you visually differentiate between in-place algorithms (O(1) space) and approaches that consume auxiliary memory proportional to the input size (O(N) space)."
+    answer: "Yes! The platform includes a Memory Visualizer that actively tracks the allocation of variables, arrays, and recursive call stacks as your algorithm runs. This helps you visually differentiate between in-place algorithms and those that consume extra memory."
   },
   {
     question: "What is the difference between System and Custom Templates?",
-    answer: "System Templates are foundational algorithms (like Merge Sort, Binary Search, or Tower of Hanoi) pre-built by our platform. They serve as perfect starting points to study optimal solutions. Custom Templates are your personal creations. Once you build and verify an algorithm in your workspace, you can save it as a Custom Template to easily load it back up or modify it later."
+    answer: "System Templates are foundational algorithms (like Merge Sort or Binary Search) pre-built by our platform to serve as starting points. Custom Templates are your personal creations that you have built and saved to easily load or modify later."
   },
   {
     question: "How do the Optimization Challenges work in the Learning Path?",
-    answer: "As you progress through the Learning Path modules, you will encounter Optimization Challenges. In these activities, you are given a functioning but inefficient algorithm (e.g., a Brute Force O(N²) solution). Your task is to apply concepts learned in the module—such as two-pointer techniques, memoization, or hash maps—to refactor the blocks and achieve an optimal Time or Space Complexity."
+    answer: "In these activities, you are given a functioning but inefficient algorithm. Your task is to apply concepts learned in the module to refactor the blocks and achieve an optimal Time or Space Complexity."
   },
   {
     question: "Can I view the actual code my blocks represent?",
-    answer: "Absolutely. The platform features an integrated Code Snippet view. As you manipulate the visual blocks, AlgoBlocks dynamically translates your logic into structured Python code. You can view this side-by-side to understand how visual logic constructs correspond to real-world programming syntax."
+    answer: "Absolutely. The platform features an integrated Code Snippet view. As you manipulate the visual blocks, it dynamically translates your logic into structured programming code."
   },
   {
     question: "What happens if I lose my internet connection?",
-    answer: "AlgoBlocks is built with offline resilience. If your connection drops, your learning progress, current workspace edits, and recent custom projects are securely saved locally in your browser's IndexedDB. An offline indicator will let you know you are disconnected, and the system will automatically sync your progress back to the cloud as soon as you are back online."
+    answer: "AlgoBlocks supports offline learning. If your connection drops, your progress and workspace edits are securely saved locally on your device. The system will automatically sync your progress back to the cloud as soon as you are online."
   },
   {
-    question: "Do I need to install any external software or Python?",
-    answer: "No installation is necessary. The platform utilizes WebAssembly (Wasm) and Pyodide to run Python natively and securely entirely within your web browser. All execution, profiling, and complexity calculations happen locally on your machine, ensuring fast response times without server delays."
+    question: "Do I need to install any external software?",
+    answer: "No installation is necessary. All execution, profiling, and complexity calculations happen securely and natively within your web browser."
   }
 ];
 
@@ -413,7 +413,7 @@ export default function Dashboard() {
             <section className="bento-help-section" style={{ marginTop: "20px", marginBottom: "40px" }}>
               <div className="section-header">
                 <h2>Help & Resources</h2>
-                <p>Frequently asked questions and detailed platform guides to get you started.</p>
+                <p>Frequently asked questions and guides to get you started.</p>
               </div>
               <div className="bento-faq-container">
                 {FAQ_ITEMS.map((faq, index) => (
