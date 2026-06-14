@@ -199,7 +199,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const outputAccumulatorRef = useRef("");
 
   // =========================================================================
-  // STATE MANAGEMENT: Tracking Initial AES and Final AES for ROG
+  // STATE MANAGEMENT: Tracking AES and ROG
   // =========================================================================
   const latestStateRef = useRef({
     userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
@@ -208,6 +208,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     initial_aes: null, final_aes: null
   });
 
+  const [currentAes, setCurrentAes] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -540,6 +541,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes || null;
             latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
+            
+            // Set UI specific state
+            let loadedScore = finalSubmissionToLoad.score || 0;
+            if (finalSubmissionToLoad.maxScore === 5 && loadedScore <= 5) loadedScore = (loadedScore / 5) * 100;
+            setCurrentAes(Math.min(loadedScore, 100));
 
             setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(json || {}, pythonCode); }, 400);
             if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") setGeneratedPython(pythonCode);
@@ -882,6 +888,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       aes = Math.round(averageEfficiency * 100);
     }
 
+    setCurrentAes(aes); // Update UI Badge
+
     // ROG Tracking Logic
     let initialAes = latestStateRef.current.initial_aes;
     let finalAes = latestStateRef.current.final_aes;
@@ -1113,10 +1121,24 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                         <button onClick={() => { setActiveComplexityTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
                         <button onClick={() => { setActiveComplexityTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
                       </div>
+                      
                       <div className="total-badge-group">
                         <span className="total-badge total-time-badge"><span className="total-label">Total Time:</span> <span className="total-val">{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge total-space-badge"><span className="total-label space-label">Total Space:</span> <span className="total-val">{formatComplexity(analysisResult.space_total)}</span></span>
-                        <span className="total-badge total-analysis-badge"><span className="total-label analysis-label">Analysis:</span> <span className="total-val">{analysisTime} ms</span></span>
+                        
+                        {/* THESIS METHODOLOGY: CURRENT AES BADGE WITH TOOLTIP */}
+                        <span className="total-badge" style={{ backgroundColor: "var(--purple-alpha)", color: "var(--purple-main)", border: "1px solid rgba(121,40,202,0.3)" }}>
+                          <span className="total-label" style={{ color: "var(--purple-main)" }}>AES:</span> 
+                          <span className="total-val">{currentAes}%</span>
+                          <div className="info-tooltip" style={{ marginLeft: "4px" }}>
+                            <FiInfo size={14} />
+                            <span className="tooltip-text" style={{ bottom: "100%", top: "auto", transform: "translateX(-85%)" }}>
+                              <span className="tooltip-title">Algorithmic Efficiency Score</span>
+                              Your current complexity vs the target complexity.
+                            </span>
+                          </div>
+                        </span>
+
                       </div>
                     </div>
                     {activeComplexityTab === "memory" ? (
