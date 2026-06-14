@@ -1,0 +1,834 @@
+[
+  {
+    "id": "0005_D_0",
+    "name": "Codeforces Submission 0005_D",
+    "code": "from math import sqrt\n\na, v = map(int, input().split())\nl, d, w = map(int, input().split())\n\ndef findt(u, v, a, dist):\n\tfront = (v*v-u*u)/(2*a)\n\tif front > dist:\n\t\treturn (sqrt(u*u+2*a*dist)-u)/a\n\treturn (v-u)/a + (dist-front)/v\n\ndef solve(a, v, l, d, w):\n\tif v <= w or 2*a*d <= w*w:\n\t\treturn findt(0, v, a, l)\n\tafter = findt(w, v, a, l-d)\n\tpeak = sqrt(a*d + w*w/2)\n\tif peak > v:\n\t\ttravel = (v*v-w*w/2)/a\n\t\tbefore = (2*v-w)/a + (d-travel)/v\n\telse:\n\t\tbefore = (2*peak-w)/a\n\treturn before + after\n\nprint(f'{solve(a, v, l, d, w):.8f}')",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0084_A_19",
+    "name": "Codeforces Submission 0084_A",
+    "code": "\ndef f(n):\n    return n + n//2\n        \n        \nn = int(input())\nprint(f(n))\n",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0122_A_38",
+    "name": "Codeforces Submission 0122_A",
+    "code": "def luck(n):\n    if n % 4 == 0 or n % 7 == 0:\n        return True\n    while n > 0:\n        tmp = n % 10\n        n = int(n / 10)\n        if tmp != 4 and tmp != 7:\n            return False\n\n    return True\n\n\ndef lucky(n):\n    if luck(n):\n        return \"YES\"\n\n    for x in range(1, n + 1):\n        if n % x == 0 and luck(x):\n            return \"YES\"\n\n    return \"NO\"\n\n\nn = int(input())\n\nprint(lucky(n))",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0199_A_57",
+    "name": "Codeforces Submission 0199_A",
+    "code": "n = int(input())\n\nprint('0','0',n)\n",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0235_A_74",
+    "name": "Codeforces Submission 0235_A",
+    "code": "n=int(input())\n\nif n<=2:\n    print(n)\nelse:\n    if n%2!=0:\n        print(n*(n-1)*(n-2))\n    elif n%3==0:\n        print((n-1)*(n-2)*(n-3))\n    else:\n        print(n*(n-1)*(n-3))",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0267_A_92",
+    "name": "Codeforces Submission 0267_A",
+    "code": "for _ in range(int(input())):\n\ta, b = map(int, input().split())\n\tresult = 0\n\twhile min(a, b)!=0:\n\t\tx = max(a, b)\n\t\ty = min(a, b)\n\t\ta = x\n\t\tb = y\n\t\tresult+=a//b\n\t\ta%=b\n\tprint(result)",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0313_A_111",
+    "name": "Codeforces Submission 0313_A",
+    "code": "# https://codeforces.com/problemset/problem/313/A\n\nn = int(input())\n\nif n > 0:\n    print(n)\nelse:\n    n = n * -1\n    x = n % 10\n    y = (n // 10) % 10\n\n    if x > y:\n        print(-(n // 10))\n    else:\n        print(-((n // 100)* 10 + x))\n",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0343_A_130",
+    "name": "Codeforces Submission 0343_A",
+    "code": "n,m=map(int,input().split())\na=0\nwhile m:a+=n//m;n,m=m,n%m\nprint(a)",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0472_A_144",
+    "name": "Codeforces Submission 0472_A",
+    "code": "def prime(n):\n    if n < 2:\n        return False\n    elif n % 2 == 0 and n != 2:\n        return False\n    for j in range(3, int(pow(n, 0.5) + 1), 2):\n        if n % j == 0:\n            return False\n    return True\nn = int(input())\nfor j in range(2, int(n / 2) + 1):\n    if prime(j) == False and prime(n - j) == False:\n        print(j, n - j)\n        break\n",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0483_A_163",
+    "name": "Codeforces Submission 0483_A",
+    "code": "l,r=map(int,input().split())\nj=r-l+1\n\nif j==3:\n\tif l%2==0:\n\t\tprint(l,l+1,l+2)\n\telse:\n\t\tprint(-1)\nelif j>3:\n\tif l%2==0:print(l,l+1,l+2)\n\telse:print(l+1,l+2,l+3)\nelse:print(-1)",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0630_A_182",
+    "name": "Codeforces Submission 0630_A",
+    "code": "n = int(input())\nif n == 1:\n    print(5)\nelse:\n    print(25)\n\t \t    \t \t\t \t    \t\t \t \t\t\t     \t",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0911_C_197",
+    "name": "Codeforces Submission 0911_C",
+    "code": "l = list(sorted(list(map(int,input().split()))))\nif min(l) == 1 or (l[0]==3 and l[1]==3 and l[2]==3) or (l[0]==2 and l[1]==4 and l[2]==4) or(l[0]==2 and l[1] == 2):\n    print(\"Yes\")\nelse:\n    print(\"No\")",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0912_A_216",
+    "name": "Codeforces Submission 0912_A",
+    "code": "# import sys\n# sys.stdin=open(\"input.in\",\"r\")\n# sys.stdout=open(\"ot.out\",\"w\")\n\nA,B=map(int,input().split())\nx,y,z=map(int,input().split())\nsumm=0\ny1=0\nb1=0\ny1=(x*2)+y\n\nb1=y+(3*z)\n\nsumm=0\nif y1>A:\n\tsumm+=y1-A\nif b1>B:\n\tsumm+=b1-B\nprint(summ)",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0913_A_235",
+    "name": "Codeforces Submission 0913_A",
+    "code": "n, m = int(input()), int(input())\nvalue = False\nfor j in range(n + 1):\n    if pow(2, j) > m:\n        value = True\n        break\nif value:\n    print(m)\nelse:\n    print(m % pow(2, n))\n",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0915_B_254",
+    "name": "Codeforces Submission 0915_B",
+    "code": "n, pos, l, r=map(int, input().split())\nif l==1 and r==n:\n\tprint(0)\nelif l==1 and r!=n:\n\tprint(abs(pos-r)+1)\nelif l!=1 and r==n:\n\tprint(abs(pos-l)+1)\nelse:\n\tprint(r-l+2+min(abs(pos-l), abs(pos-r)))",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0510_D_4500",
+    "name": "Codeforces Submission 0510_D",
+    "code": "\nfrom bisect import bisect_left as bl\nfrom bisect import bisect_right as br\nfrom heapq import heappush,heappop\nimport math\nfrom collections import *\nfrom functools import reduce,cmp_to_key,lru_cache\nimport io, os\ninput = io.BytesIO(os.read(0,os.fstat(0).st_size)).readline\nimport sys\n# input = sys.stdin.readline\n \nM = mod = 10 ** 9 + 7\ndef factors(n):return sorted(set(reduce(list.__add__, ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0))))\ndef inv_mod(n):return pow(n, mod - 2, mod)\n \ndef li():return [int(i) for i in input().rstrip().split()]\ndef st():return str(input().rstrip())[2:-1]\ndef val():return int(input().rstrip())\ndef li2():return [str(i)[2:-1] for i in input().rstrip().split()]\ndef li3():return [int(i) for i in st()]\n\n\n\nn = val()\nl = li()\nc = li()\n\nelement = l[0]\nfor i in range(1, n):element = math.gcd(element, l[i])\n\nif element != 1:\n    print(-1)\n    exit()\n    \nmyset = {}\n\nfor ind, i in enumerate(l):\n    for j in list(myset):\n        temp = math.gcd(j, i)\n        if(temp not in myset):myset[temp] = myset[j] + c[ind]\n        else:myset[temp] = min(myset[temp], c[ind] + myset[j])\n    \n    if i not in myset:myset[i] = c[ind]\n    else:myset[i] = min(myset[i], c[ind])\n\nprint(myset[1])",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0512_B_4503",
+    "name": "Codeforces Submission 0512_B",
+    "code": "def main():\n    input()\n    acc = {0: 0}\n    for p, c in zip(list(map(int, input().split())),\n                    list(map(int, input().split()))):\n        adds = []\n        for b, u in acc.items():\n            a = p\n            while b:\n                a, b = b, a % b\n            adds.append((a, u + c))\n        for a, u in adds:\n            acc[a] = min(u, acc.get(a, 1000000000))\n    print(acc.get(1, -1))\n\n\nif __name__ == '__main__':\n    main()\n\n\n\n# Made By Mostafa_Khaled",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0513_B1_4508",
+    "name": "Codeforces Submission 0513_B1",
+    "code": "from sys import stdin\n\nn, m = map(int, stdin.readline().split())\nans, p, all = [], [1 << i for i in range(n - 2, -1, -1)] + [1], set(range(1, n + 1))\nnum, cur, i = 1, 0, 0\n\nwhile i < len(p) and m > 0 and num <= n:\n    cur += p[i]\n    if cur >= m:\n        m -= (cur - p[i])\n        cur = 0\n        ans.append(num)\n        all.discard(num)\n    num += 1\n    i += 1\n\nprint(' '.join(map(str, ans + sorted(all)[::-1])))\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0513_B2_4511",
+    "name": "Codeforces Submission 0513_B2",
+    "code": "from sys import stdin\n\nn, m = map(int, stdin.readline().split())\nans, p, all = [], [1 << i for i in range(n - 2, -1, -1)] + [1], set(range(1, n + 1))\nnum, cur, i = 1, 0, 0\n\nwhile i < len(p) and m > 0 and num <= n:\n    cur += p[i]\n    if cur >= m:\n        m -= (cur - p[i])\n        cur = 0\n        ans.append(num)\n        all.discard(num)\n    num += 1\n    i += 1\n\nprint(' '.join(map(str, ans + sorted(all)[::-1])))\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0513_C_4518",
+    "name": "Codeforces Submission 0513_C",
+    "code": "d = [list(map(int, input().split())) for i in range(int(input()))]\n\ns = 0\n\nfor k in range(1, 10001):\n\n    p = [min(max((k - l) / (r - l + 1), 1e-20), 1) for l, r in d]\n\n    u = v = 1\n\n    for r in p: u *= r\n\n    for r in p:\n\n        v *= r\n\n        s += (u - v) * (r - 1) / r\n\nprint(s)\n\n\n\n\n# Made By Mostafa_Khaled",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0550_B_4522",
+    "name": "Codeforces Submission 0550_B",
+    "code": "import math,sys,bisect,heapq\nfrom collections import defaultdict,Counter,deque\nfrom itertools import groupby,accumulate\n#sys.setrecursionlimit(200000000)\nint1 = lambda x: int(x) - 1\ninput = iter(sys.stdin.buffer.read().decode().splitlines()).__next__\nilele = lambda: map(int,input().split())\nalele = lambda: list(map(int, input().split()))\nilelec = lambda: map(int1,input().split())\nalelec = lambda: list(map(int1, input().split()))\ndef list2d(a, b, c): return [[c] * b for i in range(a)]\ndef list3d(a, b, c, d): return [[[d] * c for j in range(b)] for i in range(a)]\n#MOD = 1000000000 + 7\ndef Y(c):  print([\"NO\",\"YES\"][c])\ndef y(c):  print([\"no\",\"yes\"][c])\ndef Yy(c):  print([\"No\",\"Yes\"][c])\n\nfrom functools import lru_cache\n\nn,l,r,x = ilele()\nA = alele()\nA.sort()\n\n@lru_cache(None)\ndef fun(pos = 0,sm = -1,la = -1,tot = 0):\n    if pos == n:\n        if tot >= l and tot <= r and la  > 0 and  (la - sm) >= x:\n            return 1\n        return 0\n    if sm == -1:\n        return fun(pos+1,A[pos],-1,A[pos]) + fun(pos+1,sm,la,tot)\n    elif la == -1:\n        return fun(pos+1,sm,A[pos],tot + A[pos]) + fun(pos+1,sm,la,tot)\n    else:\n        return fun(pos+1,sm,A[pos],tot + A[pos]) + fun(pos+1,sm,la,tot)\n    \nprint(fun())\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0580_D_4617",
+    "name": "Codeforces Submission 0580_D",
+    "code": "import sys\nfrom array import array  # noqa: F401\nimport typing as Tp  # noqa: F401\n\n\ndef input():\n    return sys.stdin.buffer.readline().decode('utf-8')\n\n\ndef output(*args):\n    sys.stdout.buffer.write(\n        ('\\n'.join(map(str, args)) + '\\n').encode('utf-8')\n    )\n\n\ndef main():\n    n, m, k = map(int, input().split())\n    a = list(map(float, input().split()))\n    add = [[0] * n for _ in range(n + 1)]\n    for xi, yi, ci in (map(int, input().split()) for _ in range(k)):\n        add[xi - 1][yi - 1] = float(ci)\n\n    minf = float('-inf')\n    dp = [[minf] * (2**n) for _ in range(n + 1)]\n    dp[n][0] = 0.0\n\n    for bitset in range(2**n):\n        if bin(bitset).count('1') >= m:\n            continue\n\n        for i in range(n + 1):\n            if dp[i][bitset] == minf:\n                continue\n            for j in range(n):\n                if (1 << j) & bitset:\n                    continue\n                dp[j][bitset | (1 << j)] = max(\n                    dp[j][bitset | (1 << j)],\n                    dp[i][bitset] + a[j] + add[i][j]\n                )\n\n    print(int(max(max(_dp) for _dp in dp) + 1e-7))\n\n\nif __name__ == '__main__':\n    main()\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0581_D_4620",
+    "name": "Codeforces Submission 0581_D",
+    "code": "a,b,c,d,e,f=list(map(int,input().split()))\nn,n2=1,a*b+c*d+e*f\nwhile n**2<n2:\n    n+=1\nif n**2>n2:\n    print(-1)\n    exit()\nl=sorted([[max(a,b),min(a,b),'A'],[max(c,d),min(d,c),'B'],[max(e,f),min(e,f),'C']])\nif l[2][0]!=n:\n    print(-1)\n    exit(0)\nv=str(n)+'\\n'+(l[2][2]*n+'\\n')*l[2][1]\nif l[0][0]==n and l[1][0]==n:\n    for i in range(2):\n        v+=(l[i][2]*n+'\\n')*l[i][1]\nelse:\n    s=n-l[2][1]\n    if s not in l[0] or s not in l[1]:\n        print(-1)\n        exit()\n    if s!=l[0][0]:\n        l[0][0],l[0][1]=l[0][1],l[0][0]\n    if s!=l[1][0]:\n        l[1][0],l[1][1]=l[1][1],l[1][0]\n    v+=(l[0][2]*l[0][1]+l[1][2]*l[1][1]+'\\n')*s\nprint(v)\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0678_E_4632",
+    "name": "Codeforces Submission 0678_E",
+    "code": "import sys\nimport bisect\nfrom bisect import bisect_left as lb\ninput_=lambda: sys.stdin.readline().strip(\"\\r\\n\")\nfrom math import log\nfrom math import gcd\nfrom math import atan2,acos\nfrom random import randint\nsa=lambda :input_()\nsb=lambda:int(input_())\nsc=lambda:input_().split()\nsd=lambda:list(map(int,input_().split()))\nsflo=lambda:list(map(float,input_().split()))\nse=lambda:float(input_())\nsf=lambda:list(input_())\nflsh=lambda: sys.stdout.flush()\n#sys.setrecursionlimit(10**6)\nmod=10**9+7\ngp=[]\ncost=[]\ndp=[]\nmx=[]\nans1=[]\nans2=[]\nspecial=[]\nspecnode=[]\na=0\nkthpar=[]\ndef dfs(root,par):\n    if par!=-1:\n        dp[root]=dp[par]+1\n    for i in range(1,20):\n        if kthpar[root][i-1]!=-1:\n            kthpar[root][i]=kthpar[kthpar[root][i-1]][i-1]\n    for child in gp[root]:\n        if child==par:continue\n        kthpar[child][0]=root\n        dfs(child,root)\nans=0\ndef hnbhai(t):\n    n=sb()\n    p=[]\n    for i in range(n):\n        p.append(sflo())\n    #print(p)\n    dp=[0]*(1<<n)\n    dp[1]=1\n    for i in range(2,1<<n):\n        for j in range(1,n):\n            for k in range(0,j):\n                if (i>>j)&1 and (i>>k)&1:\n                    dp[i]=max(dp[i],dp[i^(1<<j)]*p[k][j]+dp[i^(1<<k)]*p[j][k])\n    #print(dp)\n    print(dp[-1])\nfor _ in range(1):\n    hnbhai(_+1)\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0792_D_4637",
+    "name": "Codeforces Submission 0792_D",
+    "code": "import math\ntemp=list(map(int,input().split()))\nN,q=temp[0],temp[1]\nfor j in range(0,q):\n    u=int(input())\n    S=input()\n    k=(N+1)//2\n    n=int(math.log((N+1),10)/math.log(2,10))-1\n    dup_n=n\n    store=[k]\n    while u!=k:\n        n-=1\n        if u>k:\n            k+=2**(n)\n        else:\n            k-=2**(n)\n        store.append(k)\n    for i in range(0,len(S)):\n        if S[i]=='R':\n            n-=1\n            if n==-1:\n                n=0\n                continue\n            k+=2**(n)\n        elif S[i]=='L':\n            n-=1\n            if n==-1:\n                n=0\n                continue\n            k-=2**(n)\n        else:\n            if n==dup_n:\n                continue\n            store.pop()\n            k=store[len(store)-1]\n            n+=1\n            continue\n        store.append(k)\n            \n    print(k)",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0803_F_4658",
+    "name": "Codeforces Submission 0803_F",
+    "code": "import sys\ninput = sys.stdin.readline\n\nn = int(input())\nmod = pow(10, 9) + 7\na = list(map(int, input().split()))\nl = 100000\ncnt = [0] * (l + 1)\nfor i in a:\n    cnt[i] += 1\npow2 = [1]\nfor _ in range(l):\n    pow2.append(2 * pow2[-1] % mod)\nans = pow2[n] - 1\nx = [-1] * (l + 1)\nfor i in range(2, l + 1):\n    c = cnt[i]\n    xi = x[i]\n    for j in range(2 * i, l + 1, i):\n        c += cnt[j]\n        x[j] -= xi\n    ans += xi * (pow2[c] - 1) % mod\n    ans %= mod\nprint(ans)",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1038_F_4671",
+    "name": "Codeforces Submission 1038_F",
+    "code": "n=int(input())\ns=[c=='1' for c in input()]\nm=len(s)\nz=[[0,0]]\nfor c in s:\n ind = z[-1][c]\n z[-1][c] = len(z)\n z.append(z[ind][:])\nassert(len(z) == m+1)\nz[m][0] = z[m][1] = m # make it sticky\n\n# how many things match directly\ndp = [0 for _ in range(m+1)]\ndp[0] = 1\nfor i in range(n):\n ndp = [0 for _ in range(m+1)]\n for i in range(m+1):\n  ndp[z[i][0]] += dp[i]\n  ndp[z[i][1]] += dp[i]\n dp = ndp\nres = dp[m]\n\nfor k in range(1, m):\n s0 = 0\n for c in s[-k:]:\n  s0 = z[s0][c]\n dp = [0 for _ in range(m+1)]\n dp[s0] = 1\n for i in range(n - k):\n  ndp = [0 for _ in range(m+1)]\n  for i in range(m+1):\n   ndp[z[i][0]] += dp[i]\n   ndp[z[i][1]] += dp[i]\n  dp = ndp\n for s1 in range(m): # skip m\n  v = dp[s1]\n  for c in s[-k:]:\n   if s1 == m: v = 0\n   s1 = z[s1][c]\n  if s1 == m: res += v\nprint(res)",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1051_D_4673",
+    "name": "Codeforces Submission 1051_D",
+    "code": "n, K = map(int, input().split())\nmod = 998244353\nif K == 1:\n    print(2)\n    exit()\ndp = [[0]*(2**2) for i in range(K+1)]\ndp[1][0] = 1\ndp[2][1] = 1\ndp[2][2] = 1\ndp[1][3] = 1\nfor i in range(1, n):\n    nx = [[0]*(2**2) for i in range(K+1)]\n    for k in range(K+1):\n        for j in range(4):\n            if j == 0:\n                nx[k][0] += dp[k][j]%mod\n                if k+1 <= K:\n                    nx[k+1][1] += dp[k][j]%mod\n                    nx[k+1][2] += dp[k][j]%mod\n                    nx[k+1][3] += dp[k][j]%mod\n            elif j == 1:\n                nx[k][0] += dp[k][j]%mod\n                nx[k][1] += dp[k][j]%mod\n                if k+2 <= K:\n                    nx[k+2][2] += dp[k][j]%mod\n                nx[k][3] += dp[k][j]%mod\n            elif j == 2:\n                nx[k][0] += dp[k][j]%mod\n                if k+2 <= K:\n                    nx[k+2][1] += dp[k][j]%mod\n                nx[k][2] += dp[k][j]%mod\n                nx[k][3] += dp[k][j]%mod\n            else:\n                if k+1 <= K:\n                    nx[k+1][0] += dp[k][j]%mod\n                    nx[k+1][1] += dp[k][j]%mod\n                    nx[k+1][2] += dp[k][j]%mod\n                nx[k][3] += dp[k][j]%mod\n    dp = nx\n#print(dp)\nprint(sum(dp[K])%mod)\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1102_F_4706",
+    "name": "Codeforces Submission 1102_F",
+    "code": "import sys\ndef read():\n    return int(input())\ndef reads():\n    return [int(x) for x in input().split()]\nN,M=reads()\ntable=[reads() for i in range(N)]\nA=[[0]*N for i in range(N)]\nB=[[0]*N for i in range(N)]\nfor i in range(N):\n    for j in range(N):\n        res=10**9+7\n        for k in range(M):\n            res=min(res,abs(table[i][k]-table[j][k]))\n        A[i][j]=res\n        A[j][i]=res\n        res=10**9+7\n        for k in range(M-1):\n            res=min(res,abs(table[i][k]-table[j][k+1]))\n        B[i][j]=res\n#print(table)\n#print(A)\n#print(B)\n#A=[[10**9,2,3],[2,10**9,8],[1,5,10**9]]\n#B=[[10**9,2,3],[2,10**9,8],[1,5,10**9]]\ndp=[[-1]*N for i in range((1<<N) )]\ndef calc(mask,v):\n    if dp[mask][v]!=-1:\n        return dp[mask][v]\n    res =0\n    for u in range(N):\n        if (mask & 1<<u) and u!=v:\n            res =max(res,min(calc(mask^(1<<v),u),A[u][v]))\n    dp[mask][v]=res\n    return dp[mask][v]\nans=0\nfor i in range(N):\n    dp = [[-1] * N for i in range((1 << N))]\n    for k in range(N):\n        if k==i:\n            dp[1<<k][k]=10**9+7\n        else:\n            dp[1<<k][k]=0\n    for j in range(N):\n        ans=max(ans,min(B[j][i],calc((1<<N)-1,j)))\n    #print(dp,ans)\nprint(ans)",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1185_G1_4711",
+    "name": "Codeforces Submission 1185_G1",
+    "code": "n,tnow=map(int,input().split())\nleft=int(\"\".join([\"1\" for i in range(n)]),2)\narr=[]\ndp={}\nfor i in range(n):\n    a,b=map(int,input().split())\n    arr.append([a,b])\ndef recur(tnow,prevgenre,left):\n    key=str(left)+\"_\"+str(prevgenre)\n    if tnow==0:\n        return 1\n    elif key in dp:\n        return dp[key]\n    else:\n        ans=0\n        for i in range(n):\n            if (left&(1<<i))!=0:\n                if arr[i][0]<=tnow and arr[i][1]!=prevgenre:\n                    left=left&(~(1<<i))\n                    ans+=recur(tnow-arr[i][0],arr[i][1],left)\n                    left=left|(1<<i)\n        dp[key]= ans\n        return ans\n       \nprint(recur(tnow,4,left)%(10**9+7))\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0276_D_792",
+    "name": "Codeforces Submission 0276_D",
+    "code": "a,b=map(int,input().split())\nif a==b:print(0)\nelse:\n    x=a^b\n    c=0\n    while x:\n        x=x//2\n        c+=1\n    print(2**c-1)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0287_B_910",
+    "name": "Codeforces Submission 0287_B",
+    "code": "#!/usr/bin/env python3\nfrom sys import stdin\n\n\ndef solve(tc):\n    n, k = map(int, stdin.readline().split())\n\n    if n == 1:\n        print(0)\n        return\n\n    if n <= k:\n        print(1)\n        return\n\n    lo, hi = 1, k-1\n    while lo < hi:\n        mid = lo + (hi-lo+1)//2\n\n        cum = (k-2+mid-1)*(k-mid)//2\n        if cum < n-k:\n            hi = mid - 1\n        else:\n            lo = mid\n\n    if lo == 1:\n        print(-1)\n        return\n\n    print(k-lo+1)\n\n\ntcs = 1\nfor tc in range(tcs):\n    solve(tc)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0338_A_967",
+    "name": "Codeforces Submission 0338_A",
+    "code": "n,m,k=map(int,input().split())\n\nMOD=1000000009\n\nx=m-(n//k*(k-1)+(n%k))\n\nif (x<=0):exit(print(m%MOD))\n\nprint(((m-x)+((pow(2,x+1, MOD)+2*MOD)-2)*k-x*(k-1))%MOD)",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0817_C_972",
+    "name": "Codeforces Submission 0817_C",
+    "code": "from sys import stdin\n\nn, m = map(int, stdin.readline().split())\nbe, en, ans = 1, n, n + 1\nwhile be <= en:\n    md = (be + en) >> 1\n    if md - sum(int(x) for x in str(md)) >= m:\n        en = md - 1\n        ans = md\n    else:\n        be = md + 1\n\nprint(n - ans + 1)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0992_C_1034",
+    "name": "Codeforces Submission 0992_C",
+    "code": "x, k = map(int, input().strip().split())\nMOD = 10**9 + 7\n\ndef pow2(k):\n    if k == 0:\n        return 1\n    if k == 1:\n        return 2\n    r = pow2(k // 2)\n    r = r * r\n    if k % 2 != 0:\n        r *= 2\n    return r % MOD\n\ndef calc(x, k):\n    if x == 0:\n        return 0\n    if k == 0:\n        return (2 * x) % MOD\n    r = pow2(k) * (2 * x - 1) + 1\n    return r % MOD\n\nprint(calc(x, k))",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1019_B_1172",
+    "name": "Codeforces Submission 1019_B",
+    "code": "import sys\n\ndef ask(x):\n    print('? %d'%x)\n    sys.stdout.flush()\n    x=int(input())\n    return x\n\nn=int(input())\nt=n//2\nif t&1:\n    print('! -1')\n    sys.stdout.flush()\n    sys.exit()\nl=1\nr=n\nwhile l<r:\n    mid=(l+r)>>1\n    if ask(mid)>=ask((mid+t-1)%n+1):\n        r=mid\n    else:\n        l=mid+1\nprint('! %d'%l)\nsys.stdout.flush()\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1036_A_1184",
+    "name": "Codeforces Submission 1036_A",
+    "code": "\n\n\n\nn, k = map(int, input().split())\n\na, b, c = 0, k, 0\n\nwhile a < b:\n    c = (a + b) // 2\n    if c * n < k:\n        a = c + 1\n    else:\n        b = c\n\nprint(a)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1059_C_1186",
+    "name": "Codeforces Submission 1059_C",
+    "code": "n = int(input())\n\nif (n == 3):\n    print('1 1 3')\nelse:\n    done = 0\n    arr = []\n    for i in range(30, -1, -1):\n        arr.extend([2**i]*(n//(2**i) - done))\n        done += n//(2**i) - done\n        if (done == 1):\n            k = i\n\n    arr[0] = max(arr[0], (n//2**(k-1)) * 2**(k-1))\n        \n    arr.reverse()\n    print(' '.join(map(str, arr)))\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1068_A_1192",
+    "name": "Codeforces Submission 1068_A",
+    "code": "from sys import stdin, stdout\nfrom math import sin, tan, cos\n\nn, m, k, l = map(int, stdin.readline().split())\n\nlb, rb = 0, n // m + 1\nwhile rb - lb > 1:\n    mid = (lb + rb) >> 1\n    \n    if mid * m - k >= l:\n        rb = mid\n    else:\n        lb = mid\n\nif lb != n // m:\n    stdout.write(str(rb))\nelse:\n    stdout.write('-1')",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1080_D_1194",
+    "name": "Codeforces Submission 1080_D",
+    "code": "t=int(input())\nfor _ in range(t):\n  n,k=map(int,input().split())\n  if n==2 and k==3:\n    print('NO')\n    continue\n  if n<=100:\n    curr=0\n    for j in range(n):\n      curr+=pow(4,j)\n    if curr<k:\n      print('NO')\n      continue\n  curr=0\n  ans=0\n  while curr<k and ans<n:\n    ans+=1\n    curr+=pow(2,ans)-1\n  if curr>k:\n    ans-=1\n  print('YES',n-ans)",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1088_D_1249",
+    "name": "Codeforces Submission 1088_D",
+    "code": "print(\"?\",0,0)\ne=int(input())\nastr=\"000000000000000000000000000000\"\nbstr=\"000000000000000000000000000000\"\nabig=e\nfor i in range(30):\n    if abig==0:\n        print(\"?\",int(astr,2)+2**(29-i),int(bstr,2))\n        e=int(input())\n        if e==1:\n            continue\n        else:\n            if i<29:\n                astr=astr[:i]+\"1\"+astr[i+1:]\n                bstr=bstr[:i]+\"1\"+bstr[i+1:]\n            else:\n                astr=astr[:i]+\"1\"\n                bstr=bstr[:i]+\"1\"\n    else:\n        print(\"?\",int(astr,2)+2**(29-i),int(bstr,2)+2**(29-i))\n        e=int(input())\n        if e==-abig:\n            if abig==1:\n                if i<29:\n                    astr=astr[:i]+\"1\"+astr[i+1:]\n                else:\n                    astr=astr[:i]+\"1\"\n            else:\n                if i<29:\n                    bstr=bstr[:i]+\"1\"+bstr[i+1:]\n                else:\n                    bstr=bstr[:i]+\"1\"\n            print(\"?\",int(astr,2),int(bstr,2))\n            abig=int(input())\n        else:\n            print(\"?\",int(astr,2)+2**(29-i),int(bstr,2))\n            e=int(input())\n            if e==-1:\n                if i<29:\n                    astr=astr[:i]+\"1\"+astr[i+1:]\n                    bstr=bstr[:i]+\"1\"+bstr[i+1:]\n                else:\n                    astr=astr[:i]+\"1\"\n                    bstr=bstr[:i]+\"1\"\nprint(\"!\",int(astr,2),int(bstr,2))",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1177_B_1268",
+    "name": "Codeforces Submission 1177_B",
+    "code": "k = int(input())\na = 9\nfor i in range(1,12):\n    if k<=a*i:\n        a = (a//9)+(k//i)-1\n        if k%i!=0:\n            b = str(a+1)\n            c = (k%i)-1\n            print(b[c])\n        else:\n            b = str(a)\n            print(b[-1])\n        break\n    else:\n        k = k-a*i\n        a = a*10\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1195_B_1372",
+    "name": "Codeforces Submission 1195_B",
+    "code": "n,k = map(int, input().split())\n\nl = 0\nr = n\nwhile True:\n    m = int((l+r)/2)    # \u043f\u0440\u0435\u0434\u043f\u043e\u043b\u0430\u0433\u0430\u044e \u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043a\u043e\u043d\u0444\u0435\u0442 \u043e\u043d\u0430 \u0441\u044a\u0435\u043b\u0430\n    S = int(((n-m)**2 + n - 3 * m)/2)  # \u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043a\u043e\u043d\u0444\u0435\u0442 \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c\n    if S == k:\n        print(m)\n        break\n    elif S < k:\n        r = m\n    else:\n        l = m",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1515_B_1459",
+    "name": "Codeforces Submission 1515_B",
+    "code": "import sys\ninput = sys.stdin.readline\nt = int(input())\nfor _ in range(t):\n    n = int(input())\n    if n % 2 == 1:\n        print('NO')\n        continue\n    n //= 2\n    l, r = 0, n + 2\n    while r - l > 1:\n        m = (l + r) // 2\n        if m * m <= n:\n            l = m\n        else:\n            r = m\n    if l * l == n:\n        print('YES')\n        continue\n    l, r = 0, n + 2\n    while r - l > 1:\n        m = (l + r) // 2\n        if m * m * 2 <= n:\n            l = m\n        else:\n            r = m\n    if l * l * 2 == n:\n        print('YES')\n        continue\n    print('NO')",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0001_B_1460",
+    "name": "Codeforces Submission 0001_B",
+    "code": "import re\n\ninputs = int(input())\n\nfor x in range(inputs):\n    coordinates = input()\n    match = re.match(\"R(\\d+)C(\\d+)\", coordinates)\n    if match:\n        rows = int(match.group(1))\n        columns = int(match.group(2))\n\n        output = \"\"\n        i = 0\n        while columns > 0:\n            alpha_index = (columns // (26 ** i) - 1) % 26\n            output = chr(65 + alpha_index) + output\n            # print(columns, alpha_index)\n            columns -= (alpha_index + 1) * (26 ** i)\n            i += 1\n        output += str(rows)\n        print(output)\n    else:\n        match = re.match(\"(\\D+)(\\d+)\", coordinates)\n        letters = match.group(1)\n        rows = match.group(2)\n        columns = 0\n        for i in range(len(letters), 0, -1):\n            columns += (ord(letters[i - 1]) - 64) * (26 ** (len(letters) - i))\n        output = f\"R{rows}C{columns}\"\n        print(output)\n",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0017_A_1469",
+    "name": "Codeforces Submission 0017_A",
+    "code": "a,k=map(int,input().split())\np=[]\nfor n in range(2,a+1):\n\tfor i in range(2,int(n**0.5)+1):\n\t\tif n%i==0:\n\t\t\tbreak\n\telse:\n\t\tp.append(n)\nc=0\nfor i in range(0,len(p)-1):\n\tn=p[i]+p[i+1]+1\n\tfor i in range(2,int(n**0.5)+1):\n\t\tif n%i==0:\n\t\t\tbreak\n\telse:\n\t\tif n<=a:\n\t\t\tc+=1\nif c>=k:\n\tprint(\"YES\")\nelse:\n\tprint(\"NO\")\n",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0025_A_1478",
+    "name": "Codeforces Submission 0025_A",
+    "code": "''' 25A - IQ test '''\ntry:\n    odd, even, oddIndex, evenIndex = 0, 0, 0, 0\n    n = int(input())\n    s = list(map(int, input().split()))\n    counter = 0\n    for i in s:\n        if i % 2 == 0:\n            even += 1\n            evenIndex = counter\n        else:\n            odd += 1\n            oddIndex = counter\n        counter += 1\n    ans = evenIndex + 1 if even == 1 else oddIndex + 1\n    print(ans)\nexcept EOFError as e:\n    pass",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0046_C_1488",
+    "name": "Codeforces Submission 0046_C",
+    "code": "n=int(input())\na=input()\nb=a.count('T')\nc=-1\nfor i in range(n):\n    d=0\n    for j in range(b):\n        d+=int(a[(i+j)%n]=='H')\n    if c==-1 or d<c:\n        c=d\nprint(c)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0224_B_1496",
+    "name": "Codeforces Submission 0224_B",
+    "code": "n, k = map(int,input().split())\narr = list(map(int, input().split()))\n\ndef find_segment(arr, n, k):\n  f = [0]*100001\n  L = count = 0\n  R = -1\n  while R < n-1:\n    R += 1\n    if f[arr[R]] == 0:\n      count += 1\n    f[arr[R]] += 1\n    while count == k:\n      f[arr[L]] -= 1\n      if f[arr[L]] == 0:\n        print(L+1, R+1)\n        return\n      L += 1\n  print(-1,-1)\nfind_segment(arr, n, k)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0468_B_1506",
+    "name": "Codeforces Submission 0468_B",
+    "code": "parent = [i for i in range(int(1e5 + 10))]\ndef findSet(u):\n    if parent[u] != u:\n        parent[u] = findSet(parent[u])\n    return parent[u]\n\ndef unionSet(u, v):\n    up = findSet(u)\n    vp = findSet(v)\n    parent[up] = vp\n\nif __name__ == '__main__':\n    n, a, b = map(int, input().split())\n    lst = list(map(int, input().split()))\n    temp = {lst[i]: i for i in range(n)}\n    for i in range(n):\n        if a - lst[i] in temp:\n            unionSet(i, temp[a - lst[i]])\n        else:\n            unionSet(i, n)\n        if b - lst[i] in temp:\n            unionSet(i, temp[b - lst[i]])\n        else:\n            unionSet(i, n + 1)\n\n    if findSet(n) == findSet(n + 1):\n        print('NO')\n    else:\n        print('YES')\n        tmp = findSet(n + 1)\n        lst = [0 if findSet(i) == tmp else 1 for i in range(n)]\n        print(*lst)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0527_B_1514",
+    "name": "Codeforces Submission 0527_B",
+    "code": "\nimport string\n\nn, s, t = int(input()), input(), input()\nx, i, j = 0, -1, -1\nsc_dict = {c: set() for c in string.ascii_lowercase}\ntc_dict = {c: set() for c in string.ascii_lowercase}\nsti_dict, tsi_dict = dict(), dict()\n\nfor ci, sc, tc in zip(range(n), s, t):\n    if sc == tc:\n        continue\n    sc_dict[sc].add(tc)\n    tc_dict[tc].add(sc)\n    sti_dict[sc + tc] = ci\n    tsi_dict[tc + sc] = ci\n    x += 1\n\nfor c in string.ascii_lowercase:\n    cs = sc_dict[c] & tc_dict[c]\n    if not cs:\n        continue\n    c2 = cs.pop()\n    x -= 2\n    i = sti_dict[c + c2] + 1\n    j = tsi_dict[c + c2] + 1\n    break\nelse:\n    for c in string.ascii_lowercase:\n        if not sc_dict[c] or not tc_dict[c]:\n            continue\n        x -= 1\n        i = sti_dict[c + sc_dict[c].pop()] + 1\n        j = tsi_dict[c + tc_dict[c].pop()] + 1\n        break\n\nprint(x)\nprint(i, j)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0608_A_1523",
+    "name": "Codeforces Submission 0608_A",
+    "code": "import sys\n\ndef input():    return sys.stdin.readline().strip()\ndef iinput():   return int(input())\ndef rinput():   return map(int, sys.stdin.readline().strip().split()) \ndef get_list(): return list(map(int, sys.stdin.readline().strip().split())) \n\n\nn,s=rinput()\nmaxi=s\nfor i in range(n):\n    f,t=rinput()\n    maxi=max(maxi,f+t)\n\nprint(maxi)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0608_B_1532",
+    "name": "Codeforces Submission 0608_B",
+    "code": "a , b = input(), input()\nans = 0\n \nones = [0 for i in range(len(b)+1)]\nzeros = [0 for i in range(len(b)+1)]\n \nfor i in range(len(b)):\n    ones[i] = ones[i-1] + int(b[i])\n    zeros[i] = i + 1 - ones[i]\n    \nfor i in range(len(a)):\n    if a[i] == '1':\n        ans += zeros[len(b)-len(a)+i] - zeros[i-1]\n \n    else:\n        ans += ones[len(b)-len(a)+i] - ones[i-1]\n \nprint(ans)\n  \t \t   \t     \t \t\t\t\t \t     \t\t\t",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0608_C_1541",
+    "name": "Codeforces Submission 0608_C",
+    "code": "from sys import stdin\nfrom bisect import *\n\nrints = lambda: [int(x) for x in stdin.readline().split()]\nrints_2d = lambda n: [rints() for _ in range(n)]\nn, mem, pos, power = int(input()), [1], [], []\na = sorted(rints_2d(n))\n\nfor x, y in a:\n    pos.append(x)\n    power.append(y)\n\nfor i in range(1, n):\n    ix = bisect_left(pos, pos[i] - power[i]) - 1\n    if ix == -1:\n        mem.append(1)\n    else:\n        mem.append(mem[ix] + 1)\n\nprint(n - max(mem))\n",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0701_C_1550",
+    "name": "Codeforces Submission 0701_C",
+    "code": "import sys\nLI=lambda:list(map(int, sys.stdin.readline().split()))\nMI=lambda:map(int, sys.stdin.readline().split())\nSI=lambda:sys.stdin.readline().strip('\\n')\nII=lambda:int(sys.stdin.readline())\n# sys.stdin=open('input.txt')\n# sys.stdout=open('output.txt', 'w')\n# for _ in range(II()):\nn=II()\ns=SI()\nc=set(s)\nln=[0]*n\nfor d in c:\n\tlast=-1\n\t# print(d, end=' ')\n\tfor i, v in enumerate(s):\n\t\tif v==d:\n\t\t\tlast=i\n\t\tif last==-1:\n\t\t\tln[i]=int(1e9)\n\t\telse:\n\t\t\tln[i]=max(ln[i], i-last+1)\n\t# print(ln)\nprint(min(ln))",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0903_F_1559",
+    "name": "Codeforces Submission 0903_F",
+    "code": "import sys\n\nn = int(sys.stdin.buffer.readline().decode('utf-8'))\ncost = [0] + \\\n    list(map(int, sys.stdin.buffer.readline().decode('utf-8').split()))\na = [line.decode('utf-8').rstrip() for line in sys.stdin.buffer]\n\nmask = [0, 1, 51, 1911]\ninf, bs_size, full_bit = 10**9, 1 << 12, (1 << 12) - 1\ndp = [[inf]*bs_size for _ in range(4*n+1)]\ndp[0][0] = 0\n\nfor i in range(4*n):\n    y, x = i & 3, i >> 2\n    is_dot = 1 if a[y][x] == '.' else 0\n\n    for bitset in range(bs_size):\n        if y == 0:\n            '''\n              01234    01234\n            0 s****    .t..*\n            1 ***** -> ....*\n            2 ***** -> ....*\n            3 *****    ....*\n            '''\n            if dp[i+4][full_bit] > dp[i][bitset] + cost[4]:\n                dp[i+4][full_bit] = dp[i][bitset] + cost[4]\n\n        if (is_dot | bitset & 1) and\\\n                dp[i+1][bitset >> 1] > dp[i][bitset]:\n            dp[i+1][bitset >> 1] = dp[i][bitset]\n\n        for k in range(1, min(4-y, 3)+1):\n            if dp[i][bitset | mask[k]] > dp[i][bitset] + cost[k]:\n                dp[i][bitset | mask[k]] = dp[i][bitset] + cost[k]\n\nprint(min(dp[4*n]))\n",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0909_A_1560",
+    "name": "Codeforces Submission 0909_A",
+    "code": "s1, s2 = [str(j) for j in input().split()]\noutput = s1 + s2\nfor j in range(len(s1)):\n    s = s1[:j + 1]\n    for k in range(len(s2)):\n        s += s2[k]\n        if sorted([s, output])[0] == s:\n            output = s\nprint(output)\n",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0909_B_1572",
+    "name": "Codeforces Submission 0909_B",
+    "code": "n = int(input())\ndp = [0]*101\ndp[1] = 1\ndp[2] = 2\nfor i in range(3, 101):\n    dp[i] = dp[i-2]+i\nprint(dp[n])\n",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0909_D_1578",
+    "name": "Codeforces Submission 0909_D",
+    "code": "# https://codeforces.com/problemset/problem/909/D\ndef process(a):\n    assert len(a) >= 2\n    \n    n    = len(a)\n    min_ = float('inf')\n\n    for i, [cnt, c] in enumerate(a):\n        if i == 0 or i == n-1:\n            min_ = min(min_, cnt)\n        else:\n            min_ = min(min_, (cnt+1) //2) \n    \n    b    = []\n    for i, [cnt, c] in enumerate(a):\n        if i == 0 or i == n-1:\n            remain = cnt - min_\n        else:\n            remain = cnt - min_ * 2\n        \n        if remain <= 0:\n            continue\n        \n        if len(b) == 0 or c != b[-1][1]:\n            b.append([remain, c])\n        else:\n            pre_cnt, pre_c  = b.pop()\n            b.append([pre_cnt+remain, c])\n    \n    return b, min_        \n\nS   = input() + ' '\ncur = []\n\ncnt = 0\npre = ''\nfor x in S:\n    if cnt == 0:\n        cnt+= 1\n        pre = x\n    elif x!=pre:\n        cur.append([cnt, pre])\n        cnt = 1\n        pre = x\n    else:\n        cnt+=1\n\ncnt = 0\nwhile len(cur) not in [0, 1]: \n    cur, min_ = process(cur)\n    cnt+=min_\n    \nprint(cnt)    ",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0015_A_2313",
+    "name": "Codeforces Submission 0015_A",
+    "code": "def good(x1, y1, x2, y2):\n    if (x1 > x2):\n        x1, x2 = x2, x1\n        y1, y2 = y2, y1\n    return (x2 >= y1) \n\ndef check(cent):\n    for i in range(n):\n        if (not good(cent - t, cent + t, x[i] - a[i], x[i] + a[i])):\n            return 0\n    return 1\n\nn, t = map(int, input().split())\nx = [0] * n\na = [0] * n\nfor i in range(n):\n    x[i], a[i] = map(int, input().split())\n    x[i] *= 2\n\nans = set()\n\nfor i in range(n):\n    val1 = x[i] - a[i] - t\n    val2 = x[i] + a[i] + t\n    if (check(val1)):\n        ans.add(val1)\n    if (check(val2)):\n        ans.add(val2)\nprint(len(ans))\n",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0022_A_2329",
+    "name": "Codeforces Submission 0022_A",
+    "code": "num=int(input())\n\nvals=list(map(int,input().split()))\n\nvals.sort()\n\nflag=0\n\nfor i in vals:\n    if i>vals[0]:\n        print(i)\n        flag=1\n        break\n    \n\nif flag==0:\n    print('NO')\n    ",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0135_A_2348",
+    "name": "Codeforces Submission 0135_A",
+    "code": "def replace(arr):\n    if arr==[1]*len(arr):\n        arr[-1]=2\n        print(*sorted(arr))\n        return \"\"\n    arr[arr.index(max(arr))]=1\n    print(*sorted(arr))\n    return \"\"\na=input()\nlst=list(map(int,input().strip().split()))\nprint(replace(lst))",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0160_A_2365",
+    "name": "Codeforces Submission 0160_A",
+    "code": "def ballbuster5000(arr, rj):\n    for i in arr:\n        rj += i\n    gg = 0\n    i = 0\n    while gg <= rj:\n        gg += arr[i]\n        rj -= arr[i]\n        i -= -1\n    return i\n\n\nn = int(input())\nx = list(map(int, input().strip().split()))\nx.sort(reverse=True)\nprint(ballbuster5000(x, 0))",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0166_A_2383",
+    "name": "Codeforces Submission 0166_A",
+    "code": "dp=[]\nn,k=map(int,input().split())\nfor _ in range(n):\n    p,t=map(int,input().split())\n    dp.append((p,-t))\ndp.sort(reverse=True)\nprint(dp.count(dp[k-1]))",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0169_A_2401",
+    "name": "Codeforces Submission 0169_A",
+    "code": "# https://codeforces.com/problemset/problem/169/A\n\nn, a, b = map(int, input().split())\n\nh = sorted(map(int, input().split()))\n\nprint(h[b] - h[b-1])\n",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0220_A_2415",
+    "name": "Codeforces Submission 0220_A",
+    "code": "# cook your dish here\nn=int(input())\nl=[int(x) for x in input().strip().split()]\nl1=sorted(l)\nc=0\nfor i in range(n):\n    if(l[i]!=l1[i]):\n        c+=1\nif(c<=2):\n    print(\"YES\")\nelse:\n    print(\"NO\")",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0257_A_2433",
+    "name": "Codeforces Submission 0257_A",
+    "code": "list1=input()\nl=list1.split()\nl=[int(item) for item in l]\n\nn,m,k=l\n\na=input()\na1=map(int,a.split())\n\na1=list(sorted(a1))\n\ncount=0\nfor i in range(len(a1)):\n    if k>=m:\n        break\n    else:\n        k+=a1.pop()-1\n        count+=1\n\nif k>=m:    \n    print(count)\nelse:\n    print(\"-1\")",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0274_A_2451",
+    "name": "Codeforces Submission 0274_A",
+    "code": "from collections import defaultdict\n\nn,k=[int(i) for i in input().strip().split()]\nl=[int(i) for i in input().strip().split()]\nif(k==1):\n    print(n)\nelse:\n    l.sort()\n    ndict=defaultdict(list)\n    for x in l:\n        i=x\n        while(i%k==0):\n            i=i/k\n        ndict[i].append(x)\n    ans=0\n    for i in ndict.values():\n        count=0\n        while(count<len(i)):\n            if(count==len(i)-1):\n                ans+=1\n                break\n            if(i[count]*k!=i[count+1]):\n                ans+=1\n                count+=1\n            else:\n                ans+=1\n                count+=2\n    print(ans)",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0527_C_2469",
+    "name": "Codeforces Submission 0527_C",
+    "code": "w, h, n = map(int, input().split())\nl, r = [-1] * (w+1), [-1] * (w+1)\nt, b = [-1] * (h+1), [-1] * (h+1)\nl[0], b[0], t[h], r[w] = 0, 0, h, w\nV, H = [0] * n, [0] * n\n\nfor i in range(n):\n    line, idx = input().split()\n    idx = int(idx)\n    if line == 'V':\n        r[idx] = w\n        V[i] = idx\n    else:\n        t[idx] = h\n        H[i] = idx\n\nleft, max_w = 0, 0\nfor i in range(1, w+1):\n    if r[i] != -1:\n        l[i] = left\n        r[left] = i\n        max_w = max(max_w, i - left)\n        left = i\n\nbottom, max_h = 0, 0\nfor i in range(1 ,h+1):\n    if t[i] != -1:\n        b[i] = bottom\n        t[bottom] = i\n        max_h = max(max_h, i - bottom)\n        bottom = i\n\nres = [0] * n\nres[n-1] = max_h * max_w\nfor i in range(n-1, 0, -1):\n    if V[i] != 0:\n        max_w = max(max_w, r[V[i]] - l[V[i]])\n        r[l[V[i]]] = r[V[i]]\n        l[r[V[i]]] = l[V[i]]\n    else:\n        max_h = max(max_h, t[H[i]] - b[H[i]])\n        b[t[H[i]]] = b[H[i]]\n        t[b[H[i]]] = t[H[i]]\n    res[i-1] = max_h * max_w\n\nfor i in range(n):\n    print(res[i])",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0528_A_2474",
+    "name": "Codeforces Submission 0528_A",
+    "code": "w, h, n = map(int, input().split())\nl, r = [-1] * (w+1), [-1] * (w+1)\nt, b = [-1] * (h+1), [-1] * (h+1)\nl[0], b[0], t[h], r[w] = 0, 0, h, w\nV, H = [0] * n, [0] * n\n\nfor i in range(n):\n    line, idx = input().split()\n    idx = int(idx)\n    if line == 'V':\n        r[idx] = w\n        V[i] = idx\n    else:\n        t[idx] = h\n        H[i] = idx\n\nleft, max_w = 0, 0\nfor i in range(1, w+1):\n    if r[i] != -1:\n        l[i] = left\n        r[left] = i\n        max_w = max(max_w, i - left)\n        left = i\n\nbottom, max_h = 0, 0\nfor i in range(1 ,h+1):\n    if t[i] != -1:\n        b[i] = bottom\n        t[bottom] = i\n        max_h = max(max_h, i - bottom)\n        bottom = i\n\nres = [0] * n\nres[n-1] = max_h * max_w\nfor i in range(n-1, 0, -1):\n    if V[i] != 0:\n        max_w = max(max_w, r[V[i]] - l[V[i]])\n        r[l[V[i]]] = r[V[i]]\n        l[r[V[i]]] = l[V[i]]\n    else:\n        max_h = max(max_h, t[H[i]] - b[H[i]])\n        b[t[H[i]]] = b[H[i]]\n        t[b[H[i]]] = t[H[i]]\n    res[i-1] = max_h * max_w\n\nfor i in range(n):\n    print(res[i])",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0528_B_2476",
+    "name": "Codeforces Submission 0528_B",
+    "code": "n = int(input())\n\nvertices   = []\nfor _ in range(n):\n  x, w = map(int, input().split())\n  vertices.append([x - w, x + w])\nvertices = sorted(vertices, key = lambda x: x[1])\n\nans = 0\nborder = -(10**9 + 100)\nfor v in vertices:\n  if border <= v[0]:\n    ans += 1\n    border = v[1]\nprint(ans)",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0903_D_2494",
+    "name": "Codeforces Submission 0903_D",
+    "code": "a=int(input())\narr=list(map(int,input().split()))\nd=dict()\nsumm=[0]\nbrr=arr\nnd=dict()\nmimpp=dict()\nmimpn=dict()\nfor i in arr:\n    summ.append(i+summ[len(summ)-1])\n    if(i in d):\n        d[i]=d[i]+1\n    else:\n        d[i]=1\nfor i in range(0,len(brr)):\n    if(brr[i] in nd):\n        nd[brr[i]]=nd[brr[i]]+1\n    else:\n        nd[brr[i]]=1\n    mimpn[i]=0\n    mimpp[i]=0\n    if(brr[i]-1 in d):\n        mimpn[i]=mimpn[i]+d[brr[i]-1]\n    if(brr[i]+1 in d):\n        mimpp[i]=mimpp[i]+d[brr[i]+1]\n    if(brr[i]-1 in nd):\n        mimpn[i]=mimpn[i]-nd[brr[i]-1]\n    if(brr[i]+1 in nd):\n        mimpp[i]=mimpp[i]-nd[brr[i]+1]\n    \nans=0\nind=0\nsu=sum(arr)\nfor i in range(0,len(arr)):\n    ans=ans+su-summ[ind]-(a-ind)*arr[i]\n    ans=ans+mimpn[i]  \n    ans=ans-mimpp[i]   \n    ind=ind+1 \nprint(ans)\n",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0913_D_2512",
+    "name": "Codeforces Submission 0913_D",
+    "code": "from collections import deque\nimport heapq\nimport sys\n\n\ndef input():\n    return sys.stdin.readline().rstrip()\n\n\nn, T = map(int, input().split())\nproblems = [tuple(map(int, input().split())) for i in range(n)]\n\n\ndef possible(K):\n    d = []\n    for a, t in problems:\n        if a >= K:\n            d.append(t)\n    d.sort()\n    if len(d) < K:\n        return False\n    else:\n        return sum(d[:K]) <= T\n\n\nl = 0\nr = n + 1\nwhile r - l > 1:\n    med = (r + l)//2\n    if possible(med):\n        l = med\n    else:\n        r = med\nprint(l)\nprint(l)\nd = []\nfor i, (a, t) in enumerate(problems):\n    if a >= l:\n        d.append((t, i+1))\nd.sort(key=lambda x: x[0])\nans = [v[1] for v in d[:l]]\nprint(*ans)\n",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0957_C_2524",
+    "name": "Codeforces Submission 0957_C",
+    "code": "n,U=list(map(int, input().split(' ')))\na=list(map(int, input().split(' ')))\n\nimport bisect\ndef max_eligible(a,x):\n    ind=bisect.bisect_right(a,x)\n    if ind <= len(a):\n        return a[ind-1]\n    else:\n        return -1\n\nmax_val=-1\nfor i in range(n-2):\n    x = a[i]+U\n    val1 = max_eligible(a,x)\n\n    if val1!=-1 and val1!=a[i+1] and val1!=a[i]:\n        # print('hi')\n        val = (val1-a[i+1]) / (val1-a[i])\n        # print(val)\n        max_val=max(max_val,val)\n    # print(a[i],a[i+1],val1,max_val)\nprint(max_val)\n",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0908_C_3109",
+    "name": "Codeforces Submission 0908_C",
+    "code": "import sys\n\ninput = sys.stdin.readline\n\n\ndef gcd(a, b):\n    if a == 0:\n        return b\n    return gcd(b % a, a)\n\n\ndef lcm(a, b):\n    return (a * b) / gcd(a, b)\n\ndef main():\n    n,r=map(int, input().split())\n    a=list(map(int, input().split()))\n    ans=[]\n    ans.append(r)\n    for i in range(1,n):\n        ymax=r\n        for j in range( i):\n            if abs(a[j]-a[i])<=2*r:\n                ymax=max(ymax, ans[j]+(4*r*r-(a[i]-a[j])**2)**0.5)\n        ans.append(ymax)\n    print(*ans)\n    # for i in range(15):\n    #     print(x[i],end=' ')\n\n\n\n\n\n\n\n\n\n\n\n\n\n    return\n\nif __name__==\"__main__\":\n    main()\n\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0908_E_3126",
+    "name": "Codeforces Submission 0908_E",
+    "code": "from collections import defaultdict\n\ndef E1():\n\n    mod = 10 ** 9 + 7\n\n    comb = [[1]]\n    for i in range(1, 1010):\n        x = [1]\n        for j in range(1, i):\n            x.append((comb[i - 1][j - 1] + comb[i - 1][j]) % mod)\n        x.append(1)\n        comb.append(x)\n\n    dp = [1]\n    for i in range(1, 1010):\n        r = 0\n        for k in range(i):\n            r += dp[k] * comb[i - 1][k]\n            r %= mod\n        dp.append(r)\n\n    m, n = map(int, input().split())\n\n    ns = [0 for __ in range(m)]\n    for j in range(n):\n        temp = input()\n        s = [int(i) for i in temp]\n        for i in range(m):\n            ns[i] |= s[i] << j\n\n    dd = defaultdict(int)\n    for e in ns:\n        dd[e] += 1\n\n    ans = 1\n    for b in dd.values():\n        ans = ans * dp[b] % mod\n\n    print(ans)\n\nif __name__=='__main__':\n    E1()\n\t \t \t   \t   \t\t\t  \t\t\t\t  \t \t \t \t",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0908_G_3133",
+    "name": "Codeforces Submission 0908_G",
+    "code": "# Problem G\n\nnum = input()\nnum_list = []\nfor i in range(len(num)):\n  num_list.append(int(num[i]))\nmyMod = (10 ** 9) + 7\nlength = len(num_list)\nf = [0] * (length + 1)\nt = [1] * (length + 1)\nfor i in range(length):\n    f[i+1] = (f[i] * 10 + 1) % myMod\n    t[i+1] = (t[i] * 10) % myMod\nans = 0\nfor i in range(1, 10):\n    dp = [0] * (length + 1)\n    for j in range(length):\n        dp[j+1] = (dp[j] * i + (10 - i) * (dp[j] * 10 + t[j])) % myMod\n    c = 0\n    ctr = 0\n    for k in num_list:\n        z = min(i, k)\n        o = k - z\n        ans += o * (dp[length-1-ctr] * t[c+1] + f[c+1] * t[length-1-ctr]) % myMod\n        ans += z * (dp[length-1-ctr] * t[c] + f[c] * t[length-1-ctr]) % myMod\n        ans %= myMod\n        c += k >= i\n        ctr += 1\n    ans += f[c]\n    if ans >= myMod:\n        ans -= myMod\nprint(ans)\n \t     \t \t\t\t\t   \t  \t \t\t \t  \t\t",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0909_C_3134",
+    "name": "Codeforces Submission 0909_C",
+    "code": "import sys\nfrom random import *\nfrom bisect import *\n#from collections import deque\npl=1\nfrom math import gcd,sqrt\nfrom copy import *\nsys.setrecursionlimit(10**5)\nif pl:\n\tinput=sys.stdin.readline\nelse:\t\n\tsys.stdin=open('input.txt', 'r')\n\tsys.stdout=open('outpt.txt','w')\n \ndef li():\n\treturn [int(xxx) for xxx in input().split()]\ndef fi():\n\treturn int(input())\ndef si():\n\treturn list(input().rstrip())\t\ndef mi():\n\treturn \tmap(int,input().split())\t\n \n\t\t\nt=1\n\n\t\t\nwhile t>0:\n\tt-=1\n\tn=fi()\n\tmod=10**9+7\n\tdp=[[0 for i in range(n+5)] for j in range(n+5)]\n\tprev=\"-1\"\n \n\tfor i in range(n):\n\t\tp=input().rstrip()\n\t\tif i==0:\n\t\t\tdp[i][0]=1\n\t\telse:\n\t\t\t\n\t\t\tc=0\n\t\t\tif prev=='f':\n\t\t\t\tfor j in range(n):\n\t\t\t\t\tdp[i][j+1]=dp[i-1][j]\n\t\t\telse:\t\n\t\t\t\tfor j in range(n,-1,-1):\n\t\t\t\t\tc=(c+dp[i-1][j])%mod\n\t\t\t\t\tdp[i][j]=c\t\n\t\t\t\t\n\t\tprev=p\n\t\n\tprint(sum(dp[n-1])%mod)\t\t\t\t\t\n\t\t\t\t",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0911_D_3161",
+    "name": "Codeforces Submission 0911_D",
+    "code": "n = int(input())\na = list(map(int, input().split()))\nm = int(input())\nparity = 0\nfor i in range(n):\n    for j in range(i + 1, n):\n        if a[i] > a[j]:\n            parity ^= 1\nres = []\nfor _ in range(m):\n    l, r = map(int, input().split())\n    s = r - l + 1\n    parity ^= (s * (s - 1) // 2) % 2\n    res.append(\"odd\" if parity else \"even\")\nprint(\"\\n\".join(res))",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0913_E_3186",
+    "name": "Codeforces Submission 0913_E",
+    "code": "# -*- coding: utf-8 -*-\ndat = \"\u787c\u78f7\u78b3\u78f7\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u78f7\u6c2e\u786b\u78b3\u6c2f\u6c1f\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u78b3\u6c2f\u6c1f\u6eb4\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u6c1f\u6eb4\u787c\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u6c1f\u6eb4\u787c\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u6c1f\u6eb4\u787c\u78f7\u78b3\u6c27\u786b\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u78f7\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6eb4\u787c\u6c27\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u6c27\u78f7\u6c2e\u786b\u6c1f\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u6c1f\u6eb4\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c27\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u78f7\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u6eb4\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6c1f\u6eb4\u787c\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6c1f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u787c\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6c1f\u6c2e\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u6c1f\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6c1f\u6c2e\u787c\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u6c1f\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u6c2e\u787c\u786b\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6eb4\u787c\u786b\u78b3\u6c27\u78f7\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u6c27\u78f7\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u787c\u786b\u6eb4\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6c2e\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u786b\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u6c1f\u6eb4\u787c\u78f7\u78b3\u6c27\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u78f7\u6c2e\u787c\u786b\u6eb4\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u6c1f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u78f7\u78b3\u6c2f\u6c1f\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u78f7\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u6c2f\u78b3\u6c27\u78f7\u6c2e\u786b\u6c1f\u6eb4\u787c\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u6c27\u78f7\u6c2e\u786b\u6c1f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u787c\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u78b3\u6c2f\u6c1f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c27\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u78f7\u6c2e\u787c\u6c2f\u6eb4\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6c1f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6c1f\u6eb4\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u6c1f\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6c1f\u6c2e\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u78f7\u78b3\u6c2f\u6c1f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u6c1f\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u78f7\u6c2e\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u6c27\u786b\u78b3\u6c2f\u6c1f\u78b3\u78f7\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u786b\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u786b\u78b3\u78f7\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u786b\u78b3\u78f7\u6c2e\u787c\u6c2f\u6eb4\u787c\u786b\u78b3\u6c27\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u6c2f\u78b3\u786b\u6eb4\u787c\u786b\u6c2e\u787c\u6c2f\u6eb4\u787c\u6c27\u786b\u78b3\u6c2f\u6c1f\u78b3\u78f7\u6c2e\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u78f7\u78b3\u786b\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u6c1f\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u786b\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u6c27\u78f7\u78b3\u6c2f\u6c1f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u787c\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u78b3\u6c2f\u6c1f\u6eb4\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u78f7\u6c2e\u786b\u78b3\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u78b3\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c27\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u6c27\u78f7\u6c2e\u786b\u6c1f\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u6c1f\u6c2e\u78f7\u78b3\u786b\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c27\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u6c2e\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u78b3\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u6c27\u78f7\u6c2e\u786b\u6c1f\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u6c27\u78f7\u6c2e\u786b\u6c1f\u78b3\u6c2f\u6eb4\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u6c1f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u6c2f\u6eb4\u787c\u78f7\u6c2e\u6c2f\u6eb4\u787c\u786b\u78b3\u78f7\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u6c27\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u786b\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u6c27\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u787c\u786b\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6eb4\u787c\u786b\u6c2e\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u786b\u6c2e\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6eb4\u787c\u78f7\u6c2e\u787c\u786b\u6c2e\u6c2f\u6eb4\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u78b3\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u786b\u6eb4\u6c27\u78f7\u6c2e\u6c2f\u6c1f\u78b3\u786b\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u6c27\u78f7\u6c2e\u6c2f\u6c1f\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u6c1f\u6c2e\u78f7\u78b3\u786b\u6eb4\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u786b\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u786b\u6eb4\u787c\u78f7\u6c2e\u786b\u6eb4\u787c\u6c2f\u78b3\u78f7\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u78f7\u78b3\u6c2f\u6c2e\u786b\u6c1f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c2f\u78b3\u6c27\u78f7\u6c2e\u786b\u6c1f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u6c27\u78f7\u6c2e\u786b\u6c1f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u787c\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u78f7\u78b3\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6eb4\u787c\u6c2f\u6c2e\u786b\u6eb4\u787c\u78f7\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6eb4\u787c\u78f7\u6c2e\u787c\u6c2f\u6c2e\u786b\u6eb4\u6c27\u786b\u6c2e\u6c2f\u6c1f\u78b3\u78f7\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u6c27\u786b\u6c2e\u6c2f\u6c1f\u78b3\u78f7\u6eb4\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u787c\u6c2f\u78b3\u78f7\u6c2e\u786b\u6c1f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u6c27\u787c\u786b\u78b3\u78f7\u6c2e\u6c2f\u6c1f\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u78b3\u6c2f\u6eb4\u6c27\u78f7\u6c2e\u786b\u6c1f\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u787c\u6c27\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6c1f\u6c2e\u6c27\u78f7\u6c2e\u786b\u6c1f\u78b3\u6c2f\u6c2e\u78f7\u78b3\u786b\u6eb4\u78f7\u78b3\u786b\u6c2e\u6c2f\u6eb4\u787c\u78f7\u78b3\u787c\u786b\u6c2e\u78f7\u78b3\u786b\u6c2e\u6c2f\u6eb4\u78f7\u78b3\u6c2f\u6c2e\u786b\u6eb4\u787c\u78f7\u78b3\u787c\u6c2f\u6c2e\u78f7\u78b3\u6c2f\u6c2e\u786b\u6eb4\u786b\u6c2e\u6c2f\u6eb4\u787c\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6eb4\u78f7\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u78f7\u6eb4\u787c\u786b\u78b3\u6c2f\u6c2e\u78f7\u6eb4\u787c\u786b\u6c2e\u78f7\u6eb4\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u6eb4\u787c\u6c2f\u6c2e\u78f7\u6eb4\u787c\u786b\u78b3\u6c2f\u6c2e\u787c\u6c2f\u78b3\u786b\u6c2e\u78f7\u6eb4\u787c\u786b\u6c2e\u787c\u6c2f\u6c2e\u78f7\u6eb4\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u787c\u786b\u78b3\u787c\u6c2f\u6c2e\u78f7\u6c2e\u786b\u78b3\u6c2f\u6eb4\u78f7\u6c2e\u6c2f\u6eb4\u787c\u786b\u6c2e\u78f7\u6c2e\u6c2f\u6eb4\u78f7\u6c2e\u786b\u6eb4\u787c\u6c2f\u6c2e\u78f7\u6c2e\u786b\u6eb4\u78f7\u6c2e\u786b\u6c2e\u6c2f\u6eb4\u787c\u78f7\u6c2e\u78f7\".split('\u6eb4')\nd1, d2 = \"\u787c\u78b3\u6c2e\u6c27\u6c1f\u78f7\u786b\u6c2f\", \"!&|()xyz\"\nfor i in range(int(input())):\n\ts = dat[eval(\"0b\" + ''.join(list(reversed(input()))))]\n\tfor i in range(8): s = s.replace(d1[i], d2[i])\n\tprint(s)\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0915_D_3190",
+    "name": "Codeforces Submission 0915_D",
+    "code": "import sys\n\n\ndef prepare():\n    stack = [i for i in range(n) if deg[i] == 0]\n    cnt = 0\n    while stack:\n        v = stack.pop()\n        cnt += 1\n        for dest in adj[v]:\n            deg[dest] -= 1\n            if deg[dest] == 0:\n                stack.append(dest)\n        adj[v].clear()\n\n    return cnt == n\n\n\ndef solve(st):\n    stack = [st]\n    visited = [0]*n\n    cnt = 0\n    while stack:\n        v = stack.pop()\n        cnt += 1\n        for dest in adj[v]:\n            if dest == st:\n                continue\n            visited[dest] += 1\n            if deg[dest] == visited[dest]:\n                stack.append(dest)\n\n    return cnt == m\n\n\nn, m = map(int, sys.stdin.buffer.readline().decode('utf-8').split())\nadj = [[] for _ in range(n)]\nrev = [[] for _ in range(n)]\ndeg = [0]*n\nfor u, v in (map(int, line.decode('utf-8').split()) for line in sys.stdin.buffer):\n    adj[u-1].append(v-1)\n    rev[v-1].append(u-1)\n    deg[v-1] += 1\n\nok = prepare()\nif ok:\n    print('YES')\n    exit()\n\nm = len([1 for i in range(n) if deg[i] > 0])\nfor i in range(n):\n    if deg[i] == 1 and solve(i):\n        print('YES')\n        exit()\n\nprint('NO')\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0958_A1_3201",
+    "name": "Codeforces Submission 0958_A1",
+    "code": "#!/usr/bin/python3\n\nimport copy\n\n\ndef rotate90(n, f):\n    return [[f[n - j - 1][i] for j in range(n)] for i in range(n)]\n\ndef fliphor(n, f):\n    return [[f[i][n - j - 1] for j in range(n)] for i in range(n)]\n\ndef flipver(n, f):\n    return [[f[n - i - 1][j] for j in range(n)] for i in range(n)]\n\ndef eq(n, f, g):\n    for i in range(n):\n        for j in range(n):\n            if f[i][j] != g[i][j]:\n                return False\n    return True\n\n\nn = int(input())\nf = [list(input()) for i in range(n)]\ng = [list(input()) for i in range(n)]\n\nfor doflipv in range(2):\n    for dofliph in range(2):\n        for nrot in range(4):\n            h = copy.deepcopy(f)\n            if dofliph == 1:\n                h = fliphor(n, h)\n            if doflipv == 1:\n                h = flipver(n, h)\n            for i in range(nrot):\n                h = rotate90(n, h)\n            if eq(n, h, g):\n                print(\"Yes\")\n                exit(0)\n\nprint(\"No\")",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0961_A_3222",
+    "name": "Codeforces Submission 0961_A",
+    "code": "def ints():\n return map(int,input().split())\nn,m=ints()\nc=ints()\naa=[0]*(n+1)\nfor cc in c:\n aa[cc]+=1\nprint(min(aa[1:]))\n \t\t\t  \t\t\t \t\t \t\t \t\t  \t\t \t\t  \t",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0961_C_3240",
+    "name": "Codeforces Submission 0961_C",
+    "code": "import itertools\n\nn = int(input())\na = []\nfor i in range(4):\n    a.append([input() for _ in range(n)])\n    if i < 3:\n        assert input() == ''\n\nbest = 4*n*n\nfor p in itertools.permutations(a):\n    for s in range(2):\n        count = 0\n        for i in range(4):\n            for r in range(n):\n                for c in range(n):\n                    if p[i][r][c] != str((s + (i//2 + r) + (i % 2 + c)) % 2):\n                        count += 1\n        best = min(best, count)\nprint(best)\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0980_C_3264",
+    "name": "Codeforces Submission 0980_C",
+    "code": "def solution(n, k, arr):\n    ret = []\n    grp = [None for _ in range(256)]\n    for i in arr:\n        if grp[i]:\n            continue\n        l = None\n        j = 1\n        for j in range(1, k):\n            if i - j < 0:\n                break\n            if grp[i - j] is not None:\n                l = i - j\n                break\n        if l is not None and grp[l] > i - k:\n            grp[i] = grp[l]\n        else:\n            ll = l + 1 if l else max(0, i - k + 1)\n            for j in range(ll, i + 1):\n                grp[j] = ll\n    for i in arr:\n        ret.append(grp[i])\n    return ret\n\n\nn, k = map(int, input().split())\narr = list(map(int, input().split()))\nprint(' '.join(map(str, solution(n, k, arr))))\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0983_B_3289",
+    "name": "Codeforces Submission 0983_B",
+    "code": "n = int(input())\nvalues = list(map(int, input().split()))\nqueries = int(input())\n\ndp = [[0] * 5009 for i in range(5009)]\n\nfor i in range(n):\n    dp[0][i] = values[i]\n\nfor i in range(1, n): # 0 is already populated\n    for j in range(n-i+1):\n        top = dp[i-1][j]\n        right = dp[i-1][j+1]\n        dp[i][j] = top ^ right\n\nfor i in range(1, n):\n    for j in range(n-i+1):\n        top = dp[i-1][j]\n        right = dp[i-1][j+1]\n        dp[i][j] = max(right, max(dp[i][j], top))\n\nfor i in range(queries):\n    left, right = map(int, input().split())\n    last_row = (right - 1) - (left - 1)\n    last_column = (left - 1)\n    print(dp[last_row][last_column])\n    \n\n\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0985_B_3308",
+    "name": "Codeforces Submission 0985_B",
+    "code": "s, l= list(map(int,input().split()))\nsig = []\nutp = []\nif s == 0 or l ==0:\n    print('NO')\n    quit()\nfor i in range(s):\n    sig.append(list(map(int,input())))\nfor i in range(0,l):\n    out = 0\n    for x in range(0,s):\n        out+=sig[x][i]\n    utp.append(out)\nsig = sorted(sig,key = sum)\nfor i in range(0,s):\n    res1=0\n    for x in range(0,l):\n        if utp[x]-sig[i][x] <=0:\n            break\n        else:\n            res1+=1\n    if res1 == l:\n        print('YES')\n        quit()\n        \nprint('NO')\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0987_C_3328",
+    "name": "Codeforces Submission 0987_C",
+    "code": "import sys\nn=int(input())\n#n=5\n#l=[2,4,5,4,10]\n#c=[40,30,20,10,40]\nl=list(map(int,input().split()))\nc=list(map(int,input().split()))\na=[]\nfor i in range(1,n-1):\n    lr=sys.maxsize\n    lc=sys.maxsize\n    for j in range(0,i):\n        \n        if l[i]>l[j]:\n            lc=min(lc,c[j])\n            #print(lc,l[i])\n    for j in range(i+1,n):\n        \n        if l[j]>l[i]:\n            lr=min(lr,c[j])\n            #print(lr,l[i])\n    if lr<sys.maxsize and lc<sys.maxsize:\n        a.append(lr+lc+c[i])\n#print(a)\nif not a:\n    print(-1)\nelse:\n    print(min(a))       \n            \n            ",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0990_D_3349",
+    "name": "Codeforces Submission 0990_D",
+    "code": "n, a, b = map(int,input().split())\nif a>1 and b>1: print(\"NO\"); exit()\nif 2<=n<=3 and a == b == 1: print(\"NO\"); exit()\nprint(\"YES\")\n\nif b == 1:\n    adj = [[0]*n for i in range(n)]\n    conn = n\n    for i in range(n):\n        if conn == a: break\n        adj[i][i+1] = adj[i+1][i] = 1\n        conn-= 1\n        if conn == a: break\nelif a == 1:\n    adj = [[1]*n for i in range(n)]\n    conn = n\n    for i in range(n): adj[i][i] = 0\n    for i in range(n):\n        if conn == b: break\n        adj[i][i+1] = adj[i+1][i] = 0\n        conn-= 1\n        if conn == b: break\n\nfor row in adj:\n    print(*row, sep='')\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0008_E_3767",
+    "name": "Codeforces Submission 0008_E",
+    "code": "n, m = map(int, input().split())\nm += 1\n\n\ndef calc(l, r, eq, eq_i):\n    if l > r:\n        return 1\n    key = l, eq, eq_i\n    if key in f:\n        return f[key]\n\n    t = 0\n    for x in (['0', '1'] if s[l] == '?' else [s[l]]):\n        if l == r:\n            a = [x]\n        else:\n            a = ['0', '1'] if s[r] == '?' else [s[r]]\n        for y in a:\n            if not((eq and x > y) or (eq_i and x == y == '1')):\n                t += calc(l + 1, r - 1, eq and x == y, eq_i and x != y)\n    f[key] = t\n    return t\n\n\ns = ['?'] * n\nfor i in range(n):\n    s[i] = '0'\n    f = {}\n    p = calc(0, n - 1, True, True)\n    if m > p:\n        m -= p\n        s[i] = '1'\n\nif s[0] == '0':\n    print(''.join(s))\nelse:\n    print(-1)\n",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0023_A_3769",
+    "name": "Codeforces Submission 0023_A",
+    "code": "s=input()\nm=0\nn=len(s)\nfor i in range(n-1):\n    for j in range(i,n+1) :\n        if s[i:j] in s[i+1:n] and len(s[i:j])>m:\n            m=len(s[i:j])\nprint(m)",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0035_C_3839",
+    "name": "Codeforces Submission 0035_C",
+    "code": "'''\n                ___                       ____                     \n  ____ _____ _____/ (_)_  ______  ____ _____/ / /_  __  ______ ___  __\n / __ `/ __ `/ __  / / / / / __ \\/ __ `/ __  / __ \\/ / / / __ `/ / / /\n/ /_/ / /_/ / /_/ / / /_/ / /_/ / /_/ / /_/ / / / / /_/ / /_/ / /_/ / \n\\__,_/\\__,_/\\__,_/_/\\__,_/ .___/\\__,_/\\__,_/_/ /_/\\__, /\\__,_/\\__, /  \n                        /_/                      /____/      /____/   \n'''\nimport os.path\nfrom math import gcd, floor, ceil\nfrom collections import *\nimport sys\nmod = 1000000007\nINF = float('inf')\ndef st(): return list(sys.stdin.readline().strip())\ndef li(): return list(map(int, sys.stdin.readline().split()))\ndef mp(): return map(int, sys.stdin.readline().split())\ndef inp(): return int(sys.stdin.readline())\ndef pr(n): return sys.stdout.write(str(n)+\"\\n\")\ndef prl(n): return sys.stdout.write(str(n)+\" \")\n\n\nif os.path.exists('input.txt'):\n    sys.stdin = open('input.txt', 'r')\n    sys.stdout = open('output.txt', 'w')\n\ndx = [0, 0, 1, -1]\ndy = [1, -1, 0, 0]\n\n\ndef solve():\n    n, m = mp()\n    k = inp()\n    l = li()\n    q = deque()\n    v = [[0]*(m+1) for i in range(n+1)]\n    for i in range(0, 2*k - 1, 2):\n        q.append((l[i], l[i+1]))\n        v[l[i]][l[i+1]] = 1\n    while q:\n        a, b = q.popleft()\n        for i in range(4):\n            A, B = a+dx[i], b+dy[i]\n            if A > 0 and A <= n and B > 0 and B <= m:\n                if not v[A][B]:\n                    q.append((A, B))\n                    v[A][B] = 1\n    print(a, b)\n\n\nfor _ in range(1):\n    solve()\n",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0888_F_3849",
+    "name": "Codeforces Submission 0888_F",
+    "code": "import sys\nfrom array import array\n\nn = int(input())\nedge = [list(map(int, input().split())) for _ in range(n)]\nmod = 10**9 + 7\n\ndp_f = [array('i', [-1])*n for _ in range(n)]\ndp_g = [array('i', [-1])*n for _ in range(n)]\n\n\nfor i in range(n):\n    dp_f[i][i] = dp_g[i][i] = 1\nfor i in range(n-1):\n    dp_f[i][i+1] = dp_g[i][i+1] = 1 if edge[i][i+1] else 0\n\n\ndef f(l, r):\n    if dp_f[l][r] != -1:\n        return dp_f[l][r]\n\n    dp_f[l][r] = g(l, r) if edge[l][r] else 0\n    for m in range(l+1, r):\n        if edge[l][m]:\n            dp_f[l][r] = (dp_f[l][r] + g(l, m) * f(m, r)) % mod\n\n    return dp_f[l][r]\n\n\ndef g(l, r):\n    if dp_g[l][r] != -1:\n        return dp_g[l][r]\n\n    dp_g[l][r] = f(l+1, r)\n    for m in range(l+1, r):\n        dp_g[l][r] = (dp_g[l][r] + f(l, m) * f(m+1, r)) % mod\n\n    return dp_g[l][r]\n\n\nprint(f(0, n-1))",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "0999_F_3853",
+    "name": "Codeforces Submission 0999_F",
+    "code": "from collections import defaultdict\nimport sys\ninput = sys.stdin.readline\n\nn, k = map(int, input().split())\nc = list(map(int, input().split()))\nf = list(map(int, input().split()))\nh = [0] + list(map(int, input().split()))\ncnt1 = defaultdict(lambda : 0)\nfor i in c:\n    cnt1[i] += 1\ncnt2 = defaultdict(lambda : 0)\nfor i in f:\n    cnt2[i] += 1\nans = 0\nfor i in cnt2:\n    c1, c2 = cnt1[i], cnt2[i]\n    dp0 = [0]\n    l = 1\n    for _ in range(c2):\n        dp = [0] * (l + k)\n        for i in range(l):\n            dp0i = dp0[i]\n            for j in range(k + 1):\n                dp[i + j] = max(dp[i + j], dp0i + h[j])\n        l += k\n        dp0 = dp\n    ans += dp[min(c1, k * c2)]\nprint(ans)",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1027_E_3861",
+    "name": "Codeforces Submission 1027_E",
+    "code": "def norm(x):\n    return (x % 998244353 + 998244353) % 998244353\n\nn, k = map(int, input().split())\n\ndp1 = [0]\ndp2 = [0]\n\nfor i in range(n):\n    l = [1]\n    cur = 0\n    for j in range(n + 1):\n        cur += l[j]\n        if(j > i):\n            cur -= l[j - i - 1]\n        cur = norm(cur)\n        l.append(cur)\n    dp1.append(l[n])\n    dp2.append(norm(dp1[i + 1] - dp1[i]))\n\nans = 0\nfor i in range(n + 1):\n    for j in range(n + 1):\n        if(i * j < k):\n            ans = norm(ans + dp2[i] * dp2[j])\n\nans = norm(ans * 2)\n\nprint(ans)",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1096_E_3872",
+    "name": "Codeforces Submission 1096_E",
+    "code": "c = [[0 for i in range(5205)] for j in range(5205)]\nK = 998244353\ninv = [0 for i in range(5205)]\n\ndef mu(a, n):\n\tif n == 0: return 1\n\tq = mu(a, n // 2)\n\tif n % 2 == 0:\n\t\treturn q * q % K\n\telse: return q * q % K * a % K\n\ndef calc(m, d, S):\n\tres = 0\n\tif m == 0:\n\t\tif S == 0: return 1\n\t\treturn 0\n\n\tfor u in range(0, m + 1):\n\t\tif (u * d > S): break\n\t\tU = c[m][u] * c[S - u * d + m - 1][m - 1] % K \n\t\tif u % 2 == 0:\n\t\t\tres = (res + U) % K\n\t\telse: res = (res - U + K) % K \n\treturn res\n\n\nc[0][0] = 1\ninv[0] = 1\nfor i in range(1, 5101):\n\tinv[i] = mu(i, K - 2)\n\nfor i in range(1, 5101):\n\tc[i][0] = 1\n\tfor j in range (1, i):\n\t\tc[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % K\n\tc[i][i] = 1\n\np, s, r = map(int, input().split())\n\nres = 0\nden = 0\n\nfor i in range(1, p + 1):\n\tA = 0\n\tfor d in range(r, s // i + 1):\n\t\tif (i < p): A = (A + calc(p - i, d, s - d * i)) % K\n\t\telse:\n\t\t\tif (s - i * d == 0): A += 1\n\tA = A * inv[i] % K\n\tres = (res + A * c[p - 1][i - 1] % K) % K\n\nden = c[s - r + p - 1][p - 1]\nres = res * mu(den, K - 2) % K\nprint(res)\n\n\n",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1141_F2_3876",
+    "name": "Codeforces Submission 1141_F2",
+    "code": "from collections import defaultdict\nn = int(input())\na = list(map(int, input().split()))\n\nrec = defaultdict(list)\nfor j in range(n):\n    for k in range(j, n):\n        rec[sum(a[j:k + 1])].append((j, k))\n\nans = []\nfor k in rec.keys():\n    tmp = []\n    rec[k] = sorted(rec[k], key=lambda x: x[1])\n    pre = -1\n    for a, b in rec[k]:\n        if pre >= a:\n            continue\n        else:\n            tmp.append((a + 1, b + 1))\n            pre = b\n    if len(tmp) > len(ans):\n        ans = tmp\n\nprint(len(ans))\nfor a, b in ans:\n    print(a, b)",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1303_E_3880",
+    "name": "Codeforces Submission 1303_E",
+    "code": "from sys import stdin, stdout\n\n\ndef solve(s1, s2, next):\n    # i => s1, j => s2\n    dp = [[INF for _ in range(len(s2)+1)] for _ in range(len(s1)+1)]\n    dp[0][0] = 0\n    for i in range(len(s1)+1):\n        for j in range(len(s2)+1):\n            if dp[i][j] == INF:\n                continue\n\n            if i < len(s1) and dp[i][j] < len(next) and next[dp[i][j]][ord(s1[i]) - ord('a')] < INF:\n                dp[i+1][j] = min(dp[i+1][j], next[dp[i][j]][ord(s1[i]) - ord('a')] + 1)\n            if j < len(s2) and dp[i][j] < len(next) and next[dp[i][j]][ord(s2[j]) - ord('a')] < INF:\n                dp[i][j+1] = min(dp[i][j+1], next[dp[i][j]][ord(s2[j]) - ord('a')] + 1)\n\n    return dp[len(s1)][len(s2)]\n\n\nINF = 1e20\nT = int(stdin.readline())\nfor _ in range(T):\n    s = stdin.readline().strip()\n    rs = stdin.readline().strip()\n    next = [[INF for _ in range(26)] for _ in range(len(s))]\n\n    for i in range(len(s)-1, -1, -1):\n        if i < len(s)-1:\n            for j in range(26):\n                next[i][j] = next[i+1][j]\n        next[i][ord(s[i]) - ord('a')] = i\n\n    found = False\n\n    if len(rs) == 1:\n        if rs in s:\n            found = True\n    else:\n        for p in range(1, len(rs)):\n            s1 = rs[:p]\n            s2 = rs[p:]\n\n            if solve(s1, s2, next) < INF:\n                found = True\n                break\n\n    if found:\n        stdout.write('YES\\n')\n    else:\n        stdout.write('NO\\n')\n\n",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1312_E_3902",
+    "name": "Codeforces Submission 1312_E",
+    "code": "import sys\n\npl=1\n\nif pl:\n\tinput=sys.stdin.readline\nelse:\t\n\tsys.stdin=open('input.txt', 'r')\n\tsys.stdout=open('outpt.txt','w')\n\ndef li():\n\treturn [int(xxx) for xxx in input().split()]\ndef fi():\n\treturn int(input())\ndef si():\n\treturn list(input().rstrip())\t\ndef mi():\n\treturn \tmap(int,input().split())\t\n\n\t\t\nt=1\nwhile t>0:\n\tt-=1\n\tn=fi()\n\ta=li()\n\tdp=[[0]*(n+1) for i in range(n+1)]\n\tfor i in range(n-1,-1,-1):\n\t\tfor j in range(i,n):\n\t\t\tif i==j:\n\t\t\t\tdp[i][j]=a[i]\n\t\t\telif i==j-1:\n\t\t\t\tif a[i]==a[j]:\n\t\t\t\t\tdp[i][j]=a[i]+1\n\t\t\telse:\n\t\t\t\tfor k in range(i,j):\n\t\t\t\t\tif dp[i][k]\tand dp[k+1][j] and dp[i][k]==dp[k+1][j]:\n\t\t\t\t\t\tdp[i][j]=dp[i][k]+1\n\t\t\t\t\t\tbreak\n\tans=[10**18]*(n+1)\n\tans[-1]=0\n\n\tfor i in range(n-1,-1,-1):\n\t\tfor j in range(i,n):\n\t\t\tif dp[i][j]:\n\t\t\t\tans[i]=min(ans[i],1+ans[j+1])\n\t\t\telse:\n\t\t\t\tans[i]=min(ans[i],j-i+1+ans[j+1])\t\t\t\t\t\t\t\t\t\n\tprint(ans[0])\n\t\t\t\n",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1398_D_3967",
+    "name": "Codeforces Submission 1398_D",
+    "code": "from sys import stdin\nnii=lambda:map(int,stdin.readline().split())\nlnii=lambda:list(map(int,stdin.readline().split()))\n\nR,G,B=nii()\nr=lnii()\ng=lnii()\nb=lnii()\n\nr.sort(reverse=True)\ng.sort(reverse=True)\nb.sort(reverse=True)\n\ndp=[[[0]*(B+1) for i in range(G+1)] for j in range(R+1)]\n\nfor i in range(R+1):\n  for j in range(G+1):\n    for k in range(B+1):\n      c=False\n      if i<R and j<G:\n        dp[i+1][j+1][k]=max(dp[i+1][j+1][k],dp[i][j][k]+r[i]*g[j])\n        c=True\n      if j<G and k<B:\n        dp[i][j+1][k+1]=max(dp[i][j+1][k+1],dp[i][j][k]+g[j]*b[k])\n        c=True\n      if k<B and i<R:\n        dp[i+1][j][k+1]=max(dp[i+1][j][k+1],dp[i][j][k]+b[k]*r[i])\n        c=True\n\n      if not c:\n        if i<R:\n          dp[i+1][j][k]=max(dp[i+1][j][k],dp[i][j][k])\n        if j<G:\n          dp[i][j+1][k]=max(dp[i][j+1][k],dp[i][j][k])\n        if k<B:\n          dp[i][j][k+1]=max(dp[i][j][k+1],dp[i][j][k])\n\nans=0\nfor i in dp:\n  for j in i:\n    ans=max(ans,max(j))\n\nprint(ans)",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1437_F_4099",
+    "name": "Codeforces Submission 1437_F",
+    "code": "import sys\ninput = sys.stdin.readline\nn = int(input())\na = list(map(int, input().split()))\nmod = 998244353\na.sort()\ndp = [1] + [0] * n\nfor i in range(1, n + 1):\n    x, pt = 1, i - 2\n    while pt >= 0 and 2 * a[pt] > a[i - 1]:\n        x = x * (n - pt - 2) % mod\n        pt -= 1\n    dp[i] = (dp[i - 1] * (n - i) + dp[pt + 1] * x) % mod\nprint(dp[-1])",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1497_E2_4113",
+    "name": "Codeforces Submission 1497_E2",
+    "code": "import io,os,bisect\ninput = io.BytesIO(os.read(0, os.fstat(0).st_size)).readline\nprime = [2]\n\nfor i in range(3,4*10**3,2):\n    flag = False\n    if i%2==0: continue \n    for j in range(3,int(i**0.5)+1,2):\n        if i%j==0: \n            flag = True \n            break\n    if not flag:  prime.append(i)\n\ndef primefactor(num):\n\n    index = 0\n    output = []\n\n    while num>=prime[index]**2:\n\n        times = 0\n        while num%prime[index]==0:\n            num = num // prime[index]\n            times += 1\n        if times&1:  output.append(prime[index])\n        index += 1 \n\n    if num>1: output.append(num)\n\n\n    return tuple(output)\n\nfor _ in range(int(input())):\n    n,k = map(int,input().split());arr = list(map(int,input().split()));seg = 1;fact = {};left = [[0 for j in range(k+1)] for i in range(n)];dp = [[300000 for j in range(k+1)] for i in range(n)];stack = [0]\n    for i in range(n):\n        factor = primefactor(arr[i])\n        if factor in fact:            bisect.insort(stack,fact[factor]+1)            \n        fact[factor] = i\n        for j in range(k+1):\n            if j<len(stack):  left[i][j] = stack[-j-1]\n    for i in range(n):\n        for j in range(k+1):\n            for t in range(j+1):l = left[i][t];dp[i][j] = (min(dp[l-1][j-t] + 1, dp[i][j]) if l > 0 else 1)\n    print(dp[-1][-1])   ",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1515_E_4128",
+    "name": "Codeforces Submission 1515_E",
+    "code": "#   Author: yumtam\n#   Created at: 2021-05-03 00:42\n\nfrom __pypy__.intop import int_mulmod\n\nn_, MOD = [int(t) for t in input().split()]\n\ndef mul(a, b):\n    return int_mulmod(a, b, MOD)\n\nN = 410\ndp = [[0] * (N+1) for _ in range(N+1)]\n\nfact = [1]\nfor x in range(1, N):\n    fact.append(fact[-1] * x % MOD)\n\ninv_fact = [0] * N\ninv_fact[-1] = pow(fact[-1], MOD - 2, MOD)\nfor x in reversed(range(1, N)):\n    inv_fact[x - 1] = inv_fact[x] * x % MOD\n\ndef nCr(n, r):\n    return mul(fact[n], mul(inv_fact[n-r], inv_fact[r]))\n\nfor n in range(1, N+1):\n    dp[n][n] = pow(2, n-1, MOD)\n    for i in range(1, n-1):\n        j = n-i-1\n        for k in range(1, i+1):\n            dp[n][k+j] = (dp[n][k+j]\n                          + mul(nCr(k+j, k), mul(dp[i][k], dp[j][j]))) % MOD\n\nprint(sum(dp[n_]) % MOD)\n",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "1517_D_4156",
+    "name": "Codeforces Submission 1517_D",
+    "code": "n, m, k = map(int, input().split())\nreb1 = [list(map(int, input().split())) for i in range(n)]\nreb2 = [list(map(int, input().split())) for i in range(n - 1)]\nif k % 2:\n    for i in range(n):\n        for j in range(m):\n            print(-1, end=\" \")\n        print()\n    exit(0)\nminsum = [[0] * m for i in range(n)]\nnminsum = [[0] * m for i in range(n)]\nfor it in range(k // 2):\n    for i in range(n):\n        for j in range(m):\n            cmin = 1000000000010\n            if i != 0:\n                cmin = min(cmin, minsum[i - 1][j] + reb2[i - 1][j])\n            if i != n - 1:\n                cmin = min(cmin, minsum[i + 1][j] + reb2[i][j])\n            if j != 0:\n                cmin = min(cmin, minsum[i][j - 1] + reb1[i][j - 1])\n            if j != m - 1:\n                cmin = min(cmin, minsum[i][j + 1] + reb1[i][j])\n            nminsum[i][j] = cmin\n    for i in range(n):\n        for j in range(m):\n            minsum[i][j] = nminsum[i][j]\nfor i in minsum:\n    for j in i:\n        print(j * 2, end=\" \")\n    print()\n            \n",
+    "expected_overall_time": "O(n^3)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  }
+]

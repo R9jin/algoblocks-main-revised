@@ -470,7 +470,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const state = latestStateRef.current;
     if (!state.userId || (state.pythonCode === "# Drag blocks to generate Python code" && (!state.json || Object.keys(state.json).length === 0))) return;
 
-    // Database payload includes initial_aes and final_aes for ROG tracking
     const payload = {
       userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity", status: state.status || "draft",
       score: state.score, maxScore: 100, 
@@ -748,7 +747,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       const subId = `${latestStateRef.current.userId}_${moduleId}_${act.id}`;
       try {
         const sub = await submissionsDB.getItem(subId);
-        // Using 50% as a baseline to mean "they passed the functional part" to advance.
         if (sub && (sub.score >= 50 || sub.status === "passed" || sub.passed_tests > 0)) passedCount++;
       } catch(e) {}
     }
@@ -862,12 +860,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     let aes = 0;
     const functionalAccuracy = functionalTotal > 0 ? (functionalPassed / functionalTotal) : 0;
 
-    // Constraint 1: A_score MUST be 100% for full complexity evaluation.
     if (functionalAccuracy < 1.0) {
-      // If code is functionally incorrect, cap score strictly based on logical accuracy (max 50%)
       aes = Math.floor(functionalAccuracy * 50);
     } else {
-      // Functional tests passed. Calculate AES based on the Objective Function.
       const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
       const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
       
@@ -877,14 +872,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       const safeActualTime = actualTimeWeight > 0 ? actualTimeWeight : 10; 
       const safeActualSpace = actualSpaceWeight > 0 ? actualSpaceWeight : 10;
 
-      // Calculate ratios (Target / Actual). Cap at 1.0 (100%) so they don't get bonus points for over-optimizing.
       let timeRatio = targetTimeWeight / safeActualTime;
       if (timeRatio > 1.0) timeRatio = 1.0; 
 
       let spaceRatio = targetSpaceWeight / safeActualSpace;
       if (spaceRatio > 1.0) spaceRatio = 1.0;
 
-      // Final AES: Average of Time and Space efficiency converted to a 0-100 score
       const averageEfficiency = (timeRatio + spaceRatio) / 2;
       aes = Math.round(averageEfficiency * 100);
     }
@@ -893,12 +886,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     let initialAes = latestStateRef.current.initial_aes;
     let finalAes = latestStateRef.current.final_aes;
     
-    // We only begin tracking ROG once the functional accuracy constraint is satisfied (100%)
     if (functionalAccuracy === 1.0) {
         if (initialAes === null || initialAes === undefined) {
-            initialAes = aes; // This is their very first successful completion
+            initialAes = aes; 
         }
-        finalAes = Math.max(finalAes || 0, aes); // Track highest optimized score
+        finalAes = Math.max(finalAes || 0, aes); 
     }
 
     latestStateRef.current.initial_aes = initialAes;
@@ -914,7 +906,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, aes);
 
-    // Prompt user on successful evaluation
     await handleSuccess(aes, functionalPassed, functionalTotal, currentRog);
   };
 
