@@ -16,11 +16,45 @@ class Token(BaseModel):
     token_type: str
     user: Dict[str, Any]
 
+class GoogleLoginRequest(BaseModel):
+    token: str
+
 class ProgressUpdate(BaseModel):
-    email: str
+    email: Optional[str] = None
     lesson_id: str
     score: float
     completed: Optional[bool] = False
+
+class AssessmentUpdateRequest(BaseModel):
+    email: Optional[str] = None
+    assessment_key: str
+    score: float
+    correct: int
+    total: int
+    timeElapsed: int
+    completedAt: str
+    attempts: int
+
+class ProjectSyncRequest(BaseModel):
+    userId: Optional[str] = None
+    projectId: str
+    title: Optional[str] = "Untitled Project"
+    description: Optional[str] = ""
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: Optional[str] = ""
+    timestamp: Optional[int] = None
+    isSynced: Optional[bool] = False
+
+# FIX: Added TemplateSyncRequest to resolve template_router import error
+class TemplateSyncRequest(BaseModel):
+    templateId: str
+    title: Optional[str] = "Untitled Template"
+    description: Optional[str] = ""
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: Optional[str] = ""
+    userId: Optional[str] = None
+    timestamp: Optional[int] = None
+    isSynced: Optional[bool] = False
 
 class ActivitySubmission(BaseModel):
     userId: str
