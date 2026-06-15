@@ -187,6 +187,27 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 .total-label { font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: inherit; opacity: 0.8;}
 .total-val { font-weight: bold; font-size: 1.1rem; }
 
+/* AES & ROG Badges */
+.aes-badge { background: var(--purple-alpha); border: 1px solid rgba(121, 40, 202, 0.3); color: var(--purple-main); }
+.aes-badge .total-label { color: var(--purple-main); }
+.rog-badge { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669; }
+.rog-badge .total-label { color: #059669; }
+
+/* Interactive Hover Tooltips */
+.info-tooltip { position: relative; display: inline-flex; align-items: center; margin-left: 6px; cursor: help; color: inherit; opacity: 0.7; transition: opacity 0.2s; }
+.info-tooltip:hover { opacity: 1; }
+
+.tooltip-text { 
+    visibility: hidden; opacity: 0; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%) translateY(5px);
+    background-color: var(--dark-surface); color: var(--text-on-dark); text-align: left; padding: 12px 16px; border-radius: 8px;
+    width: 240px; font-size: 0.8rem; font-family: 'Inter', sans-serif; font-weight: normal; letter-spacing: normal; text-transform: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.2s ease; z-index: 1000; border: 1px solid var(--dark-border); pointer-events: none;
+}
+.info-tooltip:hover .tooltip-text { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
+.tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--dark-surface) transparent transparent transparent; }
+.tooltip-title { display: block; font-weight: bold; margin-bottom: 6px; color: #FFFFFF; font-size: 0.85rem;}
+
+
 .complexity-table-wrapper { flex: 1; overflow-y: auto; background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-light); padding: 0;}
 .complexity-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
 .complexity-table th { padding: 12px 16px; color: var(--text-muted); background: var(--app-bg); font-weight: 800; letter-spacing: 0.5px; font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border-light); position: sticky; top: 0; z-index: 2;}

@@ -199,9 +199,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const testRejectRef = useRef(null);
   const outputAccumulatorRef = useRef("");
 
-  // =========================================================================
-  // STATE MANAGEMENT: Tracking AES and ROG
-  // =========================================================================
   const latestStateRef = useRef({
     userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
     score: 0, passed: 0, testResults: [], actualTime: "O(n^2)", actualSpace: "O(1)",
@@ -210,6 +207,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   });
 
   const [currentAes, setCurrentAes] = useState(0);
+  const [currentRog, setCurrentRog] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -538,15 +536,25 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             const pythonCode = finalSubmissionToLoad.pythonCode;
             latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode;
             latestStateRef.current.score = finalSubmissionToLoad.score || 0;
-            latestStateRef.current.initial_aes = finalSubmissionToLoad.initial_aes || null;
-            latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes || null;
+            
+            // FIX: Use ?? instead of || null to prevent numeric 0 from being wiped out
+            latestStateRef.current.initial_aes = finalSubmissionToLoad.initial_aes ?? null;
+            latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes ?? null;
             latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
 
-            // Set UI specific state
+            // Initialize AES and ROG logic for UI
             let loadedScore = finalSubmissionToLoad.score || 0;
             if (finalSubmissionToLoad.maxScore === 5 && loadedScore <= 5) loadedScore = (loadedScore / 5) * 100;
-            setCurrentAes(Math.min(loadedScore, 100));
+            
+            const computedAes = Math.min(loadedScore, 100);
+            setCurrentAes(computedAes);
+
+            const loadedInitAes = finalSubmissionToLoad.initial_aes ?? null;
+            if (loadedInitAes !== null) {
+              const calcRog = computedAes - loadedInitAes;
+              setCurrentRog(calcRog > 0 ? calcRog : 0);
+            }
 
             setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(json || {}, pythonCode); }, 400);
             if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") setGeneratedPython(pythonCode);
@@ -898,15 +906,26 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     let initialAes = latestStateRef.current.initial_aes;
 
     if (initialAes === null || initialAes === undefined) {
+      // FIX: If the user starts an optimization activity, they begin with a functional 
+      // but sub-optimal template. We assign a baseline AES of 50 so that if they 
+      // optimize it on their very first run, the ROG calculates correctly.
+      if (activityDataResolved?.type === "optimization") {
+        initialAes = 50;
+      } else {
+        initialAes = aes;
+      }
+    }
+
+    // Drop initialAes if they break the code and get a lower score, establishing a new floor
+    if (aes < initialAes && latestStateRef.current.status !== "passed") {
       initialAes = aes;
     }
 
-    let currentAes = aes;
-
     latestStateRef.current.initial_aes = initialAes;
-    latestStateRef.current.final_aes = currentAes;
+    latestStateRef.current.final_aes = aes;
 
-    const currentRog = currentAes - initialAes;
+    const calculatedRog = aes - initialAes;
+    setCurrentRog(calculatedRog > 0 ? calculatedRog : 0);
 
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
 
@@ -916,7 +935,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const lessonKey = `${moduleId}:${activityId}`;
     await savePartialProgress(lessonKey, aes);
 
-    await handleSuccess(aes, functionalPassed, functionalTotal, currentRog);
+    await handleSuccess(aes, functionalPassed, functionalTotal, calculatedRog);
   };
 
   const lines = analysisResult?.lines || []; let maxWeight = 0; let bottleneckIndices = [];
@@ -1128,18 +1147,33 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                         <span className="total-badge total-time-badge"><span className="total-label">Total Time:</span> <span className="total-val">{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge total-space-badge"><span className="total-label space-label">Total Space:</span> <span className="total-val">{formatComplexity(analysisResult.space_total)}</span></span>
 
-                        {/* THESIS METHODOLOGY: CURRENT AES BADGE WITH TOOLTIP */}
-                        <span className="total-badge" style={{ backgroundColor: "var(--purple-alpha)", color: "var(--purple-main)", border: "1px solid rgba(121,40,202,0.3)" }}>
-                          <span className="total-label" style={{ color: "var(--purple-main)" }}>AES:</span>
+                        {/* THESIS METHODOLOGY: AES BADGE */}
+                        <span className="total-badge aes-badge">
+                          <span className="total-label">AES:</span>
                           <span className="total-val">{currentAes}%</span>
-                          <div className="info-tooltip" style={{ marginLeft: "4px" }}>
+                          <div className="info-tooltip">
                             <FiInfo size={14} />
-                            <span className="tooltip-text" style={{ bottom: "100%", top: "auto", transform: "translateX(-85%)" }}>
+                            <span className="tooltip-text">
                               <span className="tooltip-title">Algorithmic Efficiency Score</span>
-                              Your current complexity vs the target complexity.
+                              Measures how efficiently your code solves the problem compared to the target optimal Time and Space complexity.
                             </span>
                           </div>
                         </span>
+
+                        {/* THESIS METHODOLOGY: ROG BADGE (Only shows when user refactored efficiently) */}
+                        {currentRog > 0 && (
+                          <span className="total-badge rog-badge">
+                            <span className="total-label">ROG:</span>
+                            <span className="total-val">+{currentRog}</span>
+                            <div className="info-tooltip">
+                              <FiInfo size={14} />
+                              <span className="tooltip-text">
+                                <span className="tooltip-title">Refactoring Optimization Gain</span>
+                                Points earned by refactoring and improving your initial solution's performance. Great job!
+                              </span>
+                            </div>
+                          </span>
+                        )}
 
                       </div>
                     </div>
