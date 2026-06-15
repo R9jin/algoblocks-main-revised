@@ -14,68 +14,66 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user: Dict[str, Any]
 
-class GoogleLoginRequest(BaseModel):
-    token: str
+class ProgressUpdate(BaseModel):
+    email: str
+    lesson_id: str
+    score: float
+    completed: Optional[bool] = False
 
-class ProjectSyncRequest(BaseModel):
-    projectId: Optional[str] = None
-    userId: str
-    name: str
-    description: Optional[str] = ""
-    workspace: Dict[str, Any]
-    pythonCode: Optional[str] = ""
-
-class TemplateSyncRequest(BaseModel):
-    templateId: Optional[str] = None
-    userId: str
-    name: str
-    description: Optional[str] = ""
-    category: Optional[str] = "Custom Templates"
-    workspace: Dict[str, Any]
-
-class SubmissionSyncRequest(BaseModel):
+class ActivitySubmission(BaseModel):
     userId: str
     moduleId: str
     activityId: str
-    type: Optional[str] = "activity"
-    status: Optional[str] = "draft"
-    score: int
-    maxScore: int
+    type: str = "activity"
+    status: str = "draft"
+    score: float = 0
+    maxScore: float = 100
     
-    # --- THESIS METHODOLOGY METRICS ---
-    initial_aes: Optional[int] = None
-    final_aes: Optional[int] = None
-    rog: Optional[int] = None
-    # ----------------------------------
+    # Original naming conventions preserved
+    passedTestCases: int = 0
+    totalTestCases: int = 0
     
-    passedTestCases: int
-    totalTestCases: int
+    # Safe catches for the new App.jsx duplicates to prevent 422 Unprocessable Entity
     passed_tests: Optional[int] = 0
     total_tests: Optional[int] = 0
-    testCases: Optional[List[Any]] = []
+    
+    # New continuous metrics safely integrated
+    initial_aes: Optional[float] = None
+    final_aes: Optional[float] = None
+    rog: Optional[float] = 0.0
+
+    testCases: Optional[List[Dict[str, Any]]] = []
     target_complexity: Optional[str] = "O(n)"
     actual_complexity: Optional[str] = "O(n^2)"
     target_space_complexity: Optional[str] = "O(1)"
     actual_space_complexity: Optional[str] = "O(1)"
-    workspace: Dict[str, Any]
-    pythonCode: str
-    timestamp: float
-    submittedAt: str
-    isSynced: bool
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: str = ""
+    timestamp: Optional[int] = None
+    submittedAt: Optional[str] = None
+    isSynced: Optional[bool] = False
 
-class ProgressUpdateRequest(BaseModel):
-    email: str
-    lesson_id: str
-    score: int
-    completed: Optional[bool] = False
+class AssessmentSubmission(BaseModel):
+    userId: str
+    assessmentId: str
+    score: float
+    maxScore: float
+    passed: bool
+    answers: Dict[str, Any]
+    timestamp: Optional[int] = None
 
-class AssessmentUpdateRequest(BaseModel):
-    email: str
-    assessment_key: str
-    score: int
-    correct: int
-    total: int
-    timeElapsed: int
-    completedAt: str
-    attempts: int
+class GuestProgressUpdate(BaseModel):
+    session_id: str
+    progress_data: Dict[str, Any]
+
+class BatchSyncPayload(BaseModel):
+    progress: Optional[List[Dict[str, Any]]] = []
+    submissions: Optional[List[Dict[str, Any]]] = []
+    assessments: Optional[List[Dict[str, Any]]] = []
+
+class SyncResponse(BaseModel):
+    status: str
+    message: str
+    synced_items: int
