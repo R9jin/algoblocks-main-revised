@@ -31,15 +31,17 @@ class ActivitySubmission(BaseModel):
     score: float = 0
     maxScore: float = 100
     
-    # Original naming conventions preserved
+    # Original Legacy Tracking (Preserved for backwards compatibility with Dashboard)
     passedTestCases: int = 0
     totalTestCases: int = 0
-    
-    # Safe catches for the new App.jsx duplicates to prevent 422 Unprocessable Entity
     passed_tests: Optional[int] = 0
     total_tests: Optional[int] = 0
     
-    # New continuous metrics safely integrated
+    # THESIS METRICS: Pure Functional Tracking for accurate TSR
+    functional_passed: Optional[int] = 0
+    functional_total: Optional[int] = 0
+    
+    # THESIS METRICS: Continuous Scoring
     initial_aes: Optional[float] = None
     final_aes: Optional[float] = None
     rog: Optional[float] = 0.0
