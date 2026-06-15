@@ -23,10 +23,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "reverse_in_place([1, 2, 3, 4])", "expected": "[4, 3, 2, 1]", "isHidden": false },
-        { "call": "reverse_in_place([10, 20, 30])", "expected": "[30, 20, 10]", "isHidden": false },
-        { "call": "reverse_in_place([5])", "expected": "[5]", "isHidden": true },
-        { "call": "reverse_in_place([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "reverse_in_place([1, 2, 3, 4])",
+          "expected": "[4, 3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "reverse_in_place([10, 20, 30])",
+          "expected": "[30, 20, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "reverse_in_place([5])",
+          "expected": "[5]",
+          "isHidden": true
+        },
+        {
+          "call": "reverse_in_place([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -52,10 +68,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "segregate_evens([3, 1, 2, 4])", "expected": "[4, 2, 1, 3]", "isHidden": false },
-        { "call": "segregate_evens([5, 8])", "expected": "[8, 5]", "isHidden": false },
-        { "call": "segregate_evens([2, 4])", "expected": "[2, 4]", "isHidden": true },
-        { "call": "segregate_evens([1, 3])", "expected": "[1, 3]", "isHidden": true }
+        {
+          "call": "segregate_evens([3, 1, 2, 4])",
+          "expected": "[4, 2, 1, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "segregate_evens([5, 8])",
+          "expected": "[8, 5]",
+          "isHidden": false
+        },
+        {
+          "call": "segregate_evens([2, 4])",
+          "expected": "[2, 4]",
+          "isHidden": true
+        },
+        {
+          "call": "segregate_evens([1, 3])",
+          "expected": "[1, 3]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -78,9 +110,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "two_sum_sorted([1, 2, 3, 4, 6], 6)", "expected": "[1, 3]", "isHidden": false },
-        { "call": "two_sum_sorted([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "two_sum_sorted([1, 5, 9], 10)", "expected": "[0, 2]", "isHidden": true }
+        {
+          "call": "two_sum_sorted([1, 2, 3, 4, 6], 6)",
+          "expected": "[1, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "two_sum_sorted([2, 7, 11, 15], 9)",
+          "expected": "[0, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "two_sum_sorted([1, 5, 9], 10)",
+          "expected": "[0, 2]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -103,9 +147,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "move_zeroes([0, 1, 0, 3, 12])", "expected": "[1, 3, 12, 0, 0]", "isHidden": false },
-        { "call": "move_zeroes([0, 0, 1])", "expected": "[1, 0, 0]", "isHidden": false },
-        { "call": "move_zeroes([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": true }
+        {
+          "call": "move_zeroes([0, 1, 0, 3, 12])",
+          "expected": "[1, 3, 12, 0, 0]",
+          "isHidden": false
+        },
+        {
+          "call": "move_zeroes([0, 0, 1])",
+          "expected": "[1, 0, 0]",
+          "isHidden": false
+        },
+        {
+          "call": "move_zeroes([1, 2, 3])",
+          "expected": "[1, 2, 3]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -128,10 +184,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "check_palindrome('racecar')", "expected": "True", "isHidden": false },
-        { "call": "check_palindrome('hello')", "expected": "False", "isHidden": false },
-        { "call": "check_palindrome('noon')", "expected": "False", "isHidden": true },
-        { "call": "check_palindrome('a')", "expected": "True", "isHidden": true }
+        {
+          "call": "check_palindrome('racecar')",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "check_palindrome('hello')",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "check_palindrome('noon')",
+          "expected": "False",
+          "isHidden": true
+        },
+        {
+          "call": "check_palindrome('a')",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -159,9 +231,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "max_weekend_sales([100, 200, 300, 400, 500])", "expected": "1200", "isHidden": false },
-        { "call": "max_weekend_sales([500, 100, 100, 500, 500])", "expected": "1100", "isHidden": false },
-        { "call": "max_weekend_sales([10, 10, 10])", "expected": "30", "isHidden": true }
+        {
+          "call": "max_weekend_sales([100, 200, 300, 400, 500])",
+          "expected": "1200",
+          "isHidden": false
+        },
+        {
+          "call": "max_weekend_sales([500, 100, 100, 500, 500])",
+          "expected": "1100",
+          "isHidden": false
+        },
+        {
+          "call": "max_weekend_sales([10, 10, 10])",
+          "expected": "30",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -184,9 +268,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "max_sunny_week(['Sunny', 'Rain', 'Sunny', 'Sunny', 'Cloudy', 'Sunny', 'Rain', 'Sunny', 'Sunny', 'Sunny'])", "expected": "5", "isHidden": false },
-        { "call": "max_sunny_week(['Rain', 'Rain', 'Rain', 'Rain', 'Rain', 'Rain', 'Rain'])", "expected": "0", "isHidden": false },
-        { "call": "max_sunny_week(['Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny'])", "expected": "7", "isHidden": true }
+        {
+          "call": "max_sunny_week(['Sunny', 'Rain', 'Sunny', 'Sunny', 'Cloudy', 'Sunny', 'Rain', 'Sunny', 'Sunny', 'Sunny'])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "max_sunny_week(['Rain', 'Rain', 'Rain', 'Rain', 'Rain', 'Rain', 'Rain'])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "max_sunny_week(['Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny'])",
+          "expected": "7",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -208,9 +304,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "max_average([1, 12, -5, -6, 50, 3])", "expected": "10.5", "isHidden": false },
-        { "call": "max_average([5, 5, 5, 5])", "expected": "5.0", "isHidden": false },
-        { "call": "max_average([-1, -2, -3, -4])", "expected": "-2.5", "isHidden": true }
+        {
+          "call": "max_average([1, 12, -5, -6, 50, 3])",
+          "expected": "10.5",
+          "isHidden": false
+        },
+        {
+          "call": "max_average([5, 5, 5, 5])",
+          "expected": "5.0",
+          "isHidden": false
+        },
+        {
+          "call": "max_average([-1, -2, -3, -4])",
+          "expected": "-2.5",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -233,9 +341,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "count_good_windows([20, 50, 40, 10, 80])", "expected": "2", "isHidden": false },
-        { "call": "count_good_windows([10, 10, 10, 10])", "expected": "0", "isHidden": false },
-        { "call": "count_good_windows([100, 100, 100])", "expected": "1", "isHidden": true }
+        {
+          "call": "count_good_windows([20, 50, 40, 10, 80])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "count_good_windows([10, 10, 10, 10])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "count_good_windows([100, 100, 100])",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -258,9 +378,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "dynamic_fixed_window([10, 20, 30, 40], 2)", "expected": "70", "isHidden": false },
-        { "call": "dynamic_fixed_window([1, 2, 3, 4], 4)", "expected": "10", "isHidden": false },
-        { "call": "dynamic_fixed_window([5, 5], 5)", "expected": "0", "isHidden": true }
+        {
+          "call": "dynamic_fixed_window([10, 20, 30, 40], 2)",
+          "expected": "70",
+          "isHidden": false
+        },
+        {
+          "call": "dynamic_fixed_window([1, 2, 3, 4], 4)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "dynamic_fixed_window([5, 5], 5)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -289,9 +421,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "shortest_streak([2, 3, 1, 2, 4, 3], 7)", "expected": "2", "isHidden": false },
-        { "call": "shortest_streak([1, 4, 4], 4)", "expected": "1", "isHidden": false },
-        { "call": "shortest_streak([1, 1, 1], 10)", "expected": "0", "isHidden": true }
+        {
+          "call": "shortest_streak([2, 3, 1, 2, 4, 3], 7)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "shortest_streak([1, 4, 4], 4)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "shortest_streak([1, 1, 1], 10)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -314,9 +458,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "longest_spree([1, 2, 3, 4, 5], 7)", "expected": "3", "isHidden": false },
-        { "call": "longest_spree([10, 20, 30], 5)", "expected": "0", "isHidden": false },
-        { "call": "longest_spree([5, 5, 5, 5], 10)", "expected": "2", "isHidden": true }
+        {
+          "call": "longest_spree([1, 2, 3, 4, 5], 7)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "longest_spree([10, 20, 30], 5)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "longest_spree([5, 5, 5, 5], 10)",
+          "expected": "2",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -339,9 +495,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "longest_sunny(['Sunny', 'Sunny', 'Rain', 'Sunny', 'Sunny', 'Sunny'])", "expected": "3", "isHidden": false },
-        { "call": "longest_sunny(['Rain', 'Rain'])", "expected": "0", "isHidden": false },
-        { "call": "longest_sunny(['Sunny', 'Rain', 'Sunny'])", "expected": "1", "isHidden": true }
+        {
+          "call": "longest_sunny(['Sunny', 'Sunny', 'Rain', 'Sunny', 'Sunny', 'Sunny'])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "longest_sunny(['Rain', 'Rain'])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "longest_sunny(['Sunny', 'Rain', 'Sunny'])",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -364,34 +532,59 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "longest_attendance(['Present', 'Present', 'Absent', 'Present', 'Absent', 'Present'])", "expected": "4", "isHidden": false },
-        { "call": "longest_attendance(['Absent', 'Absent', 'Absent'])", "expected": "1", "isHidden": false },
-        { "call": "longest_attendance(['Present', 'Present'])", "expected": "2", "isHidden": true }
+        {
+          "call": "longest_attendance(['Present', 'Present', 'Absent', 'Present', 'Absent', 'Present'])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "longest_attendance(['Absent', 'Absent', 'Absent'])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "longest_attendance(['Present', 'Present'])",
+          "expected": "2",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l3_a5",
-      "title": "Dynamic Window: Only Two Types of Candies",
+      "title": "Dynamic Window: The Alternating Streak",
       "task": [
-        "You are walking down a line of candies. You can take the longest streak possible, but your hands can only hold exactly 2 unique types of candies.",
+        "Let's find the longest streak of numbers that perfectly alternate between Even and Odd (e.g., [2, 3, 8, 7]).",
         "",
         "Instructions:",
-        "1. Define `two_candies(arr)`. Create a dictionary `candy_counts` to track types, `left = 0`, and `max_len = 0`.",
-        "2. Loop `right` through the array. Add the candy `arr[right]` to your dictionary tally.",
-        "3. While the number of unique keys in your dictionary is `> 2`, shrink the window! Subtract 1 from the tally of `arr[left]`.",
-        "4. CRITICAL: If the tally of `arr[left]` hits 0, you must DELETE that key from the dictionary entirely. Add 1 to `left`.",
-        "5. Update `max_len` with `right - left + 1`. Return `max_len`."
+        "1. Define `longest_alternating(arr)`. Set `left = 0` and `max_len = 1`. (If the array is empty, return 0).",
+        "2. Loop `right` from index 1 to the end of the array.",
+        "3. Check the pattern: If `arr[right] % 2` is exactly the same as `arr[right - 1] % 2`, the alternating rule is broken!",
+        "4. When the rule breaks, the window collapses. Snap the `left` pointer directly to the `right` pointer.",
+        "5. If the rule didn't break, update `max_len` with the window size (`right - left + 1`).",
+        "6. Return `max_len`."
       ],
       "hints": [
-        "Hint 1: You can check how many unique keys are in a dictionary by getting the keys and checking the length.",
-        "Hint 2: If a candy tally drops to 0, it means that candy is no longer in your window. You must remove it from the dictionary so the unique key count drops back to 2!"
+        "Hint 1: You only need to compare the current number to the number immediately behind it.",
+        "Hint 2: When two even numbers or two odd numbers sit next to each other, the streak dies, and a brand new streak begins at the current index."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(k)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "two_candies(['Red', 'Blue', 'Red', 'Green', 'Green', 'Red'])", "expected": "3", "isHidden": false },
-        { "call": "two_candies(['Red', 'Red', 'Red'])", "expected": "3", "isHidden": false },
-        { "call": "two_candies(['Red', 'Blue', 'Green', 'Yellow'])", "expected": "2", "isHidden": true }
+        {
+          "call": "longest_alternating([2, 3, 4, 5, 2])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "longest_alternating([2, 4, 6, 8])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "longest_alternating([1, 2, 3, 3, 4, 5])",
+          "expected": "3",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -419,10 +612,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "running_sum([1, 2, 3, 4])", "expected": "[1, 3, 6, 10]", "isHidden": false },
-        { "call": "running_sum([5, 5, 5])", "expected": "[5, 10, 15]", "isHidden": false },
-        { "call": "running_sum([10])", "expected": "[10]", "isHidden": true },
-        { "call": "running_sum([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "running_sum([1, 2, 3, 4])",
+          "expected": "[1, 3, 6, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "running_sum([5, 5, 5])",
+          "expected": "[5, 10, 15]",
+          "isHidden": false
+        },
+        {
+          "call": "running_sum([10])",
+          "expected": "[10]",
+          "isHidden": true
+        },
+        {
+          "call": "running_sum([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -444,9 +653,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "range_sum([1, 3, 6, 10, 15], 1, 3)", "expected": "9", "isHidden": false },
-        { "call": "range_sum([1, 3, 6, 10, 15], 0, 2)", "expected": "6", "isHidden": false },
-        { "call": "range_sum([5, 10, 15], 2, 2)", "expected": "5", "isHidden": true }
+        {
+          "call": "range_sum([1, 3, 6, 10, 15], 1, 3)",
+          "expected": "9",
+          "isHidden": false
+        },
+        {
+          "call": "range_sum([1, 3, 6, 10, 15], 0, 2)",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "range_sum([5, 10, 15], 2, 2)",
+          "expected": "5",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -470,9 +691,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "find_pivot([1, 7, 3, 6, 5, 6])", "expected": "3", "isHidden": false },
-        { "call": "find_pivot([1, 2, 3])", "expected": "-1", "isHidden": false },
-        { "call": "find_pivot([2, 1, -1])", "expected": "0", "isHidden": true }
+        {
+          "call": "find_pivot([1, 7, 3, 6, 5, 6])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "find_pivot([1, 2, 3])",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "find_pivot([2, 1, -1])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -495,9 +728,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "largest_altitude([-5, 1, 5, 0, -7])", "expected": "1", "isHidden": false },
-        { "call": "largest_altitude([4, -3, 2, -1, -2])", "expected": "4", "isHidden": false },
-        { "call": "largest_altitude([-1, -2, -3])", "expected": "0", "isHidden": true }
+        {
+          "call": "largest_altitude([-5, 1, 5, 0, -7])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "largest_altitude([4, -3, 2, -1, -2])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "largest_altitude([-1, -2, -3])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -520,61 +765,92 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "ways_to_split([10, 4, -8, 7])", "expected": "2", "isHidden": false },
-        { "call": "ways_to_split([2, 3, 1, 0])", "expected": "2", "isHidden": false },
-        { "call": "ways_to_split([1, 1, 1, 1, 1])", "expected": "0", "isHidden": true }
+        {
+          "call": "ways_to_split([10, 4, -8, 7])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "ways_to_split([2, 3, 1, 0])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "ways_to_split([1, 1, 1, 1, 1])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
-  "optimizations": [
+  {
+    "id": "m5_opt_1",
+    "title": "Optimization Challenge: Maximum Water Area",
+    "task": [
+      "You are given an array representing heights of vertical walls. We want to find the two walls that hold the most water between them.",
+      "Checking every possible pair of walls takes O(n²) time. Let's optimize this to O(n) using Two Pointers!",
+      "",
+      "Optimization Guidelines:",
+      "1. Start `left` at 0 and `right` at the end of the array. Set `max_area = 0`.",
+      "2. Loop while `left < right`.",
+      "3. Calculate the area: The width is `right - left`. The height is the smaller of the two walls (`min(arr[left], arr[right])`). Area = width * height.",
+      "4. Update `max_area` if this area is larger.",
+      "5. The Optimization Trick: To find a potentially taller container, move the pointer that is pointing to the SHORTER wall inward. (If left is shorter, left += 1. Else right -= 1).",
+      "6. Return `max_area`."
+    ],
+    "targetTime": "O(n)",
+    "targetSpace": "O(1)",
+    "templateUrl": "/data/optimizations/m5-5.3.json",
+    "testCasesPool": [
+      {
+        "call": "max_water([1, 8, 6, 2, 5, 4, 8, 3, 7])",
+        "expected": "49",
+        "isHidden": false
+      },
+      {
+        "call": "max_water([1, 1])",
+        "expected": "1",
+        "isHidden": false
+      },
+      {
+        "call": "max_water([4, 3, 2, 1, 4])",
+        "expected": "16",
+        "isHidden": true
+      }
+    ]
+  }
     {
-      "id": "m5_opt_1",
-      "title": "Optimization Challenge: Avoiding Nested Loops",
-      "task": [
-        "Finding an exact subarray sum usually takes two slow loops (O(n²)). We can use a Dictionary and the Prefix Sum trick to do it in one blazing fast pass (O(n))!",
-        "",
-        "Optimization Guidelines:",
-        "1. Start with `current_sum = 0`, `count = 0`, and a dictionary tracking sums: `prefix_map = {0: 1}`.",
-        "2. Loop through the array once. Add the item to `current_sum`.",
-        "3. Check if `current_sum - target` is a key in your dictionary! If it is, add its value to your `count`.",
-        "4. Add `current_sum` to your dictionary (or increment it if it's already there).",
-        "5. Return `count`.",
-        "",
-        "Sample Outputs:",
-        "optimize_subarray_target([1, 1, 1], 2) → 2",
-        "optimize_subarray_target([1, 2, 3], 3) → 2"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m5-5.3.json",
-      "testCasesPool": [
-        { "call": "optimize_subarray_target([1, 1, 1], 2)", "expected": "2", "isHidden": false },
-        { "call": "optimize_subarray_target([1, 2, 3], 3)", "expected": "2", "isHidden": false },
-        { "call": "optimize_subarray_target([1, -1, 0], 0)", "expected": "3", "isHidden": false },
-        { "call": "optimize_subarray_target([10, 2, -2, -20, 10], -10)", "expected": "3", "isHidden": true },
-        { "call": "optimize_subarray_target([], 0)", "expected": "0", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m5_opt_2",
-      "title": "Optimization Challenge: Dynamic Sliding Window Efficiency",
-      "task": [
-        "When a sliding window breaks a rule, inexperienced programmers reset the left pointer all the way back to 0. A true sliding window NEVER moves backwards. It only slides forward.",
-        "",
-        "Optimization Guidelines:",
-        "1. Open your 'Longest Shopping Spree' code.",
-        "2. Ensure your `left` pointer never resets to 0 inside the loop.",
-        "3. The `left` pointer should only ever move forward (`left += 1`) to shrink the window until the rule is fixed.",
-        "4. This guarantees that both pointers only travel the length of the array exactly once, proving an O(n) Time Complexity."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m5-5.1.json",
-      "testCasesPool": [
-        { "call": "longest_spree([1, 2, 3, 4, 5], 7)", "expected": "3", "isHidden": false },
-        { "call": "longest_spree([10, 20, 30], 5)", "expected": "0", "isHidden": false },
-        { "call": "longest_spree([5, 5, 5, 5], 10)", "expected": "2", "isHidden": true }
-      ]
-    }
-  ]
+    "id": "m5_opt_2",
+    "title": "Optimization Challenge: Dynamic Sliding Window Efficiency",
+    "task": [
+      "When a sliding window breaks a rule, inexperienced programmers reset the left pointer all the way back to 0. A true sliding window NEVER moves backwards. It only slides forward.",
+      "",
+      "Optimization Guidelines:",
+      "1. Open your 'Longest Shopping Spree' code.",
+      "2. Ensure your `left` pointer never resets to 0 inside the loop.",
+      "3. The `left` pointer should only ever move forward (`left += 1`) to shrink the window until the rule is fixed.",
+      "4. This guarantees that both pointers only travel the length of the array exactly once, proving an O(n) Time Complexity."
+    ],
+    "targetTime": "O(n)",
+    "targetSpace": "O(1)",
+    "templateUrl": "/data/optimizations/m5-5.1.json",
+    "testCasesPool": [
+      {
+        "call": "longest_spree([1, 2, 3, 4, 5], 7)",
+        "expected": "3",
+        "isHidden": false
+      },
+      {
+        "call": "longest_spree([10, 20, 30], 5)",
+        "expected": "0",
+        "isHidden": false
+      },
+      {
+        "call": "longest_spree([5, 5, 5, 5], 10)",
+        "expected": "2",
+        "isHidden": true
+      }
+    ]
+  }
+]
 }

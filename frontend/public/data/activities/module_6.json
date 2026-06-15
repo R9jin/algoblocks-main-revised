@@ -21,9 +21,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "power_set([1, 2])", "expected": "[[], [1], [1, 2], [2]]", "isHidden": false },
-        { "call": "power_set([1])", "expected": "[[], [1]]", "isHidden": false },
-        { "call": "power_set([])", "expected": "[[]]", "isHidden": true }
+        {
+          "call": "power_set([1, 2])",
+          "expected": "[[], [1], [1, 2], [2]]",
+          "isHidden": false
+        },
+        {
+          "call": "power_set([1])",
+          "expected": "[[], [1]]",
+          "isHidden": false
+        },
+        {
+          "call": "power_set([])",
+          "expected": "[[]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -43,9 +55,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "target_subsets([2, 3, 6, 7], 7)", "expected": "[[7]]", "isHidden": false },
-        { "call": "target_subsets([2, 3, 5], 8)", "expected": "[[3, 5]]", "isHidden": false },
-        { "call": "target_subsets([1, 2, 3], 6)", "expected": "[[1, 2, 3]]", "isHidden": true }
+        {
+          "call": "target_subsets([2, 3, 6, 7], 7)",
+          "expected": "[[7]]",
+          "isHidden": false
+        },
+        {
+          "call": "target_subsets([2, 3, 5], 8)",
+          "expected": "[[3, 5]]",
+          "isHidden": false
+        },
+        {
+          "call": "target_subsets([1, 2, 3], 6)",
+          "expected": "[[1, 2, 3]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -65,9 +89,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "combine(3, 2)", "expected": "[[1, 2], [1, 3], [2, 3]]", "isHidden": false },
-        { "call": "combine(4, 1)", "expected": "[[1], [2], [3], [4]]", "isHidden": false },
-        { "call": "combine(2, 2)", "expected": "[[1, 2]]", "isHidden": true }
+        {
+          "call": "combine(3, 2)",
+          "expected": "[[1, 2], [1, 3], [2, 3]]",
+          "isHidden": false
+        },
+        {
+          "call": "combine(4, 1)",
+          "expected": "[[1], [2], [3], [4]]",
+          "isHidden": false
+        },
+        {
+          "call": "combine(2, 2)",
+          "expected": "[[1, 2]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -86,9 +122,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "combine_repeat([2, 3], 6)", "expected": "[[2, 2, 2], [3, 3]]", "isHidden": false },
-        { "call": "combine_repeat([2], 3)", "expected": "[]", "isHidden": false },
-        { "call": "combine_repeat([4], 8)", "expected": "[[4, 4]]", "isHidden": true }
+        {
+          "call": "combine_repeat([2, 3], 6)",
+          "expected": "[[2, 2, 2], [3, 3]]",
+          "isHidden": false
+        },
+        {
+          "call": "combine_repeat([2], 3)",
+          "expected": "[]",
+          "isHidden": false
+        },
+        {
+          "call": "combine_repeat([4], 8)",
+          "expected": "[[4, 4]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -107,9 +155,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "phone_letters('23')", "expected": "['ad', 'ae', 'af', 'bd', 'be', 'bf', 'cd', 'ce', 'cf']", "isHidden": false },
-        { "call": "phone_letters('2')", "expected": "['a', 'b', 'c']", "isHidden": false },
-        { "call": "phone_letters('')", "expected": "[]", "isHidden": true }
+        {
+          "call": "phone_letters('23')",
+          "expected": "['ad', 'ae', 'af', 'bd', 'be', 'bf', 'cd', 'ce', 'cf']",
+          "isHidden": false
+        },
+        {
+          "call": "phone_letters('2')",
+          "expected": "['a', 'b', 'c']",
+          "isHidden": false
+        },
+        {
+          "call": "phone_letters('')",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -132,9 +192,21 @@
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "permute([1, 2])", "expected": "[[1, 2], [2, 1]]", "isHidden": false },
-        { "call": "permute([1, 2, 3])", "expected": "[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]", "isHidden": false },
-        { "call": "permute([9])", "expected": "[[9]]", "isHidden": true }
+        {
+          "call": "permute([1, 2])",
+          "expected": "[[1, 2], [2, 1]]",
+          "isHidden": false
+        },
+        {
+          "call": "permute([1, 2, 3])",
+          "expected": "[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]",
+          "isHidden": false
+        },
+        {
+          "call": "permute([9])",
+          "expected": "[[9]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -153,9 +225,21 @@
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "permute_unique([1, 1, 2])", "expected": "[[1, 1, 2], [1, 2, 1], [2, 1, 1]]", "isHidden": false },
-        { "call": "permute_unique([3, 3])", "expected": "[[3, 3]]", "isHidden": false },
-        { "call": "permute_unique([2, 1, 2])", "expected": "[[1, 2, 2], [2, 1, 2], [2, 2, 1]]", "isHidden": true }
+        {
+          "call": "permute_unique([1, 1, 2])",
+          "expected": "[[1, 1, 2], [1, 2, 1], [2, 1, 1]]",
+          "isHidden": false
+        },
+        {
+          "call": "permute_unique([3, 3])",
+          "expected": "[[3, 3]]",
+          "isHidden": false
+        },
+        {
+          "call": "permute_unique([2, 1, 2])",
+          "expected": "[[1, 2, 2], [2, 1, 2], [2, 2, 1]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -174,9 +258,21 @@
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "scramble_word('ab')", "expected": "['ab', 'ba']", "isHidden": false },
-        { "call": "scramble_word('cat')", "expected": "['cat', 'cta', 'act', 'atc', 'tca', 'tac']", "isHidden": false },
-        { "call": "scramble_word('z')", "expected": "['z']", "isHidden": true }
+        {
+          "call": "scramble_word('ab')",
+          "expected": "['ab', 'ba']",
+          "isHidden": false
+        },
+        {
+          "call": "scramble_word('cat')",
+          "expected": "['cat', 'cta', 'act', 'atc', 'tca', 'tac']",
+          "isHidden": false
+        },
+        {
+          "call": "scramble_word('z')",
+          "expected": "['z']",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -193,9 +289,21 @@
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "safe_scramble('Zab')", "expected": "['abZ', 'aZb', 'baZ', 'bZa']", "isHidden": false },
-        { "call": "safe_scramble('aZ')", "expected": "['aZ']", "isHidden": false },
-        { "call": "safe_scramble('cat')", "expected": "['cat', 'cta', 'act', 'atc', 'tca', 'tac']", "isHidden": true }
+        {
+          "call": "safe_scramble('Zab')",
+          "expected": "['abZ', 'aZb', 'baZ', 'bZa']",
+          "isHidden": false
+        },
+        {
+          "call": "safe_scramble('aZ')",
+          "expected": "['aZ']",
+          "isHidden": false
+        },
+        {
+          "call": "safe_scramble('cat')",
+          "expected": "['cat', 'cta', 'act', 'atc', 'tca', 'tac']",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -213,9 +321,21 @@
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "count_permutations([1, 2, 3])", "expected": "6", "isHidden": false },
-        { "call": "count_permutations([1, 2, 3, 4])", "expected": "24", "isHidden": false },
-        { "call": "count_permutations([1])", "expected": "1", "isHidden": true }
+        {
+          "call": "count_permutations([1, 2, 3])",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "count_permutations([1, 2, 3, 4])",
+          "expected": "24",
+          "isHidden": false
+        },
+        {
+          "call": "count_permutations([1])",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -238,9 +358,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "explore_rules([[0, 1], [0, 9]], -1, 0)", "expected": "False", "isHidden": false },
-        { "call": "explore_rules([[0, 1], [0, 9]], 0, 1)", "expected": "False", "isHidden": false },
-        { "call": "explore_rules([[0, 1], [0, 9]], 1, 1)", "expected": "True", "isHidden": true }
+        {
+          "call": "explore_rules([[0, 1], [0, 9]], -1, 0)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "explore_rules([[0, 1], [0, 9]], 0, 1)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "explore_rules([[0, 1], [0, 9]], 1, 1)",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -259,9 +391,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "maze_simple([[0, 0, 1], [1, 0, 9]])", "expected": "True", "isHidden": false },
-        { "call": "maze_simple([[0, 1, 9], [0, 1, 0]])", "expected": "False", "isHidden": false },
-        { "call": "maze_simple([[9]])", "expected": "True", "isHidden": true }
+        {
+          "call": "maze_simple([[0, 0, 1], [1, 0, 9]])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "maze_simple([[0, 1, 9], [0, 1, 0]])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "maze_simple([[9]])",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -285,9 +429,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "maze_full([[0, 0, 0], [0, 1, 0], [0, 0, 9]])", "expected": "True", "isHidden": false },
-        { "call": "maze_full([[0, 1, 0], [1, 1, 0], [9, 0, 0]])", "expected": "False", "isHidden": false },
-        { "call": "maze_full([[0, 0], [0, 9]])", "expected": "True", "isHidden": true }
+        {
+          "call": "maze_full([[0, 0, 0], [0, 1, 0], [0, 0, 9]])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "maze_full([[0, 1, 0], [1, 1, 0], [9, 0, 0]])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "maze_full([[0, 0], [0, 9]])",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -305,9 +461,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "maze_path([[0, 1], [0, 9]])", "expected": "[[0, 0], [1, 0], [1, 1]]", "isHidden": false },
-        { "call": "maze_path([[0, 1], [1, 9]])", "expected": "[]", "isHidden": false },
-        { "call": "maze_path([[0, 0], [0, 9]])", "expected": "[[0, 0], [1, 0], [1, 1]]", "isHidden": true }
+        {
+          "call": "maze_path([[0, 1], [0, 9]])",
+          "expected": "[[0, 0], [1, 0], [1, 1]]",
+          "isHidden": false
+        },
+        {
+          "call": "maze_path([[0, 1], [1, 9]])",
+          "expected": "[]",
+          "isHidden": false
+        },
+        {
+          "call": "maze_path([[0, 0], [0, 9]])",
+          "expected": "[[0, 0], [1, 0], [1, 1]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -325,9 +493,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "count_maze_paths([[0, 0], [0, 9]])", "expected": "2", "isHidden": false },
-        { "call": "count_maze_paths([[0, 1], [0, 9]])", "expected": "1", "isHidden": false },
-        { "call": "count_maze_paths([[0, 1], [1, 9]])", "expected": "0", "isHidden": true }
+        {
+          "call": "count_maze_paths([[0, 0], [0, 9]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "count_maze_paths([[0, 1], [0, 9]])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "count_maze_paths([[0, 1], [1, 9]])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -348,9 +528,21 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "init_coin_dp([1, 2], 3)", "expected": "[[0, 99999, 99999, 99999], [0, 99999, 99999, 99999], [0, 99999, 99999, 99999]]", "isHidden": false },
-        { "call": "init_coin_dp([5], 1)", "expected": "[[0, 99999], [0, 99999]]", "isHidden": false },
-        { "call": "init_coin_dp([], 0)", "expected": "[[0]]", "isHidden": true }
+        {
+          "call": "init_coin_dp([1, 2], 3)",
+          "expected": "[[0, 99999, 99999, 99999], [0, 99999, 99999, 99999], [0, 99999, 99999, 99999]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_coin_dp([5], 1)",
+          "expected": "[[0, 99999], [0, 99999]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_coin_dp([], 0)",
+          "expected": "[[0]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -370,9 +562,21 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "coin_change([1, 2, 5], 11)", "expected": "3", "isHidden": false },
-        { "call": "coin_change([2], 3)", "expected": "-1", "isHidden": false },
-        { "call": "coin_change([1], 0)", "expected": "0", "isHidden": true }
+        {
+          "call": "coin_change([1, 2, 5], 11)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "coin_change([2], 3)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "coin_change([1], 0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -390,9 +594,21 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "init_knapsack([1], [10], 2)", "expected": "[[0, 0, 0], [0, 0, 0]]", "isHidden": false },
-        { "call": "init_knapsack([2, 3], [10, 20], 1)", "expected": "[[0, 0], [0, 0], [0, 0]]", "isHidden": false },
-        { "call": "init_knapsack([], [], 0)", "expected": "[[0]]", "isHidden": true }
+        {
+          "call": "init_knapsack([1], [10], 2)",
+          "expected": "[[0, 0, 0], [0, 0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_knapsack([2, 3], [10, 20], 1)",
+          "expected": "[[0, 0], [0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_knapsack([], [], 0)",
+          "expected": "[[0]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -411,31 +627,54 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "knapsack([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
-        { "call": "knapsack([2, 3, 4], [1, 2, 3], 1)", "expected": "0", "isHidden": false },
-        { "call": "knapsack([1, 1], [10, 20], 1)", "expected": "20", "isHidden": true }
+        {
+          "call": "knapsack([1, 2, 3], [10, 15, 40], 6)",
+          "expected": "65",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack([2, 3, 4], [1, 2, 3], 1)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack([1, 1], [10, 20], 1)",
+          "expected": "20",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m6_l4_a5",
-      "title": "DP Matrix: Tracing Back Choices",
+      "title": "DP Matrix: Longest Common Subsequence",
       "task": [
-        "Implement matrix backtracking to extract the exact item indices selected by the optimized 0/1 Knapsack tabulation.",
+        "Given two words, find the length of the longest sequence of letters they share in the same order (they don't have to be consecutive!).",
         "",
         "Instructions:",
-        "1. Define `knapsack_items(weights, values, max_weight)` and evaluate the full DP matrix.",
-        "2. Initialize an empty `chosen_items` array. Assign pointers `r = len(weights)` and `c = max_weight`.",
-        "3. Execute a reverse traversal loop while `r > 0` and `c > 0`.",
-        "4. Selection Detection: If `dp[r][c] != dp[r-1][c]`, an inclusion occurred. Append `r-1` to `chosen_items` and reduce `c` by the item's weight.",
-        "5. Decrement `r` to ascend the matrix rows.",
-        "6. Return the `chosen_items` sequence array."
+        "1. Define `lcs(word1, word2)`. Create a DP matrix sized (len(word1) + 1) by (len(word2) + 1), filled with `0`s.",
+        "2. Iterate `r` from 1 to the end of rows, and `c` from 1 to the end of columns.",
+        "3. Match Check: If `word1[r-1] == word2[c-1]`, they share a letter! Set `dp[r][c] = 1 + dp[r-1][c-1]` (diagonal top-left).",
+        "4. Mismatch Check: If they don't match, carry forward the best previous score. Set `dp[r][c]` to the maximum of `dp[r-1][c]` (top) or `dp[r][c-1]` (left).",
+        "5. Return `dp[-1][-1]`, which holds the final length."
       ],
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "knapsack_items([1, 2, 3], [10, 15, 40], 6)", "expected": "[2, 1, 0]", "isHidden": false },
-        { "call": "knapsack_items([10, 20], [50, 60], 5)", "expected": "[]", "isHidden": false },
-        { "call": "knapsack_items([1, 4, 3], [15, 30, 45], 4)", "expected": "[2, 0]", "isHidden": true }
+        {
+          "call": "lcs('abcde', 'ace')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs('abc', 'abc')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs('abc', 'def')",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -457,31 +696,56 @@
       "targetSpace": "O(n * m)",
       "templateUrl": "/data/optimizations/m6-6.1.json",
       "testCasesPool": [
-        { "call": "knapsack_memo([1, 2, 3], [10, 15, 40], 6, 2, {})", "expected": "65", "isHidden": false },
-        { "call": "knapsack_memo([2, 3, 4], [1, 2, 3], 1, 2, {})", "expected": "0", "isHidden": false },
-        { "call": "knapsack_memo([1, 1], [10, 20], 1, 1, {})", "expected": "20", "isHidden": true }
+        {
+          "call": "knapsack_memo([1, 2, 3], [10, 15, 40], 6, 2, {})",
+          "expected": "65",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_memo([2, 3, 4], [1, 2, 3], 1, 2, {})",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_memo([1, 1], [10, 20], 1, 1, {})",
+          "expected": "20",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m6_opt_2",
-      "title": "Optimization Challenge: 1D Array Space Compression",
+      "title": "Optimization Challenge: 1D Coin Change",
       "task": [
-        "Apply spatial compression to the Knapsack DP algorithm, reducing the N x M matrix to an optimized 1D state array.",
+        "A 2D matrix wastes a lot of memory. Because Coin Change only looks back at smaller amounts in the current row, we can compress the whole matrix into a single 1D Array!",
         "",
         "Optimization Guidelines:",
-        "1. Define `knapsack_1d(weights, values, max_weight)`.",
-        "2. Allocate a 1D `dp` array of zeros, sized `max_weight + 1`.",
-        "3. Iterate `i` through items. Iterate `w` sequentially backwards from `max_weight` down to `weights[i]`. Reverse iteration is structurally required to prevent intra-row state corruption.",
-        "4. State Update: `dp[w] = max(dp[w], values[i] + dp[w - weights[i]])`.",
-        "5. Return the terminal `dp[-1]` state, achieving O(N) space complexity."
+        "1. Define `coin_change_1d(coins, amount)`.",
+        "2. Create a single 1D array called `dp` sized `amount + 1`, filled with `99999`. Set `dp[0] = 0`.",
+        "3. Loop `coin` through the `coins` list.",
+        "4. Inside that, loop `a` (amount) FORWARD from `coin` up to `amount + 1`.",
+        "5. State Update: Set `dp[a]` to the minimum of its current value (`dp[a]`) OR `1 + dp[a - coin]`.",
+        "6. Return `dp[-1]` (return `-1` if it is still `99999`)."
       ],
       "targetTime": "O(n * m)",
-      "targetSpace": "O(n)",
+      "targetSpace": "O(m)",
       "templateUrl": "/data/optimizations/m6-6.2.json",
       "testCasesPool": [
-        { "call": "knapsack_1d([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
-        { "call": "knapsack_1d([2, 3, 4], [1, 2, 3], 1)", "expected": "0", "isHidden": false },
-        { "call": "knapsack_1d([1, 1], [10, 20], 1)", "expected": "20", "isHidden": true }
+        {
+          "call": "coin_change_1d([1, 2, 5], 11)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "coin_change_1d([2], 3)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "coin_change_1d([1], 0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ]
