@@ -353,26 +353,27 @@
     },
     {
       "id": "m1_l3_a5",
-      "title": "Sorting a List",
+      "title": "Reversing a List",
       "task": [
-        "Sorting means putting items in order from smallest to biggest. Doing this manually is hard, but using the built-in sort block makes it easy!",
+        "Data structures often require processing in reverse sequence. Most programming languages provide built-in methods to reverse a list in-place.",
+        "Implement a function that utilizes these built-in tools to invert the order of an array.",
         "",
         "Instructions:",
-        "1. Define `sort_my_list(arr)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and grab the 'sort list' block.",
-        "3. Apply it to your `arr` variable.",
-        "4. Return the sorted `arr`.",
+        "1. Define the function `reverse_my_list(arr)`.",
+        "2. Locate the built-in 'reverse list' method from your toolset.",
+        "3. Apply this method directly to your `arr` variable.",
+        "4. Return the modified `arr`.",
         "",
         "Sample Outputs:",
-        "sort_my_list([3, 1, 4, 2]) → [1, 2, 3, 4]",
-        "sort_my_list([9, 8, 7]) → [7, 8, 9]"
+        "reverse_my_list([1, 2, 3]) → [3, 2, 1]",
+        "reverse_my_list(['a', 'b']) → ['b', 'a']"
       ],
-      "targetTime": "O(n log n)",
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "sort_my_list([3, 1, 4, 2])", "expected": "[1, 2, 3, 4]", "isHidden": false },
-        { "call": "sort_my_list([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
-        { "call": "sort_my_list([])", "expected": "[]", "isHidden": false }
+        { "call": "reverse_my_list([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
+        { "call": "reverse_my_list([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
+        { "call": "reverse_my_list([])", "expected": "[]", "isHidden": false }
       ]
     }
   ],
@@ -430,53 +431,46 @@
     },
     {
       "id": "m1_l4_a3",
-      "title": "Is the List in Order?",
+      "title": "Finding an Item's Index",
       "task": [
-        "To check if a list is perfectly sorted from smallest to biggest, we just have to look at neighbors. If we ever see a big number sitting to the left of a smaller number, it's not sorted!",
+        "It is frequently necessary to determine the exact numerical position (index) of an element within an array.",
+        "Implement a function that traverses an array to find and return the index of a specific target value.",
         "",
         "Instructions:",
-        "1. Define `is_sorted(arr)`.",
-        "2. Open the 'Loops' tab and use a 'count with i' loop. Set it to count from 0 to length of arr minus 1.",
-        "3. Inside the loop, check if `arr[i]` is strictly greater than `arr[i+1]`.",
-        "4. If it is, return `False` immediately.",
-        "5. If the loop finishes without finding any bad neighbors, return `True`.",
-        "",
-        "Sample Outputs:",
-        "is_sorted([1, 2, 3, 4]) → True",
-        "is_sorted([1, 3, 2, 4]) → False"
+        "1. Define the function `find_index(arr, target)`.",
+        "2. Initialize an iterator loop, counting from 0 up to the length of the array minus 1.",
+        "3. Inside the loop, evaluate if the element at the current index (`arr[i]`) is strictly equal to the `target`.",
+        "4. If a match is verified, immediately execute a return operation to output the current index `i`.",
+        "5. If the iteration concludes without a match, return `-1` to indicate the item does not exist in the dataset."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "is_sorted([1, 2, 3, 4])", "expected": "True", "isHidden": false },
-        { "call": "is_sorted([1, 3, 2, 4])", "expected": "False", "isHidden": false },
-        { "call": "is_sorted([5, 5, 5])", "expected": "True", "isHidden": false },
-        { "call": "is_sorted([10])", "expected": "True", "isHidden": false },
-        { "call": "is_sorted([])", "expected": "True", "isHidden": true }
+        { "call": "find_index([10, 20, 30], 20)", "expected": "1", "isHidden": false },
+        { "call": "find_index([5, 8, 2], 9)", "expected": "-1", "isHidden": false },
+        { "call": "find_index([7, 7, 7], 7)", "expected": "0", "isHidden": false },
+        { "call": "find_index([], 5)", "expected": "-1", "isHidden": true }
       ]
     },
     {
       "id": "m1_l4_a4",
-      "title": "Slicing a List",
+      "title": "Updating a Specific Value",
       "task": [
-        "Slicing means chopping out a specific middle section of a list to create a smaller list.",
+        "Data structures are mutable, meaning their contents can be modified after they are created.",
+        "Instead of extracting complex slices, practice accessing a specific index and overwriting its current value with a new one.",
         "",
         "Instructions:",
-        "1. Define `get_middle(arr)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and grab the 'slice list' block.",
-        "3. Set the start index to `1` and the end index to `3`.",
-        "4. Return the sliced array.",
-        "",
-        "Sample Outputs:",
-        "get_middle([10, 20, 30, 40, 50]) → [20, 30]",
-        "get_middle(['A', 'B', 'C', 'D']) → ['B', 'C']"
+        "1. Define the function `update_element(arr, index, new_value)`.",
+        "2. Directly access the element in `arr` at the provided `index`.",
+        "3. Assign `new_value` to that specific position, overwriting the old data.",
+        "4. Return the modified `arr` array."
       ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "get_middle([10, 20, 30, 40, 50])", "expected": "[20, 30]", "isHidden": false },
-        { "call": "get_middle(['A', 'B', 'C', 'D'])", "expected": "['B', 'C']", "isHidden": false },
-        { "call": "get_middle([1, 2, 3, 4])", "expected": "[2, 3]", "isHidden": false }
+        { "call": "update_element([10, 20, 30], 1, 99)", "expected": "[10, 99, 30]", "isHidden": false },
+        { "call": "update_element(['A', 'B', 'C'], 2, 'Z')", "expected": "['A', 'B', 'Z']", "isHidden": false },
+        { "call": "update_element([0, 0, 0, 0], 0, 1)", "expected": "[1, 0, 0, 0]", "isHidden": true }
       ]
     },
     {

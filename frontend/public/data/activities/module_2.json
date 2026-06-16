@@ -57,29 +57,25 @@
     },
     {
       "id": "m2_l1_a3",
-      "title": "Checking Every Pair",
+      "title": "Exhaustive Search: The Duplicate Detector",
       "task": [
-        "To see if any two numbers in a list add up to a target number, we can use a loop inside another loop to check every possible pair. It's slow, but it guarantees an answer!",
+        "Exhaustive search is often utilized to compare elements within a dataset against one another.",
+        "Implement a brute-force algorithm to determine if an array contains any duplicate values by checking every possible pair.",
         "",
         "Instructions:",
-        "1. Create `has_pair_sum(arr, target)`.",
-        "2. Open the 'Loops' tab and drag out two 'for each item in list' blocks. Put one inside the other.",
-        "3. Inside the inner loop, use a 'Math' block to add the two loop items together.",
-        "4. Use a 'Logic' block to check if their sum equals the `target`. If it does, return `True`.",
-        "5. If both loops finish completely and you didn't find a match, return `False` at the very bottom.",
-        "",
-        "Sample Outputs:",
-        "has_pair_sum([2, 4, 7, 11], 13) → True",
-        "has_pair_sum([1, 2, 3, 4], 10) → False"
+        "1. Define the function `has_duplicates(arr)`.",
+        "2. Construct an outer loop with iterator `i` from 0 to the length of `arr` minus 1.",
+        "3. Construct an inner loop with iterator `j` starting at `i + 1` up to the length of `arr` minus 1.",
+        "4. Inside the inner loop, evaluate if `arr[i] == arr[j]`. If true, an exact duplicate exists! Return `True` immediately.",
+        "5. If all exhaustive loops complete without detecting a match, return `False`."
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "has_pair_sum([2, 4, 7, 11], 13)", "expected": "True", "isHidden": false },
-        { "call": "has_pair_sum([1, 2, 3, 4], 10)", "expected": "False", "isHidden": false },
-        { "call": "has_pair_sum([5, 5, 5], 10)", "expected": "True", "isHidden": false },
-        { "call": "has_pair_sum([10], 10)", "expected": "False", "isHidden": true },
-        { "call": "has_pair_sum([], 5)", "expected": "False", "isHidden": true }
+        { "call": "has_duplicates([1, 2, 3, 4, 1])", "expected": "True", "isHidden": false },
+        { "call": "has_duplicates([5, 8, 2, 9])", "expected": "False", "isHidden": false },
+        { "call": "has_duplicates([7, 7])", "expected": "True", "isHidden": false },
+        { "call": "has_duplicates([1, 2, 3])", "expected": "False", "isHidden": true }
       ]
     },
     {
@@ -413,84 +409,76 @@
   "optimizations": [
     {
       "id": "m2_opt_1",
-      "title": "Optimization Challenge: Faster Two Sum",
+      "title": "Optimization Challenge: The Two-Pointer Squeeze",
       "task": [
-        "In our first lesson, we used a loop inside a loop to check every pair of numbers. This is slow! We can do it much faster by using a Dictionary to remember the numbers we've seen.",
+        "Checking every pair of numbers with a nested loop takes O(n²) time. If the array is SORTED, we can find the target sum in O(n) time using the Two-Pointer technique.",
         "",
         "Optimization Guidelines:",
-        "1. Open the 'Dictionaries (Built-in Type)' tab and create an empty dictionary variable to keep track of seen numbers.",
-        "2. Use only ONE loop to go through the list with an index.",
-        "3. In the loop, calculate the 'needed number' to reach the target (`target - current_item`).",
-        "4. Check if that 'needed number' is already a key in your dictionary! If it is, return their positions.",
-        "5. If it's not, use the 'in dictionary set key to' block to save the current number as the key and its index as the value.",
-        "",
-        "Sample Outputs:",
-        "two_sum([2, 7, 11, 15], 9) → [0, 1]",
-        "two_sum([3, 2, 4], 6) → [1, 2]"
+        "1. Remove your nested loops. Initialize two variables: `left = 0`, and `right = len(arr) - 1`.",
+        "2. Construct a single `while` loop that runs as long as `left < right`.",
+        "3. Calculate the `current_sum = arr[left] + arr[right]`.",
+        "4. If `current_sum == target`, return `[arr[left], arr[right]]`.",
+        "5. If `current_sum < target`, we need a larger value. Move the left pointer up (`left += 1`).",
+        "6. If `current_sum > target`, we need a smaller value. Move the right pointer down (`right -= 1`).",
+        "7. Return an empty list `[]` if the loop concludes."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.1.json",
       "testCasesPool": [
-        { "call": "two_sum([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "two_sum([3, 2, 4], 6)", "expected": "[1, 2]", "isHidden": false },
-        { "call": "two_sum([3, 3], 6)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "two_sum([1, 2, 3], 10)", "expected": "[]", "isHidden": true },
-        { "call": "two_sum([], 5)", "expected": "[]", "isHidden": true }
+        { "call": "two_sum_sorted([2, 7, 11, 15], 9)", "expected": "[2, 7]", "isHidden": false },
+        { "call": "two_sum_sorted([2, 3, 4], 6)", "expected": "[2, 4]", "isHidden": false },
+        { "call": "two_sum_sorted([1, 2, 3], 10)", "expected": "[]", "isHidden": true },
+        { "call": "two_sum_sorted([], 5)", "expected": "[]", "isHidden": true }
       ]
     },
     {
       "id": "m2_opt_2",
-      "title": "Optimization Challenge: Stop Wasting Memory",
+      "title": "Optimization Challenge: The Sorted Majority",
       "task": [
-        "Sometimes programmers make extra lists to hold answers when they don't need to. If you just need to find one item, return it right away without putting it in a new list!",
+        "Your previous brute-force algorithm used nested loops to find the Majority Element, resulting in an O(n²) time complexity.",
+        "If you are informed that the input array is strictly SORTED, you can optimize this search down to an instantaneous O(1) time!",
         "",
         "Optimization Guidelines:",
-        "1. Open the linear search code.",
-        "2. Delete any blocks that create a new list or append items to a new list.",
-        "3. When your loop finds the target, just use the 'return' block directly on the target.",
-        "4. This ensures your code doesn't waste memory.",
-        "",
-        "Sample Outputs:",
-        "linear_search([10, 20, 30], 20) → 20",
-        "linear_search([5, 8, 2], 5) → 5"
+        "1. Delete all of your loop blocks. We do not need to iterate!",
+        "2. By mathematical definition, if an element makes up more than half of a sorted array, it MUST overlap the exact center index.",
+        "3. Calculate the middle index: `mid = len(arr) // 2` (Use integer division).",
+        "4. Simply access and return the element at that exact index: `return arr[mid]`.",
+        "5. You have just optimized an exhaustive search into a constant-time lookup!"
       ],
-      "targetTime": "O(n)",
+      "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.2.json",
       "testCasesPool": [
-        { "call": "linear_search([10, 20, 30], 20)", "expected": "20", "isHidden": false },
-        { "call": "linear_search([5, 8, 2], 5)", "expected": "5", "isHidden": false },
-        { "call": "linear_search([7, 7, 7], 7)", "expected": "7", "isHidden": false },
-        { "call": "linear_search([1, 2, 3], 4)", "expected": "-1", "isHidden": true },
-        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": true }
+        { "call": "find_majority_sorted([1, 1, 1, 2, 3])", "expected": "1", "isHidden": false },
+        { "call": "find_majority_sorted([2, 3, 3, 3, 4])", "expected": "3", "isHidden": false },
+        { "call": "find_majority_sorted([99, 99])", "expected": "99", "isHidden": true },
+        { "call": "find_majority_sorted([0, 0, 0, 0, 0])", "expected": "0", "isHidden": true }
       ]
     },
     {
       "id": "m2_opt_3",
-      "title": "Optimization Challenge: Don't Copy Lists",
+      "title": "Optimization Challenge: Fast Duplicate Detection",
       "task": [
-        "A common mistake when sorting is making a whole new copy of the list. That takes up a lot of extra computer memory. We should sort the list 'in-place'.",
+        "In a previous activity, we utilized a brute-force nested loop to check every possible pair for duplicates, resulting in a slow O(n²) time execution.",
+        "If we sort the array first, any identical values will be mathematically forced to sit adjacently. We can optimize duplicate detection down to O(n log n).",
         "",
         "Optimization Guidelines:",
-        "1. Open the original Bubble Sort code.",
-        "2. Look for any blocks that create a duplicate or copy of the list (like `temp_arr = arr.copy()`). Delete them!",
-        "3. Make sure your swap blocks only change the original `arr` list.",
-        "4. Return the original `arr` at the end.",
-        "",
-        "Sample Outputs:",
-        "bubble_sort([5, 2, 8, 1]) → [1, 2, 5, 8]",
-        "bubble_sort([3, 3, 1, 2]) → [1, 2, 3, 3]"
+        "1. Delete your nested loops entirely.",
+        "2. Utilize the built-in 'sort list' block to sort `arr` in-place (This requires O(n log n) time).",
+        "3. Construct a standard indexing loop iterating from `0` to `len(arr) - 2`. (We stop at length minus 2 to safely peek ahead without crashing).",
+        "4. Within the loop, evaluate if the current element matches its immediate right-side neighbor: `arr[i] == arr[i+1]`.",
+        "5. If a match is verified, execute `return True`.",
+        "6. If the single linear scan completes with no matches, return `False`."
       ],
-      "targetTime": "O(n^2)",
+      "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.3.json",
       "testCasesPool": [
-        { "call": "bubble_sort([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
-        { "call": "bubble_sort([3, 3, 1, 2])", "expected": "[1, 2, 3, 3]", "isHidden": false },
-        { "call": "bubble_sort([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
-        { "call": "bubble_sort([1])", "expected": "[1]", "isHidden": true },
-        { "call": "bubble_sort([])", "expected": "[]", "isHidden": true }
+        { "call": "has_duplicates_opt([4, 1, 2, 1, 3])", "expected": "True", "isHidden": false },
+        { "call": "has_duplicates_opt([5, 8, 2, 9])", "expected": "False", "isHidden": false },
+        { "call": "has_duplicates_opt([7, 7])", "expected": "True", "isHidden": false },
+        { "call": "has_duplicates_opt([1, 2, 3])", "expected": "False", "isHidden": true }
       ]
     }
   ]
