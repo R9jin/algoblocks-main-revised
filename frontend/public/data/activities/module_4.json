@@ -245,27 +245,24 @@
     },
     {
       "id": "m4_l2_a5",
-      "title": "Reverse the Front of the Line",
+      "title": "Strict ADT: Reversing K Elements",
       "task": [
-        "Let's try a tricky maneuver: take the first 'K' people in the queue, reverse their order, and put them right back where they were!",
+        "A strict Queue Abstract Data Type prohibits index slicing. To reverse the order of the first K elements, you must utilize an auxiliary Stack.",
+        "This requires orchestrating data between structures using only valid Enqueue, Dequeue, Push, and Pop operations.",
         "",
         "Instructions:",
-        "1. Define `reverse_k(queue, k)`. If `k` is 0 or bigger than the queue length, just return the `queue`.",
-        "2. Slice the queue from the beginning to index `k` to get the first part. Use the 'reverse list' block to flip it backwards.",
-        "3. Slice the queue from index `k` to the end to get the remaining part.",
-        "4. Join your flipped first part with your untouched remaining part using the 'join list' block.",
-        "5. Return the combined list.",
-        "",
-        "Sample Outputs:",
-        "reverse_k([1, 2, 3, 4, 5], 3) → [3, 2, 1, 4, 5]",
-        "reverse_k([10, 20, 30], 2) → [20, 10, 30]"
+        "1. Define the function `reverse_k(queue, k)` and initialize an empty list to act as a `stack`.",
+        "2. Phase 1: Construct a loop that executes `k` times. Dequeue an item from the front of the `queue` and Push it onto the `stack`.",
+        "3. Phase 2: Construct a loop that executes `k` times. Pop an item from the top of the `stack` and Enqueue it back into the `queue`. The specific elements are now reversed but located at the rear.",
+        "4. Phase 3: Construct a loop that executes `len(queue) - k` times. Dequeue the remaining unreversed items from the front and immediately Enqueue them to the rear to restore the original order.",
+        "5. Return the modified `queue`."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(k)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
         { "call": "reverse_k([1, 2, 3, 4, 5], 3)", "expected": "[3, 2, 1, 4, 5]", "isHidden": false },
         { "call": "reverse_k([10, 20, 30], 2)", "expected": "[20, 10, 30]", "isHidden": false },
-        { "call": "reverse_k([1, 2], 5)", "expected": "[1, 2]", "isHidden": false },
+        { "call": "reverse_k([1, 2], 2)", "expected": "[2, 1]", "isHidden": false },
         { "call": "reverse_k([1, 2, 3], 0)", "expected": "[1, 2, 3]", "isHidden": true },
         { "call": "reverse_k([7, 8, 9, 10], 4)", "expected": "[10, 9, 8, 7]", "isHidden": true }
       ]
@@ -304,21 +301,17 @@
       "id": "m4_l3_a2",
       "title": "Finding the First Unique Letter",
       "task": [
-        "Let's find the very first letter in a word that doesn't repeat! We can use our dictionary tally sheet to help us.",
+        "We can find the first non-repeating character in a string by utilizing our frequency dictionary.",
         "",
         "Instructions:",
         "1. Define `first_unique(s)`.",
-        "2. Use the exact same logic from the previous task to build a tally dictionary of all the letters in the string `s`.",
-        "3. Once your tally is built, make a SECOND loop that walks through the string `s` again.",
-        "4. For each letter, check your dictionary. If the tally for that letter is exactly `1`, return the letter immediately!",
-        "5. If you check the whole word and everything repeats, return `'_'`.",
-        "",
-        "Sample Outputs:",
-        "first_unique('leetcode') → 'l'",
-        "first_unique('aabb') → '_'"
+        "2. Utilize the logic from the previous task to construct a dictionary tally of all characters in the string `s`.",
+        "3. Once the dictionary is built, construct a second loop to iterate through the string `s` sequentially.",
+        "4. For each character, reference your dictionary. If the recorded frequency is exactly 1, return that character.",
+        "5. If the loop completes and all characters repeat, return `'_'`."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(k)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
         { "call": "first_unique('leetcode')", "expected": "'l'", "isHidden": false },
         { "call": "first_unique('aabb')", "expected": "'_'", "isHidden": false },
@@ -329,50 +322,44 @@
     },
     {
       "id": "m4_l3_a3",
-      "title": "Finding Matches (Intersection)",
+      "title": "The Dictionary Target Match",
       "task": [
-        "To find items that live in both lists, checking them one by one is too slow. If we turn one list into a 'Set', the computer can check it instantly!",
+        "In Module 2, finding two numbers that equal a target required nested loops, resulting in O(n^2) time complexity.",
+        "By utilizing a Dictionary to track the numbers we have already seen, we can reduce the time complexity to O(n).",
         "",
         "Instructions:",
-        "1. Define `intersect_arrays(arr1, arr2)`.",
-        "2. Open the 'Sets & Tuples' tab. Turn `arr1` into a Set and save it as `set1`. Create an empty list called `result`.",
-        "3. Loop through `arr2`. Use an 'If' block: if the item is in `set1`, append it to `result`.",
-        "4. CRITICAL: Once you append it, use the 'remove from set' block to delete it from `set1`. This prevents duplicate answers!",
-        "5. Return `result`.",
-        "",
-        "Sample Outputs:",
-        "intersect_arrays([1, 2, 2, 1], [2, 2]) → [2]",
-        "intersect_arrays([4, 9, 5], [9, 4, 9, 8, 4]) → [9, 4]"
+        "1. Define `dictionary_two_sum(arr, target)`. Initialize an empty dictionary called `seen`.",
+        "2. Loop through `arr` using an indexed loop: `for i in range(len(arr))`.",
+        "3. Calculate the required partner number: `needed = target - arr[i]`.",
+        "4. Check if `needed` is already a key in your `seen` dictionary.",
+        "5. If it is found, return the indices: `[seen[needed], i]`.",
+        "6. If it is not found, add the current number to the dictionary so future iterations can reference it: `seen[arr[i]] = i`.",
+        "7. Return `[]` if no pair exists."
       ],
-      "targetTime": "O(n + m)",
+      "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "intersect_arrays([1, 2, 2, 1], [2, 2])", "expected": "[2]", "isHidden": false },
-        { "call": "intersect_arrays([4, 9, 5], [9, 4, 9, 8, 4])", "expected": "[9, 4]", "isHidden": false },
-        { "call": "intersect_arrays([1, 2], [3, 4])", "expected": "[]", "isHidden": false },
-        { "call": "intersect_arrays([], [1])", "expected": "[]", "isHidden": true },
-        { "call": "intersect_arrays([1, 1], [1, 1])", "expected": "[1]", "isHidden": true }
+        { "call": "dictionary_two_sum([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
+        { "call": "dictionary_two_sum([3, 2, 4], 6)", "expected": "[1, 2]", "isHidden": false },
+        { "call": "dictionary_two_sum([3, 3], 6)", "expected": "[0, 1]", "isHidden": false },
+        { "call": "dictionary_two_sum([1, 2, 3], 10)", "expected": "[]", "isHidden": true }
       ]
     },
     {
       "id": "m4_l3_a4",
       "title": "Are They Anagrams?",
       "task": [
-        "Two words are anagrams if they use the exact same letters (like 'rat' and 'tar'). Let's use a dictionary to check!",
+        "Two strings are anagrams if they contain the exact same characters in the same quantities. We can verify this using a dictionary.",
         "",
         "Instructions:",
         "1. Define `is_anagram(s, t)`.",
-        "2. First check: if the length of `s` does not equal the length of `t`, return `False`.",
-        "3. Build a frequency tally dictionary for string `s`.",
-        "4. Loop through string `t`. For each letter, subtract 1 from its dictionary value. If a letter isn't in the dictionary at all, return `False`.",
-        "5. After the loop, check the dictionary values (using 'get values from dict'). If any value is not exactly 0, return `False`. Otherwise return `True`.",
-        "",
-        "Sample Outputs:",
-        "is_anagram('anagram', 'nagaram') → True",
-        "is_anagram('rat', 'car') → False"
+        "2. Initial boundary check: if the length of `s` does not equal the length of `t`, return `False`.",
+        "3. Construct a frequency dictionary for string `s`.",
+        "4. Iterate through string `t`. For each character, subtract 1 from its corresponding value in the dictionary. If the character does not exist in the dictionary, return `False`.",
+        "5. Following the loop, inspect the dictionary values. If any value is not exactly 0, return `False`. Otherwise, return `True`."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(k)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
         { "call": "is_anagram('anagram', 'nagaram')", "expected": "True", "isHidden": false },
         { "call": "is_anagram('rat', 'car')", "expected": "False", "isHidden": false },
@@ -441,20 +428,16 @@
       "id": "m4_l4_a2",
       "title": "Is it a Subset?",
       "task": [
-        "If you want to know if every single item from a small list exists inside a big list, Sets have a built-in tool that does this instantly without any loops!",
+        "To determine if every element of a smaller list exists within a larger list, we can leverage the mathematical properties of Sets.",
         "",
         "Instructions:",
         "1. Define `is_subset(sub_arr, super_arr)`.",
-        "2. Turn both `sub_arr` and `super_arr` into Sets.",
-        "3. You can use Python's built in math operators for this: evaluate if `set1 <= set2` using a logic block.",
-        "4. Return the result.",
-        "",
-        "Sample Outputs:",
-        "is_subset([1, 2], [1, 2, 3, 4]) → True",
-        "is_subset([5], [1, 2, 3]) → False"
+        "2. Convert both `sub_arr` and `super_arr` into Sets.",
+        "3. Utilize Python's built-in subset operator. Evaluate if the first set is less than or equal to the second set (`set1 <= set2`).",
+        "4. Return the boolean result."
       ],
-      "targetTime": "O(n + m)",
-      "targetSpace": "O(n + m)",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
         { "call": "is_subset([1, 2], [1, 2, 3, 4])", "expected": "True", "isHidden": false },
         { "call": "is_subset([5], [1, 2, 3])", "expected": "False", "isHidden": false },
@@ -465,22 +448,18 @@
     },
     {
       "id": "m4_l4_a3",
-      "title": "Completely Different (Disjoint)",
+      "title": "Disjoint Validation",
       "task": [
-        "Two lists are 'disjoint' if they share zero items. It means they are completely different. Let's use Sets to find out!",
+        "Two collections are disjoint if they share zero common elements. Set intersections compute this relation efficiently.",
         "",
         "Instructions:",
         "1. Define the function `is_disjoint(arr1, arr2)`.",
-        "2. Turn both inputs into Sets.",
-        "3. Use the 'set intersection' block from the 'Sets & Tuples' tab. This creates a new set of the items they share.",
-        "4. Check the length of this intersection. If the length is 0, return `True` (they are totally different!). Otherwise, return `False`.",
-        "",
-        "Sample Outputs:",
-        "is_disjoint([1, 2], [3, 4]) → True",
-        "is_disjoint([1, 2, 3], [3, 4]) → False"
+        "2. Convert both input lists into Sets.",
+        "3. Utilize the set intersection operator to create a new set containing only their shared elements.",
+        "4. Evaluate the length of this intersection set. If the length is exactly 0, return `True`. Otherwise, return `False`."
       ],
-      "targetTime": "O(n + m)",
-      "targetSpace": "O(n + m)",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
         { "call": "is_disjoint([1, 2], [3, 4])", "expected": "True", "isHidden": false },
         { "call": "is_disjoint([1, 2, 3], [3, 4])", "expected": "False", "isHidden": false },
@@ -491,29 +470,23 @@
     },
     {
       "id": "m4_l4_a4",
-      "title": "Find the Missing Number",
+      "title": "Set Difference: The Missing Element",
       "task": [
-        "Here's a famous math trick! If you have a list of numbers from 0 to N, but exactly one is missing, you can find it instantly by subtracting the actual sum from the expected sum.",
+        "Sets support mathematical operations such as Difference. We can use this operation to instantly identify elements that exist in one dataset but are missing from another.",
         "",
         "Instructions:",
-        "1. Define the function `find_missing(arr)`.",
-        "2. Save the length of the array to a variable `n`.",
-        "3. Calculate what the sum SHOULD be using the formula: `(n * (n + 1)) // 2`. Save this as `expected_sum`.",
-        "4. Add up all the numbers actually in `arr` using a loop, and save it as `actual_sum`.",
-        "5. Return `expected_sum - actual_sum`.",
-        "",
-        "Sample Outputs:",
-        "find_missing([3, 0, 1]) → 2",
-        "find_missing([0, 1]) → 2"
+        "1. Define `find_missing_element(expected_arr, actual_arr)`.",
+        "2. Convert both input lists into Sets: `expected_set` and `actual_set`.",
+        "3. Use the Set Difference operator, typically represented by a minus sign, to subtract `actual_set` from `expected_set`. This operation isolates the missing items.",
+        "4. Convert the resulting set back into a List.",
+        "5. Since we expect only one missing item, return the item at index `0` of that list."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "find_missing([3, 0, 1])", "expected": "2", "isHidden": false },
-        { "call": "find_missing([0, 1])", "expected": "2", "isHidden": false },
-        { "call": "find_missing([9, 6, 4, 2, 3, 5, 7, 0, 1])", "expected": "8", "isHidden": false },
-        { "call": "find_missing([0])", "expected": "1", "isHidden": true },
-        { "call": "find_missing([1])", "expected": "0", "isHidden": true }
+        { "call": "find_missing_element([1, 2, 3, 4], [1, 3, 4])", "expected": "2", "isHidden": false },
+        { "call": "find_missing_element([10, 20, 30], [20, 30])", "expected": "10", "isHidden": false },
+        { "call": "find_missing_element([5, 6, 7, 8], [5, 6, 7])", "expected": "8", "isHidden": true }
       ]
     },
     {
@@ -547,19 +520,17 @@
   "optimizations": [
     {
       "id": "m4_opt_1",
-      "title": "Optimization Challenge: Avoiding List Count",
+      "title": "Optimization Challenge: Frequency Mapping",
       "task": [
-        "If you use the 'count occurrences' list block inside a loop, your program will slow down to O(n²) because it has to re-scan the entire list every time! Let's build a tally dictionary instead.",
+        "Executing a linear count operation inside an existing loop results in a nested O(n²) time complexity. This is highly inefficient for large datasets.",
+        "We can optimize this algorithm to a strict O(n) time complexity by mapping the frequencies into a dictionary during a single sequential pass.",
         "",
         "Optimization Guidelines:",
-        "1. Eradicate any blocks that use `count()` inside of a loop.",
-        "2. Create an empty dictionary from the 'Dictionaries (Built-in Type)' tab.",
-        "3. Loop through the dataset once, checking if the item is in the dictionary. If it isn't, set it to 1. If it is, add 1 to it.",
-        "4. This drops the runtime to a blazing fast O(n) limit.",
-        "",
-        "Sample Outputs:",
-        "optimize_frequency([10, 20, 10, 30]) → {10: 2, 20: 1, 30: 1}",
-        "optimize_frequency([1, 1, 1]) → {1: 3}"
+        "1. Remove all instances of list counting blocks from your loop structure.",
+        "2. Initialize an empty dictionary.",
+        "3. Iterate through the dataset using a single forward loop.",
+        "4. If the item is absent from the dictionary, assign it a value of 1. If it already exists, increment its current value by 1.",
+        "5. Observe the analyzer register the optimized time complexity."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -574,19 +545,16 @@
     },
     {
       "id": "m4_opt_2",
-      "title": "Optimization Challenge: Stop Using 'In List'",
+      "title": "Optimization Challenge: O(1) Data Lookups",
       "task": [
-        "When you use a logic block to check if an item 'is in' a list, the computer has to search the entire list one by one (O(n)). But if you check if an item 'is in' a Set, the computer finds it instantly (O(1))!",
+        "Utilizing an 'in' operator on a standard list forces the algorithm to conduct an O(n) linear search. When placed inside a loop, this creates an O(n²) bottleneck.",
+        "By converting the target list into a Set prior to the loop, lookups become O(1) constant time operations.",
         "",
         "Optimization Guidelines:",
-        "1. Look at your code and find where you are checking if an item is inside a normal list.",
-        "2. Before the loop even starts, convert that list into a Set.",
-        "3. Change your logic block to check if the item is in your new Set instead.",
-        "4. This tiny change prevents O(n²) bottlenecks!",
-        "",
-        "Sample Outputs:",
-        "optimize_unique([4, 1, 2, 1, 4]) → [1, 2, 4]",
-        "optimize_unique([3, 3, 3]) → [3]"
+        "1. Locate the logic block verifying if an element exists within the standard list.",
+        "2. Prior to the loop execution, convert that specific list into a Set.",
+        "3. Modify the loop logic to verify existence against the newly created Set.",
+        "4. This refactoring reduces the overall time complexity to O(n)."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -601,20 +569,16 @@
     },
     {
       "id": "m4_opt_3",
-      "title": "Optimization Challenge: Saving Your Math (Memoization)",
+      "title": "Optimization Challenge: Recursive Memoization",
       "task": [
-        "In our Fibonacci recursive function, the computer calculates `fib(2)` and `fib(3)` dozens of times, doing the same exact math over and over! We can use a Dictionary as a 'memory pad' to save our answers.",
+        "Standard recursive Fibonacci sequences recalculate identical branches repeatedly, yielding an exponential O(2^n) time complexity.",
+        "We can achieve an O(n) time complexity through Memoization: caching previously computed results in a dictionary to prevent redundant calculations.",
         "",
         "Optimization Guidelines:",
-        "1. Our function `fib_optimized(n, memo)` has a dictionary parameter `memo` that starts empty.",
-        "2. Before doing any math, check if `n` is already a key in the `memo` dictionary. If it is, just return `memo[n]` instantly!",
-        "3. If it's not, do the recursive math as normal.",
-        "4. But before you return the answer, save it! Set `memo[n] = answer`.",
-        "5. This takes an impossibly slow O(2^n) algorithm and makes it a blazing fast O(n) algorithm.",
-        "",
-        "Sample Outputs:",
-        "fib_optimized(5, {}) → 5",
-        "fib_optimized(10, {}) → 55"
+        "1. The function `fib_optimized(n, memo)` accepts an initially empty dictionary parameter.",
+        "2. Prior to computing the recurrence relation, verify if `n` already exists as a key in `memo`. If found, return `memo[n]` immediately.",
+        "3. If absent, execute the recursive mathematical steps as standard.",
+        "4. Before returning the final computed result, cache it by assigning `memo[n] = result`."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",

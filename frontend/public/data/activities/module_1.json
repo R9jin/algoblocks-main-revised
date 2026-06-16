@@ -229,28 +229,25 @@
     },
     {
       "id": "m1_l2_a5",
-      "title": "Copying a List",
+      "title": "Data Transformation (Mapping)",
       "task": [
-        "Let's practice making a brand new list by copying everything from an old list, item by item.",
+        "In algorithm design, we rarely just copy data. Instead, we transform it while moving it. This process is called 'Mapping'.",
+        "Let's map an array by creating a new list where every original number has been mathematically doubled.",
         "",
         "Instructions:",
-        "1. Define `copy_array(arr)`.",
-        "2. Create a new empty list called `result` from the 'Lists (Built-in Type)' tab.",
-        "3. Use a 'for each item' loop to look at every item in `arr`.",
-        "4. Inside the loop, use the 'append' block to add the current item to `result`.",
-        "5. Return `result`.",
-        "",
-        "Sample Outputs:",
-        "copy_array([1, 2, 3]) → [1, 2, 3]",
-        "copy_array([]) → []"
+        "1. Define `double_array(arr)`.",
+        "2. Create a new empty list called `result`.",
+        "3. Use a 'for each item' loop to iterate over `arr`.",
+        "4. Inside the loop, do not just append the item. Open the 'Math' tab, grab a multiplication block, and append `item * 2` to `result`.",
+        "5. Return the newly transformed `result` list."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "copy_array([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "copy_array([10])", "expected": "[10]", "isHidden": false },
-        { "call": "copy_array([])", "expected": "[]", "isHidden": false },
-        { "call": "copy_array([-1, 0, 1])", "expected": "[-1, 0, 1]", "isHidden": false }
+        { "call": "double_array([1, 2, 3])", "expected": "[2, 4, 6]", "isHidden": false },
+        { "call": "double_array([10, 50])", "expected": "[20, 100]", "isHidden": false },
+        { "call": "double_array([])", "expected": "[]", "isHidden": false },
+        { "call": "double_array([-5, 0])", "expected": "[-10, 0]", "isHidden": true }
       ]
     }
   ],
@@ -281,19 +278,16 @@
     },
     {
       "id": "m1_l3_a2",
-      "title": "Removing a Specific Value",
+      "title": "The Hidden Cost of Removal",
       "task": [
-        "What if you want to delete a specific word or number, but you don't know where it is? The 'remove first occurrence' block handles this for you.",
+        "High-level languages provide built-in blocks to delete items, but you must understand their hidden algorithmic cost.",
+        "When you use a 'remove' command, the computer secretly runs an O(n) search to find the item, and then runs another O(n) loop to physically shift all remaining memory to the left to close the gap!",
         "",
         "Instructions:",
         "1. Define `remove_value(arr, target)`.",
-        "2. Open the 'Logic' tab and use an 'If' block to check if the `target` is in the list using the `is in` block.",
-        "3. If it is in the list, go to the 'Lists' tab and use the 'remove first occurrence of' block to delete it from `arr`.",
-        "4. Return `arr`.",
-        "",
-        "Sample Outputs:",
-        "remove_value([1, 2, 3, 2], 2) → [1, 3, 2]",
-        "remove_value([1, 2, 3], 9) → [1, 2, 3]"
+        "2. Use an 'If' block to check if the `target` is in the list using the `is in` block. (Remember: this is a hidden O(n) search!).",
+        "3. If it is in the list, use the 'remove first occurrence of' block to delete it from `arr`. (Remember: this triggers a hidden O(n) memory shift!).",
+        "4. Return the modified `arr`."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -329,26 +323,23 @@
     },
     {
       "id": "m1_l3_a4",
-      "title": "Counting Occurrences Quickly",
+      "title": "The Illusion of Speed: Built-In Functions",
       "task": [
-        "Earlier, we built a loop to count items. Programming languages give us a built-in 'count' block to do this instantly without writing a loop!",
+        "High-level programming languages provide built-in methods (like 'count') that appear to execute instantly. This is a deliberate illusion.",
+        "Under the hood, the system is still executing a full O(n) linear loop, usually written in a lower-level language (like C or C++). You must understand that utilizing this block still incurs an O(n) computational cost.",
         "",
         "Instructions:",
-        "1. Define `count_matches(arr, target)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and find the 'count occurrences of' block.",
-        "3. Snap in your `target` and `arr` variables.",
-        "4. Return the result.",
-        "",
-        "Sample Outputs:",
-        "count_matches([5, 5, 5, 1], 5) → 3",
-        "count_matches([1, 2, 3], 99) → 0"
+        "1. Define the function `count_matches(arr, target)`.",
+        "2. Open the 'Lists' tab and utilize the built-in 'count occurrences of' block to find your `target`.",
+        "3. Return the result.",
+        "4. Algorithmic Takeaway: Even when you do not manually write the loop, you must mentally account for its O(n) time complexity when analyzing your program's efficiency."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "count_matches([5, 5, 5, 1], 5)", "expected": "3", "isHidden": false },
         { "call": "count_matches([1, 2, 3], 99)", "expected": "0", "isHidden": false },
-        { "call": "count_matches([], 1)", "expected": "0", "isHidden": false }
+        { "call": "count_matches([], 1)", "expected": "0", "isHidden": true }
       ]
     },
     {
@@ -431,70 +422,70 @@
     },
     {
       "id": "m1_l4_a3",
-      "title": "Finding an Item's Index",
+      "title": "Is the List in Order?",
       "task": [
-        "It is frequently necessary to determine the exact numerical position (index) of an element within an array.",
-        "Implement a function that traverses an array to find and return the index of a specific target value.",
+        "An array is 'sorted' if every number is smaller than or equal to the number right next to it.",
+        "To check this, we need to compare `arr[i]` with its right neighbor `arr[i+1]`. However, this introduces a classic algorithmic trap: The 'Index Out of Bounds' error!",
         "",
         "Instructions:",
-        "1. Define the function `find_index(arr, target)`.",
-        "2. Initialize an iterator loop, counting from 0 up to the length of the array minus 1.",
-        "3. Inside the loop, evaluate if the element at the current index (`arr[i]`) is strictly equal to the `target`.",
-        "4. If a match is verified, immediately execute a return operation to output the current index `i`.",
-        "5. If the iteration concludes without a match, return `-1` to indicate the item does not exist in the dataset."
+        "1. Define `is_sorted(arr)`.",
+        "2. First, handle the base cases: if the list has 1 or 0 items, return `True` (it's already sorted!).",
+        "3. Loop Boundaries: Create a 'count with i' loop. Set it to start at `0` and end at the length of the list MINUS 2.",
+        "   -> Algorithmic Insight: Why length minus 2? Because if we go to the absolute last index, there is no `arr[i+1]` to check against, and the program will crash!",
+        "4. Inside the loop, check: If `arr[i]` is strictly GREATER than `arr[i+1]`, the order is broken! Return `False` immediately.",
+        "5. If the loop finishes checking every pair successfully, return `True` at the very end."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "find_index([10, 20, 30], 20)", "expected": "1", "isHidden": false },
-        { "call": "find_index([5, 8, 2], 9)", "expected": "-1", "isHidden": false },
-        { "call": "find_index([7, 7, 7], 7)", "expected": "0", "isHidden": false },
-        { "call": "find_index([], 5)", "expected": "-1", "isHidden": true }
+        { "call": "is_sorted([1, 2, 3, 4])", "expected": "True", "isHidden": false },
+        { "call": "is_sorted([1, 3, 2, 4])", "expected": "False", "isHidden": false },
+        { "call": "is_sorted([5, 5, 5])", "expected": "True", "isHidden": true },
+        { "call": "is_sorted([])", "expected": "True", "isHidden": true }
       ]
     },
     {
       "id": "m1_l4_a4",
-      "title": "Updating a Specific Value",
+      "title": "Defensive Slicing",
       "task": [
-        "Data structures are mutable, meaning their contents can be modified after they are created.",
-        "Instead of extracting complex slices, practice accessing a specific index and overwriting its current value with a new one.",
+        "Slicing allows you to extract a specific sub-section of an array.",
+        "However, hardcoding a slice from index 1 to 3 is a dangerous algorithmic trap! If the array only contains 2 items, your program will crash. We must use Defensive Programming to verify our boundaries first.",
         "",
         "Instructions:",
-        "1. Define the function `update_element(arr, index, new_value)`.",
-        "2. Directly access the element in `arr` at the provided `index`.",
-        "3. Assign `new_value` to that specific position, overwriting the old data.",
-        "4. Return the modified `arr` array."
+        "1. Define `get_middle(arr)`.",
+        "2. Defensive Boundary Check: Open the 'Logic' tab and use an 'If' block. If the length of `arr` is less than 4, return an empty list `[]` immediately to prevent a crash.",
+        "3. If the array is safely long enough, open the 'Lists (Built-in Type)' tab and grab the 'slice list' block.",
+        "4. Set the start index to `1` and the end index to `3`.",
+        "5. Return the sliced array."
       ],
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "update_element([10, 20, 30], 1, 99)", "expected": "[10, 99, 30]", "isHidden": false },
-        { "call": "update_element(['A', 'B', 'C'], 2, 'Z')", "expected": "['A', 'B', 'Z']", "isHidden": false },
-        { "call": "update_element([0, 0, 0, 0], 0, 1)", "expected": "[1, 0, 0, 0]", "isHidden": true }
+        { "call": "get_middle([10, 20, 30, 40, 50])", "expected": "[20, 30]", "isHidden": false },
+        { "call": "get_middle(['A', 'B', 'C', 'D'])", "expected": "['B', 'C']", "isHidden": false },
+        { "call": "get_middle([1, 2])", "expected": "[]", "isHidden": true },
+        { "call": "get_middle([])", "expected": "[]", "isHidden": true }
       ]
     },
     {
       "id": "m1_l4_a5",
-      "title": "Inserting an Item",
+      "title": "Memory Shift: Inserting at the Front",
       "task": [
-        "You don't always have to add items to the very end of a list. You can squeeze them in anywhere using 'insert'!",
+        "Adding an item to the END of a list (`append`) is incredibly fast because there is empty space waiting. This takes O(1) constant time.",
+        "However, squeezing an item into the FRONT of a list is an algorithmic bottleneck. The computer must physically shift every existing item one space to the right in memory to make room. This takes O(n) linear time!",
         "",
         "Instructions:",
         "1. Define `insert_at_front(arr, item)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and find the 'insert at index' block.",
-        "3. Tell it to insert your `item` variable at index `0` into the `arr` list.",
-        "4. Return `arr`.",
-        "",
-        "Sample Outputs:",
-        "insert_at_front([2, 3], 1) → [1, 2, 3]",
-        "insert_at_front([], 99) → [99]"
+        "2. Use the built-in 'insert at index' command to place your `item` variable at index `0` of the `arr`.",
+        "3. Return the modified `arr`.",
+        "4. Algorithmic Takeaway: Although it looks like a single block of code, remember that the computer is secretly running an O(n) loop behind the scenes to shift the data!"
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
         { "call": "insert_at_front([2, 3], 1)", "expected": "[1, 2, 3]", "isHidden": false },
         { "call": "insert_at_front([], 99)", "expected": "[99]", "isHidden": false },
-        { "call": "insert_at_front([10, 20], 0)", "expected": "[0, 10, 20]", "isHidden": false }
+        { "call": "insert_at_front(['B'], 'A')", "expected": "['A', 'B']", "isHidden": true }
       ]
     }
   ]
