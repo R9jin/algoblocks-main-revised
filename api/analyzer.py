@@ -2,7 +2,7 @@
 import ast
 import time
 from collections import deque, Counter
-from semantic_nlg import EducationalInsightGenerator as SemanticNLGEngine
+from semantic_nlg import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
 
 try:
     from dynamic_tracer import AlgoBlocksTracer
@@ -1720,6 +1720,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     
         return best_space
 
+    def get_overall_explanation(self, tree):
+        final_time = self.get_final_asymptotic_badge()
+        final_space = self.get_final_space_badge()
+        visitor = ComprehensiveASTVisitor(self)
+        sig = visitor.analyze(tree)
+        return self.nlg_engine.generate_overall_analysis(final_time, final_space, sig)
+
 def analyze_source_code(source_code):
     start_time = time.perf_counter()
     
@@ -1737,11 +1744,14 @@ def analyze_source_code(source_code):
         analyzer = ComplexityAnalyzer(source_code, trace_data)
         analyzer.bfs_first_pass(tree)
         analyzer.visit(tree)
+        
+        overall_exp = analyzer.get_overall_explanation(tree)
                 
         results = {
             "status": "success",
             "total": analyzer.get_final_asymptotic_badge(),
             "space_total": analyzer.get_final_space_badge(),
+            "overall_explanation": overall_exp,
             "lines": analyzer.details,
             "error": None
         }
