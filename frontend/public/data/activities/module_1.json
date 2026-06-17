@@ -2,19 +2,16 @@
   "lesson_1": [
     {
       "id": "m1_l1_a1",
-      "title": "Creating Your First List",
+      "title": "Data Structures: Array Initialization",
       "task": [
-        "Lists are a great way to group related items together. Think of a list like a row of lockers where you can put numbers or text. Let's practice making one from scratch.",
+        "An array is a foundational data structure that stores a sequence of elements in contiguous memory.",
+        "Initializing a fixed-size array is an O(1) constant time operation because the system allocates a single, continuous block of memory regardless of the specific numerical values contained.",
         "",
         "Instructions:",
-        "1. Open the 'Functions' tab and make a function named `create_basic_array`.",
-        "2. Open the 'Lists (Built-in Type)' tab and drag out the 'create list with' block.",
-        "3. Click the gear icon on the list block to make sure it has exactly 3 item slots.",
-        "4. Grab number blocks from the 'Math' tab and put `10`, `20`, and `30` into the slots.",
-        "5. Return this list.",
-        "",
-        "Sample Outputs:",
-        "create_basic_array() → [10, 20, 30]"
+        "1. Define the function `create_basic_array`.",
+        "2. Utilize the array creation construct to instantiate a new array.",
+        "3. Populate the array with exactly three integer values: 10, 20, and 30.",
+        "4. Return the initialized array. The static analyzer will verify this sequence as an O(1) constant time operation."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -25,19 +22,16 @@
     },
     {
       "id": "m1_l1_a2",
-      "title": "Finding the List Length",
+      "title": "Constant-Time Metadata Evaluation",
       "task": [
-        "Often, you need to know exactly how many items are inside a list. Programming makes this super easy with a 'length of' block.",
+        "In modern data structures, determining the size of an array does not require sequentially counting each element.",
+        "The array maintains its length as internal metadata. Retrieving this pre-calculated metadata is an O(1) constant-time algorithmic operation.",
         "",
         "Instructions:",
-        "1. Create a function called `get_list_length(arr)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and find the 'length of' block.",
-        "3. Snap your `arr` variable into the 'length of' block.",
-        "4. Return the result.",
-        "",
-        "Sample Outputs:",
-        "get_list_length([5, 10, 15]) → 3",
-        "get_list_length([]) → 0"
+        "1. Define the function `get_list_length(arr)`.",
+        "2. Retrieve the built-in length evaluation operator.",
+        "3. Apply the operator to the `arr` parameter.",
+        "4. Return the resulting integer to demonstrate constant-time metadata access."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -49,20 +43,16 @@
     },
     {
       "id": "m1_l1_a3",
-      "title": "Getting the First Item",
+      "title": "Constant-Time Index Access",
       "task": [
-        "In programming, we count list positions (called 'indices') starting from 0. So, the very first item is always at index 0.",
+        "Arrays utilize zero-based indexing to determine the position of elements. Because arrays occupy contiguous memory, the system can mathematically calculate the exact memory address of any element instantly.",
+        "Consequently, accessing an array element by its index is an O(1) constant time operation.",
         "",
         "Instructions:",
         "1. Define the function `get_first_item(arr)`.",
-        "2. First, we need to be safe: use an 'If' block from the 'Logic' tab to check if the list is empty using the 'is empty' block from the Lists tab. If it is, return `0`.",
-        "3. If it's not empty, open the 'Lists (Built-in Type)' tab and grab the 'in list get' block.",
-        "4. Set it to get the item at index 0 from `arr`.",
-        "5. Return that item.",
-        "",
-        "Sample Outputs:",
-        "get_first_item([5, 10, 15]) → 5",
-        "get_first_item([]) → 0"
+        "2. Implement a defensive conditional check to verify if the list is empty. If true, return the integer `0`.",
+        "3. If the array contains elements, utilize the index access block to retrieve the item located at index 0.",
+        "4. Return the retrieved item."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -74,20 +64,17 @@
     },
     {
       "id": "m1_l1_a4",
-      "title": "Changing Items in a List",
+      "title": "In-Place Memory Mutation",
       "task": [
-        "You can swap out an item in a list without deleting the whole list. You just tell the computer which spot to update and give it a new value.",
+        "Standard arrays are mutable data structures, meaning their contents can be modified after initialization.",
+        "Updating an element at a specific index overwrites the existing memory block. This is an in-place operation that requires O(1) time and allocates O(1) auxiliary space.",
         "",
         "Instructions:",
         "1. Define the function `update_first_element(arr)`.",
-        "2. Check if the list is empty. If it is, return the list as it is.",
-        "3. Open the 'Lists (Built-in Type)' tab and grab the 'in list set' block.",
-        "4. Tell it to set the item at index 0 to the number `99`.",
-        "5. Return the updated `arr` list.",
-        "",
-        "Sample Outputs:",
-        "update_first_element([10, 20, 30]) → [99, 20, 30]",
-        "update_first_element([]) → []"
+        "2. Implement a boundary check to ensure the array is not empty. If it is empty, return the unmodified `arr`.",
+        "3. Utilize the index assignment block to modify the element at index 0.",
+        "4. Assign the integer `99` to this position.",
+        "5. Return the updated `arr` structure."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -99,19 +86,16 @@
     },
     {
       "id": "m1_l1_a5",
-      "title": "Adding Items to the End",
+      "title": "Dynamic Array Appending",
       "task": [
-        "Lists are flexible. You can always add new things to the end of a list. In programming, this action is called 'appending'.",
+        "Dynamic arrays are engineered to expand their memory allocation sequentially. Appending an element to the tail of the array is highly efficient.",
+        "Because it does not require shifting existing elements, this operation executes in amortized O(1) constant time.",
         "",
         "Instructions:",
         "1. Define the function `add_to_end(arr, item)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and grab the 'append to list' block.",
-        "3. Attach your `item` variable and your `arr` variable to the block.",
-        "4. Return the `arr`.",
-        "",
-        "Sample Outputs:",
-        "add_to_end([1, 2], 3) → [1, 2, 3]",
-        "add_to_end([], 10) → [10]"
+        "2. Retrieve the standard list append block.",
+        "3. Configure the block to append the parameter `item` to the parameter `arr`.",
+        "4. Return the modified `arr` structure."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -125,20 +109,17 @@
   "lesson_2": [
     {
       "id": "m1_l2_a1",
-      "title": "Adding Up a List",
+      "title": "State Accumulation: Summation",
       "task": [
-        "To look at every single item in a list, we use a loop. Let's practice by walking through a list and adding all the numbers together.",
+        "Algorithms frequently utilize iterative traversal combined with a state tracking variable to aggregate data.",
+        "We will construct a linear O(n) summation algorithm by traversing an array and continuously modifying an accumulator variable.",
         "",
         "Instructions:",
-        "1. Define `sum_array(arr)`.",
-        "2. Go to the 'Variables' tab and create a variable called `total`. Set it to 0.",
-        "3. Open the 'Loops' tab and drag out the 'for each item in list' block. Attach `arr` to it.",
-        "4. Inside the loop, go to the 'Math' tab and grab the modify variable block (e.g., `item += 1`). Set it to add the current loop item to your `total`.",
-        "5. Return `total`.",
-        "",
-        "Sample Outputs:",
-        "sum_array([5, 10, 15]) → 30",
-        "sum_array([]) → 0"
+        "1. Define the function `sum_array(arr)`.",
+        "2. Initialize an accumulator variable named `total` and assign it the integer `0`.",
+        "3. Construct a standard iteration loop to traverse each element within `arr`.",
+        "4. Within the loop, apply an addition operation to increment the `total` variable by the current element's value.",
+        "5. Return the finalized `total` variable."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -150,20 +131,19 @@
     },
     {
       "id": "m1_l2_a2",
-      "title": "Finding the Biggest Number",
+      "title": "Linear Traversal: Finding Extrema",
       "task": [
-        "To find the biggest item, we can loop through the list and keep track of the largest number we've seen so far.",
+        "To determine the maximum value within an unsorted dataset, an algorithm must evaluate every element sequentially against a recorded maximum state.",
+        "This extrema-finding algorithm executes in strict O(n) linear time.",
         "",
         "Instructions:",
-        "1. Define `find_max(arr)`. If `arr` is empty, return `0`.",
-        "2. Create a variable called `max_val` and set it to the first item (`arr[0]`).",
-        "3. Use a 'for each item' loop to look at every number in the list.",
-        "4. Use an 'If' block: if the current item is greater than `max_val`, use a 'set' block to update `max_val` to the current item.",
-        "5. Return `max_val`.",
-        "",
-        "Sample Outputs:",
-        "find_max([10, 50, 20]) → 50",
-        "find_max([-10, -5, -20]) → -5"
+        "1. Define the function `find_max(arr)`.",
+        "2. Implement a defensive condition: if `arr` is empty, return `0`.",
+        "3. Initialize a variable named `max_val` and assign it the value located at `arr[0]`.",
+        "4. Construct a loop to iteratively traverse the array elements.",
+        "5. Within the loop, evaluate if the current element is strictly greater than `max_val`.",
+        "6. If the condition is true, update `max_val` to equal the current element.",
+        "7. Return the `max_val` variable."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -176,21 +156,18 @@
     },
     {
       "id": "m1_l2_a3",
-      "title": "Counting Specific Items (Evens)",
+      "title": "Conditional State Tracking",
       "task": [
-        "Sometimes you only want to count items that match a certain rule. Let's loop through a list and count how many even numbers are inside.",
+        "Algorithms often require executing isolated logic blocks strictly when specific dataset conditions are met.",
+        "We will integrate linear array traversal with conditional mathematics to isolate and count targeted elements.",
         "",
         "Instructions:",
-        "1. Define `count_evens(arr)`.",
-        "2. Create a `count` variable starting at 0.",
-        "3. Start a 'for each item' loop for the list.",
-        "4. Inside the loop, check if the number is even using the modulo block from the 'Math' tab (`item % 2 == 0`).",
-        "5. If it is even, add 1 to `count`.",
-        "6. Return `count`.",
-        "",
-        "Sample Outputs:",
-        "count_evens([1, 2, 3, 4, 5]) → 2",
-        "count_evens([1, 3, 5]) → 0"
+        "1. Define the function `count_evens(arr)`.",
+        "2. Initialize an accumulator variable named `count` to 0.",
+        "3. Construct a standard loop to traverse the parameter `arr`.",
+        "4. Inside the loop, utilize the modulo operator to evaluate if the current element divided by 2 yields a remainder of 0.",
+        "5. If the condition validates as true, increment the `count` variable by 1.",
+        "6. Return the `count` variable."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -203,20 +180,17 @@
     },
     {
       "id": "m1_l2_a4",
-      "title": "Does the List Have This Number?",
+      "title": "Linear Search: Sequential Traversal",
       "task": [
-        "How do you find out if a specific number is in a messy list? You check every spot until you see it!",
+        "To determine if a specific value exists within an unsorted dataset, an algorithm must evaluate each element sequentially.",
+        "This algorithm, formally known as Linear Search, yields an O(n) time complexity. The algorithm optimizes operational efficiency by terminating the iteration immediately once the target is identified.",
         "",
         "Instructions:",
-        "1. Define `contains_item(arr, target)`.",
-        "2. Use a 'for each item' loop to check every number in the list.",
-        "3. Inside the loop, use an 'If' block to check if the current item equals the `target`.",
-        "4. If it matches, immediately use the 'return' block to return `True`.",
-        "5. If the loop finishes and you didn't find it, return `False` at the bottom of the function.",
-        "",
-        "Sample Outputs:",
-        "contains_item([10, 20, 30], 20) → True",
-        "contains_item([1, 2, 3], 4) → False"
+        "1. Define the function `contains_item(arr, target)`.",
+        "2. Construct an iterative loop to traverse each element in `arr`.",
+        "3. Implement a conditional check to evaluate if the current element is strictly equal to the `target`.",
+        "4. If the condition evaluates to true, execute an early exit by immediately returning `True`.",
+        "5. If the iteration concludes without a match, return `False`."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -254,19 +228,17 @@
   "lesson_3": [
     {
       "id": "m1_l3_a1",
-      "title": "Removing the Last Item",
+      "title": "Constant-Time Deletion (Pop)",
       "task": [
-        "Lists have lots of built-in tools. Instead of writing complex code, you can use built-in blocks to do heavy lifting. Let's 'pop' an item!",
+        "Removing an element from the very end of a dynamic array is highly efficient.",
+        "Because no remaining elements need to be shifted to close a memory gap, executing a tail deletion resolves in O(1) constant time.",
         "",
         "Instructions:",
-        "1. Define `remove_last_item(arr)`.",
-        "2. Check if the list is empty. If so, return `'Empty'`.",
-        "3. Open the 'Lists (Built-in Type)' tab and grab the 'remove and get last item from list' block.",
-        "4. Return the result of that block.",
-        "",
-        "Sample Outputs:",
-        "remove_last_item([10, 20, 30]) → 30",
-        "remove_last_item([]) → 'Empty'"
+        "1. Define the function `remove_last_item(arr)`.",
+        "2. Implement a defensive evaluation. If the array is empty, return the string 'Empty'.",
+        "3. Locate the built-in function to remove and retrieve the final item from a sequence.",
+        "4. Apply this function to the `arr` parameter.",
+        "5. Return the retrieved item."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
@@ -278,112 +250,110 @@
     },
     {
       "id": "m1_l3_a2",
-      "title": "The Hidden Cost of Removal",
+      "title": "In-Place Array Reversal",
       "task": [
-        "High-level languages provide built-in blocks to delete items, but you must understand their hidden algorithmic cost.",
-        "When you use a 'remove' command, the computer secretly runs an O(n) search to find the item, and then runs another O(n) loop to physically shift all remaining memory to the left to close the gap!",
+        "Algorithms that modify data without allocating new structures are classified as 'in-place'. They operate with an optimal O(1) auxiliary space complexity.",
+        "We will invert the sequence of an array directly within its existing memory footprint.",
         "",
         "Instructions:",
-        "1. Define `remove_value(arr, target)`.",
-        "2. Use an 'If' block to check if the `target` is in the list using the `is in` block. (Remember: this is a hidden O(n) search!).",
-        "3. If it is in the list, use the 'remove first occurrence of' block to delete it from `arr`. (Remember: this triggers a hidden O(n) memory shift!).",
-        "4. Return the modified `arr`."
+        "1. Define the function `reverse_in_place(arr)`.",
+        "2. Initialize two pointers: `left = 0` and `right = len(arr) - 1`.",
+        "3. Construct a `while` loop that continues as long as `left < right`.",
+        "4. Within the loop, apply an in-place swap operation to exchange the values at `arr[left]` and `arr[right]`.",
+        "5. Increment the `left` pointer and decrement the `right` pointer to converge toward the center.",
+        "6. Return the modified `arr`."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "remove_value([1, 2, 3, 2], 2)", "expected": "[1, 3, 2]", "isHidden": false },
-        { "call": "remove_value([1, 2, 3], 9)", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "remove_value([5, 5, 5], 5)", "expected": "[5, 5]", "isHidden": false }
+        { "call": "reverse_in_place([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
+        { "call": "reverse_in_place([10, 20, 30, 40])", "expected": "[40, 30, 20, 10]", "isHidden": false },
+        { "call": "reverse_in_place([99])", "expected": "[99]", "isHidden": false }
       ]
     },
     {
       "id": "m1_l3_a3",
-      "title": "Checking if a List is Empty",
+      "title": "Quadratic Space: 2D Array Allocation",
       "task": [
-        "We have been checking length manually, but there is a dedicated tool just for this!",
+        "Data structures are not limited to a single dimension. When an algorithm allocates an array within another array recursively or iteratively, the spatial footprint scales quadratically.",
+        "We will construct an N x N matrix to demonstrate O(n²) space complexity.",
         "",
         "Instructions:",
-        "1. Define `is_empty_list(arr)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and grab the 'is list empty' block.",
-        "3. Attach your `arr` variable.",
-        "4. Return the result.",
-        "",
-        "Sample Outputs:",
-        "is_empty_list([]) → True",
-        "is_empty_list([1, 2, 3]) → False"
+        "1. Define the function `create_matrix(n)`.",
+        "2. Initialize an empty array named `matrix`.",
+        "3. Construct an outer loop configured to iterate `n` times.",
+        "4. Inside the outer loop, initialize a new empty array named `row`.",
+        "5. Construct an inner loop, also configured to iterate `n` times.",
+        "6. Inside the inner loop, append the integer `0` to the `row` array.",
+        "7. After the inner loop concludes, append the completed `row` to the `matrix`.",
+        "8. Return the `matrix`."
       ],
-      "targetTime": "O(1)",
-      "targetSpace": "O(1)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
-        { "call": "is_empty_list([])", "expected": "True", "isHidden": false },
-        { "call": "is_empty_list([1, 2, 3])", "expected": "False", "isHidden": false },
-        { "call": "is_empty_list([0])", "expected": "False", "isHidden": false }
+        { "call": "create_matrix(2)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
+        { "call": "create_matrix(3)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
+        { "call": "create_matrix(0)", "expected": "[]", "isHidden": true },
+        { "call": "create_matrix(1)", "expected": "[[0]]", "isHidden": true }
       ]
     },
     {
       "id": "m1_l3_a4",
-      "title": "The Illusion of Speed: Built-In Functions",
+      "title": "Time-Space Tradeoff: In-Place Deletion",
       "task": [
-        "High-level programming languages provide built-in methods (like 'count') that appear to execute instantly. This is a deliberate illusion.",
-        "Under the hood, the system is still executing a full O(n) linear loop, usually written in a lower-level language (like C or C++). You must understand that utilizing this block still incurs an O(n) computational cost.",
+        "Algorithm design often requires balancing time and space efficiency. Removing an element from an array without allocating a new list operates in optimal O(1) auxiliary space.",
+        "However, this forces a time-space tradeoff. Because contiguous memory cannot have empty gaps, the system must shift all subsequent elements, degrading the operation to O(n) linear time.",
         "",
         "Instructions:",
-        "1. Define the function `count_matches(arr, target)`.",
-        "2. Open the 'Lists' tab and utilize the built-in 'count occurrences of' block to find your `target`.",
-        "3. Return the result.",
-        "4. Algorithmic Takeaway: Even when you do not manually write the loop, you must mentally account for its O(n) time complexity when analyzing your program's efficiency."
+        "1. Define the function `remove_target(arr, target)`.",
+        "2. Utilize the native list operation to remove the first occurrence of the `target` value from `arr`.",
+        "3. Return the modified `arr` structure.",
+        "4. Observe the static analyzer. The syntax is concise, but the structural memory shift enforces an O(n) time complexity alongside the O(1) space complexity."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "count_matches([5, 5, 5, 1], 5)", "expected": "3", "isHidden": false },
-        { "call": "count_matches([1, 2, 3], 99)", "expected": "0", "isHidden": false },
-        { "call": "count_matches([], 1)", "expected": "0", "isHidden": true }
+        { "call": "remove_target([10, 20, 30], 20)", "expected": "[10, 30]", "isHidden": false },
+        { "call": "remove_target([5, 5, 5], 5)", "expected": "[5, 5]", "isHidden": false },
+        { "call": "remove_target([1, 2, 3, 4], 1)", "expected": "[2, 3, 4]", "isHidden": true }
       ]
     },
     {
       "id": "m1_l3_a5",
-      "title": "Reversing a List",
+      "title": "Memory Overhead: Array Slicing",
       "task": [
-        "Data structures often require processing in reverse sequence. Most programming languages provide built-in methods to reverse a list in-place.",
-        "Implement a function that utilizes these built-in tools to invert the order of an array.",
+        "Extracting a contiguous sub-section of an array using slicing operators often appears to be a lightweight procedural step.",
+        "Algorithmically, slicing allocates an entirely new array in memory and duplicates the elements into it. This operation yields an O(n) space complexity overhead.",
         "",
         "Instructions:",
-        "1. Define the function `reverse_my_list(arr)`.",
-        "2. Locate the built-in 'reverse list' method from your toolset.",
-        "3. Apply this method directly to your `arr` variable.",
-        "4. Return the modified `arr`.",
-        "",
-        "Sample Outputs:",
-        "reverse_my_list([1, 2, 3]) → [3, 2, 1]",
-        "reverse_my_list(['a', 'b']) → ['b', 'a']"
+        "1. Define the function `extract_tail(arr)`.",
+        "2. Implement a defensive conditional check to verify the array possesses at least 3 elements. If it does not, return an empty array `[]`.",
+        "3. Utilize the array slicing operator to extract elements from index 1 to the end of the array.",
+        "4. Return the newly allocated sub-array to demonstrate linear space scaling."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "reverse_my_list([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "reverse_my_list([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
-        { "call": "reverse_my_list([])", "expected": "[]", "isHidden": false }
+        { "call": "extract_tail([10, 20, 30, 40])", "expected": "[20, 30, 40]", "isHidden": false },
+        { "call": "extract_tail([1, 2, 3])", "expected": "[2, 3]", "isHidden": false },
+        { "call": "extract_tail([5, 10])", "expected": "[]", "isHidden": true },
+        { "call": "extract_tail([])", "expected": "[]", "isHidden": true }
       ]
     }
   ],
   "lesson_4": [
     {
       "id": "m1_l4_a1",
-      "title": "Combining Two Lists",
+      "title": "Array Concatenation: Memory Reallocation",
       "task": [
-        "Sometimes you have two separate lists, and you just want to stick them together into one long list.",
+        "Combining two distinct arrays into a single continuous structure requires the system to allocate a new memory block capable of containing both datasets.",
+        "This concatenation process requires an O(n) linear time traversal to copy the elements and an O(n) space allocation for the newly expanded data structure.",
         "",
         "Instructions:",
-        "1. Define `combine_lists(list1, list2)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and find the 'join list and list' block.",
-        "3. Snap your two lists into the block.",
-        "4. Return the result.",
-        "",
-        "Sample Outputs:",
-        "combine_lists([1, 2], [3, 4]) → [1, 2, 3, 4]",
-        "combine_lists([10], []) → [10]"
+        "1. Define the function `combine_lists(list1, list2)`.",
+        "2. Utilize the native concatenation operator to merge `list1` and `list2`.",
+        "3. Return the resulting combined array.",
+        "4. Recognize that while the visual syntax is concise, the underlying operation enforces linear time and space scaling."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -396,20 +366,18 @@
     },
     {
       "id": "m1_l4_a2",
-      "title": "Keeping Only Positive Numbers",
+      "title": "Data Filtering (Out-of-Place)",
       "task": [
-        "Let's clean up a messy list by creating a brand new list that only keeps the positive numbers (numbers greater than 0).",
+        "Data filtering requires an algorithm to parse a dataset and retain only the elements satisfying a specific condition.",
+        "To perform this safely without desynchronizing memory references, we implement an out-of-place algorithm, allocating O(n) space for a secondary structure.",
         "",
         "Instructions:",
-        "1. Define `filter_positives(arr)`.",
-        "2. Create a new empty list called `result`.",
-        "3. Loop through `arr` using the 'for each item' loop.",
-        "4. If a number is `> 0`, append it to your `result` list.",
-        "5. Return the `result` list.",
-        "",
-        "Sample Outputs:",
-        "filter_positives([-2, 5, -10, 8]) → [5, 8]",
-        "filter_positives([1, 2, 3]) → [1, 2, 3]"
+        "1. Define the function `filter_positives(arr)`.",
+        "2. Initialize a new empty array named `result`.",
+        "3. Execute a linear traversal over the `arr` sequence.",
+        "4. Implement a condition evaluating if the current element is strictly greater than 0.",
+        "5. If the condition is met, append the element to the `result` array.",
+        "6. Return the `result` array."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
@@ -422,18 +390,18 @@
     },
     {
       "id": "m1_l4_a3",
-      "title": "Is the List in Order?",
+      "title": "Sequential Adjacency Verification",
       "task": [
-        "An array is 'sorted' if every number is smaller than or equal to the number right next to it.",
-        "To check this, we need to compare `arr[i]` with its right neighbor `arr[i+1]`. However, this introduces a classic algorithmic trap: The 'Index Out of Bounds' error!",
+        "To verify if an array is strictly sorted, an algorithm must iteratively compare each element against its immediate right-side neighbor.",
+        "This requires precise boundary management. The loop must terminate before reaching the final index to prevent an out-of-bounds memory error.",
         "",
         "Instructions:",
-        "1. Define `is_sorted(arr)`.",
-        "2. First, handle the base cases: if the list has 1 or 0 items, return `True` (it's already sorted!).",
-        "3. Loop Boundaries: Create a 'count with i' loop. Set it to start at `0` and end at the length of the list MINUS 2.",
-        "   -> Algorithmic Insight: Why length minus 2? Because if we go to the absolute last index, there is no `arr[i+1]` to check against, and the program will crash!",
-        "4. Inside the loop, check: If `arr[i]` is strictly GREATER than `arr[i+1]`, the order is broken! Return `False` immediately.",
-        "5. If the loop finishes checking every pair successfully, return `True` at the very end."
+        "1. Define the function `is_sorted(arr)`.",
+        "2. Address the base conditions: if the length of the array is less than 2, return `True`.",
+        "3. Construct an indexed loop constrained to iterate from 0 up to the length of the array minus 2.",
+        "4. Within the loop, evaluate if the element at index `i` is strictly greater than the element at index `i+1`.",
+        "5. If this condition is met, the sorting order is violated. Return `False` immediately.",
+        "6. Return `True` if the loop completes the traversal without encountering a violation."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
@@ -446,46 +414,48 @@
     },
     {
       "id": "m1_l4_a4",
-      "title": "Defensive Slicing",
+      "title": "Algorithmic Aggregation: Computing the Mean",
       "task": [
-        "Slicing allows you to extract a specific sub-section of an array.",
-        "However, hardcoding a slice from index 1 to 3 is a dangerous algorithmic trap! If the array only contains 2 items, your program will crash. We must use Defensive Programming to verify our boundaries first.",
+        "Computing the arithmetic mean of a dataset requires an O(n) traversal for accumulation, followed by an O(1) division operation.",
+        "When performing division based on array length, algorithms must implement defensive checks to prevent runtime failures on empty datasets.",
         "",
         "Instructions:",
-        "1. Define `get_middle(arr)`.",
-        "2. Defensive Boundary Check: Open the 'Logic' tab and use an 'If' block. If the length of `arr` is less than 4, return an empty list `[]` immediately to prevent a crash.",
-        "3. If the array is safely long enough, open the 'Lists (Built-in Type)' tab and grab the 'slice list' block.",
-        "4. Set the start index to `1` and the end index to `3`.",
-        "5. Return the sliced array."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "get_middle([10, 20, 30, 40, 50])", "expected": "[20, 30]", "isHidden": false },
-        { "call": "get_middle(['A', 'B', 'C', 'D'])", "expected": "['B', 'C']", "isHidden": false },
-        { "call": "get_middle([1, 2])", "expected": "[]", "isHidden": true },
-        { "call": "get_middle([])", "expected": "[]", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m1_l4_a5",
-      "title": "Memory Shift: Inserting at the Front",
-      "task": [
-        "Adding an item to the END of a list (`append`) is incredibly fast because there is empty space waiting. This takes O(1) constant time.",
-        "However, squeezing an item into the FRONT of a list is an algorithmic bottleneck. The computer must physically shift every existing item one space to the right in memory to make room. This takes O(n) linear time!",
-        "",
-        "Instructions:",
-        "1. Define `insert_at_front(arr, item)`.",
-        "2. Use the built-in 'insert at index' command to place your `item` variable at index `0` of the `arr`.",
-        "3. Return the modified `arr`.",
-        "4. Algorithmic Takeaway: Although it looks like a single block of code, remember that the computer is secretly running an O(n) loop behind the scenes to shift the data!"
+        "1. Define the function `compute_average(arr)`.",
+        "2. Implement a defensive boundary check: if the array length is 0, return `0.0` to prevent division by zero.",
+        "3. Initialize a variable `total` to 0.",
+        "4. Iterate through the array and accumulate the sum of all elements into the `total` variable.",
+        "5. Conclude the algorithm by returning the `total` divided by the length of the array."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "insert_at_front([2, 3], 1)", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "insert_at_front([], 99)", "expected": "[99]", "isHidden": false },
-        { "call": "insert_at_front(['B'], 'A')", "expected": "['A', 'B']", "isHidden": true }
+        { "call": "compute_average([10, 20, 30])", "expected": "20.0", "isHidden": false },
+        { "call": "compute_average([5, 5, 5, 5])", "expected": "5.0", "isHidden": false },
+        { "call": "compute_average([])", "expected": "0.0", "isHidden": true },
+        { "call": "compute_average([100, 0])", "expected": "50.0", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m1_l4_a5",
+      "title": "Spatial Complexity: Array Duplication",
+      "task": [
+        "Modifying an array in-place irreversibly alters the original dataset. To preserve the initial state, an algorithm must explicitly allocate new memory and duplicate the sequence.",
+        "Constructing a secondary structure scales the space complexity linearly.",
+        "",
+        "Instructions:",
+        "1. Define the function `duplicate_array(arr)`.",
+        "2. Initialize a new empty list named `copy_arr`.",
+        "3. Construct an iterative loop to traverse the input `arr`.",
+        "4. Append each element sequentially to the `copy_arr` structure.",
+        "5. Return `copy_arr`. This process demonstrates an explicit O(n) space allocation."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(n)",
+      "testCasesPool": [
+        { "call": "duplicate_array([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "duplicate_array(['A', 'B'])", "expected": "['A', 'B']", "isHidden": false },
+        { "call": "duplicate_array([])", "expected": "[]", "isHidden": true },
+        { "call": "duplicate_array([0, 0, 0])", "expected": "[0, 0, 0]", "isHidden": true }
       ]
     }
   ]

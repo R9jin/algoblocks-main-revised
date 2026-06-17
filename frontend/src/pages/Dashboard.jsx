@@ -295,7 +295,7 @@ export default function Dashboard() {
               <div className="hero-text">
                 <h1 className="hero-title">Welcome to AlgoBlocks!</h1>
                 <p className="hero-subtitle">
-                  An interactive thesis platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
+                  An interactive platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
                 </p>
               </div>
               <button 
