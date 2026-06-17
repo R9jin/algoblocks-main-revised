@@ -341,121 +341,78 @@
       ]
     }
   ],
-  "lesson_4": [
+  "optimizations": [
     {
-      "id": "m1_l4_a1",
-      "title": "Array Concatenation: Memory Reallocation",
+      "id": "m1_opt_1",
+      "title": "Optimization Challenge: In-Place Reversal",
       "task": [
-        "Combining two distinct arrays into a single continuous structure requires the system to allocate a new memory block capable of containing both datasets.",
-        "This concatenation process requires an O(n) linear time traversal to copy the elements and an O(n) space allocation for the newly expanded data structure.",
+        "Reversing an array by creating a secondary list requires additional memory allocation, resulting in an O(n) space complexity overhead.",
+        "We can optimize this algorithm to operate with O(1) auxiliary space by mutating the original array in-place utilizing two converging pointers.",
         "",
-        "Instructions:",
-        "1. Define the function `combine_lists(list1, list2)`.",
-        "2. Utilize the native concatenation operator to merge `list1` and `list2`.",
-        "3. Return the resulting combined array.",
-        "4. Recognize that while the visual syntax is concise, the underlying operation enforces linear time and space scaling."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "combine_lists([1, 2], [3, 4])", "expected": "[1, 2, 3, 4]", "isHidden": false },
-        { "call": "combine_lists([10], [])", "expected": "[10]", "isHidden": false },
-        { "call": "combine_lists([], [20])", "expected": "[20]", "isHidden": false },
-        { "call": "combine_lists([], [])", "expected": "[]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m1_l4_a2",
-      "title": "Data Filtering (Out-of-Place)",
-      "task": [
-        "Data filtering requires an algorithm to parse a dataset and retain only the elements satisfying a specific condition.",
-        "To perform this safely without desynchronizing memory references, we implement an out-of-place algorithm, allocating O(n) space for a secondary structure.",
-        "",
-        "Instructions:",
-        "1. Define the function `filter_positives(arr)`.",
-        "2. Initialize a new empty array named `result`.",
-        "3. Execute a linear traversal over the `arr` sequence.",
-        "4. Implement a condition evaluating if the current element is strictly greater than 0.",
-        "5. If the condition is met, append the element to the `result` array.",
-        "6. Return the `result` array."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "filter_positives([-2, 5, -10, 8])", "expected": "[5, 8]", "isHidden": false },
-        { "call": "filter_positives([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "filter_positives([-1, -2, -3])", "expected": "[]", "isHidden": false },
-        { "call": "filter_positives([0, 10, -5])", "expected": "[10]", "isHidden": false }
-      ]
-    },
-    {
-      "id": "m1_l4_a3",
-      "title": "Sequential Adjacency Verification",
-      "task": [
-        "To verify if an array is strictly sorted, an algorithm must iteratively compare each element against its immediate right-side neighbor.",
-        "This requires precise boundary management. The loop must terminate before reaching the final index to prevent an out-of-bounds memory error.",
-        "",
-        "Instructions:",
-        "1. Define the function `is_sorted(arr)`.",
-        "2. Address the base conditions: if the length of the array is less than 2, return `True`.",
-        "3. Construct an indexed loop constrained to iterate from 0 up to the length of the array minus 2.",
-        "4. Within the loop, evaluate if the element at index `i` is strictly greater than the element at index `i+1`.",
-        "5. If this condition is met, the sorting order is violated. Return `False` immediately.",
-        "6. Return `True` if the loop completes the traversal without encountering a violation."
+        "Optimization Guidelines:",
+        "1. Eliminate the initialization of the secondary storage array.",
+        "2. Initialize two pointer variables: `left` assigned to 0, and `right` assigned to `len(arr) - 1`.",
+        "3. Construct a `while` loop constrained by the logical evaluation `left < right`.",
+        "4. Implement an in-place swap operation to exchange the values currently residing at `arr[left]` and `arr[right]`.",
+        "5. Increment the `left` pointer and decrement the `right` pointer to converge toward the array center.",
+        "6. Return the modified `arr` structure. Observe the analyzer register the optimal O(1) space complexity."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m1-1.1.json",
       "testCasesPool": [
-        { "call": "is_sorted([1, 2, 3, 4])", "expected": "True", "isHidden": false },
-        { "call": "is_sorted([1, 3, 2, 4])", "expected": "False", "isHidden": false },
-        { "call": "is_sorted([5, 5, 5])", "expected": "True", "isHidden": true },
-        { "call": "is_sorted([])", "expected": "True", "isHidden": true }
+        { "call": "reverse_in_place([1, 2, 3, 4])", "expected": "[4, 3, 2, 1]", "isHidden": false },
+        { "call": "reverse_in_place([10, 20, 30])", "expected": "[30, 20, 10]", "isHidden": false },
+        { "call": "reverse_in_place([5])", "expected": "[5]", "isHidden": true },
+        { "call": "reverse_in_place([])", "expected": "[]", "isHidden": true }
       ]
     },
     {
-      "id": "m1_l4_a4",
-      "title": "Algorithmic Aggregation: Computing the Mean",
+      "id": "m1_opt_2",
+      "title": "Optimization Challenge: Running Totals",
       "task": [
-        "Computing the arithmetic mean of a dataset requires an O(n) traversal for accumulation, followed by an O(1) division operation.",
-        "When performing division based on array length, algorithms must implement defensive checks to prevent runtime failures on empty datasets.",
+        "Computing a running total by repeatedly calculating the sum from the initial index forces the algorithm to utilize nested loops. This architectural flaw degrades performance to an O(n²) time complexity.",
+        "We can optimize this process to O(n) linear time by eliminating the inner loop and maintaining a continuous running accumulator during a single sequential traversal.",
         "",
-        "Instructions:",
-        "1. Define the function `compute_average(arr)`.",
-        "2. Implement a defensive boundary check: if the array length is 0, return `0.0` to prevent division by zero.",
-        "3. Initialize a variable `total` to 0.",
-        "4. Iterate through the array and accumulate the sum of all elements into the `total` variable.",
-        "5. Conclude the algorithm by returning the `total` divided by the length of the array."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "testCasesPool": [
-        { "call": "compute_average([10, 20, 30])", "expected": "20.0", "isHidden": false },
-        { "call": "compute_average([5, 5, 5, 5])", "expected": "5.0", "isHidden": false },
-        { "call": "compute_average([])", "expected": "0.0", "isHidden": true },
-        { "call": "compute_average([100, 0])", "expected": "50.0", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m1_l4_a5",
-      "title": "Spatial Complexity: Array Duplication",
-      "task": [
-        "Modifying an array in-place irreversibly alters the original dataset. To preserve the initial state, an algorithm must explicitly allocate new memory and duplicate the sequence.",
-        "Constructing a secondary structure scales the space complexity linearly.",
-        "",
-        "Instructions:",
-        "1. Define the function `duplicate_array(arr)`.",
-        "2. Initialize a new empty list named `copy_arr`.",
-        "3. Construct an iterative loop to traverse the input `arr`.",
-        "4. Append each element sequentially to the `copy_arr` structure.",
-        "5. Return `copy_arr`. This process demonstrates an explicit O(n) space allocation."
+        "Optimization Guidelines:",
+        "1. Delete the nested iterative loop structure entirely.",
+        "2. Initialize an accumulator variable `current_sum` to 0, alongside an empty `result` array.",
+        "3. Construct a single sequential loop to traverse the parameter array.",
+        "4. During each iteration, increment `current_sum` by the current element's mathematical value.",
+        "5. Append the updated `current_sum` state to the `result` array.",
+        "6. Return the `result` array. The analyzer will mathematically verify the optimization to O(n) time complexity."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m1-1.2.json",
       "testCasesPool": [
-        { "call": "duplicate_array([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "duplicate_array(['A', 'B'])", "expected": "['A', 'B']", "isHidden": false },
-        { "call": "duplicate_array([])", "expected": "[]", "isHidden": true },
-        { "call": "duplicate_array([0, 0, 0])", "expected": "[0, 0, 0]", "isHidden": true }
+        { "call": "running_total([1, 2, 3, 4])", "expected": "[1, 3, 6, 10]", "isHidden": false },
+        { "call": "running_total([10, 10, 10])", "expected": "[10, 20, 30]", "isHidden": false },
+        { "call": "running_total([5, -5, 5])", "expected": "[5, 0, 5]", "isHidden": true },
+        { "call": "running_total([])", "expected": "[]", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m1_opt_3",
+      "title": "Optimization Challenge: Mathematical Series",
+      "task": [
+        "Iterating sequentially through a numerical sequence to aggregate a total sum incurs a mandatory O(n) linear time complexity.",
+        "When evaluating the sum of a contiguous numerical sequence, computer scientists leverage standard mathematical formulas to replace iterative loops, achieving an optimal O(1) constant time complexity.",
+        "",
+        "Optimization Guidelines:",
+        "1. Remove the iterative loop construct and the accumulator variable from the workspace.",
+        "2. Implement the arithmetic series formula utilizing the `n` parameter: `(n * (n + 1)) / 2`.",
+        "3. Return the computed formula result.",
+        "4. The static analyzer evaluates direct mathematical substitutions as constant-time operations, confirming your algorithm now executes in O(1) time."
+      ],
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
+      "templateUrl": "/data/optimizations/m1-1.3.json",
+      "testCasesPool": [
+        { "call": "fast_sum(4)", "expected": "10.0", "isHidden": false },
+        { "call": "fast_sum(10)", "expected": "55.0", "isHidden": false },
+        { "call": "fast_sum(100)", "expected": "5050.0", "isHidden": true },
+        { "call": "fast_sum(0)", "expected": "0.0", "isHidden": true }
       ]
     }
   ]

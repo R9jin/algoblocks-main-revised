@@ -2,750 +2,506 @@
   "lesson_1": [
     {
       "id": "m6_l1_a1",
-      "title": "Backtracking Architecture: The Power Set",
+      "title": "State Mutation: The Choose Step",
       "task": [
-        "Implement a backtracking architecture to generate the power set of an array of size N.",
+        "Backtracking relies on systematically exploring a state space. The foundation of this exploration is the 'Choose' step, where the algorithm mutates the current tracking state to reflect a specific decision.",
+        "We will implement the state mutation for a single traversal branch.",
         "",
-        "Phase 1: Setup & Base Case",
-        "Define `power_set(arr)` initializing a `results` array and a `backtrack(start_index, current_path)` helper function. The base case unconditionally appends a deep copy of `current_path` to `results`.",
-        "",
-        "Phase 2: Iteration & Selection",
-        "Iterate `i` from `start_index` to the end of `arr`. Append `arr[i]` to `current_path` to represent element selection.",
-        "",
-        "Phase 3: Recursive Descent",
-        "Invoke `backtrack(i + 1, current_path)` to explore the decision tree.",
-        "",
-        "Phase 4: Backtracking",
-        "Upon return, pop the last element from `current_path` to revert state for subsequent iterations."
+        "Instructions:",
+        "1. Define the function `choose_path(current_path, node)`.",
+        "2. Utilize the native append operation to insert `node` into the `current_path` array.",
+        "3. Return the modified `current_path`. This state mutation executes in amortized O(1) constant time."
       ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "power_set([1, 2])",
-          "expected": "[[], [1], [1, 2], [2]]",
-          "isHidden": false
-        },
-        {
-          "call": "power_set([1])",
-          "expected": "[[], [1]]",
-          "isHidden": false
-        },
-        {
-          "call": "power_set([])",
-          "expected": "[[]]",
-          "isHidden": true
-        }
+        { "call": "choose_path([1, 2], 3)", "expected": "[1, 2, 3]", "isHidden": false },
+        { "call": "choose_path([], 5)", "expected": "[5]", "isHidden": false },
+        { "call": "choose_path([99], 100)", "expected": "[99, 100]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l1_a2",
-      "title": "Subsets with a Target Sum",
+      "title": "State Reversion: The Unchoose Step",
       "task": [
-        "Adapt the backtracking architecture to identify subsets of an array of size N that sum to a specified target.",
+        "To systematically explore alternative branches, a backtracking algorithm must revert prior state mutations after returning from a recursive depth.",
+        "This 'Unchoose' step, or rollback operation, restores the execution environment for subsequent parallel iterations.",
         "",
         "Instructions:",
-        "1. Define `target_subsets(arr, target)` and a `backtrack(start_index, current_path, current_sum)` helper.",
-        "2. Base Case: If `current_sum == target`, append a copy of `current_path` to the results.",
-        "3. Pruning Condition: If `current_sum > target`, terminate the branch immediately (`return`).",
-        "4. Iterate `i` from `start_index` to the array's end, appending `arr[i]` to `current_path`.",
-        "5. Recursion: Invoke `backtrack(i + 1, current_path, current_sum + arr[i])`.",
-        "6. Backtrack: Pop the last element from the path."
+        "1. Define the function `unchoose_path(current_path)`.",
+        "2. Implement a defensive check to ensure `current_path` is not empty. If empty, return `[]`.",
+        "3. Utilize the native pop operation to remove the most recently appended element from the tail of the array.",
+        "4. Return the modified `current_path` structure."
       ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "target_subsets([2, 3, 6, 7], 7)",
-          "expected": "[[7]]",
-          "isHidden": false
-        },
-        {
-          "call": "target_subsets([2, 3, 5], 8)",
-          "expected": "[[3, 5]]",
-          "isHidden": false
-        },
-        {
-          "call": "target_subsets([1, 2, 3], 6)",
-          "expected": "[[1, 2, 3]]",
-          "isHidden": true
-        }
+        { "call": "unchoose_path([1, 2, 3])", "expected": "[1, 2]", "isHidden": false },
+        { "call": "unchoose_path([5])", "expected": "[]", "isHidden": false },
+        { "call": "unchoose_path([])", "expected": "[]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l1_a3",
-      "title": "Generating Combinations",
+      "title": "Constraint Verification: State Validation",
       "task": [
-        "Generate all unique combinations of size `k` chosen from the mathematical range 1 to `N`.",
+        "Before traversing a decision branch, the algorithm evaluates mathematical constraints to aggressively prune invalid pathways, avoiding deep exponential recursion.",
         "",
         "Instructions:",
-        "1. Define `combine(n, k)` and a `backtrack(start, path)` helper.",
-        "2. Base Case: If `len(path) == k`, append a deep copy of the path to results and return.",
-        "3. Iterate `i` from `start` to `n + 1`.",
-        "4. Select: Append `i` to the path.",
-        "5. Recurse: Call `backtrack(i + 1, path)`.",
-        "6. Backtrack: Pop the element from the path."
+        "1. Define the function `is_valid_choice(current_path, target_sum)`.",
+        "2. Calculate the aggregate sum of `current_path` using a linear O(n) traversal or native sum operator.",
+        "3. Evaluate the boundary: if the computed sum is strictly less than or equal to `target_sum`, return `True`.",
+        "4. Otherwise, return `False` to indicate an invalid state."
       ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "combine(3, 2)",
-          "expected": "[[1, 2], [1, 3], [2, 3]]",
-          "isHidden": false
-        },
-        {
-          "call": "combine(4, 1)",
-          "expected": "[[1], [2], [3], [4]]",
-          "isHidden": false
-        },
-        {
-          "call": "combine(2, 2)",
-          "expected": "[[1, 2]]",
-          "isHidden": true
-        }
+        { "call": "is_valid_choice([1, 2, 3], 10)", "expected": "True", "isHidden": false },
+        { "call": "is_valid_choice([5, 5, 5], 10)", "expected": "False", "isHidden": false },
+        { "call": "is_valid_choice([], 5)", "expected": "True", "isHidden": true }
       ]
     },
     {
       "id": "m6_l1_a4",
-      "title": "Combinations with Repetition",
+      "title": "Recursive Architecture: Path Exploration",
       "task": [
-        "Modify the combination generator to allow unbounded repetition of elements from an array of size N to reach a specific target.",
+        "Recursive exploration dictates invoking the algorithmic structure within itself to increment depth.",
+        "We will simulate an abstract recursive loop prioritizing exponential state generation.",
         "",
         "Instructions:",
-        "1. Define `combine_repeat(arr, target)`.",
-        "2. Base Case: If `sum == target`, append the path and return. If `sum > target`, return to prune the branch.",
-        "3. Iterate `i` from `start_index` to the end. Select `arr[i]`.",
-        "4. Recurse: Invoke `backtrack(i, path, new_sum)`. Passing `i` rather than `i + 1` permits element reuse.",
-        "5. Backtrack: Pop the element."
+        "1. Define the function `explore_depth(n)`.",
+        "2. Establish the base case boundary: if `n <= 0`, return `1`.",
+        "3. Construct a standard `for` loop iterating exactly twice (e.g., `for i in range(2)`).",
+        "4. Inside the loop, execute a recursive invocation to `explore_depth(n - 1)`.",
+        "5. Return `0` outside the loop. The dual-recursive invocation within the iteration establishes an O(2ⁿ) execution complexity."
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        {
-          "call": "combine_repeat([2, 3], 6)",
-          "expected": "[[2, 2, 2], [3, 3]]",
-          "isHidden": false
-        },
-        {
-          "call": "combine_repeat([2], 3)",
-          "expected": "[]",
-          "isHidden": false
-        },
-        {
-          "call": "combine_repeat([4], 8)",
-          "expected": "[[4, 4]]",
-          "isHidden": true
-        }
+        { "call": "explore_depth(3)", "expected": "0", "isHidden": false },
+        { "call": "explore_depth(0)", "expected": "1", "isHidden": false },
+        { "call": "explore_depth(2)", "expected": "0", "isHidden": true }
       ]
     },
     {
       "id": "m6_l1_a5",
-      "title": "Letter Combinations (Phone Keypad)",
+      "title": "Base Case Extraction (Power Set)",
       "task": [
-        "Compute all possible letter combinations representing a given string of N digits, mapped via a standard telephone keypad.",
+        "Synthesizing the choose and unchoose steps generates the complete Power Set of a given sequence.",
+        "Because every element maintains an independent binary state (included or excluded), this exacts an O(2ⁿ) total time complexity.",
         "",
         "Instructions:",
-        "1. Define `phone_letters(digits)`. If `digits` is empty, return `[]`. Initialize a dictionary mapping digits to characters.",
-        "2. Define `backtrack(index, path)`.",
-        "3. Base Case: If `index == len(digits)`, append the joined `path` string to results and return.",
-        "4. Retrieve the character set for the current digit.",
-        "5. Iterate over each character. Append the character, recurse to `index + 1`, and backtrack."
+        "1. Define `generate_subsets(arr, index, current_path, results)`. Assume `results` is passed as an empty array.",
+        "2. Base Case: if `index == len(arr)`, append a deep copy of `current_path` to `results` and return.",
+        "3. Exclusion Branch: Execute `generate_subsets(arr, index + 1, current_path, results)` without mutating state.",
+        "4. Inclusion Branch: Append `arr[index]` to `current_path`. Execute the recursive call for `index + 1`.",
+        "5. Rollback: Pop the final element from `current_path` to restore the state space.",
+        "6. Return `results`."
       ],
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        {
-          "call": "phone_letters('23')",
-          "expected": "['ad', 'ae', 'af', 'bd', 'be', 'bf', 'cd', 'ce', 'cf']",
-          "isHidden": false
-        },
-        {
-          "call": "phone_letters('2')",
-          "expected": "['a', 'b', 'c']",
-          "isHidden": false
-        },
-        {
-          "call": "phone_letters('')",
-          "expected": "[]",
-          "isHidden": true
-        }
+        { "call": "generate_subsets([1, 2], 0, [], [])", "expected": "[[], [2], [1], [1, 2]]", "isHidden": false },
+        { "call": "generate_subsets([3], 0, [], [])", "expected": "[[], [3]]", "isHidden": false },
+        { "call": "generate_subsets([], 0, [], [])", "expected": "[[]]", "isHidden": true }
       ]
     }
   ],
   "lesson_2": [
     {
       "id": "m6_l2_a1",
-      "title": "Permutations Architecture",
+      "title": "State Array: Tracking Used Elements",
       "task": [
-        "Implement a backtracking algorithm to generate all permutations of an array of size N. Permutations require sequence ordering tracking.",
+        "Permutation generation requires a state array to prevent duplicate element usage across recursive depths. This tracks historical choices in O(1) local time.",
         "",
-        "Phase 1: Base Case",
-        "Define `permute(arr)` and `backtrack(path, used)`. Base Case: If `len(path) == len(arr)`, append a copy of the path to results and return.",
-        "",
-        "Phase 2: State Tracking & Iteration",
-        "Iterate `i` from 0 to the end of the array. If `arr[i]` exists in the `used` set, `continue` to bypass.",
-        "",
-        "Phase 3: Selection, Recursion, Reversion",
-        "Append `arr[i]` to `path` and add it to `used`. Recurse via `backtrack(path, used)`. Backtrack by removing `arr[i]` from both structures."
+        "Instructions:",
+        "1. Define the function `init_tracker(size)`.",
+        "2. Construct an array populated with the boolean value `False`, possessing a length equal to `size`.",
+        "3. Return the array. This provisions O(n) spatial overhead necessary for tracking element selections."
       ],
-      "targetTime": "O(n!)",
+      "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        {
-          "call": "permute([1, 2])",
-          "expected": "[[1, 2], [2, 1]]",
-          "isHidden": false
-        },
-        {
-          "call": "permute([1, 2, 3])",
-          "expected": "[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]",
-          "isHidden": false
-        },
-        {
-          "call": "permute([9])",
-          "expected": "[[9]]",
-          "isHidden": true
-        }
+        { "call": "init_tracker(3)", "expected": "[False, False, False]", "isHidden": false },
+        { "call": "init_tracker(1)", "expected": "[False]", "isHidden": false },
+        { "call": "init_tracker(0)", "expected": "[]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l2_a2",
-      "title": "Permutations with Duplicates",
+      "title": "Permutation Generation",
       "task": [
-        "Generate unique permutations for an array of size N containing duplicate elements, implementing structural pruning to prevent duplicate branch evaluation.",
+        "By iterating through available choices and validating against the tracking array, the algorithm generates all possible sequential arrangements.",
+        "The decision tree contracts by exactly one option per depth layer, yielding an O(n!) factorial execution time.",
         "",
         "Instructions:",
-        "1. Define `permute_unique(arr)`. Sort the array to group identical elements.",
-        "2. Modify the `used` tracker to store array indices rather than values.",
-        "3. Iterate `i` from 0 to the end. Skip if `i` is in `used`.",
-        "4. Pruning Condition: If `i > 0`, `arr[i] == arr[i-1]`, and `(i - 1)` is not in `used`, `continue` to bypass redundant branches.",
-        "5. Execute standard selection, recursion, and backtracking operations."
+        "1. Define `permute(arr, current_path, used, results)`.",
+        "2. Base Case: if `len(current_path) == len(arr)`, append a copy of `current_path` to `results` and return.",
+        "3. Construct a sequence loop bounded by `len(arr)`.",
+        "4. Pruning: if `used[i]` is True, `continue` to the next iteration.",
+        "5. Mutation: Append `arr[i]` to `current_path` and set `used[i] = True`.",
+        "6. Recursion: Invoke `permute` with the updated parameters.",
+        "7. Rollback: Pop `current_path` and set `used[i] = False`. Return `results`."
       ],
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        {
-          "call": "permute_unique([1, 1, 2])",
-          "expected": "[[1, 1, 2], [1, 2, 1], [2, 1, 1]]",
-          "isHidden": false
-        },
-        {
-          "call": "permute_unique([3, 3])",
-          "expected": "[[3, 3]]",
-          "isHidden": false
-        },
-        {
-          "call": "permute_unique([2, 1, 2])",
-          "expected": "[[1, 2, 2], [2, 1, 2], [2, 2, 1]]",
-          "isHidden": true
-        }
+        { "call": "permute([1, 2], [], [False, False], [])", "expected": "[[1, 2], [2, 1]]", "isHidden": false },
+        { "call": "permute([3], [], [False], [])", "expected": "[[3]]", "isHidden": false },
+        { "call": "permute([], [], [], [])", "expected": "[[]]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l2_a3",
-      "title": "Word Scrambler",
+      "title": "Combination Selection",
       "task": [
-        "Apply permutation logic to generate all unique anagrams of a given string of length N.",
+        "Combinations prioritize sequence inclusion over strict ordering. To avoid redundant permutations, the algorithm enforces a strictly advancing index boundary.",
         "",
         "Instructions:",
-        "1. Define `scramble_word(word)`. Cast the string to a character array.",
-        "2. Initialize a `used` index set and an empty `path` tracking structure.",
-        "3. Base Case: If the path length matches the word length, join the characters and append to results.",
-        "4. Iterate over indices `i`. Bypass if `i` is in `used`.",
-        "5. Append `chars[i]`, recurse, and backtrack."
+        "1. Define `combine(arr, k, start_idx, current_path, results)`.",
+        "2. Base Case: if `len(current_path) == k`, append a copy to `results` and return.",
+        "3. Loop `i` starting from `start_idx` to `len(arr)`.",
+        "4. Append `arr[i]` to `current_path`.",
+        "5. Recurse, passing `i + 1` as the new `start_idx` to prevent backtracking into prior indices.",
+        "6. Pop from `current_path` to rollback. Return `results`."
       ],
-      "targetTime": "O(n!)",
+      "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        {
-          "call": "scramble_word('ab')",
-          "expected": "['ab', 'ba']",
-          "isHidden": false
-        },
-        {
-          "call": "scramble_word('cat')",
-          "expected": "['cat', 'cta', 'act', 'atc', 'tca', 'tac']",
-          "isHidden": false
-        },
-        {
-          "call": "scramble_word('z')",
-          "expected": "['z']",
-          "isHidden": true
-        }
+        { "call": "combine([1, 2, 3], 2, 0, [], [])", "expected": "[[1, 2], [1, 3], [2, 3]]", "isHidden": false },
+        { "call": "combine([4, 5], 1, 0, [], [])", "expected": "[[4], [5]]", "isHidden": false },
+        { "call": "combine([1], 2, 0, [], [])", "expected": "[]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l2_a4",
-      "title": "Restricted Permutations",
+      "title": "Constrained Combinations (Sum Target)",
       "task": [
-        "Implement constrained permutations on a string of length N by introducing an early-termination pruning rule.",
+        "Applying a mathematical sum constraint during sequence generation allows the algorithm to forcefully prune invalid branches early.",
         "",
         "Instructions:",
-        "1. Define `safe_scramble(word)` incorporating standard permutation architecture.",
-        "2. Pruning Condition: Immediately following character selection, evaluate constraints.",
-        "3. If `len(path) == 1` and `path[0] == 'Z'`, immediately execute the backtrack removal operation and `continue` to prune the branch."
+        "1. Define `combine_sum(arr, target, start_idx, current_path, results)`.",
+        "2. Calculate `current_sum` of the path. If `current_sum == target`, append a copy to `results` and return.",
+        "3. Pruning check: if `current_sum > target`, return immediately to abort the dead execution branch.",
+        "4. Loop `i` from `start_idx` to `len(arr)`. Append `arr[i]`, recurse passing `i` (allowing identical element reuse if desired), and pop upon return.",
+        "5. Return `results`."
       ],
-      "targetTime": "O(n!)",
+      "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        {
-          "call": "safe_scramble('Zab')",
-          "expected": "['abZ', 'aZb', 'baZ', 'bZa']",
-          "isHidden": false
-        },
-        {
-          "call": "safe_scramble('aZ')",
-          "expected": "['aZ']",
-          "isHidden": false
-        },
-        {
-          "call": "safe_scramble('cat')",
-          "expected": "['cat', 'cta', 'act', 'atc', 'tca', 'tac']",
-          "isHidden": true
-        }
+        { "call": "combine_sum([2, 3], 5, 0, [], [])", "expected": "[[2, 3]]", "isHidden": false },
+        { "call": "combine_sum([2], 4, 0, [], [])", "expected": "[[2, 2]]", "isHidden": false },
+        { "call": "combine_sum([5], 2, 0, [], [])", "expected": "[]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l2_a5",
-      "title": "Counting Arrangements (No Lists)",
+      "title": "Lexicographical String Permutations",
       "task": [
-        "Optimize memory allocation by computing the total count of permutations for an array of size N without storing the sequences.",
+        "Backtracking natively preserves sequence priority. Processing a sorted textual array generates permutations in strict lexicographical order.",
         "",
         "Instructions:",
-        "1. Define `count_permutations(arr)`. Initialize a local `count` variable.",
-        "2. In the `backtrack(path, used)` helper, modify the base case: rather than appending to a matrix, increment `count` and return.",
-        "3. Implement standard permutation traversal logic.",
-        "4. Return the final scalar `count`."
+        "1. Define `string_permute(s, current_path, used, results)`.",
+        "2. Implement the identical tracking and looping logic utilized in standard numeric permutations.",
+        "3. Instead of appending arrays, construct a concatenated string from `current_path` to insert into `results` at the base case.",
+        "4. Ensure string rollback mechanics (e.g., slicing the last character or utilizing array joins). Return `results`."
       ],
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        {
-          "call": "count_permutations([1, 2, 3])",
-          "expected": "6",
-          "isHidden": false
-        },
-        {
-          "call": "count_permutations([1, 2, 3, 4])",
-          "expected": "24",
-          "isHidden": false
-        },
-        {
-          "call": "count_permutations([1])",
-          "expected": "1",
-          "isHidden": true
-        }
+        { "call": "string_permute('AB', [], [False, False], [])", "expected": "['AB', 'BA']", "isHidden": false },
+        { "call": "string_permute('Z', [], [False], [])", "expected": "['Z']", "isHidden": false },
+        { "call": "string_permute('', [], [], [])", "expected": "['']", "isHidden": true }
       ]
     }
   ],
   "lesson_3": [
     {
       "id": "m6_l3_a1",
-      "title": "Maze Solver: The Rules of the Grid",
+      "title": "N-Queens: Is Safe Row/Column",
       "task": [
-        "Establish boundary and obstacle evaluation rules for a 2D matrix traversal. Let N represent rows and M represent columns. (0: empty, 1: wall, 9: target).",
+        "The N-Queens algorithm necessitates strict validation before placing an entity. The fundamental evaluation ensures no conflicts exist vertically or horizontally.",
         "",
-        "Phase 1: Boundary Verification",
-        "Define `solve_maze(grid)` and a recursive `explore(row, col)` helper. Rule 1: If `row` or `col` exceed the N x M boundaries (`< 0` or `>= length`), return `False`.",
-        "",
-        "Phase 2: Obstacle Verification",
-        "Rule 2: If `grid[row][col] == 1`, return `False`.",
-        "",
-        "Phase 3: Target Verification",
-        "Rule 3: If `grid[row][col] == 9`, return `True`."
+        "Instructions:",
+        "1. Define `is_safe_linear(board, row, col)`. Assume `board` is a 2D matrix populated with zeros and ones.",
+        "2. Construct a loop iterating `i` from 0 up to `row`.",
+        "3. Evaluate the vertical vector: if `board[i][col] == 1`, return `False`.",
+        "4. Evaluate the horizontal vector: if `board[row][i] == 1`, return `False`.",
+        "5. Return `True` upon loop termination."
       ],
-      "targetTime": "O(1)",
+      "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "explore_rules([[0, 1], [0, 9]], -1, 0)",
-          "expected": "False",
-          "isHidden": false
-        },
-        {
-          "call": "explore_rules([[0, 1], [0, 9]], 0, 1)",
-          "expected": "False",
-          "isHidden": false
-        },
-        {
-          "call": "explore_rules([[0, 1], [0, 9]], 1, 1)",
-          "expected": "True",
-          "isHidden": true
-        }
+        { "call": "is_safe_linear([[1, 0], [0, 0]], 1, 0)", "expected": "False", "isHidden": false },
+        { "call": "is_safe_linear([[0, 0], [0, 0]], 1, 1)", "expected": "True", "isHidden": false },
+        { "call": "is_safe_linear([[0, 1], [0, 0]], 0, 0)", "expected": "False", "isHidden": true }
       ]
     },
     {
       "id": "m6_l3_a2",
-      "title": "Maze Solver: Moving Right and Down",
+      "title": "N-Queens: Diagonal Safety Check",
       "task": [
-        "Implement constrained directional traversal (Right and Down only) through an N x M matrix to locate a target.",
+        "Complex constraints require evaluating multiple simultaneous vectors. Diagonal safety checking mathematically manipulates indices to trace intersecting linear boundaries.",
         "",
         "Instructions:",
-        "1. Define `maze_simple(grid)` with the `explore(row, col)` helper.",
-        "2. Implement boundary, wall, and target base cases.",
-        "3. Recursive Descent: If `explore(row + 1, col)` evaluates to `True`, cascade `True` upwards.",
-        "4. If downward traversal fails, evaluate rightward traversal: `explore(row, col + 1)`.",
-        "5. If all evaluated directions terminate in failure, return `False`."
+        "1. Define `is_safe_diagonal(board, row, col)`. `n` is `len(board)`.",
+        "2. Establish iterators `i = row` and `j = col`.",
+        "3. Upper-Left Trace: loop while `i >= 0` and `j >= 0`. If `board[i][j] == 1`, return `False`. Decrement both.",
+        "4. Reset `i = row` and `j = col`.",
+        "5. Upper-Right Trace: loop while `i >= 0` and `j < n`. If `board[i][j] == 1`, return `False`. Decrement `i`, increment `j`.",
+        "6. Return `True`."
       ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "maze_simple([[0, 0, 1], [1, 0, 9]])",
-          "expected": "True",
-          "isHidden": false
-        },
-        {
-          "call": "maze_simple([[0, 1, 9], [0, 1, 0]])",
-          "expected": "False",
-          "isHidden": false
-        },
-        {
-          "call": "maze_simple([[9]])",
-          "expected": "True",
-          "isHidden": true
-        }
+        { "call": "is_safe_diagonal([[1, 0, 0], [0, 0, 0], [0, 0, 0]], 1, 1)", "expected": "False", "isHidden": false },
+        { "call": "is_safe_diagonal([[0, 0, 1], [0, 0, 0], [0, 0, 0]], 1, 1)", "expected": "False", "isHidden": false },
+        { "call": "is_safe_diagonal([[0, 0, 0], [0, 0, 0], [0, 0, 0]], 2, 2)", "expected": "True", "isHidden": true }
       ]
     },
     {
       "id": "m6_l3_a3",
-      "title": "Maze Solver: All 4 Directions (Avoiding Cycles)",
+      "title": "N-Queens: Place and Remove",
       "task": [
-        "Implement full 4-directional matrix traversal. Introduce state tracking to prevent infinite cyclical evaluation within the N x M grid.",
+        "Executing the mutation and rollback logic isolated on a 2D matrix operates via instantaneous coordinate overwrites.",
         "",
-        "Phase 1: State Initialization",
-        "Initialize a `visited` set within the primary function scope.",
-        "",
-        "Phase 2: Position Selection",
-        "Add a traversal rule: If `(row, col)` exists in `visited`, return `False`. Otherwise, append the coordinate to `visited`.",
-        "",
-        "Phase 3: Multi-directional Recursion",
-        "Evaluate `row+1`, `row-1`, `col+1`, and `col-1` sequentially. Return `True` upon any successful evaluation.",
-        "",
-        "Phase 4: State Reversion",
-        "Upon exhausting all directions, remove `(row, col)` from `visited` and return `False`."
+        "Instructions:",
+        "1. Define `mutate_board(board, row, col, state)`.",
+        "2. Directly assign `board[row][col] = state`.",
+        "3. Return the modified `board` structure.",
+        "4. This execution completes in optimal O(1) constant time, enabling rapid backtracking traversals."
       ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "maze_full([[0, 0, 0], [0, 1, 0], [0, 0, 9]])",
-          "expected": "True",
-          "isHidden": false
-        },
-        {
-          "call": "maze_full([[0, 1, 0], [1, 1, 0], [9, 0, 0]])",
-          "expected": "False",
-          "isHidden": false
-        },
-        {
-          "call": "maze_full([[0, 0], [0, 9]])",
-          "expected": "True",
-          "isHidden": true
-        }
+        { "call": "mutate_board([[0, 0], [0, 0]], 0, 1, 1)", "expected": "[[0, 1], [0, 0]]", "isHidden": false },
+        { "call": "mutate_board([[1, 0], [0, 0]], 0, 0, 0)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
+        { "call": "mutate_board([[0]], 0, 0, 1)", "expected": "[[1]]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l3_a4",
-      "title": "Maze Solver: Tracking the Path",
+      "title": "N-Queens: Initialize Chessboard",
       "task": [
-        "Record the successful traversal sequence through an N x M matrix to reach a defined target.",
+        "Simulating spatial constraint problems strictly requires the allocation of multi-dimensional arrays mapping the mathematical boundaries.",
         "",
         "Instructions:",
-        "1. Define `maze_path(grid)` allocating a `path` sequence array and a `visited` set.",
-        "2. Append current `[row, col]` coordinates to `path` upon validation.",
-        "3. Recursively evaluate all 4 directions. If a recursive call returns `True`, immediately cascade `True` upwards without path modification.",
-        "4. If all directions fail, execute backtracking by popping the terminal coordinate from `path`, removing it from `visited`, and returning `False`."
+        "1. Define `init_board(n)`.",
+        "2. Construct a nested array comprehension or dual `for` loop mapping an `n` by `n` spatial matrix.",
+        "3. Assign the integer `0` to every coordinate index.",
+        "4. Return the generated 2D grid, evaluating to an O(n²) space complexity footprint."
       ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
-        {
-          "call": "maze_path([[0, 1], [0, 9]])",
-          "expected": "[[0, 0], [1, 0], [1, 1]]",
-          "isHidden": false
-        },
-        {
-          "call": "maze_path([[0, 1], [1, 9]])",
-          "expected": "[]",
-          "isHidden": false
-        },
-        {
-          "call": "maze_path([[0, 0], [0, 9]])",
-          "expected": "[[0, 0], [1, 0], [1, 1]]",
-          "isHidden": true
-        }
+        { "call": "init_board(2)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
+        { "call": "init_board(3)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
+        { "call": "init_board(1)", "expected": "[[0]]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l3_a5",
-      "title": "Maze Solver: Counting All Paths",
+      "title": "N-Queens: Full Solver",
       "task": [
-        "Calculate the aggregate sum of all valid traversal paths through an N x M matrix to the target.",
+        "Synthesizing the validation vectors and recursive placement logic yields the complete constraint satisfaction algorithm, enforcing an O(n!) factorial execution time.",
         "",
         "Instructions:",
-        "1. Define `count_maze_paths(grid)` with a zero-initialized `count` variable.",
-        "2. Modify the target base case: If `grid[row][col] == 9`, increment `count`, remove the coordinate from `visited` to enable alternate path discovery, and return.",
-        "3. Recursively evaluate all 4 directions independently, omitting early-termination `return True` cascades.",
-        "4. Post-evaluation, remove `(row, col)` from `visited` to complete state reversion."
+        "1. Define `solve_n_queens(board, row, results)`.",
+        "2. Base Case: if `row == len(board)`, append a deep copy of the board to `results` and return.",
+        "3. Loop `col` from 0 to `len(board) - 1`.",
+        "4. Validate state utilizing external functions or inline logic assessing columns and diagonals.",
+        "5. If valid, set `board[row][col] = 1`. Recurse to `solve_n_queens(board, row + 1, results)`.",
+        "6. Rollback by setting `board[row][col] = 0`.",
+        "7. Return `results`."
       ],
-      "targetTime": "O(2^n)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n!)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
-        {
-          "call": "count_maze_paths([[0, 0], [0, 9]])",
-          "expected": "2",
-          "isHidden": false
-        },
-        {
-          "call": "count_maze_paths([[0, 1], [0, 9]])",
-          "expected": "1",
-          "isHidden": false
-        },
-        {
-          "call": "count_maze_paths([[0, 1], [1, 9]])",
-          "expected": "0",
-          "isHidden": true
-        }
+        { "call": "len(solve_n_queens([[0]*4 for _ in range(4)], 0, []))", "expected": "2", "isHidden": false },
+        { "call": "len(solve_n_queens([[0]*5 for _ in range(5)], 0, []))", "expected": "10", "isHidden": false },
+        { "call": "len(solve_n_queens([[0]*3 for _ in range(3)], 0, []))", "expected": "0", "isHidden": true }
       ]
     }
   ],
   "lesson_4": [
     {
       "id": "m6_l4_a1",
-      "title": "DP Matrix: Coin Change Initialization",
+      "title": "Maze Solving: Boundary Check",
       "task": [
-        "Initialize a structured 2D dynamic programming matrix for the Coin Change algorithm. Let N equal the number of available coin denominations, and M equal the target amount.",
+        "Grid traversal algorithms necessitate constant evaluations to confirm operational pointers reside strictly within the allocated memory bounds.",
         "",
         "Instructions:",
-        "1. Define `init_coin_dp(coins, amount)`.",
-        "2. Allocate an (N + 1) by (M + 1) dimensional nested array.",
-        "3. Populate all indices with `99999` to denote an uncalculated maximal state.",
-        "4. Base Case Initialization: Iterate over all rows, setting index `[i][0] = 0` to denote zero coins required for a zero amount target.",
-        "5. Return the initialized matrix."
+        "1. Define `is_in_bounds(maze, row, col)`.",
+        "2. Determine the maximum constraints: `n_rows = len(maze)` and `n_cols = len(maze[0])`.",
+        "3. Evaluate the multi-axis condition: verify `row >= 0` AND `row < n_rows` AND `col >= 0` AND `col < n_cols`.",
+        "4. Return the resulting boolean expression."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "init_coin_dp([1, 2], 3)",
-          "expected": "[[0, 99999, 99999, 99999], [0, 99999, 99999, 99999], [0, 99999, 99999, 99999]]",
-          "isHidden": false
-        },
-        {
-          "call": "init_coin_dp([5], 1)",
-          "expected": "[[0, 99999], [0, 99999]]",
-          "isHidden": false
-        },
-        {
-          "call": "init_coin_dp([], 0)",
-          "expected": "[[0]]",
-          "isHidden": true
-        }
+        { "call": "is_in_bounds([[0, 0], [0, 0]], 1, 1)", "expected": "True", "isHidden": false },
+        { "call": "is_in_bounds([[0, 0], [0, 0]], 2, 0)", "expected": "False", "isHidden": false },
+        { "call": "is_in_bounds([[0]], -1, 0)", "expected": "False", "isHidden": true }
       ]
     },
     {
       "id": "m6_l4_a2",
-      "title": "DP Matrix: Filling Coin Change",
+      "title": "Maze Solving: Wall Check",
       "task": [
-        "Execute DP tabulation to populate the N x M Coin Change matrix by evaluating inclusion versus exclusion states.",
+        "In addition to boundaries, navigation relies on evaluating coordinate states to detect impassable structural barriers.",
         "",
         "Instructions:",
-        "1. Define `coin_change(coins, amount)` and initialize the matrix as specified previously.",
-        "2. Iterate `i` across rows (1 to N + 1) and `j` across columns (1 to M + 1).",
-        "3. Extract the current denomination: `coin = coins[i-1]`.",
-        "4. Tabulation Logic: If `coin <= j`, update the current cell to the minimum of either the excluded state (`dp[i-1][j]`) or the included state shifted by the denomination (`1 + dp[i][j - coin]`).",
-        "5. If the constraint fails, directly inherit the excluded state.",
-        "6. Return `dp[-1][-1]`, defaulting to `-1` if the state remains `99999`."
+        "1. Define `is_path_clear(maze, row, col)`.",
+        "2. Execute the boundary validations defined in the preceding activity.",
+        "3. If out of bounds, return `False`.",
+        "4. Retrieve the targeted state: if `maze[row][col] == 1` (where 1 designates a wall), return `False`.",
+        "5. Otherwise, return `True`."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "coin_change([1, 2, 5], 11)",
-          "expected": "3",
-          "isHidden": false
-        },
-        {
-          "call": "coin_change([2], 3)",
-          "expected": "-1",
-          "isHidden": false
-        },
-        {
-          "call": "coin_change([1], 0)",
-          "expected": "0",
-          "isHidden": true
-        }
+        { "call": "is_path_clear([[0, 1], [0, 0]], 0, 1)", "expected": "False", "isHidden": false },
+        { "call": "is_path_clear([[0, 1], [0, 0]], 1, 0)", "expected": "True", "isHidden": false },
+        { "call": "is_path_clear([[1]], 0, 0)", "expected": "False", "isHidden": true }
       ]
     },
     {
       "id": "m6_l4_a3",
-      "title": "DP Matrix: Knapsack Initialization",
+      "title": "Maze Solving: Move Directions",
       "task": [
-        "Initialize the tabulation matrix for the 0/1 Knapsack optimization algorithm. Let N equal the item count, and M equal the maximum weight capacity.",
+        "Algorithms execute 2D directional traversal by defining constant coordinate offsets representing standard Cartesian movements.",
         "",
         "Instructions:",
-        "1. Define `init_knapsack(weights, values, max_weight)`.",
-        "2. Allocate an (N + 1) by (M + 1) dimensional nested array.",
-        "3. Populate all indices with `0`, representing the baseline zero-value state.",
-        "4. Return the initialized matrix."
+        "1. Define `get_directions()`.",
+        "2. Construct an array composed of nested tuple or list offsets representing [row_change, col_change].",
+        "3. Include sequences corresponding to: Up [-1, 0], Down [1, 0], Left [0, -1], and Right [0, 1].",
+        "4. Return the constructed coordinate mapping."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "init_knapsack([1], [10], 2)",
-          "expected": "[[0, 0, 0], [0, 0, 0]]",
-          "isHidden": false
-        },
-        {
-          "call": "init_knapsack([2, 3], [10, 20], 1)",
-          "expected": "[[0, 0], [0, 0], [0, 0]]",
-          "isHidden": false
-        },
-        {
-          "call": "init_knapsack([], [], 0)",
-          "expected": "[[0]]",
-          "isHidden": true
-        }
+        { "call": "len(get_directions())", "expected": "4", "isHidden": false },
+        { "call": "[-1, 0] in get_directions()", "expected": "True", "isHidden": false },
+        { "call": "[0, 1] in get_directions()", "expected": "True", "isHidden": true }
       ]
     },
     {
       "id": "m6_l4_a4",
-      "title": "DP Matrix: Filling the Knapsack",
+      "title": "Maze Solving: Path Tracking",
       "task": [
-        "Execute DP tabulation to optimize the 0/1 Knapsack N x M matrix by evaluating item value retention against weight capacities.",
+        "To avert catastrophic infinite looping during undirected traversal, the algorithm must structurally track resolved nodes to prevent cycles.",
         "",
         "Instructions:",
-        "1. Define `knapsack(weights, values, max_weight)`.",
-        "2. Iterate `i` across items (1 to N + 1) and `w` across capacities (1 to M + 1).",
-        "3. Tabulation Logic: If `weights[i-1] <= w`, calculate the maximum of the excluded state (`dp[i-1][w]`) versus the included state (`values[i-1] + dp[i-1][w - weights[i-1]]`).",
-        "4. If the weight constraint fails, directly inherit the excluded state.",
-        "5. Return the terminal optimal value located at `dp[-1][-1]`."
+        "1. Define `mark_visited(visited, row, col)`.",
+        "2. Assign the boolean value `True` to the corresponding `visited[row][col]` index to lock the coordinate.",
+        "3. Return the `visited` array.",
+        "4. This in-place structural lock executes locally in O(1) time."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(1)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        {
-          "call": "knapsack([1, 2, 3], [10, 15, 40], 6)",
-          "expected": "65",
-          "isHidden": false
-        },
-        {
-          "call": "knapsack([2, 3, 4], [1, 2, 3], 1)",
-          "expected": "0",
-          "isHidden": false
-        },
-        {
-          "call": "knapsack([1, 1], [10, 20], 1)",
-          "expected": "20",
-          "isHidden": true
-        }
+        { "call": "mark_visited([[False, False], [False, False]], 1, 1)", "expected": "[[False, False], [False, True]]", "isHidden": false },
+        { "call": "mark_visited([[False]], 0, 0)", "expected": "[[True]]", "isHidden": false },
+        { "call": "mark_visited([[False, False]], 0, 1)", "expected": "[[False, True]]", "isHidden": true }
       ]
     },
     {
       "id": "m6_l4_a5",
-      "title": "DP Matrix: Longest Common Subsequence",
+      "title": "Maze Solving: Full Solver",
       "task": [
-        "Given two words, find the length of the longest sequence of letters they share in the same order (they don't have to be consecutive!).",
+        "Integrating directional offsets, boundary checks, and visited trackers allows the recursive depth algorithm to explore a 2D matrix comprehensively. This exponential exploration yields an O(2ⁿ) complexity bound.",
         "",
         "Instructions:",
-        "1. Define `lcs(word1, word2)`. Create a DP matrix sized (len(word1) + 1) by (len(word2) + 1), filled with `0`s.",
-        "2. Iterate `r` from 1 to the end of rows, and `c` from 1 to the end of columns.",
-        "3. Match Check: If `word1[r-1] == word2[c-1]`, they share a letter! Set `dp[r][c] = 1 + dp[r-1][c-1]` (diagonal top-left).",
-        "4. Mismatch Check: If they don't match, carry forward the best previous score. Set `dp[r][c]` to the maximum of `dp[r-1][c]` (top) or `dp[r][c-1]` (left).",
-        "5. Return `dp[-1][-1]`, which holds the final length."
+        "1. Define `solve_maze(maze, row, col, dest_r, dest_c, visited)`.",
+        "2. Terminating Base Cases: If out-of-bounds, a wall, or already visited, return `False`.",
+        "3. Success Base Case: If `row == dest_r` and `col == dest_c`, return `True`.",
+        "4. Marking: Set `visited[row][col] = True`.",
+        "5. Recursive Invocation: Evaluate `solve_maze` across all 4 adjacent offset coordinates using logical OR (`or`).",
+        "6. Rollback: If no paths succeed, set `visited[row][col] = False` and return `False`.",
+        "7. If any path succeeded, return `True`."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(2^n)",
+      "targetSpace": "O(n^2)",
       "testCasesPool": [
-        {
-          "call": "lcs('abcde', 'ace')",
-          "expected": "3",
-          "isHidden": false
-        },
-        {
-          "call": "lcs('abc', 'abc')",
-          "expected": "3",
-          "isHidden": false
-        },
-        {
-          "call": "lcs('abc', 'def')",
-          "expected": "0",
-          "isHidden": true
-        }
+        { "call": "solve_maze([[0, 1], [0, 0]], 0, 0, 1, 1, [[False, False], [False, False]])", "expected": "True", "isHidden": false },
+        { "call": "solve_maze([[0, 1], [1, 0]], 0, 0, 1, 1, [[False, False], [False, False]])", "expected": "False", "isHidden": false },
+        { "call": "solve_maze([[0, 0, 0], [0, 1, 0], [0, 0, 0]], 0, 0, 2, 2, [[False]*3 for _ in range(3)])", "expected": "True", "isHidden": true }
       ]
     }
   ],
   "optimizations": [
     {
       "id": "m6_opt_1",
-      "title": "Optimization Challenge: Memoizing the Matrix",
+      "title": "Optimization Challenge: Grid Path Counting Tabulation",
       "task": [
-        "Implement top-down Dynamic Programming via recursion and a memoization dictionary to optimize processing overhead.",
+        "Naively traversing every valid route across an open spatial grid utilizes untracked recursive branching, resulting in an exponentially bound O(2ⁿ) runtime sequence.",
+        "By structurally refactoring the traversal logic to employ a bottom-up Dynamic Programming matrix, the redundant pathing computations are eliminated, generating an optimal O(n²) constraint.",
         "",
         "Optimization Guidelines:",
-        "1. Define `knapsack_memo(weights, values, capacity, index, memo)`. Default `memo` to `{}`.",
-        "2. Base Case Verification: Return `0` if `index < 0` or `capacity == 0`.",
-        "3. Cache Verification: If the `(index, capacity)` state exists in `memo`, return the cached integer.",
-        "4. Constraint Evaluation: If `weights[index] > capacity`, recurse to `index - 1` and cache the result.",
-        "5. Optimal Selection: Compute both excluded (`index - 1`) and included (value addition with reduced capacity) recursive branches. Cache and return the maximum."
+        "1. Eliminate all functional recursion utilized to compute individual spatial steps.",
+        "2. Allocate an empty `dp` grid mapped to `n` by `m` structural parameters.",
+        "3. Initialize the boundaries: iterate across row 0 and col 0, assigning a static integer `1` to represent sequential base paths.",
+        "4. Formulate dual iterative nested loops parsing the remaining unresolved coordinates.",
+        "5. Execute mathematical aggregation: assign `dp[i][j] = dp[i-1][j] + dp[i][j-1]`.",
+        "6. Return the terminal scalar located at the final matrix index to achieve an O(n²) analysis bound."
       ],
-      "targetTime": "O(n * m)",
-      "targetSpace": "O(n * m)",
+      "targetTime": "O(n^2)",
+      "targetSpace": "O(n^2)",
       "templateUrl": "/data/optimizations/m6-6.1.json",
       "testCasesPool": [
-        {
-          "call": "knapsack_memo([1, 2, 3], [10, 15, 40], 6, 2, {})",
-          "expected": "65",
-          "isHidden": false
-        },
-        {
-          "call": "knapsack_memo([2, 3, 4], [1, 2, 3], 1, 2, {})",
-          "expected": "0",
-          "isHidden": false
-        },
-        {
-          "call": "knapsack_memo([1, 1], [10, 20], 1, 1, {})",
-          "expected": "20",
-          "isHidden": true
-        }
+        { "call": "unique_paths_opt(3, 3)", "expected": "6", "isHidden": false },
+        { "call": "unique_paths_opt(2, 2)", "expected": "2", "isHidden": false },
+        { "call": "unique_paths_opt(3, 2)", "expected": "3", "isHidden": true },
+        { "call": "unique_paths_opt(1, 1)", "expected": "1", "isHidden": true }
       ]
     },
     {
       "id": "m6_opt_2",
-      "title": "Optimization Challenge: 1D Coin Change",
+      "title": "Optimization Challenge: Subset Sum Dynamic Compression",
       "task": [
-        "A 2D matrix wastes a lot of memory. Because Coin Change only looks back at smaller amounts in the current row, we can compress the whole matrix into a single 1D Array!",
+        "Generating the full combinatorial set to verify sum parameters forces an exhaustive O(2ⁿ) exponential evaluation across the data landscape.",
+        "Converting the logic to an interconnected 2D boolean caching structure (Tabulation) bounds the execution strictly to O(n * m) polynomial time.",
         "",
         "Optimization Guidelines:",
-        "1. Define `coin_change_1d(coins, amount)`.",
-        "2. Create a single 1D array called `dp` sized `amount + 1`, filled with `99999`. Set `dp[0] = 0`.",
-        "3. Loop `coin` through the `coins` list.",
-        "4. Inside that, loop `a` (amount) FORWARD from `coin` up to `amount + 1`.",
-        "5. State Update: Set `dp[a]` to the minimum of its current value (`dp[a]`) OR `1 + dp[a - coin]`.",
-        "6. Return `dp[-1]` (return `-1` if it is still `99999`)."
+        "1. Remove the backtracking functional subsets entirely.",
+        "2. Provision a boolean `dp` matrix comprising `len(arr) + 1` rows and `target + 1` columns.",
+        "3. Initialize the target zero states: loop down column zero and assign `True`.",
+        "4. Loop iteratively checking combinations: `for i in range(1, len(arr) + 1)` and `for j in range(1, target + 1)`.",
+        "5. Reassign state dynamically: `dp[i][j] = dp[i-1][j]` or, if the constraint holds, `dp[i][j] = dp[i-1][j] or dp[i-1][j - arr[i-1]]`.",
+        "6. Observe the analyzer verify the strict mathematical mapping to O(n * m)."
       ],
       "targetTime": "O(n * m)",
-      "targetSpace": "O(m)",
+      "targetSpace": "O(n * m)",
       "templateUrl": "/data/optimizations/m6-6.2.json",
       "testCasesPool": [
-        {
-          "call": "coin_change_1d([1, 2, 5], 11)",
-          "expected": "3",
-          "isHidden": false
-        },
-        {
-          "call": "coin_change_1d([2], 3)",
-          "expected": "-1",
-          "isHidden": false
-        },
-        {
-          "call": "coin_change_1d([1], 0)",
-          "expected": "0",
-          "isHidden": true
-        }
+        { "call": "subset_sum_opt([3, 34, 4, 12, 5, 2], 9)", "expected": "True", "isHidden": false },
+        { "call": "subset_sum_opt([3, 34, 4, 12, 5, 2], 30)", "expected": "False", "isHidden": false },
+        { "call": "subset_sum_opt([1, 2, 3], 6)", "expected": "True", "isHidden": true },
+        { "call": "subset_sum_opt([1, 5], 3)", "expected": "False", "isHidden": true }
+      ]
+    },
+    {
+      "id": "m6_opt_3",
+      "title": "Optimization Challenge: Shortest Path Breadth-First Search",
+      "task": [
+        "Backtracking Depth-First Search evaluates deeply nested dead ends before attempting parallel routes, generating an O(2ⁿ) runtime on large untethered matrices.",
+        "Refactoring the traversal sequence to a Queue-based Breadth-First Search ensures the primary discovery node is strictly optimal, processing the grid in O(V + E) proportional time.",
+        "",
+        "Optimization Guidelines:",
+        "1. Delete the recursive invocation loops. Introduce the `deque` object from the standard collections module.",
+        "2. Establish the primary coordinate queue appending a tuple detailing `(row, col, distance)` initialized at `(0, 0, 0)`.",
+        "3. Generate a `while queue:` structure extracting elements sequentially using `.popleft()`.",
+        "4. Validate parameters iteratively: terminate upon target acquisition. Otherwise, append valid unvisited adjacent paths mapping upward distances.",
+        "5. Observe the analytical transition confirming the graph context bounds to O(V + E)."
+      ],
+      "targetTime": "O(V + E)",
+      "targetSpace": "O(V)",
+      "templateUrl": "/data/optimizations/m6-6.3.json",
+      "testCasesPool": [
+        { "call": "shortest_path_bfs([[0, 0], [0, 0]], 0, 0, 1, 1)", "expected": "2", "isHidden": false },
+        { "call": "shortest_path_bfs([[0, 1], [0, 0]], 0, 0, 1, 1)", "expected": "2", "isHidden": false },
+        { "call": "shortest_path_bfs([[0, 1, 0], [0, 1, 0], [0, 0, 0]], 0, 0, 0, 2)", "expected": "6", "isHidden": true },
+        { "call": "shortest_path_bfs([[0, 1], [1, 0]], 0, 0, 1, 1)", "expected": "-1", "isHidden": true }
       ]
     }
   ]
