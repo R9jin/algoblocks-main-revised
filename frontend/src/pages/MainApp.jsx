@@ -85,54 +85,60 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
-// Modified parse markdown for Overall Analysis compatibility
+// ---------------------------------------------------------------------------------
+// ADVANCED MARKDOWN PARSER (Custom Built for Asymptotic Step-by-Step Math)
+// ---------------------------------------------------------------------------------
 const parseMarkdown = (str) => {
   if (!str) return "";
   let html = str.trim();
-  
-  // Headers
+
+  // 1. Headers
   html = html.replace(/### (.*?)\n/g, '<h3 class="overall-main-title">$1</h3>\n');
   html = html.replace(/#### (.*?)\n/g, '<h4 class="overall-sub-title">$1</h4>\n');
-  
-  // Bold and inline code
+
+  // 2. High-Priority Formatting: Step Badges & Final Summaries
+  html = html.replace(/\*\*(Step \d+:.*?)\*\*/g, '<span class="step-badge">$1</span>');
+  html = html.replace(/\*\*(\d+\.\s.*?)\*\*/g, '<span class="step-badge">$1</span>');
+  html = html.replace(/\*\*(Asymptotic Simplification|Final Asymptotic Complexity:?|Complexity Summary)\*\*/g, '<h5 class="overall-section-title">$1</h5>');
+
+  // 3. General Bold
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  // 4. Mathematical Equation Blocks (Targeting exactly `T(n) = ...` or `S(n) = ...` inside backticks)
+  // Evaluates both single standalone lines and embedded matches
+  html = html.replace(/^`([TS]\(n\)\s*=.*?)`$/gm, '<div class="math-block">$1</div>');
+  html = html.replace(/`([TS]\(n\)\s*=.*?)`/g, '<div class="math-block">$1</div>');
+
+  // 5. Normal Inline Code (Fallback)
   html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
-  
-  // Custom Asymptotic blocks
-  html = html.replace(/(T\(n\)\s*=\s*[^\n]+|S\(n\)\s*=\s*[^\n]+)/g, '<div class="math-block">$1</div>');
 
-  // Math replacement
-  const mathReplacer = (match, math) => {
-    let cleanMath = math.trim().replace(/\\mathcal\{?O\}?/g, "O").replace(/\\log\b/g, "log").replace(/\\/g, "");
-    cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-    return `<span class="nlg-math-badge">${cleanMath}</span>`;
-  };
-  html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
-  html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
-
-  html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, txt, suffix) {
-     let newText = txt.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
-         let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-         return `<span class="nlg-math-badge">O(${cleanMath})</span>`;
-     });
-     return prefix + newText + suffix;
-  });
-
+  // 6. Intelligent Block Splitter (Preserves Lists & HTML structures cleanly)
   let blocks = html.split(/\n\s*\n/);
   let parsedBlocks = blocks.map(block => {
-    if (block.includes('overall-main-title') || block.includes('overall-sub-title') || block.includes('math-block')) {
-      return block; // Don't wrap headers/math in p tags
+    // If block already contains HTML structured tags, just convert newlines safely
+    if (block.includes('<h3') || block.includes('<h4') || block.includes('<h5') || block.includes('<div class="math-block"')) {
+       return block.replace(/\n/g, '<br/>'); 
     }
+    
+    // Detect and construct unordered lists
     if (/^[-*]\s+/m.test(block)) {
       let listItems = block.split('\n').reduce((acc, line) => {
          let trimmed = line.trim();
-         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { acc.push(`<li>${trimmed.substring(2).trim()}</li>`); } 
-         else if (trimmed !== '') { if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); else acc.push(`<li>${trimmed}</li>`); }
+         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { 
+             acc.push(`<li>${trimmed.substring(2).trim()}</li>`); 
+         } else if (trimmed !== '') { 
+             if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); 
+             else acc.push(`<li>${trimmed}</li>`); 
+         }
          return acc;
       }, []).join('');
-      return `<ul>${listItems}</ul>`;
-    } else return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
+      return `<ul class="nlg-list">${listItems}</ul>`;
+    }
+
+    // Default Paragraph Wrap
+    return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
   });
+
   return parsedBlocks.join('');
 };
 
@@ -181,7 +187,6 @@ const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("
 const getUser = () => { const userStr = localStorage.getItem("user") || sessionStorage.getItem("user"); return userStr ? JSON.parse(userStr) : null; };
 const getAuthHeaders = () => { const token = getToken(); return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : { "Content-Type": "application/json" }; };
 
-// DECLARATIVE INITIALIZATION: Grabs router state immediately to bypass race conditions
 const createInitialTab = (locState = null) => {
   const base = {
     id: `tab-${Date.now()}`, title: "Untitled Project", viewMode: "workspace", blocklyJson: null,
@@ -210,7 +215,6 @@ export default function MainApp() {
 
   const { worker, isEngineReady, resetWorker } = usePyodide();
 
-  // Initializes tabs cleanly with the data payload from Dashboard
   const [tabs, setTabs] = useState([createInitialTab(location.state)]);
   const [activeTabId, setActiveTabId] = useState(tabs[0].id);
 
@@ -223,7 +227,6 @@ export default function MainApp() {
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [consoleTab, setConsoleTab] = useState("output");
-  // Default to overall view if we have results, else local
   const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
   const [expandedLines, setExpandedLines] = useState({});
 
@@ -870,7 +873,6 @@ export default function MainApp() {
       <div className={activeTab.viewMode === "workspace" ? "workspace-view d-flex" : "workspace-view d-none"}>
         {tabs.map((tab) => (
           <div key={tab.id} className={activeTabId === tab.id ? "d-block" : "d-none"} style={{ width: "100%", height: "100%" }}>
-            {/* Inject initialJson directly to eliminate race conditions completely */}
             <BlocklyWorkspace 
               initialJson={tab.blocklyJson}
               ref={(el) => (workspaceRefs.current[tab.id] = el)} 
@@ -1036,7 +1038,6 @@ export default function MainApp() {
               </div>
             </div>
             
-            {/* OVERALL TAB RENDERER */}
             {activeComplexityTab === "overall" ? (
               <div className="overall-complexity-wrapper">
                 {activeTab.analysisResult.overall_explanation ? (

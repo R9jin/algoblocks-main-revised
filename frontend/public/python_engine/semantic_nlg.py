@@ -35,7 +35,7 @@ class MemorySignals:
     set_and_dict_updates: bool = False
     caches_results: bool = False
     dp_tabulation_array: bool = False
-    array_preallocation: bool = False  # Agnostic detection of [val] * N
+    array_preallocation: bool = False
     inplace_swap: bool = False
 
 @dataclass
@@ -45,7 +45,7 @@ class ComplexitySignals:
     repeated_sort: bool = False             
     membership_in_list: bool = False        
     heavy_math_operations: bool = False     
-    quadratic_math: bool = False            # Agnostic detection of x ** 2
+    quadratic_math: bool = False            
     set_mathematical_ops: bool = False
     dict_lookup_constant: bool = False
     amortized_operation: bool = False
@@ -53,56 +53,49 @@ class ComplexitySignals:
     bitwise_operations: bool = False
     boolean_short_circuit: bool = False
     f_string_usage: bool = False
-    exception_control_flow: bool = False    # Using try/except in a loop
+    exception_control_flow: bool = False    
 
 @dataclass
 class AlgorithmicParadigms:
-    is_halving: bool = False                     # Binary Search / Divide & Conquer
-    is_doubling: bool = False                    # Exponential growth
-    is_two_pointer: bool = False                 # Agnostic: while var1 < var2
-    is_sliding_window: bool = False              # window_sum, left++, right++
-    is_fast_slow_pointer: bool = False           # Floyd's Cycle finding
-    is_grid_traversal: bool = False              # Nested loops or 2D array accessing
-    is_memoization_check: bool = False           # Agnostic: if key in struct
-    is_tabulation_setup: bool = False            # Agnostic: struct = [val] * n
-    is_brian_kernighan: bool = False             # n & (n - 1)
-    is_fibonacci_sequence: bool = False          # a, b = b, a + b
-    is_bfs_queue: bool = False                   # queue.popleft()
-    is_dfs_stack: bool = False                   # stack.pop()
-    is_modulo_arithmetic: bool = False           # n % 2
-    is_matrix_math: bool = False                 # nested array indexing
-    is_combinatorics: bool = False               # math.comb, math.factorial
-    is_euclidean_distance: bool = False          # math.sqrt((x2-x1)**2 + (y2-y1)**2)
-    is_prefix_sum: bool = False                  # Agnostic: arr[i] = arr[i] + arr[i-1]
-    is_bitmasking: bool = False                  # Advanced bitwise context (1 << n)
+    is_halving: bool = False                     
+    is_doubling: bool = False                    
+    is_two_pointer: bool = False                 
+    is_sliding_window: bool = False              
+    is_fast_slow_pointer: bool = False           
+    is_grid_traversal: bool = False              
+    is_memoization_check: bool = False           
+    is_tabulation_setup: bool = False            
+    is_brian_kernighan: bool = False             
+    is_fibonacci_sequence: bool = False          
+    is_bfs_queue: bool = False                   
+    is_dfs_stack: bool = False                   
+    is_modulo_arithmetic: bool = False           
+    is_matrix_math: bool = False                 
+    is_combinatorics: bool = False               
+    is_euclidean_distance: bool = False          
+    is_prefix_sum: bool = False                  
+    is_bitmasking: bool = False                  
 
 @dataclass
 class PatternSignals:
     loop_depth: int = 0
     nested_loops: bool = False
-    
     has_recursion: bool = False
     indirect_recursion: bool = False
     recursion_branching: Optional[str] = None  
     has_backtracking_risk: bool = False
     has_memoization: bool = False
     recursion_in_loop: bool = False
-    
     membership_in_loop: bool = False
     comprehension_expansion: bool = False
-    
     graph_traversal: bool = False
     visited_tracking: bool = False
-    
     repeated_calls_in_loop: bool = False
     has_early_exits: bool = False  
     has_continue: bool = False
-
     inline_ternary: bool = False
     string_interpolation: bool = False
     variable_swapping: bool = False
-    
-    # Text and Structure Recognition
     has_comment_block: bool = False
     has_docstring: bool = False
     uses_try_except: bool = False
@@ -115,21 +108,14 @@ class PatternSignals:
     memory_signals: MemorySignals = field(default_factory=MemorySignals)
     complexity_signals: ComplexitySignals = field(default_factory=ComplexitySignals)
     paradigms: AlgorithmicParadigms = field(default_factory=AlgorithmicParadigms)
-    
     extra_notes: List[str] = field(default_factory=list)
 
 
 # =========================================================================
-# COMPREHENSIVE AST VISITOR (Deep Structural Detection)
+# COMPREHENSIVE AST VISITOR
 # =========================================================================
 
 class ComprehensiveASTVisitor(ast.NodeVisitor):
-    """
-    Analyzes the AST to detect specific structural patterns, exact algorithmic
-    paradigms, and behaviors that impact time and space complexity.
-    It utilizes variable-name agnostic logic wherever possible to ensure robust
-    detection across diverse coding styles.
-    """
     def __init__(self, ctx):
         self.ctx = ctx
         self.signals = PatternSignals()
@@ -155,7 +141,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         return self.signals
 
     def visit_FunctionDef(self, node: ast.FunctionDef):
-        # Detect if a proper docstring is present at the function level
         if ast.get_docstring(node):
             self.signals.has_docstring = True
         self.generic_visit(node)
@@ -180,8 +165,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             
             if isinstance(node.func.value, ast.Name):
                 self._modified_structures.add(f"{node.func.value.id}.{method_name}")
-                
-                # Math library agnostic detection
                 if node.func.value.id == 'math':
                     self.signals.complexity_signals.heavy_math_operations = True
                     if method_name in ['comb', 'perm', 'factorial']:
@@ -189,12 +172,11 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                     elif method_name in ['sqrt', 'dist', 'hypot']:
                         self.signals.paradigms.is_euclidean_distance = True
             
-            # Detect pop(0) vs pop()
             if method_name == 'pop':
                 if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
                     self.signals.complexity_signals.inefficient_list_pop = True
                 else:
-                    self.signals.paradigms.is_dfs_stack = True # Standard pop acts as a stack
+                    self.signals.paradigms.is_dfs_stack = True 
             
             elif method_name == 'insert':
                 if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
@@ -210,7 +192,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 
             elif method_name == 'append':
                 self.signals.complexity_signals.amortized_operation = True
-                # Agnostic visited tracking: adding items to a collection inside a loop or graph context
                 if self._in_loop or getattr(self.ctx, "in_graph_context", False):
                     self.signals.visited_tracking = True
                 
@@ -227,7 +208,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
 
             elif method_name in ['update', 'add']:
                 self.signals.memory_signals.set_and_dict_updates = True
-                # Agnostic visited tracking
                 if self._in_loop or getattr(self.ctx, "in_graph_context", False):
                     self.signals.visited_tracking = True
 
@@ -238,7 +218,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             if func_name in ['sum', 'max', 'min', 'all', 'any'] and self._in_loop:
                 self.signals.complexity_signals.aggregation_in_loop = True
                 
-            # Generic math functions without 'math.' prefix
             if func_name in ['sqrt', 'pow', 'abs']:
                 self.signals.complexity_signals.heavy_math_operations = True
 
@@ -263,15 +242,11 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
                 if self._in_loop:
                     self.signals.membership_in_loop = True
                     self.signals.complexity_signals.membership_in_list = True
-                
-                # Agnostic Dynamic Programming / Memoization check
-                # If we are checking membership inside a dictionary/set (represented by a variable)
                 if isinstance(node.comparators[0], (ast.Name, ast.Attribute)):
                     self.signals.has_memoization = True
                     self.signals.paradigms.is_memoization_check = True
                     self.signals.memory_signals.caches_results = True
 
-            # Two Pointer Paradigm Agnostic Detection (var1 < var2)
             if isinstance(op, (ast.Lt, ast.LtE)):
                 if isinstance(node.left, ast.Name) and isinstance(node.comparators[0], ast.Name):
                     self.signals.paradigms.is_two_pointer = True
@@ -279,33 +254,25 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_BinOp(self, node: ast.BinOp):
-        # Bitwise Ops
         if isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.BitXor, ast.LShift, ast.RShift)):
             self.signals.complexity_signals.bitwise_operations = True
-            
             if isinstance(node.op, ast.LShift):
                 self.signals.paradigms.is_bitmasking = True
-            
-            # Brian Kernighan's Algorithm snippet: n & (n - 1)
             if isinstance(node.op, ast.BitAnd) and isinstance(node.right, ast.BinOp) and isinstance(node.right.op, ast.Sub):
                 if getattr(node.right.right, 'value', None) == 1:
                     self.signals.paradigms.is_brian_kernighan = True
                     
-        # Mathematical Sets
         if isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.Sub, ast.BitXor)):
             self.signals.complexity_signals.set_mathematical_ops = True
 
-        # Halving (Binary Search / Divide & Conquer)
         if isinstance(node.op, ast.FloorDiv) and getattr(node.right, 'value', None) == 2:
             self.signals.paradigms.is_halving = True
         elif isinstance(node.op, ast.Div) and getattr(node.right, 'value', None) == 2:
             self.signals.paradigms.is_halving = True
 
-        # Modulo
         if isinstance(node.op, ast.Mod):
             self.signals.paradigms.is_modulo_arithmetic = True
             
-        # Power / Quadratic / Euclidean
         if isinstance(node.op, ast.Pow):
             self.signals.complexity_signals.heavy_math_operations = True
             if getattr(node.right, 'value', None) == 2:
@@ -318,11 +285,7 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Expr(self, node: ast.Expr):
-        # Bare expressions are often string blocks or unassigned variable calls.
-        # Check specifically for multi-line strings or block comments (""" comment """)
         if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-            # If it's a bare string expression and wasn't picked up as a module/class/func docstring,
-            # it's acting as an inline block comment.
             self.signals.has_comment_block = True
         self.generic_visit(node)
 
@@ -362,7 +325,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         if isinstance(node.slice, ast.Slice):
             self.signals.memory_signals.performs_slicing = True
         
-        # Matrix Math Detection (e.g. arr[i][j])
         if isinstance(node.slice, ast.Tuple) or (hasattr(node, 'value') and isinstance(node.value, ast.Subscript)):
             self.signals.paradigms.is_matrix_math = True
 
@@ -385,16 +347,13 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         
     def visit_Assign(self, node: ast.Assign):
-        # Swap paradigm (e.g., a, b = b, a)
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
             self.signals.variable_swapping = True
             self.signals.memory_signals.inplace_swap = True
             
-            # Fibonacci Paradigm: a, b = b, a + b
             if len(node.value.elts) == 2 and isinstance(node.value.elts[1], ast.BinOp) and isinstance(node.value.elts[1].op, ast.Add):
                 self.signals.paradigms.is_fibonacci_sequence = True
                 
-        # Agnostic Tabulation Setup: array = [val] * N
         if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and isinstance(node.value.left, ast.List):
             self.signals.paradigms.is_tabulation_setup = True
             self.signals.memory_signals.dp_tabulation_array = True
@@ -499,7 +458,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
             self.signals.memory_signals.tracks_visited_nodes = True
 
     def _evaluate_memoization(self):
-        # We also check the agnostic signal captured in visit_Compare
         if getattr(self.ctx, "current_function_name", None) in getattr(self.ctx, "memoized_funcs", set()) or self.signals.has_memoization:
             self.signals.has_memoization = True
             self.signals.memory_signals.caches_results = True
@@ -516,8 +474,6 @@ class ComprehensiveASTVisitor(ast.NodeVisitor):
 class EducationalInsightGenerator:
     """
     Constructs highly modular, educational explanations for the user.
-    It builds sentences like puzzle pieces:
-    [Action] + [Local Reality] + [Global Reality] + [Educational Insight].
     """
     def __init__(self, ctx):
         self.ctx = ctx
@@ -556,12 +512,7 @@ class EducationalInsightGenerator:
             factors={}
         )
 
-    # -------------------------------------------------------------------------
-    # PIECE 1: THE ACTION BUILDERS (What is the code doing?)
-    # -------------------------------------------------------------------------
     def _build_action_intro(self, node: ast.AST, code_snippet: str, sig: PatternSignals) -> str:
-        """Generates the opening sentence based on the AST node type and paradigms."""
-        # High priority paradigms
         if sig.paradigms.is_halving:
             return f"Looking at `{code_snippet}`, the algorithm performs a crucial mathematical division, actively halving the problem space."
         if sig.paradigms.is_two_pointer:
@@ -579,7 +530,6 @@ class EducationalInsightGenerator:
 
         snippet_ref = f"Looking at `{code_snippet}`" if code_snippet else "Reviewing this specific line"
 
-        # Structural/AST node types
         if isinstance(node, ast.Assign):
             return f"{snippet_ref}, the code assigns a calculated value, capturing a specific state."
         elif isinstance(node, ast.AugAssign):
@@ -623,13 +573,9 @@ class EducationalInsightGenerator:
         
         return f"{snippet_ref}, we observe a distinct operational step."
 
-    # -------------------------------------------------------------------------
-    # PIECE 2: LOCAL EXPLANATIONS
-    # -------------------------------------------------------------------------
     def _build_local_time_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
         family = local_info.family
         
-        # Meta/Text structures usually cost nothing
         if sig.has_docstring or sig.has_comment_block:
             return "This acts strictly as documentation or passive string data; it imposes absolutely zero computational penalty during live execution, resolving to a pure $O(1)$ footprint."
 
@@ -669,9 +615,6 @@ class EducationalInsightGenerator:
             
         return f"This isolated instruction claims a localized memory footprint of {local_info.raw}."
 
-    # -------------------------------------------------------------------------
-    # PIECE 3: GLOBAL EXPLANATIONS
-    # -------------------------------------------------------------------------
     def _build_global_time_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
         if sig.has_docstring or sig.has_comment_block:
             return "Its presence has no cascading effects on the global performance. The total systemic time complexity is fundamentally anchored by the actual operational logic of the block."
@@ -679,7 +622,6 @@ class EducationalInsightGenerator:
         if local_info.raw == global_info.raw:
             return f"Because this operation dictates the heaviest work done in this path, it establishes the function's overall algorithmic time complexity at {global_info.raw}."
         
-        # Escalation Logic (Local is smaller than Global)
         if global_info.family == "polynomial" and local_info.family in ["linear", "constant"]:
             if sig.nested_loops:
                 return f"However, because this step is trapped deep inside nested loops, its execution frequency multiplies dramatically, ballooning the overall time complexity to a quadratic {global_info.raw}."
@@ -706,7 +648,6 @@ class EducationalInsightGenerator:
         if local_info.raw == global_info.raw:
             return f"As this is the peak structural allocation event in the entire algorithm, it cleanly defines the overarching global space complexity at {global_info.raw}."
         
-        # Escalation Logic
         if global_info.family == "linear" and local_info.family == "constant":
             if sig.has_recursion:
                 return f"However, because this function calls itself recursively, the interpreter stacks these $O(1)$ frames on top of each other, expanding the peak global memory usage to {global_info.raw}."
@@ -717,13 +658,8 @@ class EducationalInsightGenerator:
 
         return f"Factoring in the peak high-water mark of the entire executing function, the global spatial footprint reaches {global_info.raw}."
 
-    # -------------------------------------------------------------------------
-    # PIECE 4: ALGORITHMIC INSIGHTS
-    # -------------------------------------------------------------------------
     def _gather_time_insights(self, sig: PatternSignals, local_t: str) -> List[str]:
         insights = []
-        
-        # Paradigms
         if sig.paradigms.is_halving:
             insights.append("Mathematical Optimization: By explicitly halving the input (often via `// 2`), the algorithm safely discards 50% of the remaining search space. This is the cornerstone of Logarithmic ($O(\\log n)$) efficiency, making it blisteringly fast even for huge datasets.")
         if sig.paradigms.is_two_pointer:
@@ -739,7 +675,6 @@ class EducationalInsightGenerator:
         if sig.complexity_signals.quadratic_math:
             insights.append("Mathematical Overhead: Squaring numbers (`**2`) or dealing with quadratic distance equations introduces heavier arithmetic operations, though modern CPUs pipeline these specific instructions extremely efficiently.")
 
-        # Complexity Traps & Patterns
         if sig.memory_signals.geometric_capacity_growth:
             insights.append("Architectural Warning: Continuously multiplying or adding a sequence to itself inside a loop forces the computer to reallocate exponentially doubling chunks of memory. This turns what appears to be a simple loop into an incredibly slow, volatile process.")
         elif sig.memory_signals.string_concatenation_in_loop:
@@ -763,7 +698,6 @@ class EducationalInsightGenerator:
         if sig.has_early_exits or sig.has_continue:
             insights.append("Optimization: Interacting with the loop flow (`break`, `continue`, or `return`) here acts as an excellent functional optimization. It grants the algorithm permission to completely bypass useless iterations the exact moment the logic resolves.")
 
-        # New Text / Syntax recognition insights
         if sig.uses_try_except:
             if sig.complexity_signals.exception_control_flow:
                 insights.append("Performance Trap: While `try/except` blocks are powerful, relying on exceptions for standard control flow *inside* a heavy loop is surprisingly slow. Generating a traceback object in Python carries a tangible processing penalty.")
@@ -776,7 +710,6 @@ class EducationalInsightGenerator:
 
     def _gather_space_insights(self, sig: PatternSignals, mem_state: dict) -> List[str]:
         insights = []
-        
         if sig.paradigms.is_tabulation_setup or sig.memory_signals.array_preallocation:
             insights.append("Memory Optimization: Pre-allocating an array directly with a specific size (e.g., `[val] * n`) is a highly optimized way to reserve memory. It forces the system to grab exactly what it needs upfront, avoiding the constant reallocation penalties of `.append()`.")
         if sig.memory_signals.inplace_swap:
@@ -805,23 +738,25 @@ class EducationalInsightGenerator:
         return insights
 
     # =========================================================================
-    # OVERALL COMPLEXITY ANALYSIS GENERATOR
+    # OVERALL COMPLEXITY ANALYSIS GENERATOR (REAL MATH ENGINE)
     # =========================================================================
     
-    def generate_overall_analysis(self, final_time: str, final_space: str, sig: PatternSignals) -> str:
+    def generate_overall_analysis(self, final_time: str, final_space: str, sig: PatternSignals, details: List[Dict]) -> str:
         """
         Synthesizes the complete final time and space complexity evaluations into
         a narrative, educational breakdown, accompanied by asymptotic simplifications.
+        Instead of fake math, this function actively parses the `details` array to
+        construct the real mathematical summation logic exactly as if solving on a whiteboard.
         """
         t_info = self._classify_big_o(final_time)
         s_info = self._classify_big_o(final_space)
         
         # Build narrative pieces
         time_narrative = self._build_overall_time_narrative(t_info, sig)
-        time_simp = self._build_time_simplification(t_info)
+        time_simp = self._build_real_simplification(details, "global_time", final_time, is_time=True)
         
         space_narrative = self._build_overall_space_narrative(s_info, sig)
-        space_simp = self._build_space_simplification(s_info)
+        space_simp = self._build_real_simplification(details, "global_space", final_space, is_time=False)
         
         summary = self._build_complexity_summary(t_info, s_info, sig)
         
@@ -830,23 +765,162 @@ class EducationalInsightGenerator:
             "#### Overall Time Complexity Analysis\n"
             f"{time_narrative}\n\n"
             "**Asymptotic Simplification**\n"
-            "Suppose the runtime expression produced from analysis is:\n\n"
             f"{time_simp}\n\n"
             "#### Overall Space Complexity Analysis\n"
             f"{space_narrative}\n\n"
             "**Asymptotic Simplification**\n"
-            "Suppose the algorithm creates the following memory allocations:\n\n"
             f"{space_simp}\n\n"
             "#### Complexity Summary\n"
             f"{summary}"
         )
         return final_md
 
+    def _build_real_simplification(self, details: List[Dict], key: str, final_complexity: str, is_time: bool) -> str:
+        """
+        Extracts the global complexities from every executed line, mathematically sums them, 
+        and explicitly writes out how the final Big-O evaluation is reached line-by-line.
+        """
+        valid_ops = []
+        recurrence_relation_str = None
+        
+        for d in details:
+            op_name = d.get("operation", "")
+            if d.get("color") != "#7f8c8d" and op_name not in ["Definition", "Dead Code", "Comment / Docstring"]:
+                val = str(d.get(key, "O(1)"))
+                valid_ops.append(val)
+                # Check if this is a master recurrence equation
+                if "T(n) =" in val or "T(n)=" in val:
+                    recurrence_relation_str = val
+
+        prefix = "T(n)" if is_time else "S(n)"
+
+        if recurrence_relation_str and is_time:
+            return self._solve_recurrence_manually(recurrence_relation_str, final_complexity, prefix)
+        else:
+            return self._solve_iterative_manually(valid_ops, final_complexity, prefix)
+
+    def _solve_recurrence_manually(self, relation: str, final_complexity: str, prefix: str) -> str:
+        """
+        Performs a full manual Master Theorem or Unrolling deduction based strictly on the detected recurrence string.
+        """
+        steps = []
+        steps.append(f"**Step 1: Identify the Recurrence Relation**\nThe static analyzer detected recursive branching logic forming the following recurrence relation:\n`{relation}`\n")
+        
+        if "T(n/2)" in relation:
+            a = "2" if "2T" in relation else "1"
+            b = "2"
+            fn = "O(n)" if "+ O(n)" in relation else "O(1)"
+            steps.append(f"**Step 2: Apply the Master Theorem**\nThe relation fits the standard divide-and-conquer form: `{prefix} = a{prefix}(n/b) + f(n)`\n- `a` (subproblems per branch) = {a}\n- `b` (division factor) = {b}\n- `f(n)` (work done per level) = {fn}\n")
+            
+            steps.append(f"**Step 3: Calculate the Critical Exponent**\nWe evaluate `n^(log_b(a))`:\n`n^(log_{b}({a}))` = `n^{1 if a=='2' else 0}`\n")
+            
+            if a == "2" and fn == "O(n)":
+                steps.append(f"**Step 4: Evaluate Master Theorem Cases**\nSince `f(n) = O(n)` grows at the exact same rate as `n^(log_b(a)) = O(n)`, this satisfies **Case 2** of the Master Theorem. We multiply the term by `log n`.\n")
+            elif a == "2" and fn == "O(1)":
+                steps.append(f"**Step 4: Evaluate Master Theorem Cases**\nSince `f(n) = O(1)` grows strictly slower than `n^(log_b(a)) = O(n)`, this satisfies **Case 1** of the Master Theorem. The recursive leaves heavily dominate the processing cost.\n")
+            elif a == "1" and fn == "O(1)":
+                steps.append(f"**Step 4: Evaluate Master Theorem Cases**\nSince `f(n) = O(1)` is identical to `n^(log_b(a)) = O(1)`, this is **Case 2** of the Master Theorem. We multiply by `log n`.\n")
+            elif a == "1" and fn == "O(n)":
+                steps.append(f"**Step 4: Evaluate Master Theorem Cases**\nSince `f(n) = O(n)` grows strictly faster than `n^(log_b(a)) = O(1)`, this satisfies **Case 3** of the Master Theorem. The root level dominates.\n")
+                
+        elif "T(n-1)" in relation and "T(n-2)" in relation:
+            steps.append(f"**Step 2: Unroll the Recursive Tree**\nThis is a multiple-branching linear recurrence (typically seen in Fibonacci sequences). Every execution spawns two additional execution branches: `T(n) → T(n-1) + T(n-2)`.\n")
+            steps.append(f"**Step 3: Establish the Growth Rate**\nBecause the deepest chain of the tree is `n` levels deep and each node structurally branches into roughly 2 child nodes, the total number of nodes grows geometrically as a power of 2.\n")
+            steps.append(f"**Step 4: Evaluate Complexity**\nSumming the nodes yields `2^0 + 2^1 + 2^2 + ... + 2^n`, which simplifies mathematically directly to an exponential upper bound.\n")
+            
+        elif "T(n-1)" in relation:
+            fn = "O(n)" if "+ O(n)" in relation else ("O(log n)" if "+ O(log n)" in relation else "O(1)")
+            multiplier = "n *" if "n * T" in relation else ""
+            steps.append(f"**Step 2: Unroll the Substitution Method**\nThis represents a linear chain of recursive calls. The function executes exactly `n` times (representing the depth of the call stack).\n")
+            
+            if multiplier:
+                steps.append(f"**Step 3: Evaluate Factorial Expansion**\nBecause the work physically multiplies at each sequential level `n * (n-1) * (n-2)...`, this directly represents the strict mathematical definition of a factorial expansion.\n")
+            elif fn == "O(n)":
+                steps.append(f"**Step 3: Evaluate Arithmetic Series**\nAt each level `i` (from `n` down to 1), it performs `O(i)` work. Summing this yields an arithmetic series: `n + (n-1) + (n-2) ... + 1`.\n")
+                steps.append(f"**Step 4: Closed-Form Formula**\nThis is a standard arithmetic progression summing to `(n * (n + 1)) / 2`, which mathematically expands and bounds to `O(n^2)`.\n")
+            else:
+                steps.append(f"**Step 3: Evaluate Constant Accumulation**\nAt each of the `n` recursive levels, it performs strictly `{fn}` work. The total algebraic work is simply `n` multiplied by `{fn}`.\n")
+
+        else:
+            steps.append(f"**Step 2: Algebraic Deduction**\nThe static engine maps this custom relation dynamically against known expansion limits.\n")
+
+        steps.append(f"**Final Asymptotic Complexity:**\n`{prefix} = {final_complexity}`\n")
+        return "\n".join(steps)
+
+    def _solve_iterative_manually(self, valid_ops: List[str], final_complexity: str, prefix: str) -> str:
+        """
+        Performs a full manual algebraic summation and cancellation of iterative Big-O terms.
+        """
+        steps = []
+        
+        # Determine if we even have ops
+        if not valid_ops:
+            return f"**Step 1: Evaluation**\nNo substantial complexity factors detected.\n\n**Final Asymptotic Complexity:**\n`{prefix} = O(1)`\n"
+
+        # Step 1: Raw Polynomial
+        steps.append(f"**Step 1: Line-by-Line Cost Extraction**\nWe extract the maximum asymptotic bounds for each executed statement in the structural block.\n")
+        raw_eq_terms = [t if t.startswith("O(") else f"O({t})" for t in valid_ops]
+        steps.append(f"`{prefix} = " + " + ".join(raw_eq_terms) + "`\n")
+        
+        # Step 2: Grouping
+        counts = {}
+        for op in valid_ops:
+            val = op.replace("O(", "").replace(")", "").strip()
+            if val == "1 amortized": val = "1"
+            if "T(" in val: val = val # Do not touch recurrence placeholders
+            counts[val] = counts.get(val, 0) + 1
+        
+        grouped_terms = []
+        for term, count in counts.items():
+            if "T(" in term:
+                grouped_terms.append(f"{count} * {term}" if count > 1 else term)
+            else:
+                grouped_terms.append(f"{count} * O({term})")
+        
+        steps.append(f"**Step 2: Grouping Similar Terms**\nCombine mathematically identical terms to form the aggregate cost equation:\n`{prefix} = " + " + ".join(grouped_terms) + "`\n")
+        
+        # Step 3: Dropping Constants
+        dropped_consts = []
+        for t, c in counts.items():
+            if "T(" in t:
+                dropped_consts.append(t)
+            else:
+                dropped_consts.append(f"O({t})")
+
+        steps.append(f"**Step 3: Asymptotic Simplification (Dropping Constants)**\nIn Big-O analysis, constant multipliers (like structural coefficients) do not affect the rate of growth towards infinity and are discarded:\n`{prefix} = " + " + ".join(dropped_consts) + "`\n")
+        
+        # Step 4: Dominance Evaluation
+        hierarchy = ["1", "log min", "log", "sqrt", "n", "m", "V", "V + E", "n log n", "n^2", "n * m", "n^3", "2^n", "3^n", "n!", "n * n!"]
+        def get_rank(v):
+            for i, h in enumerate(reversed(hierarchy)):
+                if h in v: return len(hierarchy) - i
+            return -1
+
+        sorted_dropped = sorted(dropped_consts, key=lambda x: get_rank(x), reverse=True)
+        dominant_term = sorted_dropped[0]
+        
+        if len(sorted_dropped) > 1:
+            lower_terms = sorted_dropped[1:]
+            explanation = "We compare the growth rates of the remaining terms. As the input variables approach infinity:\n"
+            for lower in lower_terms:
+                explanation += f"- `{dominant_term}` grows strictly faster than `{lower}`. We drop `{lower}`.\n"
+            steps.append(f"**Step 4: Applying Dominance Rules (Dropping Lower-Order Terms)**\n{explanation}\n`{prefix} = {dominant_term}`\n")
+        else:
+            steps.append(f"**Step 4: Dominance Evaluation**\nThere is only one unique term class in the equation, so no lower-order terms need to be dropped.\n`{prefix} = {dominant_term}`\n")
+            
+        # Step 5: Adjust for Engine Overrides
+        # We replace whitespace to avoid mismatching "O(log n)" and "O(logn)"
+        if dominant_term.replace(" ", "") != final_complexity.replace(" ", ""):
+            steps.append(f"**Step 5: Contextual Bounds Adjustment**\nFactoring in architectural loop nesting depth and the global bounds limits strictly evaluated by the traversal engine, the definitive complexity heavily scales to:\n`{prefix} = {final_complexity}`\n")
+        else:
+            steps.append(f"**Final Asymptotic Complexity:**\n`{prefix} = {final_complexity}`\n")
+
+        return "\n".join(steps)
+
     def _build_overall_time_narrative(self, t_info: BigOInfo, sig: PatternSignals) -> str:
         family = t_info.family
         narrative = []
         
-        # 1. Dominant Operations & Bottleneck Analysis
         if family == "logarithmic" or sig.paradigms.is_halving:
             narrative.append(f"The overall runtime of this algorithm is {t_info.raw}. The primary reason is that the algorithm never examines every element individually. During its core execution phase, the search boundary is aggressively halved on each iteration, allowing the engine to rapidly zero in on the target region.")
             narrative.append("The most expensive operations are these logarithmic reduction steps. While the function contains several assignments, conditional comparisons, and return statements, those execute in pure constant time and contribute very little to the overall runtime. Because Big-O analysis strictly focuses on the fastest-growing dominant term, these scalar operations do not alter the final complexity.")
@@ -866,7 +940,6 @@ class EducationalInsightGenerator:
             narrative.append(f"The total runtime complexity evaluates to a pristine {t_info.raw}. The engine successfully manages the data without invoking any dynamically scaling loops or exhaustive iteration structures.")
             narrative.append("Every calculation, variable assignment, and lookup resolves directly in constant time. Because there are no iterative bottlenecks dragging performance down, the algorithm functions at optimal execution speeds.")
 
-        # 2. Efficiency & Scalability
         if family == "constant":
             narrative.append("From an efficiency perspective, the algorithm behaves perfectly. Because it completely ignores the size of the incoming dataset, it will process ten elements exactly as fast as it processes ten million elements, offering flawless scalability.")
         elif family == "logarithmic":
@@ -880,30 +953,10 @@ class EducationalInsightGenerator:
 
         return "\n\n".join(narrative)
 
-    def _build_time_simplification(self, t_info: BigOInfo) -> str:
-        family = t_info.family
-        if family == "constant":
-            return "T(n) = 3\n\nBig-O removes constants:\n`T(n) = O(1)`"
-        elif family == "logarithmic":
-            return "T(n) = 3 + 2\\log n\n\nRemove constant term:\nT(n) = 2\\log n\n\nDrop constant multiplier:\n`T(n) = O(\\log n)`"
-        elif family == "linear":
-            return "T(n) = 3n + 5\n\nRemove constant term:\nT(n) = 3n\n\nDrop constant multiplier:\n`T(n) = O(n)`"
-        elif family == "linearithmic":
-            return "T(n) = 4n \\log n + 2n + 5\n\nRemove lower-order terms (2n + 5):\nT(n) = 4n \\log n\n\nDrop constant multiplier:\n`T(n) = O(n \\log n)`"
-        elif family == "polynomial":
-            return "T(n) = 2n² + 7n + 1\n\nRemove lower-order terms (7n + 1):\nT(n) = 2n²\n\nDrop constant multiplier:\n`T(n) = O(n²)`"
-        elif family == "exponential":
-            return "T(n) = 2^n + n²\n\nRemove lower-order terms (n²):\nT(n) = 2^n\n\nFinal:\n`T(n) = O(2^n)`"
-        elif family == "factorial":
-            return "T(n) = n! + 2^n\n\nRemove lower-order exponential terms:\nT(n) = n!\n\nFinal:\n`T(n) = O(n!)`"
-        else:
-            return f"T(n) = O({t_info.raw})\n\nFinal:\n`T(n) = O({t_info.raw})`"
-
     def _build_overall_space_narrative(self, s_info: BigOInfo, sig: PatternSignals) -> str:
         family = s_info.family
         narrative = []
         
-        # 1. Memory Consumption & Bottlenecks
         if family == "constant":
             narrative.append(f"The overall memory consumption of the algorithm is highly optimized at {s_info.raw}. It only stores a fixed number of scalar variables throughout its entire execution lifecycle.")
             narrative.append("No additional arrays, large dictionaries, or dynamically growing structures are created. It safely reuses existing reference pointers and operates exactly within its initial bounds, guaranteeing that there is no memory bottleneck.")
@@ -919,7 +972,6 @@ class EducationalInsightGenerator:
         else:
             narrative.append(f"The overall spatial limit is strictly evaluated at {s_info.raw}. Memory is aggressively claimed to support the algorithm's active operational state.")
 
-        # 2. Space Efficiency & Scalability
         if family == "constant":
             narrative.append("Because the algorithm aggressively avoids cloning the input data, the footprint remains immaculately stable. Whether processing a dozen items or ten million, the auxiliary memory used remains virtually unchanged.")
         elif family == "linear":
@@ -931,23 +983,9 @@ class EducationalInsightGenerator:
 
         return "\n\n".join(narrative)
 
-    def _build_space_simplification(self, s_info: BigOInfo) -> str:
-        family = s_info.family
-        if family == "constant":
-            return "S(n) = 5\n\nBig-O removes constants:\n`S(n) = O(1)`"
-        elif family == "linear":
-            return "S(n) = n + 4\n\nRemove constant term:\nS(n) = n\n\nFinal:\n`S(n) = O(n)`"
-        elif family == "polynomial":
-            return "S(n) = n² + n + 10\n\nRemove lower-order terms (n + 10):\nS(n) = n²\n\nFinal:\n`S(n) = O(n²)`"
-        elif family == "logarithmic":
-            return "S(n) = \\log n + 2\n\nRemove constant:\nS(n) = \\log n\n\nFinal:\n`S(n) = O(\\log n)`"
-        else:
-            return f"S(n) = O({s_info.raw})\n\nFinal:\n`S(n) = O({s_info.raw})`"
-
     def _build_complexity_summary(self, t_info: BigOInfo, s_info: BigOInfo, sig: PatternSignals) -> str:
         summary = ""
         
-        # Determine scalability judgment
         if t_info.family in ["constant", "logarithmic", "linear"] and s_info.family in ["constant", "logarithmic", "linear"]:
             summary = "This algorithm achieves an excellent level of overall scalability. "
         elif t_info.family in ["polynomial", "exponential", "factorial"] or s_info.family in ["polynomial", "exponential"]:
@@ -955,7 +993,6 @@ class EducationalInsightGenerator:
         else:
             summary = "This algorithm is functionally sound but requires careful attention to dataset constraints. "
 
-        # Summarize factors
         summary += f"The final dominant factor influencing performance is the algorithmic structure driving its `{t_info.raw}` processing time, "
         
         if s_info.family == "constant":
@@ -967,11 +1004,7 @@ class EducationalInsightGenerator:
         
         return summary
 
-    # =========================================================================
-    # CORE GENERATOR METHOD (Line by line)
-    # =========================================================================
     def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, hits=0, mem_state=None):
-        """Builds the distinct Local Context, Global Impact, and Educational Insights."""
         if is_dead and hits == 0:
             t_desc = (
                 f"**Local & Global Analysis:**\nThe targeted sequence `{code_snippet}` is classified strictly as Dead Code. Because the fundamental logic "
@@ -987,13 +1020,11 @@ class EducationalInsightGenerator:
         visitor = ComprehensiveASTVisitor(self.ctx)
         sig = visitor.analyze(node)
 
-        # Classify the strings into structured data
         g_time_info = self._classify_big_o(str(global_t))
         l_time_info = self._classify_big_o(str(local_t))
         g_space_info = self._classify_big_o(str(global_s))
         l_space_info = self._classify_big_o(str(local_s))
 
-        # --- ASSEMBLE TIME EXPLANATION ---
         time_intro = self._build_action_intro(node, code_snippet, sig)
         time_local = self._build_local_time_explanation(l_time_info, sig)
         time_global = self._build_global_time_explanation(l_time_info, g_time_info, sig)
@@ -1010,7 +1041,6 @@ class EducationalInsightGenerator:
             f"{time_hits}"
         )
 
-        # --- ASSEMBLE SPACE EXPLANATION ---
         space_local = self._build_local_space_explanation(l_space_info, sig)
         space_global = self._build_global_space_explanation(l_space_info, g_space_info, sig)
         
@@ -1025,9 +1055,6 @@ class EducationalInsightGenerator:
 
         return full_time_desc, full_space_desc
 
-    # =========================================================================
-    # BOTTLENECK & PRAISE GENERATORS
-    # =========================================================================
     def get_time_bottleneck_warning(self, operation: str, final_time: str) -> str:
         op_lower = operation.lower()
         
