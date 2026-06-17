@@ -930,9 +930,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     let initialAes = latestStateRef.current.initial_aes;
 
     if (initialAes === null || initialAes === undefined) {
-      // FIX: If the user starts an optimization activity, they begin with a functional 
-      // but sub-optimal template. We assign a baseline AES of 50 so that if they 
-      // optimize it on their very first run, the ROG calculates correctly.
       if (activityDataResolved?.type === "optimization") {
         initialAes = 50;
       } else {
@@ -1376,9 +1373,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   );
 };
 
+// ==============================================================================================
+// FIX APPLIED HERE:
+// Adding the `key` prop forces React to completely unmount and remount the ActivityAppInner 
+// whenever the moduleId or activityId changes in the URL. This guarantees a totally fresh state 
+// blockly workspace, python code, and test cases when navigating to the next activity!
+// ==============================================================================================
 const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
-  return <ActivityAppInner moduleId={moduleId} activityId={activityId} />;
+  return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;
 };
 
 export default ActivityApp;
