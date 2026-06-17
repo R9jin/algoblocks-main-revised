@@ -33,10 +33,11 @@ const handleEditorWillMount = (monaco) => {
       { token: "number", foreground: "F59E0B" },
     ],
     colors: {
-      "editor.background": "#FFFFFF",
+      // Changed from pure white to soft slate-white to reduce eye strain
+      "editor.background": "#F8FAFC",
       "editor.foreground": "#1E293B",
       "editorLineNumber.foreground": "#CBD5E1",
-      "editor.lineHighlightBackground": "#F8FAFC",
+      "editor.lineHighlightBackground": "#F1F5F9",
       "editorCursor.foreground": "#7928CA",
       "editor.selectionBackground": "#E2E8F0",
       "editor.inactiveSelectionBackground": "#F1F5F9",
@@ -92,9 +93,10 @@ const parseMarkdown = (str) => {
   if (!str) return "";
   let html = str.trim();
 
-  // 1. Headers
-  html = html.replace(/### (.*?)\n/g, '<h3 class="overall-main-title">$1</h3>\n');
-  html = html.replace(/#### (.*?)\n/g, '<h4 class="overall-sub-title">$1</h4>\n');
+  // 1. Headers (Using start-of-line anchors safely bypasses OS newline \r\n issues causing floating #)
+  html = html.replace(/^###\s+(.*)$/gm, '<h3 class="overall-main-title">$1</h3>');
+  html = html.replace(/^####\s+(.*)$/gm, '<h4 class="overall-sub-title">$1</h4>');
+  html = html.replace(/^#####\s+(.*)$/gm, '<h5 class="overall-section-title">$1</h5>');
 
   // 2. High-Priority Formatting: Step Badges & Final Summaries
   html = html.replace(/\*\*(Step \d+:.*?)\*\*/g, '<span class="step-badge">$1</span>');
@@ -104,18 +106,20 @@ const parseMarkdown = (str) => {
   // 3. General Bold
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
-  // 4. Mathematical Equation Blocks (Targeting exactly `T(n) = ...` or `S(n) = ...` inside backticks)
-  // Evaluates both single standalone lines and embedded matches
+  // 4. Superscript for Math Variables (e.g. n^2 -> n<sup>2</sup>, 2^n -> 2<sup>n</sup>)
+  html = html.replace(/([a-zA-Z0-9_]+)\^([a-zA-Z0-9\+\-\/]+)/g, '$1<sup>$2</sup>');
+
+  // 5. Mathematical Equation Blocks (Targets T(n) = ... or S(n) = ... safely)
   html = html.replace(/^`([TS]\(n\)\s*=.*?)`$/gm, '<div class="math-block">$1</div>');
   html = html.replace(/`([TS]\(n\)\s*=.*?)`/g, '<div class="math-block">$1</div>');
 
-  // 5. Normal Inline Code (Fallback)
+  // 6. Normal Inline Code (Fallback)
   html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
 
-  // 6. Intelligent Block Splitter (Preserves Lists & HTML structures cleanly)
+  // 7. Intelligent Block Splitter (Preserves Lists & HTML structures cleanly)
   let blocks = html.split(/\n\s*\n/);
   let parsedBlocks = blocks.map(block => {
-    // If block already contains HTML structured tags, just convert newlines safely
+    // Prevent double wrapping already-formatted structures
     if (block.includes('<h3') || block.includes('<h4') || block.includes('<h5') || block.includes('<div class="math-block"')) {
        return block.replace(/\n/g, '<br/>'); 
     }

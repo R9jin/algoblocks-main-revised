@@ -19,10 +19,10 @@
   --text-on-dark: #E9D8FD;      /* Soft lavender text (Fixes the "too contrast" pure white) */
   --text-on-dark-muted: #B388EB;/* Secondary text for dark mode */
 
-  /* --- LIGHT SURFACES --- */
-  --app-bg: #F4F7F9;
-  --panel-bg: #FFFFFF;
-  --border-light: #E2E8F0;
+  /* --- LIGHT SURFACES (Adjusted for reduced eye strain) --- */
+  --app-bg: #F1F5F9;          /* Slate 100 - Deeper app background */
+  --panel-bg: #F8FAFC;        /* Slate 50 - Soft grayish-white instead of pure #FFFFFF */
+  --border-light: #E2E8F0;    /* Slate 200 - Soft borders */
 }
 
 body {
@@ -96,7 +96,7 @@ body {
 .templates-sidebar { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden; border-right: 1px solid var(--border-light); }
 .sidebar-search { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-light); background: var(--panel-bg); }
 .search-icon { margin-right: 12px; color: var(--text-muted); }
-.sidebar-search input { border: none; outline: none; font-size: 0.95rem; width: 100%; color: var(--text-main); }
+.sidebar-search input { border: none; outline: none; font-size: 0.95rem; width: 100%; color: var(--text-main); background: transparent; }
 .sidebar-search input::placeholder { color: var(--text-muted); }
 
 .sidebar-list { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; flex: 1; }
@@ -279,21 +279,31 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* THE FIX: Re-designed Math Block */
 .math-block {
   background: var(--dark-bg);
-  color: #c5adfd; /* Cyan text for math equations */
-  padding: 16px 24px;
-  border-radius: 8px;
+  color: #38BDF8; /* Cyan text for math equations */
+  padding: 14px 20px;
+  border-radius: 6px;
   font-family: 'Fira Code', monospace;
-  font-size: 1.1rem;
-  font-weight: 700;
-  text-align: center;
-  margin: 20px auto;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left; /* FIX: Aligns algebraic lines properly to the left */
+  margin: 16px 0;
   border: 1px solid var(--dark-border);
+  border-left: 4px solid #38BDF8; /* Strong visual accent on the left */
   box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
-  letter-spacing: 1px;
-  max-width: 85%;
-  word-wrap: break-word;
+  letter-spacing: 0.5px;
+  width: 100%; /* FIX: Prevents it from shrinking to a centered ball */
+  box-sizing: border-box;
+  overflow-x: auto; /* Allow horizontal scrolling if math is massive */
+  white-space: nowrap; /* Forces equation to stay on one scrollable line */
+}
+
+.math-block sup {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: super;
 }
 
 .nlg-list {
@@ -372,7 +382,7 @@ body {
 .space-graph-wrapper { margin-left: 20px; }
 
 /* NLG Render Blocks */
-.nlg-block { margin: 12px 0; padding: 16px; border-radius: 0 8px 8px 0; border-left: 4px solid; background: #FFFFFF; border-top: 1px solid var(--border-light); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);}
+.nlg-block { margin: 12px 0; padding: 16px; border-radius: 0 8px 8px 0; border-left: 4px solid; background: var(--panel-bg); border-top: 1px solid var(--border-light); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);}
 .nlg-block-title { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; font-weight: 800;}
 .nlg-block-content { font-size: 0.95rem; color: var(--text-main); }
 .nlg-paragraph { margin: 0 0 10px 0; font-size: 0.95rem; color: var(--text-main); }
@@ -409,7 +419,7 @@ body {
 .floating-error-btn { background-color: #EF4444; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 8px; }
 .floating-error-btn:hover { background-color: #DC2626; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5); }
 .floating-error-btn.open { border-radius: 0 0 12px 12px; transform: translateY(0); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-.error-dropdown-menu { background-color: #FFFFFF; border: 1px solid #EF4444; border-radius: 12px 12px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; position: relative; box-sizing: border-box; animation: slideUpModal 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.error-dropdown-menu { background-color: var(--panel-bg); border: 1px solid #EF4444; border-radius: 12px 12px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; position: relative; box-sizing: border-box; animation: slideUpModal 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes slideUpModal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 .error-resizer-top { position: absolute; top: 0; left: 15px; right: 0; height: 6px; cursor: ns-resize; z-index: 10; }
 .error-resizer-left { position: absolute; top: 15px; left: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 10; }
