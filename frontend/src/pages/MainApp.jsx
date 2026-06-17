@@ -85,43 +85,59 @@ const getComplexityWeight = (complexity) => {
   return 0;
 };
 
+// Modified parse markdown for Overall Analysis compatibility
+const parseMarkdown = (str) => {
+  if (!str) return "";
+  let html = str.trim();
+  
+  // Headers
+  html = html.replace(/### (.*?)\n/g, '<h3 class="overall-main-title">$1</h3>\n');
+  html = html.replace(/#### (.*?)\n/g, '<h4 class="overall-sub-title">$1</h4>\n');
+  
+  // Bold and inline code
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
+  
+  // Custom Asymptotic blocks
+  html = html.replace(/(T\(n\)\s*=\s*[^\n]+|S\(n\)\s*=\s*[^\n]+)/g, '<div class="math-block">$1</div>');
+
+  // Math replacement
+  const mathReplacer = (match, math) => {
+    let cleanMath = math.trim().replace(/\\mathcal\{?O\}?/g, "O").replace(/\\log\b/g, "log").replace(/\\/g, "");
+    cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+    return `<span class="nlg-math-badge">${cleanMath}</span>`;
+  };
+  html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
+  html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
+
+  html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, txt, suffix) {
+     let newText = txt.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
+         let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+         return `<span class="nlg-math-badge">O(${cleanMath})</span>`;
+     });
+     return prefix + newText + suffix;
+  });
+
+  let blocks = html.split(/\n\s*\n/);
+  let parsedBlocks = blocks.map(block => {
+    if (block.includes('overall-main-title') || block.includes('overall-sub-title') || block.includes('math-block')) {
+      return block; // Don't wrap headers/math in p tags
+    }
+    if (/^[-*]\s+/m.test(block)) {
+      let listItems = block.split('\n').reduce((acc, line) => {
+         let trimmed = line.trim();
+         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { acc.push(`<li>${trimmed.substring(2).trim()}</li>`); } 
+         else if (trimmed !== '') { if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); else acc.push(`<li>${trimmed}</li>`); }
+         return acc;
+      }, []).join('');
+      return `<ul>${listItems}</ul>`;
+    } else return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
+  });
+  return parsedBlocks.join('');
+};
+
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
-  const parseMarkdown = (str) => {
-    let html = str.trim();
-    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
-    
-    const mathReplacer = (match, math) => {
-      let cleanMath = math.trim().replace(/\\mathcal\{?O\}?/g, "O").replace(/\\log\b/g, "log").replace(/\\/g, "");
-      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-      return `<span class="nlg-math-badge">${cleanMath}</span>`;
-    };
-    html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
-    html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
-
-    html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, txt, suffix) {
-       let newText = txt.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
-           let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-           return `<span class="nlg-math-badge">O(${cleanMath})</span>`;
-       });
-       return prefix + newText + suffix;
-    });
-
-    let blocks = html.split(/\n\s*\n/);
-    let parsedBlocks = blocks.map(block => {
-      if (/^[-*]\s+/m.test(block)) {
-        let listItems = block.split('\n').reduce((acc, line) => {
-           let trimmed = line.trim();
-           if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { acc.push(`<li>${trimmed.substring(2).trim()}</li>`); } 
-           else if (trimmed !== '') { if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); else acc.push(`<li>${trimmed}</li>`); }
-           return acc;
-        }, []).join('');
-        return `<ul>${listItems}</ul>`;
-      } else return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
-    });
-    return parsedBlocks.join('');
-  };
 
   const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
   const sections = text.split(headerRegex);
@@ -170,7 +186,7 @@ const createInitialTab = (locState = null) => {
   const base = {
     id: `tab-${Date.now()}`, title: "Untitled Project", viewMode: "workspace", blocklyJson: null,
     pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
-    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
+    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project",
   };
 
@@ -207,7 +223,8 @@ export default function MainApp() {
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [consoleTab, setConsoleTab] = useState("output");
-  const [activeComplexityTab, setActiveComplexityTab] = useState("local");
+  // Default to overall view if we have results, else local
+  const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
   const [expandedLines, setExpandedLines] = useState({});
 
   const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
@@ -364,7 +381,13 @@ export default function MainApp() {
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
-            analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
+            analysisResult: { 
+              total: data.total, 
+              space_total: data.space_total || "O(1)", 
+              overall_explanation: data.overall_explanation || "",
+              lines: data.lines || [], 
+              is_recursive: data.is_recursive || false 
+            },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }),
             syntaxErrors: [],
           });
@@ -513,7 +536,7 @@ export default function MainApp() {
       if (isClean) {
         updateTab(targetId, {
           title: item.title, blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
-          isEditingCode: false, syntaxErrors: [], analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
+          isEditingCode: false, syntaxErrors: [], analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false },
           lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
         });
         if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json);
@@ -521,7 +544,7 @@ export default function MainApp() {
         const newTabState = {
           id: targetId, title: item.title, viewMode: "workspace", blocklyJson: json,
           pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
-          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", is_recursive: false },
+          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false },
           lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
         };
         setTabs((prev) => [...prev, newTabState]);
@@ -552,7 +575,13 @@ export default function MainApp() {
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           updateTab(tabId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
-            analysisResult: { total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false },
+            analysisResult: { 
+              total: data.total, 
+              space_total: data.space_total || "O(1)", 
+              overall_explanation: data.overall_explanation || "",
+              lines: data.lines || [], 
+              is_recursive: data.is_recursive || false 
+            },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }), syntaxErrors: [],
           });
           setIsErrorDropdownOpen(false);
@@ -608,7 +637,7 @@ export default function MainApp() {
           workspaceRefs.current[activeTabId].clear();
           updateTab(activeTabId, {
             pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
-            analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false },
+            analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false },
             analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project",
           });
@@ -989,6 +1018,7 @@ export default function MainApp() {
           <div className="complexity-content">
             <div className="complexity-tabs">
               <div className="tab-btn-group">
+                <button onClick={() => { setActiveComplexityTab("overall"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "overall" ? "active" : ""}`}>Overall</button>
                 <button onClick={() => { setActiveComplexityTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "local" ? "active" : ""}`}>Local</button>
                 <button onClick={() => { setActiveComplexityTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
                 <button onClick={() => { setActiveComplexityTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
@@ -1005,7 +1035,19 @@ export default function MainApp() {
                 </span>
               </div>
             </div>
-            {activeComplexityTab === "memory" ? (
+            
+            {/* OVERALL TAB RENDERER */}
+            {activeComplexityTab === "overall" ? (
+              <div className="overall-complexity-wrapper">
+                {activeTab.analysisResult.overall_explanation ? (
+                  <div className="overall-markdown-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(activeTab.analysisResult.overall_explanation)) }} />
+                ) : (
+                  <div className="empty-analysis-state">
+                    <p>Run code analysis to see the complete overall complexity report.</p>
+                  </div>
+                )}
+              </div>
+            ) : activeComplexityTab === "memory" ? (
               <div className="memory-wrapper">
                 <MemoryVisualizer analysisData={activeTab.analysisResult.lines} currentStep={activeTab.analysisResult.lines.length > 0 ? activeTab.analysisResult.lines.length - 1 : 0} />
               </div>

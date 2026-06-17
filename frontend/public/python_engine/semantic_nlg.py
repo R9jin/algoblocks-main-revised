@@ -805,7 +805,170 @@ class EducationalInsightGenerator:
         return insights
 
     # =========================================================================
-    # CORE GENERATOR METHOD
+    # OVERALL COMPLEXITY ANALYSIS GENERATOR
+    # =========================================================================
+    
+    def generate_overall_analysis(self, final_time: str, final_space: str, sig: PatternSignals) -> str:
+        """
+        Synthesizes the complete final time and space complexity evaluations into
+        a narrative, educational breakdown, accompanied by asymptotic simplifications.
+        """
+        t_info = self._classify_big_o(final_time)
+        s_info = self._classify_big_o(final_space)
+        
+        # Build narrative pieces
+        time_narrative = self._build_overall_time_narrative(t_info, sig)
+        time_simp = self._build_time_simplification(t_info)
+        
+        space_narrative = self._build_overall_space_narrative(s_info, sig)
+        space_simp = self._build_space_simplification(s_info)
+        
+        summary = self._build_complexity_summary(t_info, s_info, sig)
+        
+        final_md = (
+            "### Overall Complexity Analysis\n\n"
+            "#### Overall Time Complexity Analysis\n"
+            f"{time_narrative}\n\n"
+            "**Asymptotic Simplification**\n"
+            "Suppose the runtime expression produced from analysis is:\n\n"
+            f"{time_simp}\n\n"
+            "#### Overall Space Complexity Analysis\n"
+            f"{space_narrative}\n\n"
+            "**Asymptotic Simplification**\n"
+            "Suppose the algorithm creates the following memory allocations:\n\n"
+            f"{space_simp}\n\n"
+            "#### Complexity Summary\n"
+            f"{summary}"
+        )
+        return final_md
+
+    def _build_overall_time_narrative(self, t_info: BigOInfo, sig: PatternSignals) -> str:
+        family = t_info.family
+        narrative = []
+        
+        # 1. Dominant Operations & Bottleneck Analysis
+        if family == "logarithmic" or sig.paradigms.is_halving:
+            narrative.append(f"The overall runtime of this algorithm is {t_info.raw}. The primary reason is that the algorithm never examines every element individually. During its core execution phase, the search boundary is aggressively halved on each iteration, allowing the engine to rapidly zero in on the target region.")
+            narrative.append("The most expensive operations are these logarithmic reduction steps. While the function contains several assignments, conditional comparisons, and return statements, those execute in pure constant time and contribute very little to the overall runtime. Because Big-O analysis strictly focuses on the fastest-growing dominant term, these scalar operations do not alter the final complexity.")
+        elif family == "polynomial" and sig.nested_loops:
+            narrative.append(f"The overall runtime evaluates to a heavy {t_info.raw}. The primary bottleneck here is the nested loop structure. Because the inner loop fires completely for every single pass of the outer loop, the workload multiplies quadratically.")
+            narrative.append("While there are minor variable assignments happening outside or inside these loops, the massive repetition caused by the nested loops completely eclipses them. The dominant computational activity is entirely dictated by the deepest loop level.")
+        elif family == "linearithmic" or sig.complexity_signals.repeated_sort:
+            narrative.append(f"The overall execution speed settles at {t_info.raw}. The algorithm's performance is strictly anchored by heavy structural reorganizations—most notably, sorting operations or 'Divide and Conquer' recursion trees.")
+            narrative.append("Operations like linear scans or direct assignments may exist alongside it, but the logarithmic branching attached to a linear sweep naturally dominates the execution cost, creating the primary bottleneck.")
+        elif family in ["exponential", "super_exponential", "recursive_branching"] and sig.has_recursion:
+            narrative.append(f"The runtime of this algorithm experiences explosive combinatorial growth, landing at a severe {t_info.raw}. The execution time is overwhelmingly dominated by the recursive branching pattern.")
+            narrative.append("Because each function call blindly spawns multiple subsequent calls without safely caching prior results, it forces a massive cascade of redundant mathematical operations. This branching behavior completely defines the performance ceiling.")
+        elif family == "linear" or sig.loop_depth == 1:
+            narrative.append(f"The overall runtime of this algorithm scales exactly proportionally to the input, resulting in {t_info.raw}. The performance ceiling is explicitly governed by the primary loop that must touch every single element at least once.")
+            narrative.append("The primary bottleneck is this sequential traversal. All associated flat assignments or boolean checks execute in constant time, meaning the dominant activity dictating the algorithmic limit is the loop's required linear sweep.")
+        else:
+            narrative.append(f"The total runtime complexity evaluates to a pristine {t_info.raw}. The engine successfully manages the data without invoking any dynamically scaling loops or exhaustive iteration structures.")
+            narrative.append("Every calculation, variable assignment, and lookup resolves directly in constant time. Because there are no iterative bottlenecks dragging performance down, the algorithm functions at optimal execution speeds.")
+
+        # 2. Efficiency & Scalability
+        if family == "constant":
+            narrative.append("From an efficiency perspective, the algorithm behaves perfectly. Because it completely ignores the size of the incoming dataset, it will process ten elements exactly as fast as it processes ten million elements, offering flawless scalability.")
+        elif family == "logarithmic":
+            narrative.append("From an efficiency perspective, the algorithm exhibits phenomenal scalability. As the dataset doubles in size, the algorithm requires merely one additional processing step. By strategically discarding large portions of the problem space, it safely sustains high speeds even under massive data loads.")
+        elif family == "linear":
+            narrative.append("As the input size grows, the required processing time increases at a stable, predictable 1:1 ratio. While it is highly efficient and avoids redundant comparisons, its performance is fundamentally tethered to the sheer volume of elements it must inspect.")
+        elif family == "linearithmic":
+            narrative.append("The algorithm handles scaling moderately well. While heavier than a standard linear pass, it gracefully avoids catastrophic quadratic collapse, allowing it to securely organize and process massive datasets efficiently.")
+        else:
+            narrative.append("Unfortunately, as the dataset expands, the required processing power violently spikes. This algorithmic behavior struggles to scale safely, meaning that while it solves small inputs easily, larger datasets will quickly force the system to stall or freeze entirely.")
+
+        return "\n\n".join(narrative)
+
+    def _build_time_simplification(self, t_info: BigOInfo) -> str:
+        family = t_info.family
+        if family == "constant":
+            return "T(n) = 3\n\nBig-O removes constants:\n`T(n) = O(1)`"
+        elif family == "logarithmic":
+            return "T(n) = 3 + 2\\log n\n\nRemove constant term:\nT(n) = 2\\log n\n\nDrop constant multiplier:\n`T(n) = O(\\log n)`"
+        elif family == "linear":
+            return "T(n) = 3n + 5\n\nRemove constant term:\nT(n) = 3n\n\nDrop constant multiplier:\n`T(n) = O(n)`"
+        elif family == "linearithmic":
+            return "T(n) = 4n \\log n + 2n + 5\n\nRemove lower-order terms (2n + 5):\nT(n) = 4n \\log n\n\nDrop constant multiplier:\n`T(n) = O(n \\log n)`"
+        elif family == "polynomial":
+            return "T(n) = 2n² + 7n + 1\n\nRemove lower-order terms (7n + 1):\nT(n) = 2n²\n\nDrop constant multiplier:\n`T(n) = O(n²)`"
+        elif family == "exponential":
+            return "T(n) = 2^n + n²\n\nRemove lower-order terms (n²):\nT(n) = 2^n\n\nFinal:\n`T(n) = O(2^n)`"
+        elif family == "factorial":
+            return "T(n) = n! + 2^n\n\nRemove lower-order exponential terms:\nT(n) = n!\n\nFinal:\n`T(n) = O(n!)`"
+        else:
+            return f"T(n) = O({t_info.raw})\n\nFinal:\n`T(n) = O({t_info.raw})`"
+
+    def _build_overall_space_narrative(self, s_info: BigOInfo, sig: PatternSignals) -> str:
+        family = s_info.family
+        narrative = []
+        
+        # 1. Memory Consumption & Bottlenecks
+        if family == "constant":
+            narrative.append(f"The overall memory consumption of the algorithm is highly optimized at {s_info.raw}. It only stores a fixed number of scalar variables throughout its entire execution lifecycle.")
+            narrative.append("No additional arrays, large dictionaries, or dynamically growing structures are created. It safely reuses existing reference pointers and operates exactly within its initial bounds, guaranteeing that there is no memory bottleneck.")
+        elif family == "linear":
+            if sig.has_recursion:
+                narrative.append(f"The algorithm hits an overall spatial footprint of {s_info.raw}. The primary memory bottleneck is heavily dictated by the recursive call stack. Every time the function calls itself, Python is strictly forced to preserve a suspended 'frame' of the variables in RAM.")
+            else:
+                narrative.append(f"The algorithm scales its memory usage directly proportional to the input size, landing at {s_info.raw}. The primary spatial bottleneck is the explicit allocation of new data structures—such as lists, dictionaries, or dynamic string arrays.")
+            narrative.append("While basic pointer variables exist, they are functionally negligible. The dominant spatial factor is strictly the collection mapping required to hold the newly generated data payload.")
+        elif family == "polynomial":
+            narrative.append(f"The overall spatial requirement forcefully balloons to a dense {s_info.raw}. The core memory bottleneck here is the instantiation of multi-dimensional arrays, dense matrices, or 2D tabulation grids.")
+            narrative.append("Because the data footprint is growing by a power of the input, the algorithm requests massive, contiguous blocks of RAM from the operating system, completely overshadowing any standard 1D list allocations.")
+        else:
+            narrative.append(f"The overall spatial limit is strictly evaluated at {s_info.raw}. Memory is aggressively claimed to support the algorithm's active operational state.")
+
+        # 2. Space Efficiency & Scalability
+        if family == "constant":
+            narrative.append("Because the algorithm aggressively avoids cloning the input data, the footprint remains immaculately stable. Whether processing a dozen items or ten million, the auxiliary memory used remains virtually unchanged.")
+        elif family == "linear":
+            narrative.append("The memory consumption scales predictably. If the input data doubles, the required background memory doubles alongside it. While generally safe on modern systems, extremely large datasets could eventually trigger out-of-memory errors.")
+        elif family == "polynomial":
+            narrative.append("This spatial behavior is notoriously dangerous to scale. A simple doubling of the input size will violently quadruple the required RAM, meaning this algorithm will rapidly exhaust the computer's available memory limits on larger datasets.")
+        else:
+            narrative.append("The spatial logic deployed here creates an extremely heavy footprint, severely limiting its capability to handle larger system inputs without crashing.")
+
+        return "\n\n".join(narrative)
+
+    def _build_space_simplification(self, s_info: BigOInfo) -> str:
+        family = s_info.family
+        if family == "constant":
+            return "S(n) = 5\n\nBig-O removes constants:\n`S(n) = O(1)`"
+        elif family == "linear":
+            return "S(n) = n + 4\n\nRemove constant term:\nS(n) = n\n\nFinal:\n`S(n) = O(n)`"
+        elif family == "polynomial":
+            return "S(n) = n² + n + 10\n\nRemove lower-order terms (n + 10):\nS(n) = n²\n\nFinal:\n`S(n) = O(n²)`"
+        elif family == "logarithmic":
+            return "S(n) = \\log n + 2\n\nRemove constant:\nS(n) = \\log n\n\nFinal:\n`S(n) = O(\\log n)`"
+        else:
+            return f"S(n) = O({s_info.raw})\n\nFinal:\n`S(n) = O({s_info.raw})`"
+
+    def _build_complexity_summary(self, t_info: BigOInfo, s_info: BigOInfo, sig: PatternSignals) -> str:
+        summary = ""
+        
+        # Determine scalability judgment
+        if t_info.family in ["constant", "logarithmic", "linear"] and s_info.family in ["constant", "logarithmic", "linear"]:
+            summary = "This algorithm achieves an excellent level of overall scalability. "
+        elif t_info.family in ["polynomial", "exponential", "factorial"] or s_info.family in ["polynomial", "exponential"]:
+            summary = "This algorithm faces severe limitations regarding large-scale operations. "
+        else:
+            summary = "This algorithm is functionally sound but requires careful attention to dataset constraints. "
+
+        # Summarize factors
+        summary += f"The final dominant factor influencing performance is the algorithmic structure driving its `{t_info.raw}` processing time, "
+        
+        if s_info.family == "constant":
+            summary += f"while the dominant factor influencing memory is its highly optimized absence of expanding data structures, anchoring space at `{s_info.raw}`. "
+        else:
+            summary += f"alongside a spatial expansion constraint that drives its memory footprint directly to `{s_info.raw}`. "
+
+        summary += f"Consequently, the final definitive asymptotic complexities are **{t_info.raw} Time** and **{s_info.raw} Space**."
+        
+        return summary
+
+    # =========================================================================
+    # CORE GENERATOR METHOD (Line by line)
     # =========================================================================
     def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, hits=0, mem_state=None):
         """Builds the distinct Local Context, Global Impact, and Educational Insights."""

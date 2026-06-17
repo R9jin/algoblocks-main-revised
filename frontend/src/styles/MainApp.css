@@ -228,6 +228,30 @@ body {
 .dropdown-chevron.open { transform: rotate(180deg); opacity: 1; color: var(--purple-main);}
 .complexity-row.expanded { background-color: var(--purple-alpha) !important; border-left-width: 4px !important; border-bottom: none;}
 
+/* =========================================
+   OVERALL COMPLEXITY ANALYSIS (NEW TAB)
+   ========================================= */
+.overall-complexity-wrapper {
+  flex: 1; overflow-y: auto; background: var(--panel-bg); 
+  border-radius: 8px; border: 1px solid var(--border-light); padding: 24px;
+}
+.empty-analysis-state {
+  display: flex; justify-content: center; align-items: center; height: 100%;
+  color: var(--text-muted); font-size: 0.95rem; text-align: center;
+}
+.overall-markdown-content { color: var(--text-main); font-size: 0.95rem; line-height: 1.7; max-width: 850px; margin: 0 auto;}
+.overall-main-title {
+  color: var(--purple-main); font-size: 1.25rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 2px solid var(--purple-light); padding-bottom: 8px; margin: 0 0 20px 0;
+}
+.overall-sub-title { color: #1E293B; font-size: 1.1rem; font-weight: 700; margin: 24px 0 12px 0; }
+.overall-markdown-content p { margin: 0 0 16px 0; }
+.math-block {
+  background: var(--app-bg); border-left: 4px solid var(--purple-main);
+  padding: 12px 16px; margin: 16px 0; font-family: "Fira Code", monospace; color: var(--text-main);
+  font-size: 0.95rem; font-weight: bold; border-radius: 0 8px 8px 0;
+}
+
 
 /* =========================================
    DARK THEME FIXES: CONSOLE & MEMORY MAPPING
