@@ -16,8 +16,8 @@
   --text-on-dark: #E9D8FD;
   --text-on-dark-muted: #B388EB;
 
-  --app-bg: #F4F7F9;
-  --panel-bg: #FFFFFF;
+  --app-bg: #F1F5F9;
+  --panel-bg: #F8FAFC;
   --border-light: #E2E8F0;
 }
 
@@ -248,6 +248,86 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 .freq-bar { height: 6px; background-color: #10B981; border-radius: 3px; transition: width 0.3s ease; }
 .freq-bar.max-freq { background-color: #F59E0B; }
 
+/* =========================================
+   OVERALL COMPLEXITY ANALYSIS (NEW TAB)
+   ========================================= */
+.overall-complexity-wrapper {
+  flex: 1; overflow-y: auto; background: var(--panel-bg); 
+  border-radius: 8px; border: 1px solid var(--border-light); padding: 24px;
+}
+.empty-analysis-state {
+  display: flex; justify-content: center; align-items: center; height: 100%;
+  color: var(--text-muted); font-size: 0.95rem; text-align: center;
+}
+.overall-markdown-content { color: var(--text-main); font-size: 0.95rem; line-height: 1.7; max-width: 850px; margin: 0 auto;}
+.overall-main-title {
+  color: var(--purple-main); font-size: 1.25rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 2px solid var(--purple-light); padding-bottom: 8px; margin: 0 0 20px 0;
+}
+.overall-sub-title { color: #1E293B; font-size: 1.1rem; font-weight: 700; margin: 24px 0 12px 0; }
+
+/* --- CUSTOM NLG MATH & STEP BADGES --- */
+.step-badge {
+  display: inline-block;
+  background: rgba(121, 40, 202, 0.1);
+  color: var(--purple-main);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 20px 0 8px 0;
+  border: 1px solid rgba(121, 40, 202, 0.2);
+}
+
+.overall-section-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 32px 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.math-block {
+  background: var(--dark-bg);
+  color: #38BDF8; 
+  padding: 14px 20px;
+  border-radius: 6px;
+  font-family: 'Fira Code', monospace;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left; 
+  margin: 16px 0;
+  border: 1px solid var(--dark-border);
+  border-left: 4px solid #38BDF8; 
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+  letter-spacing: 0.5px;
+  width: 100%; 
+  box-sizing: border-box;
+  overflow-x: auto; 
+  white-space: nowrap; 
+}
+
+.math-block sup {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.nlg-list {
+  margin: 12px 0 16px 24px;
+  list-style-type: disc;
+}
+.nlg-list li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
 /* Explanation Blocks (NLG) */
 .explanation-row td { padding: 0 !important; border: none; }
 .explanation-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 180px; gap: 20px; background: var(--app-bg); border-left: 4px solid transparent; padding: 24px; margin: 0; border-bottom: 1px solid var(--border-light); animation: slideDownFade 0.3s ease-out; }
@@ -260,7 +340,7 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 .explanation-graph-wrapper { position: relative; width: 100%; height: 100%; background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-light); overflow: hidden;}
 .space-graph-wrapper { margin-left: 20px; }
 
-.nlg-block { margin: 12px 0; padding: 16px; border-radius: 0 8px 8px 0; border-left: 4px solid; background: #FFFFFF; border-top: 1px solid var(--border-light); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);}
+.nlg-block { margin: 12px 0; padding: 16px; border-radius: 0 8px 8px 0; border-left: 4px solid; background: var(--panel-bg); border-top: 1px solid var(--border-light); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);}
 .nlg-block-title { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; font-weight: 800;}
 .nlg-block-content { font-size: 0.95rem; color: var(--text-main); }
 .nlg-paragraph { margin: 0 0 10px 0; font-size: 0.95rem; color: var(--text-main); }
@@ -291,7 +371,7 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 .floating-error-btn { background-color: #EF4444; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 8px; }
 .floating-error-btn:hover { background-color: #DC2626; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5); }
 .floating-error-btn.open { border-radius: 0 0 12px 12px; transform: translateY(0); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-.error-dropdown-menu { background-color: #FFFFFF; border: 1px solid #EF4444; border-radius: 12px 12px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; position: relative; box-sizing: border-box; animation: slideUpModal 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.error-dropdown-menu { background-color: var(--panel-bg); border: 1px solid #EF4444; border-radius: 12px 12px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; position: relative; box-sizing: border-box; animation: slideUpModal 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes slideUpModal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 .error-resizer-top { position: absolute; top: 0; left: 15px; right: 0; height: 6px; cursor: ns-resize; z-index: 10; }
 .error-resizer-left { position: absolute; top: 15px; left: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 10; }

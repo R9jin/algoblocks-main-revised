@@ -27,10 +27,10 @@ const handleEditorWillMount = (monaco) => {
       { token: "number", foreground: "F59E0B" },
     ],
     colors: {
-      "editor.background": "#FFFFFF",
+      "editor.background": "#F8FAFC",
       "editor.foreground": "#1E293B",
       "editorLineNumber.foreground": "#CBD5E1",
-      "editor.lineHighlightBackground": "#F8FAFC",
+      "editor.lineHighlightBackground": "#F1F5F9",
       "editorCursor.foreground": "#7928CA",
       "editor.selectionBackground": "#E2E8F0",
       "editor.inactiveSelectionBackground": "#F1F5F9",
@@ -69,50 +69,68 @@ const getComplexityWeight = (complexity) => {
   return 6;
 };
 
+// ---------------------------------------------------------------------------------
+// ADVANCED MARKDOWN PARSER (Custom Built for Asymptotic Step-by-Step Math)
+// ---------------------------------------------------------------------------------
+const parseMarkdown = (str) => {
+  if (!str) return "";
+  let html = str.trim();
+
+  // 1. Headers (Using start-of-line anchors safely bypasses OS newline \r\n issues causing floating #)
+  html = html.replace(/^###\s+(.*)$/gm, '<h3 class="overall-main-title">$1</h3>');
+  html = html.replace(/^####\s+(.*)$/gm, '<h4 class="overall-sub-title">$1</h4>');
+  html = html.replace(/^#####\s+(.*)$/gm, '<h5 class="overall-section-title">$1</h5>');
+
+  // 2. High-Priority Formatting: Step Badges & Final Summaries
+  html = html.replace(/\*\*(Step \d+:.*?)\*\*/g, '<span class="step-badge">$1</span>');
+  html = html.replace(/\*\*(\d+\.\s.*?)\*\*/g, '<span class="step-badge">$1</span>');
+  html = html.replace(/\*\*(Asymptotic Simplification|Final Asymptotic Complexity:?|Complexity Summary)\*\*/g, '<h5 class="overall-section-title">$1</h5>');
+
+  // 3. General Bold
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  // 4. Superscript for Math Variables (e.g. n^2 -> n<sup>2</sup>, 2^n -> 2<sup>n</sup>)
+  html = html.replace(/([a-zA-Z0-9_]+)\^([a-zA-Z0-9\+\-\/]+)/g, '$1<sup>$2</sup>');
+
+  // 5. Mathematical Equation Blocks (Targets T(n) = ... or S(n) = ... safely)
+  html = html.replace(/^`([TS]\(n\)\s*=.*?)`$/gm, '<div class="math-block">$1</div>');
+  html = html.replace(/`([TS]\(n\)\s*=.*?)`/g, '<div class="math-block">$1</div>');
+
+  // 6. Normal Inline Code (Fallback)
+  html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
+
+  // 7. Intelligent Block Splitter (Preserves Lists & HTML structures cleanly)
+  let blocks = html.split(/\n\s*\n/);
+  let parsedBlocks = blocks.map(block => {
+    // Prevent double wrapping already-formatted structures
+    if (block.includes('<h3') || block.includes('<h4') || block.includes('<h5') || block.includes('<div class="math-block"')) {
+       return block.replace(/\n/g, '<br/>'); 
+    }
+    
+    // Detect and construct unordered lists
+    if (/^[-*]\s+/m.test(block)) {
+      let listItems = block.split('\n').reduce((acc, line) => {
+         let trimmed = line.trim();
+         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { 
+             acc.push(`<li>${trimmed.substring(2).trim()}</li>`); 
+         } else if (trimmed !== '') { 
+             if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); 
+             else acc.push(`<li>${trimmed}</li>`); 
+         }
+         return acc;
+      }, []).join('');
+      return `<ul class="nlg-list">${listItems}</ul>`;
+    }
+
+    // Default Paragraph Wrap
+    return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
+  });
+
+  return parsedBlocks.join('');
+};
+
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
-
-  const parseMarkdown = (str) => {
-    let html = str.trim();
-    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
-
-    const mathReplacer = (match, math) => {
-      let cleanMath = math.trim().replace(/\\mathcal\{?O\}?/g, "O").replace(/\\log\b/g, "log").replace(/\\/g, "");
-      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-      return `<span class="nlg-math-badge">${cleanMath}</span>`;
-    };
-    html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
-    html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
-
-    html = html.replace(/(^|>)([^<]+)(<|$)/g, function (match, prefix, text, suffix) {
-      let newText = text.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
-        let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-        return `<span class="nlg-math-badge">O(${cleanMath})</span>`;
-      });
-      return prefix + newText + suffix;
-    });
-
-    let blocks = html.split(/\n\s*\n/);
-    let parsedBlocks = blocks.map(block => {
-      if (/^[-*]\s+/m.test(block)) {
-        let listItems = block.split('\n').reduce((acc, line) => {
-          let trimmed = line.trim();
-          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) acc.push(`<li>${trimmed.substring(2).trim()}</li>`);
-          else if (trimmed !== '') {
-            if (acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
-            else acc.push(`<li>${trimmed}</li>`);
-          }
-          return acc;
-        }, []).join('');
-        return `<ul>${listItems}</ul>`;
-      } else {
-        return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
-      }
-    });
-
-    return parsedBlocks.join('');
-  };
 
   const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
   const sections = text.split(headerRegex);
@@ -220,10 +238,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [expandedTests, setExpandedTests] = useState({});
   const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleTab, setConsoleTab] = useState("output");
-  const [activeComplexityTab, setActiveComplexityTab] = useState("local");
+  const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
-  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
+  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false });
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const [lineExecutions, setLineExecutions] = useState({});
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
@@ -324,7 +342,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (type === "ANALYZE_RESULT") {
       if (data.status === "success") {
         setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
-        setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+        setAnalysisResult({ 
+          total: data.total, 
+          space_total: data.space_total || "O(1)", 
+          overall_explanation: data.overall_explanation || "", 
+          lines: data.lines || [], 
+          is_recursive: data.is_recursive || false 
+        });
         latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
@@ -1138,6 +1162,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                   <div className="complexity-content">
                     <div className="complexity-tabs">
                       <div className="tab-btn-group">
+                        <button onClick={() => { setActiveComplexityTab("overall"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "overall" ? "active" : ""}`}>Overall</button>
                         <button onClick={() => { setActiveComplexityTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "local" ? "active" : ""}`}>Local</button>
                         <button onClick={() => { setActiveComplexityTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
                         <button onClick={() => { setActiveComplexityTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
@@ -1177,7 +1202,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
                       </div>
                     </div>
-                    {activeComplexityTab === "memory" ? (
+                    {activeComplexityTab === "overall" ? (
+                      <div className="overall-complexity-wrapper">
+                        {analysisResult.overall_explanation ? (
+                          <div className="overall-markdown-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(analysisResult.overall_explanation)) }} />
+                        ) : (
+                          <div className="empty-analysis-state">
+                            <p>Run code analysis to see the complete overall complexity report.</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : activeComplexityTab === "memory" ? (
                       <div className="memory-wrapper">
                         <MemoryVisualizer analysisData={analysisResult.lines} currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0} />
                       </div>
