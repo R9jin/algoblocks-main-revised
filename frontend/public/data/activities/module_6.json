@@ -482,26 +482,27 @@
     },
     {
       "id": "m6_opt_3",
-      "title": "Optimization Challenge: Shortest Path Breadth-First Search",
+      "title": "Optimization Challenge: 1D Threat Tracking",
       "task": [
-        "Backtracking Depth-First Search evaluates deeply nested dead ends before attempting parallel routes, generating an O(2ⁿ) runtime on large untethered matrices.",
-        "Refactoring the traversal sequence to a Queue-based Breadth-First Search ensures the primary discovery node is strictly optimal, processing the grid in O(V + E) proportional time.",
+        "Validating board safety in the N-Queens problem by scanning a 2D matrix requires an O(n) local time scan and incurs an O(n²) space complexity overhead.",
+        "By refactoring the algorithm to utilize 1D tracking arrays for columns and diagonals, validation resolves in O(1) constant time, and memory overhead is minimized.",
         "",
         "Optimization Guidelines:",
-        "1. Delete the recursive invocation loops. Introduce the `deque` object from the standard collections module.",
-        "2. Establish the primary coordinate queue appending a tuple detailing `(row, col, distance)` initialized at `(0, 0, 0)`.",
-        "3. Generate a `while queue:` structure extracting elements sequentially using `.popleft()`.",
-        "4. Validate parameters iteratively: terminate upon target acquisition. Otherwise, append valid unvisited adjacent paths mapping upward distances.",
-        "5. Observe the analytical transition confirming the graph context bounds to O(V + E)."
+        "1. Remove the multi-loop `is_safe` scanning functions entirely.",
+        "2. Provision three 1D boolean tracking arrays: `cols`, `pos_diag`, and `neg_diag`.",
+        "3. Within the recursive loop, evaluate safety by checking if `cols[col]`, `pos_diag[row + col]`, or `neg_diag[row - col]` are `True`.",
+        "4. If safe, mutate the arrays to `True` to lock the vectors, and execute the recursive descent.",
+        "5. Rollback the mutation by resetting the arrays to `False`.",
+        "6. Observe the analytical transition confirming the spatial footprint has mathematically collapsed to O(n)."
       ],
-      "targetTime": "O(V + E)",
-      "targetSpace": "O(V)",
+      "targetTime": "O(n!)",
+      "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m6-6.3.json",
       "testCasesPool": [
-        { "call": "shortest_path_bfs([[0, 0], [0, 0]], 0, 0, 1, 1)", "expected": "2", "isHidden": false },
-        { "call": "shortest_path_bfs([[0, 1], [0, 0]], 0, 0, 1, 1)", "expected": "2", "isHidden": false },
-        { "call": "shortest_path_bfs([[0, 1, 0], [0, 1, 0], [0, 0, 0]], 0, 0, 0, 2)", "expected": "6", "isHidden": true },
-        { "call": "shortest_path_bfs([[0, 1], [1, 0]], 0, 0, 1, 1)", "expected": "-1", "isHidden": true }
+        { "call": "n_queens_opt(4)", "expected": "2", "isHidden": false },
+        { "call": "n_queens_opt(5)", "expected": "10", "isHidden": false },
+        { "call": "n_queens_opt(8)", "expected": "92", "isHidden": true },
+        { "call": "n_queens_opt(3)", "expected": "0", "isHidden": true }
       ]
     }
   ]

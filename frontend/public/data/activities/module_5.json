@@ -418,22 +418,28 @@
     },
     {
       "id": "m5_l4_a5",
-      "title": "Sequence Path Alignment",
+      "title": "Spatial Compression (1D LCS Tracker)",
       "task": [
-        "Analyzing independent strings frequently requires computing the sequential modifications necessary to map string A onto string B.",
-        "Algorithms execute this sequence alignment by tracking specific index deviations over standard LCS grids.",
+        "A rigid 2D grid matrix for the Longest Common Subsequence allocates O(n * m) space to map all historical derivations.",
+        "Because calculating the current row strictly requires data from the immediate previous row, the memory footprint can be mathematically compressed into a 1D array.",
         "",
         "Instructions:",
-        "1. Define `lcs_diff(text1, text2, dp)`.",
-        "2. Implement the matrix backtracking structural design established in the previous execution.",
-        "3. During backtracking, if a mismatch directs `j -= 1`, record an '+ ' alongside `text2[j-1]` into an array.",
-        "4. If a mismatch directs `i -= 1`, record a '- ' alongside `text1[i-1]`.",
-        "5. Return the array to map the exact algorithmic differential sequence."
+        "1. Define `lcs_1d(text1, text2)`.",
+        "2. Allocate a single 1D array `dp` sized `len(text2) + 1`, populated with `0`.",
+        "3. Construct an outer loop traversing `text1`.",
+        "4. Initialize a `prev` variable to `0` at the start of the outer loop to hold the top-left diagonal state.",
+        "5. Construct an inner loop traversing `text2`. Store the current `dp[j]` state in a temporary variable.",
+        "6. If `text1[i-1] == text2[j-1]`, assign `dp[j] = prev + 1`.",
+        "7. Otherwise, assign `dp[j] = max(dp[j], dp[j-1])`.",
+        "8. Update `prev` to the temporary variable and return `dp[-1]` upon completion."
       ],
-      "targetTime": "O(n)",
+      "targetTime": "O(n * m)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "lcs_diff('abc', 'ac', [[0,0,0],[0,1,1],[0,1,1],[0,1,2]])", "expected": "['- b']", "isHidden": false }
+        { "call": "lcs_1d('abcde', 'ace')", "expected": "3", "isHidden": false },
+        { "call": "lcs_1d('abc', 'abc')", "expected": "3", "isHidden": false },
+        { "call": "lcs_1d('abc', 'def')", "expected": "0", "isHidden": true },
+        { "call": "lcs_1d('', 'a')", "expected": "0", "isHidden": true }
       ]
     }
   ],
