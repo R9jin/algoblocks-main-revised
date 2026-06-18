@@ -7,11 +7,11 @@
         "Welcome to the AlgoBlocks workspace. This initial module introduces the visual programming interface. We will begin by constructing a foundational function that returns a static text string.",
         "",
         "Instructions:",
-        "1. Open the 'Functions' tab and extract a function block containing a return slot. Assign it the name 'hello'.",
+        "1. Open the 'Functions' tab and , extract a function block containing a return slot. Assign it the name 'hello'.",
         "2. Open the 'Text' tab, retrieve a standard text block, and input the string 'Hello World'.",
         "3. Attach the text block to the function's return slot.",
-        "4. Observe the Python Code tab to monitor the real-time translation of your visual blocks into standard syntax.",
-        "",
+        "4. 💡 Workspace Tip: If you make a mistake, simply drag the incorrect block to the Trash Can icon in the corner, or right-click the block and select 'Delete'.",
+        "5. Observe the Python Code tab to monitor the real-time translation of your visual blocks into standard syntax.",
         "Sample Output:",
         "hello() → 'Hello World'"
       ],
@@ -19,8 +19,16 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "hello()", "expected": "'Hello World'", "isHidden": false },
-        { "call": "hello()", "expected": "'Hello World'", "isHidden": true }
+        {
+          "call": "hello()",
+          "expected": "'Hello World'",
+          "isHidden": false
+        },
+        {
+          "call": "hello()",
+          "expected": "'Hello World'",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -42,8 +50,16 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "draw_star()", "expected": "'***'", "isHidden": false },
-        { "call": "draw_star()", "expected": "'***'", "isHidden": true }
+        {
+          "call": "draw_star()",
+          "expected": "'***'",
+          "isHidden": false
+        },
+        {
+          "call": "draw_star()",
+          "expected": "'***'",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -66,10 +82,26 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "add(5, 3)", "expected": "8", "isHidden": false },
-        { "call": "add(10, 20)", "expected": "30", "isHidden": false },
-        { "call": "add(0, 0)", "expected": "0", "isHidden": false },
-        { "call": "add(-5, 15)", "expected": "10", "isHidden": true }
+        {
+          "call": "add(5, 3)",
+          "expected": "8",
+          "isHidden": false
+        },
+        {
+          "call": "add(10, 20)",
+          "expected": "30",
+          "isHidden": false
+        },
+        {
+          "call": "add(0, 0)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "add(-5, 15)",
+          "expected": "10",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -92,9 +124,21 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "greet('Alice')", "expected": "'Hi Alice'", "isHidden": false },
-        { "call": "greet('Bob')", "expected": "'Hi Bob'", "isHidden": false },
-        { "call": "greet('Charlie')", "expected": "'Hi Charlie'", "isHidden": true }
+        {
+          "call": "greet('Alice')",
+          "expected": "'Hi Alice'",
+          "isHidden": false
+        },
+        {
+          "call": "greet('Bob')",
+          "expected": "'Hi Bob'",
+          "isHidden": false
+        },
+        {
+          "call": "greet('Charlie')",
+          "expected": "'Hi Charlie'",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -116,8 +160,16 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "get_numbers()", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "get_numbers()", "expected": "[1, 2, 3]", "isHidden": true }
+        {
+          "call": "get_numbers()",
+          "expected": "[1, 2, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "get_numbers()",
+          "expected": "[1, 2, 3]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -141,8 +193,16 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "store_data()", "expected": "100", "isHidden": false },
-        { "call": "store_data()", "expected": "100", "isHidden": true }
+        {
+          "call": "store_data()",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "store_data()",
+          "expected": "100",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -165,10 +225,26 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "is_positive(5)", "expected": "'Yes'", "isHidden": false },
-        { "call": "is_positive(-2)", "expected": "'No'", "isHidden": false },
-        { "call": "is_positive(0)", "expected": "'No'", "isHidden": false },
-        { "call": "is_positive(99)", "expected": "'Yes'", "isHidden": true }
+        {
+          "call": "is_positive(5)",
+          "expected": "'Yes'",
+          "isHidden": false
+        },
+        {
+          "call": "is_positive(-2)",
+          "expected": "'No'",
+          "isHidden": false
+        },
+        {
+          "call": "is_positive(0)",
+          "expected": "'No'",
+          "isHidden": false
+        },
+        {
+          "call": "is_positive(99)",
+          "expected": "'Yes'",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -191,33 +267,49 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "repeat_five()", "expected": "5", "isHidden": false },
-        { "call": "repeat_five()", "expected": "5", "isHidden": true }
+        {
+          "call": "repeat_five()",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "repeat_five()",
+          "expected": "5",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m0_l2_a4",
-      "title": "Array Index Access",
+      "title": "Defensive Programming: Safe Array Access",
       "task": [
-        "Elements within a list are accessed utilizing an index. In standard programming environments, array indexing is zero-based, meaning the first element resides at index 0.",
+        "Attempting to read data from an empty array will crash your program. Professional developers use 'Defensive Programming' to check if data exists before trying to use it.",
         "",
         "Instructions:",
-        "1. Create a function 'get_first' containing the parameter 'arr'.",
-        "2. Open the 'Lists (Built-in Type)' tab and extract the 'in list get' block.",
-        "3. Configure the block to retrieve the element at index 0 from the 'arr' array.",
-        "4. Return the retrieved element.",
-        "",
-        "Sample Outputs:",
-        "get_first([10, 20, 30]) → 10",
-        "get_first([99]) → 99"
+        "1. Create a function named `safe_first_item(arr)`.",
+        "2. Drag in an `If / Else` block from the Logic tab.",
+        "3. Set the condition to check: `length of list arr > 0`.",
+        "4. If true, return the first item of the array (index 0).",
+        "5. Else (if the array is empty), return the text string 'Empty'."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
-      "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "get_first([10, 20, 30])", "expected": "10", "isHidden": false },
-        { "call": "get_first([99])", "expected": "99", "isHidden": false },
-        { "call": "get_first(['Apple', 'Banana'])", "expected": "'Apple'", "isHidden": true }
+        {
+          "call": "safe_first_item([10, 20, 30])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "safe_first_item(['Apple', 'Banana'])",
+          "expected": "'Apple'",
+          "isHidden": false
+        },
+        {
+          "call": "safe_first_item([])",
+          "expected": "'Empty'",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -240,9 +332,21 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "add_zero([1, 2])", "expected": "[1, 2, 0]", "isHidden": false },
-        { "call": "add_zero([])", "expected": "[0]", "isHidden": false },
-        { "call": "add_zero([99, 100])", "expected": "[99, 100, 0]", "isHidden": true }
+        {
+          "call": "add_zero([1, 2])",
+          "expected": "[1, 2, 0]",
+          "isHidden": false
+        },
+        {
+          "call": "add_zero([])",
+          "expected": "[0]",
+          "isHidden": false
+        },
+        {
+          "call": "add_zero([99, 100])",
+          "expected": "[99, 100, 0]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -262,8 +366,16 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "fast_math(5)", "expected": "10", "isHidden": false },
-        { "call": "fast_math(10)", "expected": "20", "isHidden": false }
+        {
+          "call": "fast_math(5)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "fast_math(10)",
+          "expected": "20",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -283,9 +395,21 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "loop_test(5)", "expected": "5", "isHidden": false },
-        { "call": "loop_test(3)", "expected": "3", "isHidden": false },
-        { "call": "loop_test(12)", "expected": "12", "isHidden": true }
+        {
+          "call": "loop_test(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "loop_test(3)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "loop_test(12)",
+          "expected": "12",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -305,9 +429,21 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "double_loop(3)", "expected": "9", "isHidden": false },
-        { "call": "double_loop(4)", "expected": "16", "isHidden": false },
-        { "call": "double_loop(5)", "expected": "25", "isHidden": true }
+        {
+          "call": "double_loop(3)",
+          "expected": "9",
+          "isHidden": false
+        },
+        {
+          "call": "double_loop(4)",
+          "expected": "16",
+          "isHidden": false
+        },
+        {
+          "call": "double_loop(5)",
+          "expected": "25",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -326,9 +462,21 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "check_size(15)", "expected": "100", "isHidden": false },
-        { "call": "check_size(5)", "expected": "0", "isHidden": false },
-        { "call": "check_size(10)", "expected": "0", "isHidden": true }
+        {
+          "call": "check_size(15)",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "check_size(5)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "check_size(10)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -347,9 +495,21 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "fast_sum(4)", "expected": "10.0", "isHidden": false },
-        { "call": "fast_sum(10)", "expected": "55.0", "isHidden": false },
-        { "call": "fast_sum(100)", "expected": "5050.0", "isHidden": true }
+        {
+          "call": "fast_sum(4)",
+          "expected": "10.0",
+          "isHidden": false
+        },
+        {
+          "call": "fast_sum(10)",
+          "expected": "55.0",
+          "isHidden": false
+        },
+        {
+          "call": "fast_sum(100)",
+          "expected": "5050.0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -370,7 +530,11 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "mem_test()", "expected": "50", "isHidden": false }
+        {
+          "call": "mem_test()",
+          "expected": "50",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -388,7 +552,11 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": false,
       "testCasesPool": [
-        { "call": "fixed_list()", "expected": "['Apple', 'Banana']", "isHidden": false }
+        {
+          "call": "fixed_list()",
+          "expected": "['Apple', 'Banana']",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -407,9 +575,21 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "grow_list(3)", "expected": "[1, 1, 1]", "isHidden": false },
-        { "call": "grow_list(1)", "expected": "[1]", "isHidden": false },
-        { "call": "grow_list(5)", "expected": "[1, 1, 1, 1, 1]", "isHidden": true }
+        {
+          "call": "grow_list(3)",
+          "expected": "[1, 1, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "grow_list(1)",
+          "expected": "[1]",
+          "isHidden": false
+        },
+        {
+          "call": "grow_list(5)",
+          "expected": "[1, 1, 1, 1, 1]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -428,9 +608,21 @@
       "targetSpace": "O(n)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "build_text(3)", "expected": "'AAA'", "isHidden": false },
-        { "call": "build_text(2)", "expected": "'AA'", "isHidden": false },
-        { "call": "build_text(5)", "expected": "'AAAAA'", "isHidden": true }
+        {
+          "call": "build_text(3)",
+          "expected": "'AAA'",
+          "isHidden": false
+        },
+        {
+          "call": "build_text(2)",
+          "expected": "'AA'",
+          "isHidden": false
+        },
+        {
+          "call": "build_text(5)",
+          "expected": "'AAAAA'",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -451,9 +643,21 @@
       "targetSpace": "O(1)",
       "randomizeTestCases": true,
       "testCasesPool": [
-        { "call": "swap_test(1, 2)", "expected": "[2, 1]", "isHidden": false },
-        { "call": "swap_test(99, 100)", "expected": "[100, 99]", "isHidden": false },
-        { "call": "swap_test(0, -5)", "expected": "[-5, 0]", "isHidden": true }
+        {
+          "call": "swap_test(1, 2)",
+          "expected": "[2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "swap_test(99, 100)",
+          "expected": "[100, 99]",
+          "isHidden": false
+        },
+        {
+          "call": "swap_test(0, -5)",
+          "expected": "[-5, 0]",
+          "isHidden": true
+        }
       ]
     }
   ]
