@@ -16,10 +16,26 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "greedy_largest([3, 1, 4, 1, 5])", "expected": "5", "isHidden": false },
-        { "call": "greedy_largest([10, 20])", "expected": "20", "isHidden": false },
-        { "call": "greedy_largest([])", "expected": "0", "isHidden": true },
-        { "call": "greedy_largest([7, 7, 7])", "expected": "7", "isHidden": true }
+        {
+          "call": "greedy_largest([3, 1, 4, 1, 5])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_largest([10, 20])",
+          "expected": "20",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_largest([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_largest([7, 7, 7])",
+          "expected": "7",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -37,10 +53,26 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "greedy_smallest([8, 2, 6, 1])", "expected": "1", "isHidden": false },
-        { "call": "greedy_smallest([10, 20])", "expected": "10", "isHidden": false },
-        { "call": "greedy_smallest([])", "expected": "0", "isHidden": true },
-        { "call": "greedy_smallest([5, 5])", "expected": "5", "isHidden": true }
+        {
+          "call": "greedy_smallest([8, 2, 6, 1])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_smallest([10, 20])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_smallest([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_smallest([5, 5])",
+          "expected": "5",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -60,10 +92,26 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "greedy_sum([1, 5, 2, 9, 3], 2)", "expected": "14", "isHidden": false },
-        { "call": "greedy_sum([10, 10, 10], 1)", "expected": "10", "isHidden": false },
-        { "call": "greedy_sum([5, 4, 3, 2, 1], 3)", "expected": "12", "isHidden": true },
-        { "call": "greedy_sum([], 1)", "expected": "0", "isHidden": true }
+        {
+          "call": "greedy_sum([1, 5, 2, 9, 3], 2)",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum([10, 10, 10], 1)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum([5, 4, 3, 2, 1], 3)",
+          "expected": "12",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_sum([], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -82,10 +130,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "closest_number([10, 22, 28, 29, 30], 25)", "expected": "22", "isHidden": false },
-        { "call": "closest_number([1, 5, 10], 6)", "expected": "5", "isHidden": false },
-        { "call": "closest_number([100, 200, 300], 260)", "expected": "300", "isHidden": true },
-        { "call": "closest_number([0], 10)", "expected": "0", "isHidden": true }
+        {
+          "call": "closest_number([10, 22, 28, 29, 30], 25)",
+          "expected": "22",
+          "isHidden": false
+        },
+        {
+          "call": "closest_number([1, 5, 10], 6)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "closest_number([100, 200, 300], 260)",
+          "expected": "300",
+          "isHidden": true
+        },
+        {
+          "call": "closest_number([0], 10)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -104,9 +168,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "greedy_path([[5, 10], [1, 2], [8, 9]])", "expected": "14", "isHidden": false },
-        { "call": "greedy_path([[100, 200], [50, 10]])", "expected": "110", "isHidden": false },
-        { "call": "greedy_path([[5, 5], [5, 5]])", "expected": "10", "isHidden": true }
+        {
+          "call": "greedy_path([[5, 10], [1, 2], [8, 9]])",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_path([[100, 200], [50, 10]])",
+          "expected": "110",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_path([[5, 5], [5, 5]])",
+          "expected": "10",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -129,10 +205,26 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "ph_cashier(47)", "expected": "5", "isHidden": false },
-        { "call": "ph_cashier(100)", "expected": "5", "isHidden": false },
-        { "call": "ph_cashier(8)", "expected": "4", "isHidden": true },
-        { "call": "ph_cashier(0)", "expected": "0", "isHidden": true }
+        {
+          "call": "ph_cashier(47)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "ph_cashier(100)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "ph_cashier(8)",
+          "expected": "4",
+          "isHidden": true
+        },
+        {
+          "call": "ph_cashier(0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -150,10 +242,26 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "us_cashier(47)", "expected": "5", "isHidden": false },
-        { "call": "us_cashier(99)", "expected": "9", "isHidden": false },
-        { "call": "us_cashier(4)", "expected": "4", "isHidden": true },
-        { "call": "us_cashier(0)", "expected": "0", "isHidden": true }
+        {
+          "call": "us_cashier(47)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "us_cashier(99)",
+          "expected": "9",
+          "isHidden": false
+        },
+        {
+          "call": "us_cashier(4)",
+          "expected": "4",
+          "isHidden": true
+        },
+        {
+          "call": "us_cashier(0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -173,9 +281,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "coin_breakdown(47, [25, 10, 5, 1])", "expected": "[1, 2, 0, 2]", "isHidden": false },
-        { "call": "coin_breakdown(47, [20, 10, 5, 1])", "expected": "[2, 0, 1, 2]", "isHidden": false },
-        { "call": "coin_breakdown(100, [50, 20, 10])", "expected": "[2, 0, 0]", "isHidden": true }
+        {
+          "call": "coin_breakdown(47, [25, 10, 5, 1])",
+          "expected": "[1, 2, 0, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "coin_breakdown(47, [20, 10, 5, 1])",
+          "expected": "[2, 0, 1, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "coin_breakdown(100, [50, 20, 10])",
+          "expected": "[2, 0, 0]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -193,9 +313,21 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "custom_change(15, [1, 10, 5])", "expected": "2", "isHidden": false },
-        { "call": "custom_change(33, [10, 1, 25])", "expected": "4", "isHidden": false },
-        { "call": "custom_change(0, [5, 1])", "expected": "0", "isHidden": true }
+        {
+          "call": "custom_change(15, [1, 10, 5])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "custom_change(33, [10, 1, 25])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "custom_change(0, [5, 1])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -214,10 +346,26 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "can_make_change(15, [10, 5])", "expected": "True", "isHidden": false },
-        { "call": "can_make_change(13, [10, 5])", "expected": "False", "isHidden": false },
-        { "call": "can_make_change(20, [15, 4])", "expected": "False", "isHidden": true },
-        { "call": "can_make_change(10, [10])", "expected": "True", "isHidden": true }
+        {
+          "call": "can_make_change(15, [10, 5])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "can_make_change(13, [10, 5])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "can_make_change(20, [15, 4])",
+          "expected": "False",
+          "isHidden": true
+        },
+        {
+          "call": "can_make_change(10, [10])",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -237,9 +385,21 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "sort_by_end([[1, 4], [0, 2], [3, 5]])", "expected": "[[0, 2], [1, 4], [3, 5]]", "isHidden": false },
-        { "call": "sort_by_end([[5, 9], [1, 2], [3, 4]])", "expected": "[[1, 2], [3, 4], [5, 9]]", "isHidden": false },
-        { "call": "sort_by_end([[1, 2]])", "expected": "[[1, 2]]", "isHidden": true }
+        {
+          "call": "sort_by_end([[1, 4], [0, 2], [3, 5]])",
+          "expected": "[[0, 2], [1, 4], [3, 5]]",
+          "isHidden": false
+        },
+        {
+          "call": "sort_by_end([[5, 9], [1, 2], [3, 4]])",
+          "expected": "[[1, 2], [3, 4], [5, 9]]",
+          "isHidden": false
+        },
+        {
+          "call": "sort_by_end([[1, 2]])",
+          "expected": "[[1, 2]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -259,10 +419,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "schedule_events([[0, 2], [1, 4], [3, 5]])", "expected": "2", "isHidden": false },
-        { "call": "schedule_events([[1, 2], [2, 3], [3, 4]])", "expected": "3", "isHidden": false },
-        { "call": "schedule_events([[1, 10], [2, 3], [4, 5]])", "expected": "1", "isHidden": true },
-        { "call": "schedule_events([])", "expected": "0", "isHidden": true }
+        {
+          "call": "schedule_events([[0, 2], [1, 4], [3, 5]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_events([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_events([[1, 10], [2, 3], [4, 5]])",
+          "expected": "1",
+          "isHidden": true
+        },
+        {
+          "call": "schedule_events([])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -281,10 +457,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "has_conflicts([[1, 3], [2, 5]])", "expected": "True", "isHidden": false },
-        { "call": "has_conflicts([[1, 2], [3, 4]])", "expected": "False", "isHidden": false },
-        { "call": "has_conflicts([[1, 5], [5, 6]])", "expected": "False", "isHidden": true },
-        { "call": "has_conflicts([])", "expected": "False", "isHidden": true }
+        {
+          "call": "has_conflicts([[1, 3], [2, 5]])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_conflicts([[1, 2], [3, 4]])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "has_conflicts([[1, 5], [5, 6]])",
+          "expected": "False",
+          "isHidden": true
+        },
+        {
+          "call": "has_conflicts([])",
+          "expected": "False",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -304,10 +496,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "total_duration([[1, 3], [4, 6]])", "expected": "4", "isHidden": false },
-        { "call": "total_duration([[0, 10]])", "expected": "10", "isHidden": false },
-        { "call": "total_duration([[1, 2], [2, 3], [3, 4]])", "expected": "3", "isHidden": true },
-        { "call": "total_duration([])", "expected": "0", "isHidden": true }
+        {
+          "call": "total_duration([[1, 3], [4, 6]])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "total_duration([[0, 10]])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "total_duration([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": true
+        },
+        {
+          "call": "total_duration([])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -327,10 +535,26 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "rooms_required([[1, 4], [2, 5], [6, 8]])", "expected": "2", "isHidden": false },
-        { "call": "rooms_required([[1, 2], [3, 4], [5, 6]])", "expected": "1", "isHidden": false },
-        { "call": "rooms_required([[1, 10], [2, 9], [3, 8]])", "expected": "3", "isHidden": true },
-        { "call": "rooms_required([])", "expected": "0", "isHidden": true }
+        {
+          "call": "rooms_required([[1, 4], [2, 5], [6, 8]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "rooms_required([[1, 2], [3, 4], [5, 6]])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "rooms_required([[1, 10], [2, 9], [3, 8]])",
+          "expected": "3",
+          "isHidden": true
+        },
+        {
+          "call": "rooms_required([])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -338,6 +562,7 @@
     {
       "id": "m4_opt_1",
       "title": "Optimization Challenge: Pre-Sorting Over Exhaustive Search",
+      "difficulty": "Medium",
       "task": [
         "In naive implementations, identifying the largest remaining element requires scanning the array during every iteration, producing an O(n²) time complexity.",
         "By structurally organizing the data prior to iteration, greedy selections resolve in optimal O(1) constant time per choice.",
@@ -352,15 +577,32 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m4-4.1.json",
       "testCasesPool": [
-        { "call": "greedy_sum_opt([1, 5, 2, 9, 3], 2)", "expected": "14", "isHidden": false },
-        { "call": "greedy_sum_opt([10, 10, 10], 1)", "expected": "10", "isHidden": false },
-        { "call": "greedy_sum_opt([5, 4, 3, 2, 1], 3)", "expected": "12", "isHidden": true },
-        { "call": "greedy_sum_opt([], 1)", "expected": "0", "isHidden": true }
+        {
+          "call": "greedy_sum_opt([1, 5, 2, 9, 3], 2)",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum_opt([10, 10, 10], 1)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum_opt([5, 4, 3, 2, 1], 3)",
+          "expected": "12",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_sum_opt([], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_opt_2",
       "title": "Optimization Challenge: Constant Time Modulo Deduction",
+      "difficulty": "Medium",
       "task": [
         "Executing the Coin Change algorithm by iteratively subtracting the coin denomination degrades performance to O(n), simulating an inefficient linear search.",
         "Mathematical division resolves this state reduction instantaneously in O(1) time.",
@@ -376,14 +618,27 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m4-4.2.json",
       "testCasesPool": [
-        { "call": "fast_cashier(47, [25, 10, 5, 1])", "expected": "5", "isHidden": false },
-        { "call": "fast_cashier(100, [50, 20, 10])", "expected": "2", "isHidden": false },
-        { "call": "fast_cashier(8, [5, 1])", "expected": "4", "isHidden": true }
+        {
+          "call": "fast_cashier(47, [25, 10, 5, 1])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fast_cashier(100, [50, 20, 10])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "fast_cashier(8, [5, 1])",
+          "expected": "4",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_opt_3",
       "title": "Optimization Challenge: Greedy Activity Scheduling",
+      "difficulty": "Hard",
       "task": [
         "An exhaustive search evaluating every possible subset of activities operates in O(2ⁿ) exponential time, practically crashing on large inputs.",
         "Sorting the activities by their termination boundaries enables a single-pass greedy selection.",
@@ -399,10 +654,26 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m4-4.3.json",
       "testCasesPool": [
-        { "call": "schedule_opt([[0, 2], [1, 4], [3, 5]])", "expected": "2", "isHidden": false },
-        { "call": "schedule_opt([[1, 2], [2, 3], [3, 4]])", "expected": "3", "isHidden": false },
-        { "call": "schedule_opt([[1, 10], [2, 3], [4, 5]])", "expected": "2", "isHidden": true },
-        { "call": "schedule_opt([])", "expected": "0", "isHidden": true }
+        {
+          "call": "schedule_opt([[0, 2], [1, 4], [3, 5]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_opt([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_opt([[1, 10], [2, 3], [4, 5]])",
+          "expected": "2",
+          "isHidden": true
+        },
+        {
+          "call": "schedule_opt([])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ]

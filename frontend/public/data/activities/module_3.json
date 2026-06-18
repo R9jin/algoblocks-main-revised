@@ -15,11 +15,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "countdown(3)", "expected": "[3, 2, 1, 'Liftoff']", "isHidden": false },
-        { "call": "countdown(5)", "expected": "[5, 4, 3, 2, 1, 'Liftoff']", "isHidden": false },
-        { "call": "countdown(1)", "expected": "[1, 'Liftoff']", "isHidden": false },
-        { "call": "countdown(0)", "expected": "['Liftoff']", "isHidden": true },
-        { "call": "countdown(-2)", "expected": "['Liftoff']", "isHidden": true }
+        {
+          "call": "countdown(3)",
+          "expected": "[3, 2, 1, 'Liftoff']",
+          "isHidden": false
+        },
+        {
+          "call": "countdown(5)",
+          "expected": "[5, 4, 3, 2, 1, 'Liftoff']",
+          "isHidden": false
+        },
+        {
+          "call": "countdown(1)",
+          "expected": "[1, 'Liftoff']",
+          "isHidden": false
+        },
+        {
+          "call": "countdown(0)",
+          "expected": "['Liftoff']",
+          "isHidden": true
+        },
+        {
+          "call": "countdown(-2)",
+          "expected": "['Liftoff']",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -38,11 +58,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "factorial(5)", "expected": "120", "isHidden": false },
-        { "call": "factorial(3)", "expected": "6", "isHidden": false },
-        { "call": "factorial(1)", "expected": "1", "isHidden": false },
-        { "call": "factorial(0)", "expected": "1", "isHidden": true },
-        { "call": "factorial(6)", "expected": "720", "isHidden": true }
+        {
+          "call": "factorial(5)",
+          "expected": "120",
+          "isHidden": false
+        },
+        {
+          "call": "factorial(3)",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "factorial(1)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "factorial(0)",
+          "expected": "1",
+          "isHidden": true
+        },
+        {
+          "call": "factorial(6)",
+          "expected": "720",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -61,11 +101,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "russian_doll(2)", "expected": "['Doll', ['Doll', []]]", "isHidden": false },
-        { "call": "russian_doll(3)", "expected": "['Doll', ['Doll', ['Doll', []]]]", "isHidden": false },
-        { "call": "russian_doll(1)", "expected": "['Doll', []]", "isHidden": false },
-        { "call": "russian_doll(0)", "expected": "[]", "isHidden": true },
-        { "call": "russian_doll(4)", "expected": "['Doll', ['Doll', ['Doll', ['Doll', []]]]]", "isHidden": true }
+        {
+          "call": "russian_doll(2)",
+          "expected": "['Doll', ['Doll', []]]",
+          "isHidden": false
+        },
+        {
+          "call": "russian_doll(3)",
+          "expected": "['Doll', ['Doll', ['Doll', []]]]",
+          "isHidden": false
+        },
+        {
+          "call": "russian_doll(1)",
+          "expected": "['Doll', []]",
+          "isHidden": false
+        },
+        {
+          "call": "russian_doll(0)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "russian_doll(4)",
+          "expected": "['Doll', ['Doll', ['Doll', ['Doll', []]]]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -84,11 +144,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "is_palindrome('racecar', 0, 6)", "expected": "True", "isHidden": false },
-        { "call": "is_palindrome('level', 0, 4)", "expected": "True", "isHidden": false },
-        { "call": "is_palindrome('hello', 0, 4)", "expected": "False", "isHidden": false },
-        { "call": "is_palindrome('a', 0, 0)", "expected": "True", "isHidden": true },
-        { "call": "is_palindrome('', 0, -1)", "expected": "True", "isHidden": true }
+        {
+          "call": "is_palindrome('racecar', 0, 6)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "is_palindrome('level', 0, 4)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "is_palindrome('hello', 0, 4)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "is_palindrome('a', 0, 0)",
+          "expected": "True",
+          "isHidden": true
+        },
+        {
+          "call": "is_palindrome('', 0, -1)",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -107,11 +187,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "sum_recursive([10, 20, 30], 0)", "expected": "60", "isHidden": false },
-        { "call": "sum_recursive([5, 5, 5, 5], 0)", "expected": "20", "isHidden": false },
-        { "call": "sum_recursive([100], 0)", "expected": "100", "isHidden": false },
-        { "call": "sum_recursive([], 0)", "expected": "0", "isHidden": true },
-        { "call": "sum_recursive([-10, 10], 0)", "expected": "0", "isHidden": true }
+        {
+          "call": "sum_recursive([10, 20, 30], 0)",
+          "expected": "60",
+          "isHidden": false
+        },
+        {
+          "call": "sum_recursive([5, 5, 5, 5], 0)",
+          "expected": "20",
+          "isHidden": false
+        },
+        {
+          "call": "sum_recursive([100], 0)",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "sum_recursive([], 0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "sum_recursive([-10, 10], 0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -134,11 +234,31 @@
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "binary_search([10, 20, 30, 40], 30)", "expected": "2", "isHidden": false },
-        { "call": "binary_search([1, 2, 3, 4], 1)", "expected": "0", "isHidden": false },
-        { "call": "binary_search([5, 10, 15], 20)", "expected": "-1", "isHidden": false },
-        { "call": "binary_search([], 5)", "expected": "-1", "isHidden": true },
-        { "call": "binary_search([7, 14, 21, 28], 14)", "expected": "1", "isHidden": true }
+        {
+          "call": "binary_search([10, 20, 30, 40], 30)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_search([1, 2, 3, 4], 1)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "binary_search([5, 10, 15], 20)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "binary_search([], 5)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "binary_search([7, 14, 21, 28], 14)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -157,11 +277,31 @@
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "binary_first([1, 2, 2, 2, 3], 2)", "expected": "1", "isHidden": false },
-        { "call": "binary_first([5, 5, 5, 6], 5)", "expected": "0", "isHidden": false },
-        { "call": "binary_first([1, 2, 3], 3)", "expected": "2", "isHidden": false },
-        { "call": "binary_first([], 1)", "expected": "-1", "isHidden": true },
-        { "call": "binary_first([7, 7, 7, 7], 7)", "expected": "0", "isHidden": true }
+        {
+          "call": "binary_first([1, 2, 2, 2, 3], 2)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "binary_first([5, 5, 5, 6], 5)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "binary_first([1, 2, 3], 3)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_first([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "binary_first([7, 7, 7, 7], 7)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -180,11 +320,31 @@
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "binary_last([1, 2, 2, 2, 3], 2)", "expected": "3", "isHidden": false },
-        { "call": "binary_last([5, 5, 5, 6], 5)", "expected": "2", "isHidden": false },
-        { "call": "binary_last([1, 2, 3], 3)", "expected": "2", "isHidden": false },
-        { "call": "binary_last([], 1)", "expected": "-1", "isHidden": true },
-        { "call": "binary_last([7, 7, 7, 7], 7)", "expected": "3", "isHidden": true }
+        {
+          "call": "binary_last([1, 2, 2, 2, 3], 2)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "binary_last([5, 5, 5, 6], 5)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_last([1, 2, 3], 3)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_last([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "binary_last([7, 7, 7, 7], 7)",
+          "expected": "3",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -203,11 +363,31 @@
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "search_insert([1, 3, 5, 6], 5)", "expected": "2", "isHidden": false },
-        { "call": "search_insert([1, 3, 5, 6], 2)", "expected": "1", "isHidden": false },
-        { "call": "search_insert([1, 3, 5, 6], 7)", "expected": "4", "isHidden": false },
-        { "call": "search_insert([1, 3, 5, 6], 0)", "expected": "0", "isHidden": true },
-        { "call": "search_insert([], 5)", "expected": "0", "isHidden": true }
+        {
+          "call": "search_insert([1, 3, 5, 6], 5)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "search_insert([1, 3, 5, 6], 2)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "search_insert([1, 3, 5, 6], 7)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "search_insert([1, 3, 5, 6], 0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "search_insert([], 5)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -226,11 +406,31 @@
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 4)", "expected": "1", "isHidden": false },
-        { "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 6)", "expected": "2", "isHidden": false },
-        { "call": "binary_steps([10, 20, 30], 40)", "expected": "2", "isHidden": false },
-        { "call": "binary_steps([], 10)", "expected": "0", "isHidden": true },
-        { "call": "binary_steps([100], 100)", "expected": "1", "isHidden": true }
+        {
+          "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 4)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 6)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_steps([10, 20, 30], 40)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_steps([], 10)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "binary_steps([100], 100)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -251,11 +451,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "halve_array([1, 2, 3, 4])", "expected": "[[1, 2], [3, 4]]", "isHidden": false },
-        { "call": "halve_array([10, 20, 30])", "expected": "[[10], [20, 30]]", "isHidden": false },
-        { "call": "halve_array([5])", "expected": "[[], [5]]", "isHidden": false },
-        { "call": "halve_array([])", "expected": "[[], []]", "isHidden": true },
-        { "call": "halve_array([1, 2, 3, 4, 5])", "expected": "[[1, 2], [3, 4, 5]]", "isHidden": true }
+        {
+          "call": "halve_array([1, 2, 3, 4])",
+          "expected": "[[1, 2], [3, 4]]",
+          "isHidden": false
+        },
+        {
+          "call": "halve_array([10, 20, 30])",
+          "expected": "[[10], [20, 30]]",
+          "isHidden": false
+        },
+        {
+          "call": "halve_array([5])",
+          "expected": "[[], [5]]",
+          "isHidden": false
+        },
+        {
+          "call": "halve_array([])",
+          "expected": "[[], []]",
+          "isHidden": true
+        },
+        {
+          "call": "halve_array([1, 2, 3, 4, 5])",
+          "expected": "[[1, 2], [3, 4, 5]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -276,11 +496,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "merge([1, 3], [2, 4])", "expected": "[1, 2, 3, 4]", "isHidden": false },
-        { "call": "merge([5, 9], [1, 8])", "expected": "[1, 5, 8, 9]", "isHidden": false },
-        { "call": "merge([10], [])", "expected": "[10]", "isHidden": false },
-        { "call": "merge([], [5])", "expected": "[5]", "isHidden": true },
-        { "call": "merge([1, 1], [1, 1])", "expected": "[1, 1, 1, 1]", "isHidden": true }
+        {
+          "call": "merge([1, 3], [2, 4])",
+          "expected": "[1, 2, 3, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "merge([5, 9], [1, 8])",
+          "expected": "[1, 5, 8, 9]",
+          "isHidden": false
+        },
+        {
+          "call": "merge([10], [])",
+          "expected": "[10]",
+          "isHidden": false
+        },
+        {
+          "call": "merge([], [5])",
+          "expected": "[5]",
+          "isHidden": true
+        },
+        {
+          "call": "merge([1, 1], [1, 1])",
+          "expected": "[1, 1, 1, 1]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -299,11 +539,31 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "merge_sort([4, 2, 3, 1])", "expected": "[1, 2, 3, 4]", "isHidden": false },
-        { "call": "merge_sort([38, 27, 43, 3, 9, 82, 10])", "expected": "[3, 9, 10, 27, 38, 43, 82]", "isHidden": false },
-        { "call": "merge_sort([5, 5, 5])", "expected": "[5, 5, 5]", "isHidden": false },
-        { "call": "merge_sort([])", "expected": "[]", "isHidden": true },
-        { "call": "merge_sort([10, -2, 8])", "expected": "[-2, 8, 10]", "isHidden": true }
+        {
+          "call": "merge_sort([4, 2, 3, 1])",
+          "expected": "[1, 2, 3, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort([38, 27, 43, 3, 9, 82, 10])",
+          "expected": "[3, 9, 10, 27, 38, 43, 82]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort([5, 5, 5])",
+          "expected": "[5, 5, 5]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "merge_sort([10, -2, 8])",
+          "expected": "[-2, 8, 10]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -322,11 +582,31 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "merge_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "merge_sort_desc([5, 1, 4])", "expected": "[5, 4, 1]", "isHidden": false },
-        { "call": "merge_sort_desc([7, 7, 7])", "expected": "[7, 7, 7]", "isHidden": false },
-        { "call": "merge_sort_desc([])", "expected": "[]", "isHidden": true },
-        { "call": "merge_sort_desc([-5, -1, 0])", "expected": "[0, -1, -5]", "isHidden": true }
+        {
+          "call": "merge_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort_desc([5, 1, 4])",
+          "expected": "[5, 4, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort_desc([7, 7, 7])",
+          "expected": "[7, 7, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "merge_sort_desc([-5, -1, 0])",
+          "expected": "[0, -1, -5]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -343,11 +623,31 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "merge_strings(['c', 'a', 'b'])", "expected": "['a', 'b', 'c']", "isHidden": false },
-        { "call": "merge_strings(['z', 'x', 'y'])", "expected": "['x', 'y', 'z']", "isHidden": false },
-        { "call": "merge_strings(['apple', 'banana', 'ant'])", "expected": "['ant', 'apple', 'banana']", "isHidden": false },
-        { "call": "merge_strings([])", "expected": "[]", "isHidden": true },
-        { "call": "merge_strings(['a'])", "expected": "['a']", "isHidden": true }
+        {
+          "call": "merge_strings(['c', 'a', 'b'])",
+          "expected": "['a', 'b', 'c']",
+          "isHidden": false
+        },
+        {
+          "call": "merge_strings(['z', 'x', 'y'])",
+          "expected": "['x', 'y', 'z']",
+          "isHidden": false
+        },
+        {
+          "call": "merge_strings(['apple', 'banana', 'ant'])",
+          "expected": "['ant', 'apple', 'banana']",
+          "isHidden": false
+        },
+        {
+          "call": "merge_strings([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "merge_strings(['a'])",
+          "expected": "['a']",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -368,11 +668,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "partition([5, 1, 8, 2])", "expected": "[[1, 2], 5, [8]]", "isHidden": false },
-        { "call": "partition([10, 20, 5])", "expected": "[[5], 10, [20]]", "isHidden": false },
-        { "call": "partition([3, 3, 3])", "expected": "[[], 3, [3, 3]]", "isHidden": false },
-        { "call": "partition([])", "expected": "[]", "isHidden": true },
-        { "call": "partition([7])", "expected": "[[], 7, []]", "isHidden": true }
+        {
+          "call": "partition([5, 1, 8, 2])",
+          "expected": "[[1, 2], 5, [8]]",
+          "isHidden": false
+        },
+        {
+          "call": "partition([10, 20, 5])",
+          "expected": "[[5], 10, [20]]",
+          "isHidden": false
+        },
+        {
+          "call": "partition([3, 3, 3])",
+          "expected": "[[], 3, [3, 3]]",
+          "isHidden": false
+        },
+        {
+          "call": "partition([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "partition([7])",
+          "expected": "[[], 7, []]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -390,11 +710,31 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "quick_sort([3, 2, 1, 4])", "expected": "[1, 2, 3, 4]", "isHidden": false },
-        { "call": "quick_sort([10, 7, 8, 9, 1, 5])", "expected": "[1, 5, 7, 8, 9, 10]", "isHidden": false },
-        { "call": "quick_sort([5, 5, 5])", "expected": "[5, 5, 5]", "isHidden": false },
-        { "call": "quick_sort([])", "expected": "[]", "isHidden": true },
-        { "call": "quick_sort([1])", "expected": "[1]", "isHidden": true }
+        {
+          "call": "quick_sort([3, 2, 1, 4])",
+          "expected": "[1, 2, 3, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort([10, 7, 8, 9, 1, 5])",
+          "expected": "[1, 5, 7, 8, 9, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort([5, 5, 5])",
+          "expected": "[5, 5, 5]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "quick_sort([1])",
+          "expected": "[1]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -413,11 +753,31 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "quick_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "quick_sort_desc([5, 1, 4, 8])", "expected": "[8, 5, 4, 1]", "isHidden": false },
-        { "call": "quick_sort_desc([7, 7, 7])", "expected": "[7, 7, 7]", "isHidden": false },
-        { "call": "quick_sort_desc([])", "expected": "[]", "isHidden": true },
-        { "call": "quick_sort_desc([-5, 0, 5])", "expected": "[5, 0, -5]", "isHidden": true }
+        {
+          "call": "quick_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_desc([5, 1, 4, 8])",
+          "expected": "[8, 5, 4, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_desc([7, 7, 7])",
+          "expected": "[7, 7, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "quick_sort_desc([-5, 0, 5])",
+          "expected": "[5, 0, -5]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -434,11 +794,31 @@
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "quick_sort_strings(['delta', 'alpha', 'charlie'])", "expected": "['alpha', 'charlie', 'delta']", "isHidden": false },
-        { "call": "quick_sort_strings(['z', 'a', 'm'])", "expected": "['a', 'm', 'z']", "isHidden": false },
-        { "call": "quick_sort_strings(['same', 'same'])", "expected": "['same', 'same']", "isHidden": false },
-        { "call": "quick_sort_strings([])", "expected": "[]", "isHidden": true },
-        { "call": "quick_sort_strings(['b'])", "expected": "['b']", "isHidden": true }
+        {
+          "call": "quick_sort_strings(['delta', 'alpha', 'charlie'])",
+          "expected": "['alpha', 'charlie', 'delta']",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_strings(['z', 'a', 'm'])",
+          "expected": "['a', 'm', 'z']",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_strings(['same', 'same'])",
+          "expected": "['same', 'same']",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_strings([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "quick_sort_strings(['b'])",
+          "expected": "['b']",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -459,10 +839,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "quickselect([3, 2, 1, 5, 4], 2)", "expected": "2", "isHidden": false },
-        { "call": "quickselect([7, 10, 4, 3, 20, 15], 3)", "expected": "10", "isHidden": false },
-        { "call": "quickselect([7, 10, 4, 3, 20, 15], 4)", "expected": "15", "isHidden": false },
-        { "call": "quickselect([1], 1)", "expected": "1", "isHidden": true }
+        {
+          "call": "quickselect([3, 2, 1, 5, 4], 2)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "quickselect([7, 10, 4, 3, 20, 15], 3)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "quickselect([7, 10, 4, 3, 20, 15], 4)",
+          "expected": "15",
+          "isHidden": false
+        },
+        {
+          "call": "quickselect([1], 1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -470,6 +866,7 @@
     {
       "id": "m3_opt_1",
       "title": "Optimization Challenge: Logarithmic Search",
+      "difficulty": "Medium",
       "task": [
         "A linear sequential scan through a pre-sorted dataset operates under a constrained O(n) time complexity.",
         "Refactoring the iterative traversal into a bounded bisection architecture shifts the time evaluation to an optimal O(log n) scaling limit.",
@@ -485,16 +882,37 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.1.json",
       "testCasesPool": [
-        { "call": "search([1, 3, 5, 7, 9], 7)", "expected": "3", "isHidden": false },
-        { "call": "search([10, 20, 30, 40], 10)", "expected": "0", "isHidden": false },
-        { "call": "search([2, 4, 6], 5)", "expected": "-1", "isHidden": false },
-        { "call": "search([], 1)", "expected": "-1", "isHidden": true },
-        { "call": "search([5], 5)", "expected": "0", "isHidden": true }
+        {
+          "call": "search([1, 3, 5, 7, 9], 7)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "search([10, 20, 30, 40], 10)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "search([2, 4, 6], 5)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "search([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "search([5], 5)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_opt_2",
       "title": "Optimization Challenge: Gradient Convergence",
+      "difficulty": "Hard",
       "task": [
         "A peak element represents a value strictly greater than its neighbors. An exhaustive evaluation enforces an O(n) sequential loop.",
         "We can deploy a structurally modified binary search to continuously follow the mathematical gradient uphill, resolving the evaluation in O(log n) time.",
@@ -511,16 +929,37 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.2.json",
       "testCasesPool": [
-        { "call": "find_peak([1, 2, 3, 1])", "expected": "2", "isHidden": false },
-        { "call": "find_peak([1, 2, 1, 3, 5, 6, 4])", "expected": "5", "isHidden": false },
-        { "call": "find_peak([1, 2, 3, 4, 5])", "expected": "4", "isHidden": false },
-        { "call": "find_peak([10, 9, 8, 7])", "expected": "0", "isHidden": true },
-        { "call": "find_peak([5])", "expected": "0", "isHidden": true }
+        {
+          "call": "find_peak([1, 2, 3, 1])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "find_peak([1, 2, 1, 3, 5, 6, 4])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "find_peak([1, 2, 3, 4, 5])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "find_peak([10, 9, 8, 7])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "find_peak([5])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_opt_3",
       "title": "Optimization Challenge: Iterative Space Reduction",
+      "difficulty": "Medium",
       "task": [
         "A recursive implementation of Binary Search allocates a new functional frame on the call stack for every recursive call, resulting in an O(log n) auxiliary space complexity.",
         "By converting the recursive logic into an iterative structure, the algorithm tracks evaluation boundaries within a single memory frame, achieving an optimal O(1) space complexity.",
@@ -536,11 +975,31 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.3.json",
       "testCasesPool": [
-        { "call": "search_optimized([10, 20, 30, 40, 50], 40)", "expected": "3", "isHidden": false },
-        { "call": "search_optimized([1, 2, 3], 2)", "expected": "1", "isHidden": false },
-        { "call": "search_optimized([5, 8, 12], 20)", "expected": "-1", "isHidden": false },
-        { "call": "search_optimized([], 5)", "expected": "-1", "isHidden": true },
-        { "call": "search_optimized([7], 7)", "expected": "0", "isHidden": true }
+        {
+          "call": "search_optimized([10, 20, 30, 40, 50], 40)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "search_optimized([1, 2, 3], 2)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "search_optimized([5, 8, 12], 20)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "search_optimized([], 5)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "search_optimized([7], 7)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ]

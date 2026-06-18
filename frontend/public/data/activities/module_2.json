@@ -19,11 +19,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "find_max([32, 45, 28, 47, 39])", "expected": "47", "isHidden": false },
-        { "call": "find_max([-10, -5, -20])", "expected": "-5", "isHidden": false },
-        { "call": "find_max([100])", "expected": "100", "isHidden": false },
-        { "call": "find_max([])", "expected": "'Error'", "isHidden": true },
-        { "call": "find_max([1, 1, 1, 1])", "expected": "1", "isHidden": true }
+        {
+          "call": "find_max([32, 45, 28, 47, 39])",
+          "expected": "47",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([-10, -5, -20])",
+          "expected": "-5",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([100])",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([])",
+          "expected": "'Error'",
+          "isHidden": true
+        },
+        {
+          "call": "find_max([1, 1, 1, 1])",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -43,11 +63,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "find_min([3, 1, 9, 2])", "expected": "1", "isHidden": false },
-        { "call": "find_min([10, 20, 30, 40])", "expected": "10", "isHidden": false },
-        { "call": "find_min([-5, -10, 0, 5])", "expected": "-10", "isHidden": false },
-        { "call": "find_min([])", "expected": "'Error'", "isHidden": true },
-        { "call": "find_min([99])", "expected": "99", "isHidden": true }
+        {
+          "call": "find_min([3, 1, 9, 2])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([10, 20, 30, 40])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([-5, -10, 0, 5])",
+          "expected": "-10",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([])",
+          "expected": "'Error'",
+          "isHidden": true
+        },
+        {
+          "call": "find_min([99])",
+          "expected": "99",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -68,9 +108,21 @@
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "sum_search([2, 7, 11, 15], 9)", "expected": "[2, 7]", "isHidden": false },
-        { "call": "sum_search([3, 2, 4], 6)", "expected": "[2, 4]", "isHidden": false },
-        { "call": "sum_search([1, 2, 3], 10)", "expected": "[]", "isHidden": true }
+        {
+          "call": "sum_search([2, 7, 11, 15], 9)",
+          "expected": "[2, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "sum_search([3, 2, 4], 6)",
+          "expected": "[2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "sum_search([1, 2, 3], 10)",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -90,11 +142,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "count_evens([1, 2, 3, 4, 5, 6])", "expected": "3", "isHidden": false },
-        { "call": "count_evens([2, 4, 6, 8])", "expected": "4", "isHidden": false },
-        { "call": "count_evens([1, 3, 5])", "expected": "0", "isHidden": false },
-        { "call": "count_evens([])", "expected": "0", "isHidden": true },
-        { "call": "count_evens([0])", "expected": "1", "isHidden": true }
+        {
+          "call": "count_evens([1, 2, 3, 4, 5, 6])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([2, 4, 6, 8])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([1, 3, 5])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "count_evens([0])",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -114,11 +186,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "first_negative([5, 3, -2, 8, -1])", "expected": "-2", "isHidden": false },
-        { "call": "first_negative([10, 20, 30])", "expected": "0", "isHidden": false },
-        { "call": "first_negative([-5, -10])", "expected": "-5", "isHidden": false },
-        { "call": "first_negative([])", "expected": "0", "isHidden": true },
-        { "call": "first_negative([0, 0, -1])", "expected": "-1", "isHidden": true }
+        {
+          "call": "first_negative([5, 3, -2, 8, -1])",
+          "expected": "-2",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([10, 20, 30])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([-5, -10])",
+          "expected": "-5",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "first_negative([0, 0, -1])",
+          "expected": "-1",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -139,11 +231,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "linear_search([3, 8, 5, 11, 2], 11)", "expected": "3", "isHidden": false },
-        { "call": "linear_search([10, 20, 30], 40)", "expected": "-1", "isHidden": false },
-        { "call": "linear_search([7, 7, 7], 7)", "expected": "0", "isHidden": false },
-        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": true },
-        { "call": "linear_search([1], 1)", "expected": "0", "isHidden": true }
+        {
+          "call": "linear_search([3, 8, 5, 11, 2], 11)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([10, 20, 30], 40)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([7, 7, 7], 7)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([], 5)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "linear_search([1], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -162,11 +274,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "count_occurrences([1, 2, 2, 3], 2)", "expected": "2", "isHidden": false },
-        { "call": "count_occurrences([5, 5, 5, 5], 5)", "expected": "4", "isHidden": false },
-        { "call": "count_occurrences([1, 2, 3], 4)", "expected": "0", "isHidden": false },
-        { "call": "count_occurrences([], 1)", "expected": "0", "isHidden": true },
-        { "call": "count_occurrences([9], 9)", "expected": "1", "isHidden": true }
+        {
+          "call": "count_occurrences([1, 2, 2, 3], 2)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([5, 5, 5, 5], 5)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([1, 2, 3], 4)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([], 1)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "count_occurrences([9], 9)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -186,11 +318,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "last_occurrence([1, 2, 2, 3, 2, 4], 2)", "expected": "4", "isHidden": false },
-        { "call": "last_occurrence([5, 5, 5], 5)", "expected": "2", "isHidden": false },
-        { "call": "last_occurrence([1, 2, 3], 4)", "expected": "-1", "isHidden": false },
-        { "call": "last_occurrence([9, 1, 1], 9)", "expected": "0", "isHidden": true },
-        { "call": "last_occurrence([], 1)", "expected": "-1", "isHidden": true }
+        {
+          "call": "last_occurrence([1, 2, 2, 3, 2, 4], 2)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([5, 5, 5], 5)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([1, 2, 3], 4)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([9, 1, 1], 9)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "last_occurrence([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -211,10 +363,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "search_in_range([10, 20, 30, 40, 50], 40, 1, 4)", "expected": "3", "isHidden": false },
-        { "call": "search_in_range([10, 20, 30, 40, 50], 50, 0, 99)", "expected": "4", "isHidden": false },
-        { "call": "search_in_range([5, 5, 5], 5, -5, 2)", "expected": "0", "isHidden": false },
-        { "call": "search_in_range([], 1, 0, 0)", "expected": "-1", "isHidden": true }
+        {
+          "call": "search_in_range([10, 20, 30, 40, 50], 40, 1, 4)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([10, 20, 30, 40, 50], 50, 0, 99)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([5, 5, 5], 5, -5, 2)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([], 1, 0, 0)",
+          "expected": "-1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -233,11 +401,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "multi_search([1, 5, 1, 8, 1], 1)", "expected": "[0, 2, 4]", "isHidden": false },
-        { "call": "multi_search([2, 4, 6], 5)", "expected": "[]", "isHidden": false },
-        { "call": "multi_search([3, 3], 3)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "multi_search([], 1)", "expected": "[]", "isHidden": true },
-        { "call": "multi_search([0], 0)", "expected": "[0]", "isHidden": true }
+        {
+          "call": "multi_search([1, 5, 1, 8, 1], 1)",
+          "expected": "[0, 2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([2, 4, 6], 5)",
+          "expected": "[]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([3, 3], 3)",
+          "expected": "[0, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([], 1)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "multi_search([0], 0)",
+          "expected": "[0]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -259,11 +447,31 @@
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "bubble_sort_asc([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
-        { "call": "bubble_sort_asc([3, 3, 1, 2])", "expected": "[1, 2, 3, 3]", "isHidden": false },
-        { "call": "bubble_sort_asc([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
-        { "call": "bubble_sort_asc([1])", "expected": "[1]", "isHidden": true },
-        { "call": "bubble_sort_asc([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "bubble_sort_asc([5, 2, 8, 1])",
+          "expected": "[1, 2, 5, 8]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([3, 3, 1, 2])",
+          "expected": "[1, 2, 3, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([9, 8, 7])",
+          "expected": "[7, 8, 9]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([1])",
+          "expected": "[1]",
+          "isHidden": true
+        },
+        {
+          "call": "bubble_sort_asc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -285,10 +493,26 @@
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "selection_sort([64, 25, 12, 22, 11])", "expected": "[11, 12, 22, 25, 64]", "isHidden": false },
-        { "call": "selection_sort([3, 1, 4, 1, 5, 9])", "expected": "[1, 1, 3, 4, 5, 9]", "isHidden": false },
-        { "call": "selection_sort([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": true },
-        { "call": "selection_sort([42])", "expected": "[42]", "isHidden": true }
+        {
+          "call": "selection_sort([64, 25, 12, 22, 11])",
+          "expected": "[11, 12, 22, 25, 64]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort([3, 1, 4, 1, 5, 9])",
+          "expected": "[1, 1, 3, 4, 5, 9]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort([9, 8, 7])",
+          "expected": "[7, 8, 9]",
+          "isHidden": true
+        },
+        {
+          "call": "selection_sort([42])",
+          "expected": "[42]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -306,11 +530,31 @@
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "bubble_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "bubble_sort_desc([5, 8, 2, 9])", "expected": "[9, 8, 5, 2]", "isHidden": false },
-        { "call": "bubble_sort_desc([2, 2, 1])", "expected": "[2, 2, 1]", "isHidden": false },
-        { "call": "bubble_sort_desc([-1, -5, 0])", "expected": "[0, -1, -5]", "isHidden": true },
-        { "call": "bubble_sort_desc([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "bubble_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([5, 8, 2, 9])",
+          "expected": "[9, 8, 5, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([2, 2, 1])",
+          "expected": "[2, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([-1, -5, 0])",
+          "expected": "[0, -1, -5]",
+          "isHidden": true
+        },
+        {
+          "call": "bubble_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -329,11 +573,31 @@
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "selection_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "selection_sort_desc([10, 50, 20])", "expected": "[50, 20, 10]", "isHidden": false },
-        { "call": "selection_sort_desc([4, 4, 6])", "expected": "[6, 4, 4]", "isHidden": false },
-        { "call": "selection_sort_desc([9])", "expected": "[9]", "isHidden": true },
-        { "call": "selection_sort_desc([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "selection_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([10, 50, 20])",
+          "expected": "[50, 20, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([4, 4, 6])",
+          "expected": "[6, 4, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([9])",
+          "expected": "[9]",
+          "isHidden": true
+        },
+        {
+          "call": "selection_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -353,11 +617,31 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "single_pass([5, 2, 8, 1])", "expected": "[2, 5, 1, 8]", "isHidden": false },
-        { "call": "single_pass([10, 1, 2])", "expected": "[1, 2, 10]", "isHidden": false },
-        { "call": "single_pass([3, 2, 1])", "expected": "[2, 1, 3]", "isHidden": false },
-        { "call": "single_pass([1, 2])", "expected": "[1, 2]", "isHidden": true },
-        { "call": "single_pass([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "single_pass([5, 2, 8, 1])",
+          "expected": "[2, 5, 1, 8]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([10, 1, 2])",
+          "expected": "[1, 2, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([3, 2, 1])",
+          "expected": "[2, 1, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([1, 2])",
+          "expected": "[1, 2]",
+          "isHidden": true
+        },
+        {
+          "call": "single_pass([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -365,6 +649,7 @@
     {
       "id": "m2_opt_1",
       "title": "Optimization Challenge: Two-Pointer Convergence",
+      "difficulty": "Medium",
       "task": [
         "Evaluating every possible pair using nested loops to locate a target sum enforces an O(n²) time complexity.",
         "If the underlying array is guaranteed to be strictly sorted, the algorithm can be optimized to O(n) linear time utilizing converging pointers.",
@@ -382,15 +667,32 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.1.json",
       "testCasesPool": [
-        { "call": "two_sum_sorted([2, 7, 11, 15], 9)", "expected": "[2, 7]", "isHidden": false },
-        { "call": "two_sum_sorted([2, 3, 4], 6)", "expected": "[2, 4]", "isHidden": false },
-        { "call": "two_sum_sorted([1, 2, 3], 10)", "expected": "[]", "isHidden": true },
-        { "call": "two_sum_sorted([], 5)", "expected": "[]", "isHidden": true }
+        {
+          "call": "two_sum_sorted([2, 7, 11, 15], 9)",
+          "expected": "[2, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "two_sum_sorted([2, 3, 4], 6)",
+          "expected": "[2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "two_sum_sorted([1, 2, 3], 10)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "two_sum_sorted([], 5)",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_opt_2",
       "title": "Optimization Challenge: Center Index Verification",
+      "difficulty": "Easy",
       "task": [
         "The previous brute force algorithm utilized nested loop iteration to identify a majority element, resulting in an O(n²) time complexity.",
         "If the input array is strictly sorted, the required algorithmic evaluation reduces to O(1) constant time.",
@@ -406,15 +708,32 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.2.json",
       "testCasesPool": [
-        { "call": "find_majority_sorted([1, 1, 1, 2, 3])", "expected": "1", "isHidden": false },
-        { "call": "find_majority_sorted([2, 3, 3, 3, 4])", "expected": "3", "isHidden": false },
-        { "call": "find_majority_sorted([99, 99])", "expected": "99", "isHidden": true },
-        { "call": "find_majority_sorted([0, 0, 0, 0, 0])", "expected": "0", "isHidden": true }
+        {
+          "call": "find_majority_sorted([1, 1, 1, 2, 3])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "find_majority_sorted([2, 3, 3, 3, 4])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "find_majority_sorted([99, 99])",
+          "expected": "99",
+          "isHidden": true
+        },
+        {
+          "call": "find_majority_sorted([0, 0, 0, 0, 0])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_opt_3",
       "title": "Optimization Challenge: Pre-Sorting for Adjacency",
+      "difficulty": "Medium",
       "task": [
         "Evaluating every possible pair to verify duplicates via nested loops dictates an O(n²) time complexity.",
         "This algorithm can be mathematically optimized to O(n log n). Sorting the array forces identical values into adjacent positions, enabling verification through a single linear scan.",
@@ -431,10 +750,26 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.3.json",
       "testCasesPool": [
-        { "call": "has_duplicates_opt([4, 1, 2, 1, 3])", "expected": "True", "isHidden": false },
-        { "call": "has_duplicates_opt([5, 8, 2, 9])", "expected": "False", "isHidden": false },
-        { "call": "has_duplicates_opt([7, 7])", "expected": "True", "isHidden": false },
-        { "call": "has_duplicates_opt([1, 2, 3])", "expected": "False", "isHidden": true }
+        {
+          "call": "has_duplicates_opt([4, 1, 2, 1, 3])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([5, 8, 2, 9])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([7, 7])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([1, 2, 3])",
+          "expected": "False",
+          "isHidden": true
+        }
       ]
     }
   ]

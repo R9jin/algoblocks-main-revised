@@ -15,9 +15,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "choose_path([1, 2], 3)", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "choose_path([], 5)", "expected": "[5]", "isHidden": false },
-        { "call": "choose_path([99], 100)", "expected": "[99, 100]", "isHidden": true }
+        {
+          "call": "choose_path([1, 2], 3)",
+          "expected": "[1, 2, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "choose_path([], 5)",
+          "expected": "[5]",
+          "isHidden": false
+        },
+        {
+          "call": "choose_path([99], 100)",
+          "expected": "[99, 100]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -36,9 +48,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "unchoose_path([1, 2, 3])", "expected": "[1, 2]", "isHidden": false },
-        { "call": "unchoose_path([5])", "expected": "[]", "isHidden": false },
-        { "call": "unchoose_path([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "unchoose_path([1, 2, 3])",
+          "expected": "[1, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "unchoose_path([5])",
+          "expected": "[]",
+          "isHidden": false
+        },
+        {
+          "call": "unchoose_path([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -56,9 +80,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "is_valid_choice([1, 2, 3], 10)", "expected": "True", "isHidden": false },
-        { "call": "is_valid_choice([5, 5, 5], 10)", "expected": "False", "isHidden": false },
-        { "call": "is_valid_choice([], 5)", "expected": "True", "isHidden": true }
+        {
+          "call": "is_valid_choice([1, 2, 3], 10)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "is_valid_choice([5, 5, 5], 10)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "is_valid_choice([], 5)",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -78,9 +114,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "explore_depth(3)", "expected": "0", "isHidden": false },
-        { "call": "explore_depth(0)", "expected": "1", "isHidden": false },
-        { "call": "explore_depth(2)", "expected": "0", "isHidden": true }
+        {
+          "call": "explore_depth(3)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "explore_depth(0)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "explore_depth(2)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -100,9 +148,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "generate_subsets([1, 2], 0, [], [])", "expected": "[[], [2], [1], [1, 2]]", "isHidden": false },
-        { "call": "generate_subsets([3], 0, [], [])", "expected": "[[], [3]]", "isHidden": false },
-        { "call": "generate_subsets([], 0, [], [])", "expected": "[[]]", "isHidden": true }
+        {
+          "call": "generate_subsets([1, 2], 0, [], [])",
+          "expected": "[[], [2], [1], [1, 2]]",
+          "isHidden": false
+        },
+        {
+          "call": "generate_subsets([3], 0, [], [])",
+          "expected": "[[], [3]]",
+          "isHidden": false
+        },
+        {
+          "call": "generate_subsets([], 0, [], [])",
+          "expected": "[[]]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -121,9 +181,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "init_tracker(3)", "expected": "[False, False, False]", "isHidden": false },
-        { "call": "init_tracker(1)", "expected": "[False]", "isHidden": false },
-        { "call": "init_tracker(0)", "expected": "[]", "isHidden": true }
+        {
+          "call": "init_tracker(3)",
+          "expected": "[False, False, False]",
+          "isHidden": false
+        },
+        {
+          "call": "init_tracker(1)",
+          "expected": "[False]",
+          "isHidden": false
+        },
+        {
+          "call": "init_tracker(0)",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -145,9 +217,21 @@
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "permute([1, 2], [], [False, False], [])", "expected": "[[1, 2], [2, 1]]", "isHidden": false },
-        { "call": "permute([3], [], [False], [])", "expected": "[[3]]", "isHidden": false },
-        { "call": "permute([], [], [], [])", "expected": "[[]]", "isHidden": true }
+        {
+          "call": "permute([1, 2], [], [False, False], [])",
+          "expected": "[[1, 2], [2, 1]]",
+          "isHidden": false
+        },
+        {
+          "call": "permute([3], [], [False], [])",
+          "expected": "[[3]]",
+          "isHidden": false
+        },
+        {
+          "call": "permute([], [], [], [])",
+          "expected": "[[]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -167,9 +251,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "combine([1, 2, 3], 2, 0, [], [])", "expected": "[[1, 2], [1, 3], [2, 3]]", "isHidden": false },
-        { "call": "combine([4, 5], 1, 0, [], [])", "expected": "[[4], [5]]", "isHidden": false },
-        { "call": "combine([1], 2, 0, [], [])", "expected": "[]", "isHidden": true }
+        {
+          "call": "combine([1, 2, 3], 2, 0, [], [])",
+          "expected": "[[1, 2], [1, 3], [2, 3]]",
+          "isHidden": false
+        },
+        {
+          "call": "combine([4, 5], 1, 0, [], [])",
+          "expected": "[[4], [5]]",
+          "isHidden": false
+        },
+        {
+          "call": "combine([1], 2, 0, [], [])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -188,9 +284,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "combine_sum([2, 3], 5, 0, [], [])", "expected": "[[2, 3]]", "isHidden": false },
-        { "call": "combine_sum([2], 4, 0, [], [])", "expected": "[[2, 2]]", "isHidden": false },
-        { "call": "combine_sum([5], 2, 0, [], [])", "expected": "[]", "isHidden": true }
+        {
+          "call": "combine_sum([2, 3], 5, 0, [], [])",
+          "expected": "[[2, 3]]",
+          "isHidden": false
+        },
+        {
+          "call": "combine_sum([2], 4, 0, [], [])",
+          "expected": "[[2, 2]]",
+          "isHidden": false
+        },
+        {
+          "call": "combine_sum([5], 2, 0, [], [])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -208,9 +316,21 @@
       "targetTime": "O(n!)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "string_permute('AB', [], [False, False], [])", "expected": "['AB', 'BA']", "isHidden": false },
-        { "call": "string_permute('Z', [], [False], [])", "expected": "['Z']", "isHidden": false },
-        { "call": "string_permute('', [], [], [])", "expected": "['']", "isHidden": true }
+        {
+          "call": "string_permute('AB', [], [False, False], [])",
+          "expected": "['AB', 'BA']",
+          "isHidden": false
+        },
+        {
+          "call": "string_permute('Z', [], [False], [])",
+          "expected": "['Z']",
+          "isHidden": false
+        },
+        {
+          "call": "string_permute('', [], [], [])",
+          "expected": "['']",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -230,9 +350,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "is_safe_linear([[1, 0], [0, 0]], 1, 0)", "expected": "False", "isHidden": false },
-        { "call": "is_safe_linear([[0, 0], [0, 0]], 1, 1)", "expected": "True", "isHidden": false },
-        { "call": "is_safe_linear([[0, 1], [0, 0]], 0, 0)", "expected": "False", "isHidden": true }
+        {
+          "call": "is_safe_linear([[1, 0], [0, 0]], 1, 0)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "is_safe_linear([[0, 0], [0, 0]], 1, 1)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "is_safe_linear([[0, 1], [0, 0]], 0, 0)",
+          "expected": "False",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -250,9 +382,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "is_safe_diagonal([[1, 0, 0], [0, 0, 0], [0, 0, 0]], 1, 1)", "expected": "False", "isHidden": false },
-        { "call": "is_safe_diagonal([[0, 0, 1], [0, 0, 0], [0, 0, 0]], 1, 1)", "expected": "False", "isHidden": false },
-        { "call": "is_safe_diagonal([[0, 0, 0], [0, 0, 0], [0, 0, 0]], 2, 2)", "expected": "True", "isHidden": true }
+        {
+          "call": "is_safe_diagonal([[1, 0, 0], [0, 0, 0], [0, 0, 0]], 1, 1)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "is_safe_diagonal([[0, 0, 1], [0, 0, 0], [0, 0, 0]], 1, 1)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "is_safe_diagonal([[0, 0, 0], [0, 0, 0], [0, 0, 0]], 2, 2)",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -269,9 +413,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "mutate_board([[0, 0], [0, 0]], 0, 1, 1)", "expected": "[[0, 1], [0, 0]]", "isHidden": false },
-        { "call": "mutate_board([[1, 0], [0, 0]], 0, 0, 0)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
-        { "call": "mutate_board([[0]], 0, 0, 1)", "expected": "[[1]]", "isHidden": true }
+        {
+          "call": "mutate_board([[0, 0], [0, 0]], 0, 1, 1)",
+          "expected": "[[0, 1], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "mutate_board([[1, 0], [0, 0]], 0, 0, 0)",
+          "expected": "[[0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "mutate_board([[0]], 0, 0, 1)",
+          "expected": "[[1]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -289,9 +445,21 @@
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
       "testCasesPool": [
-        { "call": "init_board(2)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
-        { "call": "init_board(3)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
-        { "call": "init_board(1)", "expected": "[[0]]", "isHidden": true }
+        {
+          "call": "init_board(2)",
+          "expected": "[[0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_board(3)",
+          "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_board(1)",
+          "expected": "[[0]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -311,9 +479,21 @@
       "targetTime": "O(n!)",
       "targetSpace": "O(n^2)",
       "testCasesPool": [
-        { "call": "len(solve_n_queens([[0]*4 for _ in range(4)], 0, []))", "expected": "2", "isHidden": false },
-        { "call": "len(solve_n_queens([[0]*5 for _ in range(5)], 0, []))", "expected": "10", "isHidden": false },
-        { "call": "len(solve_n_queens([[0]*3 for _ in range(3)], 0, []))", "expected": "0", "isHidden": true }
+        {
+          "call": "len(solve_n_queens([[0]*4 for _ in range(4)], 0, []))",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "len(solve_n_queens([[0]*5 for _ in range(5)], 0, []))",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "len(solve_n_queens([[0]*3 for _ in range(3)], 0, []))",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -332,9 +512,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "is_in_bounds([[0, 0], [0, 0]], 1, 1)", "expected": "True", "isHidden": false },
-        { "call": "is_in_bounds([[0, 0], [0, 0]], 2, 0)", "expected": "False", "isHidden": false },
-        { "call": "is_in_bounds([[0]], -1, 0)", "expected": "False", "isHidden": true }
+        {
+          "call": "is_in_bounds([[0, 0], [0, 0]], 1, 1)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "is_in_bounds([[0, 0], [0, 0]], 2, 0)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "is_in_bounds([[0]], -1, 0)",
+          "expected": "False",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -352,9 +544,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "is_path_clear([[0, 1], [0, 0]], 0, 1)", "expected": "False", "isHidden": false },
-        { "call": "is_path_clear([[0, 1], [0, 0]], 1, 0)", "expected": "True", "isHidden": false },
-        { "call": "is_path_clear([[1]], 0, 0)", "expected": "False", "isHidden": true }
+        {
+          "call": "is_path_clear([[0, 1], [0, 0]], 0, 1)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "is_path_clear([[0, 1], [0, 0]], 1, 0)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "is_path_clear([[1]], 0, 0)",
+          "expected": "False",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -371,9 +575,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "len(get_directions())", "expected": "4", "isHidden": false },
-        { "call": "[-1, 0] in get_directions()", "expected": "True", "isHidden": false },
-        { "call": "[0, 1] in get_directions()", "expected": "True", "isHidden": true }
+        {
+          "call": "len(get_directions())",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "[-1, 0] in get_directions()",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "[0, 1] in get_directions()",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -390,9 +606,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "mark_visited([[False, False], [False, False]], 1, 1)", "expected": "[[False, False], [False, True]]", "isHidden": false },
-        { "call": "mark_visited([[False]], 0, 0)", "expected": "[[True]]", "isHidden": false },
-        { "call": "mark_visited([[False, False]], 0, 1)", "expected": "[[False, True]]", "isHidden": true }
+        {
+          "call": "mark_visited([[False, False], [False, False]], 1, 1)",
+          "expected": "[[False, False], [False, True]]",
+          "isHidden": false
+        },
+        {
+          "call": "mark_visited([[False]], 0, 0)",
+          "expected": "[[True]]",
+          "isHidden": false
+        },
+        {
+          "call": "mark_visited([[False, False]], 0, 1)",
+          "expected": "[[False, True]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -412,9 +640,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n^2)",
       "testCasesPool": [
-        { "call": "solve_maze([[0, 1], [0, 0]], 0, 0, 1, 1, [[False, False], [False, False]])", "expected": "True", "isHidden": false },
-        { "call": "solve_maze([[0, 1], [1, 0]], 0, 0, 1, 1, [[False, False], [False, False]])", "expected": "False", "isHidden": false },
-        { "call": "solve_maze([[0, 0, 0], [0, 1, 0], [0, 0, 0]], 0, 0, 2, 2, [[False]*3 for _ in range(3)])", "expected": "True", "isHidden": true }
+        {
+          "call": "solve_maze([[0, 1], [0, 0]], 0, 0, 1, 1, [[False, False], [False, False]])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "solve_maze([[0, 1], [1, 0]], 0, 0, 1, 1, [[False, False], [False, False]])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "solve_maze([[0, 0, 0], [0, 1, 0], [0, 0, 0]], 0, 0, 2, 2, [[False]*3 for _ in range(3)])",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -422,6 +662,7 @@
     {
       "id": "m6_opt_1",
       "title": "Optimization Challenge: Grid Path Counting Tabulation",
+      "difficulty": "Hard",
       "task": [
         "Naively traversing every valid route across an open spatial grid utilizes untracked recursive branching, resulting in an exponentially bound O(2ⁿ) runtime sequence.",
         "By structurally refactoring the traversal logic to employ a bottom-up Dynamic Programming matrix, the redundant pathing computations are eliminated, generating an optimal O(n²) constraint.",
@@ -438,15 +679,32 @@
       "targetSpace": "O(n^2)",
       "templateUrl": "/data/optimizations/m6-6.1.json",
       "testCasesPool": [
-        { "call": "unique_paths_opt(3, 3)", "expected": "6", "isHidden": false },
-        { "call": "unique_paths_opt(2, 2)", "expected": "2", "isHidden": false },
-        { "call": "unique_paths_opt(3, 2)", "expected": "3", "isHidden": true },
-        { "call": "unique_paths_opt(1, 1)", "expected": "1", "isHidden": true }
+        {
+          "call": "unique_paths_opt(3, 3)",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "unique_paths_opt(2, 2)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "unique_paths_opt(3, 2)",
+          "expected": "3",
+          "isHidden": true
+        },
+        {
+          "call": "unique_paths_opt(1, 1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m6_opt_2",
       "title": "Optimization Challenge: Subset Sum Dynamic Compression",
+      "difficulty": "Advanced",
       "task": [
         "Generating the full combinatorial set to verify sum parameters forces an exhaustive O(2ⁿ) exponential evaluation across the data landscape.",
         "Converting the logic to an interconnected 2D boolean caching structure (Tabulation) bounds the execution strictly to O(n * m) polynomial time.",
@@ -463,15 +721,32 @@
       "targetSpace": "O(n * m)",
       "templateUrl": "/data/optimizations/m6-6.2.json",
       "testCasesPool": [
-        { "call": "subset_sum_opt([3, 34, 4, 12, 5, 2], 9)", "expected": "True", "isHidden": false },
-        { "call": "subset_sum_opt([3, 34, 4, 12, 5, 2], 30)", "expected": "False", "isHidden": false },
-        { "call": "subset_sum_opt([1, 2, 3], 6)", "expected": "True", "isHidden": true },
-        { "call": "subset_sum_opt([1, 5], 3)", "expected": "False", "isHidden": true }
+        {
+          "call": "subset_sum_opt([3, 34, 4, 12, 5, 2], 9)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "subset_sum_opt([3, 34, 4, 12, 5, 2], 30)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "subset_sum_opt([1, 2, 3], 6)",
+          "expected": "True",
+          "isHidden": true
+        },
+        {
+          "call": "subset_sum_opt([1, 5], 3)",
+          "expected": "False",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m6_opt_3",
       "title": "Optimization Challenge: 1D Threat Tracking",
+      "difficulty": "Advanced",
       "task": [
         "Validating board safety in the N-Queens problem by scanning a 2D matrix requires an O(n) local time scan and incurs an O(n²) space complexity overhead.",
         "By refactoring the algorithm to utilize 1D tracking arrays for columns and diagonals, validation resolves in O(1) constant time, and memory overhead is minimized.",
@@ -488,10 +763,26 @@
       "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m6-6.3.json",
       "testCasesPool": [
-        { "call": "n_queens_opt(4)", "expected": "2", "isHidden": false },
-        { "call": "n_queens_opt(5)", "expected": "10", "isHidden": false },
-        { "call": "n_queens_opt(8)", "expected": "92", "isHidden": true },
-        { "call": "n_queens_opt(3)", "expected": "0", "isHidden": true }
+        {
+          "call": "n_queens_opt(4)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "n_queens_opt(5)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "n_queens_opt(8)",
+          "expected": "92",
+          "isHidden": true
+        },
+        {
+          "call": "n_queens_opt(3)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ]

@@ -16,9 +16,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "initialize_cache(3)", "expected": "[-1, -1, -1, -1]", "isHidden": false },
-        { "call": "initialize_cache(1)", "expected": "[-1, -1]", "isHidden": false },
-        { "call": "initialize_cache(0)", "expected": "[-1]", "isHidden": true }
+        {
+          "call": "initialize_cache(3)",
+          "expected": "[-1, -1, -1, -1]",
+          "isHidden": false
+        },
+        {
+          "call": "initialize_cache(1)",
+          "expected": "[-1, -1]",
+          "isHidden": false
+        },
+        {
+          "call": "initialize_cache(0)",
+          "expected": "[-1]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -36,9 +48,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "check_cache([-1, 42, -1], 1)", "expected": "42", "isHidden": false },
-        { "call": "check_cache([-1, 42, -1], 2)", "expected": "'Compute'", "isHidden": false },
-        { "call": "check_cache([99], 0)", "expected": "99", "isHidden": true }
+        {
+          "call": "check_cache([-1, 42, -1], 1)",
+          "expected": "42",
+          "isHidden": false
+        },
+        {
+          "call": "check_cache([-1, 42, -1], 2)",
+          "expected": "'Compute'",
+          "isHidden": false
+        },
+        {
+          "call": "check_cache([99], 0)",
+          "expected": "99",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -57,9 +81,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "memoized_math(3, [-1, -1, -1, -1])", "expected": "6", "isHidden": false },
-        { "call": "memoized_math(5, [-1, -1, -1, -1, -1, -1])", "expected": "15", "isHidden": false },
-        { "call": "memoized_math(0, [-1])", "expected": "0", "isHidden": true }
+        {
+          "call": "memoized_math(3, [-1, -1, -1, -1])",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "memoized_math(5, [-1, -1, -1, -1, -1, -1])",
+          "expected": "15",
+          "isHidden": false
+        },
+        {
+          "call": "memoized_math(0, [-1])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -78,10 +114,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "tabulated_math(3)", "expected": "6", "isHidden": false },
-        { "call": "tabulated_math(5)", "expected": "15", "isHidden": false },
-        { "call": "tabulated_math(10)", "expected": "55", "isHidden": true },
-        { "call": "tabulated_math(0)", "expected": "0", "isHidden": true }
+        {
+          "call": "tabulated_math(3)",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "tabulated_math(5)",
+          "expected": "15",
+          "isHidden": false
+        },
+        {
+          "call": "tabulated_math(10)",
+          "expected": "55",
+          "isHidden": true
+        },
+        {
+          "call": "tabulated_math(0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -100,9 +152,21 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "track_calls(3)", "expected": "5", "isHidden": false },
-        { "call": "track_calls(4)", "expected": "9", "isHidden": false },
-        { "call": "track_calls(5)", "expected": "15", "isHidden": true }
+        {
+          "call": "track_calls(3)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "track_calls(4)",
+          "expected": "9",
+          "isHidden": false
+        },
+        {
+          "call": "track_calls(5)",
+          "expected": "15",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -122,10 +186,26 @@
       "targetTime": "O(2^n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "fib_naive(5)", "expected": "5", "isHidden": false },
-        { "call": "fib_naive(6)", "expected": "8", "isHidden": false },
-        { "call": "fib_naive(0)", "expected": "0", "isHidden": true },
-        { "call": "fib_naive(1)", "expected": "1", "isHidden": true }
+        {
+          "call": "fib_naive(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_naive(6)",
+          "expected": "8",
+          "isHidden": false
+        },
+        {
+          "call": "fib_naive(0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "fib_naive(1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -144,9 +224,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "fib_memo(10, {})", "expected": "55", "isHidden": false },
-        { "call": "fib_memo(5, {})", "expected": "5", "isHidden": false },
-        { "call": "fib_memo(2, {})", "expected": "1", "isHidden": true }
+        {
+          "call": "fib_memo(10, {})",
+          "expected": "55",
+          "isHidden": false
+        },
+        {
+          "call": "fib_memo(5, {})",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_memo(2, {})",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -167,10 +259,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "fib_tab(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_tab(5)", "expected": "5", "isHidden": false },
-        { "call": "fib_tab(0)", "expected": "0", "isHidden": true },
-        { "call": "fib_tab(1)", "expected": "1", "isHidden": true }
+        {
+          "call": "fib_tab(10)",
+          "expected": "55",
+          "isHidden": false
+        },
+        {
+          "call": "fib_tab(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_tab(0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "fib_tab(1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -191,10 +299,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "fib_space(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_space(5)", "expected": "5", "isHidden": false },
-        { "call": "fib_space(0)", "expected": "0", "isHidden": true },
-        { "call": "fib_space(1)", "expected": "1", "isHidden": true }
+        {
+          "call": "fib_space(10)",
+          "expected": "55",
+          "isHidden": false
+        },
+        {
+          "call": "fib_space(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_space(0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "fib_space(1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -213,9 +337,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "fib_sequence(5)", "expected": "[0, 1, 1, 2, 3, 5]", "isHidden": false },
-        { "call": "fib_sequence(3)", "expected": "[0, 1, 1, 2]", "isHidden": false },
-        { "call": "fib_sequence(0)", "expected": "[0]", "isHidden": true }
+        {
+          "call": "fib_sequence(5)",
+          "expected": "[0, 1, 1, 2, 3, 5]",
+          "isHidden": false
+        },
+        {
+          "call": "fib_sequence(3)",
+          "expected": "[0, 1, 1, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "fib_sequence(0)",
+          "expected": "[0]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -236,9 +372,21 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "init_knapsack(2, 2)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
-        { "call": "init_knapsack(1, 1)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
-        { "call": "init_knapsack(0, 0)", "expected": "[[0]]", "isHidden": true }
+        {
+          "call": "init_knapsack(2, 2)",
+          "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_knapsack(1, 1)",
+          "expected": "[[0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_knapsack(0, 0)",
+          "expected": "[[0]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -256,9 +404,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "knapsack_choice(5, 10, 10, 8, 0)", "expected": "10", "isHidden": false },
-        { "call": "knapsack_choice(5, 10, 4, 8, 0)", "expected": "8", "isHidden": false },
-        { "call": "knapsack_choice(2, 5, 5, 10, 8)", "expected": "13", "isHidden": true }
+        {
+          "call": "knapsack_choice(5, 10, 10, 8, 0)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_choice(5, 10, 4, 8, 0)",
+          "expected": "8",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_choice(2, 5, 5, 10, 8)",
+          "expected": "13",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -278,9 +438,21 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "knapsack([10, 20, 30], [60, 100, 120], 50)", "expected": "220", "isHidden": false },
-        { "call": "knapsack([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
-        { "call": "knapsack([5], [10], 4)", "expected": "0", "isHidden": true }
+        {
+          "call": "knapsack([10, 20, 30], [60, 100, 120], 50)",
+          "expected": "220",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack([1, 2, 3], [10, 15, 40], 6)",
+          "expected": "65",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack([5], [10], 4)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -301,7 +473,11 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "knapsack_items([10, 20], [60, 100], 30, [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0,0,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60], [0,0,0,0,0,0,0,0,0,0,60,60,60,60,60,60,60,60,60,60,100,100,100,100,100,100,100,100,100,100,160]])", "expected": "[1, 0]", "isHidden": false }
+        {
+          "call": "knapsack_items([10, 20], [60, 100], 30, [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0,0,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60], [0,0,0,0,0,0,0,0,0,0,60,60,60,60,60,60,60,60,60,60,100,100,100,100,100,100,100,100,100,100,160]])",
+          "expected": "[1, 0]",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -321,9 +497,21 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "knapsack_1d([10, 20, 30], [60, 100, 120], 50)", "expected": "220", "isHidden": false },
-        { "call": "knapsack_1d([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
-        { "call": "knapsack_1d([5], [10], 4)", "expected": "0", "isHidden": true }
+        {
+          "call": "knapsack_1d([10, 20, 30], [60, 100, 120], 50)",
+          "expected": "220",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_1d([1, 2, 3], [10, 15, 40], 6)",
+          "expected": "65",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_1d([5], [10], 4)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -345,9 +533,21 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "init_lcs('a', 'b')", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
-        { "call": "init_lcs('ab', 'c')", "expected": "[[0, 0], [0, 0], [0, 0]]", "isHidden": false },
-        { "call": "init_lcs('', '')", "expected": "[[0]]", "isHidden": true }
+        {
+          "call": "init_lcs('a', 'b')",
+          "expected": "[[0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_lcs('ab', 'c')",
+          "expected": "[[0, 0], [0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_lcs('', '')",
+          "expected": "[[0]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -365,9 +565,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "lcs_logic('A', 'A', 2, 2, 2)", "expected": "3", "isHidden": false },
-        { "call": "lcs_logic('A', 'B', 1, 4, 3)", "expected": "4", "isHidden": false },
-        { "call": "lcs_logic('Z', 'X', 0, 1, 5)", "expected": "5", "isHidden": true }
+        {
+          "call": "lcs_logic('A', 'A', 2, 2, 2)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_logic('A', 'B', 1, 4, 3)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_logic('Z', 'X', 0, 1, 5)",
+          "expected": "5",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -387,10 +599,26 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "lcs_length('abcde', 'ace')", "expected": "3", "isHidden": false },
-        { "call": "lcs_length('abc', 'abc')", "expected": "3", "isHidden": false },
-        { "call": "lcs_length('abc', 'def')", "expected": "0", "isHidden": true },
-        { "call": "lcs_length('', 'a')", "expected": "0", "isHidden": true }
+        {
+          "call": "lcs_length('abcde', 'ace')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_length('abc', 'abc')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_length('abc', 'def')",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "lcs_length('', 'a')",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -410,7 +638,11 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "lcs_string('abcde', 'ace', [[0,0,0,0],[0,1,1,1],[0,1,1,1],[0,1,2,2],[0,1,2,2],[0,1,2,3]])", "expected": "'ace'", "isHidden": false }
+        {
+          "call": "lcs_string('abcde', 'ace', [[0,0,0,0],[0,1,1,1],[0,1,1,1],[0,1,2,2],[0,1,2,2],[0,1,2,3]])",
+          "expected": "'ace'",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -432,10 +664,26 @@
       "targetTime": "O(n * m)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "lcs_1d('abcde', 'ace')", "expected": "3", "isHidden": false },
-        { "call": "lcs_1d('abc', 'abc')", "expected": "3", "isHidden": false },
-        { "call": "lcs_1d('abc', 'def')", "expected": "0", "isHidden": true },
-        { "call": "lcs_1d('', 'a')", "expected": "0", "isHidden": true }
+        {
+          "call": "lcs_1d('abcde', 'ace')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_1d('abc', 'abc')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_1d('abc', 'def')",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "lcs_1d('', 'a')",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -443,6 +691,7 @@
     {
       "id": "m5_opt_1",
       "title": "Optimization Challenge: Recursive to Tabulated Fibonacci",
+      "difficulty": "Medium",
       "task": [
         "Executing naive recursive logic initiates identical functional branches exponentially. This forces the system into an unstable O(2ⁿ) time complexity.",
         "Refactoring the mathematical execution to a Bottom-Up Tabulated sequence mitigates exponential expansion by isolating memory into an O(n) constraint array.",
@@ -459,15 +708,32 @@
       "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m5-5.1.json",
       "testCasesPool": [
-        { "call": "fib_optimized(5)", "expected": "5", "isHidden": false },
-        { "call": "fib_optimized(10)", "expected": "55", "isHidden": false },
-        { "call": "fib_optimized(2)", "expected": "1", "isHidden": false },
-        { "call": "fib_optimized(0)", "expected": "0", "isHidden": true }
+        {
+          "call": "fib_optimized(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_optimized(10)",
+          "expected": "55",
+          "isHidden": false
+        },
+        {
+          "call": "fib_optimized(2)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "fib_optimized(0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_opt_2",
       "title": "Optimization Challenge: Exponential Knapsack Compression",
+      "difficulty": "Hard",
       "task": [
         "Deploying an exhaustive 0/1 choice algorithm tests every discrete subset boundary. This inherently triggers a mathematically volatile O(2ⁿ) execution pattern.",
         "Dynamic Programming mathematically compresses these overlapping subsets into a synchronized O(n * W) 2D Grid map.",
@@ -483,14 +749,27 @@
       "targetSpace": "O(n * m)",
       "templateUrl": "/data/optimizations/m5-5.2.json",
       "testCasesPool": [
-        { "call": "knapsack_optimized([10, 20, 30], [60, 100, 120], 50)", "expected": "220", "isHidden": false },
-        { "call": "knapsack_optimized([1, 2, 3], [10, 15, 40], 6)", "expected": "65", "isHidden": false },
-        { "call": "knapsack_optimized([5], [10], 4)", "expected": "0", "isHidden": true }
+        {
+          "call": "knapsack_optimized([10, 20, 30], [60, 100, 120], 50)",
+          "expected": "220",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_optimized([1, 2, 3], [10, 15, 40], 6)",
+          "expected": "65",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_optimized([5], [10], 4)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_opt_3",
       "title": "Optimization Challenge: Memory Dimension Collapse",
+      "difficulty": "Advanced",
       "task": [
         "Maintaining exhaustive LCS matrix tracking enforces massive memory requirements on scalable algorithms. An m by n matrix strictly incurs an O(n * m) Space scaling structure.",
         "If the algorithm is strictly designated to output the numerical maximum length, reserving identical data histories implies unnecessary O(n) structural redundancy.",
@@ -506,10 +785,26 @@
       "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m5-5.3.json",
       "testCasesPool": [
-        { "call": "lcs_optimized('abcde', 'ace')", "expected": "3", "isHidden": false },
-        { "call": "lcs_optimized('abc', 'abc')", "expected": "3", "isHidden": false },
-        { "call": "lcs_optimized('abc', 'def')", "expected": "0", "isHidden": true },
-        { "call": "lcs_optimized('', 'a')", "expected": "0", "isHidden": true }
+        {
+          "call": "lcs_optimized('abcde', 'ace')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_optimized('abc', 'abc')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_optimized('abc', 'def')",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "lcs_optimized('', 'a')",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ]
