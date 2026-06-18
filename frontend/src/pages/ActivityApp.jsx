@@ -574,7 +574,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         } else if (resolvedActivity.templateUrl) {
           try {
             // FIX: Parsing logic applied to elegantly accommodate the new wrapped optimization templates
-            const rawTemplate = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
+            // Added dynamic URL correction to resolve 404 errors caused by legacy URL formats in module JSONs
+            let fetchUrl = resolvedActivity.templateUrl;
+            if (resolvedActivity.id && resolvedActivity.id.includes('opt')) {
+              fetchUrl = `/data/optimizations/${resolvedActivity.id}.json`;
+            }
+            
+            const rawTemplate = await fetchJsonWithCache(`template:${resolvedActivity.id}`, fetchUrl);
             
             let templateBlocks = rawTemplate;
             let templatePython = "# Drag blocks to generate Python code";
@@ -656,11 +662,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   useEffect(() => {
     if (!isReadyRef.current) return;
-    if (isOnline && isEngineReady && workerRef.current && generatedPython !== "# Drag blocks to generate Python code" && isEditingCode) {
-      const timeoutId = setTimeout(() => { workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) }); }, 800);
+    // FIX: Removed `&& isEditingCode` to ensure analysis runs for Blockly template loads and standard block drag events, not just manual text edits.
+    if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
+      const timeoutId = setTimeout(() => { 
+        workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) }); 
+      }, 800);
       return () => clearTimeout(timeoutId);
     }
-  }, [generatedPython, isEditingCode, isOnline, isEngineReady]);
+  }, [generatedPython, isOnline, isEngineReady]);
 
   const handleWorkspaceChange = async (json, incomingPythonCode, isUnsynced = false) => {
     if (!isReadyRef.current) return;
@@ -675,7 +684,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (isUnsynced) {
       setIsEditingCode(true);
       if (oldCode !== newCode) { setGeneratedPython(codeToSave); setLineExecutions({}); }
-    } else if (!isEditingCode && oldCode !== newCode) { setGeneratedPython(codeToSave); setLineExecutions({}); }
+    } else if (!isEditingCode && oldCode !== newCode) { 
+      setGeneratedPython(codeToSave); setLineExecutions({}); 
+    }
   };
 
   const handleSyncToBlocks = async () => {
