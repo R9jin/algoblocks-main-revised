@@ -23,7 +23,41 @@
 
 body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 
-.activity-app-container { display: flex; flex-direction: column; height: 100vh; background: var(--app-bg); overflow: hidden; color: var(--text-main); }
+.activity-app-container { display: flex; flex-direction: column; height: 100vh; background: var(--app-bg); overflow: hidden; color: var(--text-main); position: relative; }
+
+/* =========================================
+   TOAST NOTIFICATIONS
+   ========================================= */
+.toast-notification {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  z-index: 10000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  animation: slideDownToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none;
+}
+
+.toast-success {
+  background-color: #10B981;
+  border: 1px solid #059669;
+}
+
+.toast-error {
+  background-color: #EF4444;
+  border: 1px solid #DC2626;
+}
+
+@keyframes slideDownToast {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
 
 /* =========================================
    WORKSPACE HEADER (DARK UNIFIED)

@@ -76,38 +76,29 @@ const parseMarkdown = (str) => {
   if (!str) return "";
   let html = str.trim();
 
-  // 1. Headers (Using start-of-line anchors safely bypasses OS newline \r\n issues causing floating #)
   html = html.replace(/^###\s+(.*)$/gm, '<h3 class="overall-main-title">$1</h3>');
   html = html.replace(/^####\s+(.*)$/gm, '<h4 class="overall-sub-title">$1</h4>');
   html = html.replace(/^#####\s+(.*)$/gm, '<h5 class="overall-section-title">$1</h5>');
 
-  // 2. High-Priority Formatting: Step Badges & Final Summaries
   html = html.replace(/\*\*(Step \d+:.*?)\*\*/g, '<span class="step-badge">$1</span>');
   html = html.replace(/\*\*(\d+\.\s.*?)\*\*/g, '<span class="step-badge">$1</span>');
   html = html.replace(/\*\*(Asymptotic Simplification|Final Asymptotic Complexity:?|Complexity Summary)\*\*/g, '<h5 class="overall-section-title">$1</h5>');
 
-  // 3. General Bold
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
-  // 4. Superscript for Math Variables (e.g. n^2 -> n<sup>2</sup>, 2^n -> 2<sup>n</sup>)
   html = html.replace(/([a-zA-Z0-9_]+)\^([a-zA-Z0-9\+\-\/]+)/g, '$1<sup>$2</sup>');
 
-  // 5. Mathematical Equation Blocks (Targets T(n) = ... or S(n) = ... safely)
   html = html.replace(/^`([TS]\(n\)\s*=.*?)`$/gm, '<div class="math-block">$1</div>');
   html = html.replace(/`([TS]\(n\)\s*=.*?)`/g, '<div class="math-block">$1</div>');
 
-  // 6. Normal Inline Code (Fallback)
   html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
 
-  // 7. Intelligent Block Splitter (Preserves Lists & HTML structures cleanly)
   let blocks = html.split(/\n\s*\n/);
   let parsedBlocks = blocks.map(block => {
-    // Prevent double wrapping already-formatted structures
     if (block.includes('<h3') || block.includes('<h4') || block.includes('<h5') || block.includes('<div class="math-block"')) {
        return block.replace(/\n/g, '<br/>'); 
     }
     
-    // Detect and construct unordered lists
     if (/^[-*]\s+/m.test(block)) {
       let listItems = block.split('\n').reduce((acc, line) => {
          let trimmed = line.trim();
@@ -122,7 +113,6 @@ const parseMarkdown = (str) => {
       return `<ul class="nlg-list">${listItems}</ul>`;
     }
 
-    // Default Paragraph Wrap
     return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
   });
 
@@ -561,13 +551,11 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode;
             latestStateRef.current.score = finalSubmissionToLoad.score || 0;
             
-            // FIX: Use ?? instead of || null to prevent numeric 0 from being wiped out
             latestStateRef.current.initial_aes = finalSubmissionToLoad.initial_aes ?? null;
             latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes ?? null;
             latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
 
-            // Initialize AES and ROG logic for UI
             let loadedScore = finalSubmissionToLoad.score || 0;
             if (finalSubmissionToLoad.maxScore === 5 && loadedScore <= 5) loadedScore = (loadedScore / 5) * 100;
             
@@ -585,10 +573,33 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           } catch (e) { console.error("Failed to load blocks"); }
         } else if (resolvedActivity.templateUrl) {
           try {
-            const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
-            latestStateRef.current.json = templateJson;
-            setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(templateJson); }, 400);
-          } catch (err) { }
+            // FIX: Parsing logic applied to elegantly accommodate the new wrapped optimization templates
+            const rawTemplate = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
+            
+            let templateBlocks = rawTemplate;
+            let templatePython = "# Drag blocks to generate Python code";
+
+            if (rawTemplate.type === "algoblocks_project") {
+              templateBlocks = rawTemplate.blocklyJson;
+              templatePython = rawTemplate.pythonCode || templatePython;
+            } else if (rawTemplate.workspace && rawTemplate.workspace.blocklyJson) {
+              templateBlocks = rawTemplate.workspace.blocklyJson;
+              templatePython = rawTemplate.pythonCode || templatePython;
+            }
+
+            latestStateRef.current.json = templateBlocks;
+            latestStateRef.current.pythonCode = templatePython;
+            
+            setTimeout(() => { 
+              if (workspaceRef.current?.loadTemplate && !cancelled) {
+                workspaceRef.current.loadTemplate(templateBlocks, templatePython); 
+              }
+            }, 400);
+
+            if (templatePython && templatePython !== "# Drag blocks to generate Python code") {
+              setGeneratedPython(templatePython);
+            }
+          } catch (err) { console.error("Template load error:", err); }
         }
 
         const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
@@ -672,6 +683,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
         setIsEditingCode(false); setViewMode("workspace");
+        // FIX: Display elegant toast notification with properly mapped CSS fixes
+        showToast("Python code successfully converted into blocks!", "success");
       } catch (e) {
         setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
       }
@@ -985,7 +998,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   return (
     <div className="activity-app-container">
-      {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`} style={{ position: "absolute", top: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 9999 }}>{toast.message}</div>}
+      {/* Toast Render with correct classes applied via the imported CSS */}
+      {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.message}</div>}
 
       <header className="workspace-header-purple">
         <div className="wh-left">
@@ -1373,12 +1387,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   );
 };
 
-// ==============================================================================================
-// FIX APPLIED HERE:
-// Adding the `key` prop forces React to completely unmount and remount the ActivityAppInner 
-// whenever the moduleId or activityId changes in the URL. This guarantees a totally fresh state 
-// blockly workspace, python code, and test cases when navigating to the next activity!
-// ==============================================================================================
 const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
   return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;

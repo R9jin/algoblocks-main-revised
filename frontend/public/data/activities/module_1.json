@@ -16,8 +16,16 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "create_basic_array()", "expected": "[10, 20, 30]", "isHidden": false },
-        { "call": "len(create_basic_array())", "expected": "3", "isHidden": false }
+        {
+          "call": "create_basic_array()",
+          "expected": "[10, 20, 30]",
+          "isHidden": false
+        },
+        {
+          "call": "len(create_basic_array())",
+          "expected": "3",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -36,9 +44,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "get_list_length([5, 10, 15])", "expected": "3", "isHidden": false },
-        { "call": "get_list_length([100])", "expected": "1", "isHidden": false },
-        { "call": "get_list_length([])", "expected": "0", "isHidden": false }
+        {
+          "call": "get_list_length([5, 10, 15])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "get_list_length([100])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "get_list_length([])",
+          "expected": "0",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -57,9 +77,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "get_first_item([5, 10, 15])", "expected": "5", "isHidden": false },
-        { "call": "get_first_item([100, 200])", "expected": "100", "isHidden": false },
-        { "call": "get_first_item([])", "expected": "0", "isHidden": false }
+        {
+          "call": "get_first_item([5, 10, 15])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "get_first_item([100, 200])",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "get_first_item([])",
+          "expected": "0",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -79,9 +111,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "update_first_element([10, 20, 30])", "expected": "[99, 20, 30]", "isHidden": false },
-        { "call": "update_first_element([0, 0])", "expected": "[99, 0]", "isHidden": false },
-        { "call": "update_first_element([])", "expected": "[]", "isHidden": false }
+        {
+          "call": "update_first_element([10, 20, 30])",
+          "expected": "[99, 20, 30]",
+          "isHidden": false
+        },
+        {
+          "call": "update_first_element([0, 0])",
+          "expected": "[99, 0]",
+          "isHidden": false
+        },
+        {
+          "call": "update_first_element([])",
+          "expected": "[]",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -100,9 +144,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "add_to_end([1, 2], 3)", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "add_to_end([], 10)", "expected": "[10]", "isHidden": false },
-        { "call": "add_to_end([99], 100)", "expected": "[99, 100]", "isHidden": false }
+        {
+          "call": "add_to_end([1, 2], 3)",
+          "expected": "[1, 2, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "add_to_end([], 10)",
+          "expected": "[10]",
+          "isHidden": false
+        },
+        {
+          "call": "add_to_end([99], 100)",
+          "expected": "[99, 100]",
+          "isHidden": false
+        }
       ]
     }
   ],
@@ -124,9 +180,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "sum_array([5, 10, 15])", "expected": "30", "isHidden": false },
-        { "call": "sum_array([1, 1, 1, 1])", "expected": "4", "isHidden": false },
-        { "call": "sum_array([])", "expected": "0", "isHidden": false }
+        {
+          "call": "sum_array([5, 10, 15])",
+          "expected": "30",
+          "isHidden": false
+        },
+        {
+          "call": "sum_array([1, 1, 1, 1])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "sum_array([])",
+          "expected": "0",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -148,10 +216,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "find_max([10, 50, 20])", "expected": "50", "isHidden": false },
-        { "call": "find_max([-10, -5, -20])", "expected": "-5", "isHidden": false },
-        { "call": "find_max([5])", "expected": "5", "isHidden": false },
-        { "call": "find_max([])", "expected": "0", "isHidden": false }
+        {
+          "call": "find_max([10, 50, 20])",
+          "expected": "50",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([-10, -5, -20])",
+          "expected": "-5",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([5])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([])",
+          "expected": "0",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -172,10 +256,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "count_evens([1, 2, 3, 4, 5])", "expected": "2", "isHidden": false },
-        { "call": "count_evens([2, 4, 6])", "expected": "3", "isHidden": false },
-        { "call": "count_evens([1, 3, 5])", "expected": "0", "isHidden": false },
-        { "call": "count_evens([])", "expected": "0", "isHidden": false }
+        {
+          "call": "count_evens([1, 2, 3, 4, 5])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([2, 4, 6])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([1, 3, 5])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([])",
+          "expected": "0",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -195,10 +295,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "contains_item([10, 20, 30], 20)", "expected": "True", "isHidden": false },
-        { "call": "contains_item([5, 1, 9], 9)", "expected": "True", "isHidden": false },
-        { "call": "contains_item([1, 2, 3], 4)", "expected": "False", "isHidden": false },
-        { "call": "contains_item([], 5)", "expected": "False", "isHidden": false }
+        {
+          "call": "contains_item([10, 20, 30], 20)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "contains_item([5, 1, 9], 9)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "contains_item([1, 2, 3], 4)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "contains_item([], 5)",
+          "expected": "False",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -218,10 +334,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "double_array([1, 2, 3])", "expected": "[2, 4, 6]", "isHidden": false },
-        { "call": "double_array([10, 50])", "expected": "[20, 100]", "isHidden": false },
-        { "call": "double_array([])", "expected": "[]", "isHidden": false },
-        { "call": "double_array([-5, 0])", "expected": "[-10, 0]", "isHidden": true }
+        {
+          "call": "double_array([1, 2, 3])",
+          "expected": "[2, 4, 6]",
+          "isHidden": false
+        },
+        {
+          "call": "double_array([10, 50])",
+          "expected": "[20, 100]",
+          "isHidden": false
+        },
+        {
+          "call": "double_array([])",
+          "expected": "[]",
+          "isHidden": false
+        },
+        {
+          "call": "double_array([-5, 0])",
+          "expected": "[-10, 0]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -243,9 +375,21 @@
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "remove_last_item([10, 20, 30])", "expected": "30", "isHidden": false },
-        { "call": "remove_last_item([99])", "expected": "99", "isHidden": false },
-        { "call": "remove_last_item([])", "expected": "'Empty'", "isHidden": false }
+        {
+          "call": "remove_last_item([10, 20, 30])",
+          "expected": "30",
+          "isHidden": false
+        },
+        {
+          "call": "remove_last_item([99])",
+          "expected": "99",
+          "isHidden": false
+        },
+        {
+          "call": "remove_last_item([])",
+          "expected": "'Empty'",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -266,9 +410,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "reverse_in_place([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "reverse_in_place([10, 20, 30, 40])", "expected": "[40, 30, 20, 10]", "isHidden": false },
-        { "call": "reverse_in_place([99])", "expected": "[99]", "isHidden": false }
+        {
+          "call": "reverse_in_place([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "reverse_in_place([10, 20, 30, 40])",
+          "expected": "[40, 30, 20, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "reverse_in_place([99])",
+          "expected": "[99]",
+          "isHidden": false
+        }
       ]
     },
     {
@@ -291,10 +447,26 @@
       "targetTime": "O(n^2)",
       "targetSpace": "O(n^2)",
       "testCasesPool": [
-        { "call": "create_matrix(2)", "expected": "[[0, 0], [0, 0]]", "isHidden": false },
-        { "call": "create_matrix(3)", "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]", "isHidden": false },
-        { "call": "create_matrix(0)", "expected": "[]", "isHidden": true },
-        { "call": "create_matrix(1)", "expected": "[[0]]", "isHidden": true }
+        {
+          "call": "create_matrix(2)",
+          "expected": "[[0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "create_matrix(3)",
+          "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "create_matrix(0)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "create_matrix(1)",
+          "expected": "[[0]]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -313,9 +485,21 @@
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "remove_target([10, 20, 30], 20)", "expected": "[10, 30]", "isHidden": false },
-        { "call": "remove_target([5, 5, 5], 5)", "expected": "[5, 5]", "isHidden": false },
-        { "call": "remove_target([1, 2, 3, 4], 1)", "expected": "[2, 3, 4]", "isHidden": true }
+        {
+          "call": "remove_target([10, 20, 30], 20)",
+          "expected": "[10, 30]",
+          "isHidden": false
+        },
+        {
+          "call": "remove_target([5, 5, 5], 5)",
+          "expected": "[5, 5]",
+          "isHidden": false
+        },
+        {
+          "call": "remove_target([1, 2, 3, 4], 1)",
+          "expected": "[2, 3, 4]",
+          "isHidden": true
+        }
       ]
     },
     {
@@ -334,10 +518,26 @@
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "extract_tail([10, 20, 30, 40])", "expected": "[20, 30, 40]", "isHidden": false },
-        { "call": "extract_tail([1, 2, 3])", "expected": "[2, 3]", "isHidden": false },
-        { "call": "extract_tail([5, 10])", "expected": "[]", "isHidden": true },
-        { "call": "extract_tail([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "extract_tail([10, 20, 30, 40])",
+          "expected": "[20, 30, 40]",
+          "isHidden": false
+        },
+        {
+          "call": "extract_tail([1, 2, 3])",
+          "expected": "[2, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "extract_tail([5, 10])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "extract_tail([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     }
   ],
@@ -345,6 +545,7 @@
     {
       "id": "m1_opt_1",
       "title": "Optimization Challenge: In-Place Reversal",
+      "difficulty": "Easy",
       "task": [
         "Reversing an array by creating a secondary list requires additional memory allocation, resulting in an O(n) space complexity overhead.",
         "We can optimize this algorithm to operate with O(1) auxiliary space by mutating the original array in-place utilizing two converging pointers.",
@@ -361,15 +562,32 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m1-1.1.json",
       "testCasesPool": [
-        { "call": "reverse_in_place([1, 2, 3, 4])", "expected": "[4, 3, 2, 1]", "isHidden": false },
-        { "call": "reverse_in_place([10, 20, 30])", "expected": "[30, 20, 10]", "isHidden": false },
-        { "call": "reverse_in_place([5])", "expected": "[5]", "isHidden": true },
-        { "call": "reverse_in_place([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "reverse_in_place([1, 2, 3, 4])",
+          "expected": "[4, 3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "reverse_in_place([10, 20, 30])",
+          "expected": "[30, 20, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "reverse_in_place([5])",
+          "expected": "[5]",
+          "isHidden": true
+        },
+        {
+          "call": "reverse_in_place([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m1_opt_2",
       "title": "Optimization Challenge: Running Totals",
+      "difficulty": "Easy",
       "task": [
         "Computing a running total by repeatedly calculating the sum from the initial index forces the algorithm to utilize nested loops. This architectural flaw degrades performance to an O(n²) time complexity.",
         "We can optimize this process to O(n) linear time by eliminating the inner loop and maintaining a continuous running accumulator during a single sequential traversal.",
@@ -386,15 +604,32 @@
       "targetSpace": "O(n)",
       "templateUrl": "/data/optimizations/m1-1.2.json",
       "testCasesPool": [
-        { "call": "running_total([1, 2, 3, 4])", "expected": "[1, 3, 6, 10]", "isHidden": false },
-        { "call": "running_total([10, 10, 10])", "expected": "[10, 20, 30]", "isHidden": false },
-        { "call": "running_total([5, -5, 5])", "expected": "[5, 0, 5]", "isHidden": true },
-        { "call": "running_total([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "running_total([1, 2, 3, 4])",
+          "expected": "[1, 3, 6, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "running_total([10, 10, 10])",
+          "expected": "[10, 20, 30]",
+          "isHidden": false
+        },
+        {
+          "call": "running_total([5, -5, 5])",
+          "expected": "[5, 0, 5]",
+          "isHidden": true
+        },
+        {
+          "call": "running_total([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m1_opt_3",
       "title": "Optimization Challenge: Mathematical Series",
+      "difficulty": "Easy",
       "task": [
         "Iterating sequentially through a numerical sequence to aggregate a total sum incurs a mandatory O(n) linear time complexity.",
         "When evaluating the sum of a contiguous numerical sequence, computer scientists leverage standard mathematical formulas to replace iterative loops, achieving an optimal O(1) constant time complexity.",
@@ -409,10 +644,26 @@
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m1-1.3.json",
       "testCasesPool": [
-        { "call": "fast_sum(4)", "expected": "10.0", "isHidden": false },
-        { "call": "fast_sum(10)", "expected": "55.0", "isHidden": false },
-        { "call": "fast_sum(100)", "expected": "5050.0", "isHidden": true },
-        { "call": "fast_sum(0)", "expected": "0.0", "isHidden": true }
+        {
+          "call": "fast_sum(4)",
+          "expected": "10.0",
+          "isHidden": false
+        },
+        {
+          "call": "fast_sum(10)",
+          "expected": "55.0",
+          "isHidden": false
+        },
+        {
+          "call": "fast_sum(100)",
+          "expected": "5050.0",
+          "isHidden": true
+        },
+        {
+          "call": "fast_sum(0)",
+          "expected": "0.0",
+          "isHidden": true
+        }
       ]
     }
   ]
