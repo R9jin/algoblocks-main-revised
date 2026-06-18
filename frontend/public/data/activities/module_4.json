@@ -2,629 +2,676 @@
   "lesson_1": [
     {
       "id": "m4_l1_a1",
-      "title": "Adding to a Stack (Push)",
+      "title": "Greedy Selection: Largest First",
       "task": [
-        "A 'Stack' works exactly like a stack of plates in a cafeteria. You can only add new plates to the very top! In programming, adding to the top of a stack is called a 'Push'.",
+        "A greedy algorithm makes the locally optimal choice at each stage. When maximizing a value, the optimal local choice is selecting the maximum available magnitude.",
+        "We will implement a greedy choice by sorting a dataset and extracting the largest element.",
         "",
         "Instructions:",
-        "1. Define the function `push_stack(stack, item)`.",
-        "2. Open the 'Stacks & Queues (Abstract Data Types)' tab.",
-        "3. Grab the 'push [item] to stack [stack]' block.",
-        "4. Put your `item` variable in the first slot, and your `stack` variable in the second slot.",
-        "5. Return the updated `stack`.",
-        "",
-        "Sample Outputs:",
-        "push_stack([10, 20], 30) → [10, 20, 30]",
-        "push_stack([], 5) → [5]"
+        "1. Define the function `greedy_largest(arr)`.",
+        "2. Execute an in-place sort on the array in descending order. This dictates an O(n log n) time complexity.",
+        "3. Evaluate if the array is empty. If true, return 0.",
+        "4. Return the first element from the sorted array, representing the maximum greedy choice."
       ],
-      "targetTime": "O(1)",
+      "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "push_stack([10, 20], 30)", "expected": "[10, 20, 30]", "isHidden": false },
-        { "call": "push_stack([], 5)", "expected": "[5]", "isHidden": false },
-        { "call": "push_stack([1], 1)", "expected": "[1, 1]", "isHidden": false },
-        { "call": "push_stack([-5, 0], 5)", "expected": "[-5, 0, 5]", "isHidden": true },
-        { "call": "push_stack([99], 100)", "expected": "[99, 100]", "isHidden": true }
+        {
+          "call": "greedy_largest([3, 1, 4, 1, 5])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_largest([10, 20])",
+          "expected": "20",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_largest([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_largest([7, 7, 7])",
+          "expected": "7",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_l1_a2",
-      "title": "Removing from a Stack (Pop)",
+      "title": "Greedy Selection: Smallest First",
       "task": [
-        "To get a plate from our stack, we have to take the one on the very top. We can't pull from the bottom! Taking the top item off is called a 'Pop'.",
+        "Conversely, when minimizing a cost function, the optimal local choice is the element with the smallest magnitude.",
         "",
         "Instructions:",
-        "1. Define the function `pop_stack(stack)`.",
-        "2. Use an 'If' block from the 'Logic' tab to check if the stack is empty. If it is, return the text `'Underflow'` (which means we tried to grab a plate that isn't there!).",
-        "3. Open the 'Stacks & Queues' tab and use the 'pop and get top of stack' block.",
-        "4. Return the item that you just popped.",
-        "",
-        "Sample Outputs:",
-        "pop_stack([10, 20, 30]) → 30",
-        "pop_stack([]) → 'Underflow'"
+        "1. Define the function `greedy_smallest(arr)`.",
+        "2. Execute an in-place sort on the array in ascending order.",
+        "3. Evaluate the boundary: if the array is empty, return 0.",
+        "4. Return the first element from the array."
       ],
-      "targetTime": "O(1)",
+      "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "pop_stack([10, 20, 30])", "expected": "30", "isHidden": false },
-        { "call": "pop_stack([5])", "expected": "5", "isHidden": false },
-        { "call": "pop_stack([])", "expected": "'Underflow'", "isHidden": false },
-        { "call": "pop_stack([1, 2])", "expected": "2", "isHidden": true },
-        { "call": "pop_stack([-10, -20])", "expected": "-20", "isHidden": true }
+        {
+          "call": "greedy_smallest([8, 2, 6, 1])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_smallest([10, 20])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_smallest([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_smallest([5, 5])",
+          "expected": "5",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_l1_a3",
-      "title": "Flipping a Word Backwards",
+      "title": "Greedy Aggregation: Top K Sum",
       "task": [
-        "Because a stack gives you items back in the exact opposite order you put them in, they are the perfect tool for reading words backwards!",
+        "To maximize a cumulative sum given a restricted number of selections (K), a greedy algorithm continuously selects the largest remaining elements.",
         "",
         "Instructions:",
-        "1. Define `reverse_string(s)`.",
-        "2. Create an empty list called `stack` and an empty text variable called `result`.",
-        "3. Use a 'for each item' loop to look at every letter in the string `s`. Push each letter onto your `stack`.",
-        "4. Make a `while` loop that runs as long as the stack is NOT empty.",
-        "5. Inside the while loop, pop a letter off the stack and join it to your `result` variable.",
-        "6. Return the `result`.",
-        "",
-        "Sample Outputs:",
-        "reverse_string('data') → 'atad'",
-        "reverse_string('stack') → 'kcats'"
+        "1. Define the function `greedy_sum(arr, k)`.",
+        "2. Sort the array in descending order to prioritize magnitude.",
+        "3. Initialize an accumulator variable to track the total sum.",
+        "4. Construct a loop constrained to iterate exactly K times. Ensure your loop bounds do not exceed the array length.",
+        "5. Inside the loop, accumulate the value of the current element into your total.",
+        "6. Return the accumulated total."
       ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "reverse_string('data')", "expected": "'atad'", "isHidden": false },
-        { "call": "reverse_string('stack')", "expected": "'kcats'", "isHidden": false },
-        { "call": "reverse_string('a')", "expected": "'a'", "isHidden": false },
-        { "call": "reverse_string('')", "expected": "''", "isHidden": true },
-        { "call": "reverse_string('12345')", "expected": "'54321'", "isHidden": true }
+        {
+          "call": "greedy_sum([1, 5, 2, 9, 3], 2)",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum([10, 10, 10], 1)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum([5, 4, 3, 2, 1], 3)",
+          "expected": "12",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_sum([], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_l1_a4",
-      "title": "Matching Parentheses",
+      "title": "Greedy Minimization: Closest Number",
       "task": [
-        "Computers use stacks to make sure every open parenthesis '(' has a matching closed parenthesis ')'.",
+        "Greedy choices can evaluate derived metrics, such as identifying an element that minimizes the absolute mathematical difference to a target.",
         "",
         "Instructions:",
-        "1. Define `is_balanced(s)` and initialize an empty `stack`.",
-        "2. Loop through each `char` in the string `s`.",
-        "3. If `char == '('`, push it onto the stack.",
-        "4. If `char == ')'`, first check if the stack is empty (if it is, return `False` because there's no matching opener!). If it's not empty, pop the top item off the stack.",
-        "5. After the loop finishes, check if the stack is perfectly empty. If it is empty, return `True`. Otherwise, return `False`.",
-        "",
-        "Sample Outputs:",
-        "is_balanced('(())') → True",
-        "is_balanced('(()') → False"
+        "1. Define the function `closest_number(arr, target)`.",
+        "2. Initialize tracking variables for the 'best match' and 'minimum difference', seeding them using the first element of the array.",
+        "3. Traverse the array. For each element, compute the absolute difference between it and the target.",
+        "4. If this newly computed difference is strictly less than your recorded minimum, update both tracking variables.",
+        "5. Return the best match."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "is_balanced('(())')", "expected": "True", "isHidden": false },
-        { "call": "is_balanced('()()')", "expected": "True", "isHidden": false },
-        { "call": "is_balanced('(()')", "expected": "False", "isHidden": false },
-        { "call": "is_balanced(')')", "expected": "False", "isHidden": true },
-        { "call": "is_balanced('')", "expected": "True", "isHidden": true }
+        {
+          "call": "closest_number([10, 22, 28, 29, 30], 25)",
+          "expected": "22",
+          "isHidden": false
+        },
+        {
+          "call": "closest_number([1, 5, 10], 6)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "closest_number([100, 200, 300], 260)",
+          "expected": "300",
+          "isHidden": true
+        },
+        {
+          "call": "closest_number([0], 10)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_l1_a5",
-      "title": "Stack Calculator",
+      "title": "Greedy Navigation: Minimum Cost Path",
       "task": [
-        "Let's build a mini calculator using a stack! When we see a number, we push it to the stack. When we see a math symbol, we pop two numbers, do the math, and put the answer back on the stack.",
+        "In navigation scenarios, a greedy strategy dictates moving to the adjacent node with the lowest immediate cost, disregarding potential future bottlenecks.",
         "",
         "Instructions:",
-        "1. Define `evaluate_postfix(arr)` and create an empty `stack`.",
-        "2. Loop over every `item` in `arr`. Open the 'Logic' tab and use the 'is [item] a [int]?' block.",
-        "3. If it is an integer (number), push it to the stack.",
-        "4. If it's not a number, it's an operator! Pop the stack and save it as `b`. Pop the stack again and save it as `a`. Calculate `a (operator) b` based on the item ('+' or '*' or '-') and push the answer back.",
-        "5. Return the final answer by popping the stack one last time.",
-        "",
-        "Sample Outputs:",
-        "evaluate_postfix([3, 4, '+', 2, '*']) → 14",
-        "evaluate_postfix([10, 2, '*']) → 20"
+        "1. Define `greedy_path(costs)`. The parameter `costs` is an array of sub-arrays representing sequential choice sets.",
+        "2. Initialize an accumulator variable to track the total path cost.",
+        "3. Traverse the outer sequence of choice sets. For each set, identify the absolute minimum cost option available.",
+        "4. Increment your total cost by this selected minimum value.",
+        "5. Return the total cost. Observe that local optimization does not inherently guarantee global optimization."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "evaluate_postfix([3, 4, '+', 2, '*'])", "expected": "14", "isHidden": false },
-        { "call": "evaluate_postfix([5, 1, 2, '+', 4, '*', '+', 3, '-'])", "expected": "14", "isHidden": false },
-        { "call": "evaluate_postfix([10, 2, '*'])", "expected": "20", "isHidden": false },
-        { "call": "evaluate_postfix([8, 2, '-'])", "expected": "6", "isHidden": true },
-        { "call": "evaluate_postfix([7])", "expected": "7", "isHidden": true }
+        {
+          "call": "greedy_path([[5, 10], [1, 2], [8, 9]])",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_path([[100, 200], [50, 10]])",
+          "expected": "110",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_path([[5, 5], [5, 5]])",
+          "expected": "10",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_2": [
     {
       "id": "m4_l2_a1",
-      "title": "Waiting in Line (Enqueue)",
+      "title": "Standard Denominations (Philippine Cashier)",
       "task": [
-        "A 'Queue' works exactly like waiting in line at a movie theater. The first person in line is the first person to get a ticket! Adding someone to the back of the line is called 'Enqueuing'.",
+        "The Coin Change Problem seeks to minimize the total number of coins dispensed. When utilizing standard currencies, a greedy algorithm successfully yields the optimal solution.",
         "",
         "Instructions:",
-        "1. Define the function `enqueue(queue, item)`.",
-        "2. Open the 'Stacks & Queues (Abstract Data Types)' tab.",
-        "3. Grab the 'enqueue [item] to queue [queue]' block.",
-        "4. Return the updated `queue` list.",
-        "",
-        "Sample Outputs:",
-        "enqueue([1, 2], 3) → [1, 2, 3]",
-        "enqueue([], 10) → [10]"
+        "1. Define `ph_cashier(amount)`.",
+        "2. Initialize an array containing standard Philippine coin denominations in descending order.",
+        "3. Initialize a variable to track the total coins dispensed.",
+        "4. Iterate through the coin array. Utilize integer division to determine exactly how many times the current coin fits into the remaining amount.",
+        "5. Accumulate this count into your tracking variable.",
+        "6. Update the remaining amount using the modulo operator.",
+        "7. Return the finalized coin count."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "enqueue([1, 2], 3)", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "enqueue([], 10)", "expected": "[10]", "isHidden": false },
-        { "call": "enqueue([5], 5)", "expected": "[5, 5]", "isHidden": false },
-        { "call": "enqueue([-1], 0)", "expected": "[-1, 0]", "isHidden": true },
-        { "call": "enqueue([100, 200], 300)", "expected": "[100, 200, 300]", "isHidden": true }
+        {
+          "call": "ph_cashier(47)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "ph_cashier(100)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "ph_cashier(8)",
+          "expected": "4",
+          "isHidden": true
+        },
+        {
+          "call": "ph_cashier(0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_l2_a2",
-      "title": "Leaving the Line (Dequeue)",
+      "title": "Standard Denominations (US Cashier)",
       "task": [
-        "When the person at the front of the line is finished, they leave the queue. We call this 'Dequeuing'. Remember, we always remove from the front, never the back!",
+        "Applying the exact greedy methodology to a distinct currency system verifies the algorithm's interoperability with standard denomination structures.",
         "",
         "Instructions:",
-        "1. Define the function `dequeue(queue)`.",
-        "2. Use an 'If' block to check if the queue is empty. If it is, return the text `'Underflow'`.",
-        "3. Open the 'Stacks & Queues' tab and grab the 'dequeue and get front of queue' block.",
-        "4. Return the item you just removed.",
-        "",
-        "Sample Outputs:",
-        "dequeue([10, 20, 30]) → 10",
-        "dequeue([]) → 'Underflow'"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "testCasesPool": [
-        { "call": "dequeue([10, 20, 30])", "expected": "10", "isHidden": false },
-        { "call": "dequeue([5])", "expected": "5", "isHidden": false },
-        { "call": "dequeue([])", "expected": "'Underflow'", "isHidden": false },
-        { "call": "dequeue([1, 2])", "expected": "1", "isHidden": true },
-        { "call": "dequeue([-10, -20])", "expected": "-10", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m4_l2_a3",
-      "title": "Looking at the Front (Peek)",
-      "task": [
-        "Sometimes you just want to look at who is next in line without actually removing them. We call this a 'Peek'.",
-        "",
-        "Instructions:",
-        "1. Define the function `peek_queue(queue)`.",
-        "2. If the queue is empty, return the text `'Empty'`.",
-        "3. Grab the 'peek front of queue' block from the 'Stacks & Queues' tab.",
-        "4. Return the item you peeked at.",
-        "",
-        "Sample Outputs:",
-        "peek_queue([5, 10, 15]) → 5",
-        "peek_queue([]) → 'Empty'"
+        "1. Define `us_cashier(amount)`.",
+        "2. Initialize the US coin denominations in descending order.",
+        "3. Implement the identical greedy division and modulo iteration structure established in the previous activity.",
+        "4. Return the aggregated coin count."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "peek_queue([5, 10, 15])", "expected": "5", "isHidden": false },
-        { "call": "peek_queue([99])", "expected": "99", "isHidden": false },
-        { "call": "peek_queue([])", "expected": "'Empty'", "isHidden": false },
-        { "call": "peek_queue([1, 2, 3])", "expected": "1", "isHidden": true },
-        { "call": "peek_queue([-5, 0, 5])", "expected": "-5", "isHidden": true }
+        {
+          "call": "us_cashier(47)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "us_cashier(99)",
+          "expected": "9",
+          "isHidden": false
+        },
+        {
+          "call": "us_cashier(4)",
+          "expected": "4",
+          "isHidden": true
+        },
+        {
+          "call": "us_cashier(0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
-      "id": "m4_l2_a4",
-      "title": "Generating a Pattern",
+      "id": "m4_l2_a3",
+      "title": "Coin Breakdown Distribution",
       "task": [
-        "Queues are amazing at generating sequences in perfect order. Let's use a queue to generate binary numbers (1, 10, 11, 100).",
+        "To provide operational transparency, the algorithm must record the specific denominations allocated rather than merely the total sum.",
         "",
         "Instructions:",
-        "1. Define `generate_binary(n)`.",
-        "2. Start a `queue` list holding just the text `'1'`, and an empty `result` list.",
-        "3. Loop exactly `n` times.",
-        "4. Inside the loop, dequeue the front of the queue and save it as `curr`. Append `curr` to your `result` list.",
-        "5. Next, enqueue `curr + '0'` to the queue, and then enqueue `curr + '1'` to the queue.",
-        "6. Return the `result` list.",
-        "",
-        "Sample Outputs:",
-        "generate_binary(3) → ['1', '10', '11']",
-        "generate_binary(5) → ['1', '10', '11', '100', '101']"
+        "1. Define `coin_breakdown(amount, coins)`. Assume `coins` is provided in descending order.",
+        "2. Initialize an empty array to map the distribution.",
+        "3. Iterate through the available coins. Determine how many times the current coin fits into the remaining amount.",
+        "4. Append this specific integer count to your distribution array.",
+        "5. Reduce the remaining amount via modulo arithmetic.",
+        "6. Return the distribution array to map the exact subset allocation."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "generate_binary(3)", "expected": "['1', '10', '11']", "isHidden": false },
-        { "call": "generate_binary(5)", "expected": "['1', '10', '11', '100', '101']", "isHidden": false },
-        { "call": "generate_binary(1)", "expected": "['1']", "isHidden": false },
-        { "call": "generate_binary(0)", "expected": "[]", "isHidden": true },
-        { "call": "generate_binary(2)", "expected": "['1', '10']", "isHidden": true }
+        {
+          "call": "coin_breakdown(47, [25, 10, 5, 1])",
+          "expected": "[1, 2, 0, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "coin_breakdown(47, [20, 10, 5, 1])",
+          "expected": "[2, 0, 1, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "coin_breakdown(100, [50, 20, 10])",
+          "expected": "[2, 0, 0]",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l2_a4",
+      "title": "Arbitrary Currency System",
+      "task": [
+        "A robust greedy algorithm must self-organize the dataset prior to execution. If a currency system is provided unsorted, the algorithm must execute an O(n log n) preprocessing phase.",
+        "",
+        "Instructions:",
+        "1. Define `custom_change(amount, coins)`.",
+        "2. Execute an in-place descending sort on the `coins` array.",
+        "3. Apply the standard iterative division and modulo reduction logic.",
+        "4. Return the aggregated coin count."
+      ],
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "custom_change(15, [1, 10, 5])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "custom_change(33, [10, 1, 25])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "custom_change(0, [5, 1])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_l2_a5",
-      "title": "Reverse the Front of the Line",
+      "title": "Exact Change Validation",
       "task": [
-        "Let's try a tricky maneuver: take the first 'K' people in the queue, reverse their order, and put them right back where they were!",
+        "The Greedy Choice Property is not mathematically flawless. If an arbitrary coin system lacks a 1-unit denomination, the greedy algorithm may fail to process the exact amount.",
         "",
         "Instructions:",
-        "1. Define `reverse_k(queue, k)`. If `k` is 0 or bigger than the queue length, just return the `queue`.",
-        "2. Slice the queue from the beginning to index `k` to get the first part. Use the 'reverse list' block to flip it backwards.",
-        "3. Slice the queue from index `k` to the end to get the remaining part.",
-        "4. Join your flipped first part with your untouched remaining part using the 'join list' block.",
-        "5. Return the combined list.",
-        "",
-        "Sample Outputs:",
-        "reverse_k([1, 2, 3, 4, 5], 3) → [3, 2, 1, 4, 5]",
-        "reverse_k([10, 20, 30], 2) → [20, 10, 30]"
+        "1. Define `can_make_change(amount, coins)`.",
+        "2. Sort the array of coins in descending order.",
+        "3. Execute the greedy subtraction and modulo logic to iteratively reduce the target amount.",
+        "4. Evaluate the terminal state: if the remaining amount has been reduced exactly to zero, return True.",
+        "5. If a non-zero remainder exists, the greedy constraints failed. Return False."
       ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(k)",
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "reverse_k([1, 2, 3, 4, 5], 3)", "expected": "[3, 2, 1, 4, 5]", "isHidden": false },
-        { "call": "reverse_k([10, 20, 30], 2)", "expected": "[20, 10, 30]", "isHidden": false },
-        { "call": "reverse_k([1, 2], 5)", "expected": "[1, 2]", "isHidden": false },
-        { "call": "reverse_k([1, 2, 3], 0)", "expected": "[1, 2, 3]", "isHidden": true },
-        { "call": "reverse_k([7, 8, 9, 10], 4)", "expected": "[10, 9, 8, 7]", "isHidden": true }
+        {
+          "call": "can_make_change(15, [10, 5])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "can_make_change(13, [10, 5])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "can_make_change(20, [15, 4])",
+          "expected": "False",
+          "isHidden": true
+        },
+        {
+          "call": "can_make_change(10, [10])",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_3": [
     {
       "id": "m4_l3_a1",
-      "title": "Keeping a Tally (Dictionaries)",
+      "title": "Activity Preprocessing (Sorting by End Time)",
       "task": [
-        "A 'Dictionary' (or Hash Map) is like a tally sheet. You give it a name (the Key), and it stores a piece of data for you (the Value). Let's use one to count how many times numbers appear in a list.",
+        "The Activity Selection algorithm maximizes concurrent scheduling by unconditionally prioritizing tasks that terminate the earliest.",
+        "To achieve O(n log n) efficiency, the dataset must be sorted utilizing the termination boundaries.",
         "",
         "Instructions:",
-        "1. Define the function `frequency_map(arr)`.",
-        "2. Open the 'Dictionaries (Built-in Type)' tab and create an empty dictionary called `tally`.",
-        "3. Loop through every `item` in `arr`. Use an 'If/Else' block.",
-        "4. If `item` is already in `tally` (use 'is in' from Logic), set its dictionary key to its current value + 1.",
-        "5. Else (it's brand new), set its dictionary key to 1.",
-        "6. Return the `tally` dictionary.",
-        "",
-        "Sample Outputs:",
-        "frequency_map([1, 2, 2, 3]) → {1: 1, 2: 2, 3: 1}",
-        "frequency_map([5, 5, 5]) → {5: 3}"
+        "1. Define `sort_by_end(activities)`. Assume `activities` is a 2D array where each sub-array contains a start time and an end time.",
+        "2. Utilize the sorting construct to arrange the array in ascending order based specifically on the element representing the end time.",
+        "3. Return the sorted 2D array structure."
       ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "frequency_map([1, 2, 2, 3])", "expected": "{1: 1, 2: 2, 3: 1}", "isHidden": false },
-        { "call": "frequency_map([5, 5, 5])", "expected": "{5: 3}", "isHidden": false },
-        { "call": "frequency_map([])", "expected": "{}", "isHidden": false },
-        { "call": "frequency_map([10])", "expected": "{10: 1}", "isHidden": true },
-        { "call": "frequency_map([1, 2, 1, 2])", "expected": "{1: 2, 2: 2}", "isHidden": true }
+        {
+          "call": "sort_by_end([[1, 4], [0, 2], [3, 5]])",
+          "expected": "[[0, 2], [1, 4], [3, 5]]",
+          "isHidden": false
+        },
+        {
+          "call": "sort_by_end([[5, 9], [1, 2], [3, 4]])",
+          "expected": "[[1, 2], [3, 4], [5, 9]]",
+          "isHidden": false
+        },
+        {
+          "call": "sort_by_end([[1, 2]])",
+          "expected": "[[1, 2]]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_l3_a2",
-      "title": "Finding the First Unique Letter",
+      "title": "The Event Scheduler",
       "task": [
-        "Let's find the very first letter in a word that doesn't repeat! We can use our dictionary tally sheet to help us.",
+        "Upon structural preprocessing, a single O(n) linear sweep is sufficient to greedily aggregate compatible activities.",
         "",
         "Instructions:",
-        "1. Define `first_unique(s)`.",
-        "2. Use the exact same logic from the previous task to build a tally dictionary of all the letters in the string `s`.",
-        "3. Once your tally is built, make a SECOND loop that walks through the string `s` again.",
-        "4. For each letter, check your dictionary. If the tally for that letter is exactly `1`, return the letter immediately!",
-        "5. If you check the whole word and everything repeats, return `'_'`.",
-        "",
-        "Sample Outputs:",
-        "first_unique('leetcode') → 'l'",
-        "first_unique('aabb') → '_'"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(k)",
-      "testCasesPool": [
-        { "call": "first_unique('leetcode')", "expected": "'l'", "isHidden": false },
-        { "call": "first_unique('aabb')", "expected": "'_'", "isHidden": false },
-        { "call": "first_unique('z')", "expected": "'z'", "isHidden": false },
-        { "call": "first_unique('aabbc')", "expected": "'c'", "isHidden": true },
-        { "call": "first_unique('')", "expected": "'_'", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m4_l3_a3",
-      "title": "Finding Matches (Intersection)",
-      "task": [
-        "To find items that live in both lists, checking them one by one is too slow. If we turn one list into a 'Set', the computer can check it instantly!",
-        "",
-        "Instructions:",
-        "1. Define `intersect_arrays(arr1, arr2)`.",
-        "2. Open the 'Sets & Tuples' tab. Turn `arr1` into a Set and save it as `set1`. Create an empty list called `result`.",
-        "3. Loop through `arr2`. Use an 'If' block: if the item is in `set1`, append it to `result`.",
-        "4. CRITICAL: Once you append it, use the 'remove from set' block to delete it from `set1`. This prevents duplicate answers!",
-        "5. Return `result`.",
-        "",
-        "Sample Outputs:",
-        "intersect_arrays([1, 2, 2, 1], [2, 2]) → [2]",
-        "intersect_arrays([4, 9, 5], [9, 4, 9, 8, 4]) → [9, 4]"
-      ],
-      "targetTime": "O(n + m)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "intersect_arrays([1, 2, 2, 1], [2, 2])", "expected": "[2]", "isHidden": false },
-        { "call": "intersect_arrays([4, 9, 5], [9, 4, 9, 8, 4])", "expected": "[9, 4]", "isHidden": false },
-        { "call": "intersect_arrays([1, 2], [3, 4])", "expected": "[]", "isHidden": false },
-        { "call": "intersect_arrays([], [1])", "expected": "[]", "isHidden": true },
-        { "call": "intersect_arrays([1, 1], [1, 1])", "expected": "[1]", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m4_l3_a4",
-      "title": "Are They Anagrams?",
-      "task": [
-        "Two words are anagrams if they use the exact same letters (like 'rat' and 'tar'). Let's use a dictionary to check!",
-        "",
-        "Instructions:",
-        "1. Define `is_anagram(s, t)`.",
-        "2. First check: if the length of `s` does not equal the length of `t`, return `False`.",
-        "3. Build a frequency tally dictionary for string `s`.",
-        "4. Loop through string `t`. For each letter, subtract 1 from its dictionary value. If a letter isn't in the dictionary at all, return `False`.",
-        "5. After the loop, check the dictionary values (using 'get values from dict'). If any value is not exactly 0, return `False`. Otherwise return `True`.",
-        "",
-        "Sample Outputs:",
-        "is_anagram('anagram', 'nagaram') → True",
-        "is_anagram('rat', 'car') → False"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(k)",
-      "testCasesPool": [
-        { "call": "is_anagram('anagram', 'nagaram')", "expected": "True", "isHidden": false },
-        { "call": "is_anagram('rat', 'car')", "expected": "False", "isHidden": false },
-        { "call": "is_anagram('a', 'a')", "expected": "True", "isHidden": false },
-        { "call": "is_anagram('ab', 'a')", "expected": "False", "isHidden": true },
-        { "call": "is_anagram('', '')", "expected": "True", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m4_l3_a5",
-      "title": "Secret Codes",
-      "task": [
-        "Can one word be turned into another by replacing letters? 'egg' can become 'add' if 'e'='a' and 'g'='d'. But 'foo' can't be 'bar' because 'o' can't be both 'a' and 'r'!",
-        "",
-        "Instructions:",
-        "1. Define `is_isomorphic(s, t)`.",
-        "2. Create two empty dictionaries: `map_s` and `map_t`.",
-        "3. Use a 'count with i' loop to look at both words at the same time. Save `char_s = s[i]` and `char_t = t[i]`.",
-        "4. If `char_s` is in `map_s` but its saved value isn't `char_t`, return `False`.",
-        "5. If `char_t` is in `map_t` but its saved value isn't `char_s`, return `False`.",
-        "6. Set `map_s[char_s] = char_t` and `map_t[char_t] = char_s`. Return `True` at the end.",
-        "",
-        "Sample Outputs:",
-        "is_isomorphic('egg', 'add') → True",
-        "is_isomorphic('foo', 'bar') → False"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "is_isomorphic('egg', 'add')", "expected": "True", "isHidden": false },
-        { "call": "is_isomorphic('foo', 'bar')", "expected": "False", "isHidden": false },
-        { "call": "is_isomorphic('paper', 'title')", "expected": "True", "isHidden": false },
-        { "call": "is_isomorphic('a', 'a')", "expected": "True", "isHidden": true },
-        { "call": "is_isomorphic('ab', 'aa')", "expected": "False", "isHidden": true }
-      ]
-    }
-  ],
-  "lesson_4": [
-    {
-      "id": "m4_l4_a1",
-      "title": "The Magic of Sets",
-      "task": [
-        "A 'Set' is a magical box that destroys duplicates instantly. You can never have two of the same item inside a Set!",
-        "",
-        "Instructions:",
-        "1. Define the function `filter_unique(arr)`.",
-        "2. Open the 'Sets & Tuples' tab and use 'create set from list' on your `arr`.",
-        "3. Now open the 'Lists (Built-in Type)' tab and turn the Set right back into a list.",
-        "4. Use the 'get sorted copy of list' block to sort it in ascending order, and return it.",
-        "",
-        "Sample Outputs:",
-        "filter_unique([3, 1, 2, 1, 3]) → [1, 2, 3]",
-        "filter_unique([5, 5, 5]) → [5]"
-      ],
-      "targetTime": "O(n log n)",
-      "targetSpace": "O(n)",
-      "testCasesPool": [
-        { "call": "filter_unique([3, 1, 2, 1, 3])", "expected": "[1, 2, 3]", "isHidden": false },
-        { "call": "filter_unique([5, 5, 5])", "expected": "[5]", "isHidden": false },
-        { "call": "filter_unique([10, 20])", "expected": "[10, 20]", "isHidden": false },
-        { "call": "filter_unique([])", "expected": "[]", "isHidden": true },
-        { "call": "filter_unique([-1, -1, 0, 1])", "expected": "[-1, 0, 1]", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m4_l4_a2",
-      "title": "Is it a Subset?",
-      "task": [
-        "If you want to know if every single item from a small list exists inside a big list, Sets have a built-in tool that does this instantly without any loops!",
-        "",
-        "Instructions:",
-        "1. Define `is_subset(sub_arr, super_arr)`.",
-        "2. Turn both `sub_arr` and `super_arr` into Sets.",
-        "3. You can use Python's built in math operators for this: evaluate if `set1 <= set2` using a logic block.",
-        "4. Return the result.",
-        "",
-        "Sample Outputs:",
-        "is_subset([1, 2], [1, 2, 3, 4]) → True",
-        "is_subset([5], [1, 2, 3]) → False"
-      ],
-      "targetTime": "O(n + m)",
-      "targetSpace": "O(n + m)",
-      "testCasesPool": [
-        { "call": "is_subset([1, 2], [1, 2, 3, 4])", "expected": "True", "isHidden": false },
-        { "call": "is_subset([5], [1, 2, 3])", "expected": "False", "isHidden": false },
-        { "call": "is_subset([], [1])", "expected": "True", "isHidden": false },
-        { "call": "is_subset([10, 10], [10])", "expected": "True", "isHidden": true },
-        { "call": "is_subset([1, 2, 3], [1, 2, 3])", "expected": "True", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m4_l4_a3",
-      "title": "Completely Different (Disjoint)",
-      "task": [
-        "Two lists are 'disjoint' if they share zero items. It means they are completely different. Let's use Sets to find out!",
-        "",
-        "Instructions:",
-        "1. Define the function `is_disjoint(arr1, arr2)`.",
-        "2. Turn both inputs into Sets.",
-        "3. Use the 'set intersection' block from the 'Sets & Tuples' tab. This creates a new set of the items they share.",
-        "4. Check the length of this intersection. If the length is 0, return `True` (they are totally different!). Otherwise, return `False`.",
-        "",
-        "Sample Outputs:",
-        "is_disjoint([1, 2], [3, 4]) → True",
-        "is_disjoint([1, 2, 3], [3, 4]) → False"
-      ],
-      "targetTime": "O(n + m)",
-      "targetSpace": "O(n + m)",
-      "testCasesPool": [
-        { "call": "is_disjoint([1, 2], [3, 4])", "expected": "True", "isHidden": false },
-        { "call": "is_disjoint([1, 2, 3], [3, 4])", "expected": "False", "isHidden": false },
-        { "call": "is_disjoint([], [1, 2])", "expected": "True", "isHidden": false },
-        { "call": "is_disjoint([5], [5])", "expected": "False", "isHidden": true },
-        { "call": "is_disjoint([10, 20], [30, 40, 50])", "expected": "True", "isHidden": true }
-      ]
-    },
-    {
-      "id": "m4_l4_a4",
-      "title": "Find the Missing Number",
-      "task": [
-        "Here's a famous math trick! If you have a list of numbers from 0 to N, but exactly one is missing, you can find it instantly by subtracting the actual sum from the expected sum.",
-        "",
-        "Instructions:",
-        "1. Define the function `find_missing(arr)`.",
-        "2. Save the length of the array to a variable `n`.",
-        "3. Calculate what the sum SHOULD be using the formula: `(n * (n + 1)) // 2`. Save this as `expected_sum`.",
-        "4. Add up all the numbers actually in `arr` using a loop, and save it as `actual_sum`.",
-        "5. Return `expected_sum - actual_sum`.",
-        "",
-        "Sample Outputs:",
-        "find_missing([3, 0, 1]) → 2",
-        "find_missing([0, 1]) → 2"
+        "1. Define `schedule_events(activities)`. Ensure boundary validation: if the array is empty, return 0.",
+        "2. Assume the input is already sorted by end time. Initialize your event count to 1, and set your tracking variable to the termination time of the initial event.",
+        "3. Iterate through the array starting from the second event.",
+        "4. Evaluate overlap: if the start time of the current activity is greater than or equal to your tracked end time, the event is compatible.",
+        "5. When an event is compatible, increment your count and update the tracked end time to the termination time of the newly scheduled event.",
+        "6. Return the total count."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "find_missing([3, 0, 1])", "expected": "2", "isHidden": false },
-        { "call": "find_missing([0, 1])", "expected": "2", "isHidden": false },
-        { "call": "find_missing([9, 6, 4, 2, 3, 5, 7, 0, 1])", "expected": "8", "isHidden": false },
-        { "call": "find_missing([0])", "expected": "1", "isHidden": true },
-        { "call": "find_missing([1])", "expected": "0", "isHidden": true }
+        {
+          "call": "schedule_events([[0, 2], [1, 4], [3, 5]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_events([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_events([[1, 10], [2, 3], [4, 5]])",
+          "expected": "1",
+          "isHidden": true
+        },
+        {
+          "call": "schedule_events([])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
-      "id": "m4_l4_a5",
-      "title": "Check for Duplicates",
+      "id": "m4_l3_a3",
+      "title": "Algorithmic Conflict Detection",
       "task": [
-        "If you want to know if an array has duplicates, don't write a slow nested loop! Just use a Set and check the lengths.",
+        "Evaluating sequence validity requires an algorithm capable of detecting structural overlap between continuous states.",
         "",
         "Instructions:",
-        "1. Define `contains_duplicate(arr)`.",
-        "2. Get the length of the original `arr`.",
-        "3. Turn `arr` into a Set, and get the length of the Set.",
-        "4. Use a Logic block: if the lengths are NOT equal, return `True` (because the Set threw away the duplicates!).",
-        "5. If they are equal, return `False`.",
-        "",
-        "Sample Outputs:",
-        "contains_duplicate([1, 2, 3, 1]) → True",
-        "contains_duplicate([1, 2, 3, 4]) → False"
+        "1. Define `has_conflicts(activities)`. Assume the array is sorted by start time.",
+        "2. Construct an iteration loop that safely evaluates adjacent pairs without triggering an out-of-bounds error.",
+        "3. Evaluate the boundary violation: if the end time of the current activity strictly exceeds the start time of the subsequent activity, a conflict exists.",
+        "4. If a conflict is detected, return True immediately.",
+        "5. Return False if the sequential scan verifies all activities are perfectly disjoint."
       ],
       "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "has_conflicts([[1, 3], [2, 5]])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_conflicts([[1, 2], [3, 4]])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "has_conflicts([[1, 5], [5, 6]])",
+          "expected": "False",
+          "isHidden": true
+        },
+        {
+          "call": "has_conflicts([])",
+          "expected": "False",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l3_a4",
+      "title": "Aggregating Scheduled Duration",
+      "task": [
+        "To determine the operational efficiency of the scheduled blocks, the algorithm must dynamically map and aggregate the structural differences.",
+        "",
+        "Instructions:",
+        "1. Define `total_duration(activities)`.",
+        "2. Initialize an accumulator variable to track total time.",
+        "3. Iterate through the multi-dimensional array.",
+        "4. Compute the mathematical duration of the current task by subtracting its start time from its end time.",
+        "5. Increment your tracking variable by this computed magnitude.",
+        "6. Return the accumulated total."
+      ],
+      "targetTime": "O(n)",
+      "targetSpace": "O(1)",
+      "testCasesPool": [
+        {
+          "call": "total_duration([[1, 3], [4, 6]])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "total_duration([[0, 10]])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "total_duration([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": true
+        },
+        {
+          "call": "total_duration([])",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m4_l3_a5",
+      "title": "Facility Allocation (Max Overlap)",
+      "task": [
+        "Determining the minimum number of rooms required to host all events requires tracking the maximum state of concurrency.",
+        "",
+        "Instructions:",
+        "1. Define `rooms_required(activities)`.",
+        "2. Isolate two distinct mathematical sequences: an array of start times and an array of end times. Sort both in ascending order.",
+        "3. Initialize boundary pointers for both arrays, alongside variables tracking current rooms and the maximum recorded rooms.",
+        "4. Traverse the sequences: if the current start time occurs strictly before the current end time, a new room is needed. Increment the current room count, advance the start pointer, and update the recorded maximum.",
+        "5. Otherwise, a room has freed up. Decrement the current room count and advance the end pointer.",
+        "6. Return the maximum recorded rooms."
+      ],
+      "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "contains_duplicate([1, 2, 3, 1])", "expected": "True", "isHidden": false },
-        { "call": "contains_duplicate([1, 2, 3, 4])", "expected": "False", "isHidden": false },
-        { "call": "contains_duplicate([1, 1, 1, 3, 3, 4, 3, 2, 4, 2])", "expected": "True", "isHidden": false },
-        { "call": "contains_duplicate([])", "expected": "False", "isHidden": true },
-        { "call": "contains_duplicate([5])", "expected": "False", "isHidden": true }
+        {
+          "call": "rooms_required([[1, 4], [2, 5], [6, 8]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "rooms_required([[1, 2], [3, 4], [5, 6]])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "rooms_required([[1, 10], [2, 9], [3, 8]])",
+          "expected": "3",
+          "isHidden": true
+        },
+        {
+          "call": "rooms_required([])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
   "optimizations": [
     {
       "id": "m4_opt_1",
-      "title": "Optimization Challenge: Avoiding List Count",
+      "title": "Optimization Challenge: Pre-Sorting Over Exhaustive Search",
+      "difficulty": "Medium",
       "task": [
-        "If you use the 'count occurrences' list block inside a loop, your program will slow down to O(n²) because it has to re-scan the entire list every time! Let's build a tally dictionary instead.",
+        "Repeatedly searching an array for the largest remaining value results in O(n²) time complexity. Sorting the data first allows you to extract the largest values efficiently.",
         "",
         "Optimization Guidelines:",
-        "1. Eradicate any blocks that use `count()` inside of a loop.",
-        "2. Create an empty dictionary from the 'Dictionaries (Built-in Type)' tab.",
-        "3. Loop through the dataset once, checking if the item is in the dictionary. If it isn't, set it to 1. If it is, add 1 to it.",
-        "4. This drops the runtime to a blazing fast O(n) limit.",
-        "",
-        "Sample Outputs:",
-        "optimize_frequency([10, 20, 10, 30]) → {10: 2, 20: 1, 30: 1}",
-        "optimize_frequency([1, 1, 1]) → {1: 3}"
+        "1. Eliminate the nested loops used to find the maximum value.",
+        "2. Sort the array in descending order before starting the iteration.",
+        "3. Create a single loop that iterates exactly K times.",
+        "4. Accumulate the values from the beginning of the sorted array.",
+        "5. Return the total to achieve an O(n log n) time complexity."
       ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m4-4.1.json",
       "testCasesPool": [
-        { "call": "optimize_frequency([10, 20, 10, 30])", "expected": "{10: 2, 20: 1, 30: 1}", "isHidden": false },
-        { "call": "optimize_frequency([1, 1, 1])", "expected": "{1: 3}", "isHidden": false },
-        { "call": "optimize_frequency([])", "expected": "{}", "isHidden": false },
-        { "call": "optimize_frequency([5, 6])", "expected": "{5: 1, 6: 1}", "isHidden": true },
-        { "call": "optimize_frequency([7, 7, 8, 8])", "expected": "{7: 2, 8: 2}", "isHidden": true }
+        {
+          "call": "greedy_sum_opt([1, 5, 2, 9, 3], 2)",
+          "expected": "14",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum_opt([10, 10, 10], 1)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "greedy_sum_opt([5, 4, 3, 2, 1], 3)",
+          "expected": "12",
+          "isHidden": true
+        },
+        {
+          "call": "greedy_sum_opt([], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_opt_2",
-      "title": "Optimization Challenge: Stop Using 'In List'",
+      "title": "Optimization Challenge: Constant Time Modulo Deduction",
+      "difficulty": "Medium",
       "task": [
-        "When you use a logic block to check if an item 'is in' a list, the computer has to search the entire list one by one (O(n)). But if you check if an item 'is in' a Set, the computer finds it instantly (O(1))!",
+        "Using a loop to repeatedly subtract coin values simulates an inefficient linear search. Mathematical division and modulo operations can process this in constant time per coin.",
         "",
         "Optimization Guidelines:",
-        "1. Look at your code and find where you are checking if an item is inside a normal list.",
-        "2. Before the loop even starts, convert that list into a Set.",
-        "3. Change your logic block to check if the item is in your new Set instead.",
-        "4. This tiny change prevents O(n²) bottlenecks!",
-        "",
-        "Sample Outputs:",
-        "optimize_unique([4, 1, 2, 1, 4]) → [1, 2, 4]",
-        "optimize_unique([3, 3, 3]) → [3]"
+        "1. Remove the inner loop that handles repeated subtraction.",
+        "2. Use integer division to determine how many times the current coin fits into the remaining amount.",
+        "3. Add the division result to your total coin counter.",
+        "4. Use the modulo operator to update the remaining amount.",
+        "5. Removing the inner loop produces a more efficient algorithm."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m4-4.2.json",
       "testCasesPool": [
-        { "call": "optimize_unique([4, 1, 2, 1, 4])", "expected": "[1, 2, 4]", "isHidden": false },
-        { "call": "optimize_unique([3, 3, 3])", "expected": "[3]", "isHidden": false },
-        { "call": "optimize_unique([10])", "expected": "[10]", "isHidden": false },
-        { "call": "optimize_unique([])", "expected": "[]", "isHidden": true },
-        { "call": "optimize_unique([9, 8, 7, 7, 8])", "expected": "[7, 8, 9]", "isHidden": true }
+        {
+          "call": "fast_cashier(47, [25, 10, 5, 1])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fast_cashier(100, [50, 20, 10])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "fast_cashier(8, [5, 1])",
+          "expected": "4",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m4_opt_3",
-      "title": "Optimization Challenge: Saving Your Math (Memoization)",
+      "title": "Optimization Challenge: Greedy Activity Scheduling",
+      "difficulty": "Hard",
       "task": [
-        "In our Fibonacci recursive function, the computer calculates `fib(2)` and `fib(3)` dozens of times, doing the same exact math over and over! We can use a Dictionary as a 'memory pad' to save our answers.",
+        "Evaluating every combination of activities takes exponential time. Sorting the activities by their end times allows for a single-pass greedy selection.",
         "",
         "Optimization Guidelines:",
-        "1. Our function `fib_optimized(n, memo)` has a dictionary parameter `memo` that starts empty.",
-        "2. Before doing any math, check if `n` is already a key in the `memo` dictionary. If it is, just return `memo[n]` instantly!",
-        "3. If it's not, do the recursive math as normal.",
-        "4. But before you return the answer, save it! Set `memo[n] = answer`.",
-        "5. This takes an impossibly slow O(2^n) algorithm and makes it a blazing fast O(n) algorithm.",
-        "",
-        "Sample Outputs:",
-        "fib_optimized(5, {}) → 5",
-        "fib_optimized(10, {}) → 55"
+        "1. Sort the given activities based on their termination times.",
+        "2. Track the end time of the most recently selected activity. Start with the first activity in the sorted list.",
+        "3. Iterate through the remaining activities sequentially.",
+        "4. If an activity starts at or after the tracked end time, select it and update the tracked end time.",
+        "5. Return the total number of selected activities to observe an O(n log n) efficiency."
       ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(n log n)",
+      "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m4-4.3.json",
       "testCasesPool": [
-        { "call": "fib_optimized(5, {})", "expected": "5", "isHidden": false },
-        { "call": "fib_optimized(10, {})", "expected": "55", "isHidden": false },
-        { "call": "fib_optimized(0, {})", "expected": "0", "isHidden": false },
-        { "call": "fib_optimized(1, {})", "expected": "1", "isHidden": true },
-        { "call": "fib_optimized(6, {})", "expected": "8", "isHidden": true }
+        {
+          "call": "schedule_opt([[0, 2], [1, 4], [3, 5]])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_opt([[1, 2], [2, 3], [3, 4]])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "schedule_opt([[1, 10], [2, 3], [4, 5]])",
+          "expected": "2",
+          "isHidden": true
+        },
+        {
+          "call": "schedule_opt([])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ]

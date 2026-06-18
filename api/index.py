@@ -60,4 +60,5 @@ async def health_check():
     }
 
 if __name__ == "__main__":
-    uvicorn.run("index:app", host="0.0.0.0", port=8000, reload=True)
+    # Changed host to 127.0.0.1 to explicitly bind to IPv4 matching the Vite proxy
+    uvicorn.run("index:app", host="127.0.0.1", port=8000, reload=True)

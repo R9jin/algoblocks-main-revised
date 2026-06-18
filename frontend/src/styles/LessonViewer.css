@@ -298,6 +298,8 @@
 
 .lesson-header {
   margin-bottom: 48px;
+  display: flex;
+  flex-direction: column;
 }
 
 .lesson-label {
@@ -324,25 +326,32 @@
 }
 
 .lesson-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 20px;
 }
 
 .lesson-meta-card {
+  flex: 1;
+  min-width: 200px;
   background: white;
   border: 1px solid #ece8f8;
   border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 16px;
+  row-gap: 4px;
 }
 
 .meta-icon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   color: #5A1398;
+  grid-row: 1 / -1;
 }
 
 .lesson-meta-card span {
@@ -351,12 +360,14 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  align-self: end;
 }
 
 .lesson-meta-card strong {
   font-size: 1.1rem;
   color: #2d245c;
   font-weight: 600;
+  align-self: start;
 }
 
 .lesson-article {
@@ -686,7 +697,7 @@ body {
   }
 
   .lesson-meta-grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .lesson-resources {

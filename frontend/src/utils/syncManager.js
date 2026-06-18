@@ -14,10 +14,11 @@ const getAuthHeaders = () => {
     };
 };
 
-const addToSyncQueue = async (url, method, payload, type) => {
+const addToSyncQueue = async (type, data) => {
     try {
-        const id = Date.now().toString() + "-" + Math.random().toString(36).substr(2, 9);
-        await syncQueueDB.setItem(id, { url, method, payload, type, timestamp: Date.now() });
+        const id = `sync_${type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        // Uses the modernized format expected by the batch syncer
+        await syncQueueDB.setItem(id, { type: type.toUpperCase(), action: "UPSERT", data, timestamp: Date.now() });
         console.log(`[Offline] Saved ${type} to sync queue.`);
     } catch (err) {
         console.error("Failed to add to sync queue", err);
@@ -25,6 +26,7 @@ const addToSyncQueue = async (url, method, payload, type) => {
 };
 
 export const syncManager = {
+    // Backwards compatible method for older components
     syncSubmission: async (activityId, code, output, isCompleted) => {
         const payload = { activityId, code, output, isCompleted, timestamp: new Date().toISOString() };
 
@@ -34,20 +36,20 @@ export const syncManager = {
         } catch (err) { }
 
         if (!navigator.onLine) {
-            await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+            await addToSyncQueue("SUBMISSION", payload);
             return { status: "offline_saved", message: "Saved locally. Will sync when online." };
         }
 
         try {
             const response = await fetch(`${API_BASE_URL}/sync-submission`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
             if (response.status === 401) {
-                await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+                await addToSyncQueue("SUBMISSION", payload);
                 return false;
             }
             if (!response.ok) throw new Error(`Server returned ${response.status}`);
             return await response.json();
         } catch (error) {
-            await addToSyncQueue(`${API_BASE_URL}/sync-submission`, "POST", payload, "submission");
+            await addToSyncQueue("SUBMISSION", payload);
             return false;
         }
     },
@@ -60,20 +62,20 @@ export const syncManager = {
         } catch (err) { }
 
         if (!navigator.onLine) {
-            await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+            await addToSyncQueue("PROGRESS", payload);
             return { status: "offline_saved" };
         }
 
         try {
             const response = await fetch(`${API_BASE_URL}/update-progress`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
             if (response.status === 401) {
-                await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+                await addToSyncQueue("PROGRESS", payload);
                 return false;
             }
             if (!response.ok) throw new Error("Failed to update progress");
             return await response.json();
         } catch (error) {
-            await addToSyncQueue(`${API_BASE_URL}/update-progress`, "POST", payload, "progress");
+            await addToSyncQueue("PROGRESS", payload);
             return false;
         }
     },
@@ -86,45 +88,77 @@ export const syncManager = {
         } catch (err) { }
 
         if (!navigator.onLine) {
-            await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+            await addToSyncQueue("ASSESSMENT", payload);
             return { status: "offline_saved" };
         }
 
         try {
             const response = await fetch(`${API_BASE_URL}/update-assessment`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
             if (response.status === 401) {
-                await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+                await addToSyncQueue("ASSESSMENT", payload);
                 return false;
             }
             if (!response.ok) throw new Error("Failed to update assessment");
             return await response.json();
         } catch (error) {
-            await addToSyncQueue(`${API_BASE_URL}/update-assessment`, "POST", payload, "assessment");
+            await addToSyncQueue("ASSESSMENT", payload);
             return false;
         }
     },
 
+    // Modernized batch-processor
     processSyncQueue: async () => {
         if (!navigator.onLine) return;
         try {
             const keys = await syncQueueDB.keys();
             if (keys.length === 0) return;
+
+            const batchPayload = { progress: [], submissions: [], assessments: [] };
+            const keysToDelete = [];
+
             for (const key of keys) {
                 const item = await syncQueueDB.getItem(key);
-                try {
-                    if (!item.url || !item.method || !item.payload) {
-                        await syncQueueDB.removeItem(key);
-                        continue;
-                    }
-                    const response = await fetch(item.url, { method: item.method, headers: getAuthHeaders(), body: JSON.stringify(item.payload) });
-                    if (response.ok) {
-                        await syncQueueDB.removeItem(key);
-                    } else if (response.status === 401) {
-                        break;
-                    }
-                } catch (err) { }
+                if (!item) continue;
+
+                // Handle both the modern {type, data} format and legacy fallback
+                const itemType = (item.type || "").toUpperCase();
+                const itemData = item.data || item.payload;
+
+                if (!itemData) {
+                    keysToDelete.push(key);
+                    continue;
+                }
+
+                if (itemType === "SUBMISSION") batchPayload.submissions.push(itemData);
+                else if (itemType === "PROGRESS") batchPayload.progress.push(itemData);
+                else if (itemType === "ASSESSMENT") batchPayload.assessments.push(itemData);
+                else keysToDelete.push(key); // Clear unrecognizable garbage
+                
+                keysToDelete.push(key);
             }
-        } catch (err) { }
+
+            if (batchPayload.progress.length || batchPayload.submissions.length || batchPayload.assessments.length) {
+                const response = await fetch(`${API_BASE_URL}/batch-sync`, { 
+                    method: "POST", 
+                    headers: getAuthHeaders(), 
+                    body: JSON.stringify(batchPayload) 
+                });
+
+                if (response.ok) {
+                    for (const key of keysToDelete) {
+                        await syncQueueDB.removeItem(key);
+                    }
+                    console.log(`[Sync] Batch synced ${keysToDelete.length} items successfully.`);
+                } else if (response.status !== 401) {
+                    console.warn(`[Sync] Batch sync failed with status ${response.status}`);
+                }
+            } else {
+                // If there were only invalid items, clean them up
+                for (const key of keysToDelete) await syncQueueDB.removeItem(key);
+            }
+        } catch (err) {
+            console.error("[Sync] Error processing sync queue:", err);
+        }
     }
 };
 
@@ -170,7 +204,6 @@ export const syncDownFromServer = async () => {
         }
 
         // 3. Submissions
-        // FIX: Changed endpoint to /get-all-submissions to match backend router
         const subRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
         if (subRes.ok) {
             const data = await subRes.json();
@@ -188,7 +221,9 @@ export const syncDownFromServer = async () => {
             }
         }
         window.dispatchEvent(new Event("localDataSynced"));
-    } catch (error) { }
+    } catch (error) { 
+        console.error("[Sync] Error pulling from server:", error);
+    }
 };
 
 export const startBackgroundSync = () => {

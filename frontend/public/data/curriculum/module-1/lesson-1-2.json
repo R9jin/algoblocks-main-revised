@@ -179,15 +179,9 @@
       "content": "Linear complexity means the work grows directly with input size. If n doubles, the work roughly doubles. If n triples, the work roughly triples. Linear search is the classic example. It checks each element from start to end until it finds the target or reaches the end.",
       "subsections": [
         {
-          "id": "linear-examples",
-          "title": "Common Operations",
-          "content": "Other O(n) operations include:",
-          "bullets": [
-            "Summing all elements in an array.",
-            "Finding the maximum or minimum value.",
-            "Copying an array.",
-            "A single loop that processes each element once is O(n)."
-          ]
+          "id": "linear-patterns",
+          "title": "Linear Patterns: Accumulation, Extrema, and Mapping",
+          "content": "Algorithms commonly utilize specific foundational patterns that require visiting every element sequentially. These include State Accumulation (iterating to sum elements), Extrema Tracking (evaluating each item against a recorded maximum or minimum), Conditional Tracking (isolating items that meet specific criteria, like even numbers), and Data Transformation (mapping or copying elements into a new list mathematically doubled). Because every item must be inspected or modified at least once, these operations strictly execute in O(n) time."
         },
         {
           "id": "linear-limits",
@@ -319,7 +313,12 @@
         {
           "id": "hash-sets",
           "title": "Hash Sets",
-          "content": "When checking for duplicate values, beginners often use a loop inside another loop to compare every item against every other item, resulting in a disastrous O(n squared) Time Complexity. Hash Sets provide a mathematical shortcut. A Set is a special data structure designed to reject duplicates instantly. Looking up an item in a Set takes O(1) constant time. By adding items to a Set as you iterate, you can check if you have seen a value before without needing a nested loop, dropping your Time Complexity to a much faster O(n)."
+          "content": "When checking for duplicate values, beginners often use a loop inside another loop to compare every item against every other item, resulting in a disastrous O(n²) Time Complexity. Hash Sets provide a mathematical shortcut. A Set is a special data structure designed to reject duplicates instantly. Looking up an item in a Set takes O(1) constant time. By adding items to a Set as you iterate, you can check if you have seen a value before without needing a nested loop, dropping your Time Complexity to a much faster O(n)."
+        },
+        {
+          "id": "math-series",
+          "title": "Mathematical Series Optimization",
+          "content": "Computing the sum of a sequence of integers dynamically utilizing a running loop demands O(n) execution time. However, applying algebraic shortcuts—such as Gauss's arithmetic series formula `n * (n + 1) / 2`—collapses the iteration into a direct calculation, evaluating in highly optimized O(1) constant time. Substituting loops for geometric or arithmetic formulas is a cornerstone of high-performance logic mapping."
         }
       ]
     },
@@ -396,6 +395,10 @@
     {
       "title": "W3Schools - DSA Time Complexity",
       "url": "https://www.w3schools.com/dsa/dsa_timecomplexity.php"
+    },
+    {
+      "title": "Brilliant - Arithmetic Progressions",
+      "url": "https://brilliant.org/wiki/arithmetic-progressions/"
     }
   ]
 }

@@ -94,7 +94,7 @@ const curriculumIndex = [
       {
         lessonId: "lesson-3-2",
         title: "Binary Search",
-        path: "/curriculum/module-3/lessons-3-2.json"
+        path: "/curriculum/module-3/lesson-3-2.json"
       },
 
       {

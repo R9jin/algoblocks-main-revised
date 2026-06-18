@@ -1,0 +1,932 @@
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "6b4a942a-c6dc-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "board",
+                "id": "board"
+              },
+              {
+                "name": "row",
+                "id": "row"
+              },
+              {
+                "name": "col",
+                "id": "col"
+              },
+              {
+                "name": "n",
+                "id": "n"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "is_safe_naive"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "controls_for",
+                "id": "57537aa3-4b7c-4",
+                "fields": {
+                  "VAR": {
+                    "id": "i"
+                  }
+                },
+                "inputs": {
+                  "FROM": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "b3659d8e-f45c-4",
+                      "fields": {
+                        "NUM": 0
+                      }
+                    }
+                  },
+                  "TO": {
+                    "block": {
+                      "type": "variables_get",
+                      "id": "c6ec695b-8444-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "row"
+                        }
+                      }
+                    }
+                  },
+                  "BY": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "9eb6de97-e3d2-4",
+                      "fields": {
+                        "NUM": 1
+                      }
+                    }
+                  },
+                  "DO": {
+                    "block": {
+                      "type": "controls_if",
+                      "id": "2dbe2652-b783-4",
+                      "inputs": {
+                        "IF0": {
+                          "block": {
+                            "type": "logic_operation",
+                            "id": "d7073dc3-3a9b-4",
+                            "fields": {
+                              "OP": "OR"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "logic_compare",
+                                  "id": "c0472ef2-e52d-4",
+                                  "fields": {
+                                    "OP": "EQ"
+                                  },
+                                  "inputs": {
+                                    "A": {
+                                      "block": {
+                                        "type": "lists_getIndex",
+                                        "id": "9d07369a-55d4-4",
+                                        "fields": {
+                                          "MODE": "GET",
+                                          "WHERE": "FROM_START"
+                                        },
+                                        "inputs": {
+                                          "VALUE": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "937a5bc3-28de-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "board"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "AT": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "0499b542-59e1-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "i"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "B": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "b5f87eba-ba5f-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "col"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "logic_operation",
+                                  "id": "d19dcf87-fdcf-4",
+                                  "fields": {
+                                    "OP": "OR"
+                                  },
+                                  "inputs": {
+                                    "A": {
+                                      "block": {
+                                        "type": "logic_compare",
+                                        "id": "d985266f-9b17-4",
+                                        "fields": {
+                                          "OP": "EQ"
+                                        },
+                                        "inputs": {
+                                          "A": {
+                                            "block": {
+                                              "type": "math_arithmetic",
+                                              "id": "6a519564-f75d-4",
+                                              "fields": {
+                                                "OP": "MINUS"
+                                              },
+                                              "inputs": {
+                                                "A": {
+                                                  "block": {
+                                                    "type": "lists_getIndex",
+                                                    "id": "67d95b58-693f-4",
+                                                    "fields": {
+                                                      "MODE": "GET",
+                                                      "WHERE": "FROM_START"
+                                                    },
+                                                    "inputs": {
+                                                      "VALUE": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "a33e18e9-66ca-4",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "board"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "AT": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "d3b7bc67-63cf-4",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "i"
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "B": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "5be8b361-3930-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "i"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "B": {
+                                            "block": {
+                                              "type": "math_arithmetic",
+                                              "id": "38150b3f-4886-4",
+                                              "fields": {
+                                                "OP": "MINUS"
+                                              },
+                                              "inputs": {
+                                                "A": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "e8d8e5e5-86bb-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "col"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "B": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "acf72ee6-ec6d-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "row"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "B": {
+                                      "block": {
+                                        "type": "logic_compare",
+                                        "id": "addb3813-5855-4",
+                                        "fields": {
+                                          "OP": "EQ"
+                                        },
+                                        "inputs": {
+                                          "A": {
+                                            "block": {
+                                              "type": "math_arithmetic",
+                                              "id": "5f423249-163e-4",
+                                              "fields": {
+                                                "OP": "ADD"
+                                              },
+                                              "inputs": {
+                                                "A": {
+                                                  "block": {
+                                                    "type": "lists_getIndex",
+                                                    "id": "c15ea883-abf1-4",
+                                                    "fields": {
+                                                      "MODE": "GET",
+                                                      "WHERE": "FROM_START"
+                                                    },
+                                                    "inputs": {
+                                                      "VALUE": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "d298c54b-d452-4",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "board"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "AT": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "3b474d1f-c400-4",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "i"
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "B": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "87388e8a-1b9d-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "i"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "B": {
+                                            "block": {
+                                              "type": "math_arithmetic",
+                                              "id": "f22b0554-5f6e-4",
+                                              "fields": {
+                                                "OP": "ADD"
+                                              },
+                                              "inputs": {
+                                                "A": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "2e9c3779-677d-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "col"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "B": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "286e0235-55ff-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "row"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "DO0": {
+                          "block": {
+                            "type": "procedure_return_value",
+                            "id": "2f5b772d-2933-4",
+                            "inputs": {
+                              "VALUE": {
+                                "block": {
+                                  "type": "logic_boolean",
+                                  "id": "40b363ba-636c-4",
+                                  "fields": {
+                                    "BOOL": "FALSE"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "logic_boolean",
+                "id": "4259088e-a187-4",
+                "fields": {
+                  "BOOL": "TRUE"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "procedures_defreturn",
+          "id": "ccbb0c07-fd2b-4",
+          "x": 20,
+          "y": 470,
+          "extraState": {
+            "params": [
+              {
+                "name": "board",
+                "id": "board"
+              },
+              {
+                "name": "row",
+                "id": "row"
+              },
+              {
+                "name": "n",
+                "id": "n"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "solve_n_queens_naive"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "controls_if",
+                "id": "076704a4-8f87-4",
+                "inputs": {
+                  "IF0": {
+                    "block": {
+                      "type": "logic_compare",
+                      "id": "c3979531-c2d2-4",
+                      "fields": {
+                        "OP": "EQ"
+                      },
+                      "inputs": {
+                        "A": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "a502946a-877b-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "row"
+                              }
+                            }
+                          }
+                        },
+                        "B": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "4745e7f8-ff15-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "n"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "DO0": {
+                    "block": {
+                      "type": "procedure_return_value",
+                      "id": "124641e5-bfb8-4",
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "5483d2a8-a246-4",
+                            "fields": {
+                              "NUM": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "variables_set",
+                    "id": "abc6a093-5b34-4",
+                    "fields": {
+                      "VAR": {
+                        "id": "count"
+                      }
+                    },
+                    "inputs": {
+                      "VALUE": {
+                        "block": {
+                          "type": "math_number",
+                          "id": "98c8933f-c35c-4",
+                          "fields": {
+                            "NUM": 0
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "block": {
+                        "type": "controls_for",
+                        "id": "50ba7147-a8f6-4",
+                        "fields": {
+                          "VAR": {
+                            "id": "col"
+                          }
+                        },
+                        "inputs": {
+                          "FROM": {
+                            "block": {
+                              "type": "math_number",
+                              "id": "3a9ddbef-01d4-4",
+                              "fields": {
+                                "NUM": 0
+                              }
+                            }
+                          },
+                          "TO": {
+                            "block": {
+                              "type": "variables_get",
+                              "id": "9ca7a40b-8d00-4",
+                              "fields": {
+                                "VAR": {
+                                  "id": "n"
+                                }
+                              }
+                            }
+                          },
+                          "BY": {
+                            "block": {
+                              "type": "math_number",
+                              "id": "a89fcee5-5a4c-4",
+                              "fields": {
+                                "NUM": 1
+                              }
+                            }
+                          },
+                          "DO": {
+                            "block": {
+                              "type": "controls_if",
+                              "id": "fcb97964-e698-4",
+                              "inputs": {
+                                "IF0": {
+                                  "block": {
+                                    "type": "procedures_callreturn",
+                                    "id": "84235734-2c3f-4",
+                                    "extraState": {
+                                      "name": "is_safe_naive",
+                                      "params": [
+                                        "arg0",
+                                        "arg1",
+                                        "arg2",
+                                        "arg3"
+                                      ]
+                                    },
+                                    "inputs": {
+                                      "ARG0": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "74be2f8b-e054-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "board"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "ARG1": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "c5769ad8-16bb-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "row"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "ARG2": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "a50c4087-df73-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "col"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "ARG3": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "dc068d74-c45d-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "n"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "DO0": {
+                                  "block": {
+                                    "type": "lists_setIndex",
+                                    "id": "6f42c044-cda1-4",
+                                    "fields": {
+                                      "MODE": "SET",
+                                      "WHERE": "FROM_START"
+                                    },
+                                    "inputs": {
+                                      "LIST": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "369d317c-5ca9-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "board"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "AT": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "28b6875d-2deb-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "row"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "TO": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "81f89699-04b6-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "col"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "next": {
+                                      "block": {
+                                        "type": "math_assignment",
+                                        "id": "10237d4c-20ca-4",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "count"
+                                          },
+                                          "OP": "ADD"
+                                        },
+                                        "inputs": {
+                                          "DELTA": {
+                                            "block": {
+                                              "type": "procedures_callreturn",
+                                              "id": "51043969-b4b1-4",
+                                              "extraState": {
+                                                "name": "solve_n_queens_naive",
+                                                "params": [
+                                                  "arg0",
+                                                  "arg1",
+                                                  "arg2"
+                                                ]
+                                              },
+                                              "inputs": {
+                                                "ARG0": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "1ddb96da-62f4-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "board"
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ARG1": {
+                                                  "block": {
+                                                    "type": "math_arithmetic",
+                                                    "id": "2d3d2730-9297-4",
+                                                    "fields": {
+                                                      "OP": "ADD"
+                                                    },
+                                                    "inputs": {
+                                                      "A": {
+                                                        "block": {
+                                                          "type": "variables_get",
+                                                          "id": "6a270c8d-9134-4",
+                                                          "fields": {
+                                                            "VAR": {
+                                                              "id": "row"
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "B": {
+                                                        "block": {
+                                                          "type": "math_number",
+                                                          "id": "ecdff849-0e85-4",
+                                                          "fields": {
+                                                            "NUM": 1
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "ARG2": {
+                                                  "block": {
+                                                    "type": "variables_get",
+                                                    "id": "f2481933-d915-4",
+                                                    "fields": {
+                                                      "VAR": {
+                                                        "id": "n"
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "variables_get",
+                "id": "a8689eda-2918-4",
+                "fields": {
+                  "VAR": {
+                    "id": "count"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "procedures_defreturn",
+          "id": "d5668e7e-591c-4",
+          "x": 20,
+          "y": 1185,
+          "extraState": {
+            "params": [
+              {
+                "name": "n",
+                "id": "n"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "n_queens_opt"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "variables_set",
+                "id": "91885ce6-c037-4",
+                "fields": {
+                  "VAR": {
+                    "id": "board"
+                  }
+                },
+                "inputs": {
+                  "VALUE": {
+                    "block": {
+                      "type": "math_arithmetic",
+                      "id": "d4abc39c-d731-4",
+                      "fields": {
+                        "OP": "MULTIPLY"
+                      },
+                      "inputs": {
+                        "A": {
+                          "block": {
+                            "type": "raw_python_expression",
+                            "id": "56ec09d7-78bf-4",
+                            "fields": {
+                              "CODE": "[-1]"
+                            }
+                          }
+                        },
+                        "B": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "f6e8f3a5-e892-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "n"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "procedures_callreturn",
+                "id": "beb0b03d-a83b-4",
+                "extraState": {
+                  "name": "solve_n_queens_naive",
+                  "params": [
+                    "arg0",
+                    "arg1",
+                    "arg2"
+                  ]
+                },
+                "inputs": {
+                  "ARG0": {
+                    "block": {
+                      "type": "variables_get",
+                      "id": "7c271c50-c1f9-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "board"
+                        }
+                      }
+                    }
+                  },
+                  "ARG1": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "36fcc51c-4dcd-4",
+                      "fields": {
+                        "NUM": 0
+                      }
+                    }
+                  },
+                  "ARG2": {
+                    "block": {
+                      "type": "variables_get",
+                      "id": "2780e60f-a397-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "n"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "count",
+        "id": "count"
+      },
+      {
+        "name": "n",
+        "id": "n"
+      },
+      {
+        "name": "i",
+        "id": "i"
+      },
+      {
+        "name": "board",
+        "id": "board"
+      },
+      {
+        "name": "row",
+        "id": "row"
+      },
+      {
+        "name": "col",
+        "id": "col"
+      },
+      {
+        "name": "arg0",
+        "id": "$x7zRZ$JHvsIykdv[~6D"
+      },
+      {
+        "name": "arg1",
+        "id": "$J/lehuR/4)JhuSPAQyp"
+      },
+      {
+        "name": "arg2",
+        "id": "zm|^hw%=]7Re}nSjGLm+"
+      },
+      {
+        "name": "arg3",
+        "id": "ZcfF#7J_.=*Ao_QY!ZIl"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def is_safe_naive(board, row, col, n):\n    for i in range(row):\n        if board[i] == col or board[i] - i == col - row or board[i] + i == col + row:\n            return False\n\n    return True\n\n\ndef solve_n_queens_naive(board, row, n):\n    if row == n:\n        return 1\n    count = 0\n\n    for col in range(n):\n        if is_safe_naive(board, row, col, n):\n            board[row] = col\n            count += (solve_n_queens_naive(board, row + 1, n))\n\n    return count\n\n\ndef n_queens_opt(n):\n    board = [-1] * n\n\n    return solve_n_queens_naive(board, 0, n)"
+}

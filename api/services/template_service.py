@@ -16,7 +16,13 @@ class TemplateService:
     @staticmethod
     def save_template(req):
         # Convert pydantic model to dict, exclude unset so we don't push nulls unnecessarily
-        template_data = req.dict(exclude_unset=True) if hasattr(req, "dict") else dict(req)
+        # Support both Pydantic V1 (.dict()) and Pydantic V2 (.model_dump()) depending on FastAPI version
+        if hasattr(req, "model_dump"):
+            template_data = req.model_dump(exclude_unset=True)
+        elif hasattr(req, "dict"):
+            template_data = req.dict(exclude_unset=True)
+        else:
+            template_data = dict(req)
         
         # Ensure owner_id is set so frontend sync catches it
         if template_data.get("userId") and not template_data.get("owner_id"):

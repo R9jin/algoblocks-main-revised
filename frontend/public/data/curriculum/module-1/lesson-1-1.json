@@ -142,13 +142,15 @@
         {
           "id": "o-1",
           "title": "O(1) Constant Time",
-          "content": "**Description:** The algorithm takes the exact same amount of time regardless of how large the input size is. It is the pinnacle of scalability, as its running time remains entirely flat when its input size increases infinitesimally or massively.\n\n**Example:** Accessing a specific array index, performing basic mathematical arithmetic, assigning a variable, pushing to a stack, or adding an element to the front of a linked list.\n\n**Loop:** No loops involved, or an artificial loop that strictly executes a fixed, constant number of times (e.g., `for i from 1 to 5`).",
+          "content": "**Description:** The algorithm takes the exact same amount of time regardless of how large the input size is. It is the pinnacle of scalability. \n\n**Data Structure Foundations:** Many foundational array operations execute in O(1) time. For instance, allocating a fixed-size array requires a single contiguous block of memory. Modern arrays maintain their length as internal metadata, meaning checking list length is an O(1) retrieval rather than a linear count. Because arrays occupy contiguous memory, accessing or modifying an item via a zero-based index involves an instant mathematical address calculation. Finally, dynamically appending an item to the tail of an array operates in amortized O(1) time because it does not require shifting existing elements.\n\n**Example:** Accessing an array index, mutating a value in-place, evaluating list metadata, pushing to a stack, or performing basic arithmetic.\n\n**Loop:** No loops involved, or an artificial loop that strictly executes a fixed, constant number of times.",
           "chart": {
             "title": "O(1) Constant Time Growth",
             "description": "Notice how the execution time remains perfectly flat regardless of the input size (n).",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(1)"]
+            "curves": [
+              "O(1)"
+            ]
           }
         },
         {
@@ -160,7 +162,9 @@
             "description": "The curve rises very slowly as data increases, representing extreme efficiency at scale.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(log n)"]
+            "curves": [
+              "O(log n)"
+            ]
           }
         },
         {
@@ -172,7 +176,9 @@
             "description": "The execution time climbs steadily and diagonally in direct correlation to the input.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n)"]
+            "curves": [
+              "O(n)"
+            ]
           }
         },
         {
@@ -184,7 +190,9 @@
             "description": "The curve bends slightly upward from linear, representing the cost of the logarithmic operation applied across the linear dataset.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n log n)"]
+            "curves": [
+              "O(n log n)"
+            ]
           }
         },
         {
@@ -196,7 +204,9 @@
             "description": "The graph shoots up steeply. For a dataset of 10, it takes 100 operations. For 100, it takes 10,000.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n^2)"]
+            "curves": [
+              "O(n^2)"
+            ]
           }
         },
         {
@@ -208,7 +218,9 @@
             "description": "The curve is even steeper than quadratic, rendering the algorithm useless for even moderately sized datasets.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n^3)"]
+            "curves": [
+              "O(n^3)"
+            ]
           }
         },
         {
@@ -220,7 +232,9 @@
             "description": "The graph explodes vertically almost instantly. Adding just a single data point drastically alters the execution time.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(2^n)"]
+            "curves": [
+              "O(2^n)"
+            ]
           }
         },
         {
@@ -232,7 +246,9 @@
             "description": "The absolute worst scalability limit in software engineering. Execution is strictly limited to microscopic inputs.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n!)"]
+            "curves": [
+              "O(n!)"
+            ]
           }
         }
       ]
@@ -252,7 +268,9 @@
             "description": "Notice how it bridges the gap between the speed of O(log n) and the diagonal march of O(n).",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(sqrt n)"]
+            "curves": [
+              "O(sqrt n)"
+            ]
           }
         },
         {
@@ -264,7 +282,9 @@
             "description": "Often visualized identically to Quadratic time, assuming worst-case where n approximately equals m.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n^2)"]
+            "curves": [
+              "O(n^2)"
+            ]
           }
         },
         {
@@ -276,7 +296,9 @@
             "description": "Growth is largely linear in relation to the combined structural components of the graph.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n)"]
+            "curves": [
+              "O(n)"
+            ]
           }
         },
         {
@@ -288,7 +310,9 @@
             "description": "A logarithmic reduction that scales against the smallest constraint provided to the algorithm.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(log n)"]
+            "curves": [
+              "O(log n)"
+            ]
           }
         },
         {
@@ -300,7 +324,9 @@
             "description": "Grows slightly faster than pure quadratic, acting as an expensive hybrid penalty.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n^2 log n)"]
+            "curves": [
+              "O(n^2 log n)"
+            ]
           }
         },
         {
@@ -312,7 +338,9 @@
             "description": "Rapid acceleration demonstrating the unscalable nature of deep, unoptimized loop structures.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n^4)"]
+            "curves": [
+              "O(n^4)"
+            ]
           }
         },
         {
@@ -324,7 +352,9 @@
             "description": "The ultimate anti-pattern. Growth renders execution impossible beyond single-digit data inputs.",
             "maxN": 20,
             "normalize": true,
-            "curves": ["O(n!)"]
+            "curves": [
+              "O(n!)"
+            ]
           }
         }
       ]
@@ -404,6 +434,10 @@
     {
       "title": "Programiz — Time Complexity",
       "url": "https://www.programiz.com/dsa/time-complexity"
+    },
+    {
+      "title": "MIT OpenCourseWare — Introduction to Algorithms",
+      "url": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-fall-2011/"
     }
   ]
 }

@@ -2,578 +2,807 @@
   "lesson_1": [
     {
       "id": "m5_l1_a1",
-      "title": "Two Pointers: Reversing a List",
+      "title": "State Initialization (Array Caching)",
       "task": [
-        "Instead of using a single loop, the 'Two Pointers' pattern uses two separate trackers: one starting at the front, and one starting at the back. Let's use this to flip a list backwards without creating a new list!",
+        "Dynamic Programming achieves optimality by preserving the results of computationally expensive evaluations.",
+        "We will construct an initial state cache to warehouse sequential mathematical outputs.",
         "",
-        "Phase 1: The Setup",
-        "Open the 'Variables' tab. Create a variable `left` and set it to 0. Create a variable `right` and set it to the length of the list minus 1 (the last index).",
-        "",
-        "Phase 2: The Meeting Point",
-        "Open the 'Loops' tab and grab a 'while' loop. We want this loop to keep running as long as `left < right`. When they cross, we are done!",
-        "",
-        "Phase 3: The Swap & Move",
-        "Inside the loop, use the 'swap variable' block from the 'Variables' tab to swap the item at `arr[left]` with the item at `arr[right]`.",
-        "Finally, add 1 to `left` and subtract 1 from `right` so the pointers move closer to the middle. Return the `arr` at the bottom."
-      ],
-      "hints": [
-        "Hint 1: Your 'left' pointer moves forward (+1), and your 'right' pointer moves backward (-1).",
-        "Hint 2: The 'while left < right' condition ensures you stop exactly at the middle. If you don't stop there, you will accidentally swap everything back to its original place!"
+        "Instructions:",
+        "1. Define the function `initialize_cache(n)`.",
+        "2. Construct an array structured to store exactly the number of elements necessary to map indices from 0 up to 'n' inclusive.",
+        "3. Populate all indices with the integer `-1` to represent computationally unresolved states.",
+        "4. Return the initialized structure, which provisions O(n) auxiliary space."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "reverse_in_place([1, 2, 3, 4])", "expected": "[4, 3, 2, 1]", "isHidden": false },
-        { "call": "reverse_in_place([10, 20, 30])", "expected": "[30, 20, 10]", "isHidden": false },
-        { "call": "reverse_in_place([5])", "expected": "[5]", "isHidden": true },
-        { "call": "reverse_in_place([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "initialize_cache(3)",
+          "expected": "[-1, -1, -1, -1]",
+          "isHidden": false
+        },
+        {
+          "call": "initialize_cache(1)",
+          "expected": "[-1, -1]",
+          "isHidden": false
+        },
+        {
+          "call": "initialize_cache(0)",
+          "expected": "[-1]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l1_a2",
-      "title": "Two Pointers: Segregate Evens and Odds",
+      "title": "Cache Evaluation (Lookup Logic)",
       "task": [
-        "Let's push all the even numbers to the left side of a list, and all the odd numbers to the right side.",
+        "Prior to executing a complex calculation, an algorithm must verify if the specific state parameters have been previously resolved and stored.",
         "",
-        "Phase 1: Setup",
-        "Just like before, set `left = 0` and `right = length - 1`. Start a `while left < right` loop.",
-        "",
-        "Phase 2: Checking the Rules",
-        "Inside the loop, check if the left item is even (`arr[left] % 2 == 0`). If it is even, it's already in the correct place! Just add 1 to `left`.",
-        "Check if the right item is odd. If it is, it's also in the correct place! Just subtract 1 from `right`.",
-        "",
-        "Phase 3: The Swap",
-        "If `left` is pointing at an odd number AND `right` is pointing at an even number, they are both in the wrong place! Swap them, then move both pointers inward."
+        "Instructions:",
+        "1. Define the function `check_cache(cache, index)`.",
+        "2. Implement a conditional check: evaluate if the value at the target index in the cache has been modified from its initial empty state.",
+        "3. If the evaluation asserts true, the data is available. Return the cached data immediately in O(1) constant time.",
+        "4. If false, return the string 'Compute'."
       ],
-      "hints": [
-        "Hint 1: You will need a few 'If' blocks here. The first checks if the left side is good. The second checks if the right side is good.",
-        "Hint 2: Only swap if BOTH pointers are pointing to numbers that belong on the other side."
-      ],
-      "targetTime": "O(n)",
+      "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "segregate_evens([3, 1, 2, 4])", "expected": "[4, 2, 1, 3]", "isHidden": false },
-        { "call": "segregate_evens([5, 8])", "expected": "[8, 5]", "isHidden": false },
-        { "call": "segregate_evens([2, 4])", "expected": "[2, 4]", "isHidden": true },
-        { "call": "segregate_evens([1, 3])", "expected": "[1, 3]", "isHidden": true }
+        {
+          "call": "check_cache([-1, 42, -1], 1)",
+          "expected": "42",
+          "isHidden": false
+        },
+        {
+          "call": "check_cache([-1, 42, -1], 2)",
+          "expected": "'Compute'",
+          "isHidden": false
+        },
+        {
+          "call": "check_cache([99], 0)",
+          "expected": "99",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l1_a3",
-      "title": "Two Pointers: Target Sum in a Sorted List",
+      "title": "Top-Down Execution (Memoization)",
       "task": [
-        "If a list is perfectly sorted, two pointers can find a target sum blazingly fast. No nested loops needed!",
+        "Memoization integrates cache evaluation directly into the recursive hierarchy. When a base parameter is requested, the structure is scanned to avert redundant mathematical derivations.",
         "",
         "Instructions:",
-        "1. Define `two_sum_sorted(arr, target)`. Set `left = 0` and `right = length - 1`.",
-        "2. Start your `while left < right` loop. Add the two items together: `current_sum = arr[left] + arr[right]`.",
-        "3. If `current_sum == target`, return a list of their positions: `[left, right]`.",
-        "4. If `current_sum < target`, the sum is too small. Because the list is sorted, we can make the sum bigger by moving the left pointer up (`left += 1`).",
-        "5. If `current_sum > target`, the sum is too big. Make it smaller by moving the right pointer down (`right -= 1`)."
-      ],
-      "hints": [
-        "Hint 1: Think of it like a scale. If the weight is too light, slide the left weight to the right to make it heavier.",
-        "Hint 2: If the weight is too heavy, slide the right weight to the left to make it lighter."
+        "1. Define the function `memoized_math(n, cache)`.",
+        "2. Establish the base constraint: if the parameter equals 0, return 0.",
+        "3. Execute the cache lookup mechanism: if valid data exists at the current index, return it.",
+        "4. If the data is missing, compute the state recursively by adding the current variable to a recursive invocation for the preceding state.",
+        "5. Store this derived result inside the cache at the current index to map the state before returning it."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "two_sum_sorted([1, 2, 3, 4, 6], 6)", "expected": "[1, 3]", "isHidden": false },
-        { "call": "two_sum_sorted([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "two_sum_sorted([1, 5, 9], 10)", "expected": "[0, 2]", "isHidden": true }
+        {
+          "call": "memoized_math(3, [-1, -1, -1, -1])",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "memoized_math(5, [-1, -1, -1, -1, -1, -1])",
+          "expected": "15",
+          "isHidden": false
+        },
+        {
+          "call": "memoized_math(0, [-1])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l1_a4",
-      "title": "Two Pointers: Moving Zeroes",
+      "title": "Bottom-Up Execution (Tabulation)",
       "task": [
-        "Let's move all the zeroes in a list to the very end, while keeping the other numbers in their original order.",
+        "Tabulation discards recursion entirely, relying on iterative logic to sequentially construct the mathematical states from the base foundation upward.",
         "",
         "Instructions:",
-        "1. Define `move_zeroes(arr)`. This time, both pointers start at 0! Set `reader = 0` and `writer = 0`.",
-        "2. The `reader` pointer will scan the list using a `while reader < length` loop.",
-        "3. If `arr[reader]` is NOT zero, we want to save it! Swap `arr[reader]` with `arr[writer]`, and then add 1 to `writer`.",
-        "4. Always add 1 to `reader` at the end of the loop so it keeps scanning forward.",
-        "5. Return the array."
-      ],
-      "hints": [
-        "Hint 1: The 'reader' pointer is like a scout running ahead to find numbers that aren't zero.",
-        "Hint 2: The 'writer' pointer stays behind, holding the spot where the next non-zero number should be placed."
+        "1. Define the function `tabulated_math(n)`.",
+        "2. Initialize a tabulation array scaled to accommodate the target bounds and fill it entirely with zeros.",
+        "3. Construct an iterative loop starting from the foundation upwards.",
+        "4. For each step, calculate the current state by adding the active index to the accumulated value stored in the immediately preceding state.",
+        "5. Return the finalized element located at the boundary index."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "move_zeroes([0, 1, 0, 3, 12])", "expected": "[1, 3, 12, 0, 0]", "isHidden": false },
-        { "call": "move_zeroes([0, 0, 1])", "expected": "[1, 0, 0]", "isHidden": false },
-        { "call": "move_zeroes([1, 2, 3])", "expected": "[1, 2, 3]", "isHidden": true }
+        {
+          "call": "tabulated_math(3)",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "tabulated_math(5)",
+          "expected": "15",
+          "isHidden": false
+        },
+        {
+          "call": "tabulated_math(10)",
+          "expected": "55",
+          "isHidden": true
+        },
+        {
+          "call": "tabulated_math(0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l1_a5",
-      "title": "Two Pointers: Valid Palindrome",
+      "title": "Execution Profiling (Call Stack Count)",
       "task": [
-        "A palindrome is a word that reads the same forwards and backwards. We can check this instantly by comparing the outside letters and moving inward.",
+        "To empirically demonstrate the mathematical impact of overlapping subproblems, we will configure a secondary variable to log the quantity of functional invocations.",
         "",
         "Instructions:",
-        "1. Define `check_palindrome(word)`. Set `left = 0` and `right = len(word) - 1`.",
-        "2. Loop while `left < right`.",
-        "3. If the letter at `left` does NOT equal the letter at `right`, return `False` instantly.",
-        "4. If they do match, move `left` up by 1 and `right` down by 1 to check the next inner letters.",
-        "5. If the loop finishes and nothing mismatched, return `True`."
+        "1. Define the function `track_calls(n)`.",
+        "2. Configure a list to act as a mutable reference counter to bypass scoping limits.",
+        "3. Implement an internal helper function that increments the counter prior to simulating an overlapping recursive sequence.",
+        "4. Simulate the overlap by invoking the function twice per depth layer, simulating a dual-branch tree.",
+        "5. Return the counter to observe the exponential magnitude scaling (O(2ⁿ)) inherent in naive recursive execution."
       ],
-      "hints": [
-        "Hint 1: You are checking the outer shell. If 'word[0]' and 'word[last]' match, you move inward to check 'word[1]' and 'word[last-1]'.",
-        "Hint 2: If the loop finishes completely, it means every single mirror pair matched perfectly!"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetTime": "O(2^n)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "check_palindrome('racecar')", "expected": "True", "isHidden": false },
-        { "call": "check_palindrome('hello')", "expected": "False", "isHidden": false },
-        { "call": "check_palindrome('noon')", "expected": "False", "isHidden": true },
-        { "call": "check_palindrome('a')", "expected": "True", "isHidden": true }
+        {
+          "call": "track_calls(3)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "track_calls(4)",
+          "expected": "9",
+          "isHidden": false
+        },
+        {
+          "call": "track_calls(5)",
+          "expected": "15",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_2": [
     {
       "id": "m5_l2_a1",
-      "title": "Fixed Window: Highest-Grossing 3-Day Weekend",
+      "title": "Recurrence Evaluation: Naive Fibonacci",
       "task": [
-        "Imagine you have a list of daily store sales, and you want to find the highest-grossing 3-day window. You *could* recount every 3 days from scratch, but that's slow. Let's use a Fixed Sliding Window to just 'slide' the 3-day frame across the list!",
+        "The Fibonacci sequence defines an element as the arithmetic sum of the two preceding derivations.",
+        "Implementing this recursively yields an overlapping exponential architecture with an O(2ⁿ) execution bound.",
         "",
-        "Phase 1: The First Window",
-        "Define `max_weekend_sales(sales)`. First, use a loop to add up just the first 3 days (`sales[0] + sales[1] + sales[2]`). Save this as `current_sum`, and also set `max_sum = current_sum`.",
-        "",
-        "Phase 2: Sliding the Window",
-        "Now, start a new loop at index 3 (the 4th day) and go to the end of the list. This represents our window sliding forward.",
-        "",
-        "Phase 3: The Swap Trick",
-        "Instead of recounting 3 days, just add the new day coming into the window (`sales[i]`), and subtract the old day falling out of the window (`sales[i - 3]`).",
-        "If this new `current_sum` is greater than `max_sum`, update `max_sum`. Return `max_sum` at the end."
+        "Instructions:",
+        "1. Define the function `fib_naive(n)`.",
+        "2. Construct the logical base cases for the sequence foundation.",
+        "3. Implement the dual-recursive expression: return the sum of recursive invocations for the two immediately preceding states."
       ],
-      "hints": [
-        "Hint 1: Think of a picture frame over 3 numbers. When you slide the frame right, one new number enters the frame (add it!), and one old number leaves the frame (subtract it!).",
-        "Hint 2: By adding and subtracting just one number, we save the computer from having to recount the middle numbers every single time."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetTime": "O(2^n)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "max_weekend_sales([100, 200, 300, 400, 500])", "expected": "1200", "isHidden": false },
-        { "call": "max_weekend_sales([500, 100, 100, 500, 500])", "expected": "1100", "isHidden": false },
-        { "call": "max_weekend_sales([10, 10, 10])", "expected": "30", "isHidden": true }
+        {
+          "call": "fib_naive(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_naive(6)",
+          "expected": "8",
+          "isHidden": false
+        },
+        {
+          "call": "fib_naive(0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "fib_naive(1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l2_a2",
-      "title": "Fixed Window: Max Sunny Days in a Week",
+      "title": "Dictionary Caching: Memoized Fibonacci",
       "task": [
-        "You have a long weather forecast. Let's find the 7-day period that has the most 'Sunny' days.",
+        "Dictionaries (Hash Maps) afford highly optimized O(1) index evaluations, rendering them optimal data structures for recursion caches.",
         "",
         "Instructions:",
-        "1. Define `max_sunny_week(weather)`. The window size (k) is exactly 7.",
-        "2. Loop through the first 7 days. If a day equals `'Sunny'`, add 1 to your `current_sunny` counter. Set `max_sunny = current_sunny`.",
-        "3. Loop from index 7 to the end of the list to slide the window.",
-        "4. If the new day coming in is `'Sunny'`, add 1. If the day falling out (`weather[i - 7]`) was `'Sunny'`, subtract 1.",
-        "5. Update `max_sunny` if `current_sunny` is higher. Return `max_sunny`."
-      ],
-      "hints": [
-        "Hint 1: This is exactly like the sales task, but instead of adding numbers, we are adding 1 if the word is 'Sunny'.",
-        "Hint 2: Remember to check the day falling out of the window (index `i - 7`). If it was Sunny, you must reduce your count because it's no longer in your 7-day frame!"
+        "1. Define `fib_memo(n, memo)`. Assume the cache dictionary is instantiated.",
+        "2. Establish standard base conditions to halt recursion.",
+        "3. Evaluate the cache directory: if the parameter exists as a validated key, return the mapped data.",
+        "4. If the state is unrecorded, compute it recursively by summing the evaluations of the two preceding states.",
+        "5. Mutate the cache to store this newly derived result before returning it."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "max_sunny_week(['Sunny', 'Rain', 'Sunny', 'Sunny', 'Cloudy', 'Sunny', 'Rain', 'Sunny', 'Sunny', 'Sunny'])", "expected": "5", "isHidden": false },
-        { "call": "max_sunny_week(['Rain', 'Rain', 'Rain', 'Rain', 'Rain', 'Rain', 'Rain'])", "expected": "0", "isHidden": false },
-        { "call": "max_sunny_week(['Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny', 'Sunny'])", "expected": "7", "isHidden": true }
+        {
+          "call": "fib_memo(10, {})",
+          "expected": "55",
+          "isHidden": false
+        },
+        {
+          "call": "fib_memo(5, {})",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_memo(2, {})",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l2_a3",
-      "title": "Fixed Window: Finding Smooth Averages",
+      "title": "Iterative Alignment: Tabulated Fibonacci",
       "task": [
-        "Let's smooth out a choppy graph of numbers by finding the maximum average over any 4-day window.",
+        "Inverting the execution trajectory to sequentially evaluate from the foundation up completely circumvents the Call Stack, averting Overflow anomalies.",
         "",
         "Instructions:",
-        "1. Define `max_average(arr)`. The window size is `k = 4`.",
-        "2. Find the sum of the first 4 numbers. Save it as `current_sum` and `max_sum`.",
-        "3. Slide the window from index 4 to the end. Add the new number, subtract the old number (`arr[i - 4]`), and update `max_sum`.",
-        "4. Return the highest average by dividing the `max_sum` by 4."
-      ],
-      "hints": [
-        "Hint 1: You don't need to divide by 4 inside the loop! That wastes time. Just keep track of the highest sum, and divide by 4 at the very end.",
-        "Hint 2: Ensure you are returning a decimal (float), not just an integer."
+        "1. Define `fib_tab(n)`.",
+        "2. Terminate the execution via early return for fundamental base conditions.",
+        "3. Initialize a tabulation array scaled to the bounds.",
+        "4. Assure the foundation parameters are seeded properly within the array.",
+        "5. Implement a continuous loop bridging the gap up to the constraints.",
+        "6. Execute the iterative accumulation: set the value of the current array index to the sum of its two immediately preceding elements.",
+        "7. Return the finalized state from the array boundaries."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "max_average([1, 12, -5, -6, 50, 3])", "expected": "10.5", "isHidden": false },
-        { "call": "max_average([5, 5, 5, 5])", "expected": "5.0", "isHidden": false },
-        { "call": "max_average([-1, -2, -3, -4])", "expected": "-2.5", "isHidden": true }
+        {
+          "call": "fib_tab(10)",
+          "expected": "55",
+          "isHidden": false
+        },
+        {
+          "call": "fib_tab(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_tab(0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "fib_tab(1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l2_a4",
-      "title": "Fixed Window: Count Good Windows",
+      "title": "Memory Contraction: Space-Optimized Fibonacci",
       "task": [
-        "Instead of finding the maximum, let's count how many 3-day windows hit a total sales goal of 100.",
+        "The Fibonacci sequence only necessitates the two immediate preceding indices to accurately compute the next integer.",
+        "Consequently, allocating an entire O(n) array is algorithmically extravagant.",
         "",
         "Instructions:",
-        "1. Define `count_good_windows(sales)`. Window size is `k = 3`.",
-        "2. Sum the first 3 days. If the sum is `>= 100`, set `good_count = 1`, else `good_count = 0`.",
-        "3. Slide the window forward. Add the new item, subtract the old item (`sales[i - 3]`).",
-        "4. Every time the `current_sum >= 100`, add 1 to `good_count`.",
-        "5. Return `good_count`."
-      ],
-      "hints": [
-        "Hint 1: This uses the exact same slide logic (add new, subtract old). You are just updating a counter instead of a maximum variable.",
-        "Hint 2: Check your sum condition inside the loop after every single slide."
+        "1. Define `fib_space(n)`. Evaluate the zero boundary.",
+        "2. Allocate two distinct state variables to track the two preceding sequence elements.",
+        "3. Loop through the sequence interval.",
+        "4. Calculate the localized sum of the two variables.",
+        "5. Advance the sequence by discarding the oldest variable and updating the active tracking variables with the newly computed sum.",
+        "6. Return the ultimate state variable. Observe the static metric shift to O(1) space."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "count_good_windows([20, 50, 40, 10, 80])", "expected": "2", "isHidden": false },
-        { "call": "count_good_windows([10, 10, 10, 10])", "expected": "0", "isHidden": false },
-        { "call": "count_good_windows([100, 100, 100])", "expected": "1", "isHidden": true }
+        {
+          "call": "fib_space(10)",
+          "expected": "55",
+          "isHidden": false
+        },
+        {
+          "call": "fib_space(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_space(0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "fib_space(1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l2_a5",
-      "title": "Fixed Window: Custom Window Size",
+      "title": "Sequence Matrix Accumulation",
       "task": [
-        "Let's make our sliding window flexible! Instead of hardcoding 3 or 7, we will let the user pass in `k` as the window size.",
+        "Dynamic Programming implementations often require the algorithm to supply the full mathematical trajectory rather than just the final computation.",
         "",
         "Instructions:",
-        "1. Define `dynamic_fixed_window(arr, k)`.",
-        "2. If `k` is greater than the length of the array, return `0`.",
-        "3. Loop from `0` to `k` to find the initial sum.",
-        "4. Loop from `k` to the end of the list. Add the new item, but this time subtract `arr[i - k]`.",
-        "5. Return the `max_sum` found."
-      ],
-      "hints": [
-        "Hint 1: Wherever you typed a '3' or '4' in the previous tasks, use the variable 'k' instead.",
-        "Hint 2: The item falling out of the window is always at index `i - k`."
+        "1. Define `fib_sequence(n)`. Handle base evaluations.",
+        "2. Initialize a mutable list structure seeded with the sequence foundations.",
+        "3. Construct an iterative loop to traverse up to the boundary.",
+        "4. Append the mathematical sum of the two most recently added elements to the sequence array.",
+        "5. Return the finalized list."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "dynamic_fixed_window([10, 20, 30, 40], 2)", "expected": "70", "isHidden": false },
-        { "call": "dynamic_fixed_window([1, 2, 3, 4], 4)", "expected": "10", "isHidden": false },
-        { "call": "dynamic_fixed_window([5, 5], 5)", "expected": "0", "isHidden": true }
+        {
+          "call": "fib_sequence(5)",
+          "expected": "[0, 1, 1, 2, 3, 5]",
+          "isHidden": false
+        },
+        {
+          "call": "fib_sequence(3)",
+          "expected": "[0, 1, 1, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "fib_sequence(0)",
+          "expected": "[0]",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_3": [
     {
       "id": "m5_l3_a1",
-      "title": "Dynamic Window: Shortest Streak to Hit Goal",
+      "title": "2D Allocation (Knapsack Grid Init)",
       "task": [
-        "A Dynamic Window (like a caterpillar) shrinks and grows based on rules. Let's find the shortest streak of days that reaches a specific sales target.",
+        "Constrained evaluation parameters necessitate multi-variable tracking.",
+        "To manage discrete combinations in the Knapsack problem, the algorithm must provision a 2D Memory matrix.",
         "",
-        "Phase 1: The Setup",
-        "Define `shortest_streak(sales, target)`. Set `left = 0`, `current_sum = 0`, and `min_len = 999999` (a very high number).",
-        "",
-        "Phase 2: The Expansion (Head moves forward)",
-        "Use a 'for each index' loop to move a `right` pointer through the list. Add the sales of `right` to `current_sum`.",
-        "",
-        "Phase 3: The Contraction (Tail catches up)",
-        "Inside that loop, add a `while current_sum >= target` loop! This triggers when we hit our goal.",
-        "While inside this inner loop: Update `min_len` if the current window size (`right - left + 1`) is smaller.",
-        "Then, subtract the `left` item from `current_sum`, and add 1 to `left` (the tail moves forward, shrinking the window). Return `min_len` (or 0 if it wasn't found)."
+        "Instructions:",
+        "1. Define `init_knapsack(n, capacity)` where `n` dictates items and `capacity` limits total weight.",
+        "2. Implement a list comprehension or nested iteration to synthesize a dual-axis matrix.",
+        "3. Ensure the matrix provisions space for `n + 1` rows and `capacity + 1` columns to handle base zero calculations.",
+        "4. Populate the entire grid sequentially with zeros and return the structure."
       ],
-      "hints": [
-        "Hint 1: The 'right' pointer expands the window to grab more sales. The 'left' pointer shrinks the window to try and find a smaller streak that still meets the target.",
-        "Hint 2: Window size is always calculated as `right - left + 1`."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetTime": "O(n * m)",
+      "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "shortest_streak([2, 3, 1, 2, 4, 3], 7)", "expected": "2", "isHidden": false },
-        { "call": "shortest_streak([1, 4, 4], 4)", "expected": "1", "isHidden": false },
-        { "call": "shortest_streak([1, 1, 1], 10)", "expected": "0", "isHidden": true }
+        {
+          "call": "init_knapsack(2, 2)",
+          "expected": "[[0, 0, 0], [0, 0, 0], [0, 0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_knapsack(1, 1)",
+          "expected": "[[0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_knapsack(0, 0)",
+          "expected": "[[0]]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l3_a2",
-      "title": "Dynamic Window: Longest Shopping Spree",
+      "title": "Discrete Logic (Include/Exclude Choice)",
       "task": [
-        "You have a budget. Let's find the longest streak of consecutive items you can buy without going over your budget.",
+        "The algorithmic determination of a 0/1 optimization sequence depends on evaluating the maximum differential between accepting or declining an element.",
         "",
         "Instructions:",
-        "1. Define `longest_spree(prices, budget)`. Set `left = 0`, `current_spent = 0`, and `max_items = 0`.",
-        "2. Loop `right` through the prices. Add `prices[right]` to `current_spent`.",
-        "3. If you go over budget (`while current_spent > budget`), shrink the window! Subtract `prices[left]` from `current_spent` and add 1 to `left`.",
-        "4. After ensuring the budget is safe, update `max_items` if the window size (`right - left + 1`) is larger.",
-        "5. Return `max_items`."
+        "1. Define `knapsack_choice(weight, val, capacity, previous_max, remaining_max)`.",
+        "2. Formulate the rejection pathway. This is equivalent to the previously optimized state if the item is entirely omitted.",
+        "3. Evaluate the boundary: if the item's weight fits within the active capacity, calculate the inclusion pathway by adding its value to the optimal state of the remaining capacity.",
+        "4. Return the maximum mathematical magnitude by comparing the exclusion and inclusion pathways."
       ],
-      "hints": [
-        "Hint 1: This is the exact opposite of the previous task! You expand until you BREAK the rule (go over budget), then you shrink the tail until the rule is fixed.",
-        "Hint 2: Only check/update the `max_items` variable AFTER the while loop has made sure you are back under budget."
-      ],
-      "targetTime": "O(n)",
+      "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "longest_spree([1, 2, 3, 4, 5], 7)", "expected": "3", "isHidden": false },
-        { "call": "longest_spree([10, 20, 30], 5)", "expected": "0", "isHidden": false },
-        { "call": "longest_spree([5, 5, 5, 5], 10)", "expected": "2", "isHidden": true }
+        {
+          "call": "knapsack_choice(5, 10, 10, 8, 0)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_choice(5, 10, 4, 8, 0)",
+          "expected": "8",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_choice(2, 5, 5, 10, 8)",
+          "expected": "13",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l3_a3",
-      "title": "Dynamic Window: Longest Sunny Streak",
+      "title": "Recurrence Tabulation (Knapsack Matrix)",
       "task": [
-        "Let's find the longest consecutive streak of 'Sunny' days in a weather log. This is a very simple dynamic window that resets completely when it hits bad weather.",
+        "Integrating the discrete choice logic into a full iterative grid ensures all overlapping subproblems resolve systematically.",
         "",
         "Instructions:",
-        "1. Define `longest_sunny(weather)`. Set `current_streak = 0` and `max_streak = 0`.",
-        "2. Loop through every day in the `weather` list.",
-        "3. If the day is `'Sunny'`, add 1 to `current_streak`. If `current_streak` is greater than `max_streak`, update `max_streak`.",
-        "4. If the day is NOT `'Sunny'`, the streak is broken! Reset `current_streak` to 0.",
-        "5. Return `max_streak`."
+        "1. Define `knapsack(weights, values, capacity)`.",
+        "2. Allocate an initialized 2D matrix scaled to accommodate all items and capacities.",
+        "3. Construct nested loops to iteratively traverse both dimensions of the matrix.",
+        "4. Apply the discrete evaluation: if the current item fits within the active capacity, set the cell to the maximum value of either excluding the item (taking the optimal value directly above it) or including the item (adding its value to the optimal state in the previous row mapping the residual capacity).",
+        "5. If it cannot fit, unconditionally carry the optimal state down from the row directly above.",
+        "6. Return the highest computed magnitude located at the terminal coordinates."
       ],
-      "hints": [
-        "Hint 1: This is a specialized, simplified dynamic window. The 'left' pointer is basically teleporting to the 'right' pointer every time the streak breaks.",
-        "Hint 2: Don't forget to reset the current streak to exactly 0 when it rains!"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetTime": "O(n * m)",
+      "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "longest_sunny(['Sunny', 'Sunny', 'Rain', 'Sunny', 'Sunny', 'Sunny'])", "expected": "3", "isHidden": false },
-        { "call": "longest_sunny(['Rain', 'Rain'])", "expected": "0", "isHidden": false },
-        { "call": "longest_sunny(['Sunny', 'Rain', 'Sunny'])", "expected": "1", "isHidden": true }
+        {
+          "call": "knapsack([10, 20, 30], [60, 100, 120], 50)",
+          "expected": "220",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack([1, 2, 3], [10, 15, 40], 6)",
+          "expected": "65",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack([5], [10], 4)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l3_a4",
-      "title": "Dynamic Window: Streak with One Sick Day",
+      "title": "State Traceback Matrix",
       "task": [
-        "Let's find the longest streak of 'Present' days, but we will forgive exactly ONE 'Absent' day in the streak.",
+        "Extracting the maximum integer is trivial. Formulating exactly which elements combined to create that output requires algorithmically backtracking through the matrix logic.",
         "",
         "Instructions:",
-        "1. Define `longest_attendance(arr)`. Set `left = 0`, `absences = 0`, and `max_streak = 0`.",
-        "2. Loop `right` through the array. If `arr[right]` is `'Absent'`, add 1 to `absences`.",
-        "3. While `absences > 1` (we broke the rule!), shrink the window. If `arr[left]` is `'Absent'`, subtract 1 from `absences`. Add 1 to `left`.",
-        "4. Update `max_streak` with the window size (`right - left + 1`).",
-        "5. Return `max_streak`."
-      ],
-      "hints": [
-        "Hint 1: The window expands normally. If it swallows a second 'Absent', the rule is broken! The 'left' tail must pull forward until it spits out one of the 'Absent' days.",
-        "Hint 2: The window size `right - left + 1` includes the one forgiven sick day, which is exactly what we want."
+        "1. Define `knapsack_items(weights, values, capacity, dp)`.",
+        "2. Synthesize an empty array to track the selected elements.",
+        "3. Initialize pointers mapped to the terminal bounds of the grid.",
+        "4. Loop iteratively backwards while both pointers remain valid.",
+        "5. Evaluate inclusion: if the value in the current cell differs from the cell directly above it, the item was necessarily selected to cause the mutation. Append its corresponding index and decrement your active capacity pointer by the item's weight.",
+        "6. Unconditionally move up to the previous row for the subsequent iteration.",
+        "7. Return the selected element array."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "longest_attendance(['Present', 'Present', 'Absent', 'Present', 'Absent', 'Present'])", "expected": "4", "isHidden": false },
-        { "call": "longest_attendance(['Absent', 'Absent', 'Absent'])", "expected": "1", "isHidden": false },
-        { "call": "longest_attendance(['Present', 'Present'])", "expected": "2", "isHidden": true }
+        {
+          "call": "knapsack_items([10, 20], [60, 100], 30, [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0,0,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60,60], [0,0,0,0,0,0,0,0,0,0,60,60,60,60,60,60,60,60,60,60,100,100,100,100,100,100,100,100,100,100,160]])",
+          "expected": "[1, 0]",
+          "isHidden": false
+        }
       ]
     },
     {
       "id": "m5_l3_a5",
-      "title": "Dynamic Window: Only Two Types of Candies",
+      "title": "Spatial Compression (1D Capacity Tracker)",
       "task": [
-        "You are walking down a line of candies. You can take the longest streak possible, but your hands can only hold exactly 2 unique types of candies.",
+        "A rigid 2D grid matrix provisions excessive space mapping historical rows. Reusing a single continuous dimension reduces the O(n * W) overhead significantly.",
         "",
         "Instructions:",
-        "1. Define `two_candies(arr)`. Create a dictionary `candy_counts` to track types, `left = 0`, and `max_len = 0`.",
-        "2. Loop `right` through the array. Add the candy `arr[right]` to your dictionary tally.",
-        "3. While the number of unique keys in your dictionary is `> 2`, shrink the window! Subtract 1 from the tally of `arr[left]`.",
-        "4. CRITICAL: If the tally of `arr[left]` hits 0, you must DELETE that key from the dictionary entirely. Add 1 to `left`.",
-        "5. Update `max_len` with `right - left + 1`. Return `max_len`."
+        "1. Define `knapsack_1d(weights, values, capacity)`.",
+        "2. Allocate a single 1D array filled entirely with zeros, scaled to the capacity boundaries.",
+        "3. Establish the standard outer loop iterating through the item set.",
+        "4. Optimize the inner iteration: construct the inner loop traversing *backwards* from the maximum capacity down strictly to the current item's weight limit.",
+        "5. Update the active cell to the maximum of its current stored state versus the state obtained by including the new item.",
+        "6. Return the highest magnitude located at the array boundary."
       ],
-      "hints": [
-        "Hint 1: You can check how many unique keys are in a dictionary by getting the keys and checking the length.",
-        "Hint 2: If a candy tally drops to 0, it means that candy is no longer in your window. You must remove it from the dictionary so the unique key count drops back to 2!"
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(k)",
+      "targetTime": "O(n * m)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "two_candies(['Red', 'Blue', 'Red', 'Green', 'Green', 'Red'])", "expected": "3", "isHidden": false },
-        { "call": "two_candies(['Red', 'Red', 'Red'])", "expected": "3", "isHidden": false },
-        { "call": "two_candies(['Red', 'Blue', 'Green', 'Yellow'])", "expected": "2", "isHidden": true }
+        {
+          "call": "knapsack_1d([10, 20, 30], [60, 100, 120], 50)",
+          "expected": "220",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_1d([1, 2, 3], [10, 15, 40], 6)",
+          "expected": "65",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_1d([5], [10], 4)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_4": [
     {
       "id": "m5_l4_a1",
-      "title": "Prefix Sum: Running Total",
+      "title": "Dual-Axis Mapping (LCS Grid Init)",
       "task": [
-        "A Prefix Sum array keeps a 'running total' of everything seen so far. This makes answering math questions later incredibly fast.",
+        "Determining the longest common subsequence necessitates comparing positional evaluations across two distinct structures.",
+        "The algorithmic solution mandates initializing a matrix extending precisely one structural unit beyond the constraints of both datasets.",
         "",
         "Instructions:",
-        "1. Define `running_sum(arr)`. Create an empty list called `prefix` and a variable `current_total = 0`.",
-        "2. Loop through every number in `arr`.",
-        "3. Add the number to `current_total`.",
-        "4. Append the new `current_total` to your `prefix` list.",
-        "5. Return the `prefix` list.",
-        "",
-        "Sample Outputs:",
-        "running_sum([1, 2, 3, 4]) → [1, 3, 6, 10]"
+        "1. Define `init_lcs(text1, text2)`.",
+        "2. Extract constraint lengths for both string parameters.",
+        "3. Instantiate a 2D matrix scaled to accommodate the lengths with a zero-index offset.",
+        "4. Assign zero to every internal element.",
+        "5. Return the resulting dual-axis grid."
       ],
-      "hints": [
-        "Hint 1: If the input is [1, 2, 3], the output is [1, 1+2, 1+2+3].",
-        "Hint 2: Just keep adding the current item to a master total, and append that master total to a new list every single loop."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetTime": "O(n * m)",
+      "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "running_sum([1, 2, 3, 4])", "expected": "[1, 3, 6, 10]", "isHidden": false },
-        { "call": "running_sum([5, 5, 5])", "expected": "[5, 10, 15]", "isHidden": false },
-        { "call": "running_sum([10])", "expected": "[10]", "isHidden": true },
-        { "call": "running_sum([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "init_lcs('a', 'b')",
+          "expected": "[[0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_lcs('ab', 'c')",
+          "expected": "[[0, 0], [0, 0], [0, 0]]",
+          "isHidden": false
+        },
+        {
+          "call": "init_lcs('', '')",
+          "expected": "[[0]]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l4_a2",
-      "title": "Prefix Sum: Range Query",
+      "title": "Subsequence Alignment Logic",
       "task": [
-        "If we want to know the total sales between Day 2 and Day 5, we don't need a loop! We can just take the running total at Day 5, and subtract the running total from Day 1.",
+        "In instances where characters align across independent streams, the recurrence sequence necessitates calculating the upper-left diagonal.",
         "",
         "Instructions:",
-        "1. Define `range_sum(prefix_arr, start, end)`.",
-        "2. We are given an array that is ALREADY a prefix sum (running total) array.",
-        "3. If `start == 0`, just return `prefix_arr[end]` (because there is nothing to subtract!).",
-        "4. If `start > 0`, return `prefix_arr[end] - prefix_arr[start - 1]`."
-      ],
-      "hints": [
-        "Hint 1: If you want the sum of indices 2, 3, 4, and 5, you take the total sum up to 5, and subtract the total sum up to 1.",
-        "Hint 2: Because the array is already a running total, this requires zero loops! It is a fast O(1) math trick."
+        "1. Define `lcs_logic(char1, char2, top_left, top, left)`.",
+        "2. Evaluate constraint validation: if the characters natively match, the sequence expands. Return the upper-left diagonal state incremented by 1.",
+        "3. If equality evaluates to false, carry forward the maximum unresolved state: return the mathematical maximum of the adjacent states located strictly above or to the left.",
+        "4. This executes entirely in O(1) constant time per discrete cell evaluation."
       ],
       "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "range_sum([1, 3, 6, 10, 15], 1, 3)", "expected": "9", "isHidden": false },
-        { "call": "range_sum([1, 3, 6, 10, 15], 0, 2)", "expected": "6", "isHidden": false },
-        { "call": "range_sum([5, 10, 15], 2, 2)", "expected": "5", "isHidden": true }
+        {
+          "call": "lcs_logic('A', 'A', 2, 2, 2)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_logic('A', 'B', 1, 4, 3)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_logic('Z', 'X', 0, 1, 5)",
+          "expected": "5",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l4_a3",
-      "title": "Prefix Sum: Finding the Balance Point",
+      "title": "Tabulation Execution (Full LCS Table)",
       "task": [
-        "Let's find the 'Pivot Index' — the exact spot where the sum of the numbers on the left equals the sum of the numbers on the right.",
+        "Applying the logic across a complete 2D matrix synthesizes the overlapping subproblem computations into an optimized polynomial sequence.",
         "",
         "Instructions:",
-        "1. Define `find_pivot(arr)`. First, find the total sum of the entire array using the list `sum` tool or a loop. Save it as `total_sum`. Set `left_sum = 0`.",
-        "2. Loop through `arr` using an index loop (`i`).",
-        "3. Calculate the right side: `right_sum = total_sum - left_sum - arr[i]`.",
-        "4. If `left_sum == right_sum`, return the index `i` immediately!",
-        "5. After the check, add `arr[i]` to `left_sum` before the next loop starts.",
-        "6. Return `-1` if no balance point is found."
+        "1. Define `lcs_length(text1, text2)`.",
+        "2. Initialize an appropriately scaled matrix grid populated entirely with zeros.",
+        "3. Generate nested iterative loops mapping indices corresponding to both strings.",
+        "4. Implement the discrete integration: if the characters at the current pointers align, update the active matrix cell by incrementing the established value from its upper-left diagonal.",
+        "5. Otherwise, pull forward the maximum recorded state from either directly above or directly to the left.",
+        "6. Return the aggregate maximum located at the matrix terminus."
       ],
-      "hints": [
-        "Hint 1: You don't need to constantly loop to find the right side. If you know the total weight is 100, and the left side is 20, and the middle item is 10... the right side MUST be 70!",
-        "Hint 2: Always update `left_sum` AFTER you do the equality check."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetTime": "O(n * m)",
+      "targetSpace": "O(n * m)",
       "testCasesPool": [
-        { "call": "find_pivot([1, 7, 3, 6, 5, 6])", "expected": "3", "isHidden": false },
-        { "call": "find_pivot([1, 2, 3])", "expected": "-1", "isHidden": false },
-        { "call": "find_pivot([2, 1, -1])", "expected": "0", "isHidden": true }
+        {
+          "call": "lcs_length('abcde', 'ace')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_length('abc', 'abc')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_length('abc', 'def')",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "lcs_length('', 'a')",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_l4_a4",
-      "title": "Prefix Sum: Highest Altitude",
+      "title": "Backtracking Sequence Generation",
       "task": [
-        "You are riding a bicycle. You are given a list of altitude *changes* (e.g., go up 5, go down 3). Find the highest altitude you ever reach. You start at altitude 0.",
+        "Ascertaining the numerical length solves half the algorithmic requirement. Determining the exact structural strings requires traversing the matrix utilizing spatial backtracking.",
         "",
         "Instructions:",
-        "1. Define `largest_altitude(gain)`. Set `current_alt = 0` and `max_alt = 0`.",
-        "2. Loop through the `gain` list.",
-        "3. Add the altitude change to `current_alt`.",
-        "4. Update `max_alt` if `current_alt` is higher.",
-        "5. Return `max_alt`."
-      ],
-      "hints": [
-        "Hint 1: This is just creating a running total and tracking the maximum value seen along the way.",
-        "Hint 2: Since you start at altitude 0, the maximum altitude could just be 0 if all you do is go downhill!"
+        "1. Define `lcs_string(text1, text2, dp)`. Assume the matrix is actively populated.",
+        "2. Instantiate mapping pointers starting at the dimensional extremes.",
+        "3. Loop sequentially backwards while both parameters maintain bounds above zero.",
+        "4. Evaluate structural alignment: if the string characters match at the current pointers, register the character, and retreat diagonally upwards and leftwards.",
+        "5. If a mismatch is detected, analyze the matrix grid to trace the derivation origin. Decrement the specific pointer leading to the higher localized state.",
+        "6. Reverse the aggregated sequence components to correct sequence inversion, and return the continuous string."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "largest_altitude([-5, 1, 5, 0, -7])", "expected": "1", "isHidden": false },
-        { "call": "largest_altitude([4, -3, 2, -1, -2])", "expected": "4", "isHidden": false },
-        { "call": "largest_altitude([-1, -2, -3])", "expected": "0", "isHidden": true }
+        {
+          "call": "lcs_string('abcde', 'ace', [[0,0,0,0],[0,1,1,1],[0,1,1,1],[0,1,2,2],[0,1,2,2],[0,1,2,3]])",
+          "expected": "'ace'",
+          "isHidden": false
+        }
       ]
     },
     {
       "id": "m5_l4_a5",
-      "title": "Prefix Sum: Splitting the Array",
+      "title": "Spatial Compression (1D LCS Tracker)",
       "task": [
-        "Given an array, how many ways can we split it into two parts so that the left part has a LARGER sum than the right part?",
+        "A rigid 2D grid matrix for the Longest Common Subsequence allocates O(n * m) space to map all historical derivations.",
+        "Because calculating the current row strictly requires data from the immediate previous row, the memory footprint can be mathematically compressed into a 1D array.",
         "",
         "Instructions:",
-        "1. Define `ways_to_split(arr)`. Find the `total_sum` of the array. Set `left_sum = 0` and `valid_splits = 0`.",
-        "2. Loop through the array, but STOP before the very last item (we need at least one item on the right side!).",
-        "3. Add `arr[i]` to `left_sum`. Calculate `right_sum = total_sum - left_sum`.",
-        "4. If `left_sum > right_sum`, add 1 to `valid_splits`.",
-        "5. Return `valid_splits`."
+        "1. Define `lcs_1d(text1, text2)`.",
+        "2. Allocate a unified 1D array mapped to the secondary string parameter.",
+        "3. Construct a standard nested loop architecture.",
+        "4. Initialize an auxiliary variable at the boundary of your outer loop to capture and track the top-left diagonal state safely before it undergoes mutation.",
+        "5. Within the inner loop, buffer the active array index state. Apply the alignment math. If strings align, update utilizing the auxiliary tracked state.",
+        "6. If mismatched, utilize standard continuous array maximum evaluations. Constantly overwrite your auxiliary diagonal tracker with the buffered array state.",
+        "7. Retrieve the terminal boundary value."
       ],
-      "hints": [
-        "Hint 1: This is very similar to the Balance Point task. You keep a running `left_sum` and calculate the `right_sum` using subtraction.",
-        "Hint 2: Make sure your loop stops at `length - 1`. A split requires two valid sides."
-      ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
+      "targetTime": "O(n * m)",
+      "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "ways_to_split([10, 4, -8, 7])", "expected": "2", "isHidden": false },
-        { "call": "ways_to_split([2, 3, 1, 0])", "expected": "2", "isHidden": false },
-        { "call": "ways_to_split([1, 1, 1, 1, 1])", "expected": "0", "isHidden": true }
+        {
+          "call": "lcs_1d('abcde', 'ace')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_1d('abc', 'abc')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_1d('abc', 'def')",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "lcs_1d('', 'a')",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
   "optimizations": [
     {
       "id": "m5_opt_1",
-      "title": "Optimization Challenge: Avoiding Nested Loops",
+      "title": "Optimization Challenge: Recursive to Tabulated Fibonacci",
+      "difficulty": "Medium",
       "task": [
-        "Finding an exact subarray sum usually takes two slow loops (O(n²)). We can use a Dictionary and the Prefix Sum trick to do it in one blazing fast pass (O(n))!",
+        "A recursive approach recalculates identical branches, resulting in an O(2ⁿ) time complexity. We can improve this to O(n) by using tabulation to store previous results.",
         "",
         "Optimization Guidelines:",
-        "1. Start with `current_sum = 0`, `count = 0`, and a dictionary tracking sums: `prefix_map = {0: 1}`.",
-        "2. Loop through the array once. Add the item to `current_sum`.",
-        "3. Check if `current_sum - target` is a key in your dictionary! If it is, add its value to your `count`.",
-        "4. Add `current_sum` to your dictionary (or increment it if it's already there).",
-        "5. Return `count`.",
-        "",
-        "Sample Outputs:",
-        "optimize_subarray_target([1, 1, 1], 2) → 2",
-        "optimize_subarray_target([1, 2, 3], 3) → 2"
+        "1. Remove all recursive function calls.",
+        "2. Initialize an array of zeros sized to accommodate the sequence up to the target parameter.",
+        "3. Seed the foundational base cases into the beginning of the array.",
+        "4. Iterate from the base cases up to the target.",
+        "5. Calculate the current state by adding the two preceding array values.",
+        "6. Return the final value in the array to achieve an O(n) time complexity."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
-      "templateUrl": "/data/optimizations/m5-5.3.json",
+      "templateUrl": "/data/optimizations/m5-5.1.json",
       "testCasesPool": [
-        { "call": "optimize_subarray_target([1, 1, 1], 2)", "expected": "2", "isHidden": false },
-        { "call": "optimize_subarray_target([1, 2, 3], 3)", "expected": "2", "isHidden": false },
-        { "call": "optimize_subarray_target([1, -1, 0], 0)", "expected": "3", "isHidden": false },
-        { "call": "optimize_subarray_target([10, 2, -2, -20, 10], -10)", "expected": "3", "isHidden": true },
-        { "call": "optimize_subarray_target([], 0)", "expected": "0", "isHidden": true }
+        {
+          "call": "fib_optimized(5)",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "fib_optimized(10)",
+          "expected": "55",
+          "isHidden": false
+        },
+        {
+          "call": "fib_optimized(2)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "fib_optimized(0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m5_opt_2",
-      "title": "Optimization Challenge: Dynamic Sliding Window Efficiency",
+      "title": "Optimization Challenge: Exponential Knapsack Compression",
+      "difficulty": "Hard",
       "task": [
-        "When a sliding window breaks a rule, inexperienced programmers reset the left pointer all the way back to 0. A true sliding window NEVER moves backwards. It only slides forward.",
+        "Testing every possible combination for the knapsack problem requires O(2ⁿ) time. Dynamic programming structures this into a 2D matrix, resolving it in O(n * capacity) time.",
         "",
         "Optimization Guidelines:",
-        "1. Open your 'Longest Shopping Spree' code.",
-        "2. Ensure your `left` pointer never resets to 0 inside the loop.",
-        "3. The `left` pointer should only ever move forward (`left += 1`) to shrink the window until the rule is fixed.",
-        "4. This guarantees that both pointers only travel the length of the array exactly once, proving an O(n) Time Complexity."
+        "1. Delete the recursive backtracking logic.",
+        "2. Create a 2D grid initialized with zeros, mapping items to capacities.",
+        "3. Use nested loops to iterate through the items and available capacities.",
+        "4. For each cell, determine the optimal value by comparing the state without the current item against the state including the item.",
+        "5. Return the value computed in the final cell of the matrix."
       ],
-      "targetTime": "O(n)",
-      "targetSpace": "O(1)",
-      "templateUrl": "/data/optimizations/m5-5.1.json",
+      "targetTime": "O(n * m)",
+      "targetSpace": "O(n * m)",
+      "templateUrl": "/data/optimizations/m5-5.2.json",
       "testCasesPool": [
-        { "call": "longest_spree([1, 2, 3, 4, 5], 7)", "expected": "3", "isHidden": false },
-        { "call": "longest_spree([10, 20, 30], 5)", "expected": "0", "isHidden": false },
-        { "call": "longest_spree([5, 5, 5, 5], 10)", "expected": "2", "isHidden": true }
+        {
+          "call": "knapsack_optimized([10, 20, 30], [60, 100, 120], 50)",
+          "expected": "220",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_optimized([1, 2, 3], [10, 15, 40], 6)",
+          "expected": "65",
+          "isHidden": false
+        },
+        {
+          "call": "knapsack_optimized([5], [10], 4)",
+          "expected": "0",
+          "isHidden": true
+        }
+      ]
+    },
+    {
+      "id": "m5_opt_3",
+      "title": "Optimization Challenge: Memory Dimension Collapse",
+      "difficulty": "Advanced",
+      "task": [
+        "A full 2D grid for the longest common subsequence requires O(n * m) space. Since each row only depends on the previous row, the memory footprint can be compressed to a 1D array.",
+        "",
+        "Optimization Guidelines:",
+        "1. Remove the 2D matrix initialization.",
+        "2. Create a single 1D array to track the current row state.",
+        "3. Maintain the nested loops for the item evaluation.",
+        "4. Before updating a cell, buffer the previous diagonal value in a temporary variable.",
+        "5. Update the 1D array based on character matches, utilizing the buffered diagonal value when necessary.",
+        "6. Retrieve the terminal boundary value to achieve an O(n) space complexity."
+      ],
+      "targetTime": "O(n * m)",
+      "targetSpace": "O(n)",
+      "templateUrl": "/data/optimizations/m5-5.3.json",
+      "testCasesPool": [
+        {
+          "call": "lcs_optimized('abcde', 'ace')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_optimized('abc', 'abc')",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "lcs_optimized('abc', 'def')",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "lcs_optimized('', 'a')",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ]

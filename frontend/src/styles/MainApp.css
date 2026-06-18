@@ -19,10 +19,10 @@
   --text-on-dark: #E9D8FD;      /* Soft lavender text (Fixes the "too contrast" pure white) */
   --text-on-dark-muted: #B388EB;/* Secondary text for dark mode */
 
-  /* --- LIGHT SURFACES --- */
-  --app-bg: #F4F7F9;
-  --panel-bg: #FFFFFF;
-  --border-light: #E2E8F0;
+  /* --- LIGHT SURFACES (Adjusted for reduced eye strain) --- */
+  --app-bg: #F1F5F9;          /* Slate 100 - Deeper app background */
+  --panel-bg: #F8FAFC;        /* Slate 50 - Soft grayish-white instead of pure #FFFFFF */
+  --border-light: #E2E8F0;    /* Slate 200 - Soft borders */
 }
 
 body {
@@ -32,6 +32,7 @@ body {
 .workspace-app-container {
   display: flex; flex-direction: column; height: 100vh;
   background: var(--app-bg); overflow: hidden; color: var(--text-main);
+  position: relative; /* Keeps fixed/absolute children contained if needed */
 }
 
 .workspace-split { display: flex; flex: 1; overflow: hidden; width: 100%; }
@@ -41,7 +42,41 @@ body {
 .gutter:hover { background-color: var(--purple-main); }
 
 /* =========================================
-   WORKSPACE HEADER (DARK UNIFIED)
+   TOAST NOTIFICATIONS
+   ========================================= */
+.toast-notification {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  z-index: 10000; /* Stays above modals and headers */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  animation: slideDownToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: none; /* Let mouse clicks pass through if blocking UI */
+}
+
+.toast-success {
+  background-color: #10B981;
+  border: 1px solid #059669;
+}
+
+.toast-error {
+  background-color: #EF4444;
+  border: 1px solid #DC2626;
+}
+
+@keyframes slideDownToast {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* =========================================
+   WORKSPACE HEADER
    ========================================= */
 .workspace-header-purple {
   display: flex; justify-content: space-between; align-items: center;
@@ -96,7 +131,7 @@ body {
 .templates-sidebar { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden; border-right: 1px solid var(--border-light); }
 .sidebar-search { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-light); background: var(--panel-bg); }
 .search-icon { margin-right: 12px; color: var(--text-muted); }
-.sidebar-search input { border: none; outline: none; font-size: 0.95rem; width: 100%; color: var(--text-main); }
+.sidebar-search input { border: none; outline: none; font-size: 0.95rem; width: 100%; color: var(--text-main); background: transparent; }
 .sidebar-search input::placeholder { color: var(--text-muted); }
 
 .sidebar-list { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; flex: 1; }
@@ -109,23 +144,30 @@ body {
 .system-card { border-left-color: var(--purple-main); }
 .custom-card { border-left-color: #10B981; }
 .sidebar-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0, 0.06); border-color: var(--purple-main); }
-.sidebar-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-.sidebar-card h4 { margin: 0; color: var(--text-main); font-size: 0.95rem; font-weight: 700; line-height: 1.3; }
+.sidebar-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 12px; }
+.sidebar-card h4 { margin: 0; color: var(--text-main); font-size: 0.95rem; font-weight: 700; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 .sidebar-card p { margin: 0; color: var(--text-muted); font-size: 0.8rem; line-height: 1.5; }
-.title-wrapper { display: flex; align-items: center; gap: 8px; }
+.title-wrapper { display: flex; align-items: flex-start; gap: 8px; flex: 1; min-width: 0;}
 .card-type-icon { color: var(--text-muted); }
 
 .badge-system-polished {
   display: flex; align-items: center; gap: 5px; background: var(--purple-alpha); color: var(--purple-main);
-  font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 8px;
+  font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 8px; flex-shrink: 0;
 }
 .badge-system-polished .dot { width: 6px; height: 6px; background: var(--purple-main); border-radius: 50%; }
 
 .badge-custom-polished {
-  background: rgba(16, 185, 129, 0.1); color: #10B981;
+  background: rgba(16, 185, 129, 0.1); color: #10B981; flex-shrink: 0;
   font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px;
 }
-.badge-custom-group-polished { display: flex; align-items: center; gap: 6px; }
+.badge-custom-group-polished { display: flex; align-items: center; gap: 6px; flex-shrink: 0;}
+
+.sidebar-edit-btn-polished, .sidebar-delete-btn-polished {
+  background: transparent; border: 1px solid transparent; display: flex; align-items: center; justify-content: center;
+  padding: 4px; border-radius: 6px; cursor: pointer; color: var(--text-muted); transition: all 0.2s ease;
+}
+.sidebar-edit-btn-polished:hover { background: var(--purple-alpha); color: var(--purple-main); border-color: rgba(121, 40, 202, 0.2); }
+.sidebar-delete-btn-polished:hover { background: rgba(239, 68, 68, 0.1); color: #EF4444; border-color: rgba(239, 68, 68, 0.2); }
 
 /* =========================================
    MAIN WORKSPACE & TABS
@@ -228,6 +270,86 @@ body {
 .dropdown-chevron.open { transform: rotate(180deg); opacity: 1; color: var(--purple-main);}
 .complexity-row.expanded { background-color: var(--purple-alpha) !important; border-left-width: 4px !important; border-bottom: none;}
 
+/* =========================================
+   OVERALL COMPLEXITY ANALYSIS (NEW TAB)
+   ========================================= */
+.overall-complexity-wrapper {
+  flex: 1; overflow-y: auto; background: var(--panel-bg); 
+  border-radius: 8px; border: 1px solid var(--border-light); padding: 24px;
+}
+.empty-analysis-state {
+  display: flex; justify-content: center; align-items: center; height: 100%;
+  color: var(--text-muted); font-size: 0.95rem; text-align: center;
+}
+.overall-markdown-content { color: var(--text-main); font-size: 0.95rem; line-height: 1.7; max-width: 850px; margin: 0 auto;}
+.overall-main-title {
+  color: var(--purple-main); font-size: 1.25rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 2px solid var(--purple-light); padding-bottom: 8px; margin: 0 0 20px 0;
+}
+.overall-sub-title { color: #1E293B; font-size: 1.1rem; font-weight: 700; margin: 24px 0 12px 0; }
+
+/* --- CUSTOM NLG MATH & STEP BADGES --- */
+.step-badge {
+  display: inline-block;
+  background: rgba(121, 40, 202, 0.1);
+  color: var(--purple-main);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 20px 0 8px 0;
+  border: 1px solid rgba(121, 40, 202, 0.2);
+}
+
+.overall-section-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 32px 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* THE FIX: Re-designed Math Block */
+.math-block {
+  background: var(--dark-bg);
+  color: #38BDF8; /* Cyan text for math equations */
+  padding: 14px 20px;
+  border-radius: 6px;
+  font-family: 'Fira Code', monospace;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left; /* FIX: Aligns algebraic lines properly to the left */
+  margin: 16px 0;
+  border: 1px solid var(--dark-border);
+  border-left: 4px solid #38BDF8; /* Strong visual accent on the left */
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+  letter-spacing: 0.5px;
+  width: 100%; /* FIX: Prevents it from shrinking to a centered ball */
+  box-sizing: border-box;
+  overflow-x: auto; /* Allow horizontal scrolling if math is massive */
+  white-space: nowrap; /* Forces equation to stay on one scrollable line */
+}
+
+.math-block sup {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.nlg-list {
+  margin: 12px 0 16px 24px;
+  list-style-type: disc;
+}
+.nlg-list li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+  color: var(--text-main);
+}
 
 /* =========================================
    DARK THEME FIXES: CONSOLE & MEMORY MAPPING
@@ -289,27 +411,23 @@ body {
 .explanation-text-content { flex: 1; }
 .explanation-header { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;}
 
-/* We explicitly target internal HTML tags created by our parser to fix layout */
 .explanation-body { color: var(--text-main); font-size: 0.95rem; }
 
 .explanation-graph-wrapper { position: relative; width: 100%; height: 100%; background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-light); overflow: hidden;}
 .space-graph-wrapper { margin-left: 20px; }
 
 /* NLG Render Blocks */
-.nlg-block { margin: 12px 0; padding: 16px; border-radius: 0 8px 8px 0; border-left: 4px solid; background: #FFFFFF; border-top: 1px solid var(--border-light); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);}
+.nlg-block { margin: 12px 0; padding: 16px; border-radius: 0 8px 8px 0; border-left: 4px solid; background: var(--panel-bg); border-top: 1px solid var(--border-light); border-right: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light);}
 .nlg-block-title { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; font-weight: 800;}
-
 .nlg-block-content { font-size: 0.95rem; color: var(--text-main); }
 .nlg-paragraph { margin: 0 0 10px 0; font-size: 0.95rem; color: var(--text-main); }
 
 /* Paragraph & List Spacing Fixes (Prevents Wall of Text) */
 .nlg-block-content p, .nlg-paragraph p, .explanation-body p { margin: 0 0 12px 0; line-height: 1.6; }
 .nlg-block-content p:last-child, .nlg-paragraph p:last-child, .explanation-body p:last-child { margin-bottom: 0; }
-
 .nlg-block-content ul, .nlg-paragraph ul, .explanation-body ul { margin: 8px 0 12px 0; padding-left: 24px; list-style-type: disc; }
 .nlg-block-content li, .nlg-paragraph li, .explanation-body li { margin-bottom: 8px; line-height: 1.6; }
 .nlg-block-content li:last-child, .nlg-paragraph li:last-child, .explanation-body li:last-child { margin-bottom: 0; }
-
 
 /* Specific NLG Variants */
 .nlg-deadcode { border-left-color: #64748B; } .nlg-deadcode .nlg-block-title { color: #64748B; }
@@ -336,7 +454,7 @@ body {
 .floating-error-btn { background-color: #EF4444; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; gap: 8px; }
 .floating-error-btn:hover { background-color: #DC2626; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5); }
 .floating-error-btn.open { border-radius: 0 0 12px 12px; transform: translateY(0); box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
-.error-dropdown-menu { background-color: #FFFFFF; border: 1px solid #EF4444; border-radius: 12px 12px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; position: relative; box-sizing: border-box; animation: slideUpModal 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.error-dropdown-menu { background-color: var(--panel-bg); border: 1px solid #EF4444; border-radius: 12px 12px 0 0; box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; position: relative; box-sizing: border-box; animation: slideUpModal 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes slideUpModal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 .error-resizer-top { position: absolute; top: 0; left: 15px; right: 0; height: 6px; cursor: ns-resize; z-index: 10; }
 .error-resizer-left { position: absolute; top: 15px; left: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 10; }
@@ -352,7 +470,7 @@ body {
 .error-message { color: var(--text-main); font-size: 0.85rem; line-height: 1.5; font-weight: 500;}
 
 /* =========================================
-   FOOTER (DARK BOOKEND)
+   FOOTER
    ========================================= */
 .workspace-footer { 
   height: 48px; background-color: var(--dark-bg); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; border-top: 1px solid var(--dark-border); z-index: 2000; 
@@ -383,197 +501,25 @@ body {
 .save-modal-content {
   background: var(--panel-bg); padding: 32px; border-radius: 16px; width: 450px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); border: 1px solid var(--border-light);
-}
-
-/* =========================================
-   SAVE / EDIT MODAL STYLES
-   ========================================= */
-.save-modal-content {
-  background: var(--panel-bg);
-  padding: 32px;
-  border-radius: 16px;
-  width: 450px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-light);
   animation: slideDownFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.save-modal-title {
-  margin: 0 0 20px 0;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
+.save-modal-title { margin: 0 0 20px 0; font-size: 1.4rem; font-weight: 700; color: var(--text-main); }
+.save-type-selector { display: flex; gap: 16px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+.save-type-selector label { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 600; color: var(--text-main); cursor: pointer; }
+.save-type-selector label.disabled { opacity: 0.5; cursor: not-allowed; }
+.save-modal-form { display: flex; flex-direction: column; gap: 16px; }
+.save-modal-label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-.save-type-selector {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-light);
+.save-modal-input, .save-modal-textarea {
+  width: 100%; padding: 12px 16px; border: 1px solid var(--border-light); border-radius: 8px; font-family: inherit; font-size: 0.95rem; color: var(--text-main); background: var(--app-bg); transition: all 0.2s; box-sizing: border-box;
 }
+.save-modal-input:focus, .save-modal-textarea:focus { outline: none; border-color: var(--purple-main); box-shadow: 0 0 0 3px var(--purple-alpha); background: var(--panel-bg); }
+.save-modal-textarea { min-height: 100px; resize: vertical; }
 
-.save-type-selector label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-main);
-  cursor: pointer;
-}
+.save-modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; }
+.save-modal-cancel-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border-light); background: transparent; color: var(--text-muted); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
+.save-modal-cancel-btn:hover { background: var(--app-bg); color: var(--text-main); }
 
-.save-type-selector label.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.save-modal-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.save-modal-label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.save-modal-input,
-.save-modal-textarea {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 0.95rem;
-  color: var(--text-main);
-  background: var(--app-bg);
-  transition: all 0.2s;
-  box-sizing: border-box;
-}
-
-.save-modal-input:focus,
-.save-modal-textarea:focus {
-  outline: none;
-  border-color: var(--purple-main);
-  box-shadow: 0 0 0 3px var(--purple-alpha);
-  background: var(--panel-bg);
-}
-
-.save-modal-textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.save-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 32px;
-}
-
-.save-modal-cancel-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid var(--border-light);
-  background: transparent;
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.save-modal-cancel-btn:hover {
-  background: var(--app-bg);
-  color: var(--text-main);
-}
-
-.save-modal-confirm-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: none;
-  background: var(--purple-main);
-  color: white;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(121, 40, 202, 0.3);
-}
-
-.save-modal-confirm-btn:hover {
-  background: var(--purple-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(121, 40, 202, 0.4);
-}
-
-/* =========================================
-   SIDEBAR BUTTON & OVERLAP FIXES
-   ========================================= */
-
-/* Fix missing button styling */
-.sidebar-edit-btn-polished,
-.sidebar-delete-btn-polished {
-  background: transparent;
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--text-muted);
-  transition: all 0.2s ease;
-}
-
-.sidebar-edit-btn-polished:hover {
-  background: var(--purple-alpha);
-  color: var(--purple-main);
-  border-color: rgba(121, 40, 202, 0.2);
-}
-
-.sidebar-delete-btn-polished:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #EF4444;
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-/* Prevent overlap and squishing */
-.sidebar-card-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: flex-start; 
-  margin-bottom: 8px; 
-  gap: 12px; /* Guarantees space between text and buttons */
-}
-
-.title-wrapper { 
-  display: flex; 
-  align-items: flex-start; 
-  gap: 8px; 
-  flex: 1; 
-  min-width: 0; /* Crucial: Allows Flexbox to truncate text instead of expanding */
-}
-
-.sidebar-card h4 { 
-  margin: 0; 
-  color: var(--text-main); 
-  font-size: 0.95rem; 
-  font-weight: 700; 
-  line-height: 1.3;
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis; /* Converts overflowing text into "..." */
-}
-
-.badge-custom-group-polished, 
-.badge-system-polished { 
-  flex-shrink: 0; /* Prevents the buttons/badges from shrinking */
-}
+.save-modal-confirm-btn { padding: 10px 20px; border-radius: 8px; border: none; background: var(--purple-main); color: white; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(121, 40, 202, 0.3); }
+.save-modal-confirm-btn:hover { background: var(--purple-hover); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(121, 40, 202, 0.4); }
