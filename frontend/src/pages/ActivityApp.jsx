@@ -573,8 +573,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           } catch (e) { console.error("Failed to load blocks"); }
         } else if (resolvedActivity.templateUrl) {
           try {
-            // FIX: Parsing logic applied to elegantly accommodate the new wrapped optimization templates
-            // Added dynamic URL correction to resolve 404 errors caused by legacy URL formats in module JSONs
             let fetchUrl = resolvedActivity.templateUrl;
             if (resolvedActivity.id && resolvedActivity.id.includes('opt')) {
               fetchUrl = `/data/optimizations/${resolvedActivity.id}.json`;
@@ -662,7 +660,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   useEffect(() => {
     if (!isReadyRef.current) return;
-    // FIX: Removed `&& isEditingCode` to ensure analysis runs for Blockly template loads and standard block drag events, not just manual text edits.
     if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
       const timeoutId = setTimeout(() => { 
         workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) }); 
@@ -694,7 +691,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
         setIsEditingCode(false); setViewMode("workspace");
-        // FIX: Display elegant toast notification with properly mapped CSS fixes
         showToast("Python code successfully converted into blocks!", "success");
       } catch (e) {
         setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
@@ -792,6 +788,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
+  // FIX: Stricter checking logic ensures that loading an optimization activity 
+  // (which accidentally passes a single Space Complexity test) doesn't mark the whole activity as passed.
   const checkLessonCompletion = async () => {
     if (!latestStateRef.current.userId || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
 
@@ -810,7 +808,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       const subId = `${latestStateRef.current.userId}_${moduleId}_${act.id}`;
       try {
         const sub = await submissionsDB.getItem(subId);
-        if (sub && (sub.score >= 50 || sub.status === "passed" || sub.passed_tests > 0)) passedCount++;
+        // STRICT EVALUATION: Require explicit "passed" status AND score >= 50. Drafts are fully ignored.
+        if (sub && sub.status === "passed" && sub.score >= 50) passedCount++;
       } catch (e) { }
     }
     return { passedCount, threshold, isCompleted: passedCount >= threshold };
@@ -1191,30 +1190,38 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                       </div>
 
                       <div className="total-badge-group">
+                        {/* FIX: Restored the Analysis Process Time MS badge */}
+                        <span className="total-badge analysis-time-badge" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                            <span className="total-label" style={{ color: '#64748B' }}>Analyzed In:</span>
+                            <span className="total-val" style={{ color: '#0F172A' }}>{analysisTime}ms</span>
+                        </span>
+                        
                         <span className="total-badge total-time-badge"><span className="total-label">Total Time:</span> <span className="total-val">{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge total-space-badge"><span className="total-label space-label">Total Space:</span> <span className="total-val">{formatComplexity(analysisResult.space_total)}</span></span>
 
                         {/* THESIS METHODOLOGY: AES BADGE */}
-                        <span className="total-badge aes-badge">
+                        {/* FIX: Set positioning on tooltip to pull it downward to avoid header clipping, and enforce high z-index */}
+                        <span className="total-badge aes-badge" style={{ position: 'relative' }}>
                           <span className="total-label">AES:</span>
                           <span className="total-val">{currentAes}%</span>
                           <div className="info-tooltip">
                             <FiInfo size={14} />
-                            <span className="tooltip-text">
+                            <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
                               <span className="tooltip-title">Algorithmic Efficiency Score</span>
                               Measures how efficiently your code solves the problem compared to the target optimal Time and Space complexity.
                             </span>
                           </div>
                         </span>
 
-                        {/* THESIS METHODOLOGY: ROG BADGE (Only shows when user refactored efficiently) */}
+                        {/* THESIS METHODOLOGY: ROG BADGE */}
+                        {/* FIX: Set positioning on tooltip to pull it downward to avoid header clipping, and enforce high z-index */}
                         {currentRog > 0 && (
-                          <span className="total-badge rog-badge">
+                          <span className="total-badge rog-badge" style={{ position: 'relative' }}>
                             <span className="total-label">ROG:</span>
                             <span className="total-val">+{currentRog}</span>
                             <div className="info-tooltip">
                               <FiInfo size={14} />
-                              <span className="tooltip-text">
+                              <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
                                 <span className="tooltip-title">Refactoring Optimization Gain</span>
                                 Points earned by refactoring and improving your initial solution's performance. Great job!
                               </span>
