@@ -33,7 +33,6 @@ const handleEditorWillMount = (monaco) => {
       { token: "number", foreground: "F59E0B" },
     ],
     colors: {
-      // Changed from pure white to soft slate-white to reduce eye strain
       "editor.background": "#F8FAFC",
       "editor.foreground": "#1E293B",
       "editorLineNumber.foreground": "#CBD5E1",
