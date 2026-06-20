@@ -11,9 +11,20 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   // Pan and Zoom State
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
+  const [showZoomHint, setShowZoomHint] = useState(false);
+  
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const hintTimeoutRef = useRef(null);
 
-  // Robustly extract the call graph and normalize it backwards compatible
+  // Theme Colors
+  const themePurple = "#7928CA";
+  const themeRed = "#EF4444";
+  const themeSlateDark = "#1E293B";
+  const themeSlateMuted = "#64748B";
+  const themeSlateBorder = "#CBD5E1";
+  const themeEdge = "#94A3B8";
+
+  // Robustly extract the call graph and normalize it
   const extractCallGraph = () => {
     let raw = {};
     if (callGraphProp && typeof callGraphProp === 'object' && Object.keys(callGraphProp).length > 0) raw = callGraphProp;
@@ -24,7 +35,6 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
     const norm = {};
     if (!raw) return norm;
     
-    // Normalize new edge metadata objects OR old raw string arrays
     for (const [caller, targets] of Object.entries(raw)) {
       norm[caller] = (Array.isArray(targets) ? targets : []).map(t => {
         if (typeof t === 'string') return { target: t, line: '?', hits: 0 };
@@ -37,13 +47,11 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   const callGraph = extractCallGraph();
   const rawNodes = Object.keys(callGraph).filter(k => typeof k === 'string');
 
-  // Compute Total Calls & Check if Empty
   const totalEdges = Object.values(callGraph).reduce((sum, calls) => sum + calls.length, 0);
   const isEmpty = rawNodes.length === 0 || (rawNodes.length === 1 && rawNodes[0] === '__main__' && totalEdges === 0);
 
   const graphSignature = JSON.stringify(callGraph);
 
-  // Node Dimensions
   const NODE_W = 180;
   const NODE_H = 60;
 
@@ -88,7 +96,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
     });
 
     const Y_SPACING = 160;
-    const MIN_X_SPACING = 280; // slightly wider to fit the labels
+    const MIN_X_SPACING = 280; 
 
     let maxNodesInLayer = 0;
     Object.values(layers).forEach(layerNodes => {
@@ -186,13 +194,21 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
     setIsDragging(false);
   };
 
-  // Natively attach wheel event to prevent passive listener issues in React
+  // Attach wheel event to the container
   useEffect(() => {
-    const el = svgRef.current;
+    const el = containerRef.current;
     if (!el) return;
 
     const handleWheel = (e) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        setShowZoomHint(true);
+        if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
+        hintTimeoutRef.current = setTimeout(() => setShowZoomHint(false), 1500);
+        return; 
+      }
+
       e.preventDefault();
+      
       const zoomSensitivity = 0.0015;
       const zoomFactor = -e.deltaY * zoomSensitivity;
 
@@ -214,7 +230,10 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
     };
 
     el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
+    };
   }, []);
 
   const manualZoom = (factor) => {
@@ -240,7 +259,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   }
 
   return (
-    <div className="callgraph-visualizer" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="callgraph-visualizer" style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       
       {/* Header Panel */}
       <div className="callgraph-header" style={{ flexShrink: 0 }}>
@@ -253,11 +272,36 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
             <FaCubes />
             <span>{nodes.length} Executable Nodes</span>
           </div>
-          <div className="nodes-badge" style={{ backgroundColor: '#EEF2FF', color: '#3B82F6', borderColor: '#BFDBFE' }}>
+          {/* Inheriting the Emerald standard theme colors for the edges badge */}
+          <div className="nodes-badge" style={{ backgroundColor: '#ECFDF5', color: '#10B981', borderColor: '#A7F3D0' }}>
             <FaNetworkWired />
             <span>{totalEdges} Edges</span>
           </div>
         </div>
+      </div>
+
+      {/* Ctrl + Scroll Overlay Hint */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        backgroundColor: 'rgba(30, 41, 59, 0.85)',
+        color: 'white',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        fontSize: '15px',
+        fontWeight: '500',
+        pointerEvents: 'none',
+        opacity: showZoomHint ? 1 : 0,
+        transition: 'opacity 0.3s ease',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+      }}>
+        <FaSearchPlus /> Use Ctrl + Scroll to zoom
       </div>
 
       {/* Interactive Graph Area */}
@@ -279,7 +323,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
           <button onClick={() => manualZoom(0.8)} style={controlBtnStyle} title="Zoom Out"><FaSearchMinus /></button>
         </div>
 
-        {/* Pure SVG Implementation for Crisp Zooming */}
+        {/* Pure SVG Implementation */}
         <svg 
           ref={svgRef}
           width="100%" 
@@ -292,16 +336,16 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
         >
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-              <polygon points="0 0, 10 3.5, 0 7" fill="#95a5a6" />
+              <polygon points="0 0, 10 3.5, 0 7" fill={themeEdge} />
             </marker>
             <marker id="arrowhead-highlight" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-              <polygon points="0 0, 10 3.5, 0 7" fill="#e74c3c" />
+              <polygon points="0 0, 10 3.5, 0 7" fill={themeRed} />
             </marker>
             <filter id="node-shadow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.05" />
             </filter>
             <filter id="badge-shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.1" />
+              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.08" />
             </filter>
           </defs>
 
@@ -324,7 +368,6 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                 labelY = (sy + ty) / 2;
               } else {
                 const midY = (sy + ty) / 2;
-                // Offset the end target up slightly so the arrowhead doesn't clip into the border radius
                 pathData = `M ${sx},${sy + NODE_H/2} C ${sx},${midY} ${tx},${midY} ${tx},${ty - NODE_H/2 - 5}`;
                 labelX = (sx + tx) / 2;
                 labelY = midY;
@@ -337,7 +380,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                   <path
                     d={pathData}
                     fill="none"
-                    stroke={isHighlighted ? "#e74c3c" : "#94A3B8"}
+                    stroke={isHighlighted ? themeRed : themeEdge}
                     strokeWidth={isHighlighted ? "3" : "2"}
                     markerEnd={`url(#${isHighlighted ? 'arrowhead-highlight' : 'arrowhead'})`}
                     style={{ transition: 'stroke 0.3s, stroke-width 0.3s' }}
@@ -350,12 +393,12 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                       width="90" height="24" 
                       rx="12" 
                       fill="#FFFFFF" 
-                      stroke={isHighlighted ? "#e74c3c" : "#CBD5E1"} 
+                      stroke={isHighlighted ? themeRed : themeSlateBorder} 
                       strokeWidth="1" 
                       filter="url(#badge-shadow)"
                       style={{ transition: 'stroke 0.3s' }}
                     />
-                    <text x="0" y="4" textAnchor="middle" fill={isHighlighted ? "#e74c3c" : "#475569"} fontSize="10px" fontWeight="bold" fontFamily="sans-serif" style={{ pointerEvents: 'none' }}>
+                    <text x="0" y="4" textAnchor="middle" fill={isHighlighted ? themeRed : themeSlateMuted} fontSize="10px" fontWeight="bold" fontFamily="sans-serif" style={{ pointerEvents: 'none' }}>
                       L{line} : {hits || 0} hits
                     </text>
                   </g>
@@ -370,25 +413,25 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
               const isHovered = hoveredNode === node.id;
               const isExternal = node.isExternal;
 
-              let strokeColor = "#CBD5E1";
+              let strokeColor = themeSlateBorder;
               let bgColor = "#FFFFFF";
-              let textColor = "#1E293B";
+              let textColor = themeSlateDark;
               let strokeDasharray = "none";
               let strokeWidth = "2";
 
               if (isMain) {
-                strokeColor = "#7928CA";
+                strokeColor = themePurple;
                 bgColor = "#FAF5FF";
                 textColor = "#4C1D95";
               } else if (isExternal) {
-                strokeColor = "#94A3B8";
+                strokeColor = themeEdge;
                 bgColor = "#F1F5F9";
                 strokeDasharray = "6,4";
-                textColor = "#475569";
+                textColor = themeSlateMuted;
               }
 
               if (isHovered) {
-                strokeColor = "#e74c3c";
+                strokeColor = themeRed;
                 strokeWidth = "3";
               }
 
@@ -418,7 +461,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
                   <text x="0" y="-3" textAnchor="middle" fill={textColor} fontSize="14px" fontWeight="bold" fontFamily="Consolas, monospace" style={{ pointerEvents: 'none' }}>
                     {titleText}
                   </text>
-                  <text x="0" y="16" textAnchor="middle" fill="#64748B" fontSize="12px" fontFamily="sans-serif" style={{ pointerEvents: 'none' }}>
+                  <text x="0" y="16" textAnchor="middle" fill={themeSlateMuted} fontSize="12px" fontFamily="sans-serif" style={{ pointerEvents: 'none' }}>
                     Layer {node.layer}
                   </text>
                 </g>
@@ -431,7 +474,6 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   );
 };
 
-// Inline styling for the zoom/pan buttons
 const controlBtnStyle = {
   width: '36px', height: '36px',
   backgroundColor: '#FFFFFF',
@@ -439,8 +481,8 @@ const controlBtnStyle = {
   borderRadius: '6px',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  color: '#475569',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+  color: '#64748B',
   fontSize: '14px',
   transition: 'all 0.2s ease'
 };
