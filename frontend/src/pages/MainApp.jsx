@@ -195,7 +195,8 @@ const createInitialTab = (locState = null) => {
   const base = {
     id: `tab-${Date.now()}`, title: "Untitled Project", viewMode: "workspace", blocklyJson: null,
     pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
-    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false },
+    // FIX: Include call_graph here
+    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project",
   };
 
@@ -393,6 +394,8 @@ export default function MainApp() {
               space_total: data.space_total || "O(1)",
               overall_explanation: data.overall_explanation || "",
               lines: data.lines || [],
+              // FIX: Include call_graph here
+              call_graph: data.call_graph || {},
               is_recursive: data.is_recursive || false
             },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }),
@@ -543,7 +546,9 @@ export default function MainApp() {
       if (isClean) {
         updateTab(targetId, {
           title: item.title, blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
-          isEditingCode: false, syntaxErrors: [], analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false },
+          isEditingCode: false, syntaxErrors: [], 
+          // FIX: Include call_graph here
+          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
           lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
         });
         if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json);
@@ -551,7 +556,8 @@ export default function MainApp() {
         const newTabState = {
           id: targetId, title: item.title, viewMode: "workspace", blocklyJson: json,
           pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
-          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false },
+          // FIX: Include call_graph here
+          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
           lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
         };
         setTabs((prev) => [...prev, newTabState]);
@@ -587,6 +593,8 @@ export default function MainApp() {
               space_total: data.space_total || "O(1)",
               overall_explanation: data.overall_explanation || "",
               lines: data.lines || [],
+              // FIX: Include call_graph here
+              call_graph: data.call_graph || {},
               is_recursive: data.is_recursive || false
             },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }), syntaxErrors: [],
@@ -644,7 +652,8 @@ export default function MainApp() {
           workspaceRefs.current[activeTabId].clear();
           updateTab(activeTabId, {
             pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
-            analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false },
+            // FIX: Include call_graph here
+            analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
             analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project",
           });

@@ -232,7 +232,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
-  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false });
+  
+  // FIX: Include call_graph in the initial state so it doesn't break dependent components
+  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} });
+  
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const [lineExecutions, setLineExecutions] = useState({});
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
@@ -333,13 +336,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (type === "ANALYZE_RESULT") {
       if (data.status === "success") {
         setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
+        
+        // FIX: Explicitly include call_graph so the React state doesn't drop it!
         setAnalysisResult({
           total: data.total,
           space_total: data.space_total || "O(1)",
           overall_explanation: data.overall_explanation || "",
           lines: data.lines || [],
+          call_graph: data.call_graph || {},
           is_recursive: data.is_recursive || false
         });
+        
         latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
