@@ -306,6 +306,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.call_graph = {'__main__': set()}
         self.reachable_funcs = set()
         
+        # Filter out built-in functions so the graph focuses purely on the algorithm's structure
+        ignore_set = set(self.builtin_complexities.keys()).union({
+            'print', 'len', 'range', 'int', 'str', 'float', 'enumerate', 'zip', 'map', 'filter', 'list', 'set', 'dict', 'tuple', 'bool', 'type', 'isinstance', 'abs', 'round'
+        })
+        
         while queue:
             current_node, current_func = queue.popleft()  
             if isinstance(current_node, ast.FunctionDef):
@@ -314,10 +319,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 current_func = current_node.name  
                 if current_func not in self.call_graph:
                     self.call_graph[current_func] = set()  
-            elif isinstance(current_node, ast.Call) and isinstance(current_node.func, ast.Name):
-                called_func = current_node.func.id  
-                if current_func: self.call_graph[current_func].add(called_func)  
-                else: self.call_graph['__main__'].add(called_func)  
+            elif isinstance(current_node, ast.Call):
+                called_func = None
+                # Support standard calls like helper()
+                if isinstance(current_node.func, ast.Name):
+                    called_func = current_node.func.id
+                # Support method calls like self.helper() or node.dfs()
+                elif isinstance(current_node.func, ast.Attribute):
+                    called_func = current_node.func.attr
+                    
+                if called_func and called_func not in ignore_set:
+                    if current_func: self.call_graph[current_func].add(called_func)  
+                    else: self.call_graph['__main__'].add(called_func)  
             
             for child in ast.iter_child_nodes(current_node):
                 queue.append((child, current_func))
@@ -1784,7 +1797,7 @@ def analyze_source_code(source_code):
             "space_total": analyzer.get_final_space_badge(),
             "overall_explanation": overall_exp,
             "lines": analyzer.details,
-            # Add this new line to expose the graph to React:
+            # FIXED: This line was missing! It exposes the graph to React
             "call_graph": {k: list(v) for k, v in analyzer.call_graph.items()},
             "error": None
         }
