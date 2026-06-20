@@ -13,20 +13,32 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
   const [isDragging, setIsDragging] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
 
-  // Robustly extract the call graph
+  // Robustly extract the call graph and normalize it backwards compatible
   const extractCallGraph = () => {
-    if (callGraphProp && typeof callGraphProp === 'object' && Object.keys(callGraphProp).length > 0) return callGraphProp;
-    if (analysisData?.call_graph && typeof analysisData.call_graph === 'object') return analysisData.call_graph;
-    if (analysisData?.callGraph && typeof analysisData.callGraph === 'object') return analysisData.callGraph;
-    if (analysisData?.analysis?.call_graph && typeof analysisData.analysis.call_graph === 'object') return analysisData.analysis.call_graph;
-    return {};
+    let raw = {};
+    if (callGraphProp && typeof callGraphProp === 'object' && Object.keys(callGraphProp).length > 0) raw = callGraphProp;
+    else if (analysisData?.call_graph && typeof analysisData.call_graph === 'object') raw = analysisData.call_graph;
+    else if (analysisData?.callGraph && typeof analysisData.callGraph === 'object') raw = analysisData.callGraph;
+    else if (analysisData?.analysis?.call_graph && typeof analysisData.analysis.call_graph === 'object') raw = analysisData.analysis.call_graph;
+
+    const norm = {};
+    if (!raw) return norm;
+    
+    // Normalize new edge metadata objects OR old raw string arrays
+    for (const [caller, targets] of Object.entries(raw)) {
+      norm[caller] = (Array.isArray(targets) ? targets : []).map(t => {
+        if (typeof t === 'string') return { target: t, line: '?', hits: 0 };
+        return t;
+      });
+    }
+    return norm;
   };
 
   const callGraph = extractCallGraph();
   const rawNodes = Object.keys(callGraph).filter(k => typeof k === 'string');
 
   // Compute Total Calls & Check if Empty
-  const totalEdges = Object.values(callGraph).reduce((sum, calls) => sum + (Array.isArray(calls) ? calls.length : 0), 0);
+  const totalEdges = Object.values(callGraph).reduce((sum, calls) => sum + calls.length, 0);
   const isEmpty = rawNodes.length === 0 || (rawNodes.length === 1 && rawNodes[0] === '__main__' && totalEdges === 0);
 
   const graphSignature = JSON.stringify(callGraph);
@@ -53,8 +65,8 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
       const currLayer = visited[u];
       const neighbors = callGraph[u] || [];
 
-      const neighborArray = Array.isArray(neighbors) ? neighbors : [];
-      neighborArray.forEach(v => {
+      neighbors.forEach(edgeInfo => {
+        const v = edgeInfo.target;
         if (visited[v] === undefined) {
           visited[v] = currLayer + 1;
           if (!layers[currLayer + 1]) layers[currLayer + 1] = [];
@@ -76,7 +88,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
     });
 
     const Y_SPACING = 160;
-    const MIN_X_SPACING = 240;
+    const MIN_X_SPACING = 280; // slightly wider to fit the labels
 
     let maxNodesInLayer = 0;
     Object.values(layers).forEach(layerNodes => {
@@ -103,8 +115,11 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
 
     const edgeArr = [];
     Object.entries(callGraph).forEach(([u, neighbors]) => {
-      const neighborArray = Array.isArray(neighbors) ? neighbors : [];
-      neighborArray.forEach(v => {
+      neighbors.forEach(edgeInfo => {
+        const v = edgeInfo.target;
+        const line = edgeInfo.line;
+        const hits = edgeInfo.hits;
+
         if (nodeCoords[u]) {
           if (!nodeCoords[v]) {
              const exX = reqWidth / 2;
@@ -114,9 +129,11 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
           }
 
           edgeArr.push({
-            id: `${u}-${v}-${Math.random().toString(36).substring(2, 7)}`,
+            id: `${u}-${v}-${line}-${Math.random().toString(36).substring(2, 7)}`,
             source: u,
             target: v,
+            line: line,
+            hits: hits,
             sx: nodeCoords[u].x,
             sy: nodeCoords[u].y,
             tx: nodeCoords[v].x,
@@ -238,7 +255,7 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
           </div>
           <div className="nodes-badge" style={{ backgroundColor: '#EEF2FF', color: '#3B82F6', borderColor: '#BFDBFE' }}>
             <FaNetworkWired />
-            <span>{totalEdges} Total Calls</span>
+            <span>{totalEdges} Edges</span>
           </div>
         </div>
       </div>
@@ -283,6 +300,9 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
             <filter id="node-shadow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.05" />
             </filter>
+            <filter id="badge-shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.1" />
+            </filter>
           </defs>
 
           {/* Group that handles Pan and Zoom */}
@@ -290,31 +310,57 @@ const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
             
             {/* Draw Edges */}
             {edges.map((edge) => {
-              const { sx, sy, tx, ty, isSelf, isBack, source, target } = edge;
+              const { sx, sy, tx, ty, isSelf, isBack, source, target, line, hits } = edge;
               let pathData = "";
+              let labelX, labelY;
 
               if (isSelf) {
                 pathData = `M ${sx + NODE_W/2},${sy - 15} C ${sx + NODE_W/2 + 60},${sy - 50} ${sx + NODE_W/2 + 60},${sy + 50} ${sx + NODE_W/2},${sy + 15}`;
+                labelX = sx + NODE_W/2 + 60;
+                labelY = sy;
               } else if (isBack) {
                 pathData = `M ${sx - NODE_W/2},${sy} C ${sx - NODE_W/2 - 80},${sy} ${tx - NODE_W/2 - 80},${ty} ${tx - NODE_W/2},${ty}`;
+                labelX = (sx + tx) / 2 - NODE_W/2 - 60;
+                labelY = (sy + ty) / 2;
               } else {
                 const midY = (sy + ty) / 2;
                 // Offset the end target up slightly so the arrowhead doesn't clip into the border radius
                 pathData = `M ${sx},${sy + NODE_H/2} C ${sx},${midY} ${tx},${midY} ${tx},${ty - NODE_H/2 - 5}`;
+                labelX = (sx + tx) / 2;
+                labelY = midY;
               }
 
               const isHighlighted = hoveredNode === source || hoveredNode === target;
 
               return (
-                <path
-                  key={edge.id}
-                  d={pathData}
-                  fill="none"
-                  stroke={isHighlighted ? "#e74c3c" : "#94A3B8"}
-                  strokeWidth={isHighlighted ? "3" : "2"}
-                  markerEnd={`url(#${isHighlighted ? 'arrowhead-highlight' : 'arrowhead'})`}
-                  style={{ transition: 'stroke 0.3s, stroke-width 0.3s' }}
-                />
+                <g key={edge.id}>
+                  <path
+                    d={pathData}
+                    fill="none"
+                    stroke={isHighlighted ? "#e74c3c" : "#94A3B8"}
+                    strokeWidth={isHighlighted ? "3" : "2"}
+                    markerEnd={`url(#${isHighlighted ? 'arrowhead-highlight' : 'arrowhead'})`}
+                    style={{ transition: 'stroke 0.3s, stroke-width 0.3s' }}
+                  />
+                  
+                  {/* Floating Metadata Badge for the Edge */}
+                  <g transform={`translate(${labelX}, ${labelY})`}>
+                    <rect 
+                      x="-45" y="-12" 
+                      width="90" height="24" 
+                      rx="12" 
+                      fill="#FFFFFF" 
+                      stroke={isHighlighted ? "#e74c3c" : "#CBD5E1"} 
+                      strokeWidth="1" 
+                      filter="url(#badge-shadow)"
+                      style={{ transition: 'stroke 0.3s' }}
+                    />
+                    <text x="0" y="4" textAnchor="middle" fill={isHighlighted ? "#e74c3c" : "#475569"} fontSize="10px" fontWeight="bold" fontFamily="sans-serif" style={{ pointerEvents: 'none' }}>
+                      L{line} : {hits || 0} hits
+                    </text>
+                  </g>
+
+                </g>
               );
             })}
 

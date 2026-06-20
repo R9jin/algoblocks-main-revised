@@ -68,7 +68,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.conditional_partition_lines = []
         self.logic_hints = {} 
 
-        # UPGRADE: Added bisect, heapq, and gcd complexities
         self.builtin_complexities = {
             'sort': {'time': 'O(n log n)', 'space': 'O(1)'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)'},
@@ -304,10 +303,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def bfs_first_pass(self, tree):
         from collections import deque
         queue = deque([(tree, None)])
-        self.call_graph = {'__main__': set()}
+        
+        # UPGRADE: Call graph now stores complex edge metadata objects
+        self.call_graph = {'__main__': []}
         self.reachable_funcs = set()
         
-        # We ignore these standard python calls so the graph focuses purely on the algorithm
         ignore_set = set(self.builtin_complexities.keys()).union({
             'print', 'len', 'range', 'int', 'str', 'float', 'enumerate', 'zip', 'map', 'filter', 'list', 'set', 'dict', 'tuple', 'bool', 'type', 'isinstance', 'abs', 'round', 'floor', 'ceil'
         })
@@ -319,23 +319,25 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self.reachable_funcs.add(current_node.name) 
                 current_func = current_node.name  
                 if current_func not in self.call_graph:
-                    self.call_graph[current_func] = set()  
+                    self.call_graph[current_func] = []  
             elif isinstance(current_node, ast.Call):
                 called_func = None
-                # Support standard calls like helper()
                 if isinstance(current_node.func, ast.Name):
                     called_func = current_node.func.id
-                # Support method calls like math.floor() or list.append()
                 elif isinstance(current_node.func, ast.Attribute):
                     called_func = current_node.func.attr
                     
                 if called_func and called_func not in ignore_set:
-                    if current_func: 
-                        self.call_graph[current_func].add(called_func)  
-                    else: 
-                        self.call_graph['__main__'].add(called_func)  
+                    caller = current_func if current_func else '__main__'
+                    line_num = getattr(current_node, 'lineno', -1)
+                    
+                    # Cross-reference with the dynamic profiler to get execution count
+                    hits = self.trace_data.get("line_hits", {}).get(line_num, 0)
+                    
+                    # Check for exact duplicate edges from the same line
+                    if not any(e['target'] == called_func and e['line'] == line_num for e in self.call_graph[caller]):
+                        self.call_graph[caller].append({'target': called_func, 'line': line_num, 'hits': hits})
             
-            # Continue mapping the execution tree
             for child in ast.iter_child_nodes(current_node):
                 queue.append((child, current_func))
         
@@ -345,18 +347,20 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         while reach_queue:
             curr = reach_queue.popleft()
-            for neighbor in self.call_graph.get(curr, []):  
+            for edge_info in self.call_graph.get(curr, []):  
+                neighbor = edge_info['target']
                 if neighbor not in visited:
                     visited.add(neighbor)
                     self.reachable_funcs.add(neighbor)  
                     reach_queue.append(neighbor)
         
-        for func_name, called_funcs in self.call_graph.items():
-            if func_name in called_funcs: self.custom_functions[func_name] = "T(n)"  
+        for func_name, edges in self.call_graph.items():
+            if any(e['target'] == func_name for e in edges): 
+                self.custom_functions[func_name] = "T(n)"  
         self.detect_indirect_recursion()
 
     def detect_indirect_recursion(self):
-        indirect_graph = {u: {v for v in neighbors if v != u} for u, neighbors in self.call_graph.items()}
+        indirect_graph = {u: {v['target'] for v in edges if v['target'] != u} for u, edges in self.call_graph.items()}
         for func in indirect_graph:
             visited, rec_stack = set(), set()
             if self._has_cycle(func, visited, rec_stack, indirect_graph):
@@ -939,7 +943,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         does_linear_work = self.max_poly_str != "O(1)" or self.has_slicing
         if not does_linear_work:
-            for called in self.call_graph.get(node.name, set()):
+            for called_info in self.call_graph.get(node.name, []):
+                called = called_info['target']
                 if called in self.symbol_table and called != node.name:
                     for child in safe_walk(self.symbol_table[called]):
                         if isinstance(child, (ast.For, ast.While)) and not self._is_constant_loop(child): does_linear_work = True; break
@@ -1099,12 +1104,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 else:
                     self._details[i]["global_time"] = resolved_rel
 
-        # FIX: Force the actual `def` statement to strictly be O(1) constant time/space overhead
+        # Force the actual `def` statement to strictly be O(1)
         self._details[start_idx]["local_time"] = "O(1)"
         self._details[start_idx]["global_time"] = "O(1)"
         self._details[start_idx]["local_space"] = "O(1)"
         self._details[start_idx]["global_space"] = "O(1)"
-        self._details[start_idx]["weight"] = 1 # Guarantee it is not flagged as the bottleneck
+        self._details[start_idx]["weight"] = 1
         self._details[start_idx]["time_explanation"] = "Function declaration creates a function object in memory and binds it to a name. This is strictly an O(1) constant-time operation."
         self._details[start_idx]["space_explanation"] = "O(1) memory overhead to store the function reference in the local namespace."
 
@@ -1374,7 +1379,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
             elif node.func.attr == 'copy':
                 curr_f = self.current_function_name or ""
-                is_rec = curr_f in self.call_graph.get(curr_f, set())
+                is_rec = any(c['target'] == curr_f for c in self.call_graph.get(curr_f, []))
                 if is_rec or getattr(self, 'in_accumulation_context', False):
                     self.max_space_weight = max(self.max_space_weight, 2)
                     self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Deep Copy Allocation")
@@ -1413,7 +1418,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_accumulation_context = prev_acc
 
     def visit_Assign(self, node):
-        # UPGRADE: Recognize Tuple Unpacking as O(1) to avoid map() and split() traps
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Input Unpacking / Swap")
             return 
@@ -1802,8 +1806,7 @@ def analyze_source_code(source_code):
             "space_total": analyzer.get_final_space_badge(),
             "overall_explanation": overall_exp,
             "lines": analyzer.details,
-            # THIS LINE IS CRITICAL - It passes the Graph to React
-            "call_graph": {k: list(v) for k, v in getattr(analyzer, 'call_graph', {}).items()},
+            "call_graph": getattr(analyzer, 'call_graph', {}),
             "error": None
         }
     except SyntaxError as e:
