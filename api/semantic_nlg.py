@@ -1,4 +1,4 @@
-# semantic_nlg.py
+# api/semantic_nlg.py
 import ast
 import random
 import re
@@ -478,6 +478,63 @@ class EducationalInsightGenerator:
     def __init__(self, ctx):
         self.ctx = ctx
 
+    def generate_variable_explanation(self, var_name: str, var_data: dict, var_type: str = None) -> str:
+        size = var_data.get("size", 1)
+        val = str(var_data.get("value", ""))
+        v_lower = var_name.lower()
+        
+        # Determine effective type
+        eff_type = var_type
+        if not eff_type:
+            if isinstance(var_data.get("value"), list) or any(k in v_lower for k in ['arr', 'list', 'nums', 'stack', 'queue', 'dp']):
+                eff_type = 'list'
+            elif isinstance(var_data.get("value"), dict) or any(k in v_lower for k in ['map', 'dict', 'memo', 'cache']):
+                eff_type = 'dict'
+            elif isinstance(var_data.get("value"), set) or 'set' in v_lower or 'visit' in v_lower:
+                eff_type = 'set'
+                
+        if eff_type == 'list':
+            if 'stack' in v_lower:
+                return f"LIFO Stack: Allocating memory for {size} active elements. It acts as a Last-In-First-Out structure, growing and shrinking at the tail."
+            if 'queue' in v_lower:
+                return f"FIFO Queue: Allocating memory for {size} active elements. It maintains a First-In-First-Out chronological processing order."
+            if 'dp' in v_lower or 'memo' in v_lower:
+                return f"Dynamic Programming Tabulation: Storing {size} pre-calculated subproblem states to squash exponential recursion into a linear memory grid."
+            return f"Sequential Array: Allocating contiguous memory blocks for {size} active elements."
+            
+        if eff_type == 'dict':
+            if 'memo' in v_lower or 'cache' in v_lower or 'dp' in v_lower:
+                return f"Memoization Cache: Storing {size} cached subproblem results to prevent redundant calculation branches."
+            if 'graph' in v_lower or 'adj' in v_lower:
+                return f"Adjacency List (Graph): Mapping {size} nodes to their neighboring vertices to represent structural pathways."
+            return f"Hash Map: Tracking {size} key-value associations, utilizing an underlying hash table for O(1) average lookups."
+            
+        if eff_type == 'set':
+            if 'visit' in v_lower or 'seen' in v_lower:
+                return f"Visited Tracker: Hash set tracking {size} nodes to prevent infinite loops during traversal."
+            return f"Unique Element Set: Maintaining {size} strictly unique elements for O(1) constant-time membership checks."
+            
+        if eff_type == 'tuple' or 'tup' in v_lower:
+            return f"Immutable Tuple: Safely packaging {size} elements. As a fixed structure, it allocates exactly the required memory with zero resizing overhead."
+            
+        if eff_type == 'str' or 'str' in v_lower or 'char' in v_lower:
+            if size > 1:
+                return f"Immutable String: Consuming memory proportional to its {size} characters. Modifying it requires allocating a new memory block."
+            return "String/Character: Holding textual data in a highly optimized memory scalar."
+
+        # Scalar pointers and accumulators
+        if any(k in v_lower for k in ['ptr', 'idx', 'left', 'right', 'low', 'high', 'mid', 'i', 'j', 'k']):
+            return "Positional Pointer: A lightweight scalar tracking a boundary or exact index, occupying minimal O(1) constant memory."
+        if any(k in v_lower for k in ['total', 'sum', 'count', 'res', 'ans']):
+            return "State Accumulator: A scalar continuously aggregating results into a single state, maintaining a perfect O(1) space footprint."
+        if any(k in v_lower for k in ['pivot', 'temp', 'curr', 'node', 'val', 'key', 'element']):
+            return "Temporary State Variable: A transient scalar holding the current operational value in an O(1) memory footprint."
+
+        if size > 1:
+            return f"Dynamic Data Container: Actively holding {size} distinct elements in the memory heap."
+            
+        return "Scalar State: A standard atomic variable residing efficiently in O(1) memory."
+
     def _classify_big_o(self, complexity_str: str) -> BigOInfo:
         c = complexity_str.lower()
         family = "unknown"
@@ -547,7 +604,7 @@ class EducationalInsightGenerator:
         elif isinstance(node, ast.If):
             return f"{snippet_ref}, the execution flow hits a conditional branch, slicing the logic path."
         elif isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp)):
-            return f"{snippet_ref}, Python leverages a syntactic comprehension to construct a collection dynamically in one pass."
+            return f"{snippet_ref}, the language leverages a syntactic comprehension to construct a collection dynamically in one pass."
         elif isinstance(node, ast.Return):
             return f"{snippet_ref}, the function completes its mathematical evaluation and returns the final payload."
         elif isinstance(node, ast.Subscript):
@@ -585,7 +642,7 @@ class EducationalInsightGenerator:
         if family == "constant":
             return "Evaluated strictly on its own, this is an instant $O(1)$ operation. The CPU executes it directly without needing to iterate or scan through external data."
         elif family == "linear":
-            return f"Locally, this step inherently takes linear time ({local_info.raw}). Under the hood, Python is forced to traverse the involved elements one by one."
+            return f"Locally, this step inherently takes linear time ({local_info.raw}). Under the hood, the system is forced to traverse the involved elements one by one."
         elif family == "logarithmic":
             return f"In a vacuum, this step executes logarithmically ({local_info.raw}), meaning it bypasses a massive amount of redundant checks by cutting the search space down."
         elif family == "polynomial":
@@ -678,21 +735,21 @@ class EducationalInsightGenerator:
         if sig.memory_signals.geometric_capacity_growth:
             insights.append("Architectural Warning: Continuously multiplying or adding a sequence to itself inside a loop forces the computer to reallocate exponentially doubling chunks of memory. This turns what appears to be a simple loop into an incredibly slow, volatile process.")
         elif sig.memory_signals.string_concatenation_in_loop:
-            insights.append("Common Trap: Python strings are fully immutable. Appending to a string directly inside a loop forces Python to construct a brand new string from scratch every single cycle. For better performance, append to a list and use `.join()` at the end.")
+            insights.append("Common Trap: Strings are fully immutable. Appending to a string directly inside a loop forces the system to construct a brand new string from scratch every single cycle. For better performance, append to a list and use `.join()` at the end.")
         elif sig.complexity_signals.f_string_usage:
             insights.append("Best Practice: Utilizing modern interpolation techniques (like f-strings) is exceptionally efficient. It calculates and builds the full string natively in C in one pass, avoiding the creation of slow intermediate memory copies.")
         
         if sig.complexity_signals.aggregation_in_loop:
-            insights.append("Bottleneck Risk: Placing aggregation functions like `sum()`, `max()`, or `min()` directly inside a loop causes Python to secretly scan the entire sub-array over and over. Maintaining a running total variable instead will drastically improve speed.")
+            insights.append("Bottleneck Risk: Placing aggregation functions like `sum()`, `max()`, or `min()` directly inside a loop causes the engine to secretly scan the entire sub-array over and over. Maintaining a running total variable instead will drastically improve speed.")
         
         if sig.complexity_signals.inefficient_list_pop:
-            insights.append("Data Structure Risk: Triggering a removal at the very start of a standard Python list is structurally slow. Because elements are packed tightly, Python must manually drag every remaining item one slot to the left. If you need a queue, `collections.deque` provides instant $O(1)$ pops.")
+            insights.append("Data Structure Risk: Triggering a removal at the very start of a standard array is structurally slow. Because elements are packed tightly, the system must manually drag every remaining item one slot to the left. If you need a queue, `collections.deque` provides instant $O(1)$ pops.")
         if sig.complexity_signals.inefficient_list_insert:
-            insights.append("Data Structure Risk: Mechanically inserting an item at the exact start of a populated list forces Python to push all existing elements backward to make room. This is a heavy $O(n)$ operation that stalls large arrays.")
+            insights.append("Data Structure Risk: Mechanically inserting an item at the exact start of a populated list forces the system to push all existing elements backward to make room. This is a heavy $O(n)$ operation that stalls large arrays.")
         if sig.complexity_signals.repeated_sort:
             insights.append("Bottleneck Risk: Sorting is fundamentally heavy ($O(n \\log n)$). Placing a sorting mechanism directly inside a loop forces the CPU to repeat that intense mathematical lifting unnecessarily. Gather the data first, then sort exactly once outside the loop.")
         if sig.complexity_signals.set_mathematical_ops:
-            insights.append("Best Practice: Native Set operations (like unions or intersections) are implemented at the lowest hardware levels in Python. Utilizing them is exponentially faster and cleaner than writing manual nested loops to check for duplication.")
+            insights.append("Best Practice: Native Set operations (like unions or intersections) are implemented at the lowest hardware levels. Utilizing them is exponentially faster and cleaner than writing manual nested loops to check for duplication.")
         if sig.complexity_signals.dict_lookup_constant:
             insights.append("Best Practice: Leveraging specific dictionary getter methods or native hashed lookups yields an instant $O(1)$ data retrieval, bypassing the need to search linearly.")
         if sig.has_early_exits or sig.has_continue:
@@ -700,7 +757,7 @@ class EducationalInsightGenerator:
 
         if sig.uses_try_except:
             if sig.complexity_signals.exception_control_flow:
-                insights.append("Performance Trap: While `try/except` blocks are powerful, relying on exceptions for standard control flow *inside* a heavy loop is surprisingly slow. Generating a traceback object in Python carries a tangible processing penalty.")
+                insights.append("Performance Trap: While `try/except` blocks are powerful, relying on exceptions for standard control flow *inside* a heavy loop is surprisingly slow. Generating a traceback object carries a tangible processing penalty.")
             else:
                 insights.append("Robust Engineering: Utilizing a `try/except` block ensures that unpredictable runtime anomalies are gracefully caught, preventing hard application crashes during execution.")
         if sig.uses_context_manager:
@@ -725,7 +782,7 @@ class EducationalInsightGenerator:
         if sig.memory_signals.performs_slicing:
             insights.append("Common Trap: Explicit array slicing physically cuts out and copies the targeted data, creating a complete duplicate array in memory. Executing slices inside recursive calls or loops will rapidly exhaust memory.")
         if sig.memory_signals.recursive_stack_risk:
-            insights.append("System Risk: Every time a recursive function calls itself, Python saves a 'frame' of the current variable state directly to the call stack. If the sequence plunges thousands of levels deep, Python will intentionally crash with a `RecursionError` to protect system RAM.")
+            insights.append("System Risk: Every time a recursive function calls itself, the system saves a 'frame' of the current variable state directly to the call stack. If the sequence plunges thousands of levels deep, it will crash to protect system RAM.")
 
         if sig.uses_yield:
             insights.append("Memory Mastery: The `yield` generator paradigm is the pinnacle of space optimization. Instead of allocating massive chunks of RAM to hold an entire array of results, `yield` pauses execution and emits exactly one element at a time, sustaining an astonishing $O(1)$ memory footprint regardless of dataset size.")
@@ -962,7 +1019,7 @@ class EducationalInsightGenerator:
             narrative.append("No additional arrays, large dictionaries, or dynamically growing structures are created. It safely reuses existing reference pointers and operates exactly within its initial bounds, guaranteeing that there is no memory bottleneck.")
         elif family == "linear":
             if sig.has_recursion:
-                narrative.append(f"The algorithm hits an overall spatial footprint of {s_info.raw}. The primary memory bottleneck is heavily dictated by the recursive call stack. Every time the function calls itself, Python is strictly forced to preserve a suspended 'frame' of the variables in RAM.")
+                narrative.append(f"The algorithm hits an overall spatial footprint of {s_info.raw}. The primary memory bottleneck is heavily dictated by the recursive call stack. Every time the function calls itself, the system is strictly forced to preserve a suspended 'frame' of the variables in RAM.")
             else:
                 narrative.append(f"The algorithm scales its memory usage directly proportional to the input size, landing at {s_info.raw}. The primary spatial bottleneck is the explicit allocation of new data structures—such as lists, dictionaries, or dynamic string arrays.")
             narrative.append("While basic pointer variables exist, they are functionally negligible. The dominant spatial factor is strictly the collection mapping required to hold the newly generated data payload.")

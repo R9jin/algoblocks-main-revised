@@ -738,8 +738,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for snap in self.trace_data.get("history", []):
             if snap.line_no == line_num:
                 for var_name, var_data in snap.variables.items():
-                    if var_name not in mem_state or var_data["size"] > mem_state[var_name]["size"]:
-                        mem_state[var_name] = var_data
+                    if var_name not in mem_state or var_data["size"] > mem_state[var_name].get("size", 0):
+                        mem_state[var_name] = dict(var_data)
+                        
+        for var_name, var_data in mem_state.items():
+            var_data["explanation"] = self.nlg_engine.generate_variable_explanation(var_name, var_data, self.var_types.get(var_name))
 
         time_exp, space_exp = self.nlg_engine.generate_explanations(
             node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state

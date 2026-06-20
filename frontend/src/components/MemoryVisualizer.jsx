@@ -1,9 +1,11 @@
+// MemoryVisualizer.jsx
 import { useMemo, useState } from 'react';
 import {
   FaCodeBranch,
   FaCube,
   FaFont,
   FaHashtag,
+  FaInfoCircle,
   FaLayerGroup,
   FaMemory,
   FaRegHdd,
@@ -98,7 +100,6 @@ const MemoryVisualizer = ({ analysisData, currentStep }) => {
                   </div>
                 </div>
 
-                {/* The Visual Segmented Bar you missed! */}
                 <div className="memory-segments-wrapper">
                   <span className="segment-label">(0)</span>
                   <div className="segment-blocks">
@@ -113,6 +114,14 @@ const MemoryVisualizer = ({ analysisData, currentStep }) => {
                   </div>
                   <span className="segment-label">({size})</span>
                 </div>
+
+                {/* Educational Insight Explanation */}
+                {varData.explanation && (
+                  <div className="card-explanation" style={{ borderLeftColor: config.color }}>
+                    <FaInfoCircle className="explanation-icon" style={{ color: config.color }} />
+                    <span className="explanation-text">{varData.explanation}</span>
+                  </div>
+                )}
 
                 {varData.complexity && (
                   <div className="card-bottom">

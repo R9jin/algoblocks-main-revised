@@ -1,3 +1,4 @@
+/* MemoryVisualizer.css */
 .memory-visualizer {
   background-color: #1e1e2e;
   border-radius: 8px;
@@ -182,6 +183,31 @@
   font-weight: bold;
   letter-spacing: 2px;
   margin-left: 4px;
+}
+
+/* Explanation Box */
+.card-explanation {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  color: #bdc3c7;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  border-left: 3px solid;
+  line-height: 1.4;
+  margin-top: 0.25rem;
+}
+
+.explanation-icon {
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.explanation-text {
+  flex-grow: 1;
 }
 
 /* Footer of the card */
