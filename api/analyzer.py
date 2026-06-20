@@ -1784,6 +1784,8 @@ def analyze_source_code(source_code):
             "space_total": analyzer.get_final_space_badge(),
             "overall_explanation": overall_exp,
             "lines": analyzer.details,
+            # Add this new line to expose the graph to React:
+            "call_graph": {k: list(v) for k, v in analyzer.call_graph.items()},
             "error": None
         }
     except SyntaxError as e:
