@@ -302,13 +302,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return res
 
     def bfs_first_pass(self, tree):
+        from collections import deque
         queue = deque([(tree, None)])
         self.call_graph = {'__main__': set()}
         self.reachable_funcs = set()
         
-        # Filter out built-in functions so the graph focuses purely on the algorithm's structure
+        # We ignore these standard python calls so the graph focuses purely on the algorithm
         ignore_set = set(self.builtin_complexities.keys()).union({
-            'print', 'len', 'range', 'int', 'str', 'float', 'enumerate', 'zip', 'map', 'filter', 'list', 'set', 'dict', 'tuple', 'bool', 'type', 'isinstance', 'abs', 'round'
+            'print', 'len', 'range', 'int', 'str', 'float', 'enumerate', 'zip', 'map', 'filter', 'list', 'set', 'dict', 'tuple', 'bool', 'type', 'isinstance', 'abs', 'round', 'floor', 'ceil'
         })
         
         while queue:
@@ -324,14 +325,17 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 # Support standard calls like helper()
                 if isinstance(current_node.func, ast.Name):
                     called_func = current_node.func.id
-                # Support method calls like self.helper() or node.dfs()
+                # Support method calls like math.floor() or list.append()
                 elif isinstance(current_node.func, ast.Attribute):
                     called_func = current_node.func.attr
                     
                 if called_func and called_func not in ignore_set:
-                    if current_func: self.call_graph[current_func].add(called_func)  
-                    else: self.call_graph['__main__'].add(called_func)  
+                    if current_func: 
+                        self.call_graph[current_func].add(called_func)  
+                    else: 
+                        self.call_graph['__main__'].add(called_func)  
             
+            # Continue mapping the execution tree
             for child in ast.iter_child_nodes(current_node):
                 queue.append((child, current_func))
         
@@ -1772,6 +1776,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return self.nlg_engine.generate_overall_analysis(final_time, final_space, sig, self.details)
 
 def analyze_source_code(source_code):
+    import time
     start_time = time.perf_counter()
     
     try:
@@ -1782,7 +1787,7 @@ def analyze_source_code(source_code):
             try:
                 tracer = AlgoBlocksTracer()
                 trace_data = tracer.execute_and_trace(source_code)
-            except Exception as dyn_error:
+            except Exception:
                 pass 
         
         analyzer = ComplexityAnalyzer(source_code, trace_data)
@@ -1797,8 +1802,8 @@ def analyze_source_code(source_code):
             "space_total": analyzer.get_final_space_badge(),
             "overall_explanation": overall_exp,
             "lines": analyzer.details,
-            # FIXED: This line was missing! It exposes the graph to React
-            "call_graph": {k: list(v) for k, v in analyzer.call_graph.items()},
+            # THIS LINE IS CRITICAL - It passes the Graph to React
+            "call_graph": {k: list(v) for k, v in getattr(analyzer, 'call_graph', {}).items()},
             "error": None
         }
     except SyntaxError as e:
