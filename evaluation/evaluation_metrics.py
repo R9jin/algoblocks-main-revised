@@ -3,6 +3,7 @@ import json
 import sys
 import os
 import time
+import glob
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(root_dir)
@@ -55,11 +56,28 @@ def check_match(actual, expected):
     return False
 
 def calculate_metrics():
-    dataset_path = os.path.join(os.path.dirname(__file__), 'dataset', 'ground_truth.json')
-    with open(dataset_path, 'r', encoding='utf-8') as f:
-        dataset = json.load(f)
+    dataset_dir = os.path.join(os.path.dirname(__file__), 'dataset')
+    dataset = []
+    
+    # Automatically find all curated_part_n.json files
+    part_files = glob.glob(os.path.join(dataset_dir, 'curated_part_*.json'))
+    
+    # Fallback to the default ground_truth.json if the curated parts don't exist
+    if not part_files:
+        part_files = [os.path.join(dataset_dir, 'ground_truth.json')]
+        print("Evaluating default ground_truth.json...\n")
+    else:
+        print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
+        
+    for file_path in part_files:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            dataset.extend(json.load(f))
         
     total_algorithms = len(dataset)
+    if total_algorithms == 0:
+        print("Dataset is empty. Exiting.")
+        return
+
     overall_time_correct = 0
     overall_space_correct = 0
     total_lines_evaluated = 0
@@ -73,23 +91,29 @@ def calculate_metrics():
     y_true_space = []
     y_pred_space = []
     
-    print("Starting Independent AST Complexity Evaluation...\n")
+    print(f"Starting Independent AST Complexity Evaluation on {total_algorithms} algorithms...\n")
 
-    for item in dataset:
+    for index, item in enumerate(dataset, 1):
         code_snippet = item['code']
         expected_time = item['expected_overall_time']
         expected_space = item.get('expected_overall_space', 'O(1)')
+        
+        # Live tracking print statement
+        print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', 'Unknown')}...", end="", flush=True)
         
         start_time = time.perf_counter()
         results = analyze_source_code(code_snippet)
         end_time = time.perf_counter()
         
-        if results.get("status") == "error":
-            print(f"[Error] Failed to analyze {item['name']}: {results.get('message')}")
-            continue
-
         processing_time_ms = (end_time - start_time) * 1000
         total_processing_time += processing_time_ms
+
+        if results.get("status") == "error":
+            print(f" [ERROR] {results.get('message')}")
+            continue
+
+        # Completion time for the specific script
+        print(f" Done ({processing_time_ms:.2f} ms)")
         
         actual_time = results.get("total", "O(1)")
         actual_space = results.get("space_total", "O(1)")
@@ -99,13 +123,13 @@ def calculate_metrics():
         if check_match(actual_time, expected_time):
             overall_time_correct += 1
         else:
-            print(f"[Time Mismatch] {item['name']}: Expected {expected_time}, got {actual_time}")
+            print(f"  -> [Time Mismatch]: Expected {expected_time}, got {actual_time}")
             
         # 2. Validate Overall Space Complexity
         if check_match(actual_space, expected_space):
             overall_space_correct += 1
         else:
-            print(f"[Space Mismatch] {item['name']}: Expected {expected_space}, got {actual_space}")
+            print(f"  -> [Space Mismatch]: Expected {expected_space}, got {actual_space}")
             
         # Store data for Scikit-Learn Metrics
         y_true_time.append(expected_time)
@@ -131,17 +155,14 @@ def calculate_metrics():
                 if check_match(actual_local_time, expected_line.get('local_time')) and check_match(actual_global_time, expected_line.get('global_time')):
                     lines_time_correct += 1
                 else:
-                    print(f"  -> [Time Line {lineno} Mismatch] {item['name']}:")
-                    print(f"     Expected Time: Local {expected_line.get('local_time')}, Global {expected_line.get('global_time')}")
-                    print(f"     Got Time     : Local {actual_local_time}, Global {actual_global_time}")
+                    pass # Silenced line-level time mismatch to keep the console clean
 
                 # Check Space Match
                 expected_line_space = expected_line.get('space', 'O(1)')
                 if check_match(actual_global_space, expected_line_space) or check_match(actual_line.get('local_space', 'O(1)'), expected_line_space):
                     lines_space_correct += 1
                 else:
-                    print(f"  -> [Space Line {lineno} Mismatch] {item['name']}: Expected {expected_line_space}, got {actual_global_space}")
-
+                    pass # Silenced line-level space mismatch to keep the console clean
 
     # --- CALCULATE SOP 2 METRICS ---
     time_accuracy = (overall_time_correct / total_algorithms) * 100 if total_algorithms > 0 else 0
