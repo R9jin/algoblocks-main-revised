@@ -1,0 +1,2399 @@
+[
+  {
+    "id": "0580_D_4617",
+    "name": "Codeforces Submission 0580_D",
+    "code": "import sys\nfrom array import array  # noqa: F401\nimport typing as Tp  # noqa: F401\n\n\ndef input():\n    return sys.stdin.buffer.readline().decode('utf-8')\n\n\ndef output(*args):\n    sys.stdout.buffer.write(\n        ('\\n'.join(map(str, args)) + '\\n').encode('utf-8')\n    )\n\n\ndef main():\n    n, m, k = map(int, input().split())\n    a = list(map(float, input().split()))\n    add = [[0] * n for _ in range(n + 1)]\n    for xi, yi, ci in (map(int, input().split()) for _ in range(k)):\n        add[xi - 1][yi - 1] = float(ci)\n\n    minf = float('-inf')\n    dp = [[minf] * (2**n) for _ in range(n + 1)]\n    dp[n][0] = 0.0\n\n    for bitset in range(2**n):\n        if bin(bitset).count('1') >= m:\n            continue\n\n        for i in range(n + 1):\n            if dp[i][bitset] == minf:\n                continue\n            for j in range(n):\n                if (1 << j) & bitset:\n                    continue\n                dp[j][bitset | (1 << j)] = max(\n                    dp[j][bitset | (1 << j)],\n                    dp[i][bitset] + a[j] + add[i][j]\n                )\n\n    print(int(max(max(_dp) for _dp in dp) + 1e-7))\n\n\nif __name__ == '__main__':\n    main()\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(2^n)",
+    "line_metrics": [
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(n^2)",
+        "global_time": "O(n^2)",
+        "space": "O(n^2)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "space": "O(2^n)"
+      },
+      {
+        "lineno": 23,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 25,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 26,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 27,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 29,
+        "local_time": "O(n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 30,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 31,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 32,
+        "local_time": "O(n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 33,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 34,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 35,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 40,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "0581_D_4620",
+    "name": "Codeforces Submission 0581_D",
+    "code": "a,b,c,d,e,f=list(map(int,input().split()))\nn,n2=1,a*b+c*d+e*f\nwhile n**2<n2:\n    n+=1\nif n**2>n2:\n    print(-1)\n    exit()\nl=sorted([[max(a,b),min(a,b),'A'],[max(c,d),min(d,c),'B'],[max(e,f),min(e,f),'C']])\nif l[2][0]!=n:\n    print(-1)\n    exit(0)\nv=str(n)+'\\n'+(l[2][2]*n+'\\n')*l[2][1]\nif l[0][0]==n and l[1][0]==n:\n    for i in range(2):\n        v+=(l[i][2]*n+'\\n')*l[i][1]\nelse:\n    s=n-l[2][1]\n    if s not in l[0] or s not in l[1]:\n        print(-1)\n        exit()\n    if s!=l[0][0]:\n        l[0][0],l[0][1]=l[0][1],l[0][0]\n    if s!=l[1][0]:\n        l[1][0],l[1][1]=l[1][1],l[1][0]\n    v+=(l[0][2]*l[0][1]+l[1][2]*l[1][1]+'\\n')*s\nprint(v)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 2,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 24,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 25,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "0678_E_4632",
+    "name": "Codeforces Submission 0678_E",
+    "code": "import sys\nimport bisect\nfrom bisect import bisect_left as lb\ninput_=lambda: sys.stdin.readline().strip(\"\\r\\n\")\nfrom math import log\nfrom math import gcd\nfrom math import atan2,acos\nfrom random import randint\nsa=lambda :input_()\nsb=lambda:int(input_())\nsc=lambda:input_().split()\nsd=lambda:list(map(int,input_().split()))\nsflo=lambda:list(map(float,input_().split()))\nse=lambda:float(input_())\nsf=lambda:list(input_())\nflsh=lambda: sys.stdout.flush()\n#sys.setrecursionlimit(10**6)\nmod=10**9+7\ngp=[]\ncost=[]\ndp=[]\nmx=[]\nans1=[]\nans2=[]\nspecial=[]\nspecnode=[]\na=0\nkthpar=[]\ndef dfs(root,par):\n    if par!=-1:\n        dp[root]=dp[par]+1\n    for i in range(1,20):\n        if kthpar[root][i-1]!=-1:\n            kthpar[root][i]=kthpar[kthpar[root][i-1]][i-1]\n    for child in gp[root]:\n        if child==par:continue\n        kthpar[child][0]=root\n        dfs(child,root)\nans=0\ndef hnbhai(t):\n    n=sb()\n    p=[]\n    for i in range(n):\n        p.append(sflo())\n    #print(p)\n    dp=[0]*(1<<n)\n    dp[1]=1\n    for i in range(2,1<<n):\n        for j in range(1,n):\n            for k in range(0,j):\n                if (i>>j)&1 and (i>>k)&1:\n                    dp[i]=max(dp[i],dp[i^(1<<j)]*p[k][j]+dp[i^(1<<k)]*p[j][k])\n    #print(dp)\n    print(dp[-1])\nfor _ in range(1):\n    hnbhai(_+1)\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(2^n)",
+    "line_metrics": [
+      {
+        "lineno": 41,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 43,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n^2)"
+      },
+      {
+        "lineno": 44,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(n^2)"
+      },
+      {
+        "lineno": 46,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "space": "O(2^n)"
+      },
+      {
+        "lineno": 47,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 48,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 49,
+        "local_time": "O(n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 50,
+        "local_time": "O(n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 51,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 52,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 54,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "0792_D_4637",
+    "name": "Codeforces Submission 0792_D",
+    "code": "import math\ntemp=list(map(int,input().split()))\nN,q=temp[0],temp[1]\nfor j in range(0,q):\n    u=int(input())\n    S=input()\n    k=(N+1)//2\n    n=int(math.log((N+1),10)/math.log(2,10))-1\n    dup_n=n\n    store=[k]\n    while u!=k:\n        n-=1\n        if u>k:\n            k+=2**(n)\n        else:\n            k-=2**(n)\n        store.append(k)\n    for i in range(0,len(S)):\n        if S[i]=='R':\n            n-=1\n            if n==-1:\n                n=0\n                continue\n            k+=2**(n)\n        elif S[i]=='L':\n            n-=1\n            if n==-1:\n                n=0\n                continue\n            k-=2**(n)\n        else:\n            if n==dup_n:\n                continue\n            store.pop()\n            k=store[len(store)-1]\n            n+=1\n            continue\n        store.append(k)\n            \n    print(k)",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(log n)",
+    "line_metrics": [
+      {
+        "lineno": 2,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(n)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(log n)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(log n)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(log n)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(log n)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 24,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 35,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 40,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "0803_F_4658",
+    "name": "Codeforces Submission 0803_F",
+    "code": "import sys\ninput = sys.stdin.readline\n\nn = int(input())\nmod = pow(10, 9) + 7\na = list(map(int, input().split()))\nl = 100000\ncnt = [0] * (l + 1)\nfor i in a:\n    cnt[i] += 1\npow2 = [1]\nfor _ in range(l):\n    pow2.append(2 * pow2[-1] % mod)\nans = pow2[n] - 1\nx = [-1] * (l + 1)\nfor i in range(2, l + 1):\n    c = cnt[i]\n    xi = x[i]\n    for j in range(2 * i, l + 1, i):\n        c += cnt[j]\n        x[j] -= xi\n    ans += xi * (pow2[c] - 1) % mod\n    ans %= mod\nprint(ans)",
+    "expected_overall_time": "O(n log n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(n)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(log n)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 24,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1038_F_4671",
+    "name": "Codeforces Submission 1038_F",
+    "code": "n=int(input())\ns=[c=='1' for c in input()]\nm=len(s)\nz=[[0,0]]\nfor c in s:\n ind = z[-1][c]\n z[-1][c] = len(z)\n z.append(z[ind][:])\nassert(len(z) == m+1)\nz[m][0] = z[m][1] = m # make it sticky\n\n# how many things match directly\ndp = [0 for _ in range(m+1)]\ndp[0] = 1\nfor i in range(n):\n ndp = [0 for _ in range(m+1)]\n for i in range(m+1):\n  ndp[z[i][0]] += dp[i]\n  ndp[z[i][1]] += dp[i]\n dp = ndp\nres = dp[m]\n\nfor k in range(1, m):\n s0 = 0\n for c in s[-k:]:\n  s0 = z[s0][c]\n dp = [0 for _ in range(m+1)]\n dp[s0] = 1\n for i in range(n - k):\n  ndp = [0 for _ in range(m+1)]\n  for i in range(m+1):\n   ndp[z[i][0]] += dp[i]\n   ndp[z[i][1]] += dp[i]\n  dp = ndp\n for s1 in range(m): # skip m\n  v = dp[s1]\n  for c in s[-k:]:\n   if s1 == m: v = 0\n   s1 = z[s1][c]\n  if s1 == m: res += v\nprint(res)",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 2,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 25,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 27,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 29,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 30,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 31,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 32,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 33,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 34,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 35,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 37,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 41,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1051_D_4673",
+    "name": "Codeforces Submission 1051_D",
+    "code": "n, K = map(int, input().split())\nmod = 998244353\nif K == 1:\n    print(2)\n    exit()\ndp = [[0]*(2**2) for i in range(K+1)]\ndp[1][0] = 1\ndp[2][1] = 1\ndp[2][2] = 1\ndp[1][3] = 1\nfor i in range(1, n):\n    nx = [[0]*(2**2) for i in range(K+1)]\n    for k in range(K+1):\n        for j in range(4):\n            if j == 0:\n                nx[k][0] += dp[k][j]%mod\n                if k+1 <= K:\n                    nx[k+1][1] += dp[k][j]%mod\n                    nx[k+1][2] += dp[k][j]%mod\n                    nx[k+1][3] += dp[k][j]%mod\n            elif j == 1:\n                nx[k][0] += dp[k][j]%mod\n                nx[k][1] += dp[k][j]%mod\n                if k+2 <= K:\n                    nx[k+2][2] += dp[k][j]%mod\n                nx[k][3] += dp[k][j]%mod\n            elif j == 2:\n                nx[k][0] += dp[k][j]%mod\n                if k+2 <= K:\n                    nx[k+2][1] += dp[k][j]%mod\n                nx[k][2] += dp[k][j]%mod\n                nx[k][3] += dp[k][j]%mod\n            else:\n                if k+1 <= K:\n                    nx[k+1][0] += dp[k][j]%mod\n                    nx[k+1][1] += dp[k][j]%mod\n                    nx[k+1][2] += dp[k][j]%mod\n                nx[k][3] += dp[k][j]%mod\n    dp = nx\n#print(dp)\nprint(sum(dp[K])%mod)\n",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(n)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 39,
+        "local_time": "O(1)",
+        "global_time": "O(n^2)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 41,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1102_F_4706",
+    "name": "Codeforces Submission 1102_F",
+    "code": "import sys\ndef read():\n    return int(input())\ndef reads():\n    return [int(x) for x in input().split()]\nN,M=reads()\ntable=[reads() for i in range(N)]\nA=[[0]*N for i in range(N)]\nB=[[0]*N for i in range(N)]\nfor i in range(N):\n    for j in range(N):\n        res=10**9+7\n        for k in range(M):\n            res=min(res,abs(table[i][k]-table[j][k]))\n        A[i][j]=res\n        A[j][i]=res\n        res=10**9+7\n        for k in range(M-1):\n            res=min(res,abs(table[i][k]-table[j][k+1]))\n        B[i][j]=res\n#print(table)\n#print(A)\n#print(B)\n#A=[[10**9,2,3],[2,10**9,8],[1,5,10**9]]\n#B=[[10**9,2,3],[2,10**9,8],[1,5,10**9]]\ndp=[[-1]*N for i in range((1<<N) )]\ndef calc(mask,v):\n    if dp[mask][v]!=-1:\n        return dp[mask][v]\n    res =0\n    for u in range(N):\n        if (mask & 1<<u) and u!=v:\n            res =max(res,min(calc(mask^(1<<v),u),A[u][v]))\n    dp[mask][v]=res\n    return dp[mask][v]\nans=0\nfor i in range(N):\n    dp = [[-1] * N for i in range((1 << N))]\n    for k in range(N):\n        if k==i:\n            dp[1<<k][k]=10**9+7\n        else:\n            dp[1<<k][k]=0\n    for j in range(N):\n        ans=max(ans,min(B[j][i],calc((1<<N)-1,j)))\n    #print(dp,ans)\nprint(ans)",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(2^n)",
+    "line_metrics": [
+      {
+        "lineno": 6,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(n^2)",
+        "global_time": "O(n^2)",
+        "space": "O(n^2)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(n^2)",
+        "global_time": "O(n^2)",
+        "space": "O(n^2)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(n^2)",
+        "global_time": "O(n^2)",
+        "space": "O(n^2)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(n)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(n)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(n)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(n)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(n^3)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 26,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "space": "O(2^n)"
+      },
+      {
+        "lineno": 28,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 29,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 30,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 31,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 32,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 33,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 34,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 35,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 36,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 37,
+        "local_time": "O(n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 38,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "space": "O(2^n)"
+      },
+      {
+        "lineno": 39,
+        "local_time": "O(n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 40,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 41,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 43,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 44,
+        "local_time": "O(n)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 45,
+        "local_time": "O(1)",
+        "global_time": "O(2^n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 47,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1185_G1_4711",
+    "name": "Codeforces Submission 1185_G1",
+    "code": "n,tnow=map(int,input().split())\nleft=int(\"\".join([\"1\" for i in range(n)]),2)\narr=[]\ndp={}\nfor i in range(n):\n    a,b=map(int,input().split())\n    arr.append([a,b])\ndef recur(tnow,prevgenre,left):\n    key=str(left)+\"_\"+str(prevgenre)\n    if tnow==0:\n        return 1\n    elif key in dp:\n        return dp[key]\n    else:\n        ans=0\n        for i in range(n):\n            if (left&(1<<i))!=0:\n                if arr[i][0]<=tnow and arr[i][1]!=prevgenre:\n                    left=left&(~(1<<i))\n                    ans+=recur(tnow-arr[i][0],arr[i][1],left)\n                    left=left|(1<<i)\n        dp[key]= ans\n        return ans\n       \nprint(recur(tnow,4,left)%(10**9+7))\n",
+    "expected_overall_time": "O(2^n)",
+    "expected_overall_space": "O(2^n)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 2,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "local_time": "O(1)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 25,
+        "local_time": "O(2^n)",
+        "global_time": "O(2^n)",
+        "space": "O(2^n)"
+      }
+    ]
+  },
+  {
+    "id": "0276_D_792",
+    "name": "Codeforces Submission 0276_D",
+    "code": "a,b=map(int,input().split())\nif a==b:print(0)\nelse:\n    x=a^b\n    c=0\n    while x:\n        x=x//2\n        c+=1\n    print(2**c-1)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 2,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "0287_B_910",
+    "name": "Codeforces Submission 0287_B",
+    "code": "#!/usr/bin/env python3\nfrom sys import stdin\n\n\ndef solve(tc):\n    n, k = map(int, stdin.readline().split())\n\n    if n == 1:\n        print(0)\n        return\n\n    if n <= k:\n        print(1)\n        return\n\n    lo, hi = 1, k-1\n    while lo < hi:\n        mid = lo + (hi-lo+1)//2\n\n        cum = (k-2+mid-1)*(k-mid)//2\n        if cum < n-k:\n            hi = mid - 1\n        else:\n            lo = mid\n\n    if lo == 1:\n        print(-1)\n        return\n\n    print(k-lo+1)\n\n\ntcs = 1\nfor tc in range(tcs):\n    solve(tc)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 24,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 26,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 27,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 28,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 30,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 33,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 34,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 35,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "0338_A_967",
+    "name": "Codeforces Submission 0338_A",
+    "code": "n,m,k=map(int,input().split())\n\nMOD=1000000009\n\nx=m-(n//k*(k-1)+(n%k))\n\nif (x<=0):exit(print(m%MOD))\n\nprint(((m-x)+((pow(2,x+1, MOD)+2*MOD)-2)*k-x*(k-1))%MOD)",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "0817_C_972",
+    "name": "Codeforces Submission 0817_C",
+    "code": "from sys import stdin\n\nn, m = map(int, stdin.readline().split())\nbe, en, ans = 1, n, n + 1\nwhile be <= en:\n    md = (be + en) >> 1\n    if md - sum(int(x) for x in str(md)) >= m:\n        en = md - 1\n        ans = md\n    else:\n        be = md + 1\n\nprint(n - ans + 1)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "0992_C_1034",
+    "name": "Codeforces Submission 0992_C",
+    "code": "x, k = map(int, input().strip().split())\nMOD = 10**9 + 7\n\ndef pow2(k):\n    if k == 0:\n        return 1\n    if k == 1:\n        return 2\n    r = pow2(k // 2)\n    r = r * r\n    if k % 2 != 0:\n        r *= 2\n    return r % MOD\n\ndef calc(x, k):\n    if x == 0:\n        return 0\n    if k == 0:\n        return (2 * x) % MOD\n    r = pow2(k) * (2 * x - 1) + 1\n    return r % MOD\n\nprint(calc(x, k))",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(log n)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 2,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(log n)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(log n)"
+      },
+      {
+        "lineno": 21,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(log n)"
+      }
+    ]
+  },
+  {
+    "id": "1019_B_1172",
+    "name": "Codeforces Submission 1019_B",
+    "code": "import sys\n\ndef ask(x):\n    print('? %d'%x)\n    sys.stdout.flush()\n    x=int(input())\n    return x\n\nn=int(input())\nt=n//2\nif t&1:\n    print('! -1')\n    sys.stdout.flush()\n    sys.exit()\nl=1\nr=n\nwhile l<r:\n    mid=(l+r)>>1\n    if ask(mid)>=ask((mid+t-1)%n+1):\n        r=mid\n    else:\n        l=mid+1\nprint('! %d'%l)\nsys.stdout.flush()\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 24,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1036_A_1184",
+    "name": "Codeforces Submission 1036_A",
+    "code": "\n\n\n\nn, k = map(int, input().split())\n\na, b, c = 0, k, 0\n\nwhile a < b:\n    c = (a + b) // 2\n    if c * n < k:\n        a = c + 1\n    else:\n        b = c\n\nprint(a)\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1059_C_1186",
+    "name": "Codeforces Submission 1059_C",
+    "code": "n = int(input())\n\nif (n == 3):\n    print('1 1 3')\nelse:\n    done = 0\n    arr = []\n    for i in range(30, -1, -1):\n        arr.extend([2**i]*(n//(2**i) - done))\n        done += n//(2**i) - done\n        if (done == 1):\n            k = i\n\n    arr[0] = max(arr[0], (n//2**(k-1)) * 2**(k-1))\n        \n    arr.reverse()\n    print(' '.join(map(str, arr)))\n",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(n)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(n)",
+        "global_time": "O(n)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1068_A_1192",
+    "name": "Codeforces Submission 1068_A",
+    "code": "from sys import stdin, stdout\nfrom math import sin, tan, cos\n\nn, m, k, l = map(int, stdin.readline().split())\n\nlb, rb = 0, n // m + 1\nwhile rb - lb > 1:\n    mid = (lb + rb) >> 1\n    \n    if mid * m - k >= l:\n        rb = mid\n    else:\n        lb = mid\n\nif lb != n // m:\n    stdout.write(str(rb))\nelse:\n    stdout.write('-1')",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1080_D_1194",
+    "name": "Codeforces Submission 1080_D",
+    "code": "t=int(input())\nfor _ in range(t):\n  n,k=map(int,input().split())\n  if n==2 and k==3:\n    print('NO')\n    continue\n  if n<=100:\n    curr=0\n    for j in range(n):\n      curr+=pow(4,j)\n    if curr<k:\n      print('NO')\n      continue\n  curr=0\n  ans=0\n  while curr<k and ans<n:\n    ans+=1\n    curr+=pow(2,ans)-1\n  if curr>k:\n    ans-=1\n  print('YES',n-ans)",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 2,
+        "local_time": "O(n)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(log n)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 19,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "local_time": "O(1)",
+        "global_time": "O(n log n)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1088_D_1249",
+    "name": "Codeforces Submission 1088_D",
+    "code": "print(\"?\",0,0)\ne=int(input())\nastr=\"000000000000000000000000000000\"\nbstr=\"000000000000000000000000000000\"\nabig=e\nfor i in range(30):\n    if abig==0:\n        print(\"?\",int(astr,2)+2**(29-i),int(bstr,2))\n        e=int(input())\n        if e==1:\n            continue\n        else:\n            if i<29:\n                astr=astr[:i]+\"1\"+astr[i+1:]\n                bstr=bstr[:i]+\"1\"+bstr[i+1:]\n            else:\n                astr=astr[:i]+\"1\"\n                bstr=bstr[:i]+\"1\"\n    else:\n        print(\"?\",int(astr,2)+2**(29-i),int(bstr,2)+2**(29-i))\n        e=int(input())\n        if e==-abig:\n            if abig==1:\n                if i<29:\n                    astr=astr[:i]+\"1\"+astr[i+1:]\n                else:\n                    astr=astr[:i]+\"1\"\n            else:\n                if i<29:\n                    bstr=bstr[:i]+\"1\"+bstr[i+1:]\n                else:\n                    bstr=bstr[:i]+\"1\"\n            print(\"?\",int(astr,2),int(bstr,2))\n            abig=int(input())\n        else:\n            print(\"?\",int(astr,2)+2**(29-i),int(bstr,2))\n            e=int(input())\n            if e==-1:\n                if i<29:\n                    astr=astr[:i]+\"1\"+astr[i+1:]\n                    bstr=bstr[:i]+\"1\"+bstr[i+1:]\n                else:\n                    astr=astr[:i]+\"1\"\n                    bstr=bstr[:i]+\"1\"\nprint(\"!\",int(astr,2),int(bstr,2))",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 2,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(log n)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 10,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 14,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 17,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 18,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 20,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 21,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 22,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 23,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 24,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 25,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 27,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 29,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 30,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 32,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 33,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 34,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 36,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 37,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 38,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 39,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 40,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 42,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 43,
+        "local_time": "O(1)",
+        "global_time": "O(log n)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 44,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  },
+  {
+    "id": "1177_B_1268",
+    "name": "Codeforces Submission 1177_B",
+    "code": "k = int(input())\na = 9\nfor i in range(1,12):\n    if k<=a*i:\n        a = (a//9)+(k//i)-1\n        if k%i!=0:\n            b = str(a+1)\n            c = (k%i)-1\n            print(b[c])\n        else:\n            b = str(a)\n            print(b[-1])\n        break\n    else:\n        k = k-a*i\n        a = a*10\n",
+    "expected_overall_time": "O(log n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": [
+      {
+        "lineno": 1,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 2,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 3,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 4,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 5,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 6,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 7,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 8,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 9,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 11,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 12,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 13,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 15,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      },
+      {
+        "lineno": 16,
+        "local_time": "O(1)",
+        "global_time": "O(1)",
+        "space": "O(1)"
+      }
+    ]
+  }
+]

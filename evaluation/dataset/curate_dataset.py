@@ -8,6 +8,10 @@ import glob
 SAMPLES_PER_COMPLEXITY = 15  # Adjust this to get more/less data (e.g., 15 * 7 classes = ~105 total scripts)
 MAX_LINES_OF_CODE = 60       # Skips massive competitive programming boilerplates
 MIN_LINES_OF_CODE = 4        # Skips trivial 1-liners
+
+# NEW FILTERS TO CLEAN GARBAGE DATA
+MAX_NON_ASCII = 20           # Skips files with too many non-ASCII chars (e.g., Chinese character spam)
+MAX_LINE_LENGTH = 150        # Skips files with insanely long lines (hardcoded payloads/obfuscation)
 # ==========================================
 
 def get_base_problem_id(submission_id):
@@ -56,8 +60,18 @@ def curate_dataset():
                     continue
                     
                 # Filter 4: Is the code too long (boilerplate) or too short?
-                line_count = len(code.split('\n'))
+                lines = code.split('\n')
+                line_count = len(lines)
                 if line_count > MAX_LINES_OF_CODE or line_count < MIN_LINES_OF_CODE:
+                    continue
+                    
+                # Filter 5: Skip codes with insanely long lines (obfuscation/hardcoded payloads)
+                if any(len(line) > MAX_LINE_LENGTH for line in lines):
+                    continue
+                    
+                # Filter 6: Skip codes with excessive non-ASCII characters (like the Chinese spam)
+                non_ascii_count = sum(1 for c in code if ord(c) > 127)
+                if non_ascii_count > MAX_NON_ASCII:
                     continue
                 
                 # If it passes all filters, add it!
@@ -76,7 +90,8 @@ def curate_dataset():
     # Save the highly curated, balanced dataset
     output_filename = 'curated_ground_truth.json'
     with open(output_filename, 'w', encoding='utf-8') as out_f:
-        json.dump(curated_dataset, out_f, indent=2)
+        # ensure_ascii=False prevents the \uXXXX escape sequences
+        json.dump(curated_dataset, out_f, indent=2, ensure_ascii=False)
 
     print(f"Curation complete! Saved {len(curated_dataset)} highly diverse scripts to {output_filename}.")
     print("Class breakdown:")
