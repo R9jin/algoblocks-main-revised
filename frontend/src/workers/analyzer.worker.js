@@ -241,28 +241,45 @@ if 'semantic_nlg' in sys.modules: del sys.modules['semantic_nlg']
 if 'dynamic_tracer' in sys.modules: del sys.modules['dynamic_tracer']
 
 def gather_custom_lint_errors(code_str):
-    errs = []; lines = code_str.split('\\n'); stack = []; pairs = {'(': ')', '[': ']', '{': '}'}
+    errs = []
+    lines = code_str.split('\\n')
+    stack = []
+    pairs = {'(': ')', '[': ']', '{': '}'}
     for i, line in enumerate(lines):
         s = line.strip()
-        if not s or s.startswith('#'): continue
+        if not s or s.startswith('#'):
+            continue
         if s.startswith(('def ', 'if ', 'elif ', 'else', 'for ', 'while ', 'class ', 'try', 'except', 'finally')):
             s_no_comment = s.split('#')[0].strip()
             if not s_no_comment.endswith(':') and not s_no_comment.endswith(('(', '[', '{', ',', '\\\\')):
                 errs.append({"line": i+1, "message": "expected ':'"})
-        in_str = False; str_char = ''; escape = False
+        in_str = False
+        str_char = ''
+        escape = False
         for char in line:
-            if escape: { escape = False; continue }
-            if char == '\\\\': { escape = True; continue }
-            if char in '"\\'' and not in_str: { in_str = True; str_char = char }
-            elif char == str_char and in_str: { in_str = False }
+            if escape:
+                escape = False
+                continue
+            if char == '\\\\':
+                escape = True
+                continue
+            if char in ['"', "'"] and not in_str:
+                in_str = True
+                str_char = char
+            elif char == str_char and in_str:
+                in_str = False
             if not in_str:
-                if char in pairs: stack.append((char, i+1))
+                if char in pairs:
+                    stack.append((char, i+1))
                 elif char in pairs.values():
-                    if not stack: errs.append({"line": i+1, "message": f"unmatched '{char}'"})
+                    if not stack:
+                        errs.append({"line": i+1, "message": f"unmatched '{char}'"})
                     else:
                         top, _ = stack.pop()
-                        if pairs[top] != char: errs.append({"line": i+1, "message": f"closing '{char}' does not match opening '{top}'"})
-    for char, l in stack: errs.append({"line": l, "message": f"unclosed '{char}'"})
+                        if pairs[top] != char:
+                            errs.append({"line": i+1, "message": f"closing '{char}' does not match opening '{top}'"})
+    for char, l in stack:
+        errs.append({"line": l, "message": f"unclosed '{char}'"})
     return errs
 
 try:
@@ -274,7 +291,8 @@ try:
         real_msg = output_dict.get("message", "Syntax Error")
         all_errors = [{"line": real_line, "message": real_msg}]
         for ce in custom_errs:
-            if not any(existing['line'] == ce['line'] for existing in all_errors): all_errors.append(ce)
+            if not any(existing['line'] == ce['line'] for existing in all_errors):
+                all_errors.append(ce)
         all_errors.sort(key=lambda x: x['line'])
         output_dict["multiple_errors"] = all_errors
     output = json.dumps(output_dict)
@@ -284,7 +302,8 @@ except Exception as e:
     real_msg = str(e)
     all_errors = [{"line": real_line, "message": real_msg}]
     for ce in custom_errs:
-        if not any(existing['line'] == ce['line'] for existing in all_errors): all_errors.append(ce)
+        if not any(existing['line'] == ce['line'] for existing in all_errors):
+            all_errors.append(ce)
     all_errors.sort(key=lambda x: x['line'])
     output = json.dumps({"status": "error", "multiple_errors": all_errors, "line": real_line, "message": real_msg})
 output
@@ -353,13 +372,16 @@ from collections import defaultdict
 builtins.input = custom_input_sync
 
 class LineExecutionProfiler:
-    def __init__(self): self.hits = defaultdict(int)
+    def __init__(self):
+        self.hits = defaultdict(int)
     def trace_lines(self, frame, event, arg):
-        if event == 'line' and frame.f_code.co_filename == "<user_code>": self.hits[frame.f_lineno] += 1
+        if event == 'line' and frame.f_code.co_filename == "<user_code>":
+            self.hits[frame.f_lineno] += 1
         return self.trace_lines
 
 class AsyncInputTransformer(ast.NodeTransformer):
-    def __init__(self): self.has_input = False
+    def __init__(self):
+        self.has_input = False
     def visit_Call(self, node):
         self.generic_visit(node)
         if isinstance(node.func, ast.Name) and node.func.id == 'input':
@@ -382,7 +404,8 @@ try:
             compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
             sys.settrace(dyn_profiler.trace_lines)
             coro = eval(compiled_code, globals())
-            if coro is not None: await coro
+            if coro is not None:
+                await coro
         else:
             compiled_code = compile(transformed, "<user_code>", "exec")
             sys.settrace(dyn_profiler.trace_lines)
