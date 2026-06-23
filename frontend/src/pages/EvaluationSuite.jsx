@@ -308,7 +308,7 @@ export default function EvaluationSuite() {
             className={`eval-btn-run ${isRunning || !isEngineReady ? "eval-run-disabled" : "eval-run-ready"}`}
           >
             {isRunning ? <FiRefreshCw className="spinner" size={16} /> : <FiPlay fill="#fff" size={16} />}
-            <span>{isRunning ? `Running Gauntlet (${progress}%)...` : "Execute Benchmark"}</span>
+            <span>{isRunning ? `Running Benchmark (${progress}%)...` : "Execute Benchmark"}</span>
           </button>
         </div>
       </header>
@@ -339,7 +339,7 @@ export default function EvaluationSuite() {
               className={`dataset-btn ${datasetOption === "codeforces" ? "active-ds" : ""}`}
               disabled={isRunning}
             >
-              Wild Codeforces Curated (104)
+              CodeComplex Curated (104)
             </button>
             <button 
               onClick={() => !isRunning && setDatasetOption("both")}
