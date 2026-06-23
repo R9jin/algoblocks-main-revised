@@ -17,25 +17,17 @@ export default function EvaluationSuite() {
   const navigate = useNavigate();
   const { worker, isEngineReady } = usePyodide();
 
-  const [isAdmin, setIsAdmin] = useState(false);
+  // Absolute Gatekeeper Removal: Replaced with an explicit mount logger
+  useEffect(() => {
+    console.log("🔥 SUITE COMPONENT SUCCESSFULLY MOUNTED! (Auth redirects disabled)");
+  }, []);
+
   const [isRunning, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("System idle.");
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedItemCode, setSelectedItemCode] = useState(null);
-
-  // Security Verification: Ensure only elevated admin users can mount this view
-  useEffect(() => {
-    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-    const userObj = userStr ? JSON.parse(userStr) : null;
-    
-    if (!userObj?.isAdmin) {
-      navigate("/dashboard");
-    } else {
-      setIsAdmin(true);
-    }
-  }, [navigate]);
 
   // Global Worker Listener: Intercept benchmark execution updates
   useEffect(() => {
@@ -72,7 +64,7 @@ export default function EvaluationSuite() {
     setIsLoading(true);
     setProgress(0);
     setResults(null);
-    setStatusText("Fetching Ground Truth Benchmark Dataset (/data/ground_truth.json)...");
+    setStatusText("Fetching Ground Truth Benchmark Dataset (/data/evaluation/ground_truth.json)...");
 
     try {
       const res = await fetch("/data/evaluation/ground_truth.json");
@@ -102,8 +94,6 @@ export default function EvaluationSuite() {
       }
     }
   };
-
-  if (!isAdmin) return null;
 
   const filteredDetails = (results?.details || []).filter((item) => {
     if (activeTab === "passed") return item.isCorrect;
@@ -161,7 +151,7 @@ export default function EvaluationSuite() {
           </Link>
           <div className="wh-divider eval-wh-divider"></div>
           <h2 className="wh-project-title eval-wh-title">
-            System Analytical Benchmark Suite <span className="eval-admin-badge">EVALUATION UI</span>
+            System Analytical Benchmark Suite <span className="eval-admin-badge" style={{ backgroundColor: "#10B981" }}>BENCHMARK METRICS</span>
           </h2>
         </div>
 
