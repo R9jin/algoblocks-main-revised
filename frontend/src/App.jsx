@@ -18,6 +18,7 @@ const ActivityApp = lazy(() => import("./pages/ActivityApp"));
 const AssessmentPage = lazy(() => import("./pages/AssessmentPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const LessonViewer = lazy(() => import("./pages/LessonViewer"));
+const EvaluationSuite = lazy(() => import("./pages/EvaluationSuite"));
 
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -68,6 +69,7 @@ function App() {
           <Route path="/activity/:moduleId/:activityId" element={<ProtectedRoute><ActivityApp /></ProtectedRoute>} />
           <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/admin/evaluation-suite" element={<ProtectedRoute><EvaluationSuite /></ProtectedRoute>} />
         </Routes>
       </Suspense>
     </PyodideProvider>

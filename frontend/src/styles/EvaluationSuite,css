@@ -1,0 +1,453 @@
+/* frontend/src/styles/EvaluationSuite.css */
+
+.eval-suite-container {
+  overflow-y: auto;
+  background-color: #0f172a;
+  min-height: 100vh;
+  color: #f8fafc;
+}
+
+/* --- HEADER OVERRIDES --- */
+.eval-header-override {
+  background-color: #1e293b !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+.eval-exit-link {
+  color: #cbd5e1 !important;
+}
+
+.eval-wh-divider {
+  background-color: #334155 !important;
+}
+
+.eval-wh-title {
+  color: #ffffff !important;
+}
+
+.eval-admin-badge {
+  font-size: 11px;
+  background-color: #7928ca;
+  color: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+.eval-btn-run {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.eval-run-idle {
+  background-color: #10b981;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.eval-run-idle:hover {
+  background-color: #059669;
+}
+
+.eval-run-active {
+  background-color: #475569;
+  color: #ffffff;
+  cursor: not-allowed;
+}
+
+/* --- MAIN CONTAINER --- */
+.eval-main-wrapper {
+  max-width: 1280px;
+  margin: 32px auto;
+  padding: 0 24px;
+  padding-bottom: 60px;
+}
+
+/* --- STATUS BANNER --- */
+.eval-status-banner {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  padding: 14px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.eval-status-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eval-status-label {
+  color: #94a3b8;
+}
+
+.eval-status-label-sm {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.eval-status-target {
+  color: #38bdf8;
+}
+
+.eval-vm-ready {
+  color: #10b981;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.eval-vm-booting {
+  color: #f59e0b;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* --- PROGRESS BAR --- */
+.eval-progress-track {
+  width: 100%;
+  background-color: #1e293b;
+  border-radius: 8px;
+  height: 10px;
+  border: 1px solid #334155;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.eval-progress-fill {
+  background-color: #10b981;
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+/* --- STATS GRID --- */
+.eval-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.eval-stat-card {
+  background-color: #1e293b;
+  padding: 22px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.eval-stat-title {
+  font-size: 13px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.eval-stat-value {
+  font-size: 36px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.val-green { color: #10b981; }
+.val-yellow { color: #f59e0b; }
+.val-red { color: #ef4444; }
+.val-white { color: #f8fafc; }
+.val-muted { color: #94a3b8; }
+
+/* --- TABLE CONTAINER & NAVBAR --- */
+.eval-table-container {
+  background-color: #1e293b;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.eval-filter-navbar {
+  padding: 14px 22px;
+  background-color: #0f172a;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.eval-filter-label {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-right: 8px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.eval-filter-btn {
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-all-active {
+  background-color: #334155;
+  color: #ffffff;
+}
+
+.filter-all-idle {
+  background-color: transparent;
+  color: #ffffff;
+}
+
+.filter-pass-active {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.filter-pass-idle {
+  background-color: transparent;
+  color: #94a3b8;
+  border: 1px solid transparent;
+}
+
+.filter-fail-active {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.filter-fail-idle {
+  background-color: transparent;
+  color: #94a3b8;
+  border: 1px solid transparent;
+}
+
+/* --- MAIN DATA TABLE --- */
+.eval-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.eval-table-header {
+  border-bottom: 1px solid #334155;
+  color: #94a3b8;
+  background-color: #192231;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.eval-table th {
+  padding: 14px 16px;
+}
+
+.eval-table th:first-child,
+.eval-table td:first-child {
+  padding-left: 22px;
+}
+
+.eval-table th:last-child,
+.eval-table td:last-child {
+  padding-right: 22px;
+  text-align: right;
+}
+
+.eval-table td {
+  padding: 16px 16px;
+  border-bottom: 1px solid #334155;
+}
+
+.cell-algo-name {
+  font-weight: bold;
+  color: #f8fafc;
+}
+
+.cell-category {
+  color: #94a3b8;
+}
+
+.eval-table-code-gt {
+  color: #f59e0b;
+  background-color: #0f172a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  font-family: Consolas, monospace;
+  font-weight: bold;
+}
+
+.eval-table-code-pred {
+  background-color: #0f172a;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  font-family: Consolas, monospace;
+  font-weight: bold;
+}
+
+.pred-match-pass { color: #10b981; }
+.pred-match-fail { color: #ef4444; }
+
+.eval-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+}
+
+.verdict-pass { color: #10b981; }
+.verdict-fail { color: #ef4444; }
+
+.eval-btn-inspect {
+  background-color: #334155;
+  color: #f8fafc;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.eval-btn-inspect:hover {
+  background-color: #475569;
+}
+
+.eval-empty-state {
+  padding: 40px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+/* --- INSPECTION MODAL --- */
+.eval-modal-content {
+  max-width: 650px;
+  background-color: #1e293b;
+  color: #ffffff;
+  border: 1px solid #334155;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.eval-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.eval-modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: #f8fafc;
+}
+
+.eval-modal-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.eval-badge-gt {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #0f172a;
+  color: #f59e0b;
+  border: 1px solid #334155;
+}
+
+.eval-badge-pred {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.pred-correct { background-color: #10b981; }
+.pred-incorrect { background-color: #ef4444; }
+
+.eval-section-label {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.eval-code-preview {
+  background-color: #0f172a;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: Consolas, monospace;
+  overflow-x: auto;
+  color: #38bdf8;
+  border: 1px solid #334155;
+  margin: 0;
+  margin-bottom: 16px;
+}
+
+.eval-explanation-box {
+  background-color: #0f172a;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  max-height: 150px;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+.eval-modal-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.eval-btn-close {
+  background-color: #334155;
+  color: #ffffff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.eval-btn-close:hover {
+  background-color: #475569;
+}

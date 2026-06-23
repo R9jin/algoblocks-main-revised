@@ -395,6 +395,83 @@ except Exception as e:
       self.postMessage({ type: 'RUN_RESULT', data: "", counts });
     }
 
+    // ======================
+    // 4. BENCHMARK SUITE MODE
+    // ======================
+    else if (type === 'RUN_BENCHMARK_SUITE') {
+      try {
+        await initPyodide();
+        const { dataset } = e.data;
+        let passedCount = 0;
+        let failedCount = 0;
+        const detailedResults = [];
+
+        for (let i = 0; i < dataset.length; i++) {
+          const item = dataset[i];
+          const testName = item.name || item.title || item.algorithm || `Test Case #${i + 1}`;
+          
+          self.postMessage({ 
+            type: 'BENCHMARK_PROGRESS', 
+            progress: Math.round(((i + 1) / dataset.length) * 100),
+            currentItem: testName
+          });
+
+          pyodide.globals.set("user_code", item.code || "");
+          const pyResultStr = await pyodide.runPythonAsync(`
+import json
+import sys
+try:
+    from analyzer import analyze_source_code
+    res = analyze_source_code(user_code)
+except Exception as err:
+    res = {"status": "error", "total": "ERROR", "overall_explanation": str(err)}
+json.dumps(res)
+          `);
+          const resultJs = JSON.parse(pyResultStr);
+
+          const expectedComplexity = String(item.expected_time || item.expectedComplexity || item.complexity || "O(1)").toLowerCase().replace(/\s+/g, "");
+          const predictedComplexity = String(resultJs.total || "").toLowerCase().replace(/\s+/g, "");
+
+          const isCorrect = (predictedComplexity === expectedComplexity) || 
+                            (predictedComplexity.includes(expectedComplexity) && expectedComplexity !== "") || 
+                            (expectedComplexity.includes(predictedComplexity) && predictedComplexity !== "");
+
+          if (isCorrect) {
+            passedCount++;
+          } else {
+            failedCount++;
+          }
+
+          detailedResults.push({
+            id: item.id || `case_${i + 1}`,
+            name: testName,
+            category: item.category || item.algorithm_type || "Algorithm Benchmark",
+            codeSnippet: item.code || "# No code snippet provided",
+            expectedTime: item.expected_time || item.expectedComplexity || item.complexity || "O(1)",
+            predictedTime: resultJs.total || "PARSE_FAIL",
+            isCorrect: isCorrect,
+            explanation: resultJs.overall_explanation || "No explanation yielded."
+          });
+        }
+
+        const accuracyRate = dataset.length > 0 ? (passedCount / dataset.length) * 100 : 0;
+
+        self.postMessage({
+          type: 'BENCHMARK_COMPLETE',
+          payload: {
+            totalTested: dataset.length,
+            passed: passedCount,
+            failed: failedCount,
+            accuracyRate: parseFloat(accuracyRate.toFixed(2)),
+            details: detailedResults
+          }
+        });
+
+      } catch (err) {
+        self.postMessage({ type: 'BENCHMARK_ERROR', error: err.message });
+      }
+    }
+
   } catch (err) {
     clearTimeout(executionTimeout);
     if (type === 'ANALYZE_CODE') {
