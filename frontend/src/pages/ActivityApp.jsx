@@ -27,10 +27,10 @@ const handleEditorWillMount = (monaco) => {
       { token: "number", foreground: "F59E0B" },
     ],
     colors: {
-      "editor.background": "#FFFFFF",
+      "editor.background": "#F8FAFC",
       "editor.foreground": "#1E293B",
       "editorLineNumber.foreground": "#CBD5E1",
-      "editor.lineHighlightBackground": "#F8FAFC",
+      "editor.lineHighlightBackground": "#F1F5F9",
       "editorCursor.foreground": "#7928CA",
       "editor.selectionBackground": "#E2E8F0",
       "editor.inactiveSelectionBackground": "#F1F5F9",
@@ -40,109 +40,119 @@ const handleEditorWillMount = (monaco) => {
 
 const getComplexityColor = (complexity) => {
   const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#10B981"; 
-  if (comp.includes("log n") && !comp.includes("n log")) return "#0EA5E9"; 
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B"; 
-  if (comp.includes("n log n")) return "#F97316"; 
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*m")) return "#EF4444"; 
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA"; 
-  return "#64748B"; 
+  if (comp.includes("o(1)")) return "#10B981";
+  if (comp.includes("log n") && !comp.includes("n log")) return "#0EA5E9";
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B";
+  if (comp.includes("n log n")) return "#F97316";
+  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*m")) return "#EF4444";
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA";
+  return "#64748B";
 };
 
+// =========================================================================
+// THESIS METHODOLOGY: ASYMPTOTIC WEIGHT MAPPING
+// =========================================================================
 const getComplexityWeight = (complexity) => {
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
   if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("t(n-1)+t(n-2)")) return 8;
-  if (comp.includes("n^3") || comp.includes("n³")) return 7;
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("t(n-1)+o(n)")) return 6;
-  if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 5;
-  if (comp.includes("v+e")) return 4.5;
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("c^n") || comp.includes("t(n-1)+t(n-2)")) return 8;
+  if (comp.includes("n^4") || comp.includes("n⁴")) return 7.5;
+  if (comp.includes("n^3") || comp.includes("n³") || comp.includes("n*n*n")) return 7;
+  if (comp.includes("n^2log") || comp.includes("n²log")) return 6.5;
+  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*n") || comp.includes("n*m") || comp.includes("m*n") || comp.includes("t(n-1)+o(n)")) return 6;
+  if (comp.includes("nlogn") || comp.includes("n*log") || comp.includes("nlog") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(log")) return 5;
+  if (comp.includes("v+e") || comp.includes("e+v") || comp.includes("n+m") || comp.includes("m+n")) return 4.5;
   if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;
   if (comp.includes("√n") || comp.includes("sqrt")) return 3;
-  if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
+  if (comp.includes("logn") || comp.includes("log(n)") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
   if (comp.includes("o(1)")) return 1;
-  return 0;
+  return 6;
 };
 
-// ========================================================
-// ADVANCED MARKDOWN PARSER (FIXES WALL OF TEXT & BIG O BADGES)
-// ========================================================
+// ---------------------------------------------------------------------------------
+// ADVANCED MARKDOWN PARSER (Custom Built for Asymptotic Step-by-Step Math)
+// ---------------------------------------------------------------------------------
+const parseMarkdown = (str) => {
+  if (!str) return "";
+  let html = str.trim();
+
+  html = html.replace(/^###\s+(.*)$/gm, '<h3 class="overall-main-title">$1</h3>');
+  html = html.replace(/^####\s+(.*)$/gm, '<h4 class="overall-sub-title">$1</h4>');
+  html = html.replace(/^#####\s+(.*)$/gm, '<h5 class="overall-section-title">$1</h5>');
+
+  html = html.replace(/\*\*(Step \d+:.*?)\*\*/g, '<span class="step-badge">$1</span>');
+  html = html.replace(/\*\*(\d+\.\s.*?)\*\*/g, '<span class="step-badge">$1</span>');
+  html = html.replace(/\*\*(Asymptotic Simplification|Final Asymptotic Complexity:?|Complexity Summary)\*\*/g, '<h5 class="overall-section-title">$1</h5>');
+
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  html = html.replace(/([a-zA-Z0-9_]+)\^([a-zA-Z0-9\+\-\/]+)/g, '$1<sup>$2</sup>');
+
+  html = html.replace(/^`([TS]\(n\)\s*=.*?)`$/gm, '<div class="math-block">$1</div>');
+  html = html.replace(/`([TS]\(n\)\s*=.*?)`/g, '<div class="math-block">$1</div>');
+
+  html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
+
+  let blocks = html.split(/\n\s*\n/);
+  let parsedBlocks = blocks.map(block => {
+    if (block.includes('<h3') || block.includes('<h4') || block.includes('<h5') || block.includes('<div class="math-block"')) {
+       return block.replace(/\n/g, '<br/>'); 
+    }
+    
+    if (/^[-*]\s+/m.test(block)) {
+      let listItems = block.split('\n').reduce((acc, line) => {
+         let trimmed = line.trim();
+         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { 
+             acc.push(`<li>${trimmed.substring(2).trim()}</li>`); 
+         } else if (trimmed !== '') { 
+             if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); 
+             else acc.push(`<li>${trimmed}</li>`); 
+         }
+         return acc;
+      }, []).join('');
+      return `<ul class="nlg-list">${listItems}</ul>`;
+    }
+
+    return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
+  });
+
+  return parsedBlocks.join('');
+};
+
 const formatExplanation = (text, isBottleneck, isLocalTab) => {
   if (!text) return null;
 
-  const parseMarkdown = (str) => {
-    let html = str.trim();
-    html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
-    
-    const mathReplacer = (match, math) => {
-      let cleanMath = math.trim().replace(/\\mathcal\{?O\}?/g, "O").replace(/\\log\b/g, "log").replace(/\\/g, "");
-      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-      return `<span class="nlg-math-badge">${cleanMath}</span>`;
-    };
-    html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
-    html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
-
-    html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, text, suffix) {
-       let newText = text.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
-           let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-           return `<span class="nlg-math-badge">O(${cleanMath})</span>`;
-       });
-       return prefix + newText + suffix;
-    });
-
-    let blocks = html.split(/\n\s*\n/);
-    let parsedBlocks = blocks.map(block => {
-      if (/^[-*]\s+/m.test(block)) {
-        let listItems = block.split('\n').reduce((acc, line) => {
-           let trimmed = line.trim();
-           if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) acc.push(`<li>${trimmed.substring(2).trim()}</li>`);
-           else if (trimmed !== '') {
-               if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
-               else acc.push(`<li>${trimmed}</li>`);
-           }
-           return acc;
-        }, []).join('');
-        return `<ul>${listItems}</ul>`;
-      } else {
-        return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
-      }
-    });
-    
-    return parsedBlocks.join('');
-  };
-
   const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
   const sections = text.split(headerRegex);
-  
+
   return sections.map((sec, idx) => {
-      let trimmedSec = sec.trim();
-      if (!trimmedSec) return null;
+    let trimmedSec = sec.trim();
+    if (!trimmedSec) return null;
 
-      const renderBlock = (content, title, variantClass) => {
-        const parsedContent = parseMarkdown(content);
-        return (
-          <div key={idx} className={`nlg-block ${variantClass}`}>
-            <strong className="nlg-block-title">{title}</strong>
-            <div className="nlg-block-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedContent) }} />
-          </div>
-        );
-      };
+    const renderBlock = (content, title, variantClass) => {
+      const parsedContent = parseMarkdown(content);
+      return (
+        <div key={idx} className={`nlg-block ${variantClass}`}>
+          <strong className="nlg-block-title">{title}</strong>
+          <div className="nlg-block-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedContent) }} />
+        </div>
+      );
+    };
 
-      if (trimmedSec.startsWith("**Local & Global Analysis:**")) return renderBlock(trimmedSec.replace("**Local & Global Analysis:**", "").trim(), "Dead Code Analysis", "nlg-deadcode");
-      if (trimmedSec.startsWith("**Local Analysis:**")) return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "nlg-local");
-      if (trimmedSec.startsWith("**Global Impact:**")) return renderBlock(trimmedSec.replace("**Global Impact:**", "").trim(), "Global Impact", "nlg-global");
-      if (trimmedSec.startsWith("**Educational Insight:**")) return renderBlock(trimmedSec.replace("**Educational Insight:**", "").trim(), "Educational Insight", "nlg-educational");
-      if (trimmedSec.startsWith("**Bottleneck Warning:**") || trimmedSec.startsWith("**Space Bottleneck:**")) {
-        const cleanText = trimmedSec.replace(/\*\*(Bottleneck Warning:|Space Bottleneck:|Space Bottleneck)\*\*/g, "").trim();
-        return renderBlock(cleanText, "Performance Bottleneck", "nlg-bottleneck");
-      }
-      if (trimmedSec.startsWith("**Algorithmic Mastery:**")) return renderBlock(trimmedSec.replace("**Algorithmic Mastery:**", "").trim(), "Algorithmic Mastery", "nlg-mastery");
-      if (trimmedSec.startsWith("*Profiler verified")) return renderBlock(trimmedSec.replace(/\*Profiler verified\*/g, "").replace(/\*Profiler verified/g, "").trim(), "Runtime Diagnostic", "nlg-profiler");
+    if (trimmedSec.startsWith("**Local & Global Analysis:**")) return renderBlock(trimmedSec.replace("**Local & Global Analysis:**", "").trim(), "Dead Code Analysis", "nlg-deadcode");
+    if (trimmedSec.startsWith("**Local Analysis:**")) return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "nlg-local");
+    if (trimmedSec.startsWith("**Global Impact:**")) return renderBlock(trimmedSec.replace("**Global Impact:**", "").trim(), "Global Impact", "nlg-global");
+    if (trimmedSec.startsWith("**Educational Insight:**")) return renderBlock(trimmedSec.replace("**Educational Insight:**", "").trim(), "Educational Insight", "nlg-educational");
+    if (trimmedSec.startsWith("**Bottleneck Warning:**") || trimmedSec.startsWith("**Space Bottleneck:**")) {
+      const cleanText = trimmedSec.replace(/\*\*(Bottleneck Warning:|Space Bottleneck:|Space Bottleneck)\*\*/g, "").trim();
+      return renderBlock(cleanText, "Performance Bottleneck", "nlg-bottleneck");
+    }
+    if (trimmedSec.startsWith("**Algorithmic Mastery:**")) return renderBlock(trimmedSec.replace("**Algorithmic Mastery:**", "").trim(), "Algorithmic Mastery", "nlg-mastery");
+    if (trimmedSec.startsWith("*Profiler verified")) return renderBlock(trimmedSec.replace(/\*Profiler verified\*/g, "").replace(/\*Profiler verified/g, "").trim(), "Runtime Diagnostic", "nlg-profiler");
 
-      let parsedSec = parseMarkdown(trimmedSec);
-      return <div key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></div>;
-    }).filter(Boolean);
+    let parsedSec = parseMarkdown(trimmedSec);
+    return <div key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></div>;
+  }).filter(Boolean);
 };
 
 const sanitizePythonCode = (code) => {
@@ -150,94 +160,31 @@ const sanitizePythonCode = (code) => {
   return code.replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g, " ");
 };
 
-// ========================================================
-// REFINED ACTIVITY DESCRIPTION FORMATTER
-// ========================================================
 const renderFormattedTask = (text) => {
   if (!text) return null;
-
-  const parseMarkdown = (str) => {
-    let html = str.trim();
-    
-    // 1. Headers (### Header)
-    html = html.replace(/^###\s+(.*)$/gm, "<h3 style='margin: 20px 0 10px 0; color: var(--purple-main); font-size: 1.1rem;'>$1</h3>");
-    html = html.replace(/^##\s+(.*)$/gm, "<h2 style='margin: 24px 0 12px 0; color: var(--text-main); font-size: 1.25rem;'>$1</h2>");
-    
-    // 2. Bold Text
-    html = html.replace(/\*\*(.*?)\*\*/g, "<strong style='color: var(--purple-main); font-weight: 700;'>$1</strong>");
-    
-    // 3. Inline Code Blocks
-    html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code" style="background: var(--purple-alpha); color: var(--purple-main); padding: 2px 6px; border-radius: 4px; font-family: \'Fira Code\', monospace; font-size: 0.85em;">$1</code>');
-    
-    // 4. LaTeX Math Formats
-    const mathReplacer = (match, math) => {
-      let cleanMath = math.trim()
-        .replace(/\\mathcal\{?O\}?/g, "O")
-        .replace(/\\log\b/g, "log")
-        .replace(/\\/g, "");
-      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>");
-      cleanMath = cleanMath.replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-      return `<span class="nlg-math-badge" style="font-family: 'Fira Code', monospace; font-weight: bold; color: var(--purple-main); background: var(--purple-alpha); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(121, 40, 202, 0.2); margin: 0 2px;">${cleanMath}</span>`;
-    };
-    html = html.replace(/\$\$([\s\S]+?)\$\$/g, mathReplacer);
-    html = html.replace(/\$([\s\S]+?)\$/g, mathReplacer);
-
-    // 5. Catch plain O(...) notations
-    html = html.replace(/(^|>)([^<]+)(<|$)/g, function(match, prefix, txt, suffix) {
-       let newText = txt.replace(/\bO\(([^)]+)\)/g, (m, inner) => {
-           let cleanMath = inner.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
-           return `<span class="nlg-math-badge" style="font-family: 'Fira Code', monospace; font-weight: bold; color: var(--purple-main); background: var(--purple-alpha); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(121, 40, 202, 0.2); margin: 0 2px;">O(${cleanMath})</span>`;
-       });
-       return prefix + newText + suffix;
+  const parseStr = (str) => {
+    let out = str.replace(/\n/g, "<br/>");
+    out = out.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--purple-main);">$1</strong>');
+    out = out.replace(/\$([^$]+)\$/g, (match, math) => {
+      let cleanMath = math.replace(/\\log\b/g, "log").replace(/\\/g, "");
+      cleanMath = cleanMath.replace(/\^{([^}]+)}/g, "<sup>$1</sup>").replace(/\^([a-zA-Z0-9]+)/g, "<sup>$1</sup>");
+      return `<span class="nlg-math-badge">${cleanMath}</span>`;
     });
-
-    // 6. Block Quotes
-    html = html.replace(/^>\s+(.*)$/gm, '<blockquote style="border-left: 4px solid var(--purple-main); margin: 16px 0; color: var(--text-muted); background: var(--purple-alpha); padding: 12px 16px; border-radius: 0 8px 8px 0;">$1</blockquote>');
-
-    // 7. Split into distinct paragraphs and handle lists properly
-    let blocks = html.split(/\n\s*\n/);
-    
-    let parsedBlocks = blocks.map(block => {
-      if (/^[-*]\s+/m.test(block)) {
-        let listItems = block.split('\n').reduce((acc, line) => {
-           let trimmed = line.trim();
-           if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-               acc.push(`<li style="margin-bottom: 8px;">${trimmed.substring(2).trim()}</li>`);
-           } else if (trimmed !== '') {
-               if(acc.length > 0) {
-                   acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
-               } else {
-                   acc.push(`<li style="margin-bottom: 8px;">${trimmed}</li>`);
-               }
-           }
-           return acc;
-        }, []).join('');
-        return `<ul style="margin: 16px 0; padding-left: 24px; list-style-type: disc; color: var(--text-main); font-size: 0.95rem; line-height: 1.6;">${listItems}</ul>`;
-      } else if (block.startsWith('<h') || block.startsWith('<blockquote')) {
-        return block;
-      } else {
-        return `<p style="margin: 0 0 16px 0; line-height: 1.7; font-size: 0.95rem; color: var(--text-main);">${block.replace(/\n/g, '<br/>')}</p>`;
-      }
-    });
-    
-    return parsedBlocks.join('');
+    out = out.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
+    return out;
   };
 
-  let combinedText = "";
   if (Array.isArray(text)) {
-    combinedText = text.join("\n\n");
-  } else if (typeof text === "string") {
-    combinedText = text;
-  } else {
-    return null;
+    return (
+      <div className="activity-task-description">
+        {text.map((line, idx) => (
+          <p key={idx} style={{ minHeight: line === "" ? "1rem" : "auto", margin: "4px 0", color: "var(--text-main)", fontSize: "0.9rem", lineHeight: "1.6" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(line)) }} />
+        ))}
+      </div>
+    );
   }
-
-  return (
-    <div 
-      className="activity-task-description" 
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(combinedText)) }} 
-    />
-  );
+  if (typeof text !== "string") return null;
+  return <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseStr(text)) }} />;
 };
 
 const ActivityAppInner = ({ moduleId, activityId }) => {
@@ -259,12 +206,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const testResolveRef = useRef(null);
   const testRejectRef = useRef(null);
   const outputAccumulatorRef = useRef("");
+
   const latestStateRef = useRef({
     userId: null, json: null, pythonCode: "# Drag blocks to generate Python code",
     score: 0, passed: 0, testResults: [], actualTime: "O(n^2)", actualSpace: "O(1)",
     status: "draft", type: "activity", targetTime: "O(n)", targetSpace: "O(1)",
+    initial_aes: null, final_aes: null
   });
 
+  const [currentAes, setCurrentAes] = useState(0);
+  const [currentRog, setCurrentRog] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -277,10 +228,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [expandedTests, setExpandedTests] = useState({});
   const [bottomPanel, setBottomPanel] = useState(null);
   const [consoleTab, setConsoleTab] = useState("output");
-  const [activeComplexityTab, setActiveComplexityTab] = useState("local");
+  const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
-  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", is_recursive: false });
+  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false });
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const [lineExecutions, setLineExecutions] = useState({});
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
@@ -297,7 +248,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
 
-  // Editor and Monaco Refs for Markers
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
 
@@ -320,7 +270,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [moduleId, activityId]);
 
-  // Independent Custom Resize Handler for the Error Pane
   const handleErrorResizeStart = (e, direction) => {
     e.preventDefault(); e.stopPropagation();
     const startX = e.clientX; const startY = e.clientY;
@@ -383,7 +332,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (type === "ANALYZE_RESULT") {
       if (data.status === "success") {
         setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
-        setAnalysisResult({ total: data.total, space_total: data.space_total || "O(1)", lines: data.lines || [], is_recursive: data.is_recursive || false });
+        setAnalysisResult({ 
+          total: data.total, 
+          space_total: data.space_total || "O(1)", 
+          overall_explanation: data.overall_explanation || "", 
+          lines: data.lines || [], 
+          is_recursive: data.is_recursive || false 
+        });
         latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
@@ -420,7 +375,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); resetWorker();
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const floodMsg = "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n";
-        if (testRejectRef.current) { testRejectRef.current(new Error(floodMsg)); testResolveRef.current = null; testRejectRef.current = null; } 
+        if (testRejectRef.current) { testRejectRef.current(new Error(floodMsg)); testResolveRef.current = null; testRejectRef.current = null; }
         else { setConsoleOutput((prev) => prev + flushed + floodMsg); setIsEvaluating(false); setIsWaitingForInput(false); }
         outputCountRef.current = 0;
       } else if (!renderIntervalRef.current && !testResolveRef.current) {
@@ -484,7 +439,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const json = await res.json();
-          try { await templatesDB.setItem(cacheKey, json); } catch (e) {}
+          try { await templatesDB.setItem(cacheKey, json); } catch (e) { }
           return json;
         } else throw new Error("Response is not JSON format");
       } else throw new Error(`HTTP error ${res.status}`);
@@ -492,7 +447,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     try {
       const cached = await templatesDB.getItem(cacheKey);
       if (cached) return cached;
-    } catch (e) {}
+    } catch (e) { }
     throw new Error(`Fetch failed for ${url} and no cache available.`);
   };
 
@@ -531,7 +486,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     const payload = {
       userId: state.userId, moduleId: moduleId, activityId: activityId, type: state.type || "activity", status: state.status || "draft",
-      score: state.score, maxScore: 5, passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
+      score: state.score, maxScore: 100,
+      initial_aes: state.initial_aes, final_aes: state.final_aes,
+      rog: (state.final_aes || 0) - (state.initial_aes || 0),
+      passedTestCases: state.passed, totalTestCases: totalTests, passed_tests: state.passed, total_tests: totalTests,
       testCases: state.testResults, target_complexity: state.targetTime || "O(n)", actual_complexity: state.actualTime,
       target_space_complexity: state.targetSpace || "O(1)", actual_space_complexity: state.actualSpace,
       workspace: { blocklyJson: state.json || {} }, pythonCode: state.pythonCode, timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: true,
@@ -568,21 +526,21 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const user = JSON.parse(storedUser); latestStateRef.current.userId = user.email;
 
         const submissionId = `${user.email}_${moduleId}_${activityId}`;
-        let localSubmission = null; try { localSubmission = await submissionsDB.getItem(submissionId); } catch (e) {}
+        let localSubmission = null; try { localSubmission = await submissionsDB.getItem(submissionId); } catch (e) { }
         let cloudSubmission = null;
         if (navigator.onLine && !user.isGuest && API_BASE) {
           try {
             const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
             const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, { headers: { Authorization: `Bearer ${token}` } });
             if (res.ok) { const data = await res.json(); if (data && data.submission) cloudSubmission = data.submission; }
-          } catch (e) {}
+          } catch (e) { }
         }
 
         let finalSubmissionToLoad = null;
         const localCode = localSubmission?.pythonCode || ""; const cloudCode = cloudSubmission?.pythonCode || "";
         const isLocalBlank = !localCode || localCode === "# Drag blocks to generate Python code"; const isCloudBlank = !cloudCode || cloudCode === "# Drag blocks to generate Python code";
 
-        if (isLocalBlank && !isCloudBlank) { finalSubmissionToLoad = cloudSubmission; await submissionsDB.setItem(submissionId, cloudSubmission); } 
+        if (isLocalBlank && !isCloudBlank) { finalSubmissionToLoad = cloudSubmission; await submissionsDB.setItem(submissionId, cloudSubmission); }
         else if (!isLocalBlank && !isCloudBlank) finalSubmissionToLoad = (localSubmission.timestamp || 0) >= (cloudSubmission.timestamp || 0) ? localSubmission : cloudSubmission;
         else if (!isLocalBlank) finalSubmissionToLoad = localSubmission;
 
@@ -591,23 +549,66 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             const json = finalSubmissionToLoad.workspace?.blocklyJson || finalSubmissionToLoad.blocklyJson || {};
             const pythonCode = finalSubmissionToLoad.pythonCode;
             latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode;
-            latestStateRef.current.score = finalSubmissionToLoad.score || 0; latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
+            latestStateRef.current.score = finalSubmissionToLoad.score || 0;
+            
+            latestStateRef.current.initial_aes = finalSubmissionToLoad.initial_aes ?? null;
+            latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes ?? null;
+            latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
             latestStateRef.current.status = finalSubmissionToLoad.status || "draft";
+
+            let loadedScore = finalSubmissionToLoad.score || 0;
+            if (finalSubmissionToLoad.maxScore === 5 && loadedScore <= 5) loadedScore = (loadedScore / 5) * 100;
+            
+            const computedAes = Math.min(loadedScore, 100);
+            setCurrentAes(computedAes);
+
+            const loadedInitAes = finalSubmissionToLoad.initial_aes ?? null;
+            if (loadedInitAes !== null) {
+              const calcRog = computedAes - loadedInitAes;
+              setCurrentRog(calcRog > 0 ? calcRog : 0);
+            }
 
             setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(json || {}, pythonCode); }, 400);
             if (pythonCode && pythonCode !== "# Drag blocks to generate Python code") setGeneratedPython(pythonCode);
           } catch (e) { console.error("Failed to load blocks"); }
         } else if (resolvedActivity.templateUrl) {
           try {
-            const templateJson = await fetchJsonWithCache(`template:${resolvedActivity.id}`, resolvedActivity.templateUrl);
-            latestStateRef.current.json = templateJson;
-            setTimeout(() => { if (workspaceRef.current?.loadTemplate && !cancelled) workspaceRef.current.loadTemplate(templateJson); }, 400);
-          } catch (err) {}
+            let fetchUrl = resolvedActivity.templateUrl;
+            if (resolvedActivity.id && resolvedActivity.id.includes('opt')) {
+              fetchUrl = `/data/optimizations/${resolvedActivity.id}.json`;
+            }
+            
+            const rawTemplate = await fetchJsonWithCache(`template:${resolvedActivity.id}`, fetchUrl);
+            
+            let templateBlocks = rawTemplate;
+            let templatePython = "# Drag blocks to generate Python code";
+
+            if (rawTemplate.type === "algoblocks_project") {
+              templateBlocks = rawTemplate.blocklyJson;
+              templatePython = rawTemplate.pythonCode || templatePython;
+            } else if (rawTemplate.workspace && rawTemplate.workspace.blocklyJson) {
+              templateBlocks = rawTemplate.workspace.blocklyJson;
+              templatePython = rawTemplate.pythonCode || templatePython;
+            }
+
+            latestStateRef.current.json = templateBlocks;
+            latestStateRef.current.pythonCode = templatePython;
+            
+            setTimeout(() => { 
+              if (workspaceRef.current?.loadTemplate && !cancelled) {
+                workspaceRef.current.loadTemplate(templateBlocks, templatePython); 
+              }
+            }, 400);
+
+            if (templatePython && templatePython !== "# Drag blocks to generate Python code") {
+              setGeneratedPython(templatePython);
+            }
+          } catch (err) { console.error("Template load error:", err); }
         }
 
         const savedTests = localStorage.getItem(`activity_tests_${moduleId}_${activityId}`);
         if (savedTests && !cancelled) {
-          try { const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests); if (savedOut) setConsoleOutput(savedOut); if (savedPassed !== undefined) setPassedTests(savedPassed); } catch (e) {}
+          try { const { consoleOutput: savedOut, passedTests: savedPassed } = JSON.parse(savedTests); if (savedOut) setConsoleOutput(savedOut); if (savedPassed !== undefined) setPassedTests(savedPassed); } catch (e) { }
         }
         if (!cancelled) isReadyRef.current = true;
       } catch (e) { console.error("Activity bootstrap failed:", e); if (!cancelled) navigate("/learning-path", { replace: true }); }
@@ -621,16 +622,20 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const finalScore = score !== null ? score : latestStateRef.current.score;
     const finalPassed = passed !== null ? passed : latestStateRef.current.passed;
     const finalTestResults = testResults !== null ? testResults : latestStateRef.current.testResults;
-    const finalStatus = isDraft ? (finalScore >= 1 ? "passed" : "draft") : (finalScore >= 1 ? "passed" : "failed");
+    const finalStatus = isDraft ? (finalScore >= 50 ? "passed" : "draft") : (finalScore >= 50 ? "passed" : "failed");
 
     latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode; latestStateRef.current.score = finalScore; latestStateRef.current.passed = finalPassed; latestStateRef.current.testResults = finalTestResults; latestStateRef.current.status = finalStatus;
 
     const submissionId = `${latestStateRef.current.userId}_${moduleId}_${activityId}`;
     const payload = {
-      userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity", status: finalStatus, score: finalScore, maxScore: 5, passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
+      userId: latestStateRef.current.userId, moduleId: moduleId, activityId: activityId, type: latestStateRef.current.type || "activity", status: finalStatus,
+      score: finalScore, maxScore: 100,
+      initial_aes: latestStateRef.current.initial_aes, final_aes: latestStateRef.current.final_aes,
+      rog: (latestStateRef.current.final_aes || 0) - (latestStateRef.current.initial_aes || 0),
+      passedTestCases: finalPassed, totalTestCases: total, passed_tests: finalPassed, total_tests: total, testCases: finalTestResults, target_complexity: latestStateRef.current.targetTime || "O(n)", actual_complexity: actualTime, target_space_complexity: latestStateRef.current.targetSpace || "O(1)", actual_space_complexity: actualSpace, workspace: { blocklyJson: json || {} }, pythonCode: pythonCode || "", timestamp: Date.now(), submittedAt: new Date().toISOString(), isSynced: false,
     };
 
-    try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) {}
+    try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) { }
 
     if (!navigator.onLine) { await syncQueueDB.setItem(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
 
@@ -655,11 +660,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   useEffect(() => {
     if (!isReadyRef.current) return;
-    if (isOnline && isEngineReady && workerRef.current && generatedPython !== "# Drag blocks to generate Python code" && isEditingCode) {
-      const timeoutId = setTimeout(() => { workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) }); }, 800);
+    if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
+      const timeoutId = setTimeout(() => { 
+        workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) }); 
+      }, 800);
       return () => clearTimeout(timeoutId);
     }
-  }, [generatedPython, isEditingCode, isOnline, isEngineReady]);
+  }, [generatedPython, isOnline, isEngineReady]);
 
   const handleWorkspaceChange = async (json, incomingPythonCode, isUnsynced = false) => {
     if (!isReadyRef.current) return;
@@ -674,7 +681,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (isUnsynced) {
       setIsEditingCode(true);
       if (oldCode !== newCode) { setGeneratedPython(codeToSave); setLineExecutions({}); }
-    } else if (!isEditingCode && oldCode !== newCode) { setGeneratedPython(codeToSave); setLineExecutions({}); }
+    } else if (!isEditingCode && oldCode !== newCode) { 
+      setGeneratedPython(codeToSave); setLineExecutions({}); 
+    }
   };
 
   const handleSyncToBlocks = async () => {
@@ -682,6 +691,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       try {
         await workspaceRef.current.loadFromPython(sanitizePythonCode(generatedPython));
         setIsEditingCode(false); setViewMode("workspace");
+        showToast("Python code successfully converted into blocks!", "success");
       } catch (e) {
         setModalConfig({ isOpen: true, title: "Sync Error", message: "Cannot sync to blocks until syntax errors are fixed.", confirmText: "Close", isDanger: true, onConfirmAction: closeModal });
       }
@@ -778,17 +788,19 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
+  // FIX: Stricter checking logic ensures that loading an optimization activity 
+  // (which accidentally passes a single Space Complexity test) doesn't mark the whole activity as passed.
   const checkLessonCompletion = async () => {
     if (!latestStateRef.current.userId || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
-    
+
     const diffs = lessonActivitiesResolved.map(a => (a.difficulty || 'Easy').toLowerCase());
     const types = lessonActivitiesResolved.map(a => (a.type || 'activity').toLowerCase());
 
-    let threshold = 3; 
+    let threshold = 3;
     if (types.includes('optimization') || lessonActivitiesResolved.some(a => a.id.includes('opt'))) threshold = 2;
     else if (diffs.includes('hard') || diffs.includes('advanced')) threshold = 1;
     else if (diffs.includes('medium') || diffs.includes('intermediate')) threshold = 2;
-    
+
     threshold = Math.min(threshold, lessonActivitiesResolved.length);
 
     let passedCount = 0;
@@ -796,13 +808,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       const subId = `${latestStateRef.current.userId}_${moduleId}_${act.id}`;
       try {
         const sub = await submissionsDB.getItem(subId);
-        if (sub && (sub.score >= 1 || sub.status === "passed" || sub.passed_tests > 0)) passedCount++;
-      } catch(e) {}
+        // STRICT EVALUATION: Require explicit "passed" status AND score >= 50. Drafts are fully ignored.
+        if (sub && sub.status === "passed" && sub.score >= 50) passedCount++;
+      } catch (e) { }
     }
     return { passedCount, threshold, isCompleted: passedCount >= threshold };
   };
 
-  const handleSuccess = async (score, maxScore, funcPassed, funcTotal) => {
+  const handleSuccess = async (aesScore, funcPassed, funcTotal, currentRog) => {
     const currentIndex = lessonActivitiesResolved.findIndex((a) => a.id === activityId);
     const isLast = currentIndex === lessonActivitiesResolved.length - 1;
     const nextActivity = !isLast ? lessonActivitiesResolved[currentIndex + 1] : null;
@@ -813,19 +826,28 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (meetsThreshold && topicIdResolved) await completeFullTopic(topicIdResolved);
 
     let promptMsg = "";
-    if (score === 5) promptMsg = `Perfect execution!\nYou earned a Gold Medal (5/5).\n\nYou passed all tests and mastered both the target Time and Space complexity!`;
-    else if (funcPassed < funcTotal) promptMsg = `Keep trying!\nYou earned a score of ${score}/${maxScore}.\n\nYou passed ${funcPassed}/${funcTotal} functional test cases.\nSome hidden test cases or edge cases failed.`;
-    else if (score === 4) promptMsg = `Great job!\nYou earned a Silver Medal (4/5).\n\nYou passed all functional tests, but mastered only one of the Time or Space complexities.\nCan you optimize it further to get the Gold?`;
-    else promptMsg = `Good effort!\nYou earned a Bronze Medal (${score}/5).\n\nYour code works and passed all functional tests!\nHowever, it hasn't reached the optimal Time and Space complexity yet.\nCan you make it faster or leaner to get the Gold Medal?`;
+    if (aesScore === 100) {
+      promptMsg = `Perfect execution!\nYou earned an Algorithmic Efficiency Score (AES) of 100%.\n\nYou passed all functional tests and completely mastered both the target Time and Space complexity!`;
+    } else if (funcPassed < funcTotal) {
+      promptMsg = `Keep trying!\nYour logic is incomplete. You passed ${funcPassed}/${funcTotal} functional test cases.\nFocus on fixing your syntax and logic before worrying about complexity.`;
+    } else if (aesScore >= 75) {
+      promptMsg = `Great job!\nYou earned an AES of ${aesScore}%.\n\nYou passed all functional tests, but your algorithm is slightly suboptimal in Time or Space complexity.\nCan you optimize it further to reach 100%?`;
+    } else {
+      promptMsg = `Good effort.\nYou earned an AES of ${aesScore}%.\n\nYour code works and passed all functional tests! However, it requires a lot more execution time or memory than the optimal solution.\nCan you make it faster or leaner?`;
+    }
+
+    if (currentRog > 0) {
+      promptMsg += `\n\n📈 Optimization recognized: Your refactoring improved your score by +${currentRog} ROG points!`;
+    }
 
     if (meetsThreshold) promptMsg += `\n\n🎉 Lesson Unlocked! You've successfully passed ${completionData.passedCount}/${completionData.threshold} required activities to advance.`;
     else promptMsg += `\n\nProgress: ${completionData.passedCount}/${completionData.threshold} required activities passed to advance.`;
 
     if (!isLast && nextActivity) {
       if (meetsThreshold) {
-          setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou can move on to the next lesson now, or stay here to complete the remaining optional practice activities.", confirmText: "Go to Next Lesson", cancelText: "Continue Practicing", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); }, onCancelAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); } });
+        setModalConfig({ isOpen: true, title: "Lesson Unlocked!", message: promptMsg + "\n\nYou can move on to the next lesson now, or stay here to complete the remaining optional practice activities.", confirmText: "Go to Next Lesson", cancelText: "Continue Practicing", isDanger: false, onConfirmAction: () => { closeModal(); navigate("/learning-path"); }, onCancelAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); } });
       } else {
-          setModalConfig({ isOpen: true, title: "Activity Completed!", message: promptMsg + "\n\nReady for the next challenge?", confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false, onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
+        setModalConfig({ isOpen: true, title: "Activity Evaluated", message: promptMsg + "\n\nReady for the next challenge?", confirmText: "Next Activity", cancelText: "Stay Here", isDanger: false, onConfirmAction: () => { closeModal(); navigate(`/activity/${moduleId}/${nextActivity.id}`); }, onCancelAction: closeModal });
       }
     } else {
       setModalConfig({ isOpen: true, title: "Section Completed!", message: `${promptMsg}\n\nIncredible! You have finished all activities in this section.\nReturn to the learning path to explore the next topic.`, confirmText: "Finish", cancelText: "Stay Here", isDanger: false, onConfirmAction: async () => { closeModal(); navigate("/learning-path"); }, onCancelAction: closeModal });
@@ -879,7 +901,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const rawOutput = await executeTest(codeToRun); const actualOutput = rawOutput.trim();
         const expected = String(tc.expected).replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n").trim();
         let testPassed = false;
-        if (isFunctionCall && !isIntroLevel) { if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; functionalPassed++; testPassed = true; } } 
+        if (isFunctionCall && !isIntroLevel) { if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; functionalPassed++; testPassed = true; } }
         else { if (actualOutput.trim() === expected) { passed++; functionalPassed++; testPassed = true; } }
 
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
@@ -894,32 +916,76 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     setIsEvaluating(false);
 
-    let score = 0;
-    if (functionalPassed === 0) score = 0;
-    else if (functionalPassed < functionalTotal) score = Math.max(1, Math.floor((functionalPassed / functionalTotal) * 2));
-    else if (functionalPassed === functionalTotal) {
-      score = 3;
-      const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
-      const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(n)");
-      const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
-      const actualSpaceWeight = getComplexityWeight(analysisResult.space_total || "O(n)");
-      if (actualTimeWeight > 0 && actualTimeWeight <= targetTimeWeight) score += 1;
-      if (actualSpaceWeight > 0 && actualSpaceWeight <= targetSpaceWeight) score += 1;
+    // =========================================================================
+    // MATHEMATICAL MODEL IMPLEMENTATION (Algorithmic Efficiency Score - AES)
+    // =========================================================================
+
+    // 1. Task Success Rate (TSR)
+    const tsr = functionalTotal > 0 ? (functionalPassed / functionalTotal) : 1.0;
+
+    // 2. Efficiency Ratio
+    const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
+    const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
+
+    const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(1)");
+    const actualSpaceWeight = getComplexityWeight(analysisResult.space_total || "O(n)");
+
+    // Safe fallback to O(n^2) equivalent penalty
+    const safeActualTime = actualTimeWeight > 0 ? actualTimeWeight : 6;
+    const safeActualSpace = actualSpaceWeight > 0 ? actualSpaceWeight : 6;
+
+    let timeRatio = targetTimeWeight / safeActualTime;
+    if (timeRatio > 1.0) timeRatio = 1.0;
+
+    let spaceRatio = targetSpaceWeight / safeActualSpace;
+    if (spaceRatio > 1.0) spaceRatio = 1.0;
+
+    const averageEfficiency = (timeRatio + spaceRatio) / 2;
+
+    // 3. Multiplicative AES
+    let aes = Math.floor((tsr * averageEfficiency) * 100);
+
+    setCurrentAes(aes); // Update UI Badge
+
+    // =========================================================================
+    // ROG Tracking Logic (Continuous Tracking)
+    // =========================================================================
+    let initialAes = latestStateRef.current.initial_aes;
+
+    if (initialAes === null || initialAes === undefined) {
+      if (activityDataResolved?.type === "optimization") {
+        initialAes = 50;
+      } else {
+        initialAes = aes;
+      }
     }
 
+    // Drop initialAes if they break the code and get a lower score, establishing a new floor
+    if (aes < initialAes && latestStateRef.current.status !== "passed") {
+      initialAes = aes;
+    }
+
+    latestStateRef.current.initial_aes = initialAes;
+    latestStateRef.current.final_aes = aes;
+
+    const calculatedRog = aes - initialAes;
+    setCurrentRog(calculatedRog > 0 ? calculatedRog : 0);
+
     const testResults = processedTestCases.map((tc, idx) => ({ id: `tc_${idx}`, status: fullOutput.includes(`Test ${idx + 1}: PASSED`) ? "passed" : "failed" }));
-    await saveSubmission(latestStateRef.current.json, generatedPython, score, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false);
-    localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: score }));
-    
+
+    await saveSubmission(latestStateRef.current.json, generatedPython, aes, passed, totalTests, testResults, analysisResult.total || "O(n^2)", analysisResult.space_total || "O(1)", false);
+    localStorage.setItem(`activity_tests_${moduleId}_${activityId}`, JSON.stringify({ consoleOutput: fullOutput, passedTests: passed, score: aes }));
+
     const lessonKey = `${moduleId}:${activityId}`;
-    await savePartialProgress(lessonKey, score);
-    if (score >= 1) await handleSuccess(score, 5, functionalPassed, functionalTotal);
+    await savePartialProgress(lessonKey, aes);
+
+    await handleSuccess(aes, functionalPassed, functionalTotal, calculatedRog);
   };
 
   const lines = analysisResult?.lines || []; let maxWeight = 0; let bottleneckIndices = [];
   lines.forEach((line, index) => {
     const weight = getComplexityWeight(activeComplexityTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)");
-    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; } 
+    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
     else if (weight === maxWeight && weight > 0) bottleneckIndices.push(index);
   });
   const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
@@ -942,7 +1008,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   return (
     <div className="activity-app-container">
-      {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`} style={{position: "absolute", top: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 9999}}>{toast.message}</div>}
+      {/* Toast Render with correct classes applied via the imported CSS */}
+      {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.message}</div>}
 
       <header className="workspace-header-purple">
         <div className="wh-left">
@@ -951,30 +1018,30 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           <h1 className="wh-project-title">Activity: {activityDataResolved?.title || "Loading..."}</h1>
         </div>
         <div className="wh-center">
-           <div className="wh-view-toggle">
-              <button className={`wh-toggle-btn ${viewMode === "workspace" ? "active" : ""}`} onClick={() => setViewMode("workspace")}><FiGrid size={14} /> Workspace</button>
-              <button className={`wh-toggle-btn ${viewMode === "python" ? "active" : ""}`} onClick={() => setViewMode("python")}><FiTerminal size={14} /> Python Code</button>
-           </div>
+          <div className="wh-view-toggle">
+            <button className={`wh-toggle-btn ${viewMode === "workspace" ? "active" : ""}`} onClick={() => setViewMode("workspace")}><FiGrid size={14} /> Workspace</button>
+            <button className={`wh-toggle-btn ${viewMode === "python" ? "active" : ""}`} onClick={() => setViewMode("python")}><FiTerminal size={14} /> Python Code</button>
+          </div>
         </div>
         <div className="wh-right">
-           <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating} title="Run code without submitting to test cases">
-             <FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}
-           </button>
-           <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating}>
-             <FiPlay size={16} /> {isEvaluating ? "..." : "Run Tests"}
-           </button>
+          <button className="wh-btn-save" onClick={handleActivityRun} disabled={isEvaluating} title="Run code without submitting to test cases">
+            <FiTerminal size={16} /> {isEvaluating ? "..." : "Run Code"}
+          </button>
+          <button className={`wh-btn-run ${isEvaluating ? "running" : ""}`} onClick={runTestCases} disabled={isEvaluating}>
+            <FiPlay size={16} /> {isEvaluating ? "..." : "Evaluate Efficiency (AES)"}
+          </button>
         </div>
       </header>
 
       <Split className={`workspace-split activity-split ${!isLeftPanelVisible ? "left-hidden" : ""} ${!isRightPanelVisible ? "right-hidden" : ""}`} sizes={[20, 60, 20]} minSize={[isLeftPanelVisible ? 250 : 0, 400, isRightPanelVisible ? 250 : 0]} gutterSize={8}>
-        
+
         {/* LEFT PANEL */}
         <aside className="activity-left-panel">
           {lessonActivitiesResolved.length > 0 && (
             <div className="activity-selector-container">
               <label className="activity-selector-label"><FiBookOpen size={16} /> Lesson Outline</label>
               <select className="activity-selector-dropdown" value={activityId} onChange={(e) => navigate(`/activity/${moduleId}/${e.target.value}`)}>
-                {lessonActivitiesResolved.map((act, index) => ( <option key={act.id} value={act.id}>{index + 1}. {act.title}</option> ))}
+                {lessonActivitiesResolved.map((act, index) => (<option key={act.id} value={act.id}>{index + 1}. {act.title}</option>))}
               </select>
             </div>
           )}
@@ -1057,7 +1124,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
               <div className="panel-resizer" onMouseDown={handleDragStart}><div className="panel-resizer-handle"></div></div>
               <div className="panel-header">
                 <span className="panel-title">{bottomPanel === "console" ? "Console Panel" : "Complexity Analysis"}</span>
-                <button onClick={() => setBottomPanel(null)} className="panel-close-btn"><FiX size={18}/></button>
+                <button onClick={() => setBottomPanel(null)} className="panel-close-btn"><FiX size={18} /></button>
               </div>
               <div className="panel-body">
                 {bottomPanel === "console" ? (
@@ -1116,17 +1183,65 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                   <div className="complexity-content">
                     <div className="complexity-tabs">
                       <div className="tab-btn-group">
+                        <button onClick={() => { setActiveComplexityTab("overall"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "overall" ? "active" : ""}`}>Overall</button>
                         <button onClick={() => { setActiveComplexityTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "local" ? "active" : ""}`}>Local</button>
                         <button onClick={() => { setActiveComplexityTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
                         <button onClick={() => { setActiveComplexityTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
                       </div>
+
                       <div className="total-badge-group">
+                        {/* FIX: Restored the Analysis Process Time MS badge */}
+                        <span className="total-badge analysis-time-badge" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                            <span className="total-label" style={{ color: '#64748B' }}>Analyzed In:</span>
+                            <span className="total-val" style={{ color: '#0F172A' }}>{analysisTime}ms</span>
+                        </span>
+                        
                         <span className="total-badge total-time-badge"><span className="total-label">Total Time:</span> <span className="total-val">{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge total-space-badge"><span className="total-label space-label">Total Space:</span> <span className="total-val">{formatComplexity(analysisResult.space_total)}</span></span>
-                        <span className="total-badge total-analysis-badge"><span className="total-label analysis-label">Analysis:</span> <span className="total-val">{analysisTime} ms</span></span>
+
+                        {/* THESIS METHODOLOGY: AES BADGE */}
+                        {/* FIX: Set positioning on tooltip to pull it downward to avoid header clipping, and enforce high z-index */}
+                        <span className="total-badge aes-badge" style={{ position: 'relative' }}>
+                          <span className="total-label">AES:</span>
+                          <span className="total-val">{currentAes}%</span>
+                          <div className="info-tooltip">
+                            <FiInfo size={14} />
+                            <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
+                              <span className="tooltip-title">Algorithmic Efficiency Score</span>
+                              Measures how efficiently your code solves the problem compared to the target optimal Time and Space complexity.
+                            </span>
+                          </div>
+                        </span>
+
+                        {/* THESIS METHODOLOGY: ROG BADGE */}
+                        {/* FIX: Set positioning on tooltip to pull it downward to avoid header clipping, and enforce high z-index */}
+                        {currentRog > 0 && (
+                          <span className="total-badge rog-badge" style={{ position: 'relative' }}>
+                            <span className="total-label">ROG:</span>
+                            <span className="total-val">+{currentRog}</span>
+                            <div className="info-tooltip">
+                              <FiInfo size={14} />
+                              <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
+                                <span className="tooltip-title">Refactoring Optimization Gain</span>
+                                Points earned by refactoring and improving your initial solution's performance. Great job!
+                              </span>
+                            </div>
+                          </span>
+                        )}
+
                       </div>
                     </div>
-                    {activeComplexityTab === "memory" ? (
+                    {activeComplexityTab === "overall" ? (
+                      <div className="overall-complexity-wrapper">
+                        {analysisResult.overall_explanation ? (
+                          <div className="overall-markdown-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(analysisResult.overall_explanation)) }} />
+                        ) : (
+                          <div className="empty-analysis-state">
+                            <p>Run code analysis to see the complete overall complexity report.</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : activeComplexityTab === "memory" ? (
                       <div className="memory-wrapper">
                         <MemoryVisualizer analysisData={analysisResult.lines} currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0} />
                       </div>
@@ -1147,7 +1262,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                               const spaceComplexity = activeComplexityTab === "local" ? line.local_space || "O(1)" : line.global_space || "O(1)";
                               let timeExp = line.time_explanation ?? line.local_explanation ?? "Not available.";
                               let spaceExp = line.space_explanation ?? line.global_explanation ?? "Not available.";
-                              
+
                               const isBottleneck = actualBottleneckIndices.includes(i);
                               const timeColor = getComplexityColor(timeComplexity); const spaceColor = getComplexityColor(spaceComplexity);
                               const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
@@ -1170,14 +1285,14 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                                       <td colSpan="4">
                                         <div className="explanation-grid" style={{ borderLeftColor: timeColor }}>
                                           <div className="explanation-section">
-                                            <div className="explanation-icon-wrapper" style={{color: timeColor}}><FiInfo size={20} /></div>
+                                            <div className="explanation-icon-wrapper" style={{ color: timeColor }}><FiInfo size={20} /></div>
                                             <div className="explanation-text-content">
                                               <strong className="explanation-header" style={{ color: timeColor }}>Time Complexity</strong>
                                               <div className="explanation-body">{formatExplanation(timeExp, isBottleneck, activeComplexityTab === "local")}</div>
                                             </div>
                                           </div>
                                           <div className="explanation-section space-section">
-                                            <div className="explanation-icon-wrapper" style={{color: spaceColor}}><FiInfo size={20} /></div>
+                                            <div className="explanation-icon-wrapper" style={{ color: spaceColor }}><FiInfo size={20} /></div>
                                             <div className="explanation-text-content">
                                               <strong className="explanation-header" style={{ color: spaceColor }}>Space Complexity</strong>
                                               <div className="explanation-body">{formatExplanation(spaceExp, isBottleneck, activeComplexityTab === "local")}</div>
@@ -1216,18 +1331,18 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             </div>
             <div className="footer-right">
               <button className="footer-action-icon clear-btn" title="Restart Activity" onClick={() =>
-                  setModalConfig({
-                    isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.",
-                    confirmText: "Restart", cancelText: "Cancel", isDanger: true,
-                    onConfirmAction: async () => {
-                      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-                      if (storedUser) { const user = JSON.parse(storedUser); await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); }
-                      localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
-                      await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true);
-                      window.location.reload();
-                    }, onCancelAction: closeModal
-                  })
-                }>
+                setModalConfig({
+                  isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.",
+                  confirmText: "Restart", cancelText: "Cancel", isDanger: true,
+                  onConfirmAction: async () => {
+                    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+                    if (storedUser) { const user = JSON.parse(storedUser); await submissionsDB.removeItem(`${user.email}_${moduleId}_${activityId}`); }
+                    localStorage.removeItem(`activity_tests_${moduleId}_${activityId}`);
+                    await saveSubmission(null, "# Drag blocks to generate Python code", 0, 0, totalTests, [], "O(1)", "O(1)", true);
+                    window.location.reload();
+                  }, onCancelAction: closeModal
+                })
+              }>
                 <FiActivity size={16} /> Restart
               </button>
             </div>
@@ -1292,7 +1407,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
 const ActivityApp = () => {
   const { moduleId, activityId } = useParams();
-  return <ActivityAppInner moduleId={moduleId} activityId={activityId} />;
+  return <ActivityAppInner key={`${moduleId}-${activityId}`} moduleId={moduleId} activityId={activityId} />;
 };
 
 export default ActivityApp;

@@ -2,7 +2,7 @@
 import ast
 import time
 from collections import deque, Counter
-from semantic_nlg import EducationalInsightGenerator as SemanticNLGEngine
+from semantic_nlg import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
 
 try:
     from dynamic_tracer import AlgoBlocksTracer
@@ -63,53 +63,53 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.logic_hints = {} 
 
         self.builtin_complexities = {
-            'sort': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'uses the in-place Timsort algorithm'},
-            'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'creates a completely new sorted list'},
-            'join': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'concatenates collection into a string'},
-            'split': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'scans string to allocate new substrings'},
-            'list': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'copies elements into a new list'},
-            'set': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'builds a new hash set'},
-            'dict': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'builds a new dictionary'},
-            'tuple': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'copies elements into a new tuple'},
-            'deque': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'initializes a double-ended queue'},
-            'append': {'time': 'O(1) amortized', 'space': 'O(1)', 'desc': 'constant-time sequence append'},
-            'insert': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'shifts array elements'},
-            'max': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan for largest value'},
-            'min': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan for smallest value'},
-            'sum': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan to accumulate total'},
-            'any': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan to check for truthy'},
-            'all': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan to check for falsy'},
-            'len': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'accesses a pre-stored attribute'},
-            'abs': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time mathematical absolute value'},
-            'round': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time rounding'},
-            'int': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type cast'},
-            'float': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type cast'},
-            'bool': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type cast'},
-            'type': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type inspection'},
-            'isinstance': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'constant-time type validation'},
-            'str': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'allocates new string representation'},
-            'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'scans and shifts elements'},
-            'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear search for index'},
-            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear scan to count occurrences'},
-            'find': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'linear string search'},
-            'replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'traverses string and allocates replacements'},
-            'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'shallow copy allocating new memory'},
-            'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'reverses collection in-place'},
-            'extend': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'iterates to append to existing list'},
-            'upper': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'constructs uppercase copy'},
-            'lower': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'constructs lowercase copy'},
-            'keys': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'lightweight dict view'},
-            'values': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'lightweight dict view'},
-            'items': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'lightweight dict view'},
-            'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'returns range object'},
-            'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'clears collection'},
-            'get': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'retrieves dictionary value by key'},
-            'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'removes from left of a deque'},
-            'union': {'time': 'O(n + m)', 'space': 'O(n + m)', 'desc': 'creates new set from both sets'},
-            'intersection': {'time': 'O(min(n, m))', 'space': 'O(min(n, m))', 'desc': 'creates new set with common elements'},
-            'difference': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'creates new set with difference'},
-            'update': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'updates collection with elements'},
-            'add': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'adds element to hash set'},
+            'sort': {'time': 'O(n log n)', 'space': 'O(1)'},
+            'sorted': {'time': 'O(n log n)', 'space': 'O(n)'},
+            'join': {'time': 'O(n)', 'space': 'O(n)'},
+            'split': {'time': 'O(n)', 'space': 'O(n)'},
+            'list': {'time': 'O(n)', 'space': 'O(n)'},
+            'set': {'time': 'O(n)', 'space': 'O(n)'},
+            'dict': {'time': 'O(n)', 'space': 'O(n)'},
+            'tuple': {'time': 'O(n)', 'space': 'O(n)'},
+            'deque': {'time': 'O(n)', 'space': 'O(n)'},
+            'append': {'time': 'O(1) amortized', 'space': 'O(1)'},
+            'insert': {'time': 'O(n)', 'space': 'O(1)'},
+            'max': {'time': 'O(n)', 'space': 'O(1)'},
+            'min': {'time': 'O(n)', 'space': 'O(1)'},
+            'sum': {'time': 'O(n)', 'space': 'O(1)'},
+            'any': {'time': 'O(n)', 'space': 'O(1)'},
+            'all': {'time': 'O(n)', 'space': 'O(1)'},
+            'len': {'time': 'O(1)', 'space': 'O(1)'},
+            'abs': {'time': 'O(1)', 'space': 'O(1)'},
+            'round': {'time': 'O(1)', 'space': 'O(1)'},
+            'int': {'time': 'O(1)', 'space': 'O(1)'},
+            'float': {'time': 'O(1)', 'space': 'O(1)'},
+            'bool': {'time': 'O(1)', 'space': 'O(1)'},
+            'type': {'time': 'O(1)', 'space': 'O(1)'},
+            'isinstance': {'time': 'O(1)', 'space': 'O(1)'},
+            'str': {'time': 'O(n)', 'space': 'O(n)'},
+            'remove': {'time': 'O(n)', 'space': 'O(1)'},
+            'index': {'time': 'O(n)', 'space': 'O(1)'},
+            'count': {'time': 'O(n)', 'space': 'O(1)'},
+            'find': {'time': 'O(n)', 'space': 'O(1)'},
+            'replace': {'time': 'O(n)', 'space': 'O(n)'},
+            'copy': {'time': 'O(n)', 'space': 'O(n)'},
+            'reverse': {'time': 'O(n)', 'space': 'O(1)'},
+            'extend': {'time': 'O(n)', 'space': 'O(n)'},
+            'upper': {'time': 'O(n)', 'space': 'O(n)'},
+            'lower': {'time': 'O(n)', 'space': 'O(n)'},
+            'keys': {'time': 'O(1)', 'space': 'O(1)'},
+            'values': {'time': 'O(1)', 'space': 'O(1)'},
+            'items': {'time': 'O(1)', 'space': 'O(1)'},
+            'range': {'time': 'O(1)', 'space': 'O(1)'},
+            'clear': {'time': 'O(1)', 'space': 'O(1)'},
+            'get': {'time': 'O(1)', 'space': 'O(1)'},
+            'popleft': {'time': 'O(1)', 'space': 'O(1)'},
+            'union': {'time': 'O(n + m)', 'space': 'O(n + m)'},
+            'intersection': {'time': 'O(min(n, m))', 'space': 'O(min(n, m))'},
+            'difference': {'time': 'O(n)', 'space': 'O(n)'},
+            'update': {'time': 'O(m)', 'space': 'O(m)'},
+            'add': {'time': 'O(1)', 'space': 'O(1)'},
         }
         self.aliases = {}
         self.nlg_engine = SemanticNLGEngine(self)
@@ -265,7 +265,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         parts = []
         if poly_dims:
-            # Sort dimensions alphabetically to prevent "m * n" vs "n * m" mismatches
             sorted_dims = sorted(poly_dims, key=lambda x: (x != 'n', x)) 
             counts = Counter(sorted_dims)
             terms = []
@@ -618,7 +617,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             node_dims = ['n']
         else:
             if not is_recurrence:
-                # Correctly extract overridden dimensions to properly project global bottleneck
                 if "n log n" in time_override: node_dims.append('n'); node_log = 1
                 elif "O(V + E)" in time_override or "O(V)" in time_override: node_graph = 1
                 elif "O(log n)" in time_override: node_log = 1
@@ -1720,6 +1718,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     
         return best_space
 
+    def get_overall_explanation(self, tree):
+        final_time = self.get_final_asymptotic_badge()
+        final_space = self.get_final_space_badge()
+        visitor = ComprehensiveASTVisitor(self)
+        sig = visitor.analyze(tree)
+        
+        # PASSING SELF.DETAILS (The collected line-by-line complexities)
+        return self.nlg_engine.generate_overall_analysis(final_time, final_space, sig, self.details)
+
 def analyze_source_code(source_code):
     start_time = time.perf_counter()
     
@@ -1737,11 +1744,14 @@ def analyze_source_code(source_code):
         analyzer = ComplexityAnalyzer(source_code, trace_data)
         analyzer.bfs_first_pass(tree)
         analyzer.visit(tree)
+        
+        overall_exp = analyzer.get_overall_explanation(tree)
                 
         results = {
             "status": "success",
             "total": analyzer.get_final_asymptotic_badge(),
             "space_total": analyzer.get_final_space_badge(),
+            "overall_explanation": overall_exp,
             "lines": analyzer.details,
             "error": None
         }

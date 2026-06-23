@@ -2,7 +2,9 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Dict, Any, Optional
 from services.template_service import TemplateService
-from models import SaveTemplateRequest 
+
+# FIX: Updated import to match the actual class name in models.py
+from models import TemplateSyncRequest 
 
 router = APIRouter()
 
@@ -14,7 +16,7 @@ def get_all_templates(userId: Optional[str] = Query(None)):
 
 # ADDED/UPDATED: The save endpoint
 @router.post("/save")
-def save_template(req: SaveTemplateRequest):
+def save_template(req: TemplateSyncRequest): # FIX: Updated type hint
     try:
         return TemplateService.save_template(req)
     except Exception as e:

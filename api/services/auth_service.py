@@ -6,7 +6,7 @@ import os
 import bcrypt
 
 from repositories.user_repo import UserRepository
-from models import LoginRequest, SignUpRequest, ProgressRequest, AssessmentRequest
+from models import UserLogin, UserCreate, ProgressUpdate, AssessmentUpdateRequest
 from database import db
 from security import create_access_token
 
@@ -20,7 +20,6 @@ class AuthService:
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         try:
-            # FIX: Bcrypt strictly requires bytes. Decoding from Mongo provides strings.
             if isinstance(hashed_password, str):
                 hashed_password = hashed_password.encode('utf-8')
             if isinstance(plain_password, str):
@@ -31,7 +30,7 @@ class AuthService:
             return False
 
     @staticmethod
-    def login(req: LoginRequest):
+    def login(req: UserLogin):
         user = UserRepository.find_by_email(req.email)
         stored_password = user.get("password") if user else None
 
@@ -53,7 +52,7 @@ class AuthService:
         }
 
     @staticmethod
-    def signup(req: SignUpRequest):
+    def signup(req: UserCreate):
         if UserRepository.find_by_email(req.email):
             raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -77,7 +76,7 @@ class AuthService:
         }
 
     @staticmethod
-    def update_progress(req: ProgressRequest):
+    def update_progress(req: ProgressUpdate):
         if not req.email or not req.lesson_id:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
@@ -94,18 +93,20 @@ class AuthService:
         }
 
     @staticmethod
-    def update_assessment(req: AssessmentRequest):
-        actual_key = req.assessment_key or req.key
-        if not req.email or not actual_key:
+    def update_assessment(req: AssessmentUpdateRequest):
+        if not req.email or not req.assessment_key:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
-        save_data = req.data or {}
-        if req.score is not None:
-            save_data['score'] = req.score
-        if req.passed is not None:
-            save_data['passed'] = req.passed
+        save_data = {
+            "score": req.score,
+            "correct": req.correct,
+            "total": req.total,
+            "timeElapsed": req.timeElapsed,
+            "completedAt": req.completedAt,
+            "attempts": req.attempts
+        }
             
-        UserRepository.update_assessment(req.email, actual_key, save_data)
+        UserRepository.update_assessment(req.email, req.assessment_key, save_data)
         user = UserRepository.find_by_email(req.email)
         return {
             "status": "success",
@@ -196,13 +197,15 @@ class AuthService:
         if not user_id or not activity_id:
             return {"status": "ignored"}
 
+        # Added the new thesis mathematical model components to the whitelist
         allowed_fields = [
             "userId", "moduleId", "activityId", "type", "status", 
             "score", "maxScore", "passedTestCases", "totalTestCases", 
             "passed_tests", "total_tests", "testCases", 
             "target_complexity", "actual_complexity", 
             "target_space_complexity", "actual_space_complexity", 
-            "workspace", "pythonCode", "timestamp", "submittedAt", "isSynced"
+            "workspace", "pythonCode", "timestamp", "submittedAt", "isSynced",
+            "initial_aes", "final_aes", "rog", "functional_passed", "functional_total"
         ]
         
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
@@ -231,10 +234,20 @@ class AuthService:
         user_id = payload.get("userId")
         module_id = payload.get("moduleId")
 
+        # Also support alternative ID maps
+        if not module_id and payload.get("assessmentId"):
+            module_id = payload.get("assessmentId")
+            payload["moduleId"] = module_id
+
         if not user_id or not module_id:
             return {"status": "ignored"}
 
-        allowed_fields = ["userId", "moduleId", "answers", "score", "completed", "timestamp", "passed"]
+        # Updated allowed_fields to mirror latest assessment models
+        allowed_fields = [
+            "userId", "moduleId", "assessmentId", "answers", "score", 
+            "maxScore", "completed", "timestamp", "passed", "correct", 
+            "total", "timeElapsed", "completedAt", "attempts", "isSynced"
+        ]
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
 
         db["assessments"].update_one(
@@ -260,3 +273,27 @@ class AuthService:
         submissions = list(db["submissions"].find({"userId": email}, {"_id": 0}))
         
         return {"status": "success", "submissions": submissions}
+
+    @staticmethod
+    def batch_sync(payload: dict, trusted_email: str):
+        """Processes an array of data flushed by the syncManager"""
+        synced_count = 0
+
+        for sub in payload.get("submissions", []):
+            if sub.get("userId") == trusted_email:
+                sub["isSynced"] = True
+                AuthService.sync_submission(sub)
+                synced_count += 1
+                
+        for prog in payload.get("progress", []):
+            if prog.get("email") == trusted_email:
+                UserRepository.update_progress(trusted_email, prog.get("lesson_id"), float(prog.get("score", 0)))
+                synced_count += 1
+                
+        for ass in payload.get("assessments", []):
+            if ass.get("userId") == trusted_email:
+                ass["isSynced"] = True
+                AuthService.sync_assessment(ass)
+                synced_count += 1
+                
+        return {"status": "success", "message": "Batch sync completed", "synced_items": synced_count}

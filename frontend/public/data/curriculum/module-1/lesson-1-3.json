@@ -6,7 +6,11 @@
   "difficulty": "Beginner",
   "estimatedTime": "35 min",
   "prerequisites": "Time Complexity Classes",
-  "tags": ["space complexity", "memory", "algorithm analysis"],
+  "tags": [
+    "space complexity",
+    "memory",
+    "algorithm analysis"
+  ],
   "activities": [
     {
       "id": "m1_l3_a1",
@@ -120,7 +124,12 @@
         "description": "Constant, linear, and quadratic space curves show how **auxiliary memory** can remain stable or grow rapidly as `n` increases.",
         "maxN": 32,
         "normalize": true,
-        "curves": ["O(1)", "O(log n)", "O(n)", "O(n^2)"]
+        "curves": [
+          "O(1)",
+          "O(log n)",
+          "O(n)",
+          "O(n^2)"
+        ]
       }
     },
     {
@@ -191,6 +200,11 @@
           "id": "linear-copying",
           "title": "The Copying Problem",
           "content": "Creating a full copy of an array is the most common example. If the original array has 1 million integers, the copy also needs memory for 1 million integers. This literally **doubles the total memory used** by the program."
+        },
+        {
+          "id": "linear-slicing",
+          "title": "The Memory Overhead of Array Slicing",
+          "content": "Extracting a contiguous sub-section of an array using slice operators often appears to be a lightweight reference step. However, algorithmically, slicing allocates an entirely new array in memory and duplicates the target elements into it. This operation inevitably yields a scaling **O(n) linear space complexity** overhead."
         },
         {
           "id": "linear-operations",
@@ -343,6 +357,11 @@
       "content": "In computer science, there is no \"perfect\" algorithm. Sometimes faster algorithms use more memory, while memory-efficient algorithms run more slowly. This is called a **Time-Space Tradeoff**.",
       "subsections": [
         {
+          "id": "tradeoff-deletion",
+          "title": "In-Place Deletion and Memory Shifts",
+          "content": "Removing an item from the middle of an array without allocating a new list utilizes an optimal **O(1) space complexity**. However, because contiguous memory blocks cannot contain empty gaps, the operating system is strictly required to shift all subsequent elements forward. This shifting penalty degrades your operational speed to **O(n) linear time**, forcing a classic time-space tradeoff during deletion sequences."
+        },
+        {
           "id": "tradeoff-caching",
           "title": "Caching (Memoization)",
           "content": "Caching is a classic tradeoff. Storing computed results so repeated calls are instantly answered uses memory. You reduce the time complexity from exponential to linear, but you increase the space complexity to **O(n)** to store the cache."
@@ -419,6 +438,10 @@
     {
       "title": "HackerEarth - Time and Space Complexity",
       "url": "https://www.hackerearth.com/practice/basic-programming/complexity-analysis/time-and-space-complexity/tutorial/"
+    },
+    {
+      "title": "Real Python - Understanding Lists and Memory",
+      "url": "https://realpython.com/python-lists-tuples/"
     }
   ]
 }

@@ -2,495 +2,768 @@
   "lesson_1": [
     {
       "id": "m2_l1_a1",
-      "title": "Brute Force: Finding the Biggest Number",
+      "title": "Brute Force: Maximum Value Search",
       "task": [
-        "A 'Brute Force' approach means checking every single item one by one to find the answer. Let's find the biggest number in a list by checking everything.",
+        "A brute force algorithmic strategy evaluates every candidate within a dataset to ensure the correct solution is identified.",
+        "To find the maximum value, the algorithm must systematically check every element against a recorded state.",
         "",
         "Instructions:",
-        "1. Open the 'Functions' tab and create a function named `find_max` with an input `arr`.",
-        "2. First, check if the list is empty using an 'If' block from the 'Logic' tab. If it is empty, return the text `'Error'`.",
-        "3. Open the 'Variables' tab and create a variable called `max_val`. Set it to the first item in the list (index 0).",
-        "4. Open the 'Loops' tab and use a 'for each item in list' block to check every number in `arr`.",
-        "5. Inside the loop, use an 'If' block: if the current item is greater than `max_val`, update `max_val` to that item.",
-        "6. Return `max_val` at the very end.",
-        "",
-        "Sample Outputs:",
-        "find_max([32, 45, 28, 47, 39]) → 47",
-        "find_max([100]) → 100"
+        "1. Define the function `find_max(arr)`.",
+        "2. Implement a defensive check: if the array is empty, return the string 'Error'.",
+        "3. Initialize a tracking variable and assign it the value located at the first index.",
+        "4. Construct an iterative loop to traverse every element in the array.",
+        "5. Within the loop, evaluate if the current element exceeds your recorded maximum.",
+        "6. If true, update your tracking variable to equal the current element.",
+        "7. Return the tracking variable."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "find_max([32, 45, 28, 47, 39])", "expected": "47", "isHidden": false },
-        { "call": "find_max([-10, -5, -20])", "expected": "-5", "isHidden": false },
-        { "call": "find_max([100])", "expected": "100", "isHidden": false },
-        { "call": "find_max([])", "expected": "'Error'", "isHidden": true },
-        { "call": "find_max([1, 1, 1, 1])", "expected": "1", "isHidden": true }
+        {
+          "call": "find_max([32, 45, 28, 47, 39])",
+          "expected": "47",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([-10, -5, -20])",
+          "expected": "-5",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([100])",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "find_max([])",
+          "expected": "'Error'",
+          "isHidden": true
+        },
+        {
+          "call": "find_max([1, 1, 1, 1])",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l1_a2",
-      "title": "Brute Force: Finding the Smallest Number",
+      "title": "Brute Force: Minimum Value Search",
       "task": [
-        "Finding the minimum value is exactly like finding the maximum, except we flip our logic to look for the smallest number instead!",
+        "Finding the minimum value within an unsorted array requires the identical O(n) sequential traversal strategy, utilizing an inverted logical comparison.",
         "",
         "Instructions:",
-        "1. Create the function `find_min(arr)`.",
-        "2. Check if the list is empty, and return `'Error'` if it is.",
-        "3. Start a variable `min_val` and set it to the first item in `arr`.",
-        "4. Loop through every item in `arr`. Use a 'Logic' block to see if the item is *less than* (`<`) `min_val`. If it is, update `min_val`.",
-        "5. Return `min_val`.",
-        "",
-        "Sample Outputs:",
-        "find_min([3, 1, 9, 2]) → 1",
-        "find_min([-5, -10, 0, 5]) → -10"
+        "1. Define the function `find_min(arr)`.",
+        "2. Evaluate if the list is empty, returning 'Error' if true.",
+        "3. Initialize a variable to track the minimum value, seeding it with the first element.",
+        "4. Construct a loop to traverse the array.",
+        "5. Evaluate if the current item is strictly less than your tracked minimum. If true, update the tracking variable.",
+        "6. Return the tracking variable."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "find_min([3, 1, 9, 2])", "expected": "1", "isHidden": false },
-        { "call": "find_min([10, 20, 30, 40])", "expected": "10", "isHidden": false },
-        { "call": "find_min([-5, -10, 0, 5])", "expected": "-10", "isHidden": false },
-        { "call": "find_min([])", "expected": "'Error'", "isHidden": true },
-        { "call": "find_min([99])", "expected": "99", "isHidden": true }
+        {
+          "call": "find_min([3, 1, 9, 2])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([10, 20, 30, 40])",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([-5, -10, 0, 5])",
+          "expected": "-10",
+          "isHidden": false
+        },
+        {
+          "call": "find_min([])",
+          "expected": "'Error'",
+          "isHidden": true
+        },
+        {
+          "call": "find_min([99])",
+          "expected": "99",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l1_a3",
-      "title": "Checking Every Pair",
+      "title": "Brute Force: Target Sum Search",
       "task": [
-        "To see if any two numbers in a list add up to a target number, we can use a loop inside another loop to check every possible pair. It's slow, but it guarantees an answer!",
+        "A brute force target sum algorithm checks every possible combination of two elements to determine if they accumulate to a specific value.",
+        "Because this requires an inner loop to evaluate subsequent elements for every outer loop iteration, the time complexity scales quadratically.",
         "",
         "Instructions:",
-        "1. Create `has_pair_sum(arr, target)`.",
-        "2. Open the 'Loops' tab and drag out two 'for each item in list' blocks. Put one inside the other.",
-        "3. Inside the inner loop, use a 'Math' block to add the two loop items together.",
-        "4. Use a 'Logic' block to check if their sum equals the `target`. If it does, return `True`.",
-        "5. If both loops finish completely and you didn't find a match, return `False` at the very bottom.",
-        "",
-        "Sample Outputs:",
-        "has_pair_sum([2, 4, 7, 11], 13) → True",
-        "has_pair_sum([1, 2, 3, 4], 10) → False"
+        "1. Define the function `sum_search(arr, target)`.",
+        "2. Construct an outer loop iterating from 0 to the length of the array minus 1.",
+        "3. Construct an inner loop starting from the element immediately following the outer loop's index, up to the end of the array.",
+        "4. Inside the inner loop, evaluate if the sum of the elements at both pointers equals the target.",
+        "5. If true, return a list containing both elements.",
+        "6. If all combinations are evaluated without a match, return an empty list."
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "has_pair_sum([2, 4, 7, 11], 13)", "expected": "True", "isHidden": false },
-        { "call": "has_pair_sum([1, 2, 3, 4], 10)", "expected": "False", "isHidden": false },
-        { "call": "has_pair_sum([5, 5, 5], 10)", "expected": "True", "isHidden": false },
-        { "call": "has_pair_sum([10], 10)", "expected": "False", "isHidden": true },
-        { "call": "has_pair_sum([], 5)", "expected": "False", "isHidden": true }
+        {
+          "call": "sum_search([2, 7, 11, 15], 9)",
+          "expected": "[2, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "sum_search([3, 2, 4], 6)",
+          "expected": "[2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "sum_search([1, 2, 3], 10)",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l1_a4",
-      "title": "Counting Specific Numbers",
+      "title": "Brute Force: Conditional Counting",
       "task": [
-        "Let's check every number and only count the ones that meet a specific rule. We want to find out how many 'even' numbers are in the list.",
+        "Exhaustive search can be combined with conditional logic to aggregate specific data subsets, such as computing the total number of even integers within an array.",
         "",
         "Instructions:",
-        "1. Create `count_evens(arr)`.",
-        "2. Create a variable called `count` and set it to 0.",
-        "3. Loop through `arr` using the 'for each item in list' block.",
-        "4. Inside the loop, use the 'modulo' block from the 'Math' tab to check if `item % 2 == 0` (this means it is even).",
-        "5. If it is, go to the 'Math' tab and use the 'modify variable' block (like `count += 1`) to add 1 to `count`.",
-        "6. Return the `count` variable.",
-        "",
-        "Sample Outputs:",
-        "count_evens([2, 4, 6, 8]) → 4",
-        "count_evens([1, 3, 5]) → 0"
+        "1. Define the function `count_evens(arr)`.",
+        "2. Initialize an accumulator variable to track the count.",
+        "3. Construct a standard traversal loop over the array.",
+        "4. Within the loop, evaluate if the current element is an even number by checking if it is cleanly divisible by 2 using the modulo operator.",
+        "5. If the condition evaluates to true, increment the accumulator variable by 1.",
+        "6. Return the accumulator variable."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "count_evens([1, 2, 3, 4, 5, 6])", "expected": "3", "isHidden": false },
-        { "call": "count_evens([2, 4, 6, 8])", "expected": "4", "isHidden": false },
-        { "call": "count_evens([1, 3, 5])", "expected": "0", "isHidden": false },
-        { "call": "count_evens([])", "expected": "0", "isHidden": true },
-        { "call": "count_evens([0])", "expected": "1", "isHidden": true }
+        {
+          "call": "count_evens([1, 2, 3, 4, 5, 6])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([2, 4, 6, 8])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([1, 3, 5])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "count_evens([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "count_evens([0])",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l1_a5",
-      "title": "Stopping Early",
+      "title": "Brute Force: Early Exit Optimization",
       "task": [
-        "If you only need to find the *first* matching item, you can save time by stopping the loop immediately as soon as you find it!",
+        "When an algorithm only requires the first valid instance of a condition, executing the loop to completion is inefficient.",
+        "Implementing an early exit optimizes the average-case time complexity, although the worst-case remains O(n).",
         "",
         "Instructions:",
-        "1. Create `first_negative(arr)`.",
-        "2. Start a loop through `arr`.",
-        "3. Use a 'Logic' block to check if the item is less than 0 (`item < 0`).",
-        "4. If true, use the 'return' block from the 'Functions' tab to immediately return the item. This stops the loop right away!",
-        "5. If the loop finishes and no negative number was found, return `0` at the bottom.",
-        "",
-        "Sample Outputs:",
-        "first_negative([5, 3, -2, 8, -1]) → -2",
-        "first_negative([10, 20, 30]) → 0"
+        "1. Define the function `first_negative(arr)`.",
+        "2. Construct a linear traversal loop over the array.",
+        "3. Evaluate if the current item is strictly less than 0.",
+        "4. If true, return the item immediately to terminate the execution.",
+        "5. If the traversal concludes without encountering a negative number, return `0`."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "first_negative([5, 3, -2, 8, -1])", "expected": "-2", "isHidden": false },
-        { "call": "first_negative([10, 20, 30])", "expected": "0", "isHidden": false },
-        { "call": "first_negative([-5, -10])", "expected": "-5", "isHidden": false },
-        { "call": "first_negative([])", "expected": "0", "isHidden": true },
-        { "call": "first_negative([0, 0, -1])", "expected": "-1", "isHidden": true }
+        {
+          "call": "first_negative([5, 3, -2, 8, -1])",
+          "expected": "-2",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([10, 20, 30])",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([-5, -10])",
+          "expected": "-5",
+          "isHidden": false
+        },
+        {
+          "call": "first_negative([])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "first_negative([0, 0, -1])",
+          "expected": "-1",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_2": [
     {
       "id": "m2_l2_a1",
-      "title": "Standard Linear Search",
+      "title": "Linear Search: Target Identification",
       "task": [
-        "Linear Search is the most basic way to find something: you just check every single spot from start to finish until you spot the target.",
+        "Linear Search relies on evaluating elements sequentially to locate a specific target within an unsorted dataset.",
         "",
         "Instructions:",
-        "1. Create `linear_search(arr, target)`.",
-        "2. Open the 'Loops' tab and use the 'count with i' loop. Set it to count from `0` to the length of the list minus `1`.",
-        "3. Inside, open the 'Logic' tab and check if the item at that index (`arr[i]`) equals the `target`.",
-        "4. If it does, return the index `i` immediately.",
-        "5. If you search the whole list and never find it, return `-1` at the end.",
-        "",
-        "Sample Outputs:",
-        "linear_search([3, 8, 5, 11, 2], 11) → 3",
-        "linear_search([10, 20, 30], 40) → -1"
+        "1. Define the function `linear_search(arr, target)`.",
+        "2. Construct an indexed loop from 0 up to the length of the array.",
+        "3. Inside the loop, evaluate if the element at the current index equals the target.",
+        "4. If the condition evaluates to true, return the index variable immediately.",
+        "5. If the loop completes without identifying the target, return `-1`."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "linear_search([3, 8, 5, 11, 2], 11)", "expected": "3", "isHidden": false },
-        { "call": "linear_search([10, 20, 30], 40)", "expected": "-1", "isHidden": false },
-        { "call": "linear_search([7, 7, 7], 7)", "expected": "0", "isHidden": false },
-        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": true },
-        { "call": "linear_search([1], 1)", "expected": "0", "isHidden": true }
+        {
+          "call": "linear_search([3, 8, 5, 11, 2], 11)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([10, 20, 30], 40)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([7, 7, 7], 7)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "linear_search([], 5)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "linear_search([1], 1)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l2_a2",
-      "title": "Counting Occurrences",
+      "title": "Linear Search: Frequency Counting",
       "task": [
-        "Instead of stopping when we find the target, let's keep the loop going and count how many times it shows up in the whole list.",
+        "Rather than terminating upon the first identification, a full linear traversal can be utilized to compute the frequency of a target value within the dataset.",
         "",
         "Instructions:",
-        "1. Create `count_occurrences(arr, target)`.",
-        "2. Create a variable `count` and set it to 0.",
-        "3. Use a 'for each item' loop to go through `arr`.",
-        "4. If the item equals the `target`, use the math modify block to add 1 to `count`.",
-        "5. Return the `count`.",
-        "",
-        "Sample Outputs:",
-        "count_occurrences([5, 5, 5, 5], 5) → 4",
-        "count_occurrences([1, 2, 3], 4) → 0"
+        "1. Define the function `count_occurrences(arr, target)`.",
+        "2. Initialize an accumulator variable to track the frequency count.",
+        "3. Construct a standard traversal loop over the array.",
+        "4. Evaluate if the current element equals the target. If true, increment your accumulator variable by 1.",
+        "5. Return the finalized accumulator variable."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "count_occurrences([1, 2, 2, 3], 2)", "expected": "2", "isHidden": false },
-        { "call": "count_occurrences([5, 5, 5, 5], 5)", "expected": "4", "isHidden": false },
-        { "call": "count_occurrences([1, 2, 3], 4)", "expected": "0", "isHidden": false },
-        { "call": "count_occurrences([], 1)", "expected": "0", "isHidden": true },
-        { "call": "count_occurrences([9], 9)", "expected": "1", "isHidden": true }
+        {
+          "call": "count_occurrences([1, 2, 2, 3], 2)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([5, 5, 5, 5], 5)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([1, 2, 3], 4)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "count_occurrences([], 1)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "count_occurrences([9], 9)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l2_a3",
-      "title": "Finding the Last Match",
+      "title": "Linear Search: Reverse Traversal",
       "task": [
-        "What if we want to find the *last* time a number appears? We can scan the whole list and just keep overwriting our answer every time we see it.",
+        "To locate the final occurrence of a specific target, traversing the array from index 0 to the end is mathematically inefficient.",
+        "Implementing a reverse traversal ensures the first match encountered is the last occurrence in the sequence, allowing for an immediate early exit.",
         "",
         "Instructions:",
-        "1. Create `last_occurrence(arr, target)`.",
-        "2. Create a variable `last_index` and set it to `-1` (which means not found yet).",
-        "3. Use a 'count with i' loop to check every index from 0 to the end of the list.",
-        "4. Every time the item at the index (`arr[i]`) equals the `target`, update `last_index` to `i`.",
-        "5. Return `last_index` at the end.",
-        "",
-        "Sample Outputs:",
-        "last_occurrence([1, 2, 2, 3, 2, 4], 2) → 4",
-        "last_occurrence([1, 2, 3], 4) → -1"
+        "1. Define the function `last_occurrence(arr, target)`.",
+        "2. Construct a loop that iterates backward, starting the index at the final valid array position and decrementing to 0.",
+        "3. Inside the loop, evaluate if the element at the current index equals the target.",
+        "4. If true, execute an immediate return of the current index.",
+        "5. If the loop concludes without a match, return `-1`."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "last_occurrence([1, 2, 2, 3, 2, 4], 2)", "expected": "4", "isHidden": false },
-        { "call": "last_occurrence([5, 5, 5], 5)", "expected": "2", "isHidden": false },
-        { "call": "last_occurrence([1, 2, 3], 4)", "expected": "-1", "isHidden": false },
-        { "call": "last_occurrence([9, 1, 1], 9)", "expected": "0", "isHidden": true },
-        { "call": "last_occurrence([], 1)", "expected": "-1", "isHidden": true }
+        {
+          "call": "last_occurrence([1, 2, 2, 3, 2, 4], 2)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([5, 5, 5], 5)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([1, 2, 3], 4)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "last_occurrence([9, 1, 1], 9)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "last_occurrence([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l2_a4",
-      "title": "Searching Within a Boundary",
+      "title": "Linear Search: Bounded Range",
       "task": [
-        "Sometimes you only want to look at a small section of a list. We can tell our loop to only start and stop at specific numbers.",
+        "Search algorithms frequently operate within dynamic subsections of memory defined by `start` and `end` pointers.",
+        "Accepting dynamic bounds without validation presents a critical stability risk. The bounds must be sanitized prior to execution.",
         "",
         "Instructions:",
-        "1. Create `search_in_range(arr, target, start, end)`.",
-        "2. Open the 'Loops' tab and make a 'count with i' loop that starts at `start` and stops at `end`.",
-        "3. If the item at the current index matches the `target`, return the index immediately.",
-        "4. Return `-1` at the bottom of the function if it's never found.",
-        "",
-        "Sample Outputs:",
-        "search_in_range([10, 20, 30, 40, 50], 40, 1, 4) → 3",
-        "search_in_range([10, 20, 30, 40, 50], 10, 2, 5) → -1"
+        "1. Define the function `search_in_range(arr, target, start, end)`.",
+        "2. Apply boundary validation: prevent negative bounds by clamping the start pointer to 0 if necessary.",
+        "3. Apply upper boundary validation: clamp the end pointer to the final valid index to prevent overflow.",
+        "4. Construct an indexed loop originating at the validated `start` parameter and terminating at `end`.",
+        "5. Evaluate if the element at the current index matches the target. Return the index if true.",
+        "6. Return `-1` if the bounded search completes without a match."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "search_in_range([10, 20, 30, 40, 50], 40, 1, 4)", "expected": "3", "isHidden": false },
-        { "call": "search_in_range([10, 20, 30, 40, 50], 10, 2, 5)", "expected": "-1", "isHidden": false },
-        { "call": "search_in_range([5, 5, 5], 5, 1, 2)", "expected": "1", "isHidden": false },
-        { "call": "search_in_range([], 1, 0, 0)", "expected": "-1", "isHidden": true },
-        { "call": "search_in_range([1, 2, 3], 2, 0, 3)", "expected": "1", "isHidden": true }
+        {
+          "call": "search_in_range([10, 20, 30, 40, 50], 40, 1, 4)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([10, 20, 30, 40, 50], 50, 0, 99)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([5, 5, 5], 5, -5, 2)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "search_in_range([], 1, 0, 0)",
+          "expected": "-1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l2_a5",
-      "title": "Saving All Matches",
+      "title": "Linear Search: Multi-Target Extraction",
       "task": [
-        "Let's find every single place a target appears and save those positions into a brand new list.",
+        "When an algorithm must identify multiple occurrences of a target and preserve their locations, it requires an out-of-place allocation strategy.",
         "",
         "Instructions:",
-        "1. Create `multi_search(arr, target)`.",
-        "2. Open the 'Lists (Built-in Type)' tab and create an empty list called `results`.",
-        "3. Loop through every index `i` of `arr` using the 'count with i' loop.",
-        "4. If `arr[i] == target`, use the 'append to list' block to add `i` to your `results` list.",
-        "5. Return the `results` list.",
-        "",
-        "Sample Outputs:",
-        "multi_search([1, 5, 1, 8, 1], 1) → [0, 2, 4]",
-        "multi_search([2, 4, 6], 5) → []"
+        "1. Define the function `multi_search(arr, target)`.",
+        "2. Initialize an empty array to warehouse the identified indices.",
+        "3. Construct an indexed loop traversing the length of the array.",
+        "4. Evaluate if the element at the current index equals the target. If true, append the index to the auxiliary array.",
+        "5. Return the auxiliary array upon completion."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "multi_search([1, 5, 1, 8, 1], 1)", "expected": "[0, 2, 4]", "isHidden": false },
-        { "call": "multi_search([2, 4, 6], 5)", "expected": "[]", "isHidden": false },
-        { "call": "multi_search([3, 3], 3)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "multi_search([], 1)", "expected": "[]", "isHidden": true },
-        { "call": "multi_search([0], 0)", "expected": "[0]", "isHidden": true }
+        {
+          "call": "multi_search([1, 5, 1, 8, 1], 1)",
+          "expected": "[0, 2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([2, 4, 6], 5)",
+          "expected": "[]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([3, 3], 3)",
+          "expected": "[0, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "multi_search([], 1)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "multi_search([0], 0)",
+          "expected": "[0]",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_3": [
     {
       "id": "m2_l3_a1",
-      "title": "Bubble Sort (Ascending)",
+      "title": "Bubble Sort: Ascending Execution",
       "task": [
-        "Bubble Sort works by looking at two neighbors. If the left neighbor is bigger than the right neighbor, they swap places! You repeat this until the list is sorted.",
+        "Bubble Sort operates by systematically comparing adjacent elements and exchanging them if they violate the intended sequence order.",
+        "This algorithm relies on nested iteration, resulting in an O(n²) time complexity.",
         "",
         "Instructions:",
-        "1. Create `bubble_sort_asc(arr)`.",
-        "2. You'll need two loops. Make an outer 'count with i' loop that counts from 0 to the length of the list.",
-        "3. Make an inner 'count with j' loop that counts up to the length minus 1.",
-        "4. Check the neighbors: if `arr[j]` is greater than `arr[j+1]`, you need to swap them. Use your custom 'swap variable' block from the 'Variables' tab if needed, or do it manually with a temporary variable.",
-        "5. Return the sorted `arr`.",
-        "",
-        "Sample Outputs:",
-        "bubble_sort_asc([5, 2, 8, 1]) → [1, 2, 5, 8]",
-        "bubble_sort_asc([9, 8, 7]) → [7, 8, 9]"
+        "1. Define the function `bubble_sort_asc(arr)`.",
+        "2. Construct an outer loop encompassing the entire array to track the sorting passes.",
+        "3. Construct an inner loop to traverse the unsorted boundary.",
+        "4. Evaluate adjacent elements: if the current element is strictly greater than the subsequent element, execute an in-place swap.",
+        "5. Return the sorted array structure."
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "bubble_sort_asc([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
-        { "call": "bubble_sort_asc([3, 3, 1, 2])", "expected": "[1, 2, 3, 3]", "isHidden": false },
-        { "call": "bubble_sort_asc([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
-        { "call": "bubble_sort_asc([1])", "expected": "[1]", "isHidden": true },
-        { "call": "bubble_sort_asc([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "bubble_sort_asc([5, 2, 8, 1])",
+          "expected": "[1, 2, 5, 8]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([3, 3, 1, 2])",
+          "expected": "[1, 2, 3, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([9, 8, 7])",
+          "expected": "[7, 8, 9]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_asc([1])",
+          "expected": "[1]",
+          "isHidden": true
+        },
+        {
+          "call": "bubble_sort_asc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l3_a2",
-      "title": "Selection Sort (Ascending)",
+      "title": "Selection Sort: Ascending Execution",
       "task": [
-        "Selection Sort works by scanning the messy part of the list to find the very smallest number, and swapping it straight to the front of the line.",
+        "Selection Sort divides the array into sorted and unsorted segments. It scans the unsorted segment to locate the minimum element and swaps it into the sorted boundary.",
+        "This requires pointer indirection: tracking the structural index of the minimum value rather than the integer itself.",
         "",
         "Instructions:",
-        "1. Create `selection_sort_asc(arr)`.",
-        "2. Use an outer 'count with i' loop to keep track of where the sorted part ends.",
-        "3. Inside, assume `i` is the index of the smallest number by creating a variable `min_idx = i`.",
-        "4. Use an inner 'count with j' loop to scan the rest of the list (starting from `i + 1`). If you find a smaller number, update `min_idx` to `j`.",
-        "5. At the bottom of the outer loop, swap the items at index `i` and `min_idx`.",
-        "6. Return `arr`.",
-        "",
-        "Sample Outputs:",
-        "selection_sort_asc([5, 2, 8, 1]) → [1, 2, 5, 8]",
-        "selection_sort_asc([10, -2, 5]) → [-2, 5, 10]"
+        "1. Define the function `selection_sort(arr)`.",
+        "2. Construct an outer loop tracking the boundary of the sorted subsection.",
+        "3. Initialize a variable to track the index of the minimum value, setting it initially to the outer loop's position.",
+        "4. Construct an inner loop to scan the remaining unsorted elements.",
+        "5. Evaluate if the current unsorted element is less than the element at your tracked minimum index. If true, update your minimum index pointer.",
+        "6. Execute an in-place swap to move the absolute minimum value into the sorted boundary.",
+        "7. Return the sorted array."
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "selection_sort_asc([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
-        { "call": "selection_sort_asc([10, -2, 5])", "expected": "[-2, 5, 10]", "isHidden": false },
-        { "call": "selection_sort_asc([4, 4, 2])", "expected": "[2, 4, 4]", "isHidden": false },
-        { "call": "selection_sort_asc([7])", "expected": "[7]", "isHidden": true },
-        { "call": "selection_sort_asc([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "selection_sort([64, 25, 12, 22, 11])",
+          "expected": "[11, 12, 22, 25, 64]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort([3, 1, 4, 1, 5, 9])",
+          "expected": "[1, 1, 3, 4, 5, 9]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort([9, 8, 7])",
+          "expected": "[7, 8, 9]",
+          "isHidden": true
+        },
+        {
+          "call": "selection_sort([42])",
+          "expected": "[42]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l3_a3",
-      "title": "Bubble Sort (Descending)",
+      "title": "Bubble Sort: Descending Execution",
       "task": [
-        "To sort things from biggest to smallest, we just use the exact same Bubble Sort but flip our logic! If the left neighbor is *smaller*, swap them.",
+        "To sequence elements in descending order, the algorithmic structure remains identical while the adjacent evaluation logic is inverted.",
         "",
         "Instructions:",
-        "1. Create `bubble_sort_desc(arr)`.",
-        "2. Rebuild the two nested loops exactly like you did in the first Bubble Sort task.",
-        "3. Change your 'Logic' block comparison: if `arr[j]` is *less than* (`<`) `arr[j+1]`, execute the swap.",
-        "4. Return the `arr`.",
-        "",
-        "Sample Outputs:",
-        "bubble_sort_desc([1, 2, 3]) → [3, 2, 1]",
-        "bubble_sort_desc([5, 8, 2, 9]) → [9, 8, 5, 2]"
+        "1. Define the function `bubble_sort_desc(arr)`.",
+        "2. Implement the nested iterative structure established in the previous Bubble Sort exercise.",
+        "3. Modify the conditional evaluation: if the current element is strictly less than the subsequent element, execute the in-place swap.",
+        "4. Return the sorted array."
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "bubble_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "bubble_sort_desc([5, 8, 2, 9])", "expected": "[9, 8, 5, 2]", "isHidden": false },
-        { "call": "bubble_sort_desc([2, 2, 1])", "expected": "[2, 2, 1]", "isHidden": false },
-        { "call": "bubble_sort_desc([-1, -5, 0])", "expected": "[0, -1, -5]", "isHidden": true },
-        { "call": "bubble_sort_desc([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "bubble_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([5, 8, 2, 9])",
+          "expected": "[9, 8, 5, 2]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([2, 2, 1])",
+          "expected": "[2, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "bubble_sort_desc([-1, -5, 0])",
+          "expected": "[0, -1, -5]",
+          "isHidden": true
+        },
+        {
+          "call": "bubble_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l3_a4",
-      "title": "Selection Sort (Descending)",
+      "title": "Selection Sort: Descending Execution",
       "task": [
-        "We can also flip Selection Sort. Instead of scanning for the smallest number, let's scan for the biggest number and pull it to the front.",
+        "Selection Sort can be inverted by searching the unsorted boundary for the maximum value rather than the minimum.",
         "",
         "Instructions:",
-        "1. Create `selection_sort_desc(arr)`.",
-        "2. Rebuild the nested loops from the first Selection Sort task. Initialize a `max_idx` tracker instead of a min tracker.",
-        "3. Change the comparison: if `arr[j] > arr[max_idx]`, update `max_idx`.",
-        "4. Swap the items at `i` and `max_idx`.",
-        "5. Return the array.",
-        "",
-        "Sample Outputs:",
-        "selection_sort_desc([1, 2, 3]) → [3, 2, 1]",
-        "selection_sort_desc([10, 50, 20]) → [50, 20, 10]"
+        "1. Define the function `selection_sort_desc(arr)`.",
+        "2. Implement the nested iterative structure. Initialize a tracker for the maximum index rather than the minimum.",
+        "3. Modify the conditional evaluation: if the current unsorted element exceeds the element at your tracked maximum index, update the pointer.",
+        "4. Execute an in-place swap to lock the maximum value into the sorted boundary.",
+        "5. Return the sorted array."
       ],
       "targetTime": "O(n^2)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "selection_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "selection_sort_desc([10, 50, 20])", "expected": "[50, 20, 10]", "isHidden": false },
-        { "call": "selection_sort_desc([4, 4, 6])", "expected": "[6, 4, 4]", "isHidden": false },
-        { "call": "selection_sort_desc([9])", "expected": "[9]", "isHidden": true },
-        { "call": "selection_sort_desc([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "selection_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([10, 50, 20])",
+          "expected": "[50, 20, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([4, 4, 6])",
+          "expected": "[6, 4, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "selection_sort_desc([9])",
+          "expected": "[9]",
+          "isHidden": true
+        },
+        {
+          "call": "selection_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_l3_a5",
-      "title": "A Single Bubble Pass",
+      "title": "Sort Execution Tracking: Single Pass",
       "task": [
-        "To really understand Bubble Sort, let's see what happens if we only run the inner loop exactly once. It will push the absolute biggest number all the way to the right!",
+        "To isolate and understand the underlying mechanics of Bubble Sort, we can track the structural state of the array after executing a single complete traversal.",
+        "A single pass of the adjacent comparison logic guarantees that the maximum element is pushed to the highest available index.",
         "",
         "Instructions:",
-        "1. Create `single_pass(arr)`.",
-        "2. Only make ONE 'count with j' loop that goes through the list up to the length minus 1.",
-        "3. If `arr[j] > arr[j+1]`, swap them.",
-        "4. Return the list. Because there's only one loop, this is much faster!",
-        "",
-        "Sample Outputs:",
-        "single_pass([5, 2, 8, 1]) → [2, 5, 1, 8]",
-        "single_pass([10, 1, 2]) → [1, 2, 10]"
+        "1. Define the function `single_pass(arr)`.",
+        "2. Construct a single sequential loop that traverses the unsorted boundary.",
+        "3. Evaluate adjacent logic: if the current element is greater than the subsequent element, execute an in-place swap.",
+        "4. Return the modified array.",
+        "5. Observe that isolating the primary sorting mechanism reduces the execution to O(n) linear time."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "single_pass([5, 2, 8, 1])", "expected": "[2, 5, 1, 8]", "isHidden": false },
-        { "call": "single_pass([10, 1, 2])", "expected": "[1, 2, 10]", "isHidden": false },
-        { "call": "single_pass([3, 2, 1])", "expected": "[2, 1, 3]", "isHidden": false },
-        { "call": "single_pass([1, 2])", "expected": "[1, 2]", "isHidden": true },
-        { "call": "single_pass([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "single_pass([5, 2, 8, 1])",
+          "expected": "[2, 5, 1, 8]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([10, 1, 2])",
+          "expected": "[1, 2, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([3, 2, 1])",
+          "expected": "[2, 1, 3]",
+          "isHidden": false
+        },
+        {
+          "call": "single_pass([1, 2])",
+          "expected": "[1, 2]",
+          "isHidden": true
+        },
+        {
+          "call": "single_pass([])",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     }
   ],
   "optimizations": [
     {
       "id": "m2_opt_1",
-      "title": "Optimization Challenge: Faster Two Sum",
+      "title": "Optimization Challenge: Two-Pointer Convergence",
+      "difficulty": "Medium",
       "task": [
-        "In our first lesson, we used a loop inside a loop to check every pair of numbers. This is slow! We can do it much faster by using a Dictionary to remember the numbers we've seen.",
+        "Finding a target sum using nested loops takes O(n²) time. Since the array is already sorted, you can use converging pointers to find the answer in O(n) time.",
         "",
         "Optimization Guidelines:",
-        "1. Open the 'Dictionaries (Built-in Type)' tab and create an empty dictionary variable to keep track of seen numbers.",
-        "2. Use only ONE loop to go through the list with an index.",
-        "3. In the loop, calculate the 'needed number' to reach the target (`target - current_item`).",
-        "4. Check if that 'needed number' is already a key in your dictionary! If it is, return their positions.",
-        "5. If it's not, use the 'in dictionary set key to' block to save the current number as the key and its index as the value.",
-        "",
-        "Sample Outputs:",
-        "two_sum([2, 7, 11, 15], 9) → [0, 1]",
-        "two_sum([3, 2, 4], 6) → [1, 2]"
+        "1. Remove the nested loops. Create a left pointer at the start of the array and a right pointer at the end.",
+        "2. Implement a loop that runs while the left pointer is less than the right pointer.",
+        "3. Calculate the sum of the elements at both pointer locations.",
+        "4. If the sum matches the target, return a new list containing the two elements.",
+        "5. If the sum is smaller than the target, move the left pointer forward. If it is larger, move the right pointer backward.",
+        "6. Return an empty list if the loop finishes without finding a match."
       ],
       "targetTime": "O(n)",
-      "targetSpace": "O(n)",
+      "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.1.json",
       "testCasesPool": [
-        { "call": "two_sum([2, 7, 11, 15], 9)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "two_sum([3, 2, 4], 6)", "expected": "[1, 2]", "isHidden": false },
-        { "call": "two_sum([3, 3], 6)", "expected": "[0, 1]", "isHidden": false },
-        { "call": "two_sum([1, 2, 3], 10)", "expected": "[]", "isHidden": true },
-        { "call": "two_sum([], 5)", "expected": "[]", "isHidden": true }
+        {
+          "call": "two_sum_sorted([2, 7, 11, 15], 9)",
+          "expected": "[2, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "two_sum_sorted([2, 3, 4], 6)",
+          "expected": "[2, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "two_sum_sorted([1, 2, 3], 10)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "two_sum_sorted([], 5)",
+          "expected": "[]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_opt_2",
-      "title": "Optimization Challenge: Stop Wasting Memory",
+      "title": "Optimization Challenge: Center Index Verification",
+      "difficulty": "Easy",
       "task": [
-        "Sometimes programmers make extra lists to hold answers when they don't need to. If you just need to find one item, return it right away without putting it in a new list!",
+        "Counting every element to find a majority item takes O(n²) time. In a sorted array, an item that makes up more than half the data will always occupy the exact middle position.",
         "",
         "Optimization Guidelines:",
-        "1. Open the linear search code.",
-        "2. Delete any blocks that create a new list or append items to a new list.",
-        "3. When your loop finds the target, just use the 'return' block directly on the target.",
-        "4. This ensures your code doesn't waste memory.",
-        "",
-        "Sample Outputs:",
-        "linear_search([10, 20, 30], 20) → 20",
-        "linear_search([5, 8, 2], 5) → 5"
+        "1. Delete the loops from the workspace.",
+        "2. Calculate the middle index of the array by dividing its length by 2 using integer division.",
+        "3. Access and return the element located at that middle index.",
+        "4. This approach reduces the time complexity to O(1)."
       ],
-      "targetTime": "O(n)",
+      "targetTime": "O(1)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.2.json",
       "testCasesPool": [
-        { "call": "linear_search([10, 20, 30], 20)", "expected": "20", "isHidden": false },
-        { "call": "linear_search([5, 8, 2], 5)", "expected": "5", "isHidden": false },
-        { "call": "linear_search([7, 7, 7], 7)", "expected": "7", "isHidden": false },
-        { "call": "linear_search([1, 2, 3], 4)", "expected": "-1", "isHidden": true },
-        { "call": "linear_search([], 5)", "expected": "-1", "isHidden": true }
+        {
+          "call": "find_majority_sorted([1, 1, 1, 2, 3])",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "find_majority_sorted([2, 3, 3, 3, 4])",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "find_majority_sorted([99, 99])",
+          "expected": "99",
+          "isHidden": true
+        },
+        {
+          "call": "find_majority_sorted([0, 0, 0, 0, 0])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m2_opt_3",
-      "title": "Optimization Challenge: Don't Copy Lists",
+      "title": "Optimization Challenge: Pre-Sorting for Adjacency",
+      "difficulty": "Medium",
       "task": [
-        "A common mistake when sorting is making a whole new copy of the list. That takes up a lot of extra computer memory. We should sort the list 'in-place'.",
+        "Checking for duplicate values using nested loops requires O(n²) time. Sorting the array places identical values next to each other, allowing you to find duplicates with a single pass.",
         "",
         "Optimization Guidelines:",
-        "1. Open the original Bubble Sort code.",
-        "2. Look for any blocks that create a duplicate or copy of the list (like `temp_arr = arr.copy()`). Delete them!",
-        "3. Make sure your swap blocks only change the original `arr` list.",
-        "4. Return the original `arr` at the end.",
-        "",
-        "Sample Outputs:",
-        "bubble_sort([5, 2, 8, 1]) → [1, 2, 5, 8]",
-        "bubble_sort([3, 3, 1, 2]) → [1, 2, 3, 3]"
+        "1. Remove the nested loop configuration.",
+        "2. Apply a sorting operation to the array, which requires O(n log n) time.",
+        "3. Create a single loop to iterate through the array, stopping one element early to prevent boundary errors.",
+        "4. Compare the current element to the element immediately following it.",
+        "5. If they match, return True immediately. If the loop completes without finding a match, return False."
       ],
-      "targetTime": "O(n^2)",
+      "targetTime": "O(n log n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m2-2.3.json",
       "testCasesPool": [
-        { "call": "bubble_sort([5, 2, 8, 1])", "expected": "[1, 2, 5, 8]", "isHidden": false },
-        { "call": "bubble_sort([3, 3, 1, 2])", "expected": "[1, 2, 3, 3]", "isHidden": false },
-        { "call": "bubble_sort([9, 8, 7])", "expected": "[7, 8, 9]", "isHidden": false },
-        { "call": "bubble_sort([1])", "expected": "[1]", "isHidden": true },
-        { "call": "bubble_sort([])", "expected": "[]", "isHidden": true }
+        {
+          "call": "has_duplicates_opt([4, 1, 2, 1, 3])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([5, 8, 2, 9])",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([7, 7])",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "has_duplicates_opt([1, 2, 3])",
+          "expected": "False",
+          "isHidden": true
+        }
       ]
     }
   ]

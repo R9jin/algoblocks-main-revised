@@ -2,626 +2,1000 @@
   "lesson_1": [
     {
       "id": "m3_l1_a1",
-      "title": "The Base Case (Countdown)",
+      "title": "Recursive Base Case Formulation",
       "task": [
-        "Recursion is a neat trick where a function calls *itself*! But it must know when to stop, otherwise it runs forever. That stopping point is called the 'Base Case'. Let's build a rocket countdown.",
+        "Recursion requires a function to invoke itself. To prevent infinite execution and a subsequent memory overflow, the algorithm must implement a terminating condition known as the Base Case.",
         "",
         "Instructions:",
-        "1. Open the 'Functions' tab and define `countdown(n)`.",
-        "2. Open the 'Logic' tab and grab an 'If/Else' block. This is our Base Case: If `n <= 0`, return a list containing just the text `'Liftoff!'`.",
-        "3. In the 'Else' section (when `n` is greater than 0), we want to join two lists together using the 'join list' block from the 'Lists (Built-in Type)' tab.",
-        "4. In the first slot, put a list containing just `n`. In the second slot, call `countdown(n - 1)`.",
-        "5. Return the joined list.",
-        "",
-        "Sample Outputs:",
-        "countdown(3) → [3, 2, 1, 'Liftoff!']",
-        "countdown(1) → [1, 'Liftoff!']"
+        "1. Define the function `countdown(n)`.",
+        "2. Utilize conditional logic to establish the Base Case: if the integer reaches 0 or below, return a list containing the string 'Liftoff'.",
+        "3. If the Base Case is not met, construct a list combining the current state and the result of a recursive invocation for the decremented state.",
+        "4. Return the aggregated list structure."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "countdown(3)", "expected": "[3, 2, 1, 'Liftoff!']", "isHidden": false },
-        { "call": "countdown(5)", "expected": "[5, 4, 3, 2, 1, 'Liftoff!']", "isHidden": false },
-        { "call": "countdown(1)", "expected": "[1, 'Liftoff!']", "isHidden": false },
-        { "call": "countdown(0)", "expected": "['Liftoff!']", "isHidden": true },
-        { "call": "countdown(-2)", "expected": "['Liftoff!']", "isHidden": true }
+        {
+          "call": "countdown(3)",
+          "expected": "[3, 2, 1, 'Liftoff']",
+          "isHidden": false
+        },
+        {
+          "call": "countdown(5)",
+          "expected": "[5, 4, 3, 2, 1, 'Liftoff']",
+          "isHidden": false
+        },
+        {
+          "call": "countdown(1)",
+          "expected": "[1, 'Liftoff']",
+          "isHidden": false
+        },
+        {
+          "call": "countdown(0)",
+          "expected": "['Liftoff']",
+          "isHidden": true
+        },
+        {
+          "call": "countdown(-2)",
+          "expected": "['Liftoff']",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l1_a2",
-      "title": "Building a Staircase",
+      "title": "Recursive Mathematical Induction",
       "task": [
-        "Let's see how the recursive stack builds up by drawing a staircase of stars! Each time the function calls itself, it adds a new step.",
+        "Mathematical induction translates seamlessly into recursive algorithms.",
+        "The factorial of a number N is defined recursively as N multiplied by the factorial of N minus 1.",
         "",
         "Instructions:",
-        "1. Define `build_stairs(n)`.",
-        "2. Base Case: If `n == 0`, just return an empty list `[]`.",
-        "3. Else, use the 'join list' block to combine `build_stairs(n - 1)` with a list containing your new step.",
-        "4. For your new step, go to the 'Text' tab and use the 'repeat text times' block to repeat `'*'` exactly `n` times.",
-        "5. Return the combined list.",
-        "",
-        "Sample Outputs:",
-        "build_stairs(3) → ['*', '**', '***']",
-        "build_stairs(1) → ['*']"
+        "1. Define the function `factorial(n)`.",
+        "2. Establish the Base Case: if the integer is 1 or less, the function must terminate by returning the integer 1.",
+        "3. Formulate the Recursive Step: return the current variable multiplied by the recursive invocation for the preceding integer.",
+        "4. Observe that the algorithm must allocate a new frame on the call stack for every step, yielding an O(n) space complexity."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "build_stairs(3)", "expected": "['*', '**', '***']", "isHidden": false },
-        { "call": "build_stairs(5)", "expected": "['*', '**', '***', '****', '*****']", "isHidden": false },
-        { "call": "build_stairs(1)", "expected": "['*']", "isHidden": false },
-        { "call": "build_stairs(0)", "expected": "[]", "isHidden": true },
-        { "call": "build_stairs(2)", "expected": "['*', '**']", "isHidden": true }
+        {
+          "call": "factorial(5)",
+          "expected": "120",
+          "isHidden": false
+        },
+        {
+          "call": "factorial(3)",
+          "expected": "6",
+          "isHidden": false
+        },
+        {
+          "call": "factorial(1)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "factorial(0)",
+          "expected": "1",
+          "isHidden": true
+        },
+        {
+          "call": "factorial(6)",
+          "expected": "720",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l1_a3",
-      "title": "The Russian Doll",
+      "title": "Recursive Call Stack Visualization",
       "task": [
-        "Recursion goes deeper and deeper. Let's visualize this by putting a list inside a list inside a list... just like nesting Russian nesting dolls!",
+        "Recursive functions execute in nested hierarchical layers. This depth can be structurally visualized by outputting sequentially nested data arrays.",
         "",
         "Instructions:",
-        "1. Define `russian_doll(n)`.",
-        "2. Base case: If `n == 0`, return an empty list `[]`.",
-        "3. Else, use the 'create list with' block to make a list with exactly 2 items.",
-        "4. In the first slot, put the text `'Doll'`. In the second slot, call `russian_doll(n - 1)`.",
-        "5. Return this new nested list.",
-        "",
-        "Sample Outputs:",
-        "russian_doll(2) → ['Doll', ['Doll', []]]",
-        "russian_doll(1) → ['Doll', []]"
+        "1. Define the function `russian_doll(n)`.",
+        "2. Implement the Base Case: if the variable reaches 0, return an empty array.",
+        "3. For the standard execution path, initialize an array containing exactly two elements.",
+        "4. Assign the string 'Doll' to the first index. Assign a recursive invocation for the next nested layer to the second index.",
+        "5. Return the nested structure."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "russian_doll(2)", "expected": "['Doll', ['Doll', []]]", "isHidden": false },
-        { "call": "russian_doll(3)", "expected": "['Doll', ['Doll', ['Doll', []]]]", "isHidden": false },
-        { "call": "russian_doll(1)", "expected": "['Doll', []]", "isHidden": false },
-        { "call": "russian_doll(0)", "expected": "[]", "isHidden": true },
-        { "call": "russian_doll(4)", "expected": "['Doll', ['Doll', ['Doll', ['Doll', []]]]]", "isHidden": true }
+        {
+          "call": "russian_doll(2)",
+          "expected": "['Doll', ['Doll', []]]",
+          "isHidden": false
+        },
+        {
+          "call": "russian_doll(3)",
+          "expected": "['Doll', ['Doll', ['Doll', []]]]",
+          "isHidden": false
+        },
+        {
+          "call": "russian_doll(1)",
+          "expected": "['Doll', []]",
+          "isHidden": false
+        },
+        {
+          "call": "russian_doll(0)",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "russian_doll(4)",
+          "expected": "['Doll', ['Doll', ['Doll', ['Doll', []]]]]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l1_a4",
-      "title": "Mirror Words (Palindromes)",
+      "title": "Recursive Pointer Tracking",
       "task": [
-        "A palindrome is a word spelled the same forwards and backwards. We can use recursion to check the outside letters, then shrink the word and check the inside!",
+        "When evaluating a sequence recursively, passing a sliced sub-array allocates new memory for each function call, degrading performance.",
+        "To evaluate a sequence optimally, the algorithm must pass the original memory reference and strictly manage evaluation boundaries utilizing index pointers.",
         "",
         "Instructions:",
-        "1. Define `is_palindrome(s)`.",
-        "2. Base Case: If the length of the string `s` is less than or equal to 1, return `True` (a single letter is always a mirror!).",
-        "3. Check the outside: If the first letter (`s[0]`) does NOT equal the last letter (`s[-1]`), return `False`.",
-        "4. The Recursive Step: Return `is_palindrome` on the inside of the string (slice from index 1 to -1).",
-        "",
-        "Sample Outputs:",
-        "is_palindrome('racecar') → True",
-        "is_palindrome('hello') → False"
+        "1. Define the function `is_palindrome(s, left, right)`.",
+        "2. Establish the Base Case: if the pointers have met or crossed, the convergence is complete. Return `True`.",
+        "3. Evaluate the localized boundaries: if the elements at the current left and right pointers mismatch, return `False`.",
+        "4. Execute the Recursive Step: return the boolean result of a recursive invocation that advances both pointers inward."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "is_palindrome('racecar')", "expected": "True", "isHidden": false },
-        { "call": "is_palindrome('level')", "expected": "True", "isHidden": false },
-        { "call": "is_palindrome('hello')", "expected": "False", "isHidden": false },
-        { "call": "is_palindrome('a')", "expected": "True", "isHidden": true },
-        { "call": "is_palindrome('')", "expected": "True", "isHidden": true }
+        {
+          "call": "is_palindrome('racecar', 0, 6)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "is_palindrome('level', 0, 4)",
+          "expected": "True",
+          "isHidden": false
+        },
+        {
+          "call": "is_palindrome('hello', 0, 4)",
+          "expected": "False",
+          "isHidden": false
+        },
+        {
+          "call": "is_palindrome('a', 0, 0)",
+          "expected": "True",
+          "isHidden": true
+        },
+        {
+          "call": "is_palindrome('', 0, -1)",
+          "expected": "True",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l1_a5",
-      "title": "Recursive Addition",
+      "title": "Recursive State Accumulation",
       "task": [
-        "Let's add numbers in a list without using a loop! We can pop the last number off, and add it to a recursive call of the remaining list.",
+        "To aggregate an array recursively without irreversibly altering the original dataset, the algorithm must implement state tracking via an index pointer.",
+        "Mutating the input parameter during recursion is considered an unsafe algorithmic side effect.",
         "",
         "Instructions:",
-        "1. Define `sum_recursive(arr)`.",
-        "2. Base Case: If the list is empty (`len(arr) == 0`), return `0`.",
-        "3. Use the 'remove and get last item' block from the 'Lists' tab to pull the last number out and save it in a variable called `last_num`.",
-        "4. Return `last_num` + `sum_recursive(arr)`.",
-        "",
-        "Sample Outputs:",
-        "sum_recursive([10, 20, 30]) → 60",
-        "sum_recursive([5, 5]) → 10"
+        "1. Define the function `sum_recursive(arr, index)`.",
+        "2. Establish the Base Case: if the index reaches the length of the array, return `0`.",
+        "3. Isolate the current magnitude: retrieve the value at the current index.",
+        "4. Return the current magnitude added to the recursive execution of the subsequent sequential state."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "sum_recursive([10, 20, 30])", "expected": "60", "isHidden": false },
-        { "call": "sum_recursive([5, 5, 5, 5])", "expected": "20", "isHidden": false },
-        { "call": "sum_recursive([100])", "expected": "100", "isHidden": false },
-        { "call": "sum_recursive([])", "expected": "0", "isHidden": true },
-        { "call": "sum_recursive([-10, 10])", "expected": "0", "isHidden": true }
+        {
+          "call": "sum_recursive([10, 20, 30], 0)",
+          "expected": "60",
+          "isHidden": false
+        },
+        {
+          "call": "sum_recursive([5, 5, 5, 5], 0)",
+          "expected": "20",
+          "isHidden": false
+        },
+        {
+          "call": "sum_recursive([100], 0)",
+          "expected": "100",
+          "isHidden": false
+        },
+        {
+          "call": "sum_recursive([], 0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "sum_recursive([-10, 10], 0)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_2": [
     {
       "id": "m3_l2_a1",
-      "title": "Halving the Search (Binary Search)",
+      "title": "Binary Search: Midpoint Evaluation",
       "task": [
-        "If a list is perfectly sorted, you don't need to check every item! You can check the exact middle. If the target is smaller, you throw away the entire right half of the list. This is incredibly fast!",
+        "Sequential evaluation is highly inefficient for strictly sorted data. Binary Search optimizes this process by iteratively evaluating the structural midpoint to halve the search space.",
         "",
         "Instructions:",
-        "1. Define `binary_search(arr, target)`.",
-        "2. Create two pointer variables: `low = 0` and `high = len(arr) - 1`.",
-        "3. Make a `while` loop that runs as long as `low <= high`.",
-        "4. Inside, calculate the middle: `mid = (low + high) // 2` (use floor division!).",
-        "5. If `arr[mid] == target`, return `mid`. If `arr[mid] < target`, change `low` to `mid + 1`. Otherwise, change `high` to `mid - 1`.",
-        "6. Return `-1` at the very end.",
-        "",
-        "Sample Outputs:",
-        "binary_search([10, 20, 30, 40], 30) → 2",
-        "binary_search([1, 2, 3, 4], 1) → 0"
+        "1. Define the function `binary_search(arr, target)`.",
+        "2. Initialize boundary variables: establish a lower bound pointer at the start and an upper bound pointer at the end of the array.",
+        "3. Construct a `while` loop that continues as long as the lower bound does not exceed the upper bound.",
+        "4. Compute the midpoint index utilizing integer division between the current bounds.",
+        "5. Evaluate equality: if the midpoint element matches the target, return the midpoint index.",
+        "6. Directional logic: if the midpoint element is strictly less than the target, adjust the lower boundary to exclude the midpoint. Otherwise, adjust the upper boundary to exclude the midpoint.",
+        "7. Return `-1` if the iteration concludes without a match."
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "binary_search([10, 20, 30, 40], 30)", "expected": "2", "isHidden": false },
-        { "call": "binary_search([1, 2, 3, 4], 1)", "expected": "0", "isHidden": false },
-        { "call": "binary_search([5, 10, 15], 20)", "expected": "-1", "isHidden": false },
-        { "call": "binary_search([], 5)", "expected": "-1", "isHidden": true },
-        { "call": "binary_search([7, 14, 21, 28], 14)", "expected": "1", "isHidden": true }
+        {
+          "call": "binary_search([10, 20, 30, 40], 30)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_search([1, 2, 3, 4], 1)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "binary_search([5, 10, 15], 20)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "binary_search([], 5)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "binary_search([7, 14, 21, 28], 14)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l2_a2",
-      "title": "Finding the First Duplicate",
+      "title": "Binary Search: Left Boundary Convergence",
       "task": [
-        "If a list has duplicates (like `[5, 5, 5]`), standard binary search might land on the middle `5`. We need to adjust it to keep searching the left half to find the *very first* one.",
+        "A standard implementation may identify any valid match within a sequence of duplicates. To isolate the first occurrence, the algorithm must record the match and force evaluation of the remaining left boundary.",
         "",
         "Instructions:",
-        "1. Define `binary_first(arr, target)`. Set `low = 0`, `high = len(arr) - 1`, and `result = -1`.",
-        "2. Use the same `while low <= high` loop and calculate `mid`.",
-        "3. If `arr[mid] == target`, don't return yet! Save `result = mid` and then force the search left by setting `high = mid - 1`.",
-        "4. Otherwise, shift `low` or `high` normally just like the last task.",
-        "5. Return `result` at the end.",
-        "",
-        "Sample Outputs:",
-        "binary_first([1, 2, 2, 2, 3], 2) → 1",
-        "binary_first([5, 5, 5, 6], 5) → 0"
+        "1. Define the function `binary_first(arr, target)`. Initialize your bounds and an accumulator `result` to -1.",
+        "2. Construct the standard evaluation loop and compute the midpoint index.",
+        "3. Evaluate equality: if a match is found, assign the index to `result` and restrict the search parameters to the left boundary to check for earlier occurrences.",
+        "4. Adjust the boundary pointers appropriately for non-matching elements based on their relative magnitude.",
+        "5. Return the finalized `result` state."
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "binary_first([1, 2, 2, 2, 3], 2)", "expected": "1", "isHidden": false },
-        { "call": "binary_first([5, 5, 5, 6], 5)", "expected": "0", "isHidden": false },
-        { "call": "binary_first([1, 2, 3], 3)", "expected": "2", "isHidden": false },
-        { "call": "binary_first([], 1)", "expected": "-1", "isHidden": true },
-        { "call": "binary_first([7, 7, 7, 7], 7)", "expected": "0", "isHidden": true }
+        {
+          "call": "binary_first([1, 2, 2, 2, 3], 2)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "binary_first([5, 5, 5, 6], 5)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "binary_first([1, 2, 3], 3)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_first([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "binary_first([7, 7, 7, 7], 7)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l2_a3",
-      "title": "Finding the Last Duplicate",
+      "title": "Binary Search: Right Boundary Convergence",
       "task": [
-        "Finding the last duplicate is the exact opposite. When we find a match, we save the spot but keep searching the *right* half just in case there's another one later!",
+        "To isolate the final occurrence of a duplicate sequence, the algorithmic approach must be inverted to systematically force evaluation of the right boundary.",
         "",
         "Instructions:",
-        "1. Define `binary_last(arr, target)`. Initialize your pointers and `result = -1`.",
-        "2. Inside the `while` loop, calculate `mid`.",
-        "3. If `arr[mid] == target`, save `result = mid` and then force the search right by setting `low = mid + 1`.",
-        "4. Otherwise, adjust `low` and `high` normally.",
-        "5. Return `result`.",
-        "",
-        "Sample Outputs:",
-        "binary_last([1, 2, 2, 2, 3], 2) → 3",
-        "binary_last([5, 5, 5, 6], 5) → 2"
+        "1. Define the function `binary_last(arr, target)`. Initialize the required pointers and set `result` to -1.",
+        "2. Within the iterative structure, compute the midpoint index.",
+        "3. If a match is found, update `result` and restrict the search parameters to the right boundary to verify if later occurrences exist.",
+        "4. Adjust the boundary pointers appropriately for non-matching elements.",
+        "5. Return the finalized `result` state."
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "binary_last([1, 2, 2, 2, 3], 2)", "expected": "3", "isHidden": false },
-        { "call": "binary_last([5, 5, 5, 6], 5)", "expected": "2", "isHidden": false },
-        { "call": "binary_last([1, 2, 3], 3)", "expected": "2", "isHidden": false },
-        { "call": "binary_last([], 1)", "expected": "-1", "isHidden": true },
-        { "call": "binary_last([7, 7, 7, 7], 7)", "expected": "3", "isHidden": true }
+        {
+          "call": "binary_last([1, 2, 2, 2, 3], 2)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "binary_last([5, 5, 5, 6], 5)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_last([1, 2, 3], 3)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_last([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "binary_last([7, 7, 7, 7], 7)",
+          "expected": "3",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l2_a4",
-      "title": "Where Does It Belong?",
+      "title": "Binary Search: Insertion Point Location",
       "task": [
-        "If a number isn't in a sorted list, we can use halving to figure out exactly where it *should* be inserted to keep the list in order.",
+        "If a target value is absent from a sorted dataset, the underlying logic of Binary Search can accurately compute its correct sequential insertion index.",
+        "When the search space successfully collapses without a match, the lower bound pointer indicates the precise structural position.",
         "",
         "Instructions:",
-        "1. Define `search_insert(arr, target)`.",
-        "2. Run a normal Binary Search with `low`, `high`, and `mid`.",
-        "3. If `arr[mid] == target`, return `mid`.",
-        "4. If the loop completely finishes and you never found the target, simply return the `low` variable. That variable naturally points to the exact perfect insertion spot!",
-        "",
-        "Sample Outputs:",
-        "search_insert([1, 3, 5, 6], 5) → 2",
-        "search_insert([1, 3, 5, 6], 2) → 1"
+        "1. Define the function `search_insert(arr, target)`.",
+        "2. Execute the standard boundary management logic utilizing lower, upper, and midpoint variables.",
+        "3. Evaluate equality: if a match is found, return the midpoint index.",
+        "4. If the loop completes without identifying the target, return the lower bound pointer."
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "search_insert([1, 3, 5, 6], 5)", "expected": "2", "isHidden": false },
-        { "call": "search_insert([1, 3, 5, 6], 2)", "expected": "1", "isHidden": false },
-        { "call": "search_insert([1, 3, 5, 6], 7)", "expected": "4", "isHidden": false },
-        { "call": "search_insert([1, 3, 5, 6], 0)", "expected": "0", "isHidden": true },
-        { "call": "search_insert([], 5)", "expected": "0", "isHidden": true }
+        {
+          "call": "search_insert([1, 3, 5, 6], 5)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "search_insert([1, 3, 5, 6], 2)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "search_insert([1, 3, 5, 6], 7)",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "search_insert([1, 3, 5, 6], 0)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "search_insert([], 5)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l2_a5",
-      "title": "Counting the Steps",
+      "title": "Binary Search: Logarithmic Step Counting",
       "task": [
-        "Just how incredibly fast is halving the search? Let's add a counter to see exactly how many jumps it takes to find an answer.",
+        "To empirically verify the exponential efficiency of spatial halving, we can deploy an internal state counter to track the exact number of iteration cycles required.",
         "",
         "Instructions:",
-        "1. Define `binary_steps(arr, target)`.",
-        "2. Create a variable called `steps` and set it to 0.",
-        "3. Inside your `while` loop, immediately add 1 to `steps`.",
-        "4. Run your normal binary search logic. But if you find the target, return `steps` instead of the index.",
-        "5. If the loop ends and nothing was found, return `steps`.",
-        "",
-        "Sample Outputs:",
-        "binary_steps([1, 2, 3, 4, 5, 6, 7], 4) → 1",
-        "binary_steps([1, 2, 3, 4, 5, 6, 7], 6) → 2"
+        "1. Define the function `binary_steps(arr, target)`.",
+        "2. Initialize a state variable named `steps` to 0.",
+        "3. Inside the evaluation loop construct, immediately increment the `steps` variable.",
+        "4. Execute standard boundary logic. If the target is identified, return the `steps` variable instead of the index.",
+        "5. If the target is absent, return `steps` upon termination of the loop."
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "testCasesPool": [
-        { "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 4)", "expected": "1", "isHidden": false },
-        { "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 6)", "expected": "2", "isHidden": false },
-        { "call": "binary_steps([10, 20, 30], 40)", "expected": "2", "isHidden": false },
-        { "call": "binary_steps([], 10)", "expected": "0", "isHidden": true },
-        { "call": "binary_steps([100], 100)", "expected": "1", "isHidden": true }
+        {
+          "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 4)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "binary_steps([1, 2, 3, 4, 5, 6, 7], 6)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_steps([10, 20, 30], 40)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "binary_steps([], 10)",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "binary_steps([100], 100)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_3": [
     {
       "id": "m3_l3_a1",
-      "title": "Splitting in Half",
+      "title": "Divide Phase: Array Bisection",
       "task": [
-        "The secret to sorting massive lists easily is to split them into tiny, manageable pieces. The first step of 'Merge Sort' is just chopping an array perfectly in half.",
+        "The preliminary phase of the Divide and Conquer strategy requires structurally dividing large datasets into constituent subproblems.",
+        "Merge Sort relies on bisecting an array into two precise halves.",
         "",
         "Instructions:",
-        "1. Define `halve_array(arr)`.",
-        "2. Calculate the middle: `mid = len(arr) // 2`.",
-        "3. Use the slice block from the 'Lists' tab. Make `left` equal to `arr` sliced from the beginning to `mid`.",
-        "4. Make `right` equal to `arr` sliced from `mid` to the end.",
-        "5. Return a list containing both: `[left, right]`.",
-        "",
-        "Sample Outputs:",
-        "halve_array([1, 2, 3, 4]) → [[1, 2], [3, 4]]",
-        "halve_array([5]) → [[], [5]]"
+        "1. Define the function `halve_array(arr)`.",
+        "2. Compute the midpoint index via integer division.",
+        "3. Utilize array slicing to allocate memory for two new arrays representing the left and right partitions of the original array.",
+        "4. Return a nested structure containing both subproblems sequentially."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "halve_array([1, 2, 3, 4])", "expected": "[[1, 2], [3, 4]]", "isHidden": false },
-        { "call": "halve_array([10, 20, 30])", "expected": "[[10], [20, 30]]", "isHidden": false },
-        { "call": "halve_array([5])", "expected": "[[], [5]]", "isHidden": false },
-        { "call": "halve_array([])", "expected": "[[], []]", "isHidden": true },
-        { "call": "halve_array([1, 2, 3, 4, 5])", "expected": "[[1, 2], [3, 4, 5]]", "isHidden": true }
+        {
+          "call": "halve_array([1, 2, 3, 4])",
+          "expected": "[[1, 2], [3, 4]]",
+          "isHidden": false
+        },
+        {
+          "call": "halve_array([10, 20, 30])",
+          "expected": "[[10], [20, 30]]",
+          "isHidden": false
+        },
+        {
+          "call": "halve_array([5])",
+          "expected": "[[], [5]]",
+          "isHidden": false
+        },
+        {
+          "call": "halve_array([])",
+          "expected": "[[], []]",
+          "isHidden": true
+        },
+        {
+          "call": "halve_array([1, 2, 3, 4, 5])",
+          "expected": "[[1, 2], [3, 4, 5]]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l3_a2",
-      "title": "Zipping Two Sorted Lists",
+      "title": "Conquer Phase: Pointer Synchronization",
       "task": [
-        "Once we have small pieces, we need to stitch them back together. If we have two lists that are *already sorted*, we can zip them together like a zipper on a jacket.",
+        "The Conquer phase requires synthesizing two sorted datasets efficiently. This necessitates pointer synchronization.",
+        "By tracking the exact index in both arrays simultaneously, elements can be compared and assigned accurately.",
         "",
         "Instructions:",
-        "1. Define `merge(left, right)`. Initialize `result = []`, `i = 0`, and `j = 0`.",
-        "2. Loop while `i < len(left)` and `j < len(right)`.",
-        "3. If `left[i] < right[j]`, append `left[i]` to `result` and increment `i`. Else, append `right[j]` and increment `j`.",
-        "4. After the loop, use list joining (`+`) to add any leftovers: `result + left[i:] + right[j:]`.",
-        "5. Return the result.",
-        "",
-        "Sample Outputs:",
-        "merge([1, 3], [2, 4]) → [1, 2, 3, 4]",
-        "merge([10], []) → [10]"
+        "1. Define the function `merge(left, right)`. Initialize an empty auxiliary array to store the result.",
+        "2. Initialize two pointer variables to track indices in the left and right arrays.",
+        "3. Construct an evaluation loop constrained to run while both pointers are within their respective valid bounds.",
+        "4. Evaluate the pointers: if the current element in the left array is less than or equal to the current element in the right array, append the left element to your result and advance the left pointer.",
+        "5. Otherwise, append the right element and advance the right pointer.",
+        "6. Concatenate any remaining unmerged elements from either array and return the finalized sequence."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "merge([1, 3], [2, 4])", "expected": "[1, 2, 3, 4]", "isHidden": false },
-        { "call": "merge([5, 9], [1, 8])", "expected": "[1, 5, 8, 9]", "isHidden": false },
-        { "call": "merge([10], [])", "expected": "[10]", "isHidden": false },
-        { "call": "merge([], [5])", "expected": "[5]", "isHidden": true },
-        { "call": "merge([1, 1], [1, 1])", "expected": "[1, 1, 1, 1]", "isHidden": true }
+        {
+          "call": "merge([1, 3], [2, 4])",
+          "expected": "[1, 2, 3, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "merge([5, 9], [1, 8])",
+          "expected": "[1, 5, 8, 9]",
+          "isHidden": false
+        },
+        {
+          "call": "merge([10], [])",
+          "expected": "[10]",
+          "isHidden": false
+        },
+        {
+          "call": "merge([], [5])",
+          "expected": "[5]",
+          "isHidden": true
+        },
+        {
+          "call": "merge([1, 1], [1, 1])",
+          "expected": "[1, 1, 1, 1]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l3_a3",
-      "title": "Full Split and Stitch (Merge Sort)",
+      "title": "Recursive Orchestration: Merge Sort",
       "task": [
-        "Now let's use recursion to put it all together! We will magically split the array down to single items, and then our `merge` function will zip them all back together in perfect order.",
+        "Merge Sort recursively divides the array structure until the absolute base elements are isolated. The helper function is then invoked to merge the hierarchical branches sequentially.",
         "",
         "Instructions:",
-        "1. Define `merge_sort(arr)`. Ensure your `merge()` function from the last task is available.",
-        "2. Base Case: If `len(arr) <= 1`, it's already sorted! Return `arr`.",
-        "3. Calculate `mid = len(arr) // 2`.",
-        "4. Split and recurse: `left = merge_sort(arr[:mid])` and `right = merge_sort(arr[mid:])`.",
-        "5. Return the final zip: `merge(left, right)`.",
-        "",
-        "Sample Outputs:",
-        "merge_sort([4, 2, 3, 1]) → [1, 2, 3, 4]",
-        "merge_sort([5, 5, 5]) → [5, 5, 5]"
+        "1. Define the function `merge_sort(arr)`. Ensure your previous `merge()` function is accessible in the workspace.",
+        "2. Implement the Base Case: if the array length is 1 or less, return the array structure unmodified.",
+        "3. Compute the current bisection index.",
+        "4. Apply recursive depth parameters: recursively invoke the sort function on both the sliced left and right array partitions.",
+        "5. Conclude execution by returning the synthesized result of passing both partitions into your `merge()` helper."
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "merge_sort([4, 2, 3, 1])", "expected": "[1, 2, 3, 4]", "isHidden": false },
-        { "call": "merge_sort([38, 27, 43, 3, 9, 82, 10])", "expected": "[3, 9, 10, 27, 38, 43, 82]", "isHidden": false },
-        { "call": "merge_sort([5, 5, 5])", "expected": "[5, 5, 5]", "isHidden": false },
-        { "call": "merge_sort([])", "expected": "[]", "isHidden": true },
-        { "call": "merge_sort([10, -2, 8])", "expected": "[-2, 8, 10]", "isHidden": true }
+        {
+          "call": "merge_sort([4, 2, 3, 1])",
+          "expected": "[1, 2, 3, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort([38, 27, 43, 3, 9, 82, 10])",
+          "expected": "[3, 9, 10, 27, 38, 43, 82]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort([5, 5, 5])",
+          "expected": "[5, 5, 5]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "merge_sort([10, -2, 8])",
+          "expected": "[-2, 8, 10]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l3_a4",
-      "title": "Merge Sort Backwards",
+      "title": "Merge Sort: Descending Implementation",
       "task": [
-        "To invert the sorting order, the big recursive splitting stays exactly the same. The only thing we have to flip is the logic inside the zipping `merge` helper function.",
+        "Inverting the sequencing order of Merge Sort does not require structural modifications to the recursive framework.",
+        "The algorithmic adjustment is localized entirely within the comparison operators of the merge phase.",
         "",
         "Instructions:",
-        "1. Define `merge_sort_desc(arr)` with an inner `merge_desc(left, right)` helper function.",
-        "2. Within the helper, flip the comparison: evaluate `if left[i] >= right[j]`.",
-        "3. If true, append from `left` and advance `i`. Otherwise, append from `right` and advance `j`.",
-        "4. Return the merged results exactly like before.",
-        "",
-        "Sample Outputs:",
-        "merge_sort_desc([1, 2, 3]) → [3, 2, 1]",
-        "merge_sort_desc([5, 1, 4]) → [5, 4, 1]"
+        "1. Define the function `merge_sort_desc(arr)` containing an inner `merge_desc(left, right)` helper function.",
+        "2. Within the localized helper function, modify the pointer evaluation logic to favor strictly greater parameters.",
+        "3. If the evaluation is true, append data from the `left` array. Otherwise, append from `right`. Advance the respective pointers appropriately.",
+        "4. Synthesize the recursive branches exactly as demonstrated in the ascending variant."
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "merge_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "merge_sort_desc([5, 1, 4])", "expected": "[5, 4, 1]", "isHidden": false },
-        { "call": "merge_sort_desc([7, 7, 7])", "expected": "[7, 7, 7]", "isHidden": false },
-        { "call": "merge_sort_desc([])", "expected": "[]", "isHidden": true },
-        { "call": "merge_sort_desc([-5, -1, 0])", "expected": "[0, -1, -5]", "isHidden": true }
+        {
+          "call": "merge_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort_desc([5, 1, 4])",
+          "expected": "[5, 4, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort_desc([7, 7, 7])",
+          "expected": "[7, 7, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "merge_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "merge_sort_desc([-5, -1, 0])",
+          "expected": "[0, -1, -5]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l3_a5",
-      "title": "Sorting Words",
+      "title": "Merge Sort: Lexicographical Evaluation",
       "task": [
-        "Merge Sort is brilliant because it works perfectly on text too! Python naturally knows how to alphabetize words using the exact same `<` and `>` operators.",
+        "Merge Sort maintains high consistency across data types. High-level comparative operators natively process string objects, allowing identical recursive architecture to produce lexicographical sequencing.",
         "",
         "Instructions:",
-        "1. Define `merge_strings(arr)`.",
-        "2. Replicate the standard ascending `merge_sort` logic identically.",
-        "3. Do not change a thing. Pass in an array of words and watch it alphabetize them instantly!",
-        "",
-        "Sample Outputs:",
-        "merge_strings(['c', 'a', 'b']) → ['a', 'b', 'c']",
-        "merge_strings(['apple', 'banana', 'ant']) → ['ant', 'apple', 'banana']"
+        "1. Define the function `merge_strings(arr)`.",
+        "2. Replicate the standard ascending merge sort logic entirely.",
+        "3. Ensure the comparison operator evaluates the relative magnitude of the textual items."
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "merge_strings(['c', 'a', 'b'])", "expected": "['a', 'b', 'c']", "isHidden": false },
-        { "call": "merge_strings(['z', 'x', 'y'])", "expected": "['x', 'y', 'z']", "isHidden": false },
-        { "call": "merge_strings(['apple', 'banana', 'ant'])", "expected": "['ant', 'apple', 'banana']", "isHidden": false },
-        { "call": "merge_strings([])", "expected": "[]", "isHidden": true },
-        { "call": "merge_strings(['a'])", "expected": "['a']", "isHidden": true }
+        {
+          "call": "merge_strings(['c', 'a', 'b'])",
+          "expected": "['a', 'b', 'c']",
+          "isHidden": false
+        },
+        {
+          "call": "merge_strings(['z', 'x', 'y'])",
+          "expected": "['x', 'y', 'z']",
+          "isHidden": false
+        },
+        {
+          "call": "merge_strings(['apple', 'banana', 'ant'])",
+          "expected": "['ant', 'apple', 'banana']",
+          "isHidden": false
+        },
+        {
+          "call": "merge_strings([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "merge_strings(['a'])",
+          "expected": "['a']",
+          "isHidden": true
+        }
       ]
     }
   ],
   "lesson_4": [
     {
       "id": "m3_l4_a1",
-      "title": "Picking a Leader (Partitioning)",
+      "title": "Quick Sort: Pivot Partitioning",
       "task": [
-        "Quick Sort works by picking one number to be the 'Pivot' (the leader). Everyone smaller than the leader goes to the left room, and everyone bigger goes to the right room.",
+        "The Quick Sort algorithm optimizes performance by selecting a pivot element and systematically dividing data based on value rather than pure bisection.",
         "",
         "Instructions:",
-        "1. Define `partition(arr)`. If `arr` is empty, return `[]`.",
-        "2. Set `pivot = arr[0]`. Make two empty lists: `left` and `right`.",
-        "3. Loop through the rest of the list (`arr[1:]`).",
-        "4. If a number is `< pivot`, append it to `left`. Otherwise, append it to `right`.",
-        "5. Return a list containing three items exactly like this: `[left, pivot, right]`.",
-        "",
-        "Sample Outputs:",
-        "partition([5, 1, 8, 2]) → [[1, 2], 5, [8]]",
-        "partition([10, 20, 5]) → [[5], 10, [20]]"
+        "1. Define the function `partition(arr)`. Evaluate the base case, returning an empty list if the parameter is empty.",
+        "2. Isolate the comparison basis: assign the first element as the pivot. Initialize lists representing the left and right boundaries.",
+        "3. Construct a sequence loop iterating over the remaining unsorted values.",
+        "4. Evaluate magnitude: if a value is strictly less than the pivot, append it to the left boundary. Otherwise, append it to the right boundary.",
+        "5. Return a synthesized nested representation containing the left boundary, the pivot scalar, and the right boundary sequentially."
       ],
       "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "partition([5, 1, 8, 2])", "expected": "[[1, 2], 5, [8]]", "isHidden": false },
-        { "call": "partition([10, 20, 5])", "expected": "[[5], 10, [20]]", "isHidden": false },
-        { "call": "partition([3, 3, 3])", "expected": "[[], 3, [3, 3]]", "isHidden": false },
-        { "call": "partition([])", "expected": "[]", "isHidden": true },
-        { "call": "partition([7])", "expected": "[[], 7, []]", "isHidden": true }
+        {
+          "call": "partition([5, 1, 8, 2])",
+          "expected": "[[1, 2], 5, [8]]",
+          "isHidden": false
+        },
+        {
+          "call": "partition([10, 20, 5])",
+          "expected": "[[5], 10, [20]]",
+          "isHidden": false
+        },
+        {
+          "call": "partition([3, 3, 3])",
+          "expected": "[[], 3, [3, 3]]",
+          "isHidden": false
+        },
+        {
+          "call": "partition([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "partition([7])",
+          "expected": "[[], 7, []]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l4_a2",
-      "title": "Full Quick Sort",
+      "title": "Recursive Orchestration: Quick Sort",
       "task": [
-        "Now we use recursion to do that partitioning trick over and over. We sort the left room, we sort the right room, and then stick them together with the leader in the middle!",
+        "Applying recursive depth to the partitioning logic permits the left and right sub-arrays to be sequentially sorted prior to final string concatenation.",
         "",
         "Instructions:",
-        "1. Define `quick_sort(arr)`.",
-        "2. Base Case: If `len(arr) <= 1`, return `arr`.",
-        "3. Set `pivot = arr[0]`. Split the rest into `left` and `right` arrays exactly like the last task.",
-        "4. Return the joined lists: `quick_sort(left) + [pivot] + quick_sort(right)`.",
-        "",
-        "Sample Outputs:",
-        "quick_sort([3, 2, 1, 4]) → [1, 2, 3, 4]",
-        "quick_sort([5, 5, 5]) → [5, 5, 5]"
+        "1. Define the function `quick_sort(arr)`.",
+        "2. Evaluate the structural boundary: if the array length is 1 or less, return it.",
+        "3. Isolate the pivot element. Apply partitioning principles to derive the left and right sequence arrays containing elements smaller and greater than the pivot.",
+        "4. Synthesize the recursive execution: return a concatenated array containing the recursively sorted left partition, the pivot element, and the recursively sorted right partition."
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "quick_sort([3, 2, 1, 4])", "expected": "[1, 2, 3, 4]", "isHidden": false },
-        { "call": "quick_sort([10, 7, 8, 9, 1, 5])", "expected": "[1, 5, 7, 8, 9, 10]", "isHidden": false },
-        { "call": "quick_sort([5, 5, 5])", "expected": "[5, 5, 5]", "isHidden": false },
-        { "call": "quick_sort([])", "expected": "[]", "isHidden": true },
-        { "call": "quick_sort([1])", "expected": "[1]", "isHidden": true }
+        {
+          "call": "quick_sort([3, 2, 1, 4])",
+          "expected": "[1, 2, 3, 4]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort([10, 7, 8, 9, 1, 5])",
+          "expected": "[1, 5, 7, 8, 9, 10]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort([5, 5, 5])",
+          "expected": "[5, 5, 5]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "quick_sort([1])",
+          "expected": "[1]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l4_a3",
-      "title": "Quick Sort Backwards",
+      "title": "Quick Sort: Descending Partitioning",
       "task": [
-        "To sort in descending order using Quick Sort, we just flip the door signs! Put the *bigger* numbers in the left room, and the *smaller* numbers in the right room.",
+        "Modifying Quick Sort for descending iteration requires an inversion of the primary conditional evaluation during array distribution.",
         "",
         "Instructions:",
-        "1. Define `quick_sort_desc(arr)`.",
-        "2. Handle the base case: if `len(arr) <= 1`, return `arr`.",
-        "3. Extract `pivot = arr[0]`. Iterate through `arr[1:]`.",
-        "4. If a number is `> pivot`, append it to the `left` array. Otherwise, append to `right`.",
-        "5. Return `quick_sort_desc(left) + [pivot] + quick_sort_desc(right)`.",
-        "",
-        "Sample Outputs:",
-        "quick_sort_desc([1, 2, 3]) → [3, 2, 1]",
-        "quick_sort_desc([5, 1, 4, 8]) → [8, 5, 4, 1]"
+        "1. Define the function `quick_sort_desc(arr)`.",
+        "2. Retain the structural boundary parameter preventing recursion on single elements.",
+        "3. Isolate the pivot. Construct an iterative sequence across the remainder.",
+        "4. Invert distribution bounds: if a value is strictly greater than the pivot, append it to the left array. Otherwise, append to the right.",
+        "5. Conclude recursive orchestration by concatenating the sorted subsets."
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "quick_sort_desc([1, 2, 3])", "expected": "[3, 2, 1]", "isHidden": false },
-        { "call": "quick_sort_desc([5, 1, 4, 8])", "expected": "[8, 5, 4, 1]", "isHidden": false },
-        { "call": "quick_sort_desc([7, 7, 7])", "expected": "[7, 7, 7]", "isHidden": false },
-        { "call": "quick_sort_desc([])", "expected": "[]", "isHidden": true },
-        { "call": "quick_sort_desc([-5, 0, 5])", "expected": "[5, 0, -5]", "isHidden": true }
+        {
+          "call": "quick_sort_desc([1, 2, 3])",
+          "expected": "[3, 2, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_desc([5, 1, 4, 8])",
+          "expected": "[8, 5, 4, 1]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_desc([7, 7, 7])",
+          "expected": "[7, 7, 7]",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_desc([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "quick_sort_desc([-5, 0, 5])",
+          "expected": "[5, 0, -5]",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l4_a4",
-      "title": "Sorting Words Quickly",
+      "title": "Quick Sort: Lexicographical Partitioning",
       "task": [
-        "Just like Merge Sort, Quick Sort is brilliant at alphabetizing strings.",
+        "Quick Sort maintains highly effective algorithmic efficiency when evaluating textual datasets, leveraging underlying ASCII interpretation.",
         "",
         "Instructions:",
-        "1. Define `quick_sort_strings(arr)`.",
-        "2. Implement the standard ascending `quick_sort` architecture you built in Activity 2.",
-        "3. Do not change anything! Python's operators will automatically send 'A' words to the left and 'Z' words to the right.",
-        "",
-        "Sample Outputs:",
-        "quick_sort_strings(['delta', 'alpha', 'charlie']) → ['alpha', 'charlie', 'delta']",
-        "quick_sort_strings(['same', 'same']) → ['same', 'same']"
+        "1. Define the function `quick_sort_strings(arr)`.",
+        "2. Implement the standard ascending `quick_sort` architecture formulated previously.",
+        "3. Standard comparison operators will sequentially evaluate character data to distribute nodes appropriately against the current string pivot."
       ],
       "targetTime": "O(n log n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "quick_sort_strings(['delta', 'alpha', 'charlie'])", "expected": "['alpha', 'charlie', 'delta']", "isHidden": false },
-        { "call": "quick_sort_strings(['z', 'a', 'm'])", "expected": "['a', 'm', 'z']", "isHidden": false },
-        { "call": "quick_sort_strings(['same', 'same'])", "expected": "['same', 'same']", "isHidden": false },
-        { "call": "quick_sort_strings([])", "expected": "[]", "isHidden": true },
-        { "call": "quick_sort_strings(['b'])", "expected": "['b']", "isHidden": true }
+        {
+          "call": "quick_sort_strings(['delta', 'alpha', 'charlie'])",
+          "expected": "['alpha', 'charlie', 'delta']",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_strings(['z', 'a', 'm'])",
+          "expected": "['a', 'm', 'z']",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_strings(['same', 'same'])",
+          "expected": "['same', 'same']",
+          "isHidden": false
+        },
+        {
+          "call": "quick_sort_strings([])",
+          "expected": "[]",
+          "isHidden": true
+        },
+        {
+          "call": "quick_sort_strings(['b'])",
+          "expected": "['b']",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_l4_a5",
-      "title": "Tracking the Pivots",
+      "title": "Quickselect: Kth Element Isolation",
       "task": [
-        "To really understand how Quick Sort breaks things down, let's strip away the sorting entirely and write a function that just spits out a list of every leader (pivot) it picks along the way.",
+        "The recursive logic from Quick Sort can be optimized to isolate the Kth smallest element mathematically without exhaustively sorting the entire sequence.",
+        "By discarding the irrelevant partition, this algorithm achieves an average time complexity of O(n).",
         "",
         "Instructions:",
-        "1. Define `pivot_track(arr)`.",
-        "2. Base Case: If `len(arr) <= 1`, return `[]` if empty, or `[arr[0]]` if not empty.",
-        "3. Extract `pivot = arr[0]`. Generate the `left` and `right` partitions normally.",
-        "4. Return exactly this: `pivot_track(left) + [pivot] + pivot_track(right)`. This returns only the sequence of pivots, not the fully sorted array!",
-        "",
-        "Sample Outputs:",
-        "pivot_track([3, 1, 4]) → [1, 3, 4]",
-        "pivot_track([5, 2, 8]) → [2, 5, 8]"
+        "1. Define the function `quickselect(arr, k)`.",
+        "2. Execute the base partitioning mechanism to isolate the left boundary, pivot, and right boundary.",
+        "3. Evaluate magnitude: calculate the size of the left partition.",
+        "4. If `k` exactly matches the length of the left partition plus 1, the pivot holds the correct value. Return it.",
+        "5. If `k` is less than or equal to the left length, the target resides there. Return the recursive invocation on the left partition.",
+        "6. If the target resides in the right partition, recalibrate the target parameter by subtracting the discarded elements, and recurse on the right partition."
       ],
-      "targetTime": "O(n log n)",
+      "targetTime": "O(n)",
       "targetSpace": "O(n)",
       "testCasesPool": [
-        { "call": "pivot_track([3, 1, 4])", "expected": "[1, 3, 4]", "isHidden": false },
-        { "call": "pivot_track([5, 2, 8])", "expected": "[2, 5, 8]", "isHidden": false },
-        { "call": "pivot_track([10, 20, 30])", "expected": "[10, 20, 30]", "isHidden": false },
-        { "call": "pivot_track([])", "expected": "[]", "isHidden": true },
-        { "call": "pivot_track([7])", "expected": "[7]", "isHidden": true }
+        {
+          "call": "quickselect([3, 2, 1, 5, 4], 2)",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "quickselect([7, 10, 4, 3, 20, 15], 3)",
+          "expected": "10",
+          "isHidden": false
+        },
+        {
+          "call": "quickselect([7, 10, 4, 3, 20, 15], 4)",
+          "expected": "15",
+          "isHidden": false
+        },
+        {
+          "call": "quickselect([1], 1)",
+          "expected": "1",
+          "isHidden": true
+        }
       ]
     }
   ],
   "optimizations": [
     {
       "id": "m3_opt_1",
-      "title": "Optimization Challenge: Slow to Fast Search",
+      "title": "Optimization Challenge: Logarithmic Search",
+      "difficulty": "Medium",
       "task": [
-        "A linear scan (O(n)) through a sorted list is highly inefficient for large datasets. Refactoring the traversal into a Binary Search structure reduces the time it takes to a rapid O(log n).",
+        "A linear search checks every item and takes O(n) time. For a sorted dataset, a binary search halves the search space at each step, improving the time to O(log n).",
         "",
         "Optimization Guidelines:",
-        "1. Analyze the current implementation: the `for` loop checks every single item.",
-        "2. Delete the `for` loop entirely.",
-        "3. Introduce `low` and `high` pointer variables to establish your search boundaries.",
-        "4. Implement a `while` loop that calculates the middle. Adjust the boundaries to systematically halve the search space.",
-        "5. Observe the analytical metrics demonstrating the transition to O(log n) efficiency.",
-        "",
-        "Sample Outputs:",
-        "search([1, 3, 5, 7, 9], 7) → 3",
-        "search([10, 20, 30, 40], 10) → 0"
+        "1. Remove the sequential loop implementation.",
+        "2. Establish lower and upper boundary variables for your search area.",
+        "3. Implement a loop that continues as long as the lower boundary is less than or equal to the upper boundary.",
+        "4. Calculate the midpoint. If the midpoint value is the target, return the index.",
+        "5. Reassign the boundaries based on whether the target is smaller or larger than the midpoint value."
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.1.json",
       "testCasesPool": [
-        { "call": "search([1, 3, 5, 7, 9], 7)", "expected": "3", "isHidden": false },
-        { "call": "search([10, 20, 30, 40], 10)", "expected": "0", "isHidden": false },
-        { "call": "search([2, 4, 6], 5)", "expected": "-1", "isHidden": false },
-        { "call": "search([], 1)", "expected": "-1", "isHidden": true },
-        { "call": "search([5], 5)", "expected": "0", "isHidden": true }
+        {
+          "call": "search([1, 3, 5, 7, 9], 7)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "search([10, 20, 30, 40], 10)",
+          "expected": "0",
+          "isHidden": false
+        },
+        {
+          "call": "search([2, 4, 6], 5)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "search([], 1)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "search([5], 5)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_opt_2",
-      "title": "Optimization Challenge: Finding the Peak",
+      "title": "Optimization Challenge: Gradient Convergence",
+      "difficulty": "Hard",
       "task": [
-        "A peak element is an integer strictly greater than its neighbors. Instead of an O(n) sequential scan, we can deploy a modified binary search to intuitively follow the slope uphill in O(log n) time.",
+        "Finding a peak element by checking every item takes O(n) time. You can apply binary search principles to follow the ascending slope, finding the peak in O(log n) time.",
         "",
         "Optimization Guidelines:",
-        "1. Eliminate the inefficient O(n) sequential loop.",
-        "2. Establish `low` and `high` pointer variables.",
-        "3. Within a `while low < high` loop, compute the midpoint index.",
-        "4. Evaluate the slope: if `arr[mid] < arr[mid + 1]`, the slope is going UP to the right. Adjust the `low` pointer up to `mid + 1`.",
-        "5. If the slope is going DOWN, the peak is in the left half. Reduce the `high` pointer to `mid`.",
-        "6. Return the `low` pointer index when the loop concludes.",
-        "",
-        "Sample Outputs:",
-        "find_peak([1, 2, 3, 1]) → 2",
-        "find_peak([1, 2, 1, 3, 5, 6, 4]) → 5"
+        "1. Delete the linear traversal loop.",
+        "2. Establish lower and upper boundary pointers.",
+        "3. Loop while the lower boundary is strictly less than the upper boundary.",
+        "4. Find the midpoint. If the midpoint value is smaller than the value to its right, the peak is on the right side. Update the lower boundary.",
+        "5. Otherwise, the peak is on the left side or is the midpoint. Update the upper boundary.",
+        "6. Return the lower boundary when the loop terminates."
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.2.json",
       "testCasesPool": [
-        { "call": "find_peak([1, 2, 3, 1])", "expected": "2", "isHidden": false },
-        { "call": "find_peak([1, 2, 1, 3, 5, 6, 4])", "expected": "5", "isHidden": false },
-        { "call": "find_peak([1, 2, 3, 4, 5])", "expected": "4", "isHidden": false },
-        { "call": "find_peak([10, 9, 8, 7])", "expected": "0", "isHidden": true },
-        { "call": "find_peak([5])", "expected": "0", "isHidden": true }
+        {
+          "call": "find_peak([1, 2, 3, 1])",
+          "expected": "2",
+          "isHidden": false
+        },
+        {
+          "call": "find_peak([1, 2, 1, 3, 5, 6, 4])",
+          "expected": "5",
+          "isHidden": false
+        },
+        {
+          "call": "find_peak([1, 2, 3, 4, 5])",
+          "expected": "4",
+          "isHidden": false
+        },
+        {
+          "call": "find_peak([10, 9, 8, 7])",
+          "expected": "0",
+          "isHidden": true
+        },
+        {
+          "call": "find_peak([5])",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     },
     {
       "id": "m3_opt_3",
-      "title": "Optimization Challenge: Avoiding the Call Stack",
+      "title": "Optimization Challenge: Iterative Space Reduction",
+      "difficulty": "Medium",
       "task": [
-        "When you run a recursive Binary Search, you leave a trail of memory behind for every function call. Converting the recursion into a standard `while` loop optimizes this to O(1) space.",
+        "Using recursion for a binary search consumes O(log n) auxiliary space due to the call stack. Converting this to an iterative approach reduces the space complexity to O(1).",
         "",
         "Optimization Guidelines:",
-        "1. Identify the memory stack generated by returning the function within itself (e.g., `return search_optimized(...)`).",
-        "2. Remove all recursive function calls from the structure.",
-        "3. Refactor the core logic using an iterative `while low <= high:` loop structure.",
-        "4. Reassign the `low` and `high` pointer variables directly within the loop instead of passing them as parameters to a new function.",
-        "5. Verify through the analyzer that the Space Complexity has successfully dropped to O(1).",
-        "",
-        "Sample Outputs:",
-        "search_optimized([10, 20, 30, 40, 50], 40) → 3",
-        "search_optimized([1, 2, 3], 2) → 1"
+        "1. Remove the recursive function calls.",
+        "2. Replace the recursion with a standard loop structure based on your boundary conditions.",
+        "3. Instead of passing updated boundaries to a new function call, update the boundary variables directly within the loop.",
+        "4. The static analyzer will confirm the space complexity is now O(1)."
       ],
       "targetTime": "O(log n)",
       "targetSpace": "O(1)",
       "templateUrl": "/data/optimizations/m3-3.3.json",
       "testCasesPool": [
-        { "call": "search_optimized([10, 20, 30, 40, 50], 40)", "expected": "3", "isHidden": false },
-        { "call": "search_optimized([1, 2, 3], 2)", "expected": "1", "isHidden": false },
-        { "call": "search_optimized([5, 8, 12], 20)", "expected": "-1", "isHidden": false },
-        { "call": "search_optimized([], 5)", "expected": "-1", "isHidden": true },
-        { "call": "search_optimized([7], 7)", "expected": "0", "isHidden": true }
+        {
+          "call": "search_optimized([10, 20, 30, 40, 50], 40)",
+          "expected": "3",
+          "isHidden": false
+        },
+        {
+          "call": "search_optimized([1, 2, 3], 2)",
+          "expected": "1",
+          "isHidden": false
+        },
+        {
+          "call": "search_optimized([5, 8, 12], 20)",
+          "expected": "-1",
+          "isHidden": false
+        },
+        {
+          "call": "search_optimized([], 5)",
+          "expected": "-1",
+          "isHidden": true
+        },
+        {
+          "call": "search_optimized([7], 7)",
+          "expected": "0",
+          "isHidden": true
+        }
       ]
     }
   ]

@@ -29,6 +29,42 @@ const SYSTEM_TEMPLATES = {
   ]
 };
 
+// FAQ Data accurately aligned with the system's static structural analysis 
+const FAQ_ITEMS = [
+  {
+    question: "What is AlgoBlocks and how do I use the Workspace?",
+    answer: "AlgoBlocks is an interactive educational platform designed to teach data structures and algorithm analysis. By clicking 'Blank Workspace', you enter a block-based coding environment where you can drag, drop, and connect logical blocks to build your algorithm visually."
+  },
+  {
+    question: "How does the platform calculate Time Complexity (Big-O)?",
+    answer: "The platform analyzes the internal structure of your algorithm (like nested loops and recursive calls) to determine its mathematical Time Complexity. Once it identifies the Big-O classification (e.g., O(N), O(N²)), the Complexity Graph visualizes this by drawing the standard mathematical curve for that specific class, showing you visually how your algorithm will scale."
+  },
+  {
+    question: "Can I visualize memory usage or Space Complexity?",
+    answer: "Yes! The platform includes a Memory Visualizer that actively tracks the allocation of variables, arrays, and recursive call stacks as your algorithm runs. This helps you visually differentiate between in-place algorithms and those that consume extra memory."
+  },
+  {
+    question: "What is the difference between System and Custom Templates?",
+    answer: "System Templates are foundational algorithms (like Merge Sort or Binary Search) pre-built by our platform to serve as starting points. Custom Templates are your personal creations that you have built and saved to easily load or modify later."
+  },
+  {
+    question: "How do the Optimization Challenges work in the Learning Path?",
+    answer: "In these activities, you are given a functioning but inefficient algorithm. Your task is to apply concepts learned in the module to refactor the blocks and achieve an optimal Time or Space Complexity."
+  },
+  {
+    question: "Can I view the actual code my blocks represent?",
+    answer: "Absolutely. The platform features an integrated Code Snippet view. As you manipulate the visual blocks, it dynamically translates your logic into structured programming code."
+  },
+  {
+    question: "What happens if I lose my internet connection?",
+    answer: "AlgoBlocks supports offline learning. If your connection drops, your progress and workspace edits are securely saved locally on your device. The system will automatically sync your progress back to the cloud as soon as you are online."
+  },
+  {
+    question: "Do I need to install any external software?",
+    answer: "No installation is necessary. All execution, profiling, and complexity calculations happen securely and natively within your web browser."
+  }
+];
+
 // SVG Icons for modern UI
 const PlusIcon = () => (
   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -54,12 +90,22 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
+const ChevronDownIcon = ({ expanded }) => (
+  <svg 
+    width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+    style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+);
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [recentProjects, setRecentProjects] = useState([]);
   const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
   const [userTemplates, setUserTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedFaq, setExpandedFaq] = useState(null);
 
   // Dynamic progress state
   const [progressData, setProgressData] = useState({
@@ -226,6 +272,14 @@ export default function Dashboard() {
     }
   };
 
+  const toggleFaq = (index) => {
+    if (expandedFaq === index) {
+      setExpandedFaq(null);
+    } else {
+      setExpandedFaq(index);
+    }
+  };
+
   return (
     <div className="bento-dashboard-layout">
       <DashboardHeader />
@@ -241,7 +295,7 @@ export default function Dashboard() {
               <div className="hero-text">
                 <h1 className="hero-title">Welcome to AlgoBlocks!</h1>
                 <p className="hero-subtitle">
-                  An interactive thesis platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
+                  An interactive platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
                 </p>
               </div>
               <button 
@@ -353,6 +407,40 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
+            </section>
+
+            {/* Help / FAQ Section */}
+            <section className="bento-help-section" style={{ marginTop: "20px", marginBottom: "40px" }}>
+              <div className="section-header">
+                <h2>Help & Resources</h2>
+                <p>Frequently asked questions and guides to get you started.</p>
+              </div>
+              <div className="bento-faq-container">
+                {FAQ_ITEMS.map((faq, index) => (
+                  <div 
+                    key={index} 
+                    className={`bento-faq-item ${expandedFaq === index ? "expanded" : ""}`}
+                  >
+                    <button 
+                      className="bento-faq-question" 
+                      onClick={() => toggleFaq(index)}
+                    >
+                      <span>{faq.question}</span>
+                      <ChevronDownIcon expanded={expandedFaq === index} />
+                    </button>
+                    <div 
+                      className="bento-faq-answer"
+                      style={{
+                        maxHeight: expandedFaq === index ? "500px" : "0",
+                        opacity: expandedFaq === index ? 1 : 0,
+                        padding: expandedFaq === index ? "0 20px 20px 20px" : "0 20px"
+                      }}
+                    >
+                      <p>{faq.answer}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </section>
 
           </div>

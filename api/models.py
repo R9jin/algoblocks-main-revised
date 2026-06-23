@@ -1,49 +1,115 @@
 # api/models.py
-from pydantic import BaseModel, EmailStr, Field
-from typing import Dict, Any, Optional
+from pydantic import BaseModel, EmailStr
+from typing import Dict, Any, Optional, List
 
-class LoginRequest(BaseModel):
+class UserCreate(BaseModel):
+    name: str
     email: EmailStr
     password: str
 
-class SignUpRequest(BaseModel):
-    name: str = Field(..., min_length=2, max_length=50)
+class UserLogin(BaseModel):
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str
 
-# FIX: Made highly permissive to prevent 422 errors from React state delays
-class ProgressRequest(BaseModel):
-    email: Optional[str] = ""
-    lesson_id: Optional[str] = ""
-    score: Optional[Any] = 0
-    completed: Optional[Any] = False
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: Dict[str, Any]
 
-class GoogleAuthRequest(BaseModel):
+class GoogleLoginRequest(BaseModel):
     token: str
 
-class AssessmentRequest(BaseModel):
-    email: Optional[str] = ""
-    assessment_key: Optional[str] = ""
-    key: Optional[str] = ""
-    score: Optional[Any] = 0
-    passed: Optional[bool] = False
-    data: Optional[Dict[str, Any]] = {}
+class ProgressUpdate(BaseModel):
+    email: Optional[str] = None
+    lesson_id: str
+    score: float
+    completed: Optional[bool] = False
 
-class SaveProjectRequest(BaseModel):
-    projectId: Optional[str] = None
-    userId: Optional[str] = ""
-    name: Optional[str] = ""
-    workspace: Optional[Dict[str, Any]] = {}
-    pythonCode: Optional[str] = ""
+class AssessmentUpdateRequest(BaseModel):
+    email: Optional[str] = None
+    assessment_key: str
+    score: float
+    correct: int
+    total: int
+    timeElapsed: int
+    completedAt: str
+    attempts: int
 
-# --- ADDED: Missing fields (templateId, userId, owner_id, description) ---
-class SaveTemplateRequest(BaseModel):
-    templateId: Optional[str] = None
-    userId: Optional[str] = ""
-    owner_id: Optional[str] = ""
-    name: Optional[str] = ""
+class ProjectSyncRequest(BaseModel):
+    userId: Optional[str] = None
+    projectId: str
+    title: Optional[str] = "Untitled Project"
     description: Optional[str] = ""
-    category: Optional[str] = ""
     workspace: Optional[Dict[str, Any]] = {}
     pythonCode: Optional[str] = ""
-    data: Optional[Dict[str, Any]] = {}
+    timestamp: Optional[int] = None
+    isSynced: Optional[bool] = False
+
+# FIX: Added TemplateSyncRequest to resolve template_router import error
+class TemplateSyncRequest(BaseModel):
+    templateId: str
+    title: Optional[str] = "Untitled Template"
+    description: Optional[str] = ""
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: Optional[str] = ""
+    userId: Optional[str] = None
+    timestamp: Optional[int] = None
+    isSynced: Optional[bool] = False
+
+class ActivitySubmission(BaseModel):
+    userId: str
+    moduleId: str
+    activityId: str
+    type: str = "activity"
+    status: str = "draft"
+    score: float = 0
+    maxScore: float = 100
+    
+    # Original Legacy Tracking (Preserved for backwards compatibility with Dashboard)
+    passedTestCases: int = 0
+    totalTestCases: int = 0
+    passed_tests: Optional[int] = 0
+    total_tests: Optional[int] = 0
+    
+    # THESIS METRICS: Pure Functional Tracking for accurate TSR
+    functional_passed: Optional[int] = 0
+    functional_total: Optional[int] = 0
+    
+    # THESIS METRICS: Continuous Scoring
+    initial_aes: Optional[float] = None
+    final_aes: Optional[float] = None
+    rog: Optional[float] = 0.0
+
+    testCases: Optional[List[Dict[str, Any]]] = []
+    target_complexity: Optional[str] = "O(n)"
+    actual_complexity: Optional[str] = "O(n^2)"
+    target_space_complexity: Optional[str] = "O(1)"
+    actual_space_complexity: Optional[str] = "O(1)"
+    workspace: Optional[Dict[str, Any]] = {}
+    pythonCode: str = ""
+    timestamp: Optional[int] = None
+    submittedAt: Optional[str] = None
+    isSynced: Optional[bool] = False
+
+class AssessmentSubmission(BaseModel):
+    userId: str
+    assessmentId: str
+    score: float
+    maxScore: float
+    passed: bool
+    answers: Dict[str, Any]
+    timestamp: Optional[int] = None
+
+class GuestProgressUpdate(BaseModel):
+    session_id: str
+    progress_data: Dict[str, Any]
+
+class BatchSyncPayload(BaseModel):
+    progress: Optional[List[Dict[str, Any]]] = []
+    submissions: Optional[List[Dict[str, Any]]] = []
+    assessments: Optional[List[Dict[str, Any]]] = []
+
+class SyncResponse(BaseModel):
+    status: str
+    message: str
+    synced_items: int
