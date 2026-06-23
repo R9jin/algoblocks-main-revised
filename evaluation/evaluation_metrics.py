@@ -81,23 +81,43 @@ def calculate_metrics():
     dataset_dir = os.path.join(os.path.dirname(__file__), 'dataset')
     dataset = []
     
-    # Automatically find all curated_part_n.json files
-    part_files = glob.glob(os.path.join(dataset_dir, 'curated_part_*.json'))
+    # Grab both ground_truth.json AND all curated_part_*.json files
+    candidate_files = []
     
-    # Fallback to the default ground_truth.json if the curated parts don't exist
-    if not part_files:
-        part_files = [os.path.join(dataset_dir, 'ground_truth.json')]
-        print("Evaluating default ground_truth.json...\n")
-    else:
-        print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
+    main_gt = os.path.join(dataset_dir, 'ground_truth.json')
+    if os.path.exists(main_gt):
+        candidate_files.append(main_gt)
         
-    for file_path in part_files:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            dataset.extend(json.load(f))
+    curated_parts = sorted(glob.glob(os.path.join(dataset_dir, 'curated_part_*.json')))
+    candidate_files.extend(curated_parts)
+    
+    # Deduplicate paths while keeping a stable deterministic order
+    eval_files = []
+    seen = set()
+    for fp in candidate_files:
+        abs_path = os.path.abspath(fp)
+        if abs_path not in seen:
+            seen.add(abs_path)
+            eval_files.append(fp)
+    
+    if not eval_files:
+        print(f"No evaluation JSON files found in {dataset_dir}. Exiting.")
+        return
+
+    print(f"Found {len(eval_files)} evaluation files (ground_truth.json + curated parts). Loading dataset...\n")
+    
+    for file_path in eval_files:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                file_data = json.load(f)
+                dataset.extend(file_data)
+                print(f" -> Loaded {len(file_data)} test cases from {os.path.basename(file_path)}")
+        except Exception as e:
+            print(f" [ERROR] Failed to load {os.path.basename(file_path)}: {str(e)}")
         
     total_algorithms = len(dataset)
     if total_algorithms == 0:
-        print("Dataset is empty. Exiting.")
+        print("\nCombined dataset is empty. Exiting.")
         return
 
     overall_time_correct = 0
@@ -112,15 +132,15 @@ def calculate_metrics():
     y_true_space = []
     y_pred_space = []
     
-    print(f"Starting Independent AST Complexity Evaluation on {total_algorithms} algorithms...\n")
+    print(f"\nStarting Independent AST Complexity Evaluation on {total_algorithms} total algorithms...\n")
 
     for index, item in enumerate(dataset, 1):
         code_snippet = item['code']
         expected_time = item['expected_overall_time']
         expected_space = item.get('expected_overall_space', 'O(1)')
         
-        # Live tracking print statement (Lets you see exactly which file is processing!)
-        print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', 'Unknown')}...", end="", flush=True)
+        # Live tracking print statement (supports both 'id' and 'name' schemas)
+        print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', item.get('name', 'Unknown'))}...", end="", flush=True)
         
         start_time = time.perf_counter()
         results = analyze_source_code(code_snippet)
@@ -133,7 +153,6 @@ def calculate_metrics():
             print(f" [ERROR] {results.get('message')}")
             continue
 
-        # Completion time for the specific script
         print(f" Done ({processing_time_ms:.2f} ms)")
         
         actual_time = results.get("total", "O(1)")
