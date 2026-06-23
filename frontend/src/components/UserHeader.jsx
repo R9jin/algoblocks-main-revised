@@ -26,20 +26,6 @@ export default function UserHeader({ user, onLogoutClick }) {
     return (a + b).toUpperCase();
   }, [user?.name]);
 
-  const isUserAdmin = useMemo(() => {
-    if (user?.isAdmin) return true;
-    const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        return !!parsed?.isAdmin;
-      } catch (e) {
-        return false;
-      }
-    }
-    return false;
-  }, [user]);
-
   useEffect(() => {
     const onDocClick = (e) => {
       if (!menuRef.current) return;
@@ -128,20 +114,16 @@ export default function UserHeader({ user, onLogoutClick }) {
                   <LuFolder size={18} aria-hidden="true" /> Projects
                 </button>
                 
-                {isUserAdmin && (
-                  <>
-                    <div className="user-dd-divider" />
-                    <button 
-                      type="button" 
-                      className="user-dd-item" 
-                      style={{ color: "#7928CA", fontWeight: "bold" }}
-                      onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
-                      role="menuitem"
-                    >
-                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
-                    </button>
-                  </>
-                )}
+                <div className="user-dd-divider" />
+                <button 
+                  type="button" 
+                  className="user-dd-item" 
+                  style={{ color: "#10B981", fontWeight: "bold" }}
+                  onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
+                  role="menuitem"
+                >
+                  <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                </button>
 
                 <div className="user-dd-divider" />
                 
