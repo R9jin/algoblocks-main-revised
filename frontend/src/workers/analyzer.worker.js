@@ -6,18 +6,33 @@ let inputResolve = null;
 let isWaitingForInput = false;
 let executionTimeout = null;
 
-// Indestructible Asymptotic String Normalizer (Solves Unicode n² vs n^2 matching)
-function normalizeComplexity(str) {
-  if (!str) return "";
-  return String(str)
-    .toLowerCase()
-    .replace(/²/g, "2")
-    .replace(/³/g, "3")
-    .replace(/ⁿ/g, "n")
-    .replace(/[\s\^_\*\-\(\)\+]/g, ""); // strips O(V+E) down to "ove", O(n^2) to "on2"
+// Strict Asymptotic Tokenizer (Completely eliminates the .includes() Trojan Horse)
+function strictBigONormalizer(raw) {
+  if (!raw) return "O(1)";
+  let s = String(raw).toLowerCase().replace(/\s+/g, "");
+
+  // Normalize exponents & brackets
+  s = s.replace(/²/g, "^2").replace(/³/g, "^3").replace(/ⁿ/g, "^n");
+  s = s.replace(/^o\((.*)\)$/, "$1"); // strip outer O(...)
+
+  if (s === "1" || s === "constant") return "O(1)";
+  if (s === "logn" || s === "log(n)" || s === "log") return "O(log n)";
+  if (s === "n" || s === "linear") return "O(n)";
+  if (s === "nlogn" || s === "n*logn" || s === "log(n)*n") return "O(n log n)";
+  if (s === "n^2" || s === "quadratic") return "O(n^2)";
+  if (s === "n^3" || s === "cubic") return "O(n^3)";
+  if (s.includes("2^n")) return "O(2^n)";
+  if (s.includes("3^n")) return "O(3^n)";
+  if (s.includes("n!") || s.includes("n*n!")) return "O(n!)";
+  if (s.includes("v+e") || s.includes("e+v")) return "O(V + E)";
+  if (s.includes("n*m") || s.includes("m*n")) return "O(n * m)";
+  if (s.includes("logmin") || s.includes("gcd")) return "O(log min(a, b))";
+  if (s.includes("sqrtn") || s.includes("√n")) return "O(sqrt n)";
+
+  return `O(${s})`; // Canonical re-wrap
 }
 
-// Fuzzy-Key Extractors: Guarantees we find the Ground Truth regardless of what Python named the JSON key
+// Dynamic Ground Truth Extractors
 function getGroundTruthTime(obj) {
   if (!obj) return "O(1)";
   if (obj.time_complexity) return obj.time_complexity;
@@ -29,15 +44,11 @@ function getGroundTruthTime(obj) {
   if (obj.complexity) return obj.complexity;
   if (obj.big_o) return obj.big_o;
   if (obj.bigO) return obj.bigO;
-  if (obj.label) return obj.label;
 
-  // Deep scan fallback
   for (const key of Object.keys(obj)) {
     const val = obj[key];
     if (typeof val === 'string' && (val.trim().startsWith('O(') || val.trim().startsWith('o('))) {
-      if (key.toLowerCase().includes('time') || key.toLowerCase().includes('comp') || key.toLowerCase() === 'o') {
-        return val;
-      }
+      if (key.toLowerCase().includes('time') || key.toLowerCase() === 'o') return val;
     }
   }
   return "O(1)";
@@ -55,9 +66,7 @@ function getGroundTruthSpace(obj) {
   for (const key of Object.keys(obj)) {
     const val = obj[key];
     if (typeof val === 'string' && (val.trim().startsWith('O(') || val.trim().startsWith('o('))) {
-      if (key.toLowerCase().includes('space')) {
-        return val;
-      }
+      if (key.toLowerCase().includes('space')) return val;
     }
   }
   return "O(1)";
@@ -65,14 +74,12 @@ function getGroundTruthSpace(obj) {
 
 async function initPyodide() {
   if (pyodide) return pyodide;
-  
   if (!pyodidePromise) {
     pyodidePromise = (async () => {
       try {
         const pyodideUrl = self.location.origin + "/pyodide/pyodide.mjs";
         const module = await import(/* @vite-ignore */ pyodideUrl);
         const loadPyodide = module.loadPyodide;
-
         const tempPyodide = await loadPyodide();
         const cacheBuster = "?t=" + Date.now();
 
@@ -83,9 +90,7 @@ async function initPyodide() {
           fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
         ]);
 
-        if (nlgCode.includes("<!DOCTYPE html>")) {
-          throw new Error("Service Worker served index.html instead of python files!");
-        }
+        if (nlgCode.includes("<!DOCTYPE html>")) throw new Error("Service Worker served index.html instead of python files!");
 
         tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
         tempPyodide.FS.writeFile("blockly_ast.py", astCode);
@@ -108,33 +113,21 @@ self.onmessage = async (e) => {
   const { type, code, data, testCases } = e.data;
 
   if (type === 'INPUT_RESPONSE') {
-    if (inputResolve) {
-      clearTimeout(executionTimeout);
-      isWaitingForInput = false;
-      inputResolve(data);
-      inputResolve = null;
-    }
+    if (inputResolve) { clearTimeout(executionTimeout); isWaitingForInput = false; inputResolve(data); inputResolve = null; }
     return;
   }
 
   if (type === 'INIT_ENGINE') {
-    try {
-      await initPyodide();
-      self.postMessage({ type: 'ENGINE_READY' });
-    } catch (err) {
-      console.error(err);
-    }
+    try { await initPyodide(); self.postMessage({ type: 'ENGINE_READY' }); } 
+    catch (err) { console.error(err); }
     return;
   }
 
-  const MAX_CODE_LENGTH = 10000;
+  const MAX_CODE_LENGTH = 15000;
   if (code && code.length > MAX_CODE_LENGTH) {
     const errorMsg = `Code payload too large. Maximum allowed is ${MAX_CODE_LENGTH} characters.`;
-    if (type === 'ANALYZE_CODE') {
-      self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
-    } else {
-      self.postMessage({ type: 'ERROR', data: errorMsg });
-    }
+    if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: errorMsg } });
+    else self.postMessage({ type: 'ERROR', data: errorMsg });
     return;
   }
 
@@ -146,25 +139,17 @@ self.onmessage = async (e) => {
     // ======================
     if (type === 'ANALYZE_CODE') {
       pyodide.globals.set("user_code", code);
-
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
 import sys
 import ast
 
-if 'analyzer' in sys.modules:
-    del sys.modules['analyzer']
-if 'semantic_nlg' in sys.modules:
-    del sys.modules['semantic_nlg']
-if 'dynamic_tracer' in sys.modules:
-    del sys.modules['dynamic_tracer']
+if 'analyzer' in sys.modules: del sys.modules['analyzer']
+if 'semantic_nlg' in sys.modules: del sys.modules['semantic_nlg']
+if 'dynamic_tracer' in sys.modules: del sys.modules['dynamic_tracer']
 
 def gather_custom_lint_errors(code_str):
-    errs = []
-    lines = code_str.split('\\n')
-    stack = []
-    pairs = {'(': ')', '[': ']', '{': '}'}
-    
+    errs = []; lines = code_str.split('\\n'); stack = []; pairs = {'(': ')', '[': ']', '{': '}'}
     for i, line in enumerate(lines):
         s = line.strip()
         if not s or s.startswith('#'): continue
@@ -172,7 +157,6 @@ def gather_custom_lint_errors(code_str):
             s_no_comment = s.split('#')[0].strip()
             if not s_no_comment.endswith(':') and not s_no_comment.endswith(('(', '[', '{', ',', '\\\\')):
                 errs.append({"line": i+1, "message": "expected ':'"})
-                
         in_str = False; str_char = ''; escape = False
         for char in line:
             if escape: { escape = False; continue }
@@ -263,9 +247,7 @@ output
       });
       pyodide.globals.set("user_code", code);
       executionTimeout = setTimeout(() => {
-        if (!isWaitingForInput) {
-          self.postMessage({ type: 'ERROR', data: "Execution Prevented:\nRoot Cause: Infinite Loop detected." });
-        }
+        if (!isWaitingForInput) self.postMessage({ type: 'ERROR', data: "Execution Prevented:\nRoot Cause: Infinite Loop detected." });
       }, 3000);
 
       await pyodide.runPythonAsync(`
@@ -281,8 +263,7 @@ builtins.input = custom_input_sync
 class LineExecutionProfiler:
     def __init__(self): self.hits = defaultdict(int)
     def trace_lines(self, frame, event, arg):
-        if event == 'line' and frame.f_code.co_filename == "<user_code>":
-            self.hits[frame.f_lineno] += 1
+        if event == 'line' and frame.f_code.co_filename == "<user_code>": self.hits[frame.f_lineno] += 1
         return self.trace_lines
 
 class AsyncInputTransformer(ast.NodeTransformer):
@@ -327,7 +308,7 @@ except Exception:
     }
 
     // ======================
-    // 4. BENCHMARK SUITE MODE (SOP 2 DUAL KPI ALIGNED)
+    // 4. BENCHMARK SUITE MODE (STRICT TOKEN COMPARATOR ALIGNED)
     // ======================
     else if (type === 'RUN_BENCHMARK_SUITE') {
       try {
@@ -341,7 +322,7 @@ except Exception:
 
         for (let i = 0; i < dataset.length; i++) {
           const item = dataset[i];
-          const testName = item.name || item.title || item.algorithm || item.id || `Algorithm #${i + 1}`;
+          const testName = item.name || item.title || item.algorithm || item.id || `Codeforces Case #${i + 1}`;
           
           self.postMessage({ 
             type: 'BENCHMARK_PROGRESS', 
@@ -357,26 +338,26 @@ try:
     from analyzer import analyze_source_code
     res = analyze_source_code(user_code)
 except Exception as err:
-    res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "overall_explanation": str(err)}
+    res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "overall_explanation": f"AST Parse crash: {str(err)}"}
 json.dumps(res)
           `);
           const resultJs = JSON.parse(pyResultStr);
 
-          // Fuzzy extractors retrieve real GT
           const rawExpectedTime = getGroundTruthTime(item);
           const rawExpectedSpace = getGroundTruthSpace(item);
           
           const predictedTime = resultJs.total || "PARSE_FAIL";
           const predictedSpace = resultJs.space_total || resultJs.space || "O(1)";
 
-          // Strict Asymptotic string comparison
-          const normExpTime = normalizeComplexity(rawExpectedTime);
-          const normPredTime = normalizeComplexity(predictedTime);
-          const normExpSpace = normalizeComplexity(rawExpectedSpace);
-          const normPredSpace = normalizeComplexity(predictedSpace);
+          // Strict Asymptotic Tokenization
+          const normExpTime = strictBigONormalizer(rawExpectedTime);
+          const normPredTime = strictBigONormalizer(predictedTime);
+          const normExpSpace = strictBigONormalizer(rawExpectedSpace);
+          const normPredSpace = strictBigONormalizer(predictedSpace);
 
-          const isTimeCorrect = (normPredTime === normExpTime) || (normPredTime.includes(normExpTime) && normExpTime !== "");
-          const isSpaceCorrect = (normPredSpace === normExpSpace) || (normPredSpace.includes(normExpSpace) && normExpSpace !== "");
+          // EXACT token equality check. Substring shortcuts strictly banned.
+          const isTimeCorrect = (normPredTime.toLowerCase() === normExpTime.toLowerCase());
+          const isSpaceCorrect = (normPredSpace.toLowerCase() === normExpSpace.toLowerCase());
 
           if (isTimeCorrect) timePassedCount++;
           if (isSpaceCorrect) spacePassedCount++;
@@ -385,16 +366,16 @@ json.dumps(res)
           detailedResults.push({
             id: item.id || `case_${i + 1}`,
             name: testName,
-            category: item.category || item.algorithm_type || "SOP 2 Evaluation",
+            category: item.category || item.algorithm_type || "Competitive Programming AST Test",
             codeSnippet: item.code || "# No code snippet yielded",
-            expectedTime: rawExpectedTime,
-            predictedTime: predictedTime,
+            expectedTime: strictBigONormalizer(rawExpectedTime),
+            predictedTime: normPredTime,
             isTimeCorrect: isTimeCorrect,
-            expectedSpace: rawExpectedSpace,
-            predictedSpace: predictedSpace,
+            expectedSpace: strictBigONormalizer(rawExpectedSpace),
+            predictedSpace: normPredSpace,
             isSpaceCorrect: isSpaceCorrect,
             isCompletelyCorrect: (isTimeCorrect && isSpaceCorrect),
-            explanation: resultJs.overall_explanation || "AST AST Traversal yielded no stack trace."
+            explanation: resultJs.overall_explanation || "AST VM Traversal yielded no stack trace."
           });
         }
 
