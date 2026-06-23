@@ -7,6 +7,7 @@ import {
   FiCode,
   FiCpu,
   FiDatabase,
+  FiLayers,
   FiPlay,
   FiRefreshCw,
   FiXCircle
@@ -20,9 +21,8 @@ export default function EvaluationSuite() {
   const navigate = useNavigate();
   const { worker, isEngineReady } = usePyodide();
 
-  // Authentication Logger
   useEffect(() => {
-    console.log("🔥 SOP 2 DUAL-DATASET GAUNTLET SUCCESSFULLY MOUNTED!");
+    console.log("DUAL-DATASET GAUNTLET & SCIKIT-LEARN AUDIT MOUNTED!");
     const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!userStr) navigate("/");
   }, [navigate]);
@@ -34,7 +34,6 @@ export default function EvaluationSuite() {
   const [activeTab, setActiveTab] = useState("all"); 
   const [selectedItemCode, setSelectedItemCode] = useState(null);
   
-  // Ultimate Gauntlet Selector State ('codeforces' | 'textbook' | 'both')
   const [datasetOption, setDatasetOption] = useState("codeforces");
 
   useEffect(() => {
@@ -47,7 +46,7 @@ export default function EvaluationSuite() {
       } else if (type === "BENCHMARK_COMPLETE") {
         setResults(payload);
         setIsLoading(false);
-        setStatusText("SOP 2 Master Gauntlet Benchmark finished successfully.");
+        setStatusText("Master Gauntlet & Classification Matrix built successfully.");
       } else if (type === "BENCHMARK_ERROR") {
         alert(`System Diagnostics Failed: ${error}`);
         setIsLoading(false);
@@ -58,11 +57,9 @@ export default function EvaluationSuite() {
     return () => worker.removeEventListener("message", handleWorkerMessage);
   }, [worker]);
 
-  // Master Stitching Network Fetcher
   const fetchActiveGauntletData = async (mode) => {
     setStatusText(`Resolving ${mode.toUpperCase()} dataset sources...`);
 
-    // 1. TEXTBOOK MASTER (ground_truth.json - 106 items)
     if (mode === "textbook") {
       try {
         const res = await fetch("/data/evaluation/ground_truth.json");
@@ -74,9 +71,7 @@ export default function EvaluationSuite() {
       }
     }
 
-    // 2. CODEFORCES MASTER (104 items)
     if (mode === "codeforces") {
-      // Try single compiled file first
       try {
         const combRes = await fetch("/data/evaluation/curated_ground_truth.json");
         if (combRes.ok) {
@@ -85,7 +80,6 @@ export default function EvaluationSuite() {
         }
       } catch (e) {}
 
-      // Defensive Network Stitching: manually loop and staple curated parts 1 through 5!
       setStatusText("Stitching curated Codeforces parts 1 through 5 over network...");
       let stitchedArray = [];
       for (let i = 1; i <= 5; i++) {
@@ -102,7 +96,6 @@ export default function EvaluationSuite() {
       return stitchedArray;
     }
 
-    // 3. MEGA GAUNTLET (Both combined - 210 items)
     if (mode === "both") {
       setStatusText("Assembling Mega Gauntlet...");
       const textbookData = await fetchActiveGauntletData("textbook");
@@ -121,7 +114,6 @@ export default function EvaluationSuite() {
 
     setIsLoading(true); setProgress(0); setResults(null);
     
-    // Fetch and stitch requested target
     const gauntletPayload = await fetchActiveGauntletData(datasetOption);
 
     if (!gauntletPayload || gauntletPayload.length === 0) {
@@ -132,10 +124,7 @@ export default function EvaluationSuite() {
     }
 
     setStatusText(`Deploying AST Gauntlet across ${gauntletPayload.length} algorithms...`);
-    worker.postMessage({
-      type: "RUN_BENCHMARK_SUITE",
-      dataset: gauntletPayload
-    });
+    worker.postMessage({ type: "RUN_BENCHMARK_SUITE", dataset: gauntletPayload });
   };
 
   const filteredDetails = (results?.details || []).filter((item) => {
@@ -144,6 +133,15 @@ export default function EvaluationSuite() {
     if (activeTab === "mismatch") return (!item.isTimeCorrect || !item.isSpaceCorrect);
     return true;
   });
+
+  const renderF1Badge = (scoreStr) => {
+    const s = parseFloat(scoreStr);
+    if (isNaN(s)) return <span>-</span>;
+    if (s >= 0.80) return <span className="f1-excellent">{scoreStr}</span>;
+    if (s >= 0.60) return <span className="f1-good">{scoreStr}</span>;
+    if (s >= 0.40) return <span className="f1-warning">{scoreStr}</span>;
+    return <span className="f1-poor">{scoreStr}</span>;
+  };
 
   return (
     <div className="eval-suite-container">
@@ -185,7 +183,7 @@ export default function EvaluationSuite() {
           </Link>
           <div className="wh-divider"></div>
           <h2 className="wh-project-title eval-wh-title">
-            System Analytical Benchmark Suite <span className="wh-benchmark-badge">SOP 2 GAUNTLET</span>
+            System Analytical Benchmark Suite <span className="wh-benchmark-badge">Benchmark Testing</span>
           </h2>
         </div>
 
@@ -196,7 +194,7 @@ export default function EvaluationSuite() {
             className={`eval-btn-run ${isRunning || !isEngineReady ? "eval-run-disabled" : "eval-run-ready"}`}
           >
             {isRunning ? <FiRefreshCw className="spinner" size={16} /> : <FiPlay fill="#fff" size={16} />}
-            <span>{isRunning ? `Running Gauntlet (${progress}%)...` : "Execute SOP 2 Benchmark"}</span>
+            <span>{isRunning ? `Running Gauntlet (${progress}%)...` : "Execute Benchmark"}</span>
           </button>
         </div>
       </header>
@@ -296,6 +294,132 @@ export default function EvaluationSuite() {
             <div className="eval-stat-card">
               <div className="eval-stat-title">Space Mismatches</div>
               <div className={`eval-stat-value ${results.spaceFailed > 0 ? "val-danger" : "val-muted"}`}>{results.spaceFailed}</div>
+            </div>
+          </div>
+        )}
+
+        {/* SCIKIT-LEARN AUTHENTIC CLASSIFICATION REPORT SECTION */}
+        {results && results.timeReport && results.spaceReport && (
+          <div className="eval-sklearn-container">
+            <div className="eval-sklearn-header">
+              <strong className="eval-sklearn-title"><FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Advanced Classification Metrics (Scikit-Learn Audit)</strong>
+              <span className="eval-sklearn-subtitle">Per-class asymptotic token precision, recall, and harmonic F1-score distributions</span>
+            </div>
+
+            <div className="eval-sklearn-grid">
+              
+              {/* TABLE 1: TIME COMPLEXITY REPORT */}
+              <div className="sklearn-table-box">
+                <div className="sklearn-table-title">
+                  <span>Time Complexity Matrix</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Support: {results.totalTested}</span>
+                </div>
+                <table className="sklearn-table">
+                  <thead>
+                    <tr>
+                      <th>Complexity Class</th>
+                      <th>Precision</th>
+                      <th>Recall</th>
+                      <th>F1-Score</th>
+                      <th>Support</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(results.timeReport.perClass).map((cKey) => {
+                      const row = results.timeReport.perClass[cKey];
+                      return (
+                        <tr key={`time_${cKey}`}>
+                          <td>{cKey}</td>
+                          <td>{row.precision}</td>
+                          <td>{row.recall}</td>
+                          <td>{renderF1Badge(row.f1Score)}</td>
+                          <td>{row.support}</td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Divider rows */}
+                    <tr className="tr-divider">
+                      <td>accuracy</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>{(results.timePassed / results.totalTested).toFixed(2)}</td>
+                      <td>{results.totalTested}</td>
+                    </tr>
+                    <tr>
+                      <td>macro avg</td>
+                      <td>{results.timeReport.macroAvg.precision}</td>
+                      <td>{results.timeReport.macroAvg.recall}</td>
+                      <td>{results.timeReport.macroAvg.f1Score}</td>
+                      <td>{results.totalTested}</td>
+                    </tr>
+                    <tr className="tr-weighted">
+                      <td>weighted avg</td>
+                      <td>{results.timeReport.weightedAvg.precision}</td>
+                      <td>{results.timeReport.weightedAvg.recall}</td>
+                      <td>{results.timeReport.weightedAvg.f1Score}</td>
+                      <td>{results.totalTested}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* TABLE 2: SPACE COMPLEXITY REPORT */}
+              <div className="sklearn-table-box">
+                <div className="sklearn-table-title">
+                  <span>Space Complexity Matrix</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Support: {results.totalTested}</span>
+                </div>
+                <table className="sklearn-table">
+                  <thead>
+                    <tr>
+                      <th>Complexity Class</th>
+                      <th>Precision</th>
+                      <th>Recall</th>
+                      <th>F1-Score</th>
+                      <th>Support</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(results.spaceReport.perClass).map((cKey) => {
+                      const row = results.spaceReport.perClass[cKey];
+                      return (
+                        <tr key={`space_${cKey}`}>
+                          <td>{cKey}</td>
+                          <td>{row.precision}</td>
+                          <td>{row.recall}</td>
+                          <td>{renderF1Badge(row.f1Score)}</td>
+                          <td>{row.support}</td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Divider rows */}
+                    <tr className="tr-divider">
+                      <td>accuracy</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>{(results.spacePassed / results.totalTested).toFixed(2)}</td>
+                      <td>{results.totalTested}</td>
+                    </tr>
+                    <tr>
+                      <td>macro avg</td>
+                      <td>{results.spaceReport.macroAvg.precision}</td>
+                      <td>{results.spaceReport.macroAvg.recall}</td>
+                      <td>{results.spaceReport.macroAvg.f1Score}</td>
+                      <td>{results.totalTested}</td>
+                    </tr>
+                    <tr className="tr-weighted">
+                      <td>weighted avg</td>
+                      <td>{results.spaceReport.weightedAvg.precision}</td>
+                      <td>{results.spaceReport.weightedAvg.recall}</td>
+                      <td>{results.spaceReport.weightedAvg.f1Score}</td>
+                      <td>{results.totalTested}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
             </div>
           </div>
         )}

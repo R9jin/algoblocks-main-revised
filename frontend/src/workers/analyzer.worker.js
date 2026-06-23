@@ -6,14 +6,13 @@ let inputResolve = null;
 let isWaitingForInput = false;
 let executionTimeout = null;
 
-// Strict Asymptotic Tokenizer (Completely eliminates the .includes() Trojan Horse)
+// Strict Asymptotic Tokenizer (Eliminates fuzzy substring collisions)
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().replace(/\s+/g, "");
 
-  // Normalize exponents & brackets
   s = s.replace(/²/g, "^2").replace(/³/g, "^3").replace(/ⁿ/g, "^n");
-  s = s.replace(/^o\((.*)\)$/, "$1"); // strip outer O(...)
+  s = s.replace(/^o\((.*)\)$/, "$1");
 
   if (s === "1" || s === "constant") return "O(1)";
   if (s === "logn" || s === "log(n)" || s === "log") return "O(log n)";
@@ -23,16 +22,16 @@ function strictBigONormalizer(raw) {
   if (s === "n^3" || s === "cubic") return "O(n^3)";
   if (s.includes("2^n")) return "O(2^n)";
   if (s.includes("3^n")) return "O(3^n)";
-  if (s.includes("n!") || s.includes("n*n!")) return "O(n!)";
+  if (s.includes("n!") || s.includes("n*n!")) return "O(n * n!)";
   if (s.includes("v+e") || s.includes("e+v")) return "O(V + E)";
   if (s.includes("n*m") || s.includes("m*n")) return "O(n * m)";
   if (s.includes("logmin") || s.includes("gcd")) return "O(log min(a, b))";
   if (s.includes("sqrtn") || s.includes("√n")) return "O(sqrt n)";
 
-  return `O(${s})`; // Canonical re-wrap
+  return `O(${s})`;
 }
 
-// Dynamic Ground Truth Extractors
+// Failsafe Ground Truth Key Extractors
 function getGroundTruthTime(obj) {
   if (!obj) return "O(1)";
   if (obj.time_complexity) return obj.time_complexity;
@@ -70,6 +69,99 @@ function getGroundTruthSpace(obj) {
     }
   }
   return "O(1)";
+}
+
+// Asymptotic Rank Sorter for Scikit-Learn Matrix Presentation
+function sortBigOClasses(classes) {
+  const order = [
+    "O(1)",
+    "O(log min(a, b))",
+    "O(log n)",
+    "O(sqrt n)",
+    "O(n)",
+    "O(n log n)",
+    "O(V + E)",
+    "O(n * m)",
+    "O(n^2)",
+    "O(n^2 log n)",
+    "O(n^3)",
+    "O(2^n)",
+    "O(3^n)",
+    "O(n * n!)"
+  ];
+  return classes.sort((a, b) => {
+    const idxA = order.indexOf(a);
+    const idxB = order.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b);
+  });
+}
+
+// Scikit-Learn Authentic Classification Matrix Generator
+function generateClassificationReport(details, expKey, predKey, standardClasses) {
+  const classSet = new Set(standardClasses);
+  details.forEach(d => {
+    if (d[expKey] && d[expKey] !== "PARSE_FAIL") classSet.add(d[expKey]);
+  });
+
+  const sortedClasses = sortBigOClasses(Array.from(classSet));
+  const report = {};
+
+  let macroP = 0, macroR = 0, macroF1 = 0;
+  let weightedP = 0, weightedR = 0, weightedF1 = 0;
+  let totalSupport = 0;
+
+  sortedClasses.forEach(c => {
+    let tp = 0, fp = 0, fn = 0;
+    details.forEach(d => {
+      const isExp = (d[expKey] === c);
+      const isPred = (d[predKey] === c);
+
+      if (isExp && isPred) tp++;
+      else if (!isExp && isPred) fp++;
+      else if (isExp && !isPred) fn++;
+    });
+
+    const support = tp + fn;
+    const precision = (tp + fp) > 0 ? (tp / (tp + fp)) : 0;
+    const recall = support > 0 ? (tp / support) : 0;
+    const f1 = (precision + recall) > 0 ? (2 * precision * recall / (precision + recall)) : 0;
+
+    report[c] = {
+      precision: precision.toFixed(2),
+      recall: recall.toFixed(2),
+      f1Score: f1.toFixed(2),
+      support: support
+    };
+
+    macroP += precision;
+    macroR += recall;
+    macroF1 += f1;
+
+    weightedP += precision * support;
+    weightedR += recall * support;
+    weightedF1 += f1 * support;
+    totalSupport += support;
+  });
+
+  const numClasses = sortedClasses.length > 0 ? sortedClasses.length : 1;
+  const macroAvg = {
+    precision: (macroP / numClasses).toFixed(2),
+    recall: (macroR / numClasses).toFixed(2),
+    f1Score: (macroF1 / numClasses).toFixed(2),
+    support: totalSupport
+  };
+
+  const weightedAvg = {
+    precision: totalSupport > 0 ? (weightedP / totalSupport).toFixed(2) : "0.00",
+    recall: totalSupport > 0 ? (weightedR / totalSupport).toFixed(2) : "0.00",
+    f1Score: totalSupport > 0 ? (weightedF1 / totalSupport).toFixed(2) : "0.00",
+    support: totalSupport
+  };
+
+  return { perClass: report, macroAvg, weightedAvg, totalSupport };
 }
 
 async function initPyodide() {
@@ -308,7 +400,7 @@ except Exception:
     }
 
     // ======================
-    // 4. BENCHMARK SUITE MODE (STRICT TOKEN COMPARATOR ALIGNED)
+    // 4. BENCHMARK SUITE MODE (SCIKIT-LEARN CLASSIFICATION REPORT ALIGNED)
     // ======================
     else if (type === 'RUN_BENCHMARK_SUITE') {
       try {
@@ -322,7 +414,7 @@ except Exception:
 
         for (let i = 0; i < dataset.length; i++) {
           const item = dataset[i];
-          const testName = item.name || item.title || item.algorithm || item.id || `Codeforces Case #${i + 1}`;
+          const testName = item.name || item.title || item.algorithm || item.id || `Gauntlet Case #${i + 1}`;
           
           self.postMessage({ 
             type: 'BENCHMARK_PROGRESS', 
@@ -349,13 +441,11 @@ json.dumps(res)
           const predictedTime = resultJs.total || "PARSE_FAIL";
           const predictedSpace = resultJs.space_total || resultJs.space || "O(1)";
 
-          // Strict Asymptotic Tokenization
           const normExpTime = strictBigONormalizer(rawExpectedTime);
           const normPredTime = strictBigONormalizer(predictedTime);
           const normExpSpace = strictBigONormalizer(rawExpectedSpace);
           const normPredSpace = strictBigONormalizer(predictedSpace);
 
-          // EXACT token equality check. Substring shortcuts strictly banned.
           const isTimeCorrect = (normPredTime.toLowerCase() === normExpTime.toLowerCase());
           const isSpaceCorrect = (normPredSpace.toLowerCase() === normExpSpace.toLowerCase());
 
@@ -366,12 +456,12 @@ json.dumps(res)
           detailedResults.push({
             id: item.id || `case_${i + 1}`,
             name: testName,
-            category: item.category || item.algorithm_type || "Competitive Programming AST Test",
+            category: item.category || item.algorithm_type || "AST Token Verification",
             codeSnippet: item.code || "# No code snippet yielded",
-            expectedTime: strictBigONormalizer(rawExpectedTime),
+            expectedTime: normExpTime,
             predictedTime: normPredTime,
             isTimeCorrect: isTimeCorrect,
-            expectedSpace: strictBigONormalizer(rawExpectedSpace),
+            expectedSpace: normExpSpace,
             predictedSpace: normPredSpace,
             isSpaceCorrect: isSpaceCorrect,
             isCompletelyCorrect: (isTimeCorrect && isSpaceCorrect),
@@ -383,6 +473,13 @@ json.dumps(res)
         const timeAcc = (timePassedCount / totalCases) * 100;
         const spaceAcc = (spacePassedCount / totalCases) * 100;
         const perfectAcc = (bothPassedCount / totalCases) * 100;
+
+        // Base canonical classes matching your Python script output
+        const timeBaseClasses = ["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(V + E)", "O(n * n!)"];
+        const spaceBaseClasses = ["O(1)", "O(log n)", "O(n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(V + E)"];
+
+        const timeReportData = generateClassificationReport(detailedResults, "expectedTime", "predictedTime", timeBaseClasses);
+        const spaceReportData = generateClassificationReport(detailedResults, "expectedSpace", "predictedSpace", spaceBaseClasses);
 
         self.postMessage({
           type: 'BENCHMARK_COMPLETE',
@@ -396,6 +493,8 @@ json.dumps(res)
             spaceAccuracyRate: parseFloat(spaceAcc.toFixed(2)),
             perfectPassed: bothPassedCount,
             perfectAccuracyRate: parseFloat(perfectAcc.toFixed(2)),
+            timeReport: timeReportData,
+            spaceReport: spaceReportData,
             details: detailedResults
           }
         });

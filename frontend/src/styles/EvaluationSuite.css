@@ -261,6 +261,143 @@
 .val-standard{ color: #0F172A; }
 .val-muted   { color: #94A3B8; }
 
+/* --- SCIKIT-LEARN AUTHENTIC CLASSIFICATION MATRIX CARD --- */
+.eval-sklearn-container {
+  background-color: #FFFFFF;
+  border-radius: 14px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.eval-sklearn-header {
+  border-bottom: 1px solid #E2E8F0;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.eval-sklearn-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0F172A;
+  display: block;
+}
+
+.eval-sklearn-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin-top: 4px;
+  display: block;
+}
+
+.eval-sklearn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.sklearn-table-box {
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.sklearn-table-title {
+  background-color: #F1F5F9;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0F172A;
+  border-bottom: 1px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sklearn-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+  font-size: 13px;
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.sklearn-table th {
+  background-color: #F8FAFC;
+  color: #64748B;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-bottom: 1px solid #E2E8F0;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.sklearn-table th:first-child,
+.sklearn-table td:first-child {
+  text-align: left;
+  padding-left: 18px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.sklearn-table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid #E2E8F0;
+  color: #334155;
+}
+
+.sklearn-table tr:hover td {
+  background-color: #F8FAFC;
+}
+
+/* Scikit-learn divider rows */
+.tr-divider td {
+  border-top: 2px solid #CBD5E1;
+  font-weight: 700;
+  background-color: #F8FAFC;
+}
+
+.tr-weighted td {
+  font-weight: 700;
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+/* Quality feedback tints on F1 score cell */
+.f1-excellent {
+  background-color: #ECFDF5;
+  color: #065F46;
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.f1-good {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.f1-warning {
+  background-color: #FEF3C7;
+  color: #B45309;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.f1-poor {
+  background-color: #FEF2F2;
+  color: #991B1B;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
 /* --- TABLE CONTAINER & NAVBAR --- */
 .eval-table-container {
   background-color: #FFFFFF;
