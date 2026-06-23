@@ -1,12 +1,12 @@
 // frontend/src/pages/EvaluationSuite.jsx
 import { useEffect, useState } from "react";
 import {
-    FiArrowLeft,
-    FiCheckCircle,
-    FiCode,
-    FiPlay,
-    FiRefreshCw,
-    FiXCircle
+  FiArrowLeft,
+  FiCheckCircle,
+  FiCode,
+  FiPlay,
+  FiRefreshCw,
+  FiXCircle
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { usePyodide } from "../context/PyodideContext";
