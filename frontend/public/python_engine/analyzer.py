@@ -114,6 +114,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'extend': {'time': 'O(n)', 'space': 'O(n)'},
             'upper': {'time': 'O(n)', 'space': 'O(n)'},
             'lower': {'time': 'O(n)', 'space': 'O(n)'},
+            'strip': {'time': 'O(n)', 'space': 'O(n)'},
+            'lstrip': {'time': 'O(n)', 'space': 'O(n)'},
+            'rstrip': {'time': 'O(n)', 'space': 'O(n)'},
             'keys': {'time': 'O(1)', 'space': 'O(1)'},
             'values': {'time': 'O(1)', 'space': 'O(1)'},
             'items': {'time': 'O(1)', 'space': 'O(1)'},
@@ -124,8 +127,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'union': {'time': 'O(n + m)', 'space': 'O(n + m)'},
             'intersection': {'time': 'O(min(n, m))', 'space': 'O(min(n, m))'},
             'difference': {'time': 'O(n)', 'space': 'O(n)'},
+            'symmetric_difference': {'time': 'O(n)', 'space': 'O(n)'},
             'update': {'time': 'O(m)', 'space': 'O(m)'},
             'add': {'time': 'O(1)', 'space': 'O(1)'},
+            'ord': {'time': 'O(1)', 'space': 'O(1)'},
+            'chr': {'time': 'O(1)', 'space': 'O(1)'},
         }
         self.aliases = {}
         self.nlg_engine = SemanticNLGEngine(self)
@@ -304,7 +310,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         from collections import deque
         queue = deque([(tree, None)])
         
-        # UPGRADE: Call graph now stores complex edge metadata objects
         self.call_graph = {'__main__': []}
         self.reachable_funcs = set()
         
@@ -331,10 +336,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     caller = current_func if current_func else '__main__'
                     line_num = getattr(current_node, 'lineno', -1)
                     
-                    # Cross-reference with the dynamic profiler to get execution count
                     hits = self.trace_data.get("line_hits", {}).get(line_num, 0)
-                    
-                    # Check for exact duplicate edges from the same line
                     if not any(e['target'] == called_func and e['line'] == line_num for e in self.call_graph[caller]):
                         self.call_graph[caller].append({'target': called_func, 'line': line_num, 'hits': hits})
             
@@ -453,7 +455,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for child in safe_walk(node.test):
             if isinstance(child, ast.Name): cond_vars.add(child.id)
                 
-        # UPGRADE: Euclidean Algorithm (a, b = b, a % b)
         for child in node.body:
             for sub in safe_walk(child):
                 if isinstance(sub, ast.Assign) and getattr(sub, 'targets', []):
@@ -462,7 +463,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             if isinstance(elt, ast.BinOp) and isinstance(elt.op, ast.Mod):
                                 return True, None
 
-        # UPGRADE: Binary Search Pattern (mid = (l + r) // 2)
         mid_vars = set()
         for child in node.body:
             for sub in safe_walk(child):
@@ -1083,7 +1083,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
                 self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
-        # Apply global time resolutions to internal calls, but NOT to the def line itself
+        # CORRECTED: Only apply global recurrence resolutions to internal lines that are heavy or structural
         if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect:
             resolved_rel = relation
             for k, v in lookup.items():
@@ -1091,18 +1091,29 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     resolved_rel = v
                     break
             
+            heavy_ops = {"Loop", "Array Slicing", "List Comprehension", "Set Comprehension", "Dict Comprehension", "Generator Expression", "Sort", "Sorted", "Deep Copy Allocation", "Row Allocation", "2D Array Allocation", "List Repetition", "Set Operation", "Slice Assignment"}
+            
             for i in range(start_idx + 1, len(self._details)):
                 loc_t = str(self._details[i]["local_time"])
                 op = self._details[i]["operation"]
                 
                 if op == "Dead Code":
                     self._details[i]["global_time"] = "O(1)"
+                    self._details[i]["weight"] = self._get_weight("O(1)")
                     continue
                     
-                if loc_t.startswith("T(") or loc_t == "T(placeholder)":
+                is_rec_call = loc_t.startswith("T(") or loc_t == "T(placeholder)" or "Recursive Call" in op
+                is_heavy_op = op in heavy_ops or (loc_t not in ["O(1)", "Definition", "Dead Code"])
+                
+                if is_rec_call or is_heavy_op:
                     self._details[i]["global_time"] = resolved_rel
-                else:
-                    self._details[i]["global_time"] = resolved_rel
+                    self._details[i]["weight"] = self._get_weight(resolved_rel, False)
+                elif not getattr(self, 'in_graph_context', False):
+                    # Scale O(1) primitive lines appropriately without triggering artificial Bottleneck flags
+                    if self._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
+                        if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.recursive_calls_count >= 2:
+                            self._details[i]["global_time"] = "O(n)"
+                            self._details[i]["weight"] = self._get_weight("O(n)")
 
         # Force the actual `def` statement to strictly be O(1)
         self._details[start_idx]["local_time"] = "O(1)"
@@ -1311,7 +1322,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_accumulation_context = prev_acc or is_accumulating
         
         if is_accumulating and len(self.loop_stack) > 0:
-            self.max_space_weight = max(self.max_space_weight, 1)
+            if len(self.loop_stack) > 1:
+                self.max_space_weight = max(self.max_space_weight, 2)
+            else:
+                self.max_space_weight = max(self.max_space_weight, 1)
 
         if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(node.func, 'id', '') == 'append':
             self.add_logic_hint(node, "Logic Hint (Amortized Analysis): The `.append()` operation is generally O(1) constant time, but occasionally triggers an O(n) background array resize sequence when memory capacity is breached.")
@@ -1331,10 +1345,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if len(self.active_poly_dims) > 0 or self.log_loop_depth > 0: 
                     self.has_recursion_in_loop = True  
 
-                if getattr(self, 'in_graph_context', False): 
-                    self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
-                else: 
-                    self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
+                self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
             elif f_id in self.builtin_complexities:
                 if f_id in ['set', 'list', 'dict', 'deque', 'tuple']:
                     has_args = bool(getattr(node, 'args', []))
@@ -1343,7 +1354,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         is_single_arg = True
                     
                     t_ov = "O(1)" if (not has_args or is_single_arg) else "O(n)"
-                    s_ov = "O(V)" if getattr(self, 'in_graph_context', False) else "O(n)"
+                    s_ov = "O(V)" if getattr(self, 'in_graph_context', False) else ("O(1)" if (not has_args or is_single_arg) else "O(n)")
                     self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f"{f_id.capitalize()} Init")
                 elif f_id in ['min', 'max'] and len(getattr(node, 'args', [])) > 1:
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=f"{f_id.capitalize()} (Scalar Comparison)")
@@ -1436,7 +1447,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         custom_op = None
         
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Subscript):
-            custom_op = "Update"
+            if isinstance(getattr(node.targets[0], 'slice', None), ast.Slice):
+                custom_op = "Slice Assignment"
+                t_ov = "O(n)"
+                s_ov = "O(n)"
+            else:
+                custom_op = "Update"
+                t_ov = "O(1)"
+                s_ov = "O(1)"
 
         if getattr(self, 'in_graph_context', False):
             if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): 
@@ -1488,7 +1506,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     s_ov = "O(n)"
                 else:
                     custom_op = "List Init"
-                    if len(node.value.elts) == 0: s_ov = "O(n)" 
+                    t_ov = "O(1)" if len(node.value.elts) <= 10 else "O(n)"
+                    s_ov = "O(1)" if len(node.value.elts) <= 10 else "O(n)"
             elif isinstance(node.value, ast.Set):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
                     custom_op = "Set Init (Unpacking)"
@@ -1496,7 +1515,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     s_ov = "O(n)"
                 else:
                     custom_op = "Set Init"
-                    if len(node.value.elts) == 0: s_ov = "O(n)" 
+                    t_ov = "O(1)" if len(node.value.elts) <= 10 else "O(n)"
+                    s_ov = "O(1)" if len(node.value.elts) <= 10 else "O(n)"
             elif isinstance(node.value, ast.Dict):
                 if any(k is None for k in node.value.keys):
                     custom_op = "Dict Init (Unpacking)"
@@ -1504,7 +1524,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     s_ov = "O(n)"
                 else:
                     custom_op = "Dict Init"
-                    if len(node.value.keys) == 0: s_ov = "O(n)" 
+                    t_ov = "O(1)" if len(node.value.keys) <= 10 else "O(n)"
+                    s_ov = "O(1)" if len(node.value.keys) <= 10 else "O(n)"
             elif isinstance(node.value, ast.Tuple):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
                     custom_op = "Tuple Init (Unpacking)"
@@ -1531,7 +1552,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 custom_op = "List Repetition"
                 t_ov = f"O({dim_var})"
                 s_ov = f"O({dim_var})"
-            elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): 
+            elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice): 
                 custom_op = "Array Slicing"
                 t_ov = "O(n)"
                 s_ov = "O(n)"
@@ -1610,7 +1631,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             slice_str = ast.dump(node.slice).lower()
             if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
                 self.has_partitioning = True
-            self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Array Slicing")
+            # CORRECTED: Slicing allocates a shallow copy list in memory
+            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Array Slicing")
         self.generic_visit(node)  
 
     def visit_BinOp(self, node):
