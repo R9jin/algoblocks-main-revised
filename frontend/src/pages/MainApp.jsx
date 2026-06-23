@@ -19,6 +19,7 @@ import { formatComplexity } from "../utils/formatters";
 
 import Editor from "@monaco-editor/react";
 import { FiActivity, FiAlertCircle, FiBookOpen, FiChevronDown, FiChevronRight, FiEdit2, FiFolder, FiGrid, FiInfo, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
+import CallGraphVisualizer from "../components/CallGraphVisualizer.jsx";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
 
@@ -61,13 +62,13 @@ const SIDEBAR_TEMPLATES = [
 
 const getComplexityColor = (complexity) => {
   const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#10B981"; 
-  if (comp.includes("log n") && !comp.includes("n log")) return "#0EA5E9"; 
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B"; 
-  if (comp.includes("n log n")) return "#F97316"; 
-  if (comp.includes("n^2") || comp.includes("n²")) return "#EF4444"; 
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA"; 
-  return "#64748B"; 
+  if (comp.includes("o(1)")) return "#10B981";
+  if (comp.includes("log n") && !comp.includes("n log")) return "#0EA5E9";
+  if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B";
+  if (comp.includes("n log n")) return "#F97316";
+  if (comp.includes("n^2") || comp.includes("n²")) return "#EF4444";
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA";
+  return "#64748B";
 };
 
 const getComplexityWeight = (complexity) => {
@@ -120,20 +121,20 @@ const parseMarkdown = (str) => {
   let parsedBlocks = blocks.map(block => {
     // Prevent double wrapping already-formatted structures
     if (block.includes('<h3') || block.includes('<h4') || block.includes('<h5') || block.includes('<div class="math-block"')) {
-       return block.replace(/\n/g, '<br/>'); 
+      return block.replace(/\n/g, '<br/>');
     }
-    
+
     // Detect and construct unordered lists
     if (/^[-*]\s+/m.test(block)) {
       let listItems = block.split('\n').reduce((acc, line) => {
-         let trimmed = line.trim();
-         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { 
-             acc.push(`<li>${trimmed.substring(2).trim()}</li>`); 
-         } else if (trimmed !== '') { 
-             if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); 
-             else acc.push(`<li>${trimmed}</li>`); 
-         }
-         return acc;
+        let trimmed = line.trim();
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+          acc.push(`<li>${trimmed.substring(2).trim()}</li>`);
+        } else if (trimmed !== '') {
+          if (acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
+          else acc.push(`<li>${trimmed}</li>`);
+        }
+        return acc;
       }, []).join('');
       return `<ul class="nlg-list">${listItems}</ul>`;
     }
@@ -150,35 +151,35 @@ const formatExplanation = (text, isBottleneck, isLocalTab) => {
 
   const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
   const sections = text.split(headerRegex);
-  
+
   return sections.map((sec, idx) => {
-      let trimmedSec = sec.trim();
-      if (!trimmedSec) return null;
+    let trimmedSec = sec.trim();
+    if (!trimmedSec) return null;
 
-      const renderBlock = (content, title, variantClass) => {
-        const parsedContent = parseMarkdown(content);
-        return (
-          <div key={idx} className={`nlg-block ${variantClass}`}>
-            <strong className="nlg-block-title">{title}</strong>
-            <div className="nlg-block-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedContent) }} />
-          </div>
-        );
-      };
+    const renderBlock = (content, title, variantClass) => {
+      const parsedContent = parseMarkdown(content);
+      return (
+        <div key={idx} className={`nlg-block ${variantClass}`}>
+          <strong className="nlg-block-title">{title}</strong>
+          <div className="nlg-block-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedContent) }} />
+        </div>
+      );
+    };
 
-      if (trimmedSec.startsWith("**Local & Global Analysis:**")) return renderBlock(trimmedSec.replace("**Local & Global Analysis:**", "").trim(), "Dead Code Analysis", "nlg-deadcode");
-      if (trimmedSec.startsWith("**Local Analysis:**")) return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "nlg-local");
-      if (trimmedSec.startsWith("**Global Impact:**")) return renderBlock(trimmedSec.replace("**Global Impact:**", "").trim(), "Global Impact", "nlg-global");
-      if (trimmedSec.startsWith("**Educational Insight:**")) return renderBlock(trimmedSec.replace("**Educational Insight:**", "").trim(), "Educational Insight", "nlg-educational");
-      if (trimmedSec.startsWith("**Bottleneck Warning:**") || trimmedSec.startsWith("**Space Bottleneck:**")) {
-        const cleanText = trimmedSec.replace(/\*\*(Bottleneck Warning:|Space Bottleneck:|Space Bottleneck)\*\*/g, "").trim();
-        return renderBlock(cleanText, "Performance Bottleneck", "nlg-bottleneck");
-      }
-      if (trimmedSec.startsWith("**Algorithmic Mastery:**")) return renderBlock(trimmedSec.replace("**Algorithmic Mastery:**", "").trim(), "Algorithmic Mastery", "nlg-mastery");
-      if (trimmedSec.startsWith("*Profiler verified")) return renderBlock(trimmedSec.replace(/\*Profiler verified\*/g, "").replace(/\*Profiler verified/g, "").trim(), "Runtime Diagnostic", "nlg-profiler");
+    if (trimmedSec.startsWith("**Local & Global Analysis:**")) return renderBlock(trimmedSec.replace("**Local & Global Analysis:**", "").trim(), "Dead Code Analysis", "nlg-deadcode");
+    if (trimmedSec.startsWith("**Local Analysis:**")) return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "nlg-local");
+    if (trimmedSec.startsWith("**Global Impact:**")) return renderBlock(trimmedSec.replace("**Global Impact:**", "").trim(), "Global Impact", "nlg-global");
+    if (trimmedSec.startsWith("**Educational Insight:**")) return renderBlock(trimmedSec.replace("**Educational Insight:**", "").trim(), "Educational Insight", "nlg-educational");
+    if (trimmedSec.startsWith("**Bottleneck Warning:**") || trimmedSec.startsWith("**Space Bottleneck:**")) {
+      const cleanText = trimmedSec.replace(/\*\*(Bottleneck Warning:|Space Bottleneck:|Space Bottleneck)\*\*/g, "").trim();
+      return renderBlock(cleanText, "Performance Bottleneck", "nlg-bottleneck");
+    }
+    if (trimmedSec.startsWith("**Algorithmic Mastery:**")) return renderBlock(trimmedSec.replace("**Algorithmic Mastery:**", "").trim(), "Algorithmic Mastery", "nlg-mastery");
+    if (trimmedSec.startsWith("*Profiler verified")) return renderBlock(trimmedSec.replace(/\*Profiler verified\*/g, "").replace(/\*Profiler verified/g, "").trim(), "Runtime Diagnostic", "nlg-profiler");
 
-      let parsedSec = parseMarkdown(trimmedSec);
-      return <div key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></div>;
-    }).filter(Boolean);
+    let parsedSec = parseMarkdown(trimmedSec);
+    return <div key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></div>;
+  }).filter(Boolean);
 };
 
 const sanitizePythonCode = (code) => {
@@ -194,7 +195,8 @@ const createInitialTab = (locState = null) => {
   const base = {
     id: `tab-${Date.now()}`, title: "Untitled Project", viewMode: "workspace", blocklyJson: null,
     pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
-    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false },
+    // FIX: Include call_graph here
+    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project",
   };
 
@@ -267,6 +269,10 @@ export default function MainApp() {
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
   const updateTab = (id, updates) => setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
+  // Determine if the current user has admin privileges to enable import/export
+  const currentUser = getUser();
+  const isAdmin = !!currentUser?.isAdmin;
+
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
@@ -301,7 +307,7 @@ export default function MainApp() {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDragging.current) return;
-      const newHeight = window.innerHeight - e.clientY - 48; 
+      const newHeight = window.innerHeight - e.clientY - 48;
       if (newHeight >= 150 && newHeight <= window.innerHeight - 150) setPanelHeight(newHeight);
     };
     const handleMouseUp = () => {
@@ -387,12 +393,14 @@ export default function MainApp() {
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           updateTab(targetId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
-            analysisResult: { 
-              total: data.total, 
-              space_total: data.space_total || "O(1)", 
+            analysisResult: {
+              total: data.total,
+              space_total: data.space_total || "O(1)",
               overall_explanation: data.overall_explanation || "",
-              lines: data.lines || [], 
-              is_recursive: data.is_recursive || false 
+              lines: data.lines || [],
+              // FIX: Include call_graph here
+              call_graph: data.call_graph || {},
+              is_recursive: data.is_recursive || false
             },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }),
             syntaxErrors: [],
@@ -542,7 +550,9 @@ export default function MainApp() {
       if (isClean) {
         updateTab(targetId, {
           title: item.title, blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
-          isEditingCode: false, syntaxErrors: [], analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false },
+          isEditingCode: false, syntaxErrors: [], 
+          // FIX: Include call_graph here
+          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
           lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
         });
         if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json);
@@ -550,7 +560,8 @@ export default function MainApp() {
         const newTabState = {
           id: targetId, title: item.title, viewMode: "workspace", blocklyJson: json,
           pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
-          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false },
+          // FIX: Include call_graph here
+          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
           lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
         };
         setTabs((prev) => [...prev, newTabState]);
@@ -581,12 +592,14 @@ export default function MainApp() {
           (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
           updateTab(tabId, {
             analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
-            analysisResult: { 
-              total: data.total, 
-              space_total: data.space_total || "O(1)", 
+            analysisResult: {
+              total: data.total,
+              space_total: data.space_total || "O(1)",
               overall_explanation: data.overall_explanation || "",
-              lines: data.lines || [], 
-              is_recursive: data.is_recursive || false 
+              lines: data.lines || [],
+              // FIX: Include call_graph here
+              call_graph: data.call_graph || {},
+              is_recursive: data.is_recursive || false
             },
             lineExecutions: (prev) => ({ ...prev, ...initialCounts }), syntaxErrors: [],
           });
@@ -643,7 +656,8 @@ export default function MainApp() {
           workspaceRefs.current[activeTabId].clear();
           updateTab(activeTabId, {
             pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
-            analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false },
+            // FIX: Include call_graph here
+            analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
             analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project",
           });
@@ -862,7 +876,7 @@ export default function MainApp() {
   let maxWeight = 0; let bottleneckIndices = [];
   lines.forEach((line, index) => {
     const weight = getComplexityWeight(activeComplexityTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)");
-    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; } 
+    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
     else if (weight === maxWeight && weight > 0) { bottleneckIndices.push(index); }
   });
 
@@ -876,10 +890,10 @@ export default function MainApp() {
       <div className={activeTab.viewMode === "workspace" ? "workspace-view d-flex" : "workspace-view d-none"}>
         {tabs.map((tab) => (
           <div key={tab.id} className={activeTabId === tab.id ? "d-block" : "d-none"} style={{ width: "100%", height: "100%" }}>
-            <BlocklyWorkspace 
+            <BlocklyWorkspace
               initialJson={tab.blocklyJson}
-              ref={(el) => (workspaceRefs.current[tab.id] = el)} 
-              onChange={(json, py) => handleBlocklyChange(tab.id, json, py)} 
+              ref={(el) => (workspaceRefs.current[tab.id] = el)}
+              onChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
             />
           </div>
         ))}
@@ -913,8 +927,8 @@ export default function MainApp() {
           {hasSyntaxErrors && (
             <div className="floating-error-container">
               {isErrorDropdownOpen && (
-                <div 
-                  className="error-dropdown-menu" 
+                <div
+                  className="error-dropdown-menu"
                   style={{ width: `${errorPanelSize.width}px`, height: `${errorPanelSize.height}px` }}
                 >
                   <div className="error-resizer-top" onMouseDown={(e) => handleErrorResizeStart(e, 'n')} />
@@ -922,7 +936,7 @@ export default function MainApp() {
                   <div className="error-resizer-nw" onMouseDown={(e) => handleErrorResizeStart(e, 'nw')}>
                     <FiAlertCircle color="rgba(239, 68, 68, 0.4)" />
                   </div>
-                  
+
                   <div className="error-dropdown-header">
                     <strong>Detected Issues ({activeTab.syntaxErrors.length})</strong>
                   </div>
@@ -953,7 +967,7 @@ export default function MainApp() {
     <>
       <div className="panel-header">
         <span className="panel-title">{bottomPanel === "console" ? "Console Panel" : "Complexity Analysis"}</span>
-        <button onClick={() => setBottomPanel(null)} className="panel-close-btn"><FiX size={18}/></button>
+        <button onClick={() => setBottomPanel(null)} className="panel-close-btn"><FiX size={18} /></button>
       </div>
       <div className="panel-body">
         {bottomPanel === "console" ? (
@@ -1027,6 +1041,7 @@ export default function MainApp() {
                 <button onClick={() => { setActiveComplexityTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "local" ? "active" : ""}`}>Local</button>
                 <button onClick={() => { setActiveComplexityTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
                 <button onClick={() => { setActiveComplexityTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
+                <button onClick={() => { setActiveComplexityTab("callgraph"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "callgraph" ? "active" : ""}`}>Call Graph</button>
               </div>
               <div className="total-badge-group">
                 <span className="total-badge total-time-badge">
@@ -1040,7 +1055,7 @@ export default function MainApp() {
                 </span>
               </div>
             </div>
-            
+
             {activeComplexityTab === "overall" ? (
               <div className="overall-complexity-wrapper">
                 {activeTab.analysisResult.overall_explanation ? (
@@ -1054,6 +1069,10 @@ export default function MainApp() {
             ) : activeComplexityTab === "memory" ? (
               <div className="memory-wrapper">
                 <MemoryVisualizer analysisData={activeTab.analysisResult.lines} currentStep={activeTab.analysisResult.lines.length > 0 ? activeTab.analysisResult.lines.length - 1 : 0} />
+              </div>
+            ) : activeComplexityTab === "callgraph" ? (
+              <div className="callgraph-wrapper" style={{ height: '100%', overflow: 'hidden' }}>
+                <CallGraphVisualizer analysisData={activeTab.analysisResult} />
               </div>
             ) : (
               <div className="complexity-table-wrapper">
@@ -1072,7 +1091,7 @@ export default function MainApp() {
                       const spaceComplexity = activeComplexityTab === "local" ? line.local_space || "O(1)" : line.global_space || "O(1)";
                       let timeExp = line.time_explanation ?? line.local_explanation ?? "Not available.";
                       let spaceExp = line.space_explanation ?? line.global_explanation ?? "Not available.";
-                      
+
                       const isBottleneck = actualBottleneckIndices.includes(i);
                       const timeColor = getComplexityColor(timeComplexity);
                       const spaceColor = getComplexityColor(spaceComplexity);
@@ -1101,30 +1120,30 @@ export default function MainApp() {
                             <tr className="explanation-row">
                               <td colSpan="4">
                                 <div className="explanation-grid" style={{ borderLeftColor: timeColor }}>
-                                  
+
                                   <div className="explanation-section">
-                                    <div className="explanation-icon-wrapper" style={{color: timeColor}}><FiInfo size={20} /></div>
+                                    <div className="explanation-icon-wrapper" style={{ color: timeColor }}><FiInfo size={20} /></div>
                                     <div className="explanation-text-content">
                                       <strong className="explanation-header" style={{ color: timeColor }}>Time Complexity</strong>
                                       <div className="explanation-body">{formatExplanation(timeExp, isBottleneck, activeComplexityTab === "local")}</div>
                                     </div>
                                   </div>
-                                  
+
                                   <div className="explanation-section space-section">
-                                    <div className="explanation-icon-wrapper" style={{color: spaceColor}}><FiInfo size={20} /></div>
+                                    <div className="explanation-icon-wrapper" style={{ color: spaceColor }}><FiInfo size={20} /></div>
                                     <div className="explanation-text-content">
                                       <strong className="explanation-header" style={{ color: spaceColor }}>Space Complexity</strong>
                                       <div className="explanation-body">{formatExplanation(spaceExp, isBottleneck, activeComplexityTab === "local")}</div>
                                     </div>
                                   </div>
-                                  
+
                                   <div className="explanation-graph-wrapper">
                                     <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
                                   </div>
                                   <div className="explanation-graph-wrapper space-graph-wrapper">
                                     <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
                                   </div>
-                                  
+
                                 </div>
                               </td>
                             </tr>
@@ -1185,7 +1204,19 @@ export default function MainApp() {
         </div>
       )}
 
-      <WorkspaceHeader viewMode={activeTab.viewMode} setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })} runCode={handleRunCode} handleExport={handleExportJson} handleImport={handleImportJson} handleSaveToDB={openSaveModal} currentProjectId={activeTab.currentLoadedId} currentProjectTitle={activeTab.title} handleUpdateDB={openSaveModal} isEvaluating={isEvaluating} />
+      <WorkspaceHeader 
+        viewMode={activeTab.viewMode} 
+        setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })} 
+        runCode={handleRunCode} 
+        handleExport={handleExportJson} 
+        handleImport={handleImportJson} 
+        handleSaveToDB={openSaveModal} 
+        currentProjectId={activeTab.currentLoadedId} 
+        currentProjectTitle={activeTab.title} 
+        handleUpdateDB={openSaveModal} 
+        isEvaluating={isEvaluating} 
+        isAdmin={isAdmin}
+      />
 
       <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[250, 400]} gutterSize={8}>
         <aside className="templates-sidebar">
@@ -1243,7 +1274,7 @@ export default function MainApp() {
 
           <div className="editor-split-vertical">
             <div className="editor-container">{renderEditorArea()}</div>
-            
+
             {bottomPanel && (
               <div className="bottom-docked-panel" style={{ height: `${panelHeight}px` }}>
                 <div className="panel-resizer" onMouseDown={handleDragStart}>

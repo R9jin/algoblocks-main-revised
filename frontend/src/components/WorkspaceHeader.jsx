@@ -11,7 +11,8 @@ export default function WorkspaceHeader({
   handleImport,
   handleSaveToDB,
   currentProjectTitle,
-  isEvaluating
+  isEvaluating,
+  isAdmin
 }) {
   return (
     <header className="workspace-header-purple">
@@ -44,20 +45,22 @@ export default function WorkspaceHeader({
       </div>
 
       <div className="wh-right">
-        <div className="wh-file-actions">
-          <button className="wh-action-icon" onClick={handleExport} title="Export JSON">
-            <FiDownload size={18} />
-          </button>
-          <label className="wh-action-icon" title="Import JSON">
-            <FiUpload size={18} />
-            <input 
-              type="file" 
-              accept=".json" 
-              style={{ display: "none" }} 
-              onChange={handleImport} 
-            />
-          </label>
-        </div>
+        {isAdmin && (
+          <div className="wh-file-actions">
+            <button className="wh-action-icon" onClick={handleExport} title="Export JSON">
+              <FiDownload size={18} />
+            </button>
+            <label className="wh-action-icon" title="Import JSON">
+              <FiUpload size={18} />
+              <input 
+                type="file" 
+                accept=".json" 
+                style={{ display: "none" }} 
+                onChange={handleImport} 
+              />
+            </label>
+          </div>
+        )}
 
         <button className="wh-btn-save" onClick={handleSaveToDB}>
           <FiSave size={16} /> Save

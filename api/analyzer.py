@@ -9,6 +9,12 @@ try:
 except ImportError:
     AlgoBlocksTracer = None
 
+def safe_walk(node):
+    """Safely yields nodes to prevent '_fields' crashes on raw strings/primitives."""
+    if isinstance(node, ast.AST):
+        for child in ast.walk(node):
+            yield child
+
 class ComplexityAnalyzer(ast.NodeVisitor):
     def __init__(self, source_code, trace_data=None):
         self.source_lines = source_code.splitlines()
@@ -65,6 +71,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.builtin_complexities = {
             'sort': {'time': 'O(n log n)', 'space': 'O(1)'},
             'sorted': {'time': 'O(n log n)', 'space': 'O(n)'},
+            'bisect': {'time': 'O(log n)', 'space': 'O(1)'},
+            'bisect_left': {'time': 'O(log n)', 'space': 'O(1)'},
+            'bisect_right': {'time': 'O(log n)', 'space': 'O(1)'},
+            'heappush': {'time': 'O(log n)', 'space': 'O(1)'},
+            'heappop': {'time': 'O(log n)', 'space': 'O(1)'},
+            'heapify': {'time': 'O(n)', 'space': 'O(1)'},
+            'insort': {'time': 'O(n)', 'space': 'O(1)'},
+            'insort_left': {'time': 'O(n)', 'space': 'O(1)'},
+            'insort_right': {'time': 'O(n)', 'space': 'O(1)'},
+            'gcd': {'time': 'O(log n)', 'space': 'O(1)'},
             'join': {'time': 'O(n)', 'space': 'O(n)'},
             'split': {'time': 'O(n)', 'space': 'O(n)'},
             'list': {'time': 'O(n)', 'space': 'O(n)'},
@@ -231,6 +247,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not var_name: return 'n'
         if isinstance(var_name, str):
             lower_name = var_name.lower()
+            if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
             if lower_name in ['m', 'amount', 'capacity', 'cols', 'width', 'target', 'arr2', 'list2', 'arrb', 'b', 'val']: return 'm'
             return 'n'
         return 'n'
@@ -238,7 +255,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def _get_while_limit_vars(self, node):
         updated_vars = set()
         for child in node.body:
-            for sub in ast.walk(child):
+            for sub in safe_walk(child):
                 if isinstance(sub, ast.Assign):
                     for target in sub.targets:
                         if isinstance(target, ast.Name): updated_vars.add(target.id)
@@ -248,7 +265,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         limit_vars = []
         ignore_set = {'len', 'range', 'min', 'max', 'True', 'False', 'None'}
         scalar_hints = ['val', 'key', 'num', 'idx', 'pivot', 'temp', 'curr', 'node', 'element', 'target']
-        for child in ast.walk(node.test):
+        for child in safe_walk(node.test):
             if isinstance(child, ast.Name) and child.id not in updated_vars and child.id not in ignore_set:
                 if any(kw in child.id.lower() for kw in scalar_hints) and not self._is_linear_var(child.id):
                     continue
@@ -284,9 +301,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         return res
 
     def bfs_first_pass(self, tree):
+        from collections import deque
         queue = deque([(tree, None)])
-        self.call_graph = {'__main__': set()}
+        
+        # UPGRADE: Call graph now stores complex edge metadata objects
+        self.call_graph = {'__main__': []}
         self.reachable_funcs = set()
+        
+        ignore_set = set(self.builtin_complexities.keys()).union({
+            'print', 'len', 'range', 'int', 'str', 'float', 'enumerate', 'zip', 'map', 'filter', 'list', 'set', 'dict', 'tuple', 'bool', 'type', 'isinstance', 'abs', 'round', 'floor', 'ceil'
+        })
         
         while queue:
             current_node, current_func = queue.popleft()  
@@ -295,11 +319,24 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self.reachable_funcs.add(current_node.name) 
                 current_func = current_node.name  
                 if current_func not in self.call_graph:
-                    self.call_graph[current_func] = set()  
-            elif isinstance(current_node, ast.Call) and isinstance(current_node.func, ast.Name):
-                called_func = current_node.func.id  
-                if current_func: self.call_graph[current_func].add(called_func)  
-                else: self.call_graph['__main__'].add(called_func)  
+                    self.call_graph[current_func] = []  
+            elif isinstance(current_node, ast.Call):
+                called_func = None
+                if isinstance(current_node.func, ast.Name):
+                    called_func = current_node.func.id
+                elif isinstance(current_node.func, ast.Attribute):
+                    called_func = current_node.func.attr
+                    
+                if called_func and called_func not in ignore_set:
+                    caller = current_func if current_func else '__main__'
+                    line_num = getattr(current_node, 'lineno', -1)
+                    
+                    # Cross-reference with the dynamic profiler to get execution count
+                    hits = self.trace_data.get("line_hits", {}).get(line_num, 0)
+                    
+                    # Check for exact duplicate edges from the same line
+                    if not any(e['target'] == called_func and e['line'] == line_num for e in self.call_graph[caller]):
+                        self.call_graph[caller].append({'target': called_func, 'line': line_num, 'hits': hits})
             
             for child in ast.iter_child_nodes(current_node):
                 queue.append((child, current_func))
@@ -310,18 +347,20 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         while reach_queue:
             curr = reach_queue.popleft()
-            for neighbor in self.call_graph.get(curr, []):  
+            for edge_info in self.call_graph.get(curr, []):  
+                neighbor = edge_info['target']
                 if neighbor not in visited:
                     visited.add(neighbor)
                     self.reachable_funcs.add(neighbor)  
                     reach_queue.append(neighbor)
         
-        for func_name, called_funcs in self.call_graph.items():
-            if func_name in called_funcs: self.custom_functions[func_name] = "T(n)"  
+        for func_name, edges in self.call_graph.items():
+            if any(e['target'] == func_name for e in edges): 
+                self.custom_functions[func_name] = "T(n)"  
         self.detect_indirect_recursion()
 
     def detect_indirect_recursion(self):
-        indirect_graph = {u: {v for v in neighbors if v != u} for u, neighbors in self.call_graph.items()}
+        indirect_graph = {u: {v['target'] for v in edges if v['target'] != u} for u, edges in self.call_graph.items()}
         for func in indirect_graph:
             visited, rec_stack = set(), set()
             if self._has_cycle(func, visited, rec_stack, indirect_graph):
@@ -357,15 +396,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         has_grid_checks = False
         
         if isinstance(node, ast.FunctionDef):
-            for child in ast.walk(node):
+            for child in safe_walk(node):
                 if isinstance(child, ast.While):
-                    for sub in ast.walk(child):
+                    for sub in safe_walk(child):
                         if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
                             if sub.func.attr in ['pop', 'popleft']: has_queue_while = True
                 if isinstance(child, ast.For):
                     if isinstance(child.iter, ast.Subscript): has_neighbor_for = True
                     if isinstance(child.iter, ast.Name) and any(kw in child.iter.id.lower() for kw in ['neighbor', 'adj', 'graph', 'child']): has_neighbor_for = True
-                    for sub in ast.walk(child):
+                    for sub in safe_walk(child):
                         if isinstance(sub, ast.Call) and getattr(sub.func, 'id', '') == node.name: has_recursive_for = True
                 if isinstance(child, ast.Call):
                     if isinstance(child.func, ast.Attribute):
@@ -373,7 +412,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if isinstance(child.func, ast.Name) and child.func.id == node.name:
                         rec_calls += 1
                 if isinstance(child, ast.Compare) and any(isinstance(op, (ast.Lt, ast.LtE, ast.Gt, ast.GtE)) for op in child.ops):
-                    if any(getattr(n, 'id', '') in ['row', 'col', 'grid', 'matrix'] for n in ast.walk(child)):
+                    if any(getattr(n, 'id', '') in ['row', 'col', 'grid', 'matrix'] for n in safe_walk(child)):
                         has_grid_checks = True
 
         name_hints = any(k in getattr(node, 'name', '').lower() for k in ['maze', 'graph', 'dfs', 'bfs', 'flood', 'fill'])
@@ -384,7 +423,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def _is_graph_while_loop(self, node):
         if not getattr(self, 'in_graph_context', False): return False
         if not isinstance(node, ast.While): return False
-        for child in ast.walk(node):
+        for child in safe_walk(node):
             if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute):
                 if child.func.attr in ['pop', 'popleft', 'append', 'add', 'remove', 'extend']: return True
         return False
@@ -398,7 +437,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _is_constant_loop(self, node):
         if isinstance(node, ast.While):
-            if any(isinstance(child, ast.Break) for child in ast.walk(node)): return False
+            if any(isinstance(child, ast.Break) for child in safe_walk(node)): return False
             if isinstance(node.test, ast.Constant): return True
             if isinstance(node.test, ast.Compare):
                 if isinstance(node.test.left, ast.Constant) and all(isinstance(c, ast.Constant) for c in node.test.comparators): return True
@@ -411,11 +450,42 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def _is_log_loop(self, node):
         if not isinstance(node, ast.While): return False, None
         cond_vars = set()
-        for child in ast.walk(node.test):
+        for child in safe_walk(node.test):
             if isinstance(child, ast.Name): cond_vars.add(child.id)
                 
+        # UPGRADE: Euclidean Algorithm (a, b = b, a % b)
         for child in node.body:
-            for sub in ast.walk(child):
+            for sub in safe_walk(child):
+                if isinstance(sub, ast.Assign) and getattr(sub, 'targets', []):
+                    if isinstance(sub.targets[0], ast.Tuple) and isinstance(sub.value, ast.Tuple):
+                        for elt in sub.value.elts:
+                            if isinstance(elt, ast.BinOp) and isinstance(elt.op, ast.Mod):
+                                return True, None
+
+        # UPGRADE: Binary Search Pattern (mid = (l + r) // 2)
+        mid_vars = set()
+        for child in node.body:
+            for sub in safe_walk(child):
+                if isinstance(sub, ast.Assign):
+                    for target in sub.targets:
+                        if isinstance(target, ast.Name):
+                            for v in safe_walk(sub.value):
+                                if isinstance(v, ast.BinOp):
+                                    if isinstance(v.op, ast.FloorDiv) and getattr(v.right, 'value', 0) == 2: mid_vars.add(target.id)
+                                    elif isinstance(v.op, ast.Div) and getattr(v.right, 'value', 0) == 2: mid_vars.add(target.id)
+                                    elif isinstance(v.op, ast.RShift) and getattr(v.right, 'value', 0) == 1: mid_vars.add(target.id)
+        if mid_vars:
+            for child in node.body:
+                for sub in safe_walk(child):
+                    if isinstance(sub, ast.Assign):
+                        for target in sub.targets:
+                            if isinstance(target, ast.Name) and target.id in cond_vars:
+                                for v in safe_walk(sub.value):
+                                    if isinstance(v, ast.Name) and v.id in mid_vars:
+                                        return True, None
+
+        for child in node.body:
+            for sub in safe_walk(child):
                 if isinstance(sub, ast.Assign):
                     for target in sub.targets:
                         if isinstance(sub.value, ast.BinOp) and isinstance(sub.value.op, ast.Mod):
@@ -423,7 +493,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                                 if isinstance(target, ast.Name) and target.id == sub.value.right.id:
                                     return True, [sub.value.left.id, sub.value.right.id]
                         if isinstance(target, ast.Name) and target.id in cond_vars:
-                            for v in ast.walk(sub.value):
+                            for v in safe_walk(sub.value):
                                 if isinstance(v, ast.Call) and getattr(getattr(v, 'func', None), 'attr', '') == 'sqrt':
                                     return True, None
                                     
@@ -443,33 +513,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                                     if getattr(sub.value.left, 'id', None) == target.id or getattr(sub.value.right, 'id', None) == target.id: return True, None
                                 if isinstance(sub.value.op, (ast.LShift, ast.RShift)): return True, None
 
-        if len(cond_vars) >= 2:
-            mid_var = None
-            for child in node.body:
-                for sub in ast.walk(child):
-                    if isinstance(sub, ast.Assign):
-                        is_mid_calc = False
-                        for v in ast.walk(sub.value):
-                            if isinstance(v, ast.BinOp) and isinstance(v.op, (ast.FloorDiv, ast.Div)):
-                                if getattr(v.right, 'value', None) == 2: is_mid_calc = True
-                        if is_mid_calc:
-                            for target in sub.targets:
-                                if isinstance(target, ast.Name): mid_var = target.id
-            if mid_var:
-                for child in node.body:
-                    for sub in ast.walk(child):
-                        if isinstance(sub, ast.Assign):
-                            for target in sub.targets:
-                                if getattr(target, 'id', None) in cond_vars:
-                                    for v in ast.walk(sub.value):
-                                        if isinstance(v, ast.Name) and v.id == mid_var: return True, None
         return False, None
         
     def _is_sqrt_loop(self, node):
         if not isinstance(node, (ast.While, ast.For)): return False  
         expr = node.test if isinstance(node, ast.While) else node.iter
         
-        for child in ast.walk(expr):
+        for child in safe_walk(expr):
             if isinstance(child, ast.Call):
                 func_id = getattr(getattr(child, 'func', None), 'id', '')
                 if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'): return True
@@ -498,7 +548,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if self._is_exponential_loop_bound(node): return True
         if not isinstance(node, (ast.For, ast.While)): return False
         expr = node.iter if isinstance(node, ast.For) else node.test
-        for child in ast.walk(expr):
+        for child in safe_walk(expr):
             if isinstance(child, ast.BinOp):
                 if isinstance(child.op, ast.LShift): return True
                 if isinstance(child.op, ast.Pow) and getattr(child.left, 'value', 0) == 2: return True
@@ -516,12 +566,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if var_t not in ['str', 'list', 'tuple', 'set', 'dict', 'deque'] and not self._is_linear_var(target_id):
             return "O(1)", "O(1)", None
             
-        self_references = sum(1 for n in ast.walk(value_node) if isinstance(n, ast.Name) and n.id == target_id)
+        self_references = sum(1 for n in safe_walk(value_node) if isinstance(n, ast.Name) and n.id == target_id)
         is_mult = any(
             isinstance(n, ast.BinOp) and isinstance(n.op, ast.Mult) and (
                 (isinstance(n.left, ast.Name) and n.left.id == target_id and getattr(n.right, 'value', 0) > 1) or 
                 (isinstance(n.right, ast.Name) and n.right.id == target_id and getattr(n.left, 'value', 0) > 1)
-            ) for n in ast.walk(value_node)
+            ) for n in safe_walk(value_node)
         )
         
         loop_multiplier = len(self.loop_stack)
@@ -557,7 +607,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not isinstance(node, ast.BinOp): return False
         if not isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.Sub, ast.BitXor)): return False
         
-        for child in ast.walk(node):
+        for child in safe_walk(node):
             if isinstance(child, (ast.Set, ast.SetComp)): return True
             if isinstance(child, ast.Name):
                 if self.var_types.get(child.id) == 'set': return True
@@ -599,7 +649,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else:
                         iter_name = self._get_iterable_name(node.iter)
                         dim = self._register_and_get_dim(iter_name)
-                        node_dims = [dim]
+                        if dim: node_dims = [dim]
             elif isinstance(node, ast.While):
                 if getattr(self, 'in_graph_context', False) and self._is_graph_while_loop(node): node_graph = 1
                 else:
@@ -611,8 +661,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     elif not self._is_constant_loop(node): 
                         limit_vars = self._get_while_limit_vars(node)
                         if limit_vars:
-                            dims = [self._register_and_get_dim(lv) for lv in limit_vars]
-                            node_dims = [dims[0]] if dims else ['n']
+                            dims = [self._register_and_get_dim(lv) for lv in limit_vars if self._register_and_get_dim(lv)]
+                            if dims: node_dims = [dims[0]]
                         else:
                             node_dims = ['n']
         else:
@@ -709,8 +759,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for snap in self.trace_data.get("history", []):
             if snap.line_no == line_num:
                 for var_name, var_data in snap.variables.items():
-                    if var_name not in mem_state or var_data["size"] > mem_state[var_name]["size"]:
-                        mem_state[var_name] = var_data
+                    if var_name not in mem_state or var_data["size"] > mem_state[var_name].get("size", 0):
+                        mem_state[var_name] = dict(var_data)
+                        
+        for var_name, var_data in mem_state.items():
+            var_data["explanation"] = self.nlg_engine.generate_variable_explanation(var_name, var_data, self.var_types.get(var_name))
 
         time_exp, space_exp = self.nlg_engine.generate_explanations(
             node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
@@ -802,7 +855,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
     def visit_JoinedStr(self, node):
         is_linear = False
-        for child in ast.walk(node):
+        for child in safe_walk(node):
             if isinstance(child, ast.FormattedValue) and self._is_linear_type(child.value):
                 is_linear = True
                 break
@@ -858,7 +911,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if isinstance(dec, ast.Name) and dec.id in ['lru_cache', 'cache', 'memoize']: is_memoized_or_graph = True
             elif isinstance(dec, ast.Call) and getattr(dec.func, 'id', '') in ['lru_cache', 'cache']: is_memoized_or_graph = True
         
-        for child in ast.walk(node):
+        for child in safe_walk(node):
             if isinstance(child, ast.Name) and any(k in child.id.lower() for k in ['memo', 'cache', 'dp', 'visit']):
                 is_memoized_or_graph = True
 
@@ -890,9 +943,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         does_linear_work = self.max_poly_str != "O(1)" or self.has_slicing
         if not does_linear_work:
-            for called in self.call_graph.get(node.name, set()):
+            for called_info in self.call_graph.get(node.name, []):
+                called = called_info['target']
                 if called in self.symbol_table and called != node.name:
-                    for child in ast.walk(self.symbol_table[called]):
+                    for child in safe_walk(self.symbol_table[called]):
                         if isinstance(child, (ast.For, ast.While)) and not self._is_constant_loop(child): does_linear_work = True; break
                         elif isinstance(child, ast.ListComp): does_linear_work = True; break
                         elif isinstance(child, ast.Subscript) and isinstance(getattr(child, 'slice', None), ast.Slice): does_linear_work = True; break
@@ -901,7 +955,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_indirect = node.name in self.indirect_recursive_funcs
 
         is_2d_memo = False
-        for child in ast.walk(node):
+        for child in safe_walk(node):
             if isinstance(child, ast.Subscript) and isinstance(getattr(child, 'slice', None), ast.Tuple):
                 is_2d_memo = True
 
@@ -938,7 +992,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     relation = "T(n) = T(n-1) + O(1)"
             elif self.recursive_calls_count == 2:
                 is_quicksort = False
-                for child in ast.walk(node):
+                for child in safe_walk(node):
                     if isinstance(child, ast.Name) and any(x in child.id.lower() for x in ['pivot', 'pi']):
                         is_quicksort = True
                         break
@@ -1050,12 +1104,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 else:
                     self._details[i]["global_time"] = resolved_rel
 
-        # FIX: Force the actual `def` statement to strictly be O(1) constant time/space overhead
+        # Force the actual `def` statement to strictly be O(1)
         self._details[start_idx]["local_time"] = "O(1)"
         self._details[start_idx]["global_time"] = "O(1)"
         self._details[start_idx]["local_space"] = "O(1)"
         self._details[start_idx]["global_space"] = "O(1)"
-        self._details[start_idx]["weight"] = 1 # Guarantee it is not flagged as the bottleneck
+        self._details[start_idx]["weight"] = 1
         self._details[start_idx]["time_explanation"] = "Function declaration creates a function object in memory and binds it to a name. This is strictly an O(1) constant-time operation."
         self._details[start_idx]["space_explanation"] = "O(1) memory overhead to store the function reference in the local namespace."
 
@@ -1146,7 +1200,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.record_line(node, time_override=None, space_override=None)
         
         if getattr(self, 'in_graph_context', False) and self._is_graph_for_loop(node):
-            if not is_const: 
+            if not is_const and dim: 
                 self.active_poly_dims.append(dim)
             self.current_depth += 1
             for item in node.body:
@@ -1160,7 +1214,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.visit(item)
             self._visit_block(getattr(node, 'orelse', []))
             self.current_depth -= 1
-            if not is_const: 
+            if not is_const and dim: 
                 self.active_poly_dims.pop()
             self.loop_stack.pop()
             return
@@ -1168,7 +1222,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not is_const: 
             if is_sqrt:
                 self.sqrt_loop_depth = getattr(self, 'sqrt_loop_depth', 0) + 1
-            else:
+            elif dim:
                 self.active_poly_dims.append(dim)
         
         self.current_depth += 1
@@ -1177,7 +1231,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not is_const: 
             if is_sqrt:
                 self.sqrt_loop_depth -= 1
-            else:
+            elif dim:
                 self.active_poly_dims.pop()
             is_const = True
                 
@@ -1220,7 +1274,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else: 
                 limit_vars = self._get_while_limit_vars(node)
                 if limit_vars:
-                    dims = [self._register_and_get_dim(lv) for lv in limit_vars]
+                    dims = [self._register_and_get_dim(lv) for lv in limit_vars if self._register_and_get_dim(lv)]
                     dim = dims[0] if dims else 'n'
                 else: dim = 'n'
                 self.active_poly_dims.append(dim)
@@ -1325,7 +1379,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
             elif node.func.attr == 'copy':
                 curr_f = self.current_function_name or ""
-                is_rec = curr_f in self.call_graph.get(curr_f, set())
+                is_rec = any(c['target'] == curr_f for c in self.call_graph.get(curr_f, []))
                 if is_rec or getattr(self, 'in_accumulation_context', False):
                     self.max_space_weight = max(self.max_space_weight, 2)
                     self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Deep Copy Allocation")
@@ -1364,6 +1418,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_accumulation_context = prev_acc
 
     def visit_Assign(self, node):
+        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple):
+            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Input Unpacking / Swap")
+            return 
+            
         for target in node.targets:
             if isinstance(target, ast.Name):
                 if isinstance(node.value, (ast.List, ast.ListComp)): self.var_types[target.id] = 'list'
@@ -1379,11 +1437,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Subscript):
             custom_op = "Update"
-        
-        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Variable Unpacking/Swap")
-            self.generic_visit(node)
-            return
 
         if getattr(self, 'in_graph_context', False):
             if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): 
@@ -1503,7 +1556,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if custom_op is None and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                 custom_op = "Init"
 
-        for child in ast.walk(node.value):
+        for child in safe_walk(node.value):
             if isinstance(child, (ast.BinOp, ast.Call)):
                 if (isinstance(child, ast.BinOp) and (isinstance(child.op, ast.LShift) or (isinstance(child.op, ast.Pow) and getattr(child.left, 'value', 0) == 2))) or (isinstance(child, ast.Call) and getattr(getattr(child, 'func', None), 'id', '') == 'pow' and getattr(child.args[0] if getattr(child, 'args', None) else None, 'value', 0) == 2):
                     for target in node.targets:
@@ -1542,7 +1595,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Build")
                 return 
 
-        for child in ast.walk(node.value):
+        for child in safe_walk(node.value):
             if isinstance(child, ast.Call):
                 func_id = getattr(getattr(child, 'func', None), 'id', '')
                 if func_id == 'sqrt' or (isinstance(child.func, ast.Attribute) and child.func.attr == 'sqrt'):
@@ -1724,10 +1777,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         visitor = ComprehensiveASTVisitor(self)
         sig = visitor.analyze(tree)
         
-        # PASSING SELF.DETAILS (The collected line-by-line complexities)
         return self.nlg_engine.generate_overall_analysis(final_time, final_space, sig, self.details)
 
 def analyze_source_code(source_code):
+    import time
     start_time = time.perf_counter()
     
     try:
@@ -1738,7 +1791,7 @@ def analyze_source_code(source_code):
             try:
                 tracer = AlgoBlocksTracer()
                 trace_data = tracer.execute_and_trace(source_code)
-            except Exception as dyn_error:
+            except Exception:
                 pass 
         
         analyzer = ComplexityAnalyzer(source_code, trace_data)
@@ -1753,6 +1806,7 @@ def analyze_source_code(source_code):
             "space_total": analyzer.get_final_space_badge(),
             "overall_explanation": overall_exp,
             "lines": analyzer.details,
+            "call_graph": getattr(analyzer, 'call_graph', {}),
             "error": None
         }
     except SyntaxError as e:

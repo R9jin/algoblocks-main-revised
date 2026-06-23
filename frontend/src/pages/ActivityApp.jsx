@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
+import CallGraphVisualizer from "../components/CallGraphVisualizer.jsx";
 import ComplexityGraph from "../components/ComplexityGraph.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
@@ -96,19 +97,19 @@ const parseMarkdown = (str) => {
   let blocks = html.split(/\n\s*\n/);
   let parsedBlocks = blocks.map(block => {
     if (block.includes('<h3') || block.includes('<h4') || block.includes('<h5') || block.includes('<div class="math-block"')) {
-       return block.replace(/\n/g, '<br/>'); 
+      return block.replace(/\n/g, '<br/>');
     }
-    
+
     if (/^[-*]\s+/m.test(block)) {
       let listItems = block.split('\n').reduce((acc, line) => {
-         let trimmed = line.trim();
-         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) { 
-             acc.push(`<li>${trimmed.substring(2).trim()}</li>`); 
-         } else if (trimmed !== '') { 
-             if(acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`); 
-             else acc.push(`<li>${trimmed}</li>`); 
-         }
-         return acc;
+        let trimmed = line.trim();
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+          acc.push(`<li>${trimmed.substring(2).trim()}</li>`);
+        } else if (trimmed !== '') {
+          if (acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
+          else acc.push(`<li>${trimmed}</li>`);
+        }
+        return acc;
       }, []).join('');
       return `<ul class="nlg-list">${listItems}</ul>`;
     }
@@ -231,7 +232,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
-  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false });
+  
+  // FIX: Include call_graph in the initial state so it doesn't break dependent components
+  const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} });
+  
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const [lineExecutions, setLineExecutions] = useState({});
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
@@ -332,13 +336,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (type === "ANALYZE_RESULT") {
       if (data.status === "success") {
         setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
-        setAnalysisResult({ 
-          total: data.total, 
-          space_total: data.space_total || "O(1)", 
-          overall_explanation: data.overall_explanation || "", 
-          lines: data.lines || [], 
-          is_recursive: data.is_recursive || false 
+        
+        // FIX: Explicitly include call_graph so the React state doesn't drop it!
+        setAnalysisResult({
+          total: data.total,
+          space_total: data.space_total || "O(1)",
+          overall_explanation: data.overall_explanation || "",
+          lines: data.lines || [],
+          call_graph: data.call_graph || {},
+          is_recursive: data.is_recursive || false
         });
+        
         latestStateRef.current.actualTime = data.total; latestStateRef.current.actualSpace = data.space_total || "O(1)";
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
@@ -550,7 +558,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             const pythonCode = finalSubmissionToLoad.pythonCode;
             latestStateRef.current.json = json; latestStateRef.current.pythonCode = pythonCode;
             latestStateRef.current.score = finalSubmissionToLoad.score || 0;
-            
+
             latestStateRef.current.initial_aes = finalSubmissionToLoad.initial_aes ?? null;
             latestStateRef.current.final_aes = finalSubmissionToLoad.final_aes ?? null;
             latestStateRef.current.passed = finalSubmissionToLoad.passedTestCases || finalSubmissionToLoad.passed_tests || 0;
@@ -558,7 +566,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
             let loadedScore = finalSubmissionToLoad.score || 0;
             if (finalSubmissionToLoad.maxScore === 5 && loadedScore <= 5) loadedScore = (loadedScore / 5) * 100;
-            
+
             const computedAes = Math.min(loadedScore, 100);
             setCurrentAes(computedAes);
 
@@ -577,9 +585,9 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             if (resolvedActivity.id && resolvedActivity.id.includes('opt')) {
               fetchUrl = `/data/optimizations/${resolvedActivity.id}.json`;
             }
-            
+
             const rawTemplate = await fetchJsonWithCache(`template:${resolvedActivity.id}`, fetchUrl);
-            
+
             let templateBlocks = rawTemplate;
             let templatePython = "# Drag blocks to generate Python code";
 
@@ -593,10 +601,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
             latestStateRef.current.json = templateBlocks;
             latestStateRef.current.pythonCode = templatePython;
-            
-            setTimeout(() => { 
+
+            setTimeout(() => {
               if (workspaceRef.current?.loadTemplate && !cancelled) {
-                workspaceRef.current.loadTemplate(templateBlocks, templatePython); 
+                workspaceRef.current.loadTemplate(templateBlocks, templatePython);
               }
             }, 400);
 
@@ -661,8 +669,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   useEffect(() => {
     if (!isReadyRef.current) return;
     if (isOnline && isEngineReady && workerRef.current && generatedPython && generatedPython !== "# Drag blocks to generate Python code") {
-      const timeoutId = setTimeout(() => { 
-        workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) }); 
+      const timeoutId = setTimeout(() => {
+        workerRef.current.postMessage({ type: "ANALYZE_CODE", code: sanitizePythonCode(generatedPython) });
       }, 800);
       return () => clearTimeout(timeoutId);
     }
@@ -681,8 +689,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (isUnsynced) {
       setIsEditingCode(true);
       if (oldCode !== newCode) { setGeneratedPython(codeToSave); setLineExecutions({}); }
-    } else if (!isEditingCode && oldCode !== newCode) { 
-      setGeneratedPython(codeToSave); setLineExecutions({}); 
+    } else if (!isEditingCode && oldCode !== newCode) {
+      setGeneratedPython(codeToSave); setLineExecutions({});
     }
   };
 
@@ -1187,15 +1195,16 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                         <button onClick={() => { setActiveComplexityTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "local" ? "active" : ""}`}>Local</button>
                         <button onClick={() => { setActiveComplexityTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
                         <button onClick={() => { setActiveComplexityTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
+                        <button onClick={() => { setActiveComplexityTab("callgraph"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "callgraph" ? "active" : ""}`}>Call Graph</button>
                       </div>
 
                       <div className="total-badge-group">
                         {/* FIX: Restored the Analysis Process Time MS badge */}
                         <span className="total-badge analysis-time-badge" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                            <span className="total-label" style={{ color: '#64748B' }}>Analyzed In:</span>
-                            <span className="total-val" style={{ color: '#0F172A' }}>{analysisTime}ms</span>
+                          <span className="total-label" style={{ color: '#64748B' }}>Analyzed In:</span>
+                          <span className="total-val" style={{ color: '#0F172A' }}>{analysisTime}ms</span>
                         </span>
-                        
+
                         <span className="total-badge total-time-badge"><span className="total-label">Total Time:</span> <span className="total-val">{formatComplexity(analysisResult.total)}</span></span>
                         <span className="total-badge total-space-badge"><span className="total-label space-label">Total Space:</span> <span className="total-val">{formatComplexity(analysisResult.space_total)}</span></span>
 
@@ -1244,6 +1253,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                     ) : activeComplexityTab === "memory" ? (
                       <div className="memory-wrapper">
                         <MemoryVisualizer analysisData={analysisResult.lines} currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0} />
+                      </div>
+                    ) : activeComplexityTab === "callgraph" ? (
+                      <div className="callgraph-wrapper" style={{ height: '100%', overflow: 'hidden' }}>
+                        <CallGraphVisualizer analysisData={analysisResult} />
                       </div>
                     ) : (
                       <div className="complexity-table-wrapper">

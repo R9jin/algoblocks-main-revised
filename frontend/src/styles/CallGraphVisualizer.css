@@ -1,0 +1,148 @@
+.callgraph-visualizer {
+  background: linear-gradient(90deg, var(--dark-bg) 0%, var(--purple-main) 100%);
+  border-radius: 8px;
+  padding: 1.25rem;
+  color: #ecf0f1;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  font-family: 'Inter', -apple-system, sans-serif;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.callgraph-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #7f8c8d;
+}
+
+.callgraph-empty .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.callgraph-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #34495e;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-icon {
+  color: #9b59b6;
+  font-size: 1.25rem;
+}
+
+.header-title h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.nodes-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #e7d0ff;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-family: 'Fira Code', monospace;
+  font-weight: bold;
+  color: #9b59b6;
+  border: 1px solid #e7d0ff;
+}
+
+/* Canvas Area */
+.callgraph-canvas-container {
+  flex-grow: 1;
+  overflow: auto;
+  position: relative;
+  background-color: #1a1c23; /* Slightly darker background for the canvas */
+  border-radius: 6px;
+  border: 1px solid #2c3e50;
+}
+
+/* Custom Scrollbar for Canvas */
+.callgraph-canvas-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.callgraph-canvas-container::-webkit-scrollbar-thumb {
+  background-color: #454d5a;
+  border-radius: 4px;
+}
+.callgraph-canvas-container::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.callgraph-scroll-area {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.callgraph-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none; /* Let clicks pass through the SVG to the nodes below */
+}
+
+/* Nodes */
+.cg-node {
+  position: absolute;
+  transform: translate(-50%, -50%); /* Centers the node perfectly on the X,Y coordinate */
+  z-index: 2;
+  background-color: #252836;
+  border: 2px solid #3498db;
+  border-radius: 8px;
+  padding: 0.8rem 1.2rem;
+  min-width: 140px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.cg-node.cg-main {
+  border-color: #f1c40f;
+  background-color: #2c2a20;
+}
+
+.cg-node.cg-hovered {
+  border-color: #e74c3c;
+  transform: translate(-50%, -50%) scale(1.05);
+  box-shadow: 0 6px 12px rgba(231, 76, 60, 0.2);
+  z-index: 3;
+}
+
+.cg-node-title {
+  color: #ecf0f1;
+  font-family: 'Fira Code', monospace;
+  font-weight: bold;
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+
+.cg-node-layer {
+  font-size: 0.75rem;
+  color: #7f8c8d;
+  background-color: rgba(0,0,0,0.2);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+}

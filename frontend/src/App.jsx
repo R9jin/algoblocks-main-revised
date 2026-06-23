@@ -4,6 +4,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import { PyodideProvider } from "./context/PyodideContext";
 import Dashboard from "./pages/Dashboard";
+import EvaluationSuite from "./pages/EvaluationSuite"; // <-- HARD STATIC IMPORT
 import ForgotPassword from "./pages/ForgotPassword";
 import LandingPage from "./pages/HomePage";
 import LearningPath from "./pages/LearningPath";
@@ -22,7 +23,6 @@ const LessonViewer = lazy(() => import("./pages/LessonViewer"));
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!user) {
-    // FIXED: Let PublicRoute handle the landing page, kills the /signin race condition
     return <Navigate to="/" replace />; 
   }
   return children;
@@ -68,6 +68,9 @@ function App() {
           <Route path="/activity/:moduleId/:activityId" element={<ProtectedRoute><ActivityApp /></ProtectedRoute>} />
           <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          
+          {/* RAW UNPROTECTED ROUTE TO FORCE COMPILE COMPONENT */}
+          <Route path="/admin/evaluation-suite" element={<EvaluationSuite />} />
         </Routes>
       </Suspense>
     </PyodideProvider>

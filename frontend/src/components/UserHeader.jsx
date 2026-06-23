@@ -1,6 +1,7 @@
 // frontend/src/components/UserHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  LuActivity,
   LuFolder,
   LuLayoutDashboard,
   LuLogOut,
@@ -112,6 +113,18 @@ export default function UserHeader({ user, onLogoutClick }) {
                 <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
                   <LuFolder size={18} aria-hidden="true" /> Projects
                 </button>
+                
+                <div className="user-dd-divider" />
+                <button 
+                  type="button" 
+                  className="user-dd-item" 
+                  style={{ color: "#10B981", fontWeight: "bold" }}
+                  onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
+                  role="menuitem"
+                >
+                  <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                </button>
+
                 <div className="user-dd-divider" />
                 
                 {/* FIX: Trigger the parent prop if it exists, otherwise use fallback */}
