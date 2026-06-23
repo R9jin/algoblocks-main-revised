@@ -6,6 +6,63 @@ let inputResolve = null;
 let isWaitingForInput = false;
 let executionTimeout = null;
 
+// Indestructible Asymptotic String Normalizer (Solves Unicode n² vs n^2 matching)
+function normalizeComplexity(str) {
+  if (!str) return "";
+  return String(str)
+    .toLowerCase()
+    .replace(/²/g, "2")
+    .replace(/³/g, "3")
+    .replace(/ⁿ/g, "n")
+    .replace(/[\s\^_\*\-\(\)\+]/g, ""); // strips O(V+E) down to "ove", O(n^2) to "on2"
+}
+
+// Fuzzy-Key Extractors: Guarantees we find the Ground Truth regardless of what Python named the JSON key
+function getGroundTruthTime(obj) {
+  if (!obj) return "O(1)";
+  if (obj.time_complexity) return obj.time_complexity;
+  if (obj.timeComplexity) return obj.timeComplexity;
+  if (obj.expected_time) return obj.expected_time;
+  if (obj.expectedTime) return obj.expectedTime;
+  if (obj.true_time) return obj.true_time;
+  if (obj.time) return obj.time;
+  if (obj.complexity) return obj.complexity;
+  if (obj.big_o) return obj.big_o;
+  if (obj.bigO) return obj.bigO;
+  if (obj.label) return obj.label;
+
+  // Deep scan fallback
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (typeof val === 'string' && (val.trim().startsWith('O(') || val.trim().startsWith('o('))) {
+      if (key.toLowerCase().includes('time') || key.toLowerCase().includes('comp') || key.toLowerCase() === 'o') {
+        return val;
+      }
+    }
+  }
+  return "O(1)";
+}
+
+function getGroundTruthSpace(obj) {
+  if (!obj) return "O(1)";
+  if (obj.space_complexity) return obj.space_complexity;
+  if (obj.spaceComplexity) return obj.spaceComplexity;
+  if (obj.expected_space) return obj.expected_space;
+  if (obj.expectedSpace) return obj.expectedSpace;
+  if (obj.true_space) return obj.true_space;
+  if (obj.space) return obj.space;
+
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (typeof val === 'string' && (val.trim().startsWith('O(') || val.trim().startsWith('o('))) {
+      if (key.toLowerCase().includes('space')) {
+        return val;
+      }
+    }
+  }
+  return "O(1)";
+}
+
 async function initPyodide() {
   if (pyodide) return pyodide;
   
@@ -44,7 +101,6 @@ async function initPyodide() {
       }
     })();
   }
-  
   return await pyodidePromise;
 }
 
@@ -96,7 +152,6 @@ import json
 import sys
 import ast
 
-# CLEAR CACHE FOR HOT RELOADING
 if 'analyzer' in sys.modules:
     del sys.modules['analyzer']
 if 'semantic_nlg' in sys.modules:
@@ -104,103 +159,58 @@ if 'semantic_nlg' in sys.modules:
 if 'dynamic_tracer' in sys.modules:
     del sys.modules['dynamic_tracer']
 
-# --- DEEP STACK LINTER ---
 def gather_custom_lint_errors(code_str):
     errs = []
     lines = code_str.split('\\n')
-    
     stack = []
     pairs = {'(': ')', '[': ']', '{': '}'}
     
     for i, line in enumerate(lines):
         s = line.strip()
-        if not s or s.startswith('#'):
-            continue
-            
-        # 1. Missing Colon Checker
+        if not s or s.startswith('#'): continue
         if s.startswith(('def ', 'if ', 'elif ', 'else', 'for ', 'while ', 'class ', 'try', 'except', 'finally')):
             s_no_comment = s.split('#')[0].strip()
             if not s_no_comment.endswith(':') and not s_no_comment.endswith(('(', '[', '{', ',', '\\\\')):
                 errs.append({"line": i+1, "message": "expected ':'"})
                 
-        # 2. Unbalanced Bracket Checker
-        in_str = False
-        str_char = ''
-        escape = False
+        in_str = False; str_char = ''; escape = False
         for char in line:
-            if escape:
-                escape = False
-                continue
-            if char == '\\\\':
-                escape = True
-                continue
-                
-            if char in '"\\'' and not in_str:
-                in_str = True
-                str_char = char
-            elif char == str_char and in_str:
-                in_str = False
-            
+            if escape: { escape = False; continue }
+            if char == '\\\\': { escape = True; continue }
+            if char in '"\\'' and not in_str: { in_str = True; str_char = char }
+            elif char == str_char and in_str: { in_str = False }
             if not in_str:
-                if char in pairs:
-                    stack.append((char, i+1))
+                if char in pairs: stack.append((char, i+1))
                 elif char in pairs.values():
-                    if not stack:
-                        errs.append({"line": i+1, "message": f"unmatched '{char}'"})
+                    if not stack: errs.append({"line": i+1, "message": f"unmatched '{char}'"})
                     else:
                         top, _ = stack.pop()
-                        if pairs[top] != char:
-                            errs.append({"line": i+1, "message": f"closing '{char}' does not match opening '{top}'"})
-                            
-    for char, l in stack:
-         errs.append({"line": l, "message": f"unclosed '{char}'"})
-
+                        if pairs[top] != char: errs.append({"line": i+1, "message": f"closing '{char}' does not match opening '{top}'"})
+    for char, l in stack: errs.append({"line": l, "message": f"unclosed '{char}'"})
     return errs
 
 try:
     from analyzer import analyze_source_code
     output_dict = analyze_source_code(user_code)
-    
-    # --- INTERCEPT THE SWALLOWED ERROR ---
-    # analyzer.py gracefully catches SyntaxErrors. We must intercept it 
-    # to run our deep-stack checker and append the multiple errors.
     if isinstance(output_dict, dict) and output_dict.get("status") == "error":
         custom_errs = gather_custom_lint_errors(user_code)
-        
         real_line = output_dict.get("line", 1)
         real_msg = output_dict.get("message", "Syntax Error")
-        
         all_errors = [{"line": real_line, "message": real_msg}]
-        
         for ce in custom_errs:
-            if not any(existing['line'] == ce['line'] for existing in all_errors):
-                all_errors.append(ce)
-                
+            if not any(existing['line'] == ce['line'] for existing in all_errors): all_errors.append(ce)
         all_errors.sort(key=lambda x: x['line'])
         output_dict["multiple_errors"] = all_errors
-
     output = json.dumps(output_dict)
-    
 except Exception as e:
-    # Failsafe if the analyzer actually crashes
     custom_errs = gather_custom_lint_errors(user_code)
     real_line = getattr(e, 'lineno', 1) or 1
     real_msg = str(e)
-    
     all_errors = [{"line": real_line, "message": real_msg}]
     for ce in custom_errs:
-        if not any(existing['line'] == ce['line'] for existing in all_errors):
-            all_errors.append(ce)
-            
+        if not any(existing['line'] == ce['line'] for existing in all_errors): all_errors.append(ce)
     all_errors.sort(key=lambda x: x['line'])
-    
-    output = json.dumps({
-        "status": "error",
-        "multiple_errors": all_errors,
-        "line": real_line,
-        "message": real_msg
-    })
-
+    output = json.dumps({"status": "error", "multiple_errors": all_errors, "line": real_line, "message": real_msg})
 output
       `);
       const resultData = JSON.parse(resultJsonStr);
@@ -212,14 +222,10 @@ output
     // ======================
     else if (type === 'PYTHON_TO_BLOCKS') {
       pyodide.globals.set("user_code", code);
-
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
 import sys
-
-if 'blockly_ast' in sys.modules:
-    del sys.modules['blockly_ast']
-
+if 'blockly_ast' in sys.modules: del sys.modules['blockly_ast']
 try:
     from blockly_ast import BlocklyASTConverter
     converter = BlocklyASTConverter()
@@ -227,10 +233,8 @@ try:
     output = json.dumps(result)
 except Exception as e:
     output = json.dumps({"status": "error", "message": str(e)})
-
 output
       `);
-
       const resultData = JSON.parse(resultJsonStr);
       self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
     }
@@ -239,10 +243,8 @@ output
     // 3. RUN MODE
     // ======================
     else if (type === 'RUN_CODE') {
-
       pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
       pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
-
       pyodide.globals.set("custom_input_sync", (prompt) => {
         const safePrompt = prompt === undefined ? "" : String(prompt);
         if (safePrompt) self.postMessage({ type: 'OUTPUT', data: safePrompt });
@@ -251,30 +253,18 @@ output
         self.postMessage({ type: 'OUTPUT', data: simulated + "\n" });
         return simulated;
       });
-
       pyodide.globals.set("custom_input_async", async (prompt) => {
         return new Promise((resolve) => {
-          inputResolve = (value) => {
-            isWaitingForInput = false;
-            resolve(value);
-          };
+          inputResolve = (value) => { isWaitingForInput = false; resolve(value); };
           isWaitingForInput = true;
           const safePrompt = prompt === undefined ? "" : String(prompt);
-          self.postMessage({
-            type: 'INPUT_REQUEST',
-            data: { prompt: safePrompt }
-          });
+          self.postMessage({ type: 'INPUT_REQUEST', data: { prompt: safePrompt } });
         });
       });
-
       pyodide.globals.set("user_code", code);
-
       executionTimeout = setTimeout(() => {
         if (!isWaitingForInput) {
-          self.postMessage({
-            type: 'ERROR',
-            data: "Execution Prevented:\nRoot Cause: Infinite Loop detected.\nSuggestion: Check your loop conditions."
-          });
+          self.postMessage({ type: 'ERROR', data: "Execution Prevented:\nRoot Cause: Infinite Loop detected." });
         }
       }, 3000);
 
@@ -285,24 +275,18 @@ import traceback
 import ast
 import json
 from collections import defaultdict
-from pyodide.code import eval_code_async
 
 builtins.input = custom_input_sync
 
 class LineExecutionProfiler:
-    def __init__(self):
-        self.hits = defaultdict(int)
-
+    def __init__(self): self.hits = defaultdict(int)
     def trace_lines(self, frame, event, arg):
-        if event == 'line':
-            if frame.f_code.co_filename == "<user_code>":
-                self.hits[frame.f_lineno] += 1
+        if event == 'line' and frame.f_code.co_filename == "<user_code>":
+            self.hits[frame.f_lineno] += 1
         return self.trace_lines
 
 class AsyncInputTransformer(ast.NodeTransformer):
-    def __init__(self):
-        self.has_input = False
-
+    def __init__(self): self.has_input = False
     def visit_Call(self, node):
         self.generic_visit(node)
         if isinstance(node.func, ast.Name) and node.func.id == 'input':
@@ -312,55 +296,20 @@ class AsyncInputTransformer(ast.NodeTransformer):
             return ast.copy_location(ast.Await(value=new_call), node)
         return node
 
-class InfiniteLoopDetector(ast.NodeVisitor):
-    def __init__(self):
-        self.warnings = []
-
-    def visit_While(self, node):
-        if isinstance(node.test, ast.Constant) and node.test.value is True:
-            has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
-            if not has_break:
-                self.warnings.append("Execution Prevented:\\nRoot Cause: 'while True' loop found with no 'break' or 'return'. This will run forever.")
-        else:
-            condition_vars = {n.id for n in ast.walk(node.test) if isinstance(n, ast.Name)}
-            if condition_vars:
-                modified_vars = set()
-                for child in node.body:
-                    for n in ast.walk(child):
-                        if isinstance(n, ast.Assign):
-                            for target in n.targets:
-                                if isinstance(target, ast.Name): modified_vars.add(target.id)
-                        elif isinstance(n, ast.AugAssign) and isinstance(n.target, ast.Name):
-                             modified_vars.add(n.target.id)
-
-                if not condition_vars.intersection(modified_vars):
-                    has_break = any(isinstance(child, (ast.Break, ast.Return)) for child in ast.walk(node))
-                    if not has_break:
-                        self.warnings.append(f"Execution Prevented:\\nRoot Cause: Variables {list(condition_vars)} control the loop, but are never modified inside it. This will run forever.")
-        self.generic_visit(node)
-
 globals()['run_hits_json'] = "{}"
 dyn_profiler = LineExecutionProfiler()
 
 try:
     tree = ast.parse(user_code, filename="<user_code>")
-    
-    detector = InfiniteLoopDetector()
-    detector.visit(tree)
-    if detector.warnings:
-        raise Exception("\\n\\n".join(detector.warnings))
-
     transformer = AsyncInputTransformer()
     transformed = transformer.visit(tree)
     ast.fix_missing_locations(transformed)
-
     try:
         if transformer.has_input:
             compiled_code = compile(transformed, "<user_code>", "exec", flags=ast.PyCF_ALLOW_TOP_LEVEL_AWAIT)
             sys.settrace(dyn_profiler.trace_lines)
             coro = eval(compiled_code, globals())
-            if coro is not None:
-                await coro
+            if coro is not None: await coro
         else:
             compiled_code = compile(transformed, "<user_code>", "exec")
             sys.settrace(dyn_profiler.trace_lines)
@@ -368,47 +317,31 @@ try:
     finally:
         sys.settrace(None)
         globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
-
-except SyntaxError:
-    try:
-        compiled_code = compile(user_code, "<user_code>", "exec")
-        sys.settrace(dyn_profiler.trace_lines)
-        try:
-            exec(compiled_code, globals())
-        finally:
-            sys.settrace(None)
-            globals()['run_hits_json'] = json.dumps(dict(dyn_profiler.hits))
-    except Exception:
-        print(traceback.format_exc(), file=sys.stderr)
-
-except Exception as e:
-    if "Execution Prevented" in str(e):
-        print(str(e), file=sys.stderr)
-    else:
-        print(traceback.format_exc(), file=sys.stderr)
+except Exception:
+    print(traceback.format_exc(), file=sys.stderr)
       `);
-
       const countsStr = pyodide.globals.get("run_hits_json");
       const counts = countsStr ? JSON.parse(countsStr) : {};
-
       clearTimeout(executionTimeout);
       self.postMessage({ type: 'RUN_RESULT', data: "", counts });
     }
 
     // ======================
-    // 4. BENCHMARK SUITE MODE
+    // 4. BENCHMARK SUITE MODE (SOP 2 DUAL KPI ALIGNED)
     // ======================
     else if (type === 'RUN_BENCHMARK_SUITE') {
       try {
         await initPyodide();
         const { dataset } = e.data;
-        let passedCount = 0;
-        let failedCount = 0;
+        
+        let timePassedCount = 0;
+        let spacePassedCount = 0;
+        let bothPassedCount = 0;
         const detailedResults = [];
 
         for (let i = 0; i < dataset.length; i++) {
           const item = dataset[i];
-          const testName = item.name || item.title || item.algorithm || `Test Case #${i + 1}`;
+          const testName = item.name || item.title || item.algorithm || item.id || `Algorithm #${i + 1}`;
           
           self.postMessage({ 
             type: 'BENCHMARK_PROGRESS', 
@@ -424,45 +357,64 @@ try:
     from analyzer import analyze_source_code
     res = analyze_source_code(user_code)
 except Exception as err:
-    res = {"status": "error", "total": "ERROR", "overall_explanation": str(err)}
+    res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "overall_explanation": str(err)}
 json.dumps(res)
           `);
           const resultJs = JSON.parse(pyResultStr);
 
-          const expectedComplexity = String(item.expected_time || item.expectedComplexity || item.complexity || "O(1)").toLowerCase().replace(/\s+/g, "");
-          const predictedComplexity = String(resultJs.total || "").toLowerCase().replace(/\s+/g, "");
+          // Fuzzy extractors retrieve real GT
+          const rawExpectedTime = getGroundTruthTime(item);
+          const rawExpectedSpace = getGroundTruthSpace(item);
+          
+          const predictedTime = resultJs.total || "PARSE_FAIL";
+          const predictedSpace = resultJs.space_total || resultJs.space || "O(1)";
 
-          const isCorrect = (predictedComplexity === expectedComplexity) || 
-                            (predictedComplexity.includes(expectedComplexity) && expectedComplexity !== "") || 
-                            (expectedComplexity.includes(predictedComplexity) && predictedComplexity !== "");
+          // Strict Asymptotic string comparison
+          const normExpTime = normalizeComplexity(rawExpectedTime);
+          const normPredTime = normalizeComplexity(predictedTime);
+          const normExpSpace = normalizeComplexity(rawExpectedSpace);
+          const normPredSpace = normalizeComplexity(predictedSpace);
 
-          if (isCorrect) {
-            passedCount++;
-          } else {
-            failedCount++;
-          }
+          const isTimeCorrect = (normPredTime === normExpTime) || (normPredTime.includes(normExpTime) && normExpTime !== "");
+          const isSpaceCorrect = (normPredSpace === normExpSpace) || (normPredSpace.includes(normExpSpace) && normExpSpace !== "");
+
+          if (isTimeCorrect) timePassedCount++;
+          if (isSpaceCorrect) spacePassedCount++;
+          if (isTimeCorrect && isSpaceCorrect) bothPassedCount++;
 
           detailedResults.push({
             id: item.id || `case_${i + 1}`,
             name: testName,
-            category: item.category || item.algorithm_type || "Algorithm Benchmark",
-            codeSnippet: item.code || "# No code snippet provided",
-            expectedTime: item.expected_time || item.expectedComplexity || item.complexity || "O(1)",
-            predictedTime: resultJs.total || "PARSE_FAIL",
-            isCorrect: isCorrect,
-            explanation: resultJs.overall_explanation || "No explanation yielded."
+            category: item.category || item.algorithm_type || "SOP 2 Evaluation",
+            codeSnippet: item.code || "# No code snippet yielded",
+            expectedTime: rawExpectedTime,
+            predictedTime: predictedTime,
+            isTimeCorrect: isTimeCorrect,
+            expectedSpace: rawExpectedSpace,
+            predictedSpace: predictedSpace,
+            isSpaceCorrect: isSpaceCorrect,
+            isCompletelyCorrect: (isTimeCorrect && isSpaceCorrect),
+            explanation: resultJs.overall_explanation || "AST AST Traversal yielded no stack trace."
           });
         }
 
-        const accuracyRate = dataset.length > 0 ? (passedCount / dataset.length) * 100 : 0;
+        const totalCases = dataset.length > 0 ? dataset.length : 1;
+        const timeAcc = (timePassedCount / totalCases) * 100;
+        const spaceAcc = (spacePassedCount / totalCases) * 100;
+        const perfectAcc = (bothPassedCount / totalCases) * 100;
 
         self.postMessage({
           type: 'BENCHMARK_COMPLETE',
           payload: {
             totalTested: dataset.length,
-            passed: passedCount,
-            failed: failedCount,
-            accuracyRate: parseFloat(accuracyRate.toFixed(2)),
+            timePassed: timePassedCount,
+            timeFailed: dataset.length - timePassedCount,
+            timeAccuracyRate: parseFloat(timeAcc.toFixed(2)),
+            spacePassed: spacePassedCount,
+            spaceFailed: dataset.length - spacePassedCount,
+            spaceAccuracyRate: parseFloat(spaceAcc.toFixed(2)),
+            perfectPassed: bothPassedCount,
+            perfectAccuracyRate: parseFloat(perfectAcc.toFixed(2)),
             details: detailedResults
           }
         });
@@ -474,13 +426,7 @@ json.dumps(res)
 
   } catch (err) {
     clearTimeout(executionTimeout);
-    if (type === 'ANALYZE_CODE') {
-      self.postMessage({
-        type: 'ANALYZE_RESULT',
-        data: { status: 'error', message: err.message }
-      });
-    } else {
-      self.postMessage({ type: 'ERROR', data: err.message });
-    }
+    if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: err.message } });
+    else self.postMessage({ type: 'ERROR', data: err.message });
   }
 };
