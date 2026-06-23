@@ -269,6 +269,10 @@ export default function MainApp() {
   const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
   const updateTab = (id, updates) => setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
+  // Determine if the current user has admin privileges to enable import/export
+  const currentUser = getUser();
+  const isAdmin = !!currentUser?.isAdmin;
+
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
@@ -1200,7 +1204,19 @@ export default function MainApp() {
         </div>
       )}
 
-      <WorkspaceHeader viewMode={activeTab.viewMode} setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })} runCode={handleRunCode} handleExport={handleExportJson} handleImport={handleImportJson} handleSaveToDB={openSaveModal} currentProjectId={activeTab.currentLoadedId} currentProjectTitle={activeTab.title} handleUpdateDB={openSaveModal} isEvaluating={isEvaluating} />
+      <WorkspaceHeader 
+        viewMode={activeTab.viewMode} 
+        setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })} 
+        runCode={handleRunCode} 
+        handleExport={handleExportJson} 
+        handleImport={handleImportJson} 
+        handleSaveToDB={openSaveModal} 
+        currentProjectId={activeTab.currentLoadedId} 
+        currentProjectTitle={activeTab.title} 
+        handleUpdateDB={openSaveModal} 
+        isEvaluating={isEvaluating} 
+        isAdmin={isAdmin}
+      />
 
       <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[250, 400]} gutterSize={8}>
         <aside className="templates-sidebar">
