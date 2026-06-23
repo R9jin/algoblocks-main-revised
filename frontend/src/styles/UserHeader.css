@@ -1,5 +1,42 @@
+/* frontend/src/styles/UserHeader.css */
+
+/* --- HEADER CONTAINER --- */
+/* Assuming your header wrapper uses .landing-nav or a similar class */
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #FFFFFF !important; /* Forces light mode background */
+  border-bottom: 2px solid #E5E7EB;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+}
+
+/* --- LOGO LAYOUT --- */
+.logo-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px; /* Adjust this to change the space between the icon and text */
+  text-decoration: none;
+}
+
+.logo-img {
+  width: 32px; /* Keeps the logo at a consistent, neat size */
+  height: 32px;
+  object-fit: contain;
+  display: block;
+}
+
 .user-header-logo-text {
-  color: #FFFFFF !important;
+  color: #7C3AED !important; /* Primary purple text */
+  font-weight: 800;
+  font-size: 1.3rem;
+  margin: 0;
+  letter-spacing: -0.5px;
 }
 
 /* --- USER AVATAR & BUTTON --- */
@@ -30,28 +67,25 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
-  color: #FFFFFF;
+  background-color: #F5F3FF; /* Light purple background */
+  color: #7C3AED;            /* Primary purple text */
   font-weight: bold;
   font-size: 1.1rem;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 10px rgba(127, 87, 249, 0.3);
+  border: 2px solid #7C3AED;
   text-transform: uppercase;
 }
 
-/* --- DROPDOWN MENU (Glassmorphism) --- */
+/* --- DROPDOWN MENU (Light Academic Theme) --- */
 .user-dropdown {
   position: absolute;
   top: 130%;
   right: 0;
   width: 240px;
-  background: rgba(20, 10, 40, 0.85); /* Dark translucent */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #FFFFFF; /* Solid white background */
+  border: 1px solid #E5E7EB;
   border-radius: 16px;
   padding: 0.5rem 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); /* Softer shadow */
   z-index: 100;
   overflow: hidden;
   animation: dropdownFade 0.2s ease forwards;
@@ -73,7 +107,7 @@
   flex-direction: column;
   align-items: center;
   padding: 1.5rem 1rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid #E5E7EB;
   margin-bottom: 0.5rem;
 }
 
@@ -84,17 +118,17 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
-  color: #FFFFFF;
+  background-color: #F5F3FF; /* Light purple background */
+  color: #7C3AED;            /* Primary purple text */
   font-weight: bold;
   font-size: 1.5rem;
   margin-bottom: 0.75rem;
-  box-shadow: 0 4px 15px rgba(127, 87, 249, 0.4);
   text-transform: uppercase;
+  border: 2px solid #7C3AED;
 }
 
 .user-name {
-  color: #FFFFFF;
+  color: #111827; /* Dark text */
   font-weight: 700;
   font-size: 1.1rem;
   margin-bottom: 0.25rem;
@@ -102,7 +136,7 @@
 }
 
 .user-email {
-  color: #A396B8;
+  color: #6B7280; /* Muted dark text */
   font-size: 0.85rem;
   text-align: center;
   word-break: break-all;
@@ -116,7 +150,7 @@
   padding: 0.75rem 1.25rem;
   background: transparent;
   border: none;
-  color: #E0E0E0;
+  color: #4B5563; /* Gray text */
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -125,21 +159,21 @@
 }
 
 .user-dd-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #FFFFFF;
+  background-color: #F9FAFB; /* Light gray hover */
+  color: #111827;            /* Dark text on hover */
 }
 
 .user-dd-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.05);
+  background-color: #E5E7EB;
   margin: 0.5rem 0;
 }
 
 .user-dd-item.danger {
-  color: #FF6B6B;
+  color: #EF4444; /* Red for logout */
 }
 
 .user-dd-item.danger:hover {
-  background: rgba(255, 107, 107, 0.1);
-  color: #FF8787;
+  background-color: #FEF2F2; /* Light red background on hover */
+  color: #DC2626;
 }

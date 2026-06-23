@@ -190,7 +190,7 @@ export default function LandingPage() {
         </section>
 
         {/* SECTION 6: ABOUT US */}
-        <section id="about-us" className="saas-section bg-primary">
+        <section id="mission" className="saas-section bg-primary">
           <div className="about-layout">
             <div className="about-content">
               <span className="section-label">OUR MISSION</span>
@@ -223,7 +223,7 @@ export default function LandingPage() {
         <section id="final-cta" className="saas-section bg-white center">
           <div className="cta-box">
             <h2>Ready to Start Your Algorithm Journey?</h2>
-            <p>Learn, build, analyze, and improve your algorithmic thinking skills with AlgoBlocks.</p>
+            <p>Learn, build, analyze, and improve your algorithmic thinking skills with AlgoBlocks for FREE!</p>
             <div className="cta-group justify-center mt-2">
               <Link to="/signup" className="btn-primary-accent">Start Now</Link>
               <button type="button" className="btn-secondary-accent" onClick={handleGuestLogin}>

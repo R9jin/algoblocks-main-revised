@@ -66,7 +66,7 @@ export default function UserHeader({ user, onLogoutClick }) {
           style={{ cursor: "pointer" }}
         >
           <img
-            src="/assets/algoblocks_logo.png"
+            src="/assets/Lugu.svg"
             alt="AlgoBlocks Logo"
             className="logo-img"
           />

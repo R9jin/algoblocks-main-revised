@@ -33,7 +33,7 @@ export default function Header() {
         <a href="#how-it-works">How It Works</a>
         <a href="#features">Features</a>
         <a href="#workspace-preview">Workspace</a>
-        <a href="#about-us">About Us</a>
+        <a href="#mission">Mission</a>
       </div>
 
       <div className="nav-actions-right">

@@ -1,13 +1,124 @@
 /* frontend/src/styles/Footer.css */
-.landing-footer {
-    padding: 24px;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    text-align: center;
-    background-color: #FBFAFE; /* Blends with the new primary background */
-    border-top: 1px solid #E5E7EB;
+.edu-footer {
+  background-color: var(--bg-card, #FFFFFF);
+  border-top: 1px solid var(--border-color, #E5E7EB);
+  padding: 4rem 2rem 1.5rem;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text-body, #6B7280);
 }
 
-.footer-title { margin: 0 0 8px 0; color: #111827; }
-.footer-subtitle { margin: 0; color: #6B7280; font-size: 0.85rem; }
-.footer-disclaimer { margin: 8px 0 0 0; font-size: 0.75rem; color: #9CA3AF; }
+.edu-footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+/* --- Left Column --- */
+.footer-brand .footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+.footer-logo img {
+  width: 32px;
+  height: 32px;
+}
+
+.footer-logo h3 {
+  margin: 0;
+  color: var(--accent-primary, #7C3AED);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.thesis-title {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-heading, #111827);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.university-text {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.footer-links h4, .footer-team h4 {
+  color: var(--text-heading, #111827);
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.footer-links a {
+  color: var(--text-body, #6B7280);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: var(--accent-primary, #7C3AED);
+}
+
+.footer-team p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.edu-footer-bottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color, #E5E7EB);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.edu-footer-bottom p {
+  margin: 0;
+}
+
+.free-badge {
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--accent-primary, #7C3AED);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+  .edu-footer-content {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .edu-footer-bottom {
+    flex-direction: column;
+    text-align: center;
+  }
+}
