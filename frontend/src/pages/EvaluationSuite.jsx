@@ -2,11 +2,13 @@
 import { useEffect, useState } from "react";
 import {
   FiArrowLeft,
+  FiBookOpen,
   FiCheckCircle,
   FiClock,
   FiCode,
   FiCpu,
   FiDatabase,
+  FiHelpCircle,
   FiLayers,
   FiPlay,
   FiRefreshCw,
@@ -33,8 +35,18 @@ export default function EvaluationSuite() {
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState("all"); 
   const [selectedItemCode, setSelectedItemCode] = useState(null);
-  
   const [datasetOption, setDatasetOption] = useState("codeforces");
+
+  // Explainer Modal State & Interactive Sandbox State
+  const [isMetricsHelpOpen, setIsMetricsHelpOpen] = useState(false);
+  const [sandboxTP, setSandboxTP] = useState(80);
+  const [sandboxFP, setSandboxFP] = useState(10);
+  const [sandboxFN, setSandboxFN] = useState(10);
+
+  // Real-time sandbox calculations
+  const simPrecision = sandboxTP / (sandboxTP + sandboxFP) || 0;
+  const simRecall = sandboxTP / (sandboxTP + sandboxFN) || 0;
+  const simF1 = (simPrecision + simRecall > 0) ? (2 * simPrecision * simRecall) / (simPrecision + simRecall) : 0;
 
   useEffect(() => {
     if (!worker) return;
@@ -175,6 +187,108 @@ export default function EvaluationSuite() {
         </div>
       )}
 
+      {/* Scikit-Learn Classification Metrics Explainer & Interactive Sandbox Modal */}
+      {isMetricsHelpOpen && (
+        <div className="modal-overlay" onClick={() => setIsMetricsHelpOpen(false)}>
+          <div className="eval-modal-content metrics-help-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="eval-modal-header">
+              <div>
+                <h3 className="eval-modal-title">Understanding Classification Metrics</h3>
+                <span className="eval-dataset-subtitle">A practical guide to Precision, Recall, F1-Score, and Support</span>
+              </div>
+              <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close-sm">
+                <FiXCircle size={22} />
+              </button>
+            </div>
+
+            <div className="metrics-help-body">
+              <div className="metric-card-info">
+                <div className="metric-card-header">
+                  <span className="metric-name-badge" style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>Precision</span>
+                  <span className="metric-formula">TP / (TP + FP)</span>
+                </div>
+                <p className="metric-desc">
+                  <strong>&quot;Quality of Predictions&quot;</strong> — When the AST engine predicts an algorithm has a specific complexity (e.g., <code>O(N)</code>), Precision measures how often that prediction is correct. A score of 1.0 means every time it guessed <code>O(N)</code>, it was absolutely right.
+                </p>
+              </div>
+
+              <div className="metric-card-info">
+                <div className="metric-card-header">
+                  <span className="metric-name-badge" style={{ backgroundColor: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>Recall</span>
+                  <span className="metric-formula">TP / (TP + FN)</span>
+                </div>
+                <p className="metric-desc">
+                  <strong>&quot;Detection Completeness&quot;</strong> — Out of all algorithms that *actually* have a specific complexity in the ground truth, Recall measures how many the AST engine successfully detected. A score of 1.0 means it didn&apos;t miss a single <code>O(N)</code> algorithm.
+                </p>
+              </div>
+
+              <div className="metric-card-info">
+                <div className="metric-card-header">
+                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>F1-Score ( &amp; F2 )</span>
+                  <span className="metric-formula">2 × (P × R) / (P + R)</span>
+                </div>
+                <p className="metric-desc">
+                  <strong>&quot;Harmonic Balance&quot;</strong> — F1 is the harmonic mean of Precision and Recall. It punishes extreme disparities (e.g., 1.0 recall but 0.1 precision). <br />
+                  <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                    <FiBookOpen style={{ display: "inline", marginRight: "4px" }} /> <strong>What about F2-Score?</strong> The F2-Score weights Recall twice as heavily as Precision. In automated grading, F2 is often monitored because missing a student&apos;s correct algorithm (False Negative) is considered more harmful than accidentally passing an inefficient one (False Positive).
+                  </span>
+                </p>
+              </div>
+
+              <div className="metric-card-info">
+                <div className="metric-card-header">
+                  <span className="metric-name-badge" style={{ backgroundColor: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A" }}>Support</span>
+                  <span className="metric-formula">Count ( N )</span>
+                </div>
+                <p className="metric-desc">
+                  <strong>&quot;Sample Weight&quot;</strong> — The actual occurrence count of ground truth test cases belonging to this complexity class inside the benchmarking gauntlet.
+                </p>
+              </div>
+
+              {/* Interactive Demo Sandbox inside Modal */}
+              <div className="metric-interactive-box">
+                <h4 className="interactive-box-title"><FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }}/> Interactive Metric Sandbox</h4>
+                <p className="interactive-box-subtitle">Adjust the slider values below to see how false alarms and missed detections alter the final Scikit-Learn numbers in real time:</p>
+                
+                <div className="sandbox-controls">
+                  <div className="slider-group">
+                    <label>True Positives (Correct Detections): <strong>{sandboxTP}</strong></label>
+                    <input type="range" min="1" max="100" value={sandboxTP} onChange={(e) => setSandboxTP(parseInt(e.target.value))} />
+                  </div>
+                  <div className="slider-group">
+                    <label>False Positives (False Alarms / Guessed Wrong): <strong>{sandboxFP}</strong></label>
+                    <input type="range" min="0" max="100" value={sandboxFP} onChange={(e) => setSandboxFP(parseInt(e.target.value))} />
+                  </div>
+                  <div className="slider-group">
+                    <label>False Negatives (Missed Detections / Failed to Spot): <strong>{sandboxFN}</strong></label>
+                    <input type="range" min="0" max="100" value={sandboxFN} onChange={(e) => setSandboxFN(parseInt(e.target.value))} />
+                  </div>
+                </div>
+
+                <div className="sandbox-results">
+                  <div className="sandbox-stat">
+                    <span>Simulated Precision</span>
+                    <strong style={{ color: "#1D4ED8" }}>{simPrecision.toFixed(2)}</strong>
+                  </div>
+                  <div className="sandbox-stat">
+                    <span>Simulated Recall</span>
+                    <strong style={{ color: "#065F46" }}>{simRecall.toFixed(2)}</strong>
+                  </div>
+                  <div className="sandbox-stat" style={{ backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" }}>
+                    <span style={{ color: "#6B21A8" }}>Simulated F1-Score</span>
+                    <strong style={{ color: "#6D28D9" }}>{simF1.toFixed(2)}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="eval-modal-footer">
+              <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close">Got It, Close Guide</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Header Navigation */}
       <header className="workspace-header-purple">
         <div className="wh-left">
@@ -302,8 +416,15 @@ export default function EvaluationSuite() {
         {results && results.timeReport && results.spaceReport && (
           <div className="eval-sklearn-container">
             <div className="eval-sklearn-header">
-              <strong className="eval-sklearn-title"><FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Advanced Classification Metrics (Scikit-Learn Audit)</strong>
-              <span className="eval-sklearn-subtitle">Per-class asymptotic token precision, recall, and harmonic F1-score distributions</span>
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Advanced Classification Metrics (Scikit-Learn Audit)
+                </strong>
+                <span className="eval-sklearn-subtitle">Per-class asymptotic token precision, recall, and harmonic F1-score distributions</span>
+              </div>
+              <button onClick={() => setIsMetricsHelpOpen(true)} className="eval-btn-metrics-help">
+                <FiHelpCircle size={16} /> Understand Metric Numbers
+              </button>
             </div>
 
             <div className="eval-sklearn-grid">
@@ -318,10 +439,10 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th>Precision</th>
-                      <th>Recall</th>
-                      <th>F1-Score</th>
-                      <th>Support</th>
+                      <th title="Precision = TP / (TP + FP). Correctness rate when predicting this exact class.">Precision ⓘ</th>
+                      <th title="Recall = TP / (TP + FN). Detection rate across all actual cases of this class.">Recall ⓘ</th>
+                      <th title="F1-Score = Harmonic mean of Precision and Recall.">F1-Score ⓘ</th>
+                      <th title="Support = Ground truth occurrence count.">Support ⓘ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -374,10 +495,10 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th>Precision</th>
-                      <th>Recall</th>
-                      <th>F1-Score</th>
-                      <th>Support</th>
+                      <th title="Precision = TP / (TP + FP). Correctness rate when predicting this exact class.">Precision ⓘ</th>
+                      <th title="Recall = TP / (TP + FN). Detection rate across all actual cases of this class.">Recall ⓘ</th>
+                      <th title="F1-Score = Harmonic mean of Precision and Recall.">F1-Score ⓘ</th>
+                      <th title="Support = Ground truth occurrence count.">Support ⓘ</th>
                     </tr>
                   </thead>
                   <tbody>
