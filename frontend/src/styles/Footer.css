@@ -1,25 +1,13 @@
 /* frontend/src/styles/Footer.css */
-
 .landing-footer {
     padding: 24px;
     font-size: 0.9rem;
     line-height: 1.6;
+    text-align: center;
+    background-color: #FBFAFE; /* Blends with the new primary background */
+    border-top: 1px solid #E5E7EB;
 }
 
-.footer-title {
-    margin: 0 0 8px 0;
-    color: #EBE4FF;
-}
-
-.footer-subtitle {
-    margin: 0;
-    color: #BCA1FC;
-    font-size: 0.85rem;
-}
-
-.footer-disclaimer {
-    margin: 8px 0 0 0;
-    font-size: 0.75rem;
-    opacity: 0.8;
-    color: #A096B9;
-}
+.footer-title { margin: 0 0 8px 0; color: #111827; }
+.footer-subtitle { margin: 0; color: #6B7280; font-size: 0.85rem; }
+.footer-disclaimer { margin: 8px 0 0 0; font-size: 0.75rem; color: #9CA3AF; }
