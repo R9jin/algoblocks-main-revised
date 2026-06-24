@@ -16,7 +16,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
-import { assessmentsDB, progressDB, submissionsDB } from "../db";
+import { assessmentsDB, curriculumCacheDB, progressDB, submissionsDB } from "../db";
 import "../styles/LearningPath.css";
 import { syncDownFromServer } from "../utils/syncManager";
 
@@ -123,28 +123,59 @@ export default function LearningPath() {
 
   useEffect(() => {
     const fetchAllData = async () => {
-      const details = {};
-      const acts = {};
+      try {
+        const details = {};
+        const acts = {};
+        const fetchPromises = [];
 
-      for (const module of curriculumIndex) {
-        const mid = module.moduleId.split("-").pop();
-        try {
-          const resAct = await fetch(`/data/activities/module_${mid}.json`);
-          if (resAct.ok) acts[module.moduleId] = await resAct.json();
-        } catch (e) {}
-
-        for (const lesson of module.lessons) {
+        // Helper function to handle Cache or Network Fetch
+        const fetchWithCache = async (url, type, key) => {
           try {
-            const fetchPath = `/data/curriculum/${module.moduleId}/${lesson.lessonId}.json`;
-            const res = await fetch(fetchPath);
-            if (res.ok) details[lesson.lessonId] = await res.json();
-          } catch (e) {}
+            const cachedData = await curriculumCacheDB.getItem(url);
+            if (cachedData) {
+              if (type === 'activity') acts[key] = cachedData;
+              if (type === 'lesson') details[key] = cachedData;
+              return;
+            }
+
+            const res = await fetch(url);
+            if (res.ok) {
+              const data = await res.json();
+              await curriculumCacheDB.setItem(url, data);
+              if (type === 'activity') acts[key] = data;
+              if (type === 'lesson') details[key] = data;
+            }
+          } catch (e) {
+            console.warn(`Failed to load ${url}`, e);
+          }
+        };
+
+        for (const module of curriculumIndex) {
+          const mid = module.moduleId.split("-").pop();
+          
+          fetchPromises.push(
+            fetchWithCache(`/data/activities/module_${mid}.json`, 'activity', module.moduleId)
+          );
+
+          for (const lesson of module.lessons) {
+            fetchPromises.push(
+              fetchWithCache(`/data/curriculum/${module.moduleId}/${lesson.lessonId}.json`, 'lesson', lesson.lessonId)
+            );
+          }
         }
+
+        // Wait for all promises in parallel
+        await Promise.all(fetchPromises);
+
+        setLessonDetails(details);
+        setActivitiesData(acts);
+      } catch (e) {
+        console.error("Error loading curriculum:", e);
+      } finally {
+        setIsLoadingCurriculum(false);
       }
-      setLessonDetails(details);
-      setActivitiesData(acts);
-      setIsLoadingCurriculum(false);
     };
+
     fetchAllData();
   }, []);
 
@@ -187,7 +218,6 @@ export default function LearningPath() {
     const lockMap = {};
     if (isLoadingCurriculum) return lockMap;
 
-    // Everything is locked if the global pre-test is not done
     let isNextLocked = isAdmin ? false : !isGlobalPreTestDone;
 
     for (const module of curriculumIndex) {
@@ -206,7 +236,6 @@ export default function LearningPath() {
           }
         }
       }
-      // Lock next module if the current module's post-test isn't done
       const postComplete = hasPostAssessment(module.moduleId);
       if (!postComplete && !isAdmin) isNextLocked = true;
     }
@@ -215,7 +244,6 @@ export default function LearningPath() {
 
   const lockMap = buildLockMap();
 
-  // Check if entire curriculum is complete to unlock the Final Post-Test
   const isCurriculumComplete = curriculumIndex.every((module) => {
     return isModuleComplete(module.moduleId) && hasPostAssessment(module.moduleId);
   });
@@ -245,9 +273,7 @@ export default function LearningPath() {
         </div>
 
         <div className="modules-container">
-          {/* ========================================== */}
-          {/* GLOBAL PRE-TEST BANNER                   */}
-          {/* ========================================== */}
+          {/* GLOBAL PRE-TEST BANNER */}
           <div className="module-card-v2" style={{ border: "2px solid #7c5cff", marginBottom: "30px", background: "linear-gradient(145deg, rgba(124, 92, 255, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
             <div className="module-card-icon" style={{ backgroundColor: "#7c5cff15" }}>
               <FiAward size={32} color="#7c5cff" />
@@ -479,9 +505,7 @@ export default function LearningPath() {
             );
           })}
 
-          {/* ========================================== */}
-          {/* GLOBAL POST-TEST BANNER                  */}
-          {/* ========================================== */}
+          {/* GLOBAL POST-TEST BANNER */}
           <div className={`module-card-v2 ${!isGlobalPostTestUnlocked ? "locked" : ""}`} style={{ border: "2px solid #f59e0b", marginTop: "30px", background: "linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
             <div className="module-card-icon" style={{ backgroundColor: "#f59e0b15" }}>
               {isGlobalPostTestUnlocked ? <FiAward size={32} color="#f59e0b" /> : <FiLock size={32} color="#64748b" />}
