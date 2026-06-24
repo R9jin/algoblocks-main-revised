@@ -15,7 +15,7 @@ import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
 import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
 import { projectsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/MainApp.css";
-import { formatComplexity, formatExplanation } from "../utils/formatters";
+import { formatComplexity } from "../utils/formatters";
 
 import Editor from "@monaco-editor/react";
 import { FiActivity, FiAlertCircle, FiBookOpen, FiChevronDown, FiChevronRight, FiEdit2, FiFolder, FiGrid, FiInfo, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
