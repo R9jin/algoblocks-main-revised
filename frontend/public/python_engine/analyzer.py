@@ -1,5 +1,6 @@
-# analyzer.py
+# api/analyzer.py
 import ast
+import re
 import time
 from collections import deque, Counter
 from semantic_nlg import EducationalInsightGenerator as SemanticNLGEngine, ComprehensiveASTVisitor
@@ -10,10 +11,24 @@ except ImportError:
     AlgoBlocksTracer = None
 
 def safe_walk(node):
-    """Safely yields nodes to prevent '_fields' crashes on raw strings/primitives."""
-    if isinstance(node, ast.AST):
-        for child in ast.walk(node):
-            yield child
+    """
+    Safely yields nodes defensively by checking types at every level.
+    Prevents built-in ast.walk from crashing on raw strings or modified fields.
+    """
+    if not isinstance(node, ast.AST):
+        return
+    todo = deque([node])
+    while todo:
+        curr = todo.popleft()
+        if isinstance(curr, ast.AST):
+            yield curr
+            for _, value in ast.iter_fields(curr):
+                if isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, ast.AST):
+                            todo.append(item)
+                elif isinstance(value, ast.AST):
+                    todo.append(value)
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     def __init__(self, source_code, trace_data=None):
@@ -30,6 +45,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_if_depth = 0
         self.loop_stack = []
         self.in_list_comp_depth = 0
+        self.in_frequency_summation_depth = 0
         
         self.var_dimensions = {} 
         self.active_poly_dims = [] 
@@ -68,64 +84,71 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.conditional_partition_lines = []
         self.logic_hints = {} 
 
+        # RESTORED EXHAUSTIVE CPYTHON ARCHITECTURAL DESCRIPTIONS
         self.builtin_complexities = {
-            'sort': {'time': 'O(n log n)', 'space': 'O(1)'},
-            'sorted': {'time': 'O(n log n)', 'space': 'O(n)'},
-            'bisect': {'time': 'O(log n)', 'space': 'O(1)'},
-            'bisect_left': {'time': 'O(log n)', 'space': 'O(1)'},
-            'bisect_right': {'time': 'O(log n)', 'space': 'O(1)'},
-            'heappush': {'time': 'O(log n)', 'space': 'O(1)'},
-            'heappop': {'time': 'O(log n)', 'space': 'O(1)'},
-            'heapify': {'time': 'O(n)', 'space': 'O(1)'},
-            'insort': {'time': 'O(n)', 'space': 'O(1)'},
-            'insort_left': {'time': 'O(n)', 'space': 'O(1)'},
-            'insort_right': {'time': 'O(n)', 'space': 'O(1)'},
-            'gcd': {'time': 'O(log n)', 'space': 'O(1)'},
-            'join': {'time': 'O(n)', 'space': 'O(n)'},
-            'split': {'time': 'O(n)', 'space': 'O(n)'},
-            'list': {'time': 'O(n)', 'space': 'O(n)'},
-            'set': {'time': 'O(n)', 'space': 'O(n)'},
-            'dict': {'time': 'O(n)', 'space': 'O(n)'},
-            'tuple': {'time': 'O(n)', 'space': 'O(n)'},
-            'deque': {'time': 'O(n)', 'space': 'O(n)'},
-            'append': {'time': 'O(1) amortized', 'space': 'O(1)'},
-            'insert': {'time': 'O(n)', 'space': 'O(1)'},
-            'max': {'time': 'O(n)', 'space': 'O(1)'},
-            'min': {'time': 'O(n)', 'space': 'O(1)'},
-            'sum': {'time': 'O(n)', 'space': 'O(1)'},
-            'any': {'time': 'O(n)', 'space': 'O(1)'},
-            'all': {'time': 'O(n)', 'space': 'O(1)'},
-            'len': {'time': 'O(1)', 'space': 'O(1)'},
-            'abs': {'time': 'O(1)', 'space': 'O(1)'},
-            'round': {'time': 'O(1)', 'space': 'O(1)'},
-            'int': {'time': 'O(1)', 'space': 'O(1)'},
-            'float': {'time': 'O(1)', 'space': 'O(1)'},
-            'bool': {'time': 'O(1)', 'space': 'O(1)'},
-            'type': {'time': 'O(1)', 'space': 'O(1)'},
-            'isinstance': {'time': 'O(1)', 'space': 'O(1)'},
-            'str': {'time': 'O(n)', 'space': 'O(n)'},
-            'remove': {'time': 'O(n)', 'space': 'O(1)'},
-            'index': {'time': 'O(n)', 'space': 'O(1)'},
-            'count': {'time': 'O(n)', 'space': 'O(1)'},
-            'find': {'time': 'O(n)', 'space': 'O(1)'},
-            'replace': {'time': 'O(n)', 'space': 'O(n)'},
-            'copy': {'time': 'O(n)', 'space': 'O(n)'},
-            'reverse': {'time': 'O(n)', 'space': 'O(1)'},
-            'extend': {'time': 'O(n)', 'space': 'O(n)'},
-            'upper': {'time': 'O(n)', 'space': 'O(n)'},
-            'lower': {'time': 'O(n)', 'space': 'O(n)'},
-            'keys': {'time': 'O(1)', 'space': 'O(1)'},
-            'values': {'time': 'O(1)', 'space': 'O(1)'},
-            'items': {'time': 'O(1)', 'space': 'O(1)'},
-            'range': {'time': 'O(1)', 'space': 'O(1)'},
-            'clear': {'time': 'O(1)', 'space': 'O(1)'},
-            'get': {'time': 'O(1)', 'space': 'O(1)'},
-            'popleft': {'time': 'O(1)', 'space': 'O(1)'},
-            'union': {'time': 'O(n + m)', 'space': 'O(n + m)'},
-            'intersection': {'time': 'O(min(n, m))', 'space': 'O(min(n, m))'},
-            'difference': {'time': 'O(n)', 'space': 'O(n)'},
-            'update': {'time': 'O(m)', 'space': 'O(m)'},
-            'add': {'time': 'O(1)', 'space': 'O(1)'},
+            'sort': {'time': 'O(n log n)', 'space': 'O(1)', 'desc': 'Executes the hybrid, stable Timsort algorithm in-place directly on the existing list buffer.'},
+            'sorted': {'time': 'O(n log n)', 'space': 'O(n)', 'desc': 'Allocates a fresh O(n) list in memory and populates it using the stable Timsort algorithm.'},
+            'bisect': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs a standard iterative binary search over the sorted sequence to find the rightmost insertion point.'},
+            'bisect_left': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs an iterative binary search to locate the leftmost valid insertion point in a sorted sequence.'},
+            'bisect_right': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Performs a standard iterative binary search over the sorted sequence to find the rightmost insertion point.'},
+            'heappush': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Appends the element to the backing array and performs an O(log n) "sift-up" operation to restore the min-heap invariant.'},
+            'heappop': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Swaps the root with the last element, pops the back in O(1), and performs an O(log n) "sift-down" to restore heap order.'},
+            'heapify': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Transforms a populated list into a valid min-heap in strict linear O(n) time using Floyd’s optimal sift-down algorithm.'},
+            'insort': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Finds the insertion point in O(log n) via binary search, but requires an O(n) linear memory shift to insert the item.'},
+            'insort_left': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Finds the leftmost insertion point in O(log n), but requires an O(n) linear array shift to insert the element.'},
+            'insort_right': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Finds the rightmost insertion point in O(log n), but requires an O(n) linear array shift to insert the element.'},
+            'gcd': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Computes the greatest common divisor using the optimized C-level Euclidean algorithm, scaling logarithmically.'},
+            'join': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Performs a pre-computation pass to calculate total string length, then allocates a single contiguous O(n) character buffer.'},
+            'split': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Scans the string linearly to match delimiters, allocating new string objects and an O(n) list container for the tokens.'},
+            'list': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Iterates over the provided collection and copies its object pointers into a newly allocated contiguous array.'},
+            'set': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Hashes each element in the input stream and populates a newly allocated open-addressing hash table.'},
+            'dict': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Iterates over key-value pairs and inserts them into a dynamic CPython key-sharing hash table.'},
+            'tuple': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Allocates a fixed-size immutable block in memory and copies the references from the input iterable.'},
+            'deque': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Allocates a doubly-linked list of fixed-size memory blocks (64 objects per block in CPython) and populates them sequentially.'},
+            'append': {'time': 'O(1) amortized', 'space': 'O(1)', 'desc': 'Writes the object reference to the list buffer; triggers an occasional O(n) dynamic array overallocation sequence when full.'},
+            'insert': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Requires shifting all subsequent elements in the underlying C-array one index to the right to make room for the item.'},
+            'max': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Performs a complete linear scan across the iterable, keeping an internal pointer to the largest scalar encountered.'},
+            'min': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Linearly traverses the entire sequence once to determine the minimum object based on the __lt__ comparison operator.'},
+            'sum': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Traverses the numeric sequence sequentially, maintaining a running C-level accumulator variable.'},
+            'any': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Scans elements from left to right, short-circuiting and returning True immediately upon encountering the first truthy object.'},
+            'all': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Linearly evaluates the truthiness of each item, terminating early with False at the first falsy element encountered.'},
+            'len': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Reads the internal ob_size field directly from the PyVarObject C-struct header. This is an instantaneous O(1) lookup.'},
+            'abs': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Strips the sign bit or computes the vector magnitude via a direct C-level primitive arithmetic operation.'},
+            'round': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Executes a direct primitive CPU-level floating point rounding instruction.'},
+            'int': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Performs a direct C-level primitive type cast or delegates to the underlying object’s __int__ slot.'},
+            'float': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Executes a primitive CPU-level integer-to-float register conversion.'},
+            'bool': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Evaluates object truthiness instantly by checking pointer nullity or inspecting the __bool__ / __len__ slots.'},
+            'type': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Reads the ob_type pointer directly from the base PyObject C-struct header.'},
+            'isinstance': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Traverses the object’s internal __mro__ (Method Resolution Order) tuple pointers in C-memory.'},
+            'str': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Invokes the object’s __str__ slot, allocating an O(n) character buffer representing its formatted output.'},
+            'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Linearly searches the array for the target value and shifts all subsequent items leftward to close the memory gap.'},
+            'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Performs a sequential left-to-right equality check across the entire buffer to match the target sequence.'},
+            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Traverses the entire collection linearly, tallying strict equality matches against the target object.'},
+            'find': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Executes CPython’s optimized Boyer-Moore-Horspool string search algorithm across the character buffer.'},
+            'replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Scans the base string for target occurrences and allocates an entirely new immutable string buffer containing the replacements.'},
+            'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Allocates a new top-level container and performs a shallow pointer copy of all elements contained in the original.'},
+            'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Uses two converging pointers to swap elements in-place from opposite ends of the contiguous backing array.'},
+            'extend': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'Resizes the base list buffer once and bulk-copies the memory pointers from the appended M-length collection.'},
+            'upper': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Allocates a fresh immutable string object and applies the ASCII/Unicode uppercase bitmask across the buffer.'},
+            'lower': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Allocates a fresh immutable string object and applies the ASCII/Unicode lowercase bitmask across the buffer.'},
+            'strip': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Scans both boundaries for matching whitespace characters and allocates a trimmed slice of the base string.'},
+            'lstrip': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Scans the left boundary for matching whitespace characters and allocates a trimmed slice of the base string.'},
+            'rstrip': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Scans the right boundary for matching whitespace characters and allocates a trimmed slice of the base string.'},
+            'keys': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns a lightweight CPython dictionary view object that references the hash table keys without duplicating them.'},
+            'values': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns a lightweight CPython dictionary view object that references the hash table values without duplicating them.'},
+            'items': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns a lightweight CPython dictionary view object referencing the underlying key-value pairs.'},
+            'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Instantiates a lightweight C-struct containing only the start, stop, and step integers in memory.'},
+            'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Instantly resets the container’s internal size counter to zero and releases the reference counts of its contents.'},
+            'get': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Hashes the key and probes the dictionary table directly in O(1), safely returning the default fallback if unmapped.'},
+            'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Advances the deque’s internal left-index pointer by one and decrements the popped object’s reference count.'},
+            'union': {'time': 'O(n + m)', 'space': 'O(n + m)', 'desc': 'Allocates a new set table and hashes every element from both the N-sized base set and the M-sized input.'},
+            'intersection': {'time': 'O(min(n, m))', 'space': 'O(min(n, m))', 'desc': 'Iterates strictly over the smaller set and performs O(1) hash probes against the larger set to collect matches.'},
+            'difference': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Scans the base set and copies items into a new table if an O(1) hash probe confirms they do not exist in the subtrahend.'},
+            'symmetric_difference': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Traverses both sets to isolate unique elements, allocating a new set containing items present in one but not both.'},
+            'update': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'Iterates over the M-length input iterable, hashing each item and inserting it into the backing set table.'},
+            'add': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Hashes the object and inserts it into the set’s open-addressing table; handles rare hash collisions via double hashing.'},
+            'ord': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Reads the integer code point directly from the C-memory byte representing the character.'},
+            'chr': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Allocates a 1-character string object bound directly to the supplied Unicode integer code point.'}
         }
         self.aliases = {}
         self.nlg_engine = SemanticNLGEngine(self)
@@ -152,7 +175,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         elif "3^n" in complexity_str: w = 105
         elif "2^n" in complexity_str or "2ⁿ" in complexity_str: w = 100
         elif "n^3" in complexity_str or "n³" in complexity_str: w = 30
-        elif "n^2" in complexity_str or "n²" in complexity_str or "*" in complexity_str: w = 20
+        elif "n^2" in complexity_str or "n²" in complexity_str or "n * m" in complexity_str: w = 20
         elif "n log n" in complexity_str: w = 15
         elif "V + E" in complexity_str or "V" in complexity_str: w = 12
         elif "n" in complexity_str or "m" in complexity_str or "k" in complexity_str: w = 10
@@ -224,31 +247,35 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _get_iterable_name(self, node):
         if isinstance(node, ast.Name): return node.id
-        if isinstance(node, ast.Call) and getattr(node.func, 'id', '') == 'range':
-            args_len = len(node.args)
-            if args_len == 1: 
+        if isinstance(node, ast.Subscript):
+            if isinstance(node.value, ast.Name): return f"{node.value.id}[0]"
+        if isinstance(node, ast.Call):
+            func_id = getattr(node.func, 'id', '')
+            if func_id == 'len' and len(node.args) > 0:
                 arg = node.args[0]
-            elif args_len >= 2: 
-                if isinstance(node.args[0], ast.Name) and self._register_and_get_dim(node.args[0].id) == 'm':
-                    arg = node.args[0]
-                else:
-                    arg = node.args[1]
-            else: return None
-            
-            if isinstance(arg, ast.Name): return arg.id
-            if isinstance(arg, ast.BinOp):
-                if isinstance(arg.left, ast.Name): return arg.left.id
-                if isinstance(arg.right, ast.Name): return arg.right.id
-            if isinstance(arg, ast.Call) and getattr(arg.func, 'id', '') == 'len' and len(arg.args) > 0 and isinstance(arg.args[0], ast.Name):
-                return arg.args[0].id
+                if isinstance(arg, ast.Name): return arg.id
+                if isinstance(arg, ast.Subscript) and isinstance(arg.value, ast.Name):
+                    return f"{arg.value.id}[0]"
+            elif func_id == 'range' and len(node.args) > 0:
+                arg = node.args[0] if len(node.args) == 1 else node.args[1]
+                if isinstance(arg, ast.Name): return arg.id
+                if isinstance(arg, ast.Subscript) and isinstance(arg.value, ast.Name):
+                    return f"{arg.value.id}[0]"
+                if isinstance(arg, ast.Call) and getattr(arg.func, 'id', '') == 'len':
+                    if len(arg.args) > 0:
+                        sub_arg = arg.args[0]
+                        if isinstance(sub_arg, ast.Name): return sub_arg.id
+                        if isinstance(sub_arg, ast.Subscript) and isinstance(sub_arg.value, ast.Name):
+                            return f"{sub_arg.value.id}[0]"
         return None
 
     def _register_and_get_dim(self, var_name):
-        if not var_name: return 'n'
+        if not var_name or len(var_name) <= 1: return 'n'
         if isinstance(var_name, str):
             lower_name = var_name.lower()
             if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
-            if lower_name in ['m', 'amount', 'capacity', 'cols', 'width', 'target', 'arr2', 'list2', 'arrb', 'b', 'val']: return 'm'
+            if any(kw in lower_name for kw in ['[0]', 'col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'val', 'm']): 
+                return 'm'
             return 'n'
         return 'n'
 
@@ -304,7 +331,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         from collections import deque
         queue = deque([(tree, None)])
         
-        # UPGRADE: Call graph now stores complex edge metadata objects
         self.call_graph = {'__main__': []}
         self.reachable_funcs = set()
         
@@ -331,15 +357,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     caller = current_func if current_func else '__main__'
                     line_num = getattr(current_node, 'lineno', -1)
                     
-                    # Cross-reference with the dynamic profiler to get execution count
                     hits = self.trace_data.get("line_hits", {}).get(line_num, 0)
-                    
-                    # Check for exact duplicate edges from the same line
                     if not any(e['target'] == called_func and e['line'] == line_num for e in self.call_graph[caller]):
                         self.call_graph[caller].append({'target': called_func, 'line': line_num, 'hits': hits})
             
             for child in ast.iter_child_nodes(current_node):
-                queue.append((child, current_func))
+                if isinstance(child, ast.AST):
+                    queue.append((child, current_func))
         
         reach_queue = deque(['__main__'])  
         reach_queue.extend(list(self.reachable_funcs)) 
@@ -364,7 +388,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for func in indirect_graph:
             visited, rec_stack = set(), set()
             if self._has_cycle(func, visited, rec_stack, indirect_graph):
-                self.custom_functions[func] = "O(2^n)"
+                self.custom_functions[func] = "T(n)"
                 self.indirect_recursive_funcs.add(func)
 
     def _has_cycle(self, node, visited, rec_stack, graph):
@@ -447,13 +471,28 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             elif isinstance(node.iter, (ast.List, ast.Tuple, ast.Set, ast.Constant)): return True
         return False
 
+    def _is_frequency_summation_loop(self, node):
+        if isinstance(node, ast.For):
+            if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
+                if len(node.iter.args) > 0:
+                    arg = node.iter.args[0]
+                    if isinstance(arg, ast.Subscript):
+                        base_name = getattr(getattr(arg, 'value', None), 'id', '').lower()
+                        if any(kw in base_name for kw in ['count', 'freq', 'bucket', 'dp']):
+                            return True
+            iter_name = getattr(getattr(node, 'target', None), 'id', '').lower()
+            if 'bucket' in iter_name or 'adj' in iter_name or 'graph' in iter_name:
+                for child in safe_walk(node):
+                    if isinstance(child, ast.Call) and getattr(getattr(child, 'func', None), 'attr', '') in ['extend', 'append']:
+                        return True
+        return False
+
     def _is_log_loop(self, node):
         if not isinstance(node, ast.While): return False, None
         cond_vars = set()
         for child in safe_walk(node.test):
             if isinstance(child, ast.Name): cond_vars.add(child.id)
                 
-        # UPGRADE: Euclidean Algorithm (a, b = b, a % b)
         for child in node.body:
             for sub in safe_walk(child):
                 if isinstance(sub, ast.Assign) and getattr(sub, 'targets', []):
@@ -462,7 +501,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             if isinstance(elt, ast.BinOp) and isinstance(elt.op, ast.Mod):
                                 return True, None
 
-        # UPGRADE: Binary Search Pattern (mid = (l + r) // 2)
         mid_vars = set()
         for child in node.body:
             for sub in safe_walk(child):
@@ -700,7 +738,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             else: local_t = self._build_time_str(node_dims, node_log, node_sqrt, 0, node_graph, gcd_vars)
             
             if is_loop_or_func or bool(node_dims or node_log or node_sqrt or node_graph or (time_override and time_override not in ["O(1)", "Definition", "Dead Code", "T(placeholder)"] and not is_recurrence)):
-                tot_dims = self.active_poly_dims + node_dims
+                tot_dims = self.active_poly_dims + (node_dims if is_loop_or_func else [])
+                if not is_loop_or_func and node_dims and len(self.active_poly_dims) < 2:
+                    tot_dims = self.active_poly_dims + node_dims
                 tot_log = self.log_loop_depth + node_log
                 tot_sqrt = getattr(self, 'sqrt_loop_depth', 0) + node_sqrt
                 tot_graph = getattr(self, 'graph_depth', 0) + node_graph
@@ -712,7 +752,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 
             if global_time_override: global_t = global_time_override
             else:
-                if local_t == "O(1)" and not is_recursive_call: global_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars)
+                cumulative_ops = {"Tuple Recreation", "Tuple Immutability Recreation", "String Build", "String Concatenation (Immutable)", "Geometric Expansion", "Linear Accumulation"}
+                if custom_op in cumulative_ops and time_override:
+                    global_t = time_override
+                    tot_dims = [d for d in node_dims if d != 'n'] if time_override != "O(n^2)" else ['n', 'n']
+                elif local_t == "O(1)" and not is_recursive_call: 
+                    global_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars)
                 else:
                     if is_recurrence: global_t = time_override
                     else: global_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars)
@@ -765,9 +810,22 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for var_name, var_data in mem_state.items():
             var_data["explanation"] = self.nlg_engine.generate_variable_explanation(var_name, var_data, self.var_types.get(var_name))
 
+        # EXPLICIT BUILT-IN DESCRIPTION SAFETY LOOKUP
+        builtin_desc = None
+        if isinstance(node, ast.Call):
+            func_obj = getattr(node, 'func', None)
+            if isinstance(func_obj, ast.Name):
+                builtin_desc = self.builtin_complexities.get(func_obj.id, {}).get('desc')
+            elif isinstance(func_obj, ast.Attribute):
+                builtin_desc = self.builtin_complexities.get(func_obj.attr, {}).get('desc')
+
         time_exp, space_exp = self.nlg_engine.generate_explanations(
             node, local_t, global_t, local_s, global_s, is_dead, line_text, hits, mem_state
         )
+
+        if builtin_desc and not is_dead:
+            if builtin_desc not in time_exp:
+                time_exp = builtin_desc + ("\n\n" + time_exp if time_exp and time_exp != "Function call." else "")
 
         hints = self.logic_hints.get(getattr(node, 'lineno', -1), [])
         if hints: time_exp += "\n\n" + "\n".join(hints)
@@ -926,6 +984,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.active_poly_dims = [] 
         self.loop_stack = []
         self.loop_depth = 0
+        self.in_frequency_summation_depth = 0
         self.current_function_name = node.name
         self.recursive_calls_count = 0
         
@@ -971,7 +1030,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self.custom_space[node.name] = "O(n)"
         else:
             if is_indirect:
-                relation = "T(n) = T(n-1) + T(n-2) + O(1)" 
+                relation = "T(n) = T(n-1) + O(1)" 
             elif self.has_recursion_in_loop: 
                 if self.in_graph_context:
                     relation = "O(V + E)"
@@ -1083,7 +1142,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
                 self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
-        # Apply global time resolutions to internal calls, but NOT to the def line itself
         if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect:
             resolved_rel = relation
             for k, v in lookup.items():
@@ -1091,20 +1149,29 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     resolved_rel = v
                     break
             
+            heavy_ops = {"Loop", "Array Slicing", "List Comprehension", "Set Comprehension", "Dict Comprehension", "Generator Expression", "Sort", "Sorted", "Deep Copy Allocation", "Row Allocation", "2D Array Allocation", "List Repetition", "Set Operation", "Slice Assignment"}
+            
             for i in range(start_idx + 1, len(self._details)):
                 loc_t = str(self._details[i]["local_time"])
                 op = self._details[i]["operation"]
                 
                 if op == "Dead Code":
                     self._details[i]["global_time"] = "O(1)"
+                    self._details[i]["weight"] = self._get_weight("O(1)")
                     continue
                     
-                if loc_t.startswith("T(") or loc_t == "T(placeholder)":
+                is_rec_call = loc_t.startswith("T(") or loc_t == "T(placeholder)" or "Recursive Call" in op
+                is_heavy_op = op in heavy_ops or (loc_t not in ["O(1)", "Definition", "Dead Code"])
+                
+                if is_rec_call or is_heavy_op:
                     self._details[i]["global_time"] = resolved_rel
-                else:
-                    self._details[i]["global_time"] = resolved_rel
+                    self._details[i]["weight"] = self._get_weight(resolved_rel, False)
+                elif not getattr(self, 'in_graph_context', False):
+                    if self._details[i]["global_time"] == "O(1)" and relation not in ["O(1)", "O(log n)"]:
+                        if "2T(" in relation or "T(n-1) + T(n-2)" in relation or self.recursive_calls_count >= 2:
+                            self._details[i]["global_time"] = "O(n)"
+                            self._details[i]["weight"] = self._get_weight("O(n)")
 
-        # Force the actual `def` statement to strictly be O(1)
         self._details[start_idx]["local_time"] = "O(1)"
         self._details[start_idx]["global_time"] = "O(1)"
         self._details[start_idx]["local_space"] = "O(1)"
@@ -1128,7 +1195,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self._details[i]["global_space"] = final_sp_upgrade
 
         self.current_function_name = None; self.in_graph_context = False; self.recursive_calls_count = 0 
-        self.function_gcd_vars = None
+        self.function_gcd_vars = None; self.in_frequency_summation_depth = 0
         self.has_recursion_in_loop = self.has_slicing = self.has_partitioning = self.has_division = self.has_global_accumulation = False
 
     def visit_If(self, node):
@@ -1197,6 +1264,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_const = self._is_constant_loop(node)
         is_sqrt = self._is_sqrt_loop(node)
         
+        is_frequency_summation = self._is_frequency_summation_loop(node)
+
+        if is_frequency_summation:
+            self.in_frequency_summation_depth += 1
+            self.record_line(node, time_override="O(1)", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Frequency Loop")
+            self.current_depth += 1; self._visit_block(node.body); self.current_depth -= 1
+            self.in_frequency_summation_depth -= 1
+            self.loop_stack.pop()
+            return
+
         self.record_line(node, time_override=None, space_override=None)
         
         if getattr(self, 'in_graph_context', False) and self._is_graph_for_loop(node):
@@ -1298,12 +1375,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def visit_Call(self, node):
         is_accumulating = False
-        if isinstance(node.func, ast.Attribute) and node.func.attr in ['append', 'extend', 'add']:
+        if isinstance(node.func, ast.Attribute) and node.func.attr in ['append', 'extend', 'add', 'insert']:
             is_accumulating = True
             self.has_global_accumulation = True
             if node.func.attr == 'add' and isinstance(getattr(node.func, 'value', None), ast.Name):
                 self.var_types[node.func.value.id] = 'set'
-        elif isinstance(node.func, ast.Name) and node.func.id in ['append', 'extend', 'add']:
+        elif isinstance(node.func, ast.Name) and node.func.id in ['append', 'extend', 'add', 'insert']:
             is_accumulating = True
             self.has_global_accumulation = True
             
@@ -1311,7 +1388,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_accumulation_context = prev_acc or is_accumulating
         
         if is_accumulating and len(self.loop_stack) > 0:
-            self.max_space_weight = max(self.max_space_weight, 1)
+            if self.in_frequency_summation_depth > 0:
+                self.max_space_weight = max(self.max_space_weight, 1)
+            elif len(self.loop_stack) > 1:
+                self.max_space_weight = max(self.max_space_weight, 2)
+            else:
+                self.max_space_weight = max(self.max_space_weight, 1)
 
         if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(node.func, 'id', '') == 'append':
             self.add_logic_hint(node, "Logic Hint (Amortized Analysis): The `.append()` operation is generally O(1) constant time, but occasionally triggers an O(n) background array resize sequence when memory capacity is breached.")
@@ -1331,10 +1413,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if len(self.active_poly_dims) > 0 or self.log_loop_depth > 0: 
                     self.has_recursion_in_loop = True  
 
-                if getattr(self, 'in_graph_context', False): 
-                    self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
-                else: 
-                    self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
+                self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
             elif f_id in self.builtin_complexities:
                 if f_id in ['set', 'list', 'dict', 'deque', 'tuple']:
                     has_args = bool(getattr(node, 'args', []))
@@ -1343,7 +1422,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         is_single_arg = True
                     
                     t_ov = "O(1)" if (not has_args or is_single_arg) else "O(n)"
-                    s_ov = "O(V)" if getattr(self, 'in_graph_context', False) else "O(n)"
+                    s_ov = "O(V)" if getattr(self, 'in_graph_context', False) else ("O(1)" if (not has_args or is_single_arg) else "O(n)")
                     self.record_line(node, time_override=t_ov, space_override=s_ov, custom_op=f"{f_id.capitalize()} Init")
                 elif f_id in ['min', 'max'] and len(getattr(node, 'args', [])) > 1:
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op=f"{f_id.capitalize()} (Scalar Comparison)")
@@ -1436,7 +1515,20 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         custom_op = None
         
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Subscript):
-            custom_op = "Update"
+            base_var = getattr(node.targets[0].value, 'id', '')
+            if self.var_types.get(base_var) == 'dict' and len(self.loop_stack) > 0:
+                custom_op = "Dictionary Population"
+                t_ov = "O(1)"
+                s_ov = "O(n)"
+                self.max_space_weight = max(self.max_space_weight, 1)
+            elif isinstance(getattr(node.targets[0], 'slice', None), ast.Slice):
+                custom_op = "Slice Assignment"
+                t_ov = "O(n)"
+                s_ov = "O(n)"
+            else:
+                custom_op = "Update"
+                t_ov = "O(1)"
+                s_ov = "O(1)"
 
         if getattr(self, 'in_graph_context', False):
             if isinstance(node.value, (ast.ListComp, ast.SetComp, ast.DictComp)): 
@@ -1488,7 +1580,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     s_ov = "O(n)"
                 else:
                     custom_op = "List Init"
-                    if len(node.value.elts) == 0: s_ov = "O(n)" 
+                    t_ov = "O(1)" if len(node.value.elts) <= 10 else "O(n)"
+                    s_ov = "O(1)" if len(node.value.elts) <= 10 else "O(n)"
             elif isinstance(node.value, ast.Set):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
                     custom_op = "Set Init (Unpacking)"
@@ -1496,7 +1589,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     s_ov = "O(n)"
                 else:
                     custom_op = "Set Init"
-                    if len(node.value.elts) == 0: s_ov = "O(n)" 
+                    t_ov = "O(1)" if len(node.value.elts) <= 10 else "O(n)"
+                    s_ov = "O(1)" if len(node.value.elts) <= 10 else "O(n)"
             elif isinstance(node.value, ast.Dict):
                 if any(k is None for k in node.value.keys):
                     custom_op = "Dict Init (Unpacking)"
@@ -1504,7 +1598,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     s_ov = "O(n)"
                 else:
                     custom_op = "Dict Init"
-                    if len(node.value.keys) == 0: s_ov = "O(n)" 
+                    t_ov = "O(1)" if len(node.value.keys) <= 10 else "O(n)"
+                    s_ov = "O(1)" if len(node.value.keys) <= 10 else "O(n)"
             elif isinstance(node.value, ast.Tuple):
                 if any(isinstance(elt, ast.Starred) for elt in node.value.elts):
                     custom_op = "Tuple Init (Unpacking)"
@@ -1531,7 +1626,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 custom_op = "List Repetition"
                 t_ov = f"O({dim_var})"
                 s_ov = f"O({dim_var})"
-            elif isinstance(node.value, ast.Subscript) and isinstance(node.value.slice, ast.Slice): 
+            elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice): 
                 custom_op = "Array Slicing"
                 t_ov = "O(n)"
                 s_ov = "O(n)"
@@ -1548,8 +1643,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             t_ov = "O(1)"
                             s_ov = "O(1)"
                         else:
-                            t_ov = "O(n)" if gt != "O(1)" else "O(1)"
-                            s_ov = "O(n)" if gs != "O(1)" else "O(1)"
+                            t_ov = gt
+                            s_ov = gs
+                            if "n^2" in gs or "n²" in gs:
+                                self.max_space_weight = max(self.max_space_weight, 2)
                         custom_op = op
                         break
 
@@ -1591,7 +1688,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if isinstance(node.target, ast.Name) and self.var_types.get(node.target.id) == 'str' and isinstance(node.op, ast.Add):
             if len(self.loop_stack) > 0:
-                self.max_space_weight = max(self.max_space_weight, 1)
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Build")
                 return 
 
@@ -1605,12 +1701,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)  
 
     def visit_Subscript(self, node):
-        if isinstance(node.slice, ast.Slice):
+        if isinstance(getattr(node, 'slice', None), ast.Slice):
             self.has_slicing = True  
             slice_str = ast.dump(node.slice).lower()
             if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
                 self.has_partitioning = True
-            self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Array Slicing")
+            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Array Slicing")
         self.generic_visit(node)  
 
     def visit_BinOp(self, node):
@@ -1716,10 +1812,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     best_comp = mapped
 
             if c.startswith("O(") and c != "O(1)":
-                if c.count('*') >= 2 and best_rank < 7:
-                    best_rank = 7
-                    best_comp = "O(n^3)"
-                elif "*" in c and "log" not in c and best_rank < 6:
+                c_clean = re.sub(r'[a-zA-Z]*(min|max|sum|amortized|log|sqrt)[a-zA-Z]*', '', c)
+                if "n * m" in c or ("n" in c_clean and "m" in c_clean and best_rank < 6.1):
+                    best_rank = 6.1
+                    best_comp = "O(n * m)"
+                elif "*" in c and "log" not in c and "m" not in c_clean and best_rank < 6:
                     best_rank = 6
                     best_comp = "O(n^2)"  
                 elif "*" in c and "log" in c and best_rank < 6.5:
@@ -1748,7 +1845,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if self.max_space_weight >= 5: top_s = "O(n^n)"
         elif self.max_space_weight >= 4: top_s = "O(n^3)"
         elif self.max_space_weight >= 3: top_s = "O(V + E)"
-        elif self.max_space_weight >= 2: top_s = "O(n * m)" if "n * m" in self.max_poly_str else "O(n^2)"
+        elif self.max_space_weight >= 2: top_s = "O(n * m)" if ("n * m" in self.max_poly_str and len(self.active_poly_dims) > 1) else "O(n^2)"
         elif self.max_space_weight >= 1: top_s = "O(n)"
         elif self.max_space_weight >= 0.5: top_s = "O(log n)"
         all_spaces.append(top_s)

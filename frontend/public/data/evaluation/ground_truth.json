@@ -571,10 +571,10 @@
     "id": "list_extend_builtin_42",
     "name": "List Extend O(K)",
     "code": "def combine_lists(arr1, arr2):\n    arr1.extend(arr2)\n    return arr1",
-    "expected_overall_time": "O(n)",
-    "expected_overall_space": "O(n)",
+    "expected_overall_time": "O(m)",
+    "expected_overall_space": "O(m)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(n)", "global_time": "O(n)", "space": "O(n)"},
+      {"lineno": 2, "local_time": "O(m)", "global_time": "O(m)", "space": "O(m)"},
       {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "space": "O(1)"}
     ]
   },
@@ -626,16 +626,16 @@
     "expected_overall_time": "O(n log n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 4, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(n)"},
       {"lineno": 5, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(n)"},
       {"lineno": 6, "local_time": "T(n/2)", "global_time": "O(n log n)", "space": "O(1)"},
       {"lineno": 7, "local_time": "T(n/2)", "global_time": "O(n log n)", "space": "O(1)"},
-      {"lineno": 8, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 8, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
       {"lineno": 9, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(1)"},
-      {"lineno": 18, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"},
-      {"lineno": 22, "local_time": "O(1)", "global_time": "O(n log n)", "space": "O(1)"}
+      {"lineno": 17, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(1)"},
+      {"lineno": 21, "local_time": "O(n)", "global_time": "O(n log n)", "space": "O(1)"}
     ]
   },
   {
@@ -1077,24 +1077,24 @@
     "id": "indirect_recursion_a_78",
     "name": "Indirect Recursion (Ping-Pong A)",
     "code": "def ping(n):\n    if n <= 0:\n        return\n    pong(n - 1)",
-    "expected_overall_time": "O(2^n)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"}
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"}
     ]
   },
   {
     "id": "indirect_recursion_b_79",
     "name": "Indirect Recursion (Ping-Pong B)",
     "code": "def pong(n):\n    if n <= 0:\n        return\n    ping(n - 1)",
-    "expected_overall_time": "O(2^n)",
+    "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
     "line_metrics": [
-      {"lineno": 2, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
-      {"lineno": 3, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"},
-      {"lineno": 4, "local_time": "O(1)", "global_time": "O(2^n)", "space": "O(1)"}
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"},
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(n)", "space": "O(1)"}
     ]
   },
   {

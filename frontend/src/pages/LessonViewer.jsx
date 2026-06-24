@@ -16,7 +16,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import BigOChart from "../components/BigOChart";
 import CodeSnippet from "../components/CodeSnippet";
 import curriculumIndex from "../data/curriculumIndex";
-import { assessmentsDB, progressDB } from "../db";
+import { assessmentsDB, curriculumCacheDB, progressDB } from "../db";
 import "../styles/LessonViewer.css";
 
 function formatText(text) {
@@ -236,22 +236,46 @@ export default function LessonViewer() {
     const fetchAllData = async () => {
       const details = {};
       const acts = {};
+      const fetchPromises = [];
+
+      const fetchWithCache = async (url, type, key) => {
+        try {
+          const cachedData = await curriculumCacheDB.getItem(url);
+          if (cachedData) {
+            if (type === 'activity') acts[key] = cachedData;
+            if (type === 'lesson') details[key] = cachedData;
+            return;
+          }
+
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            await curriculumCacheDB.setItem(url, data);
+            if (type === 'activity') acts[key] = data;
+            if (type === 'lesson') details[key] = data;
+          }
+        } catch (e) {
+          console.warn(`Failed to load ${url}`, e);
+        }
+      };
 
       for (const module of curriculumIndex) {
         const mid = module.moduleId.split("-").pop();
-        try {
-          const resAct = await fetch(`/data/activities/module_${mid}.json`);
-          if (resAct.ok) acts[module.moduleId] = await resAct.json();
-        } catch (e) {}
+        
+        fetchPromises.push(
+          fetchWithCache(`/data/activities/module_${mid}.json`, 'activity', module.moduleId)
+        );
 
         for (const lessonMeta of module.lessons) {
-          try {
-            const fetchPath = `/data/curriculum/${module.moduleId}/${lessonMeta.lessonId}.json`;
-            const res = await fetch(fetchPath);
-            if (res.ok) details[lessonMeta.lessonId] = await res.json();
-          } catch (e) {}
+          fetchPromises.push(
+            fetchWithCache(`/data/curriculum/${module.moduleId}/${lessonMeta.lessonId}.json`, 'lesson', lessonMeta.lessonId)
+          );
         }
       }
+
+      // Parallel fetch for the sidebar mapping
+      await Promise.all(fetchPromises);
+
       setLessonDetails(details);
       setActivitiesData(acts);
     };
@@ -268,10 +292,20 @@ export default function LessonViewer() {
         if (!lessonMeta) return;
 
         const fetchPath = `/data/curriculum/${moduleId}/${lessonId}.json`;
+        
+        // Optimize actual lesson text load with Cache
+        const cachedData = await curriculumCacheDB.getItem(fetchPath);
+        if (cachedData) {
+          setLesson(cachedData);
+          setLoading(false);
+          return;
+        }
+
         const response = await fetch(fetchPath);
         if (!response.ok) throw new Error(`Failed to fetch lesson: ${response.status}`);
 
         const data = await response.json();
+        await curriculumCacheDB.setItem(fetchPath, data); // Save for next time
         setLesson(data);
       } catch (error) {
         console.error("Failed to load lesson:", error);

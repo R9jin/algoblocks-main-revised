@@ -32,6 +32,12 @@ export const assessmentsDB = localforage.createInstance({
     storeName: "assessments"
 });
 
+// Cache for Curriculum JSON files to prevent slow network waterfalls
+export const curriculumCacheDB = localforage.createInstance({
+    name: "AlgoBlocks_Curriculum",
+    storeName: "curriculum_cache"
+});
+
 // Helper functions for React components to use
 export const saveProjectOffline = async (projectData) => {
     const id = projectData._id || `local_${Date.now()}`;

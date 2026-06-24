@@ -4,7 +4,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import { PyodideProvider } from "./context/PyodideContext";
 import Dashboard from "./pages/Dashboard";
-import EvaluationSuite from "./pages/EvaluationSuite"; // <-- HARD STATIC IMPORT
+import EvaluationSuite from "./pages/EvaluationSuite";
 import ForgotPassword from "./pages/ForgotPassword";
 import LandingPage from "./pages/HomePage";
 import LearningPath from "./pages/LearningPath";
@@ -50,7 +50,9 @@ function App() {
 
   return (
     <PyodideProvider>
+      {/* The singleton logic in OfflineIndicator now ensures this is the ONLY one rendered */}
       <OfflineIndicator />
+      
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
         <Routes>
           <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
@@ -69,7 +71,6 @@ function App() {
           <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           
-          {/* RAW UNPROTECTED ROUTE TO FORCE COMPILE COMPONENT */}
           <Route path="/admin/evaluation-suite" element={<EvaluationSuite />} />
         </Routes>
       </Suspense>
