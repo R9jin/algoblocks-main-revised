@@ -33,6 +33,28 @@ def activate_mock_inputs():
     builtins.input = lambda *args, **kwargs: "1 2 3 4 5 6 7 8 9 10"
 
 
+# --- CSV COMPLEXITY NORMALIZATION MAP ---
+CSV_COMPLEXITY_MAP = {
+    "constant": "O(1)",
+    "logn": "O(log n)",
+    "linear": "O(n)",
+    "nlogn": "O(n log n)",
+    "quadratic": "O(n^2)",
+    "cubic": "O(n^3)",
+    "np": "O(2^n)",
+    "exponential": "O(2^n)",
+    "o(1)": "O(1)",
+    "o(logn)": "O(log n)",
+    "o(log n)": "O(log n)",
+    "o(n)": "O(n)",
+    "o(nlogn)": "O(n log n)",
+    "o(n log n)": "O(n log n)",
+    "o(n^2)": "O(n^2)",
+    "o(n^3)": "O(n^3)",
+    "o(2^n)": "O(2^n)",
+    "o(n!)": "O(n!)",
+}
+
 # --- THE ACADEMIC EQUIVALENCE MAP ---
 EQUIVALENCE_MAP = {
     "T(n) = T(n/2) + O(1)": "O(log n)",
@@ -49,7 +71,15 @@ EQUIVALENCE_MAP = {
     "O(n * m^2)": "O(n^3)",
     "O(n^2 log n)": "O(n^2 log n)",
     "O(1) amortized": "O(1)",
-    "O(V)": "O(V + E)"
+    "O(V)": "O(V + E)",
+    "constant": "O(1)",
+    "logn": "O(log n)",
+    "linear": "O(n)",
+    "nlogn": "O(n log n)",
+    "quadratic": "O(n^2)",
+    "cubic": "O(n^3)",
+    "np": "O(2^n)",
+    "exponential": "O(2^n)"
 }
 
 def check_match(actual, expected):
@@ -61,6 +91,8 @@ def check_match(actual, expected):
     if EQUIVALENCE_MAP.get(actual) == expected:
         return True
     if EQUIVALENCE_MAP.get(expected) == actual:
+        return True
+    if str(actual).strip().lower() == str(expected).strip().lower():
         return True
     return False
 
@@ -131,11 +163,42 @@ def load_dataset(file_paths):
                     reader = csv.DictReader(f)
                     row_count = 0
                     for i, row in enumerate(reader):
+                        code_str = row.get('code', '')
+                        space_str = row.get('space_complexity', '')
+                        time_str = row.get('time_complexity', '')
+                        
+                        if space_str is not None:
+                            space_str = space_str.strip()
+                        else:
+                            space_str = ''
+                            
+                        if time_str is not None:
+                            time_str = time_str.strip()
+                        else:
+                            time_str = ''
+                        
+                        # --- THE FIX: Rescue trapped CSV complexity formatting ---
+                        if not time_str and not space_str:
+                            parts = code_str.rsplit(',', 2)
+                            if len(parts) == 3:
+                                code_str = parts[0]
+                                space_str = parts[1].strip()
+                                time_str = parts[2].strip()
+                        
+                        # Clean up trailing quotes or spaces in code
+                        code_str = code_str.strip()
+                        if code_str.endswith('"'):
+                            code_str = code_str[:-1].strip()
+                            
+                        # Normalize complexity words (constant, linear, nlogn) to Big-O notation
+                        norm_time = CSV_COMPLEXITY_MAP.get(time_str.lower(), time_str)
+                        norm_space = CSV_COMPLEXITY_MAP.get(space_str.lower(), space_str)
+
                         dataset.append({
                             'id': f"CSV_Row_{i+1}",
-                            'code': row['code'],
-                            'expected_overall_time': row['time_complexity'],
-                            'expected_overall_space': row['space_complexity'],
+                            'code': code_str,
+                            'expected_overall_time': norm_time,
+                            'expected_overall_space': norm_space,
                             'line_metrics': [] 
                         })
                         row_count += 1
@@ -185,7 +248,7 @@ def calculate_metrics():
         expected_space = item.get('expected_overall_space', '')
         
         try:
-            # ---> FIX: Silences the noisy print() outputs from the datasets <---
+            # ---> Silences noisy print() outputs from the datasets <---
             suppress_text = io.StringIO()
             with contextlib.redirect_stdout(suppress_text):
                 result = analyze_source_code(source_code)
