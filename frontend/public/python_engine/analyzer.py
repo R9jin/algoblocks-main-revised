@@ -45,6 +45,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_if_depth = 0
         self.loop_stack = []
         self.in_list_comp_depth = 0
+        self.in_frequency_summation_depth = 0
         
         self.var_dimensions = {} 
         self.active_poly_dims = [] 
@@ -240,23 +241,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _get_iterable_name(self, node):
         if isinstance(node, ast.Name): return node.id
-        if isinstance(node, ast.Call) and getattr(node.func, 'id', '') == 'range':
-            args_len = len(node.args)
-            if args_len == 1: 
+        if isinstance(node, ast.Subscript):
+            if isinstance(node.value, ast.Name):
+                return f"{node.value.id}[0]"
+        if isinstance(node, ast.Call) and getattr(node.func, 'id', '') == 'len':
+            if len(node.args) > 0:
                 arg = node.args[0]
-            elif args_len >= 2: 
-                if isinstance(node.args[0], ast.Name) and self._register_and_get_dim(node.args[0].id) == 'm':
-                    arg = node.args[0]
-                else:
-                    arg = node.args[1]
-            else: return None
-            
-            if isinstance(arg, ast.Name): return arg.id
-            if isinstance(arg, ast.BinOp):
-                if isinstance(arg.left, ast.Name): return arg.left.id
-                if isinstance(arg.right, ast.Name): return arg.right.id
-            if isinstance(arg, ast.Call) and getattr(arg.func, 'id', '') == 'len' and len(arg.args) > 0 and isinstance(arg.args[0], ast.Name):
-                return arg.args[0].id
+                if isinstance(arg, ast.Name): return arg.id
+                if isinstance(arg, ast.Subscript) and isinstance(arg.value, ast.Name):
+                    return f"{arg.value.id}[0]"
         return None
 
     def _register_and_get_dim(self, var_name):
@@ -264,7 +257,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if isinstance(var_name, str):
             lower_name = var_name.lower()
             if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
-            if lower_name in ['m', 'amount', 'capacity', 'cols', 'width', 'target', 'arr2', 'list2', 'arrb', 'b', 'val']: return 'm'
+            # CS TRUTH: Look for secondary matrix column dimensions or distinct collection indicators
+            if any(kw in lower_name for kw in ['[0]', 'col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'b', 'val', 'y', 'm']): return 'm'
             return 'n'
         return 'n'
 
@@ -377,7 +371,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for func in indirect_graph:
             visited, rec_stack = set(), set()
             if self._has_cycle(func, visited, rec_stack, indirect_graph):
-                # TRUTH: Indirect linear calling stack (ping-pong) is O(n), not O(2^n). Let specific traversal rules manage branching.
                 self.custom_functions[func] = "T(n)"
                 self.indirect_recursive_funcs.add(func)
 
@@ -459,6 +452,26 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
                 if all(isinstance(arg, ast.Constant) for arg in node.iter.args): return True
             elif isinstance(node.iter, (ast.List, ast.Tuple, ast.Set, ast.Constant)): return True
+        return False
+
+    def _is_frequency_summation_loop(self, node):
+        """
+        CS TRUTH VERIFICATION: Identifies telescoping frequency distribution loops (e.g. range(count[i])).
+        Mathematically, sum(count[i]) across all outer steps equals N total items.
+        """
+        if isinstance(node, ast.For):
+            if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
+                if len(node.iter.args) > 0:
+                    arg = node.iter.args[0]
+                    if isinstance(arg, ast.Subscript):
+                        base_name = getattr(getattr(arg, 'value', None), 'id', '').lower()
+                        if any(kw in base_name for kw in ['count', 'freq', 'bucket', 'dp']):
+                            return True
+            iter_name = getattr(node.iter, 'id', '').lower()
+            if 'bucket' in iter_name or 'adj' in iter_name or 'graph' in iter_name:
+                for child in safe_walk(node):
+                    if isinstance(child, ast.Call) and getattr(getattr(child, 'func', None), 'attr', '') in ['extend', 'append']:
+                        return True
         return False
 
     def _is_log_loop(self, node):
@@ -562,7 +575,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         expr = node.iter if isinstance(node, ast.For) else node.test
         for child in safe_walk(expr):
             if isinstance(child, ast.BinOp):
-                # TRUTH: Strictly isolate multiplication Left Shifts from division Right Shifts
                 if isinstance(child.op, ast.LShift): return True
                 if isinstance(child.op, ast.Pow) and getattr(child.left, 'value', 0) == 2: return True
             if isinstance(child, ast.Call) and isinstance(child.func, ast.Name) and child.func.id == 'pow':
@@ -725,7 +737,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 
             if global_time_override: global_t = global_time_override
             else:
-                if local_t == "O(1)" and not is_recursive_call: global_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars)
+                # CS TRUTH: For explicit cumulative calculations, record cumulative global time directly
+                cumulative_ops = {"Tuple Recreation", "Tuple Immutability Recreation", "String Build", "String Concatenation (Immutable)", "Geometric Expansion", "Linear Accumulation"}
+                if custom_op in cumulative_ops and time_override:
+                    global_t = time_override
+                elif local_t == "O(1)" and not is_recursive_call: 
+                    global_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars)
                 else:
                     if is_recurrence: global_t = time_override
                     else: global_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars)
@@ -939,6 +956,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.active_poly_dims = [] 
         self.loop_stack = []
         self.loop_depth = 0
+        self.in_frequency_summation_depth = 0
         self.current_function_name = node.name
         self.recursive_calls_count = 0
         
@@ -1126,7 +1144,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             self._details[i]["global_time"] = "O(n)"
                             self._details[i]["weight"] = self._get_weight("O(n)")
 
-        # Force the function declaration statement to strictly be constant O(1) overhead
         self._details[start_idx]["local_time"] = "O(1)"
         self._details[start_idx]["global_time"] = "O(1)"
         self._details[start_idx]["local_space"] = "O(1)"
@@ -1150,7 +1167,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self._details[i]["global_space"] = final_sp_upgrade
 
         self.current_function_name = None; self.in_graph_context = False; self.recursive_calls_count = 0 
-        self.function_gcd_vars = None
+        self.function_gcd_vars = None; self.in_frequency_summation_depth = 0
         self.has_recursion_in_loop = self.has_slicing = self.has_partitioning = self.has_division = self.has_global_accumulation = False
 
     def visit_If(self, node):
@@ -1219,17 +1236,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         is_const = self._is_constant_loop(node)
         is_sqrt = self._is_sqrt_loop(node)
         
-        # TRUTH VERIFICATION: Check for counting/frequency distribution loop layers (Telescoped Loop Summation)
-        is_frequency_summation = False
-        if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
-            for child in safe_walk(node):
-                if isinstance(child, ast.Call) and isinstance(child.func, ast.Attribute) and child.func.attr == 'append':
-                    if len(self.loop_stack) > 1 and any(kw in getattr(node.target, 'id', '').lower() for kw in ['j', 'count', 'freq']):
-                        is_frequency_summation = True
+        # CS TRUTH VERIFICATION: Verify if iterating over a frequency distribution count (Telescoping Summation)
+        is_frequency_summation = self._is_frequency_summation_loop(node)
 
         if is_frequency_summation:
+            self.in_frequency_summation_depth += 1
             self.record_line(node, time_override="O(1)", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Frequency Loop")
             self.current_depth += 1; self._visit_block(node.body); self.current_depth -= 1
+            self.in_frequency_summation_depth -= 1
             self.loop_stack.pop()
             return
 
@@ -1323,7 +1337,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not is_const:
             if is_log: 
                 self.log_loop_depth -= 1
-                self.active_gcd_vars = None
             elif is_sqrt: self.sqrt_loop_depth -= 1
             else: self.active_poly_dims.pop()
             is_const = True
@@ -1334,7 +1347,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def visit_Call(self, node):
         is_accumulating = False
-        # TRUTH: Correctly include .insert() inside tracking set so memory accumulation is registered
         if isinstance(node.func, ast.Attribute) and node.func.attr in ['append', 'extend', 'add', 'insert']:
             is_accumulating = True
             self.has_global_accumulation = True
@@ -1348,7 +1360,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.in_accumulation_context = prev_acc or is_accumulating
         
         if is_accumulating and len(self.loop_stack) > 0:
-            if len(self.loop_stack) > 1:
+            # CS TRUTH: If inside a frequency distribution telescoping loop, space weight is capped at linear O(n)
+            if self.in_frequency_summation_depth > 0:
+                self.max_space_weight = max(self.max_space_weight, 1)
+            elif len(self.loop_stack) > 1:
                 self.max_space_weight = max(self.max_space_weight, 2)
             else:
                 self.max_space_weight = max(self.max_space_weight, 1)
@@ -1595,7 +1610,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             t_ov = "O(1)"
                             s_ov = "O(1)"
                         else:
-                            # TRUTH: Preserve calculated quadratic space growth during tuple concatenation loops
                             t_ov = gt
                             s_ov = gs
                             if "n^2" in gs or "n²" in gs:
@@ -1639,7 +1653,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.max_exp = 1
                     return
 
-        # TRUTH: In-place string building inside CPython loop iterations requires O(1) aux auxiliary space
+        # CS TRUTH: In CPython, appending chars to a string buffer in-place reallocates with O(1) auxiliary space
         if isinstance(node.target, ast.Name) and self.var_types.get(node.target.id) == 'str' and isinstance(node.op, ast.Add):
             if len(self.loop_stack) > 0:
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="String Build")
@@ -1766,7 +1780,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     best_comp = mapped
 
             if c.startswith("O(") and c != "O(1)":
-                # TRUTH: Clean standard function names (min/max) before performing variable substring evaluation
                 c_clean = re.sub(r'[a-zA-Z]*(min|max|sum|amortized|log|sqrt)[a-zA-Z]*', '', c)
                 if "n * m" in c or ("n" in c_clean and "m" in c_clean and best_rank < 6.1):
                     best_rank = 6.1
