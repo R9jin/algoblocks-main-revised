@@ -191,8 +191,8 @@ def load_dataset(file_paths):
                             code_str = code_str[:-1].strip()
                             
                         # Normalize complexity words (constant, linear, nlogn) to Big-O notation
-                        norm_time = CSV_COMPLEXITY_MAP.get(time_str.lower(), time_str)
-                        norm_space = CSV_COMPLEXITY_MAP.get(space_str.lower(), space_str)
+                        norm_time = CSV_COMPLEXITY_MAP.get(time_str.lower().strip(), time_str.strip())
+                        norm_space = CSV_COMPLEXITY_MAP.get(space_str.lower().strip(), space_str.strip())
 
                         dataset.append({
                             'id': f"CSV_Row_{i+1}",
@@ -239,6 +239,7 @@ def calculate_metrics():
     y_pred_time = []
     y_true_space = []
     y_pred_space = []
+    failed_records = []
 
     start_time = time.time()
     
@@ -253,8 +254,14 @@ def calculate_metrics():
             with contextlib.redirect_stdout(suppress_text):
                 result = analyze_source_code(source_code)
                 
-            actual_time = result.get('overall_time_complexity', '')
-            actual_space = result.get('overall_space_complexity', '')
+            if result.get("status") == "error":
+                actual_time = "ERROR"
+                actual_space = "ERROR"
+                parsed_lines = []
+            else:
+                actual_time = result.get('total', result.get('overall_time_complexity', 'O(1)'))
+                actual_space = result.get('space_total', result.get('overall_space_complexity', 'O(1)'))
+                parsed_lines = result.get('lines', result.get('line_details', []))
             
             is_time_correct = check_match(actual_time, expected_time)
             is_space_correct = check_match(actual_space, expected_space)
@@ -263,11 +270,16 @@ def calculate_metrics():
             if is_time_correct and is_space_correct:
                 print(f"[PASS] {item['id']} | Time: {expected_time} | Space: {expected_space}")
             else:
-                print(f"[FAIL] {item['id']}")
+                fail_info = []
                 if not is_time_correct:
-                    print(f"       [Time]  Expected: {expected_time} | Actual: {actual_time}")
+                    fail_info.append(f"Time (Exp: {expected_time}, Act: {actual_time})")
                 if not is_space_correct:
-                    print(f"       [Space] Expected: {expected_space} | Actual: {actual_space}")
+                    fail_info.append(f"Space (Exp: {expected_space}, Act: {actual_space})")
+                
+                # ---> THE FIX: Clean one-liner failure format <---
+                fail_msg = f"[FAIL] {item['id']} -> " + " | ".join(fail_info)
+                print(fail_msg)
+                failed_records.append(fail_msg)
             
             # Scikit-learn trackers
             if is_time_correct:
@@ -287,21 +299,24 @@ def calculate_metrics():
             # --- Line Level Complexity Checks ---
             if item.get('line_metrics'):
                 expected_lines = item['line_metrics']
-                parsed_lines = result.get('line_details', [])
                 
                 for expected_line in expected_lines:
-                    line_no = expected_line['line']
+                    line_no = expected_line.get('lineno', expected_line.get('line'))
+                    if line_no is None:
+                        continue
                     total_lines_evaluated += 1
                     
-                    matched_line = next((ln for ln in parsed_lines if ln['line'] == line_no), None)
+                    matched_line = next((ln for ln in parsed_lines if ln.get('lineno', ln.get('line')) == line_no), None)
                     if matched_line:
-                        if check_match(matched_line.get('time_complexity', ''), expected_line.get('time', '')):
+                        if check_match(matched_line.get('global_time', matched_line.get('time_complexity', '')), expected_line.get('global_time', expected_line.get('time', ''))):
                             correct_line_time += 1
-                        if check_match(matched_line.get('space_complexity', ''), expected_line.get('space', '')):
+                        if check_match(matched_line.get('global_space', matched_line.get('space_complexity', '')), expected_line.get('global_space', expected_line.get('space', ''))):
                             correct_line_space += 1
 
         except Exception as e:
-            print(f"[ERROR] {item.get('id', 'Unknown')} crashed the analyzer: {e}")
+            fail_msg = f"[ERROR] {item.get('id', 'Unknown')} crashed the analyzer: {e}"
+            print(fail_msg)
+            failed_records.append(fail_msg)
             
             y_true_time.append(translate_for_sklearn(expected_time))
             y_pred_time.append("ERROR")
@@ -362,6 +377,21 @@ def calculate_metrics():
         print(space_report)
     except ImportError:
         print("❌ Scikit-learn is not installed.")
+
+    # ---> THE FIX: Export clean text file containing ONLY the failures <---
+    if failed_records:
+        fail_log_path = os.path.join(os.path.dirname(__file__), 'evaluation_failures_log.txt')
+        try:
+            with open(fail_log_path, 'w', encoding='utf-8') as f:
+                f.write(f"=== ALGOBLOCKS EVALUATION FAILURES ({len(failed_records)} CASES) ===\n\n")
+                f.write("\n".join(failed_records))
+            print("\n" + "="*60)
+            print(f" 📁 FAILURE LOG EXPORTED ({len(failed_records)} cases)")
+            print("="*60)
+            print(f"Saved to: {os.path.abspath(fail_log_path)}")
+            print("You can open this text file to easily copy and paste all failed cases!")
+        except Exception as e:
+            print(f" [ERROR] Could not save failures log file: {e}")
 
 if __name__ == "__main__":
     calculate_metrics()
