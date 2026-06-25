@@ -95,13 +95,22 @@ export default function EvaluationSuite() {
     let currentVal = '';
     let row = [];
     
+    // Normalize line endings to avoid \r\n vs \n split issues
+    csvText = csvText.replace(/\r\n/g, '\n');
+
     for (let i = 0; i < csvText.length; i++) {
       const char = csvText[i];
       const nextChar = csvText[i + 1];
 
+      // CSV FAILSAFE: If a single column is astronomically long and we hit a newline, 
+      // a quote was left unmatched in the dataset. Force-close the quote loop to save the rest of the file.
+      if (isInsideQuotes && char === '\n' && currentVal.length > 15000) {
+          isInsideQuotes = false;
+      }
+
       if (char === '"' && nextChar === '"') {
         currentVal += '"';
-        i++;
+        i++; // Skip escaped double-quotes
       } else if (char === '"') {
         isInsideQuotes = !isInsideQuotes;
       } else if (char === ',' && !isInsideQuotes) {
@@ -191,6 +200,15 @@ export default function EvaluationSuite() {
                }
            }
         }
+
+        // --- AST ENGINE PRE-SANITIZER ---
+        // Converts escaped CSV string variables back into valid executable multi-line Python.
+        // Without this, ast.parse() throws SyntaxError on literally rendered "\n" or spaces.
+        codeText = codeText
+            .replace(/\\n/g, '\n')           // Un-flatten explicit \n into physical carriage returns
+            .replace(/\\t/g, '    ')         // Replace explicit \t with 4 spaces
+            .replace(/^["']|["']$/g, '')     // Strip trailing/leading CSV wrapping quotes
+            .replace(/^\s+|\s+$/g, '');      // Trim to prevent global IndentationErrors
         
         dataset.push({
           id: `tasty_csv_${i}`,
