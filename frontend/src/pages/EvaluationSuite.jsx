@@ -2,17 +2,11 @@
 import { useEffect, useState } from "react";
 import {
   FiArrowLeft,
-  FiBookOpen,
-  FiCheckCircle,
-  FiClock,
-  FiCode,
-  FiCpu,
-  FiDatabase,
-  FiHelpCircle,
-  FiLayers,
-  FiPlay,
-  FiRefreshCw,
-  FiXCircle
+  FiCheckCircle, FiClock, FiCode,
+  FiCpu, FiDatabase,
+  FiDownload,
+  FiHelpCircle, FiLayers, FiPlay,
+  FiRefreshCw, FiXCircle
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { usePyodide } from "../context/PyodideContext";
@@ -35,7 +29,7 @@ export default function EvaluationSuite() {
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState("all"); 
   const [selectedItemCode, setSelectedItemCode] = useState(null);
-  const [datasetOption, setDatasetOption] = useState("codeforces");
+  const [datasetOption, setDatasetOption] = useState("both");
 
   // Explainer Modal State & Interactive Sandbox State
   const [isMetricsHelpOpen, setIsMetricsHelpOpen] = useState(false);
@@ -69,50 +63,171 @@ export default function EvaluationSuite() {
     return () => worker.removeEventListener("message", handleWorkerMessage);
   }, [worker]);
 
+  // --- VITE SPA FALLBACK GUARDS ---
+  const safeFetchText = async (url) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const text = await res.text();
+      // If Vite returns index.html instead of the requested asset, block it
+      if (text.trim().toLowerCase().startsWith("<!doctype") || text.trim().toLowerCase().startsWith("<html")) {
+        return null; 
+      }
+      return text;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const safeFetchJson = async (url) => {
+    const text = await safeFetchText(url);
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const parseCSV = (csvText) => {
+    const results = [];
+    let isInsideQuotes = false;
+    let currentVal = '';
+    let row = [];
+    
+    // Normalize line endings to avoid \r\n vs \n split issues
+    csvText = csvText.replace(/\r\n/g, '\n');
+
+    for (let i = 0; i < csvText.length; i++) {
+      const char = csvText[i];
+      const nextChar = csvText[i + 1];
+
+      // CSV FAILSAFE: If a single column is astronomically long and we hit a newline, 
+      // a quote was left unmatched in the dataset. Force-close the quote loop to save the rest of the file.
+      if (isInsideQuotes && char === '\n' && currentVal.length > 15000) {
+          isInsideQuotes = false;
+      }
+
+      if (char === '"' && nextChar === '"') {
+        currentVal += '"';
+        i++; // Skip escaped double-quotes
+      } else if (char === '"') {
+        isInsideQuotes = !isInsideQuotes;
+      } else if (char === ',' && !isInsideQuotes) {
+        row.push(currentVal);
+        currentVal = '';
+      } else if (char === '\n' && !isInsideQuotes) {
+        row.push(currentVal);
+        results.push(row);
+        row = [];
+        currentVal = '';
+      } else {
+        currentVal += char;
+      }
+    }
+    if (currentVal || row.length > 0) {
+      row.push(currentVal);
+      results.push(row);
+    }
+    return results;
+  };
+
   const fetchActiveGauntletData = async (mode) => {
     setStatusText(`Resolving ${mode.toUpperCase()} dataset sources...`);
 
     if (mode === "textbook") {
-      try {
-        const res = await fetch("/data/evaluation/ground_truth.json");
-        if (!res.ok) throw new Error("ground_truth.json missing");
-        return await res.json();
-      } catch (err) {
-        alert(`Failed to load Textbook dataset: ${err.message}`);
-        return [];
-      }
+      const data = await safeFetchJson("/data/evaluation/ground_truth.json");
+      if (!data) return [];
+      return data;
     }
 
     if (mode === "codeforces") {
-      try {
-        const combRes = await fetch("/data/evaluation/curated_ground_truth.json");
-        if (combRes.ok) {
-          const combData = await combRes.json();
-          if (Array.isArray(combData) && combData.length > 0) return combData;
-        }
-      } catch (e) {}
+      const combData = await safeFetchJson("/data/evaluation/curated_ground_truth.json");
+      if (Array.isArray(combData) && combData.length > 0) return combData;
 
-      setStatusText("Stitching curated Codeforces parts 1 through 5 over network...");
       let stitchedArray = [];
       for (let i = 1; i <= 5; i++) {
-        try {
-          const partRes = await fetch(`/data/evaluation/curated_part_${i}.json`);
-          if (partRes.ok) {
-            const partJson = await partRes.json();
-            stitchedArray = stitchedArray.concat(partJson);
-          }
-        } catch (err) {
-          console.warn(`Silently skipped missing curated_part_${i}.json`);
+        const partJson = await safeFetchJson(`/data/evaluation/curated_part_${i}.json`);
+        if (partJson) {
+          stitchedArray = stitchedArray.concat(partJson);
         }
       }
       return stitchedArray;
+    }
+
+    if (mode === "tasty") {
+      setStatusText("Fetching Tasty Processed Dataset (CSV)...");
+      const csvText = await safeFetchText("/data/evaluation/processed/algo_blocks_dataset.csv");
+      if (!csvText) {
+        alert("Failed to load Tasty dataset: algo_blocks_dataset.csv missing or HTML fallback triggered.");
+        return [];
+      }
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) return [];
+      
+      const headers = rows[0].map(h => h.trim());
+      const codeIdx = headers.indexOf('code');
+      const spaceIdx = headers.indexOf('space_complexity');
+      const timeIdx = headers.indexOf('time_complexity');
+      
+      const dataset = [];
+      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'n*m'];
+
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i].length < headers.length) continue; 
+        
+        let codeText = rows[i][codeIdx] || '';
+        let spaceComp = rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
+        let timeComp = rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
+        
+        // --- SALVAGE MANGLED CSV ---
+        // The pandas script trapped the complexities inside the code trailing quotes.
+        if (!spaceComp && !timeComp && codeText.includes(',')) {
+           const parts = codeText.split(',');
+           if (parts.length >= 3) {
+               let possibleTime = parts[parts.length - 1].trim().replace(/"/g, '').toLowerCase();
+               let possibleSpace = parts[parts.length - 2].trim().replace(/"/g, '').toLowerCase();
+               
+               let isTimeValid = validComplexities.includes(possibleTime) || possibleTime.startsWith('o(');
+               let isSpaceValid = validComplexities.includes(possibleSpace) || possibleSpace.startsWith('o(');
+               
+               if (isTimeValid && isSpaceValid) {
+                   timeComp = possibleTime;
+                   spaceComp = possibleSpace;
+                   parts.pop(); // Remove time
+                   parts.pop(); // Remove space
+                   codeText = parts.join(','); // Restore pure code!
+               }
+           }
+        }
+
+        // --- AST ENGINE PRE-SANITIZER ---
+        // Converts escaped CSV string variables back into valid executable multi-line Python.
+        // Without this, ast.parse() throws SyntaxError on literally rendered "\n" or spaces.
+        codeText = codeText
+            .replace(/\\n/g, '\n')           // Un-flatten explicit \n into physical carriage returns
+            .replace(/\\t/g, '    ')         // Replace explicit \t with 4 spaces
+            .replace(/^["']|["']$/g, '')     // Strip trailing/leading CSV wrapping quotes
+            .replace(/^\s+|\s+$/g, '');      // Trim to prevent global IndentationErrors
+        
+        dataset.push({
+          id: `tasty_csv_${i}`,
+          name: `Tasty Algo ${i}`,
+          code: codeText,
+          expected_overall_space: spaceComp || "O(1)",
+          expected_overall_time: timeComp || "O(1)",
+          category: "Tasty Processed CSV"
+        });
+      }
+      return dataset;
     }
 
     if (mode === "both") {
       setStatusText("Assembling Mega Gauntlet...");
       const textbookData = await fetchActiveGauntletData("textbook");
       const codeforcesData = await fetchActiveGauntletData("codeforces");
-      return [...textbookData, ...codeforcesData];
+      const tastyData = await fetchActiveGauntletData("tasty");
+      return [...textbookData, ...codeforcesData, ...tastyData];
     }
 
     return [];
@@ -129,7 +244,7 @@ export default function EvaluationSuite() {
     const gauntletPayload = await fetchActiveGauntletData(datasetOption);
 
     if (!gauntletPayload || gauntletPayload.length === 0) {
-      alert(`Critical Failure: Could not assemble data points for target [${datasetOption}]. Ensure JSON files exist inside /public/data/evaluation/`);
+      alert(`Critical Failure: Could not assemble data points for target [${datasetOption}]. Ensure JSON/CSV files exist inside /public/data/evaluation/`);
       setIsLoading(false);
       setStatusText("Dataset assembly failed.");
       return;
@@ -137,6 +252,34 @@ export default function EvaluationSuite() {
 
     setStatusText(`Deploying AST Gauntlet across ${gauntletPayload.length} algorithms...`);
     worker.postMessage({ type: "RUN_BENCHMARK_SUITE", dataset: gauntletPayload });
+  };
+
+  const downloadFailuresLog = (details) => {
+    const mismatches = details.filter(d => !d.isCompletelyCorrect);
+    let logText = "=== EVALUATION FAILURES LOG ===\n\n";
+    
+    if (mismatches.length === 0) {
+        logText += "No mismatches found. Perfect accuracy!\n";
+    } else {
+        mismatches.forEach(m => {
+            logText += `[${m.id} - ${m.name}]\n`;
+            logText += `Time Expected: ${m.expectedTime} | Actual: ${m.predictedTime}\n`;
+            logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
+            logText += `Diagnostic Explanation: ${m.explanation}\n`;
+            logText += `Code Snippet:\n${m.codeSnippet.slice(0, 300)}...\n`;
+            logText += `${'-'.repeat(60)}\n\n`;
+        });
+    }
+    
+    const blob = new Blob([logText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "evaluation_failures_log.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const filteredDetails = (results?.details || []).filter((item) => {
@@ -158,7 +301,6 @@ export default function EvaluationSuite() {
   return (
     <div className="eval-suite-container">
       
-      {/* Code Inspection Modal */}
       {selectedItemCode && (
         <div className="modal-overlay" onClick={() => setSelectedItemCode(null)}>
           <div className="eval-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -187,7 +329,6 @@ export default function EvaluationSuite() {
         </div>
       )}
 
-      {/* Scikit-Learn Classification Metrics Explainer & Interactive Sandbox Modal */}
       {isMetricsHelpOpen && (
         <div className="modal-overlay" onClick={() => setIsMetricsHelpOpen(false)}>
           <div className="eval-modal-content metrics-help-modal" onClick={(e) => e.stopPropagation()}>
@@ -224,32 +365,16 @@ export default function EvaluationSuite() {
 
               <div className="metric-card-info">
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>F1-Score ( &amp; F2 )</span>
+                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>F1-Score</span>
                   <span className="metric-formula">2 × (P × R) / (P + R)</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>&quot;Harmonic Balance&quot;</strong> — F1 is the harmonic mean of Precision and Recall. It punishes extreme disparities (e.g., 1.0 recall but 0.1 precision). <br />
-                  <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
-                    <FiBookOpen style={{ display: "inline", marginRight: "4px" }} /> <strong>What about F2-Score?</strong> The F2-Score weights Recall twice as heavily as Precision. In automated grading, F2 is often monitored because missing a student&apos;s correct algorithm (False Negative) is considered more harmful than accidentally passing an inefficient one (False Positive).
-                  </span>
+                  <strong>&quot;Harmonic Balance&quot;</strong> — F1 is the harmonic mean of Precision and Recall.
                 </p>
               </div>
 
-              <div className="metric-card-info">
-                <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A" }}>Support</span>
-                  <span className="metric-formula">Count ( N )</span>
-                </div>
-                <p className="metric-desc">
-                  <strong>&quot;Sample Weight&quot;</strong> — The actual occurrence count of ground truth test cases belonging to this complexity class inside the benchmarking gauntlet.
-                </p>
-              </div>
-
-              {/* Interactive Demo Sandbox inside Modal */}
               <div className="metric-interactive-box">
                 <h4 className="interactive-box-title"><FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }}/> Interactive Metric Sandbox</h4>
-                <p className="interactive-box-subtitle">Adjust the slider values below to see how false alarms and missed detections alter the final Scikit-Learn numbers in real time:</p>
-                
                 <div className="sandbox-controls">
                   <div className="slider-group">
                     <label>True Positives (Correct Detections): <strong>{sandboxTP}</strong></label>
@@ -264,7 +389,6 @@ export default function EvaluationSuite() {
                     <input type="range" min="0" max="100" value={sandboxFN} onChange={(e) => setSandboxFN(parseInt(e.target.value))} />
                   </div>
                 </div>
-
                 <div className="sandbox-results">
                   <div className="sandbox-stat">
                     <span>Simulated Precision</span>
@@ -289,7 +413,6 @@ export default function EvaluationSuite() {
         </div>
       )}
 
-      {/* Top Header Navigation */}
       <header className="workspace-header-purple">
         <div className="wh-left">
           <Link to="/dashboard" className="wh-back-btn eval-exit-link">
@@ -313,16 +436,14 @@ export default function EvaluationSuite() {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <div className="eval-main-wrapper">
         
-        {/* Gauntlet Dataset Selection Control Box */}
         <div className="eval-dataset-selector-box">
           <div className="eval-dataset-info">
             <FiDatabase style={{ color: "#7928CA" }} size={24} />
             <div>
               <strong className="eval-dataset-title">Select AST Benchmarking Gauntlet Target</strong>
-              <span className="eval-dataset-subtitle">Choose which master JSON partition to stream into the token classification engine</span>
+              <span className="eval-dataset-subtitle">Choose which master JSON partition or CSV to stream into the token classification engine</span>
             </div>
           </div>
 
@@ -342,22 +463,33 @@ export default function EvaluationSuite() {
               CodeComplex Curated (104)
             </button>
             <button 
+              onClick={() => !isRunning && setDatasetOption("tasty")}
+              className={`dataset-btn ${datasetOption === "tasty" ? "active-ds" : ""}`}
+              disabled={isRunning}
+            >
+              Tasty Dataset (CSV)
+            </button>
+            <button 
               onClick={() => !isRunning && setDatasetOption("both")}
               className={`dataset-btn ${datasetOption === "both" ? "active-ds" : ""}`}
               disabled={isRunning}
             >
-              Full Master Suite (210 Combined)
+              Full Master Suite (All Combined)
             </button>
           </div>
         </div>
 
-        {/* Status Banner */}
         <div className="eval-status-banner">
           <div className="eval-status-group">
             <span className="eval-status-label">Execution Target:</span>
             <strong className="eval-status-target">{statusText}</strong>
           </div>
           <div className="eval-status-group">
+            {results && results.details.filter(d => !d.isCompletelyCorrect).length > 0 && (
+                <button className="eval-btn-inspect" onClick={() => downloadFailuresLog(results.details)} style={{marginRight: "15px", display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px"}}>
+                   <FiDownload size={14} /> Download Error Logs (TXT)
+                </button>
+            )}
             <span className="eval-status-label-sm">AST Virtual Machine:</span>
             {isEngineReady ? (
               <span className="eval-vm-ready">● Pyodide 3.11 AST Active</span>
@@ -373,7 +505,6 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {/* SOP 2 DUAL KPI STATS GRID */}
         {results && (
           <div className="eval-stats-grid">
             <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
@@ -412,7 +543,6 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {/* SCIKIT-LEARN AUTHENTIC CLASSIFICATION REPORT SECTION */}
         {results && results.timeReport && results.spaceReport && (
           <div className="eval-sklearn-container">
             <div className="eval-sklearn-header">
@@ -439,10 +569,10 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP). Correctness rate when predicting this exact class.">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN). Detection rate across all actual cases of this class.">Recall ⓘ</th>
-                      <th title="F1-Score = Harmonic mean of Precision and Recall.">F1-Score ⓘ</th>
-                      <th title="Support = Ground truth occurrence count.">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP)">Precision ⓘ</th>
+                      <th title="Recall = TP / (TP + FN)">Recall ⓘ</th>
+                      <th title="Harmonic Mean">F1-Score ⓘ</th>
+                      <th title="Ground truth occurrence">Support ⓘ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -459,7 +589,6 @@ export default function EvaluationSuite() {
                       );
                     })}
 
-                    {/* Divider rows */}
                     <tr className="tr-divider">
                       <td>accuracy</td>
                       <td>-</td>
@@ -495,10 +624,10 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP). Correctness rate when predicting this exact class.">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN). Detection rate across all actual cases of this class.">Recall ⓘ</th>
-                      <th title="F1-Score = Harmonic mean of Precision and Recall.">F1-Score ⓘ</th>
-                      <th title="Support = Ground truth occurrence count.">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP)">Precision ⓘ</th>
+                      <th title="Recall = TP / (TP + FN)">Recall ⓘ</th>
+                      <th title="Harmonic Mean">F1-Score ⓘ</th>
+                      <th title="Ground truth occurrence">Support ⓘ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -515,7 +644,6 @@ export default function EvaluationSuite() {
                       );
                     })}
 
-                    {/* Divider rows */}
                     <tr className="tr-divider">
                       <td>accuracy</td>
                       <td>-</td>
@@ -545,7 +673,6 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {/* Detailed Audit Table */}
         {results && (
           <div className="eval-table-container">
             <div className="eval-filter-navbar">

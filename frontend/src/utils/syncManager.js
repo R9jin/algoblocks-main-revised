@@ -49,6 +49,7 @@ export const syncManager = {
             if (!response.ok) throw new Error(`Server returned ${response.status}`);
             return await response.json();
         } catch (error) {
+            // Even if it's an AbortError from navigation, save to queue so we don't lose the user's data
             await addToSyncQueue("SUBMISSION", payload);
             return false;
         }
@@ -75,6 +76,7 @@ export const syncManager = {
             if (!response.ok) throw new Error("Failed to update progress");
             return await response.json();
         } catch (error) {
+            // Save to queue to persist user data if request fails or is aborted
             await addToSyncQueue("PROGRESS", payload);
             return false;
         }
@@ -101,6 +103,7 @@ export const syncManager = {
             if (!response.ok) throw new Error("Failed to update assessment");
             return await response.json();
         } catch (error) {
+            // Save to queue to persist user data if request fails or is aborted
             await addToSyncQueue("ASSESSMENT", payload);
             return false;
         }
@@ -157,6 +160,8 @@ export const syncManager = {
                 for (const key of keysToDelete) await syncQueueDB.removeItem(key);
             }
         } catch (err) {
+            // Silently ignore browser aborts (like page reloads/navigation)
+            if (err.name === 'AbortError') return;
             console.error("[Sync] Error processing sync queue:", err);
         }
     }
@@ -222,14 +227,22 @@ export const syncDownFromServer = async () => {
         }
         window.dispatchEvent(new Event("localDataSynced"));
     } catch (error) { 
+        // Silently ignore browser aborts (like page reloads/navigation)
+        if (error.name === 'AbortError') return;
         console.error("[Sync] Error pulling from server:", error);
     }
 };
 
+let syncInterval = null;
+
 export const startBackgroundSync = () => {
     syncDownFromServer();
     syncManager.processSyncQueue();
-    setInterval(() => { syncManager.processSyncQueue(); }, 30000);
+    
+    // Clear existing interval to prevent duplicated intervals running simultaneously
+    if (syncInterval) clearInterval(syncInterval);
+    
+    syncInterval = setInterval(() => { syncManager.processSyncQueue(); }, 30000);
 };
 
 window.addEventListener("online", () => syncManager.processSyncQueue());

@@ -6,20 +6,22 @@ let inputResolve = null;
 let isWaitingForInput = false;
 let executionTimeout = null;
 
-// Strict Asymptotic Tokenizer (Eliminates fuzzy substring collisions)
+// Strict Asymptotic Tokenizer (Eliminates fuzzy substring collisions and normalizes text properties from CSV files)
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
-  let s = String(raw).toLowerCase().replace(/\s+/g, "");
+  let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
 
   s = s.replace(/²/g, "^2").replace(/³/g, "^3").replace(/ⁿ/g, "^n");
   s = s.replace(/^o\((.*)\)$/, "$1");
 
+  // Interpret plain words mapped from CSV/Tasty Datasets
   if (s === "1" || s === "constant") return "O(1)";
-  if (s === "logn" || s === "log(n)" || s === "log") return "O(log n)";
   if (s === "n" || s === "linear") return "O(n)";
-  if (s === "nlogn" || s === "n*logn" || s === "log(n)*n") return "O(n log n)";
   if (s === "n^2" || s === "quadratic") return "O(n^2)";
   if (s === "n^3" || s === "cubic") return "O(n^3)";
+  if (s === "nlogn" || s === "n*logn" || s === "log(n)*n") return "O(n log n)";
+  if (s === "logn" || s === "log(n)" || s === "log") return "O(log n)";
+
   if (s.includes("2^n")) return "O(2^n)";
   if (s.includes("3^n")) return "O(3^n)";
   if (s.includes("n!") || s.includes("n*n!")) return "O(n * n!)";
@@ -34,6 +36,7 @@ function strictBigONormalizer(raw) {
 // Failsafe Ground Truth Key Extractors
 function getGroundTruthTime(obj) {
   if (!obj) return "O(1)";
+  if (obj.expected_overall_time) return obj.expected_overall_time;
   if (obj.time_complexity) return obj.time_complexity;
   if (obj.timeComplexity) return obj.timeComplexity;
   if (obj.expected_time) return obj.expected_time;
@@ -55,6 +58,7 @@ function getGroundTruthTime(obj) {
 
 function getGroundTruthSpace(obj) {
   if (!obj) return "O(1)";
+  if (obj.expected_overall_space) return obj.expected_overall_space;
   if (obj.space_complexity) return obj.space_complexity;
   if (obj.spaceComplexity) return obj.spaceComplexity;
   if (obj.expected_space) return obj.expected_space;
@@ -182,7 +186,10 @@ async function initPyodide() {
           fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
         ]);
 
-        if (nlgCode.includes("<!DOCTYPE html>")) throw new Error("Service Worker served index.html instead of python files!");
+        // Catch Vite serving index.html if the user hasn't copied files over properly
+        if ([analyzerCode, astCode, nlgCode, tracerCode].some(c => c.toLowerCase().includes("<!doctype html>"))) {
+            throw new Error("Service Worker served Vite's index.html fallback instead of the Python backend files!");
+        }
 
         tempPyodide.FS.writeFile("analyzer.py", analyzerCode);
         tempPyodide.FS.writeFile("blockly_ast.py", astCode);
