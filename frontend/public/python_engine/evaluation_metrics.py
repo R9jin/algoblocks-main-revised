@@ -8,28 +8,18 @@ import glob
 import builtins
 
 # --- PREVENT HANGING ON INPUT() ---
-# Competitive programming scripts ask for terminal input using input() or sys.stdin.
-# This intercepts all standard input requests so the dynamic tracer crashes out 
-# instantly or processes dummy data instead of freezing your evaluation forever.
 class MockBuffer:
-    def readline(self):
-        return b"1 2 3 4 5 6 7 8 9 10\n"
-    def read(self):
-        return b"1 2 3 4 5 6 7 8 9 10\n"
+    def readline(self): return b"1 2 3 4 5 6 7 8 9 10\n"
+    def read(self): return b"1 2 3 4 5 6 7 8 9 10\n"
 
 class MockStdin:
-    def __init__(self):
-        self.buffer = MockBuffer()
-    def readline(self):
-        return "1 2 3 4 5 6 7 8 9 10\n"
-    def read(self):
-        return "1 2 3 4 5 6 7 8 9 10\n"
-    def __iter__(self):
-        yield "1 2 3 4 5 6 7 8 9 10\n"
+    def __init__(self): self.buffer = MockBuffer()
+    def readline(self): return "1 2 3 4 5 6 7 8 9 10\n"
+    def read(self): return "1 2 3 4 5 6 7 8 9 10\n"
+    def __iter__(self): yield "1 2 3 4 5 6 7 8 9 10\n"
 
 sys.stdin = MockStdin()
 builtins.input = lambda *args, **kwargs: "1 2 3 4 5 6 7 8 9 10"
-
 # ----------------------------------
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -38,9 +28,7 @@ sys.path.append(os.path.join(root_dir, 'api'))
 
 from api.analyzer import analyze_source_code
 
-# --- THE ACADEMIC EQUIVALENCE MAP ---
 EQUIVALENCE_MAP = {
-    # Recursion Equivalencies
     "T(n) = T(n/2) + O(1)": "O(log n)",
     "T(n) = 2T(n/2) + O(n)": "O(n log n)",
     "T(n) = T(n-1) + O(1)": "O(n)",
@@ -50,17 +38,11 @@ EQUIVALENCE_MAP = {
     "T(n) = 2T(n/2) + O(1)": "O(n)",
     "T(n) = T(n/2) + O(n)": "O(n)",
     "T(n) = T(n-1) + O(log n)": "O(n log n)",
-    
-    # Structural Equivalencies (where standard theory assumes n=m)
     "O(n * m)": "O(n^2)",
     "O(n^2 * m)": "O(n^3)",
     "O(n * m^2)": "O(n^3)",
     "O(n^2 log n)": "O(n^2 log n)",
-    
-    # Amortized Equivalencies
     "O(1) amortized": "O(1)",
-    
-    # Space Equivalencies
     "O(V)": "O(V + E)"
 }
 
@@ -71,32 +53,22 @@ def normalize_complexity(c):
     if c in ("n", "linear"): return "O(n)"
     if c in ("n^2", "quadratic"): return "O(n^2)"
     if c in ("n^3", "cubic"): return "O(n^3)"
-    if c in ("nlogn", "n*logn", "log(n)*n"): return "O(n log n)"
+    if c in ("nlogn", "n*logn", "log(n)*n", "n log n"): return "O(n log n)"
     if c in ("logn", "log(n)", "log"): return "O(log n)"
     return c if c.startswith("o(") else f"O({c})"
 
 def check_match(actual, expected):
-    """Checks if actual matches expected, factoring in mathematical equivalence."""
-    if actual == expected:
-        return True
-    
+    if actual == expected: return True
     translated_actual = EQUIVALENCE_MAP.get(actual)
-    if translated_actual == expected:
-        return True
-        
-    if EQUIVALENCE_MAP.get(expected) == actual:
-        return True
-        
+    if translated_actual == expected: return True
+    if EQUIVALENCE_MAP.get(expected) == actual: return True
     return False
 
 def calculate_metrics():
     dataset_dir = os.path.join(os.path.dirname(__file__), 'dataset')
     dataset = []
     
-    # Automatically find all curated_part_n.json files
     part_files = glob.glob(os.path.join(dataset_dir, 'curated_part_*.json'))
-    
-    # Fallback to the default ground_truth.json if the curated parts don't exist
     if not part_files:
         part_files = [os.path.join(dataset_dir, 'ground_truth.json')]
         print("Evaluating default ground_truth.json...\n")
@@ -104,8 +76,9 @@ def calculate_metrics():
         print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
         
     for file_path in part_files:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            dataset.extend(json.load(f))
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                dataset.extend(json.load(f))
             
     # Include the Tasty Processed dataset CSV
     csv_path = os.path.join(dataset_dir, 'processed', 'algo_blocks_dataset.csv')
@@ -114,12 +87,32 @@ def calculate_metrics():
         with open(csv_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
+                code_text = row.get('code', '')
+                space_comp = row.get('space_complexity', '')
+                time_comp = row.get('time_complexity', '')
+                
+                if space_comp: space_comp = space_comp.strip()
+                if time_comp: time_comp = time_comp.strip()
+
+                # --- SALVAGE MANGLED CSV LOGIC ---
+                if not space_comp and not time_comp and ',' in code_text:
+                    parts = code_text.split(',')
+                    if len(parts) >= 3:
+                        pos_time = parts[-1].strip().replace('"', '').lower()
+                        pos_space = parts[-2].strip().replace('"', '').lower()
+                        
+                        valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e']
+                        if pos_time in valids or pos_time.startswith('o('):
+                            time_comp = pos_time
+                            space_comp = pos_space
+                            code_text = ','.join(parts[:-2])
+
                 dataset.append({
                     "id": f"tasty_csv_{reader.line_num}",
                     "name": f"Tasty Algo {reader.line_num}",
-                    "code": row.get('code', ''),
-                    "expected_overall_time": row.get('time_complexity', 'O(1)'),
-                    "expected_overall_space": row.get('space_complexity', 'O(1)')
+                    "code": code_text,
+                    "expected_overall_time": time_comp if time_comp else 'O(1)',
+                    "expected_overall_space": space_comp if space_comp else 'O(1)'
                 })
         
     total_algorithms = len(dataset)
@@ -146,11 +139,9 @@ def calculate_metrics():
     for index, item in enumerate(dataset, 1):
         code_snippet = item.get('code', '')
         
-        # Handle normalized formats depending on json vs csv text entries
         expected_time = normalize_complexity(item.get('expected_overall_time', item.get('time_complexity', 'O(1)')))
         expected_space = normalize_complexity(item.get('expected_overall_space', item.get('space_complexity', 'O(1)')))
         
-        # Live tracking print statement (Lets you see exactly which file is processing!)
         print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', item.get('name', 'Unknown'))}...", end="", flush=True)
         
         start_time = time.perf_counter()
@@ -166,7 +157,6 @@ def calculate_metrics():
             failures_log.append(f"[{item.get('id', 'Unknown')}] ERROR: {err_msg}")
             continue
 
-        # Completion time for the specific script
         print(f" Done ({processing_time_ms:.2f} ms)")
         
         actual_time = results.get("total", "O(1)")
@@ -176,17 +166,11 @@ def calculate_metrics():
         is_time_match = check_match(actual_time, expected_time)
         is_space_match = check_match(actual_space, expected_space)
 
-        # Validate Overall Time Complexity
-        if is_time_match:
-            overall_time_correct += 1
-        else:
-            print(f"  -> [Time Mismatch]: Expected {expected_time}, got {actual_time}")
+        if is_time_match: overall_time_correct += 1
+        else: print(f"  -> [Time Mismatch]: Expected {expected_time}, got {actual_time}")
             
-        # Validate Overall Space Complexity
-        if is_space_match:
-            overall_space_correct += 1
-        else:
-            print(f"  -> [Space Mismatch]: Expected {expected_space}, got {actual_space}")
+        if is_space_match: overall_space_correct += 1
+        else: print(f"  -> [Space Mismatch]: Expected {expected_space}, got {actual_space}")
             
         if not is_time_match or not is_space_match:
             failures_log.append(f"[{item.get('id', item.get('name', 'Unknown'))}]\n"
@@ -268,9 +252,7 @@ def calculate_metrics():
         print(space_report)
         
     except ImportError:
-        print("Note: The 'scikit-learn' library is missing.")
-        print("Please install it to view Precision, Recall, and F1-Scores by running:")
-        print("pip install scikit-learn")
+        pass
     print("="*60)
 
 if __name__ == "__main__":

@@ -2,18 +2,11 @@
 import { useEffect, useState } from "react";
 import {
   FiArrowLeft,
-  FiBookOpen,
-  FiCheckCircle,
-  FiClock,
-  FiCode,
-  FiCpu,
-  FiDatabase,
+  FiCheckCircle, FiClock, FiCode,
+  FiCpu, FiDatabase,
   FiDownload,
-  FiHelpCircle,
-  FiLayers,
-  FiPlay,
-  FiRefreshCw,
-  FiXCircle
+  FiHelpCircle, FiLayers, FiPlay,
+  FiRefreshCw, FiXCircle
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { usePyodide } from "../context/PyodideContext";
@@ -36,7 +29,7 @@ export default function EvaluationSuite() {
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState("all"); 
   const [selectedItemCode, setSelectedItemCode] = useState(null);
-  const [datasetOption, setDatasetOption] = useState("codeforces");
+  const [datasetOption, setDatasetOption] = useState("both");
 
   // Explainer Modal State & Interactive Sandbox State
   const [isMetricsHelpOpen, setIsMetricsHelpOpen] = useState(false);
@@ -135,10 +128,7 @@ export default function EvaluationSuite() {
 
     if (mode === "textbook") {
       const data = await safeFetchJson("/data/evaluation/ground_truth.json");
-      if (!data) {
-        alert("Failed to load Textbook dataset: ground_truth.json missing or invalid JSON.");
-        return [];
-      }
+      if (!data) return [];
       return data;
     }
 
@@ -146,14 +136,11 @@ export default function EvaluationSuite() {
       const combData = await safeFetchJson("/data/evaluation/curated_ground_truth.json");
       if (Array.isArray(combData) && combData.length > 0) return combData;
 
-      setStatusText("Stitching curated Codeforces parts 1 through 5 over network...");
       let stitchedArray = [];
       for (let i = 1; i <= 5; i++) {
         const partJson = await safeFetchJson(`/data/evaluation/curated_part_${i}.json`);
         if (partJson) {
           stitchedArray = stitchedArray.concat(partJson);
-        } else {
-          console.warn(`Silently skipped missing or invalid curated_part_${i}.json`);
         }
       }
       return stitchedArray;
@@ -175,14 +162,42 @@ export default function EvaluationSuite() {
       const timeIdx = headers.indexOf('time_complexity');
       
       const dataset = [];
+      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'n*m'];
+
       for (let i = 1; i < rows.length; i++) {
         if (rows[i].length < headers.length) continue; 
+        
+        let codeText = rows[i][codeIdx] || '';
+        let spaceComp = rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
+        let timeComp = rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
+        
+        // --- SALVAGE MANGLED CSV ---
+        // The pandas script trapped the complexities inside the code trailing quotes.
+        if (!spaceComp && !timeComp && codeText.includes(',')) {
+           const parts = codeText.split(',');
+           if (parts.length >= 3) {
+               let possibleTime = parts[parts.length - 1].trim().replace(/"/g, '').toLowerCase();
+               let possibleSpace = parts[parts.length - 2].trim().replace(/"/g, '').toLowerCase();
+               
+               let isTimeValid = validComplexities.includes(possibleTime) || possibleTime.startsWith('o(');
+               let isSpaceValid = validComplexities.includes(possibleSpace) || possibleSpace.startsWith('o(');
+               
+               if (isTimeValid && isSpaceValid) {
+                   timeComp = possibleTime;
+                   spaceComp = possibleSpace;
+                   parts.pop(); // Remove time
+                   parts.pop(); // Remove space
+                   codeText = parts.join(','); // Restore pure code!
+               }
+           }
+        }
+        
         dataset.push({
           id: `tasty_csv_${i}`,
           name: `Tasty Algo ${i}`,
-          code: rows[i][codeIdx] || '',
-          expected_overall_space: rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "O(1)",
-          expected_overall_time: rows[i][timeIdx] ? rows[i][timeIdx].trim() : "O(1)",
+          code: codeText,
+          expected_overall_space: spaceComp || "O(1)",
+          expected_overall_time: timeComp || "O(1)",
           category: "Tasty Processed CSV"
         });
       }
@@ -268,7 +283,6 @@ export default function EvaluationSuite() {
   return (
     <div className="eval-suite-container">
       
-      {/* Code Inspection Modal */}
       {selectedItemCode && (
         <div className="modal-overlay" onClick={() => setSelectedItemCode(null)}>
           <div className="eval-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -297,7 +311,6 @@ export default function EvaluationSuite() {
         </div>
       )}
 
-      {/* Scikit-Learn Classification Metrics Explainer & Interactive Sandbox Modal */}
       {isMetricsHelpOpen && (
         <div className="modal-overlay" onClick={() => setIsMetricsHelpOpen(false)}>
           <div className="eval-modal-content metrics-help-modal" onClick={(e) => e.stopPropagation()}>
@@ -334,32 +347,16 @@ export default function EvaluationSuite() {
 
               <div className="metric-card-info">
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>F1-Score ( &amp; F2 )</span>
+                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>F1-Score</span>
                   <span className="metric-formula">2 × (P × R) / (P + R)</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>&quot;Harmonic Balance&quot;</strong> — F1 is the harmonic mean of Precision and Recall. It punishes extreme disparities (e.g., 1.0 recall but 0.1 precision). <br />
-                  <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
-                    <FiBookOpen style={{ display: "inline", marginRight: "4px" }} /> <strong>What about F2-Score?</strong> The F2-Score weights Recall twice as heavily as Precision. In automated grading, F2 is often monitored because missing a student&apos;s correct algorithm (False Negative) is considered more harmful than accidentally passing an inefficient one (False Positive).
-                  </span>
+                  <strong>&quot;Harmonic Balance&quot;</strong> — F1 is the harmonic mean of Precision and Recall.
                 </p>
               </div>
 
-              <div className="metric-card-info">
-                <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A" }}>Support</span>
-                  <span className="metric-formula">Count ( N )</span>
-                </div>
-                <p className="metric-desc">
-                  <strong>&quot;Sample Weight&quot;</strong> — The actual occurrence count of ground truth test cases belonging to this complexity class inside the benchmarking gauntlet.
-                </p>
-              </div>
-
-              {/* Interactive Demo Sandbox inside Modal */}
               <div className="metric-interactive-box">
                 <h4 className="interactive-box-title"><FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }}/> Interactive Metric Sandbox</h4>
-                <p className="interactive-box-subtitle">Adjust the slider values below to see how false alarms and missed detections alter the final Scikit-Learn numbers in real time:</p>
-                
                 <div className="sandbox-controls">
                   <div className="slider-group">
                     <label>True Positives (Correct Detections): <strong>{sandboxTP}</strong></label>
@@ -374,7 +371,6 @@ export default function EvaluationSuite() {
                     <input type="range" min="0" max="100" value={sandboxFN} onChange={(e) => setSandboxFN(parseInt(e.target.value))} />
                   </div>
                 </div>
-
                 <div className="sandbox-results">
                   <div className="sandbox-stat">
                     <span>Simulated Precision</span>
@@ -399,7 +395,6 @@ export default function EvaluationSuite() {
         </div>
       )}
 
-      {/* Top Header Navigation */}
       <header className="workspace-header-purple">
         <div className="wh-left">
           <Link to="/dashboard" className="wh-back-btn eval-exit-link">
@@ -423,10 +418,8 @@ export default function EvaluationSuite() {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <div className="eval-main-wrapper">
         
-        {/* Gauntlet Dataset Selection Control Box */}
         <div className="eval-dataset-selector-box">
           <div className="eval-dataset-info">
             <FiDatabase style={{ color: "#7928CA" }} size={24} />
@@ -468,7 +461,6 @@ export default function EvaluationSuite() {
           </div>
         </div>
 
-        {/* Status Banner */}
         <div className="eval-status-banner">
           <div className="eval-status-group">
             <span className="eval-status-label">Execution Target:</span>
@@ -495,7 +487,6 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {/* SOP 2 DUAL KPI STATS GRID */}
         {results && (
           <div className="eval-stats-grid">
             <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
@@ -534,7 +525,6 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {/* SCIKIT-LEARN AUTHENTIC CLASSIFICATION REPORT SECTION */}
         {results && results.timeReport && results.spaceReport && (
           <div className="eval-sklearn-container">
             <div className="eval-sklearn-header">
@@ -561,10 +551,10 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP). Correctness rate when predicting this exact class.">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN). Detection rate across all actual cases of this class.">Recall ⓘ</th>
-                      <th title="F1-Score = Harmonic mean of Precision and Recall.">F1-Score ⓘ</th>
-                      <th title="Support = Ground truth occurrence count.">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP)">Precision ⓘ</th>
+                      <th title="Recall = TP / (TP + FN)">Recall ⓘ</th>
+                      <th title="Harmonic Mean">F1-Score ⓘ</th>
+                      <th title="Ground truth occurrence">Support ⓘ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -581,7 +571,6 @@ export default function EvaluationSuite() {
                       );
                     })}
 
-                    {/* Divider rows */}
                     <tr className="tr-divider">
                       <td>accuracy</td>
                       <td>-</td>
@@ -617,10 +606,10 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP). Correctness rate when predicting this exact class.">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN). Detection rate across all actual cases of this class.">Recall ⓘ</th>
-                      <th title="F1-Score = Harmonic mean of Precision and Recall.">F1-Score ⓘ</th>
-                      <th title="Support = Ground truth occurrence count.">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP)">Precision ⓘ</th>
+                      <th title="Recall = TP / (TP + FN)">Recall ⓘ</th>
+                      <th title="Harmonic Mean">F1-Score ⓘ</th>
+                      <th title="Ground truth occurrence">Support ⓘ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -637,7 +626,6 @@ export default function EvaluationSuite() {
                       );
                     })}
 
-                    {/* Divider rows */}
                     <tr className="tr-divider">
                       <td>accuracy</td>
                       <td>-</td>
@@ -667,7 +655,6 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {/* Detailed Audit Table */}
         {results && (
           <div className="eval-table-container">
             <div className="eval-filter-navbar">
