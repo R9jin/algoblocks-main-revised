@@ -118,6 +118,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.memoized_funcs = set() 
         self.indirect_recursive_funcs = set() 
         
+        
         self.in_dead_code = False
         self.in_graph_context = False        
         self.has_recursion_in_loop = False  
@@ -2127,24 +2128,34 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         all_comps += " " + " ".join(self.custom_functions.values())
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
 
+        # 1. Factorial & Exponential
         if "n * n!" in all_comps: return "O(n * n!)"
         if "n!" in all_comps: return "O(n!)"
         if "3^n" in all_comps: return "O(3^n)"
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
+        
+        # 2. High Polynomials
         if "n^5" in all_comps: return "O(n^5)"
         if "n^4" in all_comps: return "O(n^4)"
-        
         if "n^3" in all_comps: return "O(n^3)"
-        if "n^2 log" in all_comps or "n² log" in all_comps: return "O(n^2 log n)"
-        if re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: return "O(n log n)"
-        if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
-        if "n * m" in all_comps: return "O(n * m)"
-        if "n log n" in all_comps: return "O(n log n)"
         
-        if "V + E" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: return "O(n)"
-        if "O(n)" in all_comps or "O(m)" in all_comps: return "O(n)"
+        # 3. Graph Traversal (NEVER return O(n) for graphs!)
+        if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: 
+            return "O(V + E)"
+
+        # 4. Quadratics & Linearithmics (Strict order!)
+        if "n^2 log" in all_comps or "n² log" in all_comps: return "O(n^2 log n)"
+        if "n * m" in all_comps: return "O(n * m)"
+        if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
+        if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: 
+            return "O(n log n)"
+        
+        # 5. Sub-linear (Check BEFORE standard O(n))
         if "sqrt n" in all_comps: return "O(sqrt n)"
         if "log n" in all_comps or "log min" in all_comps or '/ 2' in raw_code: return "O(log n)"
+        
+        # 6. Base Linear
+        if "O(n)" in all_comps or "O(m)" in all_comps: return "O(n)"
         
         return "O(1)"
 
@@ -2284,7 +2295,7 @@ def analyze_source_code(source_code):
             "error": None
         }
     except Exception as e:
-        # Prevents any syntax/AST parsing crashes from showing up as "ERROR" evaluations.
+        print(f"[AST CRASH FALLBACK TRIGGERED]: {e}") # <-- Add this to see hidden failures
         results = fallback_analyzer(source_code)
         
     end_time = time.perf_counter()
