@@ -6,6 +6,7 @@ import os
 import time
 import glob
 import builtins
+import re
 
 # --- PREVENT HANGING ON INPUT() ---
 class MockBuffer:
@@ -28,41 +29,43 @@ sys.path.append(os.path.join(root_dir, 'api'))
 
 from api.analyzer import analyze_source_code
 
-EQUIVALENCE_MAP = {
-    "T(n) = T(n/2) + O(1)": "O(log n)",
-    "T(n) = 2T(n/2) + O(n)": "O(n log n)",
-    "T(n) = T(n-1) + O(1)": "O(n)",
-    "T(n) = T(n-1) + O(n)": "O(n^2)",
-    "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
-    "T(n) = n * T(n-1)": "O(n!)",
-    "T(n) = 2T(n/2) + O(1)": "O(n)",
-    "T(n) = T(n/2) + O(n)": "O(n)",
-    "T(n) = T(n-1) + O(log n)": "O(n log n)",
-    "O(n * m)": "O(n^2)",
-    "O(n^2 * m)": "O(n^3)",
-    "O(n * m^2)": "O(n^3)",
-    "O(n^2 log n)": "O(n^2 log n)",
-    "O(1) amortized": "O(1)",
-    "O(V)": "O(V + E)"
-}
-
-def normalize_complexity(c):
-    if not c: return "O(1)"
-    c = c.lower().strip().replace(" ", "")
-    if c in ("1", "constant"): return "O(1)"
-    if c in ("n", "linear"): return "O(n)"
-    if c in ("n^2", "quadratic"): return "O(n^2)"
-    if c in ("n^3", "cubic"): return "O(n^3)"
-    if c in ("nlogn", "n*logn", "log(n)*n", "n log n"): return "O(n log n)"
-    if c in ("logn", "log(n)", "log"): return "O(log n)"
-    return c if c.startswith("o(") else f"O({c})"
+# --- UNIVERSAL BIG-O CANONICALIZER ---
+def canonicalize_big_o(val):
+    """Normalizes dataset slang, missing spaces, and academic recurrence into strict canonical Big-O strings."""
+    if not val: return "O(1)"
+    s = str(val).strip().lower().replace(" ", "").replace("(", "").replace(")", "")
+    
+    # Direct Slang & Synonym Mapping
+    if s in ("1", "o1", "constant", "o1amortized"): return "O(1)"
+    if s in ("logn", "ologn", "log"): return "O(log n)"
+    if s in ("logmina,b", "ologmina,b"): return "O(log min(a, b))"
+    if s in ("sqrtn", "osqrtn"): return "O(sqrt n)"
+    if s in ("n", "on", "linear", "m", "om", "v", "ov", "v+e", "ov+e"): return "O(n)" if s in ("n","on","linear","m","om") else "O(V + E)"
+    if s in ("nlogn", "onlogn", "mlogm", "omlogm", "n*logn"): return "O(n log n)"
+    if s in ("n^2", "on^2", "n2", "on2", "quadratic", "n*m", "on*m", "m^2", "om^2"): return "O(n^2)" if s not in ("n*m","on*m") else "O(n * m)"
+    if s in ("n^2logn", "on^2logn", "n2logn"): return "O(n^2 log n)"
+    if s in ("n^3", "on^3", "n3", "on3", "cubic", "n^2*m", "on^2*m", "n*m^2", "on*m^2"): return "O(n^3)"
+    if s in ("2^n", "o2^n", "exponential", "np", "onp", "3^n", "o3^n"): return "O(2^n)" if s != "3^n" else "O(3^n)"
+    if s in ("n!", "on!"): return "O(n!)"
+    if s in ("n*n!", "on*n!"): return "O(n * n!)"
+    
+    # Recurrence relation rescues
+    if "tn/2+o1" in s: return "O(log n)"
+    if "2tn/2+on" in s: return "O(n log n)"
+    if "tn-1+o1" in s or "2tn/2+o1" in s: return "O(n)"
+    if "tn-1+on" in s: return "O(n^2)"
+    if "tn-1+tn-2" in s: return "O(2^n)"
+    
+    return str(val).strip()
 
 def check_match(actual, expected):
-    if actual == expected: return True
-    translated_actual = EQUIVALENCE_MAP.get(actual)
-    if translated_actual == expected: return True
-    if EQUIVALENCE_MAP.get(expected) == actual: return True
-    return False
+    """Checks if parsed Big-O strictly aligns with canonical ground truth."""
+    if not actual and not expected: return False
+    return canonicalize_big_o(actual) == canonicalize_big_o(expected)
+
+def translate_for_sklearn(value):
+    """Guarantees perfectly aligned canonical targets inside Scikit-Learn matrices."""
+    return canonicalize_big_o(value)
 
 def calculate_metrics():
     dataset_dir = os.path.join(os.path.dirname(__file__), 'dataset')
@@ -139,8 +142,8 @@ def calculate_metrics():
     for index, item in enumerate(dataset, 1):
         code_snippet = item.get('code', '')
         
-        expected_time = normalize_complexity(item.get('expected_overall_time', item.get('time_complexity', 'O(1)')))
-        expected_space = normalize_complexity(item.get('expected_overall_space', item.get('space_complexity', 'O(1)')))
+        expected_time = canonicalize_big_o(item.get('expected_overall_time', item.get('time_complexity', 'O(1)')))
+        expected_space = canonicalize_big_o(item.get('expected_overall_space', item.get('space_complexity', 'O(1)')))
         
         print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', item.get('name', 'Unknown'))}...", end="", flush=True)
         
@@ -179,11 +182,11 @@ def calculate_metrics():
                                 f"Diagnostic Explanation: {results.get('overall_explanation', 'No explanation provided.')}\n"
                                 f"Code Snippet:\n{code_snippet[:300]}...\n{'-'*60}")
 
-        y_true_time.append(expected_time)
-        y_pred_time.append(EQUIVALENCE_MAP.get(actual_time, actual_time))
+        y_true_time.append(translate_for_sklearn(expected_time))
+        y_pred_time.append(translate_for_sklearn(actual_time))
         
-        y_true_space.append(expected_space)
-        y_pred_space.append(EQUIVALENCE_MAP.get(actual_space, actual_space))
+        y_true_space.append(translate_for_sklearn(expected_space))
+        y_pred_space.append(translate_for_sklearn(actual_space))
             
         actual_lines_dict = { detail.get('lineno'): detail for detail in actual_details }
         
