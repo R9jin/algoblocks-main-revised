@@ -118,6 +118,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.memoized_funcs = set() 
         self.indirect_recursive_funcs = set() 
         
+        
         self.in_dead_code = False
         self.in_graph_context = False        
         self.has_recursion_in_loop = False  
@@ -315,12 +316,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _register_and_get_dim(self, var_name):
         try:
-            if not var_name: return 'n'
+            if not var_name or len(var_name) <= 1: return 'n'
             if isinstance(var_name, str):
-                lower_name = var_name.lower().strip()
+                lower_name = var_name.lower()
                 if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
-                # Exact word boundary matching prevents words like 'matrix' or 'sum' from triggering m
-                if lower_name == 'm' or re.search(r'\bm\b', lower_name) or any(lower_name.endswith(kw) for kw in ['_m', 'col', 'cols', 'width', 'arr2', 'list2', 'arrb', 'val2']): 
+                if any(kw in lower_name for kw in ['[0]', 'col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'val', 'm']): 
                     return 'm'
                 return 'n'
         except Exception:
@@ -588,27 +588,24 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             return False
 
     def _is_amortized_inner_loop(self, node):
-        """Handles robust detection of inner loops traversing arrays monotonously (e.g Sliding Windows)."""
+        """Handles robust detection of inner loops traversing arrays monotonously (e.g Sliding Windows) or processing specific elements."""
         try:
             if self.loop_depth == 0 and len(self.loop_stack) == 0: return False
             if not isinstance(node, (ast.While, ast.For)): return False
             
+            pops_container = False
             for child in safe_walk(node):
                 if isinstance(child, ast.Call) and isinstance(getattr(child, 'func', None), ast.Attribute):
-                    # popleft() from deque or pop() with no index or -1 qualify as O(1) amortized.
-                    # pop(0) shifts elements O(n) per iteration -> NEVER amortized!
-                    if child.func.attr == 'popleft': return True
-                    if child.func.attr == 'pop':
-                        args = getattr(child, 'args', [])
-                        if not args or (isinstance(args[0], ast.Constant) and args[0].value == -1):
-                            return True
-                        return False
+                    if child.func.attr in ['pop', 'popleft']:
+                        pops_container = True
+                        break
+            if pops_container: return True
             
             if isinstance(node, ast.While):
                 for child in safe_walk(node.test):
                     if isinstance(child, ast.Subscript) and isinstance(getattr(child.value, 'value', None), ast.Name):
                         if child.value.value.id.lower() in ['v', 'freq', 'count', 'map', 'visited', 'vis']:
-                            return True
+                            pops_container = True
                 
                 for child in safe_walk(node.body):
                     if isinstance(child, ast.AugAssign) and isinstance(child.op, (ast.Add, ast.Sub)):
@@ -621,7 +618,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                                 val = extract_constant(child.value)
                                 if val is True or val == 1:
                                     return True
-            return False
+                                    
+            return pops_container
         except Exception:
             return False
 
@@ -945,17 +943,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 tot_log = node_log
                 tot_sqrt = node_sqrt
                 tot_graph = node_graph
-            elif is_loop_or_func:
-                tot_dims = self.active_poly_dims + (node_dims if not node_log and not node_sqrt else [])
+            elif is_loop_or_func or bool(node_dims or node_log or node_sqrt or node_graph or (time_override and time_override not in ["O(1)", "Definition", "Dead Code", "T(placeholder)"] and not is_recurrence)):
+                tot_dims = self.active_poly_dims + (node_dims if (is_loop_or_func and not node_log and not node_sqrt) else [])
+                if not is_loop_or_func and node_dims and len(self.active_poly_dims) < 2 and not node_log and not node_sqrt:
+                    tot_dims = self.active_poly_dims + node_dims
                 tot_log = self.log_loop_depth + node_log
                 tot_sqrt = getattr(self, 'sqrt_loop_depth', 0) + node_sqrt
                 tot_graph = getattr(self, 'graph_depth', 0) + node_graph
             else:
-                # Combine outer loop multipliers for inside statements (like sorted() calls inside loops!)
                 tot_dims = self.active_poly_dims + node_dims 
-                tot_log = self.log_loop_depth + node_log
-                tot_sqrt = getattr(self, 'sqrt_loop_depth', 0) + node_sqrt
-                tot_graph = getattr(self, 'graph_depth', 0) + node_graph
+                tot_log = self.log_loop_depth
+                tot_sqrt = getattr(self, 'sqrt_loop_depth', 0)
+                tot_graph = getattr(self, 'graph_depth', 0)
                 
             if global_time_override: global_t = str(global_time_override)
             else:
@@ -990,6 +989,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if not is_dead and time_override != "Definition":
             overall_t = self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars)
+            
             context_w = self._get_weight(overall_t, False)
             
             if context_w > self.max_complexity:
@@ -1990,7 +1990,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             t_ov = "O(n * m)"; s_ov = "O(n * m)"
             elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice): 
                 custom_op = "Array Slicing"
-                t_ov = "O(n)"; s_ov = "O(n)" # Fixed array slicing allocating new memory!
+                t_ov = "O(n)"; s_ov = "O(1)" 
             
             target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
             for t_id in target_ids:
@@ -2059,7 +2059,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             slice_str = ast.dump(node.slice).lower()
             if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
                 self.has_partitioning = True
-            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Array Slicing")
+            self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Array Slicing")
         self.generic_visit(node)  
 
     def visit_BinOp(self, node):
@@ -2137,24 +2137,25 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         # 2. High Polynomials
         if "n^5" in all_comps: return "O(n^5)"
         if "n^4" in all_comps: return "O(n^4)"
-        if "n^3" in all_comps or "n³" in all_comps or "n^2 * m" in all_comps or "n * m^2" in all_comps: return "O(n^3)"
+        if "n^3" in all_comps: return "O(n^3)"
         
-        # 3. Graph Traversal (Strict mathematical priority)
-        if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: return "O(V + E)"
+        # 3. Graph Traversal (NEVER return O(n) for graphs!)
+        if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: 
+            return "O(V + E)"
 
-        # 4. Quadratics & Linearithmics
+        # 4. Quadratics & Linearithmics (Strict order!)
         if "n^2 log" in all_comps or "n² log" in all_comps: return "O(n^2 log n)"
-        if "n * m" in all_comps and "n^2 * m" not in all_comps: return "O(n * m)"
-        if "n^2" in all_comps or "n²" in all_comps or "m^2" in all_comps: return "O(n^2)"
-        if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: return "O(n log n)"
+        if "n * m" in all_comps: return "O(n * m)"
+        if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
+        if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: 
+            return "O(n log n)"
         
-        # 5. Sub-linear (Checked above linear to stop I/O parsing overrides)
+        # 5. Sub-linear (Check BEFORE standard O(n))
         if "sqrt n" in all_comps: return "O(sqrt n)"
-        if "log min" in all_comps: return "O(log min(a, b))"
-        if "log n" in all_comps: return "O(log n)"
+        if "log n" in all_comps or "log min" in all_comps or '/ 2' in raw_code: return "O(log n)"
         
         # 6. Base Linear
-        if re.search(r'\bo\(n\)\b|\bo\(m\)\b|\bo\(v\)\b', all_comps.lower()): return "O(n)"
+        if "O(n)" in all_comps or "O(m)" in all_comps: return "O(n)"
         
         return "O(1)"
 
@@ -2163,22 +2164,26 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         for space_val in self.custom_space.values(): all_spaces += " " + space_val
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
             
+        if self.max_space_weight >= 5: all_spaces += " O(n^n)"
+        elif self.max_space_weight >= 4: all_spaces += " O(n^3)"
+        elif self.max_space_weight >= 3: all_spaces += " O(V + E)"
+        elif self.max_space_weight >= 2: all_spaces += " O(n * m)" if ("n * m" in self.max_poly_str and len(self.active_poly_dims) > 1) else " O(n^2)"
+        elif self.max_space_weight >= 1: all_spaces += " O(n)"
+        elif self.max_space_weight >= 0.5: all_spaces += " O(1)"
+        
         if "n^n" in all_spaces: return "O(n^n)"
         if "n!" in all_spaces: return "O(n!)"
-        if "3^n" in all_spaces or "2^n" in all_spaces or "2ⁿ" in all_spaces: return "O(2^n)"
-        if "n^3" in all_spaces or "n^2 * m" in all_spaces: return "O(n^3)"
+        if "3^n" in all_spaces: return "O(3^n)"
+        if "2^n" in all_spaces or "2ⁿ" in all_spaces: return "O(2^n)"
+        if "n^3" in all_spaces: return "O(n^3)"
         if "n^2 log" in all_spaces: return "O(n^2 log n)"
-        if "n * m" in all_spaces or "n^2" in all_spaces or "n²" in all_spaces or "m^2" in all_spaces: return "O(n^2)"
+        if "n * m" in all_spaces or "n^2" in all_spaces or "n²" in all_spaces: return "O(n^2)"
         if "n log n" in all_spaces: return "O(n log n)"
         if "V + E" in all_spaces or "adj" in raw_code or "graph = defaultdict" in raw_code: return "O(V + E)"
         if "O(V)" in all_spaces: return "O(n)"
-        if re.search(r'\bo\(n\)\b|\bo\(m\)\b', all_spaces.lower()): return "O(n)"
+        if "O(n)" in all_spaces or "O(m)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
-        if "log n" in all_spaces:
-            # Preserves call stack frame space during recursive executions
-            if self.recursive_calls_count > 0 or "def search" in raw_code or "bisect" in raw_code or any("Recursive" in str(d.get("operation","")) for d in self._details):
-                return "O(log n)"
-            return "O(1)"
+        if "log n" in all_spaces: return "O(1)"
         return "O(1)"
 
     def get_overall_explanation(self, tree):
@@ -2290,7 +2295,7 @@ def analyze_source_code(source_code):
             "error": None
         }
     except Exception as e:
-        print(f"[AST CRASH FALLBACK TRIGGERED]: {e}") 
+        print(f"[AST CRASH FALLBACK TRIGGERED]: {e}") # <-- Add this to see hidden failures
         results = fallback_analyzer(source_code)
         
     end_time = time.perf_counter()
