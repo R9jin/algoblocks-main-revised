@@ -1,5 +1,6 @@
 # evaluation/evaluation_metrics.py
 import json
+import csv
 import sys
 import os
 import time
@@ -63,6 +64,17 @@ EQUIVALENCE_MAP = {
     "O(V)": "O(V + E)"
 }
 
+def normalize_complexity(c):
+    if not c: return "O(1)"
+    c = c.lower().strip().replace(" ", "")
+    if c in ("1", "constant"): return "O(1)"
+    if c in ("n", "linear"): return "O(n)"
+    if c in ("n^2", "quadratic"): return "O(n^2)"
+    if c in ("n^3", "cubic"): return "O(n^3)"
+    if c in ("nlogn", "n*logn", "log(n)*n"): return "O(n log n)"
+    if c in ("logn", "log(n)", "log"): return "O(log n)"
+    return c if c.startswith("o(") else f"O({c})"
+
 def check_match(actual, expected):
     """Checks if actual matches expected, factoring in mathematical equivalence."""
     if actual == expected:
@@ -94,6 +106,21 @@ def calculate_metrics():
     for file_path in part_files:
         with open(file_path, 'r', encoding='utf-8') as f:
             dataset.extend(json.load(f))
+            
+    # Include the Tasty Processed dataset CSV
+    csv_path = os.path.join(dataset_dir, 'processed', 'algo_blocks_dataset.csv')
+    if os.path.exists(csv_path):
+        print(f"Found Tasty processed dataset CSV at {csv_path}. Adding to evaluation...\n")
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                dataset.append({
+                    "id": f"tasty_csv_{reader.line_num}",
+                    "name": f"Tasty Algo {reader.line_num}",
+                    "code": row.get('code', ''),
+                    "expected_overall_time": row.get('time_complexity', 'O(1)'),
+                    "expected_overall_space": row.get('space_complexity', 'O(1)')
+                })
         
     total_algorithms = len(dataset)
     if total_algorithms == 0:
@@ -112,15 +139,19 @@ def calculate_metrics():
     y_true_space = []
     y_pred_space = []
     
+    failures_log = []
+
     print(f"Starting Independent AST Complexity Evaluation on {total_algorithms} algorithms...\n")
 
     for index, item in enumerate(dataset, 1):
-        code_snippet = item['code']
-        expected_time = item['expected_overall_time']
-        expected_space = item.get('expected_overall_space', 'O(1)')
+        code_snippet = item.get('code', '')
+        
+        # Handle normalized formats depending on json vs csv text entries
+        expected_time = normalize_complexity(item.get('expected_overall_time', item.get('time_complexity', 'O(1)')))
+        expected_space = normalize_complexity(item.get('expected_overall_space', item.get('space_complexity', 'O(1)')))
         
         # Live tracking print statement (Lets you see exactly which file is processing!)
-        print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', 'Unknown')}...", end="", flush=True)
+        print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', item.get('name', 'Unknown'))}...", end="", flush=True)
         
         start_time = time.perf_counter()
         results = analyze_source_code(code_snippet)
@@ -130,7 +161,9 @@ def calculate_metrics():
         total_processing_time += processing_time_ms
 
         if results.get("status") == "error":
-            print(f" [ERROR] {results.get('message')}")
+            err_msg = results.get('message', 'Unknown Error')
+            print(f" [ERROR] {err_msg}")
+            failures_log.append(f"[{item.get('id', 'Unknown')}] ERROR: {err_msg}")
             continue
 
         # Completion time for the specific script
@@ -140,18 +173,28 @@ def calculate_metrics():
         actual_space = results.get("space_total", "O(1)")
         actual_details = results.get("lines", [])
         
+        is_time_match = check_match(actual_time, expected_time)
+        is_space_match = check_match(actual_space, expected_space)
+
         # Validate Overall Time Complexity
-        if check_match(actual_time, expected_time):
+        if is_time_match:
             overall_time_correct += 1
         else:
             print(f"  -> [Time Mismatch]: Expected {expected_time}, got {actual_time}")
             
         # Validate Overall Space Complexity
-        if check_match(actual_space, expected_space):
+        if is_space_match:
             overall_space_correct += 1
         else:
             print(f"  -> [Space Mismatch]: Expected {expected_space}, got {actual_space}")
             
+        if not is_time_match or not is_space_match:
+            failures_log.append(f"[{item.get('id', item.get('name', 'Unknown'))}]\n"
+                                f"Time Expected: {expected_time} | Actual: {actual_time}\n"
+                                f"Space Expected: {expected_space} | Actual: {actual_space}\n"
+                                f"Diagnostic Explanation: {results.get('overall_explanation', 'No explanation provided.')}\n"
+                                f"Code Snippet:\n{code_snippet[:300]}...\n{'-'*60}")
+
         y_true_time.append(expected_time)
         y_pred_time.append(EQUIVALENCE_MAP.get(actual_time, actual_time))
         
@@ -201,6 +244,16 @@ def calculate_metrics():
     print(f"6. Time Error Rate                : {time_error_rate:.2f}%")
     print(f"7. Space Error Rate               : {space_error_rate:.2f}%")
     
+    # Write failures log
+    log_path = os.path.join(os.path.dirname(__file__), 'evaluation_failures_log.txt')
+    with open(log_path, 'w', encoding='utf-8') as f:
+        f.write("=== EVALUATION FAILURES LOG ===\n\n")
+        if failures_log:
+            f.write("\n\n".join(failures_log))
+        else:
+            f.write("No mismatches found. Perfect accuracy!\n")
+    print(f"\nSaved failures log to {log_path}")
+
     print("\n" + "="*60)
     print("   ADVANCED CLASSIFICATION METRICS (Precision/Recall/F1)")
     print("="*60)

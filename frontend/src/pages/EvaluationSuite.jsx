@@ -8,6 +8,7 @@ import {
   FiCode,
   FiCpu,
   FiDatabase,
+  FiDownload,
   FiHelpCircle,
   FiLayers,
   FiPlay,
@@ -69,50 +70,131 @@ export default function EvaluationSuite() {
     return () => worker.removeEventListener("message", handleWorkerMessage);
   }, [worker]);
 
+  // --- VITE SPA FALLBACK GUARDS ---
+  const safeFetchText = async (url) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const text = await res.text();
+      // If Vite returns index.html instead of the requested asset, block it
+      if (text.trim().toLowerCase().startsWith("<!doctype") || text.trim().toLowerCase().startsWith("<html")) {
+        return null; 
+      }
+      return text;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const safeFetchJson = async (url) => {
+    const text = await safeFetchText(url);
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const parseCSV = (csvText) => {
+    const results = [];
+    let isInsideQuotes = false;
+    let currentVal = '';
+    let row = [];
+    
+    for (let i = 0; i < csvText.length; i++) {
+      const char = csvText[i];
+      const nextChar = csvText[i + 1];
+
+      if (char === '"' && nextChar === '"') {
+        currentVal += '"';
+        i++;
+      } else if (char === '"') {
+        isInsideQuotes = !isInsideQuotes;
+      } else if (char === ',' && !isInsideQuotes) {
+        row.push(currentVal);
+        currentVal = '';
+      } else if (char === '\n' && !isInsideQuotes) {
+        row.push(currentVal);
+        results.push(row);
+        row = [];
+        currentVal = '';
+      } else {
+        currentVal += char;
+      }
+    }
+    if (currentVal || row.length > 0) {
+      row.push(currentVal);
+      results.push(row);
+    }
+    return results;
+  };
+
   const fetchActiveGauntletData = async (mode) => {
     setStatusText(`Resolving ${mode.toUpperCase()} dataset sources...`);
 
     if (mode === "textbook") {
-      try {
-        const res = await fetch("/data/evaluation/ground_truth.json");
-        if (!res.ok) throw new Error("ground_truth.json missing");
-        return await res.json();
-      } catch (err) {
-        alert(`Failed to load Textbook dataset: ${err.message}`);
+      const data = await safeFetchJson("/data/evaluation/ground_truth.json");
+      if (!data) {
+        alert("Failed to load Textbook dataset: ground_truth.json missing or invalid JSON.");
         return [];
       }
+      return data;
     }
 
     if (mode === "codeforces") {
-      try {
-        const combRes = await fetch("/data/evaluation/curated_ground_truth.json");
-        if (combRes.ok) {
-          const combData = await combRes.json();
-          if (Array.isArray(combData) && combData.length > 0) return combData;
-        }
-      } catch (e) {}
+      const combData = await safeFetchJson("/data/evaluation/curated_ground_truth.json");
+      if (Array.isArray(combData) && combData.length > 0) return combData;
 
       setStatusText("Stitching curated Codeforces parts 1 through 5 over network...");
       let stitchedArray = [];
       for (let i = 1; i <= 5; i++) {
-        try {
-          const partRes = await fetch(`/data/evaluation/curated_part_${i}.json`);
-          if (partRes.ok) {
-            const partJson = await partRes.json();
-            stitchedArray = stitchedArray.concat(partJson);
-          }
-        } catch (err) {
-          console.warn(`Silently skipped missing curated_part_${i}.json`);
+        const partJson = await safeFetchJson(`/data/evaluation/curated_part_${i}.json`);
+        if (partJson) {
+          stitchedArray = stitchedArray.concat(partJson);
+        } else {
+          console.warn(`Silently skipped missing or invalid curated_part_${i}.json`);
         }
       }
       return stitchedArray;
+    }
+
+    if (mode === "tasty") {
+      setStatusText("Fetching Tasty Processed Dataset (CSV)...");
+      const csvText = await safeFetchText("/data/evaluation/processed/algo_blocks_dataset.csv");
+      if (!csvText) {
+        alert("Failed to load Tasty dataset: algo_blocks_dataset.csv missing or HTML fallback triggered.");
+        return [];
+      }
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) return [];
+      
+      const headers = rows[0].map(h => h.trim());
+      const codeIdx = headers.indexOf('code');
+      const spaceIdx = headers.indexOf('space_complexity');
+      const timeIdx = headers.indexOf('time_complexity');
+      
+      const dataset = [];
+      for (let i = 1; i < rows.length; i++) {
+        if (rows[i].length < headers.length) continue; 
+        dataset.push({
+          id: `tasty_csv_${i}`,
+          name: `Tasty Algo ${i}`,
+          code: rows[i][codeIdx] || '',
+          expected_overall_space: rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "O(1)",
+          expected_overall_time: rows[i][timeIdx] ? rows[i][timeIdx].trim() : "O(1)",
+          category: "Tasty Processed CSV"
+        });
+      }
+      return dataset;
     }
 
     if (mode === "both") {
       setStatusText("Assembling Mega Gauntlet...");
       const textbookData = await fetchActiveGauntletData("textbook");
       const codeforcesData = await fetchActiveGauntletData("codeforces");
-      return [...textbookData, ...codeforcesData];
+      const tastyData = await fetchActiveGauntletData("tasty");
+      return [...textbookData, ...codeforcesData, ...tastyData];
     }
 
     return [];
@@ -129,7 +211,7 @@ export default function EvaluationSuite() {
     const gauntletPayload = await fetchActiveGauntletData(datasetOption);
 
     if (!gauntletPayload || gauntletPayload.length === 0) {
-      alert(`Critical Failure: Could not assemble data points for target [${datasetOption}]. Ensure JSON files exist inside /public/data/evaluation/`);
+      alert(`Critical Failure: Could not assemble data points for target [${datasetOption}]. Ensure JSON/CSV files exist inside /public/data/evaluation/`);
       setIsLoading(false);
       setStatusText("Dataset assembly failed.");
       return;
@@ -137,6 +219,34 @@ export default function EvaluationSuite() {
 
     setStatusText(`Deploying AST Gauntlet across ${gauntletPayload.length} algorithms...`);
     worker.postMessage({ type: "RUN_BENCHMARK_SUITE", dataset: gauntletPayload });
+  };
+
+  const downloadFailuresLog = (details) => {
+    const mismatches = details.filter(d => !d.isCompletelyCorrect);
+    let logText = "=== EVALUATION FAILURES LOG ===\n\n";
+    
+    if (mismatches.length === 0) {
+        logText += "No mismatches found. Perfect accuracy!\n";
+    } else {
+        mismatches.forEach(m => {
+            logText += `[${m.id} - ${m.name}]\n`;
+            logText += `Time Expected: ${m.expectedTime} | Actual: ${m.predictedTime}\n`;
+            logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
+            logText += `Diagnostic Explanation: ${m.explanation}\n`;
+            logText += `Code Snippet:\n${m.codeSnippet.slice(0, 300)}...\n`;
+            logText += `${'-'.repeat(60)}\n\n`;
+        });
+    }
+    
+    const blob = new Blob([logText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "evaluation_failures_log.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const filteredDetails = (results?.details || []).filter((item) => {
@@ -322,7 +432,7 @@ export default function EvaluationSuite() {
             <FiDatabase style={{ color: "#7928CA" }} size={24} />
             <div>
               <strong className="eval-dataset-title">Select AST Benchmarking Gauntlet Target</strong>
-              <span className="eval-dataset-subtitle">Choose which master JSON partition to stream into the token classification engine</span>
+              <span className="eval-dataset-subtitle">Choose which master JSON partition or CSV to stream into the token classification engine</span>
             </div>
           </div>
 
@@ -342,11 +452,18 @@ export default function EvaluationSuite() {
               CodeComplex Curated (104)
             </button>
             <button 
+              onClick={() => !isRunning && setDatasetOption("tasty")}
+              className={`dataset-btn ${datasetOption === "tasty" ? "active-ds" : ""}`}
+              disabled={isRunning}
+            >
+              Tasty Dataset (CSV)
+            </button>
+            <button 
               onClick={() => !isRunning && setDatasetOption("both")}
               className={`dataset-btn ${datasetOption === "both" ? "active-ds" : ""}`}
               disabled={isRunning}
             >
-              Full Master Suite (210 Combined)
+              Full Master Suite (All Combined)
             </button>
           </div>
         </div>
@@ -358,6 +475,11 @@ export default function EvaluationSuite() {
             <strong className="eval-status-target">{statusText}</strong>
           </div>
           <div className="eval-status-group">
+            {results && results.details.filter(d => !d.isCompletelyCorrect).length > 0 && (
+                <button className="eval-btn-inspect" onClick={() => downloadFailuresLog(results.details)} style={{marginRight: "15px", display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px"}}>
+                   <FiDownload size={14} /> Download Error Logs (TXT)
+                </button>
+            )}
             <span className="eval-status-label-sm">AST Virtual Machine:</span>
             {isEngineReady ? (
               <span className="eval-vm-ready">● Pyodide 3.11 AST Active</span>
