@@ -232,6 +232,33 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         elif "n" in complexity_str: s_w = 1 
         return s_w
 
+    def _get_space_dimension(self, expr_node):
+        """Safely evaluates space structures. Folds constants to prevent O(n^2) explosions on [0] * (N * 2)."""
+        if isinstance(expr_node, ast.BinOp):
+            if isinstance(expr_node.op, ast.Mult):
+                left_const = extract_constant(expr_node.left)
+                right_const = extract_constant(expr_node.right)
+                
+                # If one side is a constant, ignore it and return the dimension of the variable side
+                if left_const is not None:
+                    return self._get_space_dimension(expr_node.right)
+                if right_const is not None:
+                    return self._get_space_dimension(expr_node.left)
+                
+                # If variable * variable, it's 2D
+                return self._get_space_dimension(expr_node.left) + self._get_space_dimension(expr_node.right)
+            elif isinstance(expr_node.op, (ast.Add, ast.Sub)):
+                return max(self._get_space_dimension(expr_node.left), self._get_space_dimension(expr_node.right))
+        
+        elif isinstance(expr_node, ast.Name):
+            return 1 # Linear mapping 
+        
+        elif isinstance(expr_node, ast.Call):
+            if getattr(expr_node.func, 'id', '') in ['range', 'len']: return 1
+            return 1
+            
+        return 0
+
     def _apply_bottlenecks(self):
         final_time = self.get_final_asymptotic_badge()
         final_space = self.get_final_space_badge()
@@ -657,6 +684,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             if isinstance(sub.target, ast.Name) and sub.target.id in cond_vars: return True, None
                         if isinstance(sub.op, (ast.Add, ast.Sub)):
                             if isinstance(sub.value, ast.BinOp) and isinstance(sub.value.op, ast.BitAnd):
+                                # Enhanced detection for BIT updates (i & -i)
+                                if isinstance(sub.value.right, ast.UnaryOp) and isinstance(sub.value.right.op, ast.USub):
+                                    return True, None
                                 return True, None
                         
                     if isinstance(sub, ast.Assign):
@@ -883,6 +913,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else:
                         iter_name = self._get_iterable_name(node.iter)
                         dim = self._register_and_get_dim(iter_name)
+                        
+                        # Fix for array shifting loops: ensure reverse ranges are bounded properly
+                        if not dim and isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
+                            dim = 'n'
+                            
                         if dim: node_dims = [dim]
             elif isinstance(node, ast.While):
                 if getattr(self, 'in_graph_context', False) and self._is_graph_while_loop(node): node_graph = 1
@@ -1293,7 +1328,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else:
                         relation = "T(n) = T(n/2) + O(1)"
                 elif is_tree_trav:
-                    relation = "T(n) = 2T(n/2) + O(1)"
+                    # Fix Naive Tree Recursion where O(n) internal methods cause an O(n^2) cascade
+                    if does_linear_work:
+                        relation = "T(n) = T(n-1) + O(n)"
+                    else:
+                        relation = "T(n) = 2T(n/2) + O(1)"
                 elif is_quicksort:
                     relation = "T(n) = 2T(n/2) + O(n)"
                 elif (self.has_partitioning and not self.has_division):
@@ -1971,22 +2010,21 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = "Fixed Container Allocation"
                     t_ov = "O(1)"; s_ov = "O(1)"
                 else:
-                    if isinstance(mult_node, ast.BinOp) and isinstance(mult_node.op, ast.Mult):
-                        if isinstance(mult_node.left, ast.Constant) or isinstance(mult_node.right, ast.Constant) or extract_constant(mult_node.left) or extract_constant(mult_node.right):
-                            t_ov = "O(n)"; s_ov = "O(n)"
-                            custom_op = "List Repetition"
-                        else:
-                            t_ov = "O(n * m)"; s_ov = "O(n * m)"
-                            custom_op = "2D Array Allocation"
-                    else:
-                        dim_var = 'n'
-                        if isinstance(mult_node, ast.Name): dim_var = self._register_and_get_dim(mult_node.id)
-                        custom_op = "List Repetition"
+                    dims = self._get_space_dimension(mult_node)
+                    if dims > 0:
+                        dim_var = f"n^{dims}" if dims > 1 else "n"
+                        custom_op = "2D Array Allocation" if dims > 1 else "List Repetition"
                         t_ov = f"O({dim_var})"; s_ov = f"O({dim_var})"
-                        if len(self.loop_stack) > 0 and isinstance(node.targets[0], ast.Subscript):
+                        if dims > 1:
                             self.max_space_weight = max(self.max_space_weight, 2)
-                            custom_op = "2D Array Allocation"
-                            t_ov = "O(n * m)"; s_ov = "O(n * m)"
+                    else:
+                        t_ov = "O(n)"; s_ov = "O(n)"
+                        custom_op = "List Repetition"
+                    
+                    if len(self.loop_stack) > 0 and isinstance(node.targets[0], ast.Subscript):
+                        self.max_space_weight = max(self.max_space_weight, 2)
+                        custom_op = "2D Array Allocation"
+                        t_ov = "O(n * m)"; s_ov = "O(n * m)"
             elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice): 
                 custom_op = "Array Slicing"
                 t_ov = "O(n)"; s_ov = "O(1)" 
@@ -2212,7 +2250,7 @@ def fallback_analyzer(source_code):
             if not line_clean.strip(): continue
             indent = len(line_clean) - len(line_clean.lstrip())
             while loop_indents and loop_indents[-1] >= indent:
-                loop_indents.pop()
+                loop_indents.append(indent)
             if line_clean.lstrip().startswith('for ') or line_clean.lstrip().startswith('while '):
                 loop_indents.append(indent)
                 max_loop_depth = max(max_loop_depth, len(loop_indents))
