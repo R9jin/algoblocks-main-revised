@@ -1,5 +1,6 @@
 # frontend/public/python_engine/dynamic_tracer.py
 import sys
+import types
 from typing import Dict, Any, List
 from collections import Counter
 
@@ -13,24 +14,46 @@ class ExecutionSnapshot:
         """Extracts the type and size of variables without copying massive data."""
         profile = {}
         for name, val in local_vars.items():
-            if name.startswith('__'): continue # Skip Python magic variables
+            # Skip Python magic variables
+            if name.startswith('__'): 
+                continue 
+            
+            # Optimization 1: Skip modules, functions, and classes to save processing time
+            if isinstance(val, (types.ModuleType, types.FunctionType, types.BuiltinFunctionType, type)):
+                continue
             
             var_type = type(val).__name__
             size = 1 # Default scalar size
+            is_collection = False
             
-            # If it's a collection, get its actual length at this exact moment
+            # Fast check for collections
             if hasattr(val, '__len__') and not isinstance(val, (str, bytes)):
                 try:
                     size = len(val)
-                except:
+                    is_collection = True
+                except Exception:
                     pass
+            
+            # Optimization 2: Prevent massive string operations on large arrays/matrices
+            if is_collection and size > 30:
+                preview = f"<{var_type} (size: {size})>"
+            else:
+                try:
+                    # Optimization 3: Only evaluate the string ONCE using repr() 
+                    # repr() is safer than str() for arbitrary unknown objects
+                    val_str = repr(val)
+                    preview = val_str[:30] + "..." if len(val_str) > 30 else val_str
+                except Exception:
+                    # Fallback if an object has a broken __repr__ method
+                    preview = f"<{var_type}>"
                     
             profile[name] = {
                 "type": var_type,
                 "size": size,
-                "preview": str(val)[:30] + "..." if len(str(val)) > 30 else str(val)
+                "preview": preview
             }
         return profile
+
 
 class AlgoBlocksTracer:
     """Executes code and captures line-by-line runtime telemetry."""
