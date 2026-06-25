@@ -28,35 +28,45 @@ def preprocess_source(source_code):
     """
     Sanitizes raw algorithms by seamlessly patching Python 2 legacy syntax 
     and common syntactical typos into valid Python 3 before AST parsing.
-    Optimized to completely prevent Catastrophic Backtracking (ReDoS) hangs.
+    Completely rewritten to use line-by-line iteration to guarantee O(N) 
+    performance and mathematically prevent any ReDoS CPU hangs on large datasets.
     """
     try:
-        source_code = re.sub(r'\bxrange\(', 'range(', source_code)
+        source_code = source_code.replace('xrange(', 'range(')
         source_code = source_code.replace('<>', '!=')
         
-        def fix_print(m):
-            indent = m.group(1)
-            content = m.group(2).strip()
-            
-            if not content:
-                return f"{indent}print()"
+        lines = source_code.split('\n')
+        for i in range(len(lines)):
+            line = lines[i]
+            stripped = line.lstrip()
+            if not stripped:
+                continue
                 
-            # If it already looks like a Python 3 print call with parentheses, leave it alone
-            if content.startswith('(') and content.endswith(')'):
-                return m.group(0)
+            indent_len = len(line) - len(stripped)
+            indent = line[:indent_len]
             
-            # Handle Python 2 trailing commas translating to end=' '
-            if content.endswith(','):
-                clean_content = content[:-1].strip()
-                return f"{indent}print({clean_content}, end=' ')"
+            # Fast Python 2 print handling without global regex backtracking
+            if stripped.startswith('print ') and not stripped.startswith('print('):
+                content = stripped[6:].strip()
+                if not content:
+                    lines[i] = f"{indent}print()"
+                elif content.startswith('(') and content.endswith(')'):
+                    continue # Already looks valid
+                elif content.endswith(','):
+                    lines[i] = f"{indent}print({content[:-1].strip()}, end=' ')"
+                else:
+                    lines[i] = f"{indent}print({content})"
             
-            return f"{indent}print({content})"
+            # Fast python 2 exception handling parsing
+            elif stripped.startswith('except ') and ',' in stripped and ':' in stripped:
+                # The regex is bound exclusively to this one line, making it instantly safe
+                lines[i] = re.sub(r'^(\s*except\s+[a-zA-Z0-9_.]+)\s*,\s*([a-zA-Z0-9_]+)\s*:', r'\1 as \2:', line)
+                
+            # Fast else if correction
+            elif stripped.startswith('else if '):
+                lines[i] = line.replace('else if ', 'elif ', 1)
 
-        # Extremely fast and safe regex replacing the old vulnerable overlapping groups
-        source_code = re.sub(r'(?m)^(\s*)print\b\s*(.*)$', fix_print, source_code)
-        
-        source_code = re.sub(r'(?m)^(\s*except\s+[a-zA-Z0-9_.]+)\s*,\s*([a-zA-Z0-9_]+)\s*:', r'\1 as \2:', source_code)
-        source_code = re.sub(r'(?m)^(\s*)else\s+if\s+', r'\1elif ', source_code)
+        source_code = '\n'.join(lines)
     except Exception:
         pass
     return source_code
@@ -600,10 +610,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if isinstance(node, ast.For):
                 if isinstance(node.iter, ast.Call) and getattr(node.iter.func, 'id', '') == 'range':
                     if len(node.iter.args) > 0:
-                        arg_str = ast.dump(node.iter.args[0]).lower()
-                        if 'count' in arg_str or 'freq' in arg_str:
-                            return True
                         arg = node.iter.args[0]
+                        # AST dump limit protector for massive arrays
+                        if not isinstance(arg, (ast.List, ast.Tuple, ast.Set, ast.Dict, ast.Constant)):
+                            arg_str = ast.dump(arg).lower()
+                            if 'count' in arg_str or 'freq' in arg_str:
+                                return True
                         if isinstance(arg, ast.Subscript):
                             base_name = getattr(getattr(arg, 'value', None), 'id', '').lower()
                             if any(kw in base_name for kw in ['count', 'freq', 'bucket', 'dp']):
@@ -2096,10 +2108,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def visit_Subscript(self, node):
         if isinstance(getattr(node, 'slice', None), ast.Slice):
-            self.has_slicing = True  
-            slice_str = ast.dump(node.slice).lower()
-            if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
-                self.has_partitioning = True
+            self.has_slicing = True
+            # AST dump protector
+            if not isinstance(node.slice, (ast.List, ast.Tuple, ast.Constant)):
+                slice_str = ast.dump(node.slice).lower()
+                if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
+                    self.has_partitioning = True
             self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Array Slicing")
         self.generic_visit(node)  
 
@@ -2167,7 +2181,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def get_final_asymptotic_badge(self):
         all_comps = " ".join([str(d.get('global_time', '')) for d in self._details] + [str(d.get('local_time', '')) for d in self._details])
         all_comps += " " + " ".join(self.custom_functions.values())
-        raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
+        
+        # Stripped using highly efficient, non-backtracking regex
+        raw_code = re.sub(r'(#|//).*', '', "\n".join(self.source_lines)).lower()
 
         if "n * n!" in all_comps: return "O(n * n!)"
         if "n!" in all_comps: return "O(n!)"
@@ -2193,7 +2209,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def get_final_space_badge(self):
         all_spaces = " ".join([str(d.get('global_space', '')) for d in self._details] + [str(d.get('local_space', '')) for d in self._details])
         for space_val in self.custom_space.values(): all_spaces += " " + space_val
-        raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
+        
+        raw_code = re.sub(r'(#|//).*', '', "\n".join(self.source_lines)).lower()
             
         if self.max_space_weight >= 5: all_spaces += " O(n^n)"
         elif self.max_space_weight >= 4: all_spaces += " O(n^3)"
@@ -2228,11 +2245,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
 def fallback_analyzer(source_code):
     """
-    Robust regex-based heuristic engine. 
-    Guarantees analysis for C, C++, Java, and broken Python code where AST fails.
+    Robust heuristic engine designed to never hang.
+    Guarantees safe analysis for non-parseable code or alternate languages.
     """
     code_lower = source_code.lower()
-    code_clean = re.sub(r'//.*|/\*[\s\S]*?\*/|".*?"|\'.*?\'|#.*', '', code_lower)
+    
+    # Safe regex completely prevents ReDoS locking on massive strings
+    code_clean = re.sub(r'(?m)^[\s]*?(#|//).*$', '', code_lower)
+    code_clean = re.sub(r'(#|//).*', '', code_clean)
     
     max_loop_depth = 0
     if '{' in code_clean:
@@ -2303,7 +2323,9 @@ def analyze_source_code(source_code):
         tree = ast.parse(source_code)
         
         trace_data = {"history": [], "line_hits": {}}
-        if AlgoBlocksTracer is not None:
+        
+        # Block arbitrary long-running Python execution for massive datasets to prevent infinite system hanging
+        if AlgoBlocksTracer is not None and len(source_code) < 15000:
             try:
                 tracer = AlgoBlocksTracer()
                 trace_data = tracer.execute_and_trace(source_code)
@@ -2326,7 +2348,7 @@ def analyze_source_code(source_code):
             "error": None
         }
     except Exception as e:
-        # Prevents any syntax/AST parsing crashes from showing up as "ERROR" evaluations.
+        # Silently drops to heuristic analysis if AST limits are broken 
         results = fallback_analyzer(source_code)
         
     end_time = time.perf_counter()
