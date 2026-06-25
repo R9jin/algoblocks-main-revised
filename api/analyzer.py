@@ -28,31 +28,35 @@ def preprocess_source(source_code):
     """
     Sanitizes raw algorithms by seamlessly patching Python 2 legacy syntax 
     and common syntactical typos into valid Python 3 before AST parsing.
+    Optimized to completely prevent Catastrophic Backtracking (ReDoS) hangs.
     """
     try:
         source_code = re.sub(r'\bxrange\(', 'range(', source_code)
+        source_code = source_code.replace('<>', '!=')
         
-        def fix_print_comma(m):
+        def fix_print(m):
             indent = m.group(1)
-            content = m.group(2)
-            end_arg = ", end=' '" if m.group(3) else ""
-            return f"{indent}print({content}{end_arg})"
-
-        source_code = re.sub(r'(?m)^(\s*)print\s+(?![\(\'\"])(.*?)(,?)\s*$', fix_print_comma, source_code)
-        source_code = re.sub(r'(?m)^(\s*)print\s+("[^"]*"|\'[^\']*\')\s*,\s*(.*?)$', r'\1print(\2, \3)', source_code)
-        
-        def fix_generic_print(m):
-            indent = m.group(1)
-            content = m.group(2)
-            if not content.startswith('('):
-                return f"{indent}print({content})"
-            return m.group(0)
+            content = m.group(2).strip()
             
-        source_code = re.sub(r'(?m)^(\s*)print\s+([^\n]+?)\s*$', fix_generic_print, source_code)
-        source_code = re.sub(r'(?m)^(\s*)print\s*$', r'\1print()', source_code)
+            if not content:
+                return f"{indent}print()"
+                
+            # If it already looks like a Python 3 print call with parentheses, leave it alone
+            if content.startswith('(') and content.endswith(')'):
+                return m.group(0)
+            
+            # Handle Python 2 trailing commas translating to end=' '
+            if content.endswith(','):
+                clean_content = content[:-1].strip()
+                return f"{indent}print({clean_content}, end=' ')"
+            
+            return f"{indent}print({content})"
+
+        # Extremely fast and safe regex replacing the old vulnerable overlapping groups
+        source_code = re.sub(r'(?m)^(\s*)print\b\s*(.*)$', fix_print, source_code)
+        
         source_code = re.sub(r'(?m)^(\s*except\s+[a-zA-Z0-9_.]+)\s*,\s*([a-zA-Z0-9_]+)\s*:', r'\1 as \2:', source_code)
         source_code = re.sub(r'(?m)^(\s*)else\s+if\s+', r'\1elif ', source_code)
-        source_code = source_code.replace('<>', '!=')
     except Exception:
         pass
     return source_code
