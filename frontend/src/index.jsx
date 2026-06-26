@@ -1,4 +1,3 @@
-// frontend/src/index.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -72,6 +71,7 @@ window.fetch = async (...args) => {
     return response;
   } catch (error) {
     // 4. Suppress Expected Abort Errors
+    // Do NOT log AbortErrors to prevent console spam
     if (error.name === 'AbortError' || error.code === 20) {
       // Silently ignore expected network aborts
     } else {
