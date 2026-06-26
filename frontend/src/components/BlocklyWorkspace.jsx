@@ -311,8 +311,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
     try {
-      // Fix: Use setGroup to allow events to fire so plugins like Minimap can correctly render 
-      // the incoming blocks. Disabling events completely blanks the Minimap.
       Blockly.Events.setGroup(true); 
       workspace.current.clear();
       
@@ -375,7 +373,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
         if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
         
         try { 
-          // Fix: Allow events to group rather than disable so minimap updates on Sync to Blocks
           Blockly.Events.setGroup(true);
           workspace.current.clear(); 
           if (data.status === "success" && data.blocks) {
@@ -437,7 +434,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
         (highlightPlugin = new ContentHighlight(workspace.current)).init();
         workspace.current.addChangeListener(shadowBlockConversionChangeListener);
         
-        // Fix: Initialize minimap synchronously with the rest of the plugins. No unreliable setTimeouts
         minimapPlugin = new PositionedMinimap(workspace.current);
         minimapPlugin.init();
       } catch (e) { 
@@ -468,6 +464,30 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
 
       const getCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o);
       
+      // >>> BUG FIXES FOR DEFAULT BLOCKLY GENERATORS <<<
+      
+      // Fixes the ugly isinstance check for variables_change
+      pythonGenerator.forBlock["math_change"] = function (block) {
+        const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
+        const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
+        return `${v} += ${val}\n`;
+      };
+
+      // Fixes the ugly int() casting for repeat loops
+      pythonGenerator.forBlock["controls_repeat_ext"] = function (block) {
+        const repeats = getCode(block, "TIMES", pythonGenerator.ORDER_NONE) || "0";
+        const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
+        return `for _ in range(${repeats}):\n${branch}`;
+      };
+
+      pythonGenerator.forBlock["controls_repeat"] = function (block) {
+        const repeats = parseInt(block.getFieldValue("TIMES"), 10) || 0;
+        const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
+        return `for _ in range(${repeats}):\n${branch}`;
+      };
+
+      // >>> END BUG FIXES <<<
+
       pythonGenerator.forBlock["math_assignment"] = function (block) {
         const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
         const op = block.getFieldValue("OP");
@@ -624,7 +644,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
       observer.observe(blocklyDiv.current); 
       blocklyDiv.current.resizeObserver = observer;
 
-      // Declarative Initialization Load
       if (initialJson) {
          executeLoad(initialJson);
       } else if (pendingLoadRef.current) {

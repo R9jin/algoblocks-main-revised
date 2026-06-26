@@ -84,10 +84,31 @@ export default function LearningPath() {
     localStorage.getItem("user") || sessionStorage.getItem("user") || "{}"
   );
   const userEmail = storedUser.email || "";
+  const isGuest = storedUser.isGuest === true;
   const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
 
   const checkActivityDone = (moduleId, actId) => {
-    return submissions[actId] || submissions[`${userEmail}_${moduleId}_${actId}`];
+    const sub = submissions[moduleId]?.[actId];
+    if (!sub) return false;
+    
+    let aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
+    if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100;
+    aes = Math.min(aes, 100);
+
+    return aes >= 50 || sub.status === "passed";
+  };
+
+  // Explicit mapping of variations for requirements matching the activity app logic
+  const getMinReq = (moduleId, activities, isOpt = false) => {
+    if (!activities || activities.length === 0) return 0;
+    if (isOpt) return Math.min(2, activities.length); 
+
+    const difficulty = moduleIcons[moduleId]?.difficulty || "Beginner";
+    if (difficulty === "Beginner") return Math.min(3, activities.length);
+    if (difficulty === "Intermediate") return Math.min(2, activities.length);
+    if (difficulty === "Advanced") return Math.min(1, activities.length);
+    
+    return activities.length;
   };
 
   const loadData = async () => {
@@ -102,14 +123,20 @@ export default function LearningPath() {
       await assessmentsDB.iterate((value, key) => {
         initialAssm[key] = value.data || value;
       });
-      await submissionsDB.iterate((value, key) => {
-        initialSubs[key] = value;
+      
+      await submissionsDB.iterate((val) => {
+        if (val.userId === userEmail || isGuest) {
+          if (!initialSubs[val.moduleId]) initialSubs[val.moduleId] = {};
+          initialSubs[val.moduleId][val.activityId] = val;
+        }
       });
 
       setUserProgress(initialProg);
       setAssessments(initialAssm);
       setSubmissions(initialSubs);
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to load local DB data", e);
+    }
   };
 
   useEffect(() => {
@@ -184,41 +211,79 @@ export default function LearningPath() {
     setExpandedModules(newExpanded);
   };
 
-  // GLOBAL PRE-TEST CHECK
-  const globalPreTestKey = "course-pre-test_pre_assessment";
-  const isGlobalPreTestDone = assessments[globalPreTestKey] !== undefined;
-  const globalPreTestScore = assessments[globalPreTestKey]?.score ?? null;
+  const findMilestoneData = (keywords) => {
+    const cleanKws = keywords.map(k => k.toLowerCase().replace(/[-_ ]/g, ''));
+    for (const [k, v] of Object.entries(assessments || {})) {
+      const cleanKey = k.toLowerCase().replace(/[-_ ]/g, '');
+      if (cleanKws.some(kw => cleanKey.includes(kw))) {
+        if (v !== null && v !== undefined && (v.completed || v.passed || v.score !== undefined || v.correct !== undefined)) {
+          return v;
+        }
+      }
+    }
+    return null;
+  };
 
-  // GLOBAL POST-TEST CHECK
-  const globalPostTestKey = "course-post-test_post_assessment";
-  const isGlobalPostTestDone = assessments[globalPostTestKey] !== undefined;
-  const globalPostTestScore = assessments[globalPostTestKey]?.score ?? null;
+  const getQuizData = (moduleId) => {
+    const modClean = moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
+    const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean, `${modClean}postassessment`];
+    
+    for (const [k, v] of Object.entries(assessments || {})) {
+      const kc = k.toLowerCase().replace(/[-_ ]/g, '');
+      if (targetQuizKeys.includes(kc)) {
+        return v;
+      }
+    }
+    return null;
+  };
 
-  const hasPostAssessment = (moduleId) => assessments[`${moduleId}_post_assessment`] !== undefined;
-  const getAssessmentScore = (moduleId, type) => assessments[`${moduleId}_${type}_assessment`]?.score ?? null;
+  const preTestData = findMilestoneData(['pretest', 'coursepretest']);
+  const postTestData = findMilestoneData(['posttest', 'courseposttest']);
+
+  const isGlobalPreTestDone = preTestData !== null;
+  const globalPreTestScore = preTestData?.score !== undefined ? Math.round(preTestData.score) : null;
+  
+  const isGlobalPostTestDone = postTestData !== null;
+  const globalPostTestScore = postTestData?.score !== undefined ? Math.round(postTestData.score) : null;
+
+  const hasPostAssessment = (moduleId) => {
+    const quizData = getQuizData(moduleId);
+    if (!quizData) return false;
+    return quizData.passed || quizData.completed || (quizData.score !== undefined && quizData.score >= 50);
+  };
+
+  const getAssessmentScore = (moduleId) => {
+    const quizData = getQuizData(moduleId);
+    return quizData?.score !== undefined ? Math.round(quizData.score) : null;
+  };
 
   const isModuleComplete = (moduleId) => {
     if (isLoadingCurriculum) return false;
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
 
-    // Properly map Activities JSON definitions
     const modActs = activitiesData[moduleId] || {};
 
-    return module.lessons.every((lesson) => {
-      const details = lessonDetails[lesson.lessonId];
-      if (!details) return false;
-
-      // Ensure we fetch activities from module_x.json using 'lesson_1', 'lesson_2' mapping correctly
+    const lessonsDone = module.lessons.every((lesson) => {
       const lessonNum = lesson.lessonId.split("-")[2];
       const activities = modActs[`lesson_${lessonNum}`] || [];
-      
       if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1;
       
-      const minReq = lesson.minimumActivities || details.minimumActivities || activities.length;
+      const minReq = getMinReq(moduleId, activities, false);
       const completedCount = activities.filter((a) => checkActivityDone(moduleId, a.id)).length;
       return completedCount >= minReq;
     });
+
+    if (!lessonsDone) return false;
+
+    const optimizations = modActs.optimizations || [];
+    if (optimizations.length > 0) {
+      const optMinReq = getMinReq(moduleId, optimizations, true);
+      const completedOptCount = optimizations.filter(o => checkActivityDone(moduleId, o.id)).length;
+      if (completedOptCount < optMinReq) return false;
+    }
+
+    return true;
   };
 
   const buildLockMap = () => {
@@ -234,16 +299,15 @@ export default function LearningPath() {
         lockMap[lesson.lessonId] = isAdmin ? false : isNextLocked;
 
         if (!isNextLocked) {
-          const details = lessonDetails[lesson.lessonId];
           const lessonNum = lesson.lessonId.split("-")[2];
           const activities = modActs[`lesson_${lessonNum}`] || [];
 
           if (activities.length > 0) {
-            const minReq = lesson.minimumActivities || details?.minimumActivities || activities.length;
+            const minReq = getMinReq(module.moduleId, activities, false);
             const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
             
             if (completedCount < minReq) {
-               isNextLocked = true; // Still processing minimum requirement lock
+               isNextLocked = true; 
             }
           } else {
             if ((userProgress[lesson.lessonId] || 0) < 1) isNextLocked = true;
@@ -251,6 +315,15 @@ export default function LearningPath() {
         }
       }
       
+      const optimizations = modActs.optimizations || [];
+      if (optimizations.length > 0 && !isNextLocked) {
+         const optMinReq = getMinReq(module.moduleId, optimizations, true);
+         const completedOptCount = optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length;
+         if (completedOptCount < optMinReq) {
+             isNextLocked = true;
+         }
+      }
+
       const postComplete = hasPostAssessment(module.moduleId);
       if (!postComplete && !isAdmin) isNextLocked = true;
     }
@@ -263,17 +336,6 @@ export default function LearningPath() {
     return isModuleComplete(module.moduleId) && hasPostAssessment(module.moduleId);
   });
   const isGlobalPostTestUnlocked = isAdmin || isCurriculumComplete;
-
-  if (isLoadingCurriculum) {
-    return (
-      <div className="learning-path-page">
-        <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
-        <div className="learning-path-container" style={{ textAlign: "center", padding: "100px 20px" }}>
-          <h2>Loading Curriculum Data...</h2>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="learning-path-page">
@@ -337,13 +399,21 @@ export default function LearningPath() {
 
             const moduleComplete = isModuleComplete(module.moduleId);
             const postComplete = hasPostAssessment(module.moduleId);
-            const postScore = getAssessmentScore(module.moduleId, "post");
+            const postScore = getAssessmentScore(module.moduleId);
 
             const optimizations = activitiesData[module.moduleId]?.optimizations || [];
             const hasOptimizations = optimizations.length > 0;
             const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
 
-            const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || !isModuleComplete(module.moduleId);
+            let AreLessonsCompleteForOpts = true;
+            for (const lesson of module.lessons) {
+              const lessonNum = lesson.lessonId.split("-")[2];
+              const acts = activitiesData[module.moduleId]?.[`lesson_${lessonNum}`] || [];
+              const cCount = acts.filter(a => checkActivityDone(module.moduleId, a.id)).length;
+              if (cCount < getMinReq(module.moduleId, acts, false)) AreLessonsCompleteForOpts = false;
+            }
+
+            const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || !AreLessonsCompleteForOpts;
             const postAssessmentLocked = isAdmin ? false : !moduleComplete && !postComplete;
             const isModuleCompletelyLocked = isAdmin ? false : lockMap[module.lessons[0]?.lessonId];
 
@@ -396,19 +466,15 @@ export default function LearningPath() {
                 {isExpanded && !isModuleCompletelyLocked && (
                   <div className="module-lessons-dropdown">
                     {module.lessons.map((lesson) => {
-                      const details = lessonDetails[lesson.lessonId];
-                      
-                      // Map directly to `activitiesData` dictionary for the correct target lesson Activities
                       const lessonNum = lesson.lessonId.split("-")[2];
                       const activities = activitiesData[module.moduleId]?.[`lesson_${lessonNum}`] || [];
                       
                       const totalActivities = activities.length;
                       const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
                       
-                      // Evaluate real minimal activity boundaries
-                      const minReq = lesson.minimumActivities || details?.minimumActivities || totalActivities;
-
+                      const minReq = getMinReq(module.moduleId, activities, false);
                       const allDone = totalActivities > 0 ? completedCount >= minReq : (userProgress[lesson.lessonId] || 0) >= 1;
+                      
                       const isLocked = lockMap[lesson.lessonId];
                       const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
                       const firstActivityId = activities[0]?.id;
@@ -421,7 +487,7 @@ export default function LearningPath() {
                               <span className="lesson-title">{lesson.title}</span>
                               {totalActivities > 0 && (
                                 <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: completedCount >= minReq ? "#22c55e" : "#a8a8a8" }}>
-                                  {completedCount} / {minReq} Activities Done
+                                  {completedCount} / {totalActivities} Activities Done (Min. {minReq} to progress)
                                 </span>
                               )}
                             </div>
@@ -455,42 +521,48 @@ export default function LearningPath() {
                       );
                     })}
 
-                    {hasOptimizations && (
-                      <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
-                        <div className="lesson-info">
-                          <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
-                          <div style={{ display: "flex", flexDirection: "column" }}>
-                            <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
-                            <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? "#22c55e" : "#d35400" }}>
-                              {optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length} / {optimizations.length} Challenges Done
-                            </span>
+                    {hasOptimizations && (() => {
+                       const optMinReq = getMinReq(module.moduleId, optimizations, true);
+                       const completedOptCount = optimizations.filter(o => checkActivityDone(module.moduleId, o.id)).length;
+                       const allOptsDone = completedOptCount >= optMinReq;
+
+                       return (
+                        <div className={`dropdown-lesson-item ${optimizationsLocked ? "locked" : ""}`} style={{ backgroundColor: "rgba(243, 156, 18, 0.04)" }}>
+                          <div className="lesson-info">
+                            <span className="lesson-number" style={{ color: "#f39c12", fontSize: "1.2rem" }}>★</span>
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <span className="lesson-title" style={{ fontWeight: "bold", color: "#d35400" }}>Optimization Challenges</span>
+                              <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: allOptsDone ? "#22c55e" : "#d35400" }}>
+                                {completedOptCount} / {optimizations.length} Challenges Done (Min. {optMinReq} to progress)
+                              </span>
+                            </div>
                           </div>
+                          <div className="lesson-actions">
+                            <button
+                              className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`}
+                              style={{ backgroundColor: optimizationsLocked ? "" : "#f39c12" }}
+                              disabled={optimizationsLocked}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
+                              }}
+                            >
+                              Start Challenges
+                            </button>
+                          </div>
+                          <span className="lesson-status-icon">
+                            {optimizationsLocked ? <FiLock color="#bdbdbd" /> : allOptsDone ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#f39c12" />}
+                          </span>
                         </div>
-                        <div className="lesson-actions">
-                          <button
-                            className={`btn-start-activity ${optimizationsLocked ? "disabled" : ""}`}
-                            style={{ backgroundColor: optimizationsLocked ? "" : "#f39c12" }}
-                            disabled={optimizationsLocked}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
-                            }}
-                          >
-                            Start Challenges
-                          </button>
-                        </div>
-                        <span className="lesson-status-icon">
-                          {optimizationsLocked ? <FiLock color="#bdbdbd" /> : optimizations.filter((o) => checkActivityDone(module.moduleId, o.id)).length === optimizations.length ? <FiCheckCircle color="#22c55e" /> : <FiCircle color="#f39c12" />}
-                        </span>
-                      </div>
-                    )}
+                       );
+                    })()}
 
                     <div className={`assessment-row post ${postComplete ? "done" : postAssessmentLocked ? "locked" : "pending"}`}>
                       <div className="assessment-row-left">
                         <FiClipboard size={16} />
                         <span className="assessment-row-label">Quiz</span>
                         {postScore !== null && <span className="assessment-score-badge post">{postScore}%</span>}
-                        {postAssessmentLocked && <span className="assessment-gate-note">(Complete all lessons first)</span>}
+                        {postAssessmentLocked && <span className="assessment-gate-note">(Complete all lessons and optimizations first)</span>}
                       </div>
                       <div className="assessment-row-right">
                         {postAssessmentLocked ? (
@@ -527,7 +599,6 @@ export default function LearningPath() {
             );
           })}
 
-          {/* GLOBAL POST-TEST BANNER */}
           <div className={`module-card-v2 ${!isGlobalPostTestUnlocked ? "locked" : ""}`} style={{ border: "2px solid #f59e0b", marginTop: "30px", background: "linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, rgba(30, 41, 59, 0) 100%)" }}>
             <div className="module-card-icon" style={{ backgroundColor: "#f59e0b15" }}>
               {isGlobalPostTestUnlocked ? <FiAward size={32} color="#f59e0b" /> : <FiLock size={32} color="#64748b" />}
