@@ -210,7 +210,10 @@ export default function LearningPath() {
 
       const activities = details.activities || [];
       if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1;
-      return activities.every((a) => checkActivityDone(moduleId, a.id));
+      
+      const minReq = lesson.minimumActivities || details.minimumActivities || activities.length;
+      const completedCount = activities.filter((a) => checkActivityDone(moduleId, a.id)).length;
+      return completedCount >= minReq;
     });
   };
 
@@ -229,8 +232,9 @@ export default function LearningPath() {
           const activities = details?.activities || [];
 
           if (activities.length > 0) {
-            const allDone = activities.every((a) => checkActivityDone(module.moduleId, a.id));
-            if (!allDone) isNextLocked = true;
+            const minReq = lesson.minimumActivities || details.minimumActivities || activities.length;
+            const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
+            if (completedCount < minReq) isNextLocked = true;
           } else {
             if ((userProgress[lesson.lessonId] || 0) < 1) isNextLocked = true;
           }
@@ -385,8 +389,9 @@ export default function LearningPath() {
                       const activities = details?.activities || [];
                       const totalActivities = activities.length;
                       const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
+                      const minReq = lesson.minimumActivities || details?.minimumActivities || totalActivities;
 
-                      const allDone = totalActivities > 0 ? completedCount === totalActivities : (userProgress[lesson.lessonId] || 0) >= 1;
+                      const allDone = totalActivities > 0 ? completedCount >= minReq : (userProgress[lesson.lessonId] || 0) >= 1;
                       const isLocked = lockMap[lesson.lessonId];
                       const lessonDisplay = lesson.lessonId.replace("lesson-", "").replace(/-/g, ".");
                       const firstActivityId = activities[0]?.id;
@@ -398,8 +403,8 @@ export default function LearningPath() {
                             <div style={{ display: "flex", flexDirection: "column" }}>
                               <span className="lesson-title">{lesson.title}</span>
                               {totalActivities > 0 && (
-                                <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: completedCount === totalActivities ? "#22c55e" : "#a8a8a8" }}>
-                                  {completedCount} / {totalActivities} Activities Done
+                                <span style={{ fontSize: "0.75rem", marginTop: "2px", fontWeight: "bold", color: completedCount >= minReq ? "#22c55e" : "#a8a8a8" }}>
+                                  {completedCount} / {minReq} Activities Done
                                 </span>
                               )}
                             </div>
