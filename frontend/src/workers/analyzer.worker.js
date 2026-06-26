@@ -237,6 +237,10 @@ self.onmessage = async (e) => {
     // 1. ANALYZE MODE
     // ======================
     if (type === 'ANALYZE_CODE') {
+      // Silence stdout/stderr during background background analysis
+      pyodide.setStdout({ batched: () => {} });
+      pyodide.setStderr({ batched: () => {} });
+
       pyodide.globals.set("user_code", code);
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
@@ -323,6 +327,9 @@ output
     // 2. PYTHON TO BLOCKS MODE
     // ======================
     else if (type === 'PYTHON_TO_BLOCKS') {
+      pyodide.setStdout({ batched: () => {} });
+      pyodide.setStderr({ batched: () => {} });
+
       pyodide.globals.set("user_code", code);
       const resultJsonStr = await pyodide.runPythonAsync(`
 import json
@@ -342,7 +349,7 @@ output
     }
 
     // ======================
-    // 3. RUN MODE
+    // 3. RUN MODE (OUTPUT STREAMING RESTORED)
     // ======================
     else if (type === 'RUN_CODE') {
       pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
@@ -430,11 +437,16 @@ except Exception:
     }
 
     // ======================
-    // 4. BENCHMARK SUITE MODE (SCIKIT-LEARN CLASSIFICATION REPORT ALIGNED)
+    // 4. BENCHMARK SUITE MODE (CONSOLES COMPLETELY MUTED)
     // ======================
     else if (type === 'RUN_BENCHMARK_SUITE') {
       try {
         await initPyodide();
+        
+        // SILENCE STDOUT & STDERR: Prevents dataset algorithms containing print() from spamming browser console
+        pyodide.setStdout({ batched: () => {} });
+        pyodide.setStderr({ batched: () => {} });
+
         const { dataset } = e.data;
         
         let timePassedCount = 0;
@@ -504,7 +516,6 @@ json.dumps(res)
         const spaceAcc = (spacePassedCount / totalCases) * 100;
         const perfectAcc = (bothPassedCount / totalCases) * 100;
 
-        // Base canonical classes matching your Python script output
         const timeBaseClasses = ["O(1)", "O(log n)", "O(sqrt n)", "O(n)", "O(n log n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(V + E)", "O(n * n!)"];
         const spaceBaseClasses = ["O(1)", "O(log n)", "O(n)", "O(n^2)", "O(n^3)", "O(2^n)", "O(V + E)"];
 

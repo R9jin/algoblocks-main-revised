@@ -71,7 +71,12 @@ window.fetch = async (...args) => {
 
     return response;
   } catch (error) {
-    console.error("Global Fetch Error:", error);
+    // 4. Suppress Expected Abort Errors
+    if (error.name === 'AbortError' || error.code === 20) {
+      // Silently ignore expected network aborts
+    } else {
+      console.error("Global Fetch Error:", error);
+    }
     throw error;
   }
 };
