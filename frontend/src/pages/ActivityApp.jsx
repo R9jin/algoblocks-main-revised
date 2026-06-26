@@ -1,4 +1,3 @@
-// frontend/src/pages/ActivityApp.jsx
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiActivity, FiBookOpen, FiChevronLeft, FiChevronRight, FiGrid, FiInfo, FiPlay, FiTerminal } from "react-icons/fi";
@@ -71,7 +70,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   const [currentAes, setCurrentAes] = useState(0);
   const [currentRog, setCurrentRog] = useState(0);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [generatedPython, setGeneratedPython] = useState("# Drag blocks to generate Python code");
@@ -301,7 +300,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     const finalSubId = `${state.userId}_${moduleId}_${activityId}`;
     submissionsDB.setItem(finalSubId, { ...payload, isSynced: false });
 
-    if (navigator.onLine && API_BASE) {
+    if (navigator && navigator.onLine && API_BASE) {
       try {
         const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
         fetch(`${API_BASE}/api/sync-submission`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload), keepalive: true });
@@ -331,7 +330,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const submissionId = `${user.email}_${moduleId}_${activityId}`;
         let localSubmission = null; try { localSubmission = await submissionsDB.getItem(submissionId); } catch (e) { }
         let cloudSubmission = null;
-        if (navigator.onLine && !user.isGuest && API_BASE) {
+        if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
           try {
             const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
             const res = await fetch(`${API_BASE}/api/get-submission?activityId=${activityId}&moduleId=${moduleId}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -440,7 +439,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     try { await submissionsDB.setItem(submissionId, payload); window.dispatchEvent(new Event("localDataSynced")); } catch (e) { }
 
-    if (!navigator.onLine) { await syncQueueDB.setItem(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
+    if (navigator && !navigator.onLine) { await syncQueueDB.setItem(`sync_${submissionId}_${Date.now()}`, { type: "SUBMISSION", action: "UPSERT", data: payload }); return; }
 
     try {
       const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -546,7 +545,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: false });
 
-    if (navigator.onLine && !user.isGuest && API_BASE) {
+    if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
         if (res.ok) await progressDB.setItem(lessonId, { score: user.progress[lessonId], isSynced: true });
@@ -568,7 +567,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: false });
 
-    if (navigator.onLine && !user.isGuest && API_BASE) {
+    if (navigator && navigator.onLine && !user.isGuest && API_BASE) {
       try {
         const res = await fetch(`${API_BASE}/api/update-progress`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
         if (res.ok) await progressDB.setItem(topicId, { score: 100, completed: true, isSynced: true });
@@ -828,7 +827,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           </button>
 
           <div className="editor-container">
-            <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"}>
+            <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"} style={{ width: "100%", height: "100%" }}>
               <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={null} />
             </div>
             <PythonCodeEditor
