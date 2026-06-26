@@ -48,16 +48,16 @@ export default function EvaluationSuite() {
     const handleWorkerMessage = (e) => {
       const { type, progress, currentItem, payload, error } = e.data;
       if (type === "BENCHMARK_PROGRESS") {
-        setProgress(progress);
-        setStatusText(`Analyzing AST Complexity for: ${currentItem}...`);
-      } else if (type === "BENCHMARK_COMPLETE") {
-        setResults(payload);
-        setIsLoading(false);
-        setStatusText("Master Gauntlet & Classification Matrix built successfully.");
-      } else if (type === "BENCHMARK_ERROR") {
-        alert(`System Diagnostics Failed: ${error}`);
-        setIsLoading(false);
-        setStatusText("Engine runtime exception encountered.");
+          setProgress(progress);
+          setStatusText(`Analyzing algorithm complexity for: ${currentItem}...`);
+        } else if (type === "BENCHMARK_COMPLETE") {
+          setResults(payload);
+          setIsLoading(false);
+          setStatusText("Benchmark evaluation completed successfully. Classification reports have been generated.");
+        } else if (type === "BENCHMARK_ERROR") {
+          alert(`Benchmark evaluation failed: ${error}`);
+          setIsLoading(false);
+          setStatusText("Benchmark evaluation terminated due to an unexpected error.");
       }
     };
     worker.addEventListener("message", handleWorkerMessage);
@@ -357,8 +357,8 @@ export default function EvaluationSuite() {
           <div className="eval-modal-content metrics-help-modal" onClick={(e) => e.stopPropagation()}>
             <div className="eval-modal-header">
               <div>
-                <h3 className="eval-modal-title">Understanding Scikit-Learn Validation Metrics</h3>
-                <span className="eval-dataset-subtitle">Translating academic AI benchmarking statistics into plain classroom insights</span>
+                <h3 className="eval-modal-title">Understanding Classification Performance Metrics</h3>
+                <span className="eval-dataset-subtitle">Learn how Precision, Recall, F1-Score, and Support are used to evaluate the performance of the Complexity Analyzer.</span>
               </div>
               <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close-sm">
                 <FiXCircle size={22} />
@@ -472,48 +472,99 @@ export default function EvaluationSuite() {
               </div>
 
               <div className="metric-interactive-box">
-                <h4 className="interactive-box-title"><FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }}/> Interactive Live Metric Sandbox</h4>
-                <p className="interactive-box-subtitle">Adjust simulated test suite outcomes below to observe how academic classification percentages react in real-time:</p>
-                
+                <h4 className="interactive-box-title">
+                  <FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }} />
+                  Interactive Classification Metric Simulator
+                </h4>
+
+                <p className="interactive-box-subtitle">
+                  Adjust the classification outcomes below to observe how changes in True Positives, False Positives, and False Negatives affect Precision, Recall, and the F1-Score in real time.
+                </p>
+
                 <div className="sandbox-controls">
                   <div className="slider-group">
-                    <label>True Positives (Correctly spotted complexities): <strong>{sandboxTP} cases</strong></label>
-                    <input type="range" min="1" max="100" value={sandboxTP} onChange={(e) => setSandboxTP(parseInt(e.target.value))} />
+                    <label>
+                      True Positives (Correct Classifications): <strong>{sandboxTP} cases</strong>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={sandboxTP}
+                      onChange={(e) => setSandboxTP(parseInt(e.target.value))}
+                    />
                   </div>
+
                   <div className="slider-group">
-                    <label>False Positives (False alarms / Hallucinated guesses): <strong>{sandboxFP} cases</strong></label>
-                    <input type="range" min="0" max="100" value={sandboxFP} onChange={(e) => setSandboxFP(parseInt(e.target.value))} />
+                    <label>
+                      False Positives (Incorrect Positive Classifications): <strong>{sandboxFP} cases</strong>
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={sandboxFP}
+                      onChange={(e) => setSandboxFP(parseInt(e.target.value))}
+                    />
                   </div>
+
                   <div className="slider-group">
-                    <label>False Negatives (Missed complexities / Failed to detect): <strong>{sandboxFN} cases</strong></label>
-                    <input type="range" min="0" max="100" value={sandboxFN} onChange={(e) => setSandboxFN(parseInt(e.target.value))} />
+                    <label>
+                      False Negatives (Missed Classifications): <strong>{sandboxFN} cases</strong>
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={sandboxFN}
+                      onChange={(e) => setSandboxFN(parseInt(e.target.value))}
+                    />
                   </div>
                 </div>
 
                 <div className="sandbox-results">
                   <div className="sandbox-stat">
-                    <span>Simulated Precision</span>
-                    <strong style={{ color: "#1D4ED8" }}>{(simPrecision * 100).toFixed(1)}%</strong>
-                    <small className="stat-dec">({simPrecision.toFixed(2)})</small>
+                    <span>Precision</span>
+                    <strong style={{ color: "#1D4ED8" }}>
+                      {(simPrecision * 100).toFixed(1)}%
+                    </strong>
+                    <small className="stat-dec">
+                      ({simPrecision.toFixed(2)})
+                    </small>
                   </div>
+
                   <div className="sandbox-stat">
-                    <span>Simulated Recall</span>
-                    <strong style={{ color: "#065F46" }}>{(simRecall * 100).toFixed(1)}%</strong>
-                    <small className="stat-dec">({simRecall.toFixed(2)})</small>
+                    <span>Recall</span>
+                    <strong style={{ color: "#065F46" }}>
+                      {(simRecall * 100).toFixed(1)}%
+                    </strong>
+                    <small className="stat-dec">
+                      ({simRecall.toFixed(2)})
+                    </small>
                   </div>
-                  <div className="sandbox-stat" style={{ backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" }}>
-                    <span style={{ color: "#6B21A8" }}>Simulated F1-Score</span>
-                    <strong style={{ color: "#6D28D9" }}>{(simF1 * 100).toFixed(1)}%</strong>
-                    <small className="stat-dec">({simF1.toFixed(2)})</small>
+
+                  <div
+                    className="sandbox-stat"
+                    style={{ backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" }}
+                  >
+                    <span style={{ color: "#6B21A8" }}>F1-Score</span>
+                    <strong style={{ color: "#6D28D9" }}>
+                      {(simF1 * 100).toFixed(1)}%
+                    </strong>
+                    <small className="stat-dec">
+                      ({simF1.toFixed(2)})
+                    </small>
                   </div>
                 </div>
 
                 <div className="sandbox-live-commentary">
                   <FiActivity size={16} />
                   <span>
-                    {simF1 >= 0.8 ? "Excellent harmonic equilibrium! The engine demonstrates high reliability across both false alarms and omissions." :
-                     simF1 >= 0.6 ? "Solid balance. Static visitor catches most cases with acceptable noise levels." :
-                     "Severe statistical skew detected! Notice how a deficiency in either catch rate or prediction quality severely penalizes the harmonic F1 rating."}
+                    {simF1 >= 0.8
+                      ? "The simulated classification results indicate strong overall performance, demonstrating a well-balanced combination of prediction accuracy and detection coverage."
+                      : simF1 >= 0.6
+                      ? "The simulated results indicate moderate classification performance. Improving either Precision or Recall would increase the overall F1-Score."
+                      : "The simulated results indicate low classification performance. A significant imbalance between Precision and Recall reduces the F1-Score, suggesting that prediction accuracy, detection coverage, or both require improvement."}
                   </span>
                 </div>
               </div>
