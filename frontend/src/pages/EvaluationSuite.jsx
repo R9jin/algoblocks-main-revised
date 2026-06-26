@@ -533,7 +533,7 @@ export default function EvaluationSuite() {
           </Link>
           <div className="wh-divider"></div>
           <h2 className="wh-project-title eval-wh-title">
-            System Analytical Benchmark Suite <span className="wh-benchmark-badge">Benchmark Testing</span>
+            System Complexity Analyzer Benchmark<span className="wh-benchmark-badge">Benchmark Testing</span>
           </h2>
         </div>
 
@@ -555,8 +555,8 @@ export default function EvaluationSuite() {
           <div className="eval-dataset-info">
             <FiDatabase style={{ color: "#7928CA" }} size={24} />
             <div>
-              <strong className="eval-dataset-title">Select AST Benchmarking Gauntlet Target</strong>
-              <span className="eval-dataset-subtitle">Choose which master JSON partition or CSV to stream into the token classification engine</span>
+              <strong className="eval-dataset-title">Select Benchamark Dataset</strong>
+              <span className="eval-dataset-subtitle">Select the benchmark dataset to evaluate the accuracy and performance of the system's Complexity Analyzer.</span>
             </div>
           </div>
 
@@ -661,9 +661,9 @@ export default function EvaluationSuite() {
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
                 <strong className="eval-sklearn-title">
-                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Advanced Classification Matrix (Scikit-Learn Audit)
+                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Classification Performance Report
                 </strong>
-                <span className="eval-sklearn-subtitle">Intuitive classroom percentages paired with exact IEEE validation decimals</span>
+                <span className="eval-sklearn-subtitle">Performance statistics generated from the benchmark dataset using the Scikit-learn classification report. Values are shown in both percentage and decimal formats for clarity.</span>
               </div>
               <button onClick={() => setIsMetricsHelpOpen(true)} className="eval-btn-metrics-help">
                 <FiHelpCircle size={16} /> Understand Metric Percentages
