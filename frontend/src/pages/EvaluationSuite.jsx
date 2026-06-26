@@ -511,9 +511,9 @@ export default function EvaluationSuite() {
                 <div className="sandbox-live-commentary">
                   <FiActivity size={16} />
                   <span>
-                    {simF1 >= 0.8 ? "🌟 Excellent harmonic equilibrium! The engine demonstrates high reliability across both false alarms and omissions." :
-                     simF1 >= 0.6 ? "👍 Solid balance. Static visitor catches most cases with acceptable noise levels." :
-                     "⚠️ Severe statistical skew detected! Notice how a deficiency in either catch rate or prediction quality severely penalizes the harmonic F1 rating."}
+                    {simF1 >= 0.8 ? "Excellent harmonic equilibrium! The engine demonstrates high reliability across both false alarms and omissions." :
+                     simF1 >= 0.6 ? "Solid balance. Static visitor catches most cases with acceptable noise levels." :
+                     "Severe statistical skew detected! Notice how a deficiency in either catch rate or prediction quality severely penalizes the harmonic F1 rating."}
                   </span>
                 </div>
               </div>
