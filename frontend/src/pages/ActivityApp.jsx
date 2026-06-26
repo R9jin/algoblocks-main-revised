@@ -1,165 +1,21 @@
 // frontend/src/pages/ActivityApp.jsx
-import Editor from "@monaco-editor/react";
 import DOMPurify from "dompurify";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FiActivity, FiAlertCircle, FiBookOpen, FiChevronDown, FiChevronLeft, FiChevronRight, FiGrid, FiInfo, FiPlay, FiTerminal, FiX } from "react-icons/fi";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FiActivity, FiBookOpen, FiChevronLeft, FiChevronRight, FiGrid, FiInfo, FiPlay, FiTerminal } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import Split from "react-split";
 import BigOModal from "../components/BigOModal.jsx";
 import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
-import CallGraphVisualizer from "../components/CallGraphVisualizer.jsx";
-import ComplexityGraph from "../components/ComplexityGraph.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
-import MemoryVisualizer from "../components/MemoryVisualizer.jsx";
+import DockedBottomPanel from "../components/DockedBottomPanel.jsx";
+import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
+import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { progressDB, submissionsDB, syncQueueDB, templatesDB } from "../db.js";
 import "../styles/ActivityApp.css";
+import { getComplexityWeight, sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
 import { formatComplexity } from "../utils/formatters";
-
-const handleEditorWillMount = (monaco) => {
-  monaco.editor.defineTheme("algoblocks-light", {
-    base: "vs",
-    inherit: true,
-    rules: [
-      { token: "keyword", foreground: "7928CA", fontStyle: "bold" },
-      { token: "string", foreground: "10B981" },
-      { token: "comment", foreground: "94A3B8", fontStyle: "italic" },
-      { token: "number", foreground: "F59E0B" },
-    ],
-    colors: {
-      "editor.background": "#F8FAFC",
-      "editor.foreground": "#1E293B",
-      "editorLineNumber.foreground": "#CBD5E1",
-      "editor.lineHighlightBackground": "#F1F5F9",
-      "editorCursor.foreground": "#7928CA",
-      "editor.selectionBackground": "#E2E8F0",
-      "editor.inactiveSelectionBackground": "#F1F5F9",
-    },
-  });
-};
-
-const getComplexityColor = (complexity) => {
-  const comp = String(complexity || "").toLowerCase();
-  if (comp.includes("o(1)")) return "#10B981";
-  if (comp.includes("log n") && !comp.includes("n log")) return "#0EA5E9";
-  if (comp.includes("o(n)") && !comp.includes("log")) return "#F59E0B";
-  if (comp.includes("n log n")) return "#F97316";
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*m")) return "#EF4444";
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("n!")) return "#7928CA";
-  return "#64748B";
-};
-
-// =========================================================================
-// THESIS METHODOLOGY: ASYMPTOTIC WEIGHT MAPPING
-// =========================================================================
-const getComplexityWeight = (complexity) => {
-  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
-  if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("c^n") || comp.includes("t(n-1)+t(n-2)")) return 8;
-  if (comp.includes("n^4") || comp.includes("n⁴")) return 7.5;
-  if (comp.includes("n^3") || comp.includes("n³") || comp.includes("n*n*n")) return 7;
-  if (comp.includes("n^2log") || comp.includes("n²log")) return 6.5;
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*n") || comp.includes("n*m") || comp.includes("m*n") || comp.includes("t(n-1)+o(n)")) return 6;
-  if (comp.includes("nlogn") || comp.includes("n*log") || comp.includes("nlog") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(log")) return 5;
-  if (comp.includes("v+e") || comp.includes("e+v") || comp.includes("n+m") || comp.includes("m+n")) return 4.5;
-  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;
-  if (comp.includes("√n") || comp.includes("sqrt")) return 3;
-  if (comp.includes("logn") || comp.includes("log(n)") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
-  if (comp.includes("o(1)")) return 1;
-  return 6;
-};
-
-// ---------------------------------------------------------------------------------
-// ADVANCED MARKDOWN PARSER (Custom Built for Asymptotic Step-by-Step Math)
-// ---------------------------------------------------------------------------------
-const parseMarkdown = (str) => {
-  if (!str) return "";
-  let html = str.trim();
-
-  html = html.replace(/^###\s+(.*)$/gm, '<h3 class="overall-main-title">$1</h3>');
-  html = html.replace(/^####\s+(.*)$/gm, '<h4 class="overall-sub-title">$1</h4>');
-  html = html.replace(/^#####\s+(.*)$/gm, '<h5 class="overall-section-title">$1</h5>');
-
-  html = html.replace(/\*\*(Step \d+:.*?)\*\*/g, '<span class="step-badge">$1</span>');
-  html = html.replace(/\*\*(\d+\.\s.*?)\*\*/g, '<span class="step-badge">$1</span>');
-  html = html.replace(/\*\*(Asymptotic Simplification|Final Asymptotic Complexity:?|Complexity Summary)\*\*/g, '<h5 class="overall-section-title">$1</h5>');
-
-  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-  html = html.replace(/([a-zA-Z0-9_]+)\^([a-zA-Z0-9\+\-\/]+)/g, '$1<sup>$2</sup>');
-
-  html = html.replace(/^`([TS]\(n\)\s*=.*?)`$/gm, '<div class="math-block">$1</div>');
-  html = html.replace(/`([TS]\(n\)\s*=.*?)`/g, '<div class="math-block">$1</div>');
-
-  html = html.replace(/`([^`]+)`/g, '<code class="nlg-inline-code">$1</code>');
-
-  let blocks = html.split(/\n\s*\n/);
-  let parsedBlocks = blocks.map(block => {
-    if (block.includes('<h3') || block.includes('<h4') || block.includes('<h5') || block.includes('<div class="math-block"')) {
-      return block.replace(/\n/g, '<br/>');
-    }
-
-    if (/^[-*]\s+/m.test(block)) {
-      let listItems = block.split('\n').reduce((acc, line) => {
-        let trimmed = line.trim();
-        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-          acc.push(`<li>${trimmed.substring(2).trim()}</li>`);
-        } else if (trimmed !== '') {
-          if (acc.length > 0) acc[acc.length - 1] = acc[acc.length - 1].replace('</li>', ` ${trimmed}</li>`);
-          else acc.push(`<li>${trimmed}</li>`);
-        }
-        return acc;
-      }, []).join('');
-      return `<ul class="nlg-list">${listItems}</ul>`;
-    }
-
-    return `<p>${block.replace(/\n/g, '<br/>')}</p>`;
-  });
-
-  return parsedBlocks.join('');
-};
-
-const formatExplanation = (text, isBottleneck, isLocalTab) => {
-  if (!text) return null;
-
-  const headerRegex = /(?=\*\*Local Analysis:\*\*|\*\*Global Impact:\*\*|\*\*Educational Insight:\*\*|\*\*Bottleneck Warning:\*\*|\*\*Space Bottleneck:\*\*|\*\*Algorithmic Mastery:\*\*|\*\*Local & Global Analysis:\*\*|\*Profiler verified)/;
-  const sections = text.split(headerRegex);
-
-  return sections.map((sec, idx) => {
-    let trimmedSec = sec.trim();
-    if (!trimmedSec) return null;
-
-    const renderBlock = (content, title, variantClass) => {
-      const parsedContent = parseMarkdown(content);
-      return (
-        <div key={idx} className={`nlg-block ${variantClass}`}>
-          <strong className="nlg-block-title">{title}</strong>
-          <div className="nlg-block-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedContent) }} />
-        </div>
-      );
-    };
-
-    if (trimmedSec.startsWith("**Local & Global Analysis:**")) return renderBlock(trimmedSec.replace("**Local & Global Analysis:**", "").trim(), "Dead Code Analysis", "nlg-deadcode");
-    if (trimmedSec.startsWith("**Local Analysis:**")) return renderBlock(trimmedSec.replace("**Local Analysis:**", "").trim(), "Local Analysis", "nlg-local");
-    if (trimmedSec.startsWith("**Global Impact:**")) return renderBlock(trimmedSec.replace("**Global Impact:**", "").trim(), "Global Impact", "nlg-global");
-    if (trimmedSec.startsWith("**Educational Insight:**")) return renderBlock(trimmedSec.replace("**Educational Insight:**", "").trim(), "Educational Insight", "nlg-educational");
-    if (trimmedSec.startsWith("**Bottleneck Warning:**") || trimmedSec.startsWith("**Space Bottleneck:**")) {
-      const cleanText = trimmedSec.replace(/\*\*(Bottleneck Warning:|Space Bottleneck:|Space Bottleneck)\*\*/g, "").trim();
-      return renderBlock(cleanText, "Performance Bottleneck", "nlg-bottleneck");
-    }
-    if (trimmedSec.startsWith("**Algorithmic Mastery:**")) return renderBlock(trimmedSec.replace("**Algorithmic Mastery:**", "").trim(), "Algorithmic Mastery", "nlg-mastery");
-    if (trimmedSec.startsWith("*Profiler verified")) return renderBlock(trimmedSec.replace(/\*Profiler verified\*/g, "").replace(/\*Profiler verified/g, "").trim(), "Runtime Diagnostic", "nlg-profiler");
-
-    let parsedSec = parseMarkdown(trimmedSec);
-    return <div key={idx} className="nlg-paragraph" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parsedSec) }}></div>;
-  }).filter(Boolean);
-};
-
-const sanitizePythonCode = (code) => {
-  if (!code) return "";
-  return code.replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000]/g, " ");
-};
 
 const renderFormattedTask = (text) => {
   if (!text) return null;
@@ -194,14 +50,12 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const { worker, isEngineReady, resetWorker } = usePyodide();
   const isReadyRef = useRef(false);
   const workspaceRef = useRef(null);
-  const consoleEndRef = useRef(null);
   const workerRef = useRef(null);
   const workerMessageHandler = useRef(null);
   const runTimeoutRef = useRef(null);
   const renderIntervalRef = useRef(null);
   const outputCountRef = useRef(0);
   const pendingOutputRef = useRef("");
-  const isDragging = useRef(false);
   const saveDraftTimeoutRef = useRef(null);
   const latestBlocksJsonRef = useRef(null);
   const testResolveRef = useRef(null);
@@ -233,21 +87,17 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
   const [isWaitingForInput, setIsWaitingForInput] = useState(false);
   const [userInput, setUserInput] = useState("");
   
-  // FIX: Include call_graph in the initial state so it doesn't break dependent components
   const [analysisResult, setAnalysisResult] = useState({ lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} });
-  
   const [analysisTime, setAnalysisTime] = useState("0.0");
   const [lineExecutions, setLineExecutions] = useState({});
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", cancelText: "Cancel", isDanger: false, onConfirmAction: null, onCancelAction: null });
   const [isEditingCode, setIsEditingCode] = useState(false);
 
   const [syntaxErrors, setSyntaxErrors] = useState([]);
-  const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
-  const [errorPanelSize, setErrorPanelSize] = useState({ width: 400, height: 250 });
-
   const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
-  const [expandedLines, setExpandedLines] = useState({});
-  const [panelHeight, setPanelHeight] = useState(300);
+
+  const { panelHeight, handleDragStart } = usePanelResizer(300);
+
   const [activityDataResolved, setActivityDataResolved] = useState(null);
   const [topicIdResolved, setTopicIdResolved] = useState(null);
   const [lessonActivitiesResolved, setLessonActivitiesResolved] = useState([]);
@@ -273,34 +123,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [moduleId, activityId]);
-
-  const handleErrorResizeStart = (e, direction) => {
-    e.preventDefault(); e.stopPropagation();
-    const startX = e.clientX; const startY = e.clientY;
-    const startWidth = errorPanelSize.width; const startHeight = errorPanelSize.height;
-
-    const onMouseMove = (moveEvent) => {
-      let newWidth = startWidth; let newHeight = startHeight;
-      if (direction.includes('w')) newWidth = startWidth + (startX - moveEvent.clientX);
-      if (direction.includes('n')) newHeight = startHeight + (startY - moveEvent.clientY);
-      setErrorPanelSize({
-        width: Math.max(300, Math.min(newWidth, window.innerWidth * 0.9)),
-        height: Math.max(150, Math.min(newHeight, window.innerHeight * 0.8)),
-      });
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-      document.body.style.cursor = "default"; document.body.style.userSelect = "auto";
-    };
-
-    document.addEventListener("mousemove", onMouseMove); document.addEventListener("mouseup", onMouseUp);
-    if (direction === 'n') document.body.style.cursor = 'ns-resize';
-    else if (direction === 'w') document.body.style.cursor = 'ew-resize';
-    else document.body.style.cursor = 'nwse-resize';
-    document.body.style.userSelect = "none";
-  };
 
   const processedTestCases = useMemo(() => {
     if (!activityDataResolved) return [];
@@ -336,8 +158,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (type === "ANALYZE_RESULT") {
       if (data.status === "success") {
         setAnalysisTime(data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00");
-        
-        // FIX: Explicitly include call_graph so the React state doesn't drop it!
         setAnalysisResult({
           total: data.total,
           space_total: data.space_total || "O(1)",
@@ -351,7 +171,7 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
         const initialCounts = {};
         (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
         setLineExecutions((prev) => ({ ...prev, ...initialCounts }));
-        setSyntaxErrors([]); setIsErrorDropdownOpen(false);
+        setSyntaxErrors([]);
       } else {
         if (data.multiple_errors && data.multiple_errors.length > 0) {
           const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: `${err.message}. ${translatePythonError(err.message)}` }));
@@ -412,33 +232,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
   useEffect(() => { if (worker) { workerRef.current = worker; workerRef.current.onmessage = workerMessageHandler.current; } }, [worker]);
 
-  useEffect(() => {
-    if (consoleEndRef.current && consoleTab === "output") consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
-  }, [consoleOutput, isWaitingForInput, consoleTab]);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isDragging.current) return;
-      const newHeight = window.innerHeight - e.clientY - 48;
-      if (newHeight >= 150 && newHeight <= window.innerHeight - 150) setPanelHeight(newHeight);
-    };
-    const handleMouseUp = () => {
-      if (!isDragging.current) return;
-      isDragging.current = false;
-      document.body.style.cursor = "default"; document.body.style.userSelect = "auto";
-    };
-    document.addEventListener("mousemove", handleMouseMove); document.addEventListener("mouseup", handleMouseUp);
-    return () => { document.removeEventListener("mousemove", handleMouseMove); document.removeEventListener("mouseup", handleMouseUp); };
-  }, []);
-
   const toggleTest = (index) => setExpandedTests((prev) => ({ ...prev, [index]: !prev[index] }));
-  const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
   const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
-
-  const handleDragStart = (e) => {
-    e.preventDefault(); isDragging.current = true;
-    document.body.style.cursor = "ns-resize"; document.body.style.userSelect = "none";
-  };
 
   const fetchJsonWithCache = async (cacheKey, url) => {
     try {
@@ -796,8 +591,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     });
   };
 
-  // FIX: Stricter checking logic ensures that loading an optimization activity 
-  // (which accidentally passes a single Space Complexity test) doesn't mark the whole activity as passed.
   const checkLessonCompletion = async () => {
     if (!latestStateRef.current.userId || !lessonActivitiesResolved.length) return { passedCount: 0, threshold: 1, isCompleted: false };
 
@@ -816,7 +609,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       const subId = `${latestStateRef.current.userId}_${moduleId}_${act.id}`;
       try {
         const sub = await submissionsDB.getItem(subId);
-        // STRICT EVALUATION: Require explicit "passed" status AND score >= 50. Drafts are fully ignored.
         if (sub && sub.status === "passed" && sub.score >= 50) passedCount++;
       } catch (e) { }
     }
@@ -924,21 +716,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
     setIsEvaluating(false);
 
-    // =========================================================================
-    // MATHEMATICAL MODEL IMPLEMENTATION (Algorithmic Efficiency Score - AES)
-    // =========================================================================
-
-    // 1. Task Success Rate (TSR)
     const tsr = functionalTotal > 0 ? (functionalPassed / functionalTotal) : 1.0;
-
-    // 2. Efficiency Ratio
     const targetTimeWeight = getComplexityWeight(activityDataResolved?.targetTimeComplexity || "O(n)");
     const actualTimeWeight = getComplexityWeight(analysisResult.total || "O(n^2)");
 
     const targetSpaceWeight = getComplexityWeight(activityDataResolved?.targetSpaceComplexity || "O(1)");
     const actualSpaceWeight = getComplexityWeight(analysisResult.space_total || "O(n)");
 
-    // Safe fallback to O(n^2) equivalent penalty
     const safeActualTime = actualTimeWeight > 0 ? actualTimeWeight : 6;
     const safeActualSpace = actualSpaceWeight > 0 ? actualSpaceWeight : 6;
 
@@ -949,15 +733,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     if (spaceRatio > 1.0) spaceRatio = 1.0;
 
     const averageEfficiency = (timeRatio + spaceRatio) / 2;
-
-    // 3. Multiplicative AES
     let aes = Math.floor((tsr * averageEfficiency) * 100);
 
-    setCurrentAes(aes); // Update UI Badge
+    setCurrentAes(aes);
 
-    // =========================================================================
-    // ROG Tracking Logic (Continuous Tracking)
-    // =========================================================================
     let initialAes = latestStateRef.current.initial_aes;
 
     if (initialAes === null || initialAes === undefined) {
@@ -968,7 +747,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       }
     }
 
-    // Drop initialAes if they break the code and get a lower score, establishing a new floor
     if (aes < initialAes && latestStateRef.current.status !== "passed") {
       initialAes = aes;
     }
@@ -990,33 +768,8 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     await handleSuccess(aes, functionalPassed, functionalTotal, calculatedRog);
   };
 
-  const lines = analysisResult?.lines || []; let maxWeight = 0; let bottleneckIndices = [];
-  lines.forEach((line, index) => {
-    const weight = getComplexityWeight(activeComplexityTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)");
-    if (weight > maxWeight) { maxWeight = weight; bottleneckIndices = [index]; }
-    else if (weight === maxWeight && weight > 0) bottleneckIndices.push(index);
-  });
-  const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
-  const pythonLines = (generatedPython || "").split("\n");
-  const maxExecutions = Math.max(0, ...Object.values(lineExecutions));
-
-  useEffect(() => {
-    if (monacoRef.current && editorRef.current) {
-      const model = editorRef.current.getModel();
-      if (model) {
-        const markers = (syntaxErrors || []).map(err => ({
-          startLineNumber: err.line || 1, startColumn: 1, endLineNumber: err.line || 1, endColumn: 1000, message: err.message, severity: monacoRef.current.MarkerSeverity.Error,
-        }));
-        monacoRef.current.editor.setModelMarkers(model, "owner", markers);
-      }
-    }
-  }, [syntaxErrors]);
-
-  const hasSyntaxErrors = syntaxErrors && syntaxErrors.length > 0;
-
   return (
     <div className="activity-app-container">
-      {/* Toast Render with correct classes applied via the imported CSS */}
       {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.message}</div>}
 
       <header className="workspace-header-purple">
@@ -1043,7 +796,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
 
       <Split className={`workspace-split activity-split ${!isLeftPanelVisible ? "left-hidden" : ""} ${!isRightPanelVisible ? "right-hidden" : ""}`} sizes={[20, 60, 20]} minSize={[isLeftPanelVisible ? 250 : 0, 400, isRightPanelVisible ? 250 : 0]} gutterSize={8}>
 
-        {/* LEFT PANEL */}
         <aside className="activity-left-panel">
           {lessonActivitiesResolved.length > 0 && (
             <div className="activity-selector-container">
@@ -1067,7 +819,6 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
           </div>
         </aside>
 
-        {/* CENTER PANEL */}
         <main className="workspace-main activity-center-panel">
           <button className={`sidebar-toggle-btn ${!isLeftPanelVisible ? "closed" : ""}`} onClick={() => setIsLeftPanelVisible(!isLeftPanelVisible)} title="Toggle Instructions">
             <FiChevronRight className="toggle-icon" />
@@ -1080,270 +831,86 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
             <div className={viewMode === "workspace" ? "workspace-view d-block" : "workspace-view d-none"}>
               <BlocklyWorkspace ref={workspaceRef} onChange={handleWorkspaceChange} syntaxError={null} />
             </div>
-            <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"}>
-              <div className="python-header">
-                <span className="python-sync-status">{isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}</span>
-                <button onClick={handleSyncToBlocks} disabled={!isEditingCode || hasSyntaxErrors} className={`python-sync-btn ${isEditingCode && !hasSyntaxErrors ? "active" : "disabled"}`}>Sync to Blocks</button>
-              </div>
-
-              <div className="editor-wrapper">
-                <Editor
-                  height="100%" language="python" theme="algoblocks-light"
-                  beforeMount={handleEditorWillMount} onMount={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
-                  value={generatedPython}
-                  onChange={(value) => {
-                    const newCode = sanitizePythonCode(value);
-                    setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
-                    latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(latestStateRef.current.json, newCode);
-                  }}
-                  options={{ minimap: { enabled: false }, fontSize: 15, fontFamily: "Consolas, 'Courier New', monospace", scrollBeyondLastLine: false, wordWrap: "on", padding: { top: 16 } }}
-                />
-
-                {hasSyntaxErrors && (
-                  <div className="floating-error-container">
-                    {isErrorDropdownOpen && (
-                      <div className="error-dropdown-menu" style={{ width: `${errorPanelSize.width}px`, height: `${errorPanelSize.height}px` }}>
-                        <div className="error-resizer-top" onMouseDown={(e) => handleErrorResizeStart(e, 'n')} />
-                        <div className="error-resizer-left" onMouseDown={(e) => handleErrorResizeStart(e, 'w')} />
-                        <div className="error-resizer-nw" onMouseDown={(e) => handleErrorResizeStart(e, 'nw')}><FiAlertCircle color="rgba(239, 68, 68, 0.4)" /></div>
-                        <div className="error-dropdown-header"><strong>Detected Issues ({syntaxErrors.length})</strong></div>
-                        <div className="error-dropdown-list">
-                          {syntaxErrors.map((err, idx) => (
-                            <div key={idx} className="error-dropdown-item">
-                              <span className="error-line-badge">Line {err.line}</span>
-                              <span className="error-message">{err.message}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <button className={`floating-error-btn ${isErrorDropdownOpen ? "open" : ""}`} onClick={() => setIsErrorDropdownOpen(!isErrorDropdownOpen)}>
-                      <FiAlertCircle size={18} /> {syntaxErrors.length} Error{syntaxErrors.length > 1 ? "s" : ""}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <PythonCodeEditor
+              viewMode={viewMode}
+              pythonCode={generatedPython}
+              isEditingCode={isEditingCode}
+              syntaxErrors={syntaxErrors || []}
+              onSyncToBlocks={handleSyncToBlocks}
+              onChangeCode={(value) => {
+                const newCode = sanitizePythonCode(value);
+                setGeneratedPython(newCode); setIsEditingCode(true); setSyntaxErrors([]);
+                latestStateRef.current.pythonCode = newCode; handleWorkspaceAutoSave(latestStateRef.current.json, newCode);
+              }}
+              onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+            />
           </div>
 
-          {/* BOTTOM PANEL */}
           {bottomPanel && (
-            <div className="bottom-docked-panel" style={{ height: `${panelHeight}px` }}>
-              <div className="panel-resizer" onMouseDown={handleDragStart}><div className="panel-resizer-handle"></div></div>
-              <div className="panel-header">
-                <span className="panel-title">{bottomPanel === "console" ? "Console Panel" : "Complexity Analysis"}</span>
-                <button onClick={() => setBottomPanel(null)} className="panel-close-btn"><FiX size={18} /></button>
-              </div>
-              <div className="panel-body">
-                {bottomPanel === "console" ? (
-                  <div className="console-content-wrapper">
-                    <div className="complexity-tabs">
-                      <div className="tab-btn-group">
-                        <button onClick={() => setConsoleTab("output")} className={`tab-btn ${consoleTab === "output" ? "active" : ""}`}>Terminal Output</button>
-                        <button onClick={() => setConsoleTab("executions")} className={`tab-btn ${consoleTab === "executions" ? "active" : ""}`}>Line Executions</button>
-                      </div>
-                      {consoleTab === "output" && <button className="clear-console-btn" onClick={() => setConsoleOutput("Ready to run...\n")}>Clear</button>}
+            <DockedBottomPanel
+              bottomPanel={bottomPanel}
+              onClosePanel={() => setBottomPanel(null)}
+              panelHeight={panelHeight}
+              onDragStart={handleDragStart}
+              consoleTab={consoleTab}
+              onConsoleTabChange={setConsoleTab}
+              consoleOutput={consoleOutput}
+              onClearConsole={() => setConsoleOutput("Ready to run...\n")}
+              isWaitingForInput={isWaitingForInput}
+              userInput={userInput}
+              setUserInput={setUserInput}
+              onSendInput={handleSendInput}
+              pythonCode={generatedPython}
+              lineExecutions={lineExecutions}
+              activeComplexityTab={activeComplexityTab}
+              onComplexityTabChange={setActiveComplexityTab}
+              analysisResult={analysisResult}
+              analysisTime={analysisTime}
+              defaultWeight={6}
+              analysisTimeLabel="Analyzed In:"
+              analysisBadgeStyle={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}
+              analysisLabelStyle={{ color: '#64748B' }}
+              analysisValStyle={{ color: '#0F172A' }}
+              extraBadges={
+                <>
+                  <span className="total-badge aes-badge" style={{ position: 'relative' }}>
+                    <span className="total-label">AES:</span>
+                    <span className="total-val">{currentAes}%</span>
+                    <div className="info-tooltip">
+                      <FiInfo size={14} />
+                      <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
+                        <span className="tooltip-title">Algorithmic Efficiency Score</span>
+                        Measures how efficiently your code solves the problem compared to the target optimal Time and Space complexity.
+                      </span>
                     </div>
-                    <div className="console-view-area">
-                      {consoleTab === "output" ? (
-                        <div className="console-container">
-                          <pre className="console-output">{consoleOutput}</pre>
-                          {isWaitingForInput && (
-                            <div className="console-input-line">
-                              <span className="console-cursor">❯</span>
-                              <input autoFocus value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyDown={handleSendInput} className="console-input-field" placeholder="Type here and press Enter..." />
-                            </div>
-                          )}
-                          <div ref={consoleEndRef} />
-                        </div>
-                      ) : (
-                        <div className="complexity-table-wrapper console-table-override">
-                          <table className="complexity-table">
-                            <thead>
-                              <tr>
-                                <th className="line-num-th">Line</th>
-                                <th>Source Code</th>
-                                <th className="hits-th">Hits</th>
-                                <th className="freq-th">Frequency</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {pythonLines.map((lineText, idx) => {
-                                const hits = lineExecutions[idx + 1] || 0;
-                                return (
-                                  <tr key={idx} className={hits > 0 ? "row-has-hits" : ""}>
-                                    <td className="line-num-td">{idx + 1}</td>
-                                    <td className="source-code-td">{lineText || " "}</td>
-                                    <td className={`hits-td ${hits > 0 ? "active-hits" : ""}`}>{hits > 0 ? hits : "-"}</td>
-                                    <td className="freq-td">
-                                      {hits > 0 && maxExecutions > 0 && <div className={`freq-bar ${hits === maxExecutions ? "max-freq" : ""}`} style={{ width: `${(hits / maxExecutions) * 100}%` }} title={`${Math.round((hits / maxExecutions) * 100)}%`} />}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="complexity-content">
-                    <div className="complexity-tabs">
-                      <div className="tab-btn-group">
-                        <button onClick={() => { setActiveComplexityTab("overall"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "overall" ? "active" : ""}`}>Overall</button>
-                        <button onClick={() => { setActiveComplexityTab("local"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "local" ? "active" : ""}`}>Local</button>
-                        <button onClick={() => { setActiveComplexityTab("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
-                        <button onClick={() => { setActiveComplexityTab("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
-                        <button onClick={() => { setActiveComplexityTab("callgraph"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "callgraph" ? "active" : ""}`}>Call Graph</button>
-                      </div>
-
-                      <div className="total-badge-group">
-                        {/* FIX: Restored the Analysis Process Time MS badge */}
-                        <span className="total-badge analysis-time-badge" style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                          <span className="total-label" style={{ color: '#64748B' }}>Analyzed In:</span>
-                          <span className="total-val" style={{ color: '#0F172A' }}>{analysisTime}ms</span>
+                  </span>
+                  {currentRog > 0 && (
+                    <span className="total-badge rog-badge" style={{ position: 'relative' }}>
+                      <span className="total-label">ROG:</span>
+                      <span className="total-val">+{currentRog}</span>
+                      <div className="info-tooltip">
+                        <FiInfo size={14} />
+                        <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
+                          <span className="tooltip-title">Refactoring Optimization Gain</span>
+                          Points earned by refactoring and improving your initial solution's performance. Great job!
                         </span>
-
-                        <span className="total-badge total-time-badge"><span className="total-label">Total Time:</span> <span className="total-val">{formatComplexity(analysisResult.total)}</span></span>
-                        <span className="total-badge total-space-badge"><span className="total-label space-label">Total Space:</span> <span className="total-val">{formatComplexity(analysisResult.space_total)}</span></span>
-
-                        {/* THESIS METHODOLOGY: AES BADGE */}
-                        {/* FIX: Set positioning on tooltip to pull it downward to avoid header clipping, and enforce high z-index */}
-                        <span className="total-badge aes-badge" style={{ position: 'relative' }}>
-                          <span className="total-label">AES:</span>
-                          <span className="total-val">{currentAes}%</span>
-                          <div className="info-tooltip">
-                            <FiInfo size={14} />
-                            <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
-                              <span className="tooltip-title">Algorithmic Efficiency Score</span>
-                              Measures how efficiently your code solves the problem compared to the target optimal Time and Space complexity.
-                            </span>
-                          </div>
-                        </span>
-
-                        {/* THESIS METHODOLOGY: ROG BADGE */}
-                        {/* FIX: Set positioning on tooltip to pull it downward to avoid header clipping, and enforce high z-index */}
-                        {currentRog > 0 && (
-                          <span className="total-badge rog-badge" style={{ position: 'relative' }}>
-                            <span className="total-label">ROG:</span>
-                            <span className="total-val">+{currentRog}</span>
-                            <div className="info-tooltip">
-                              <FiInfo size={14} />
-                              <span className="tooltip-text" style={{ zIndex: 9999, bottom: 'auto', top: '150%', left: '50%', transform: 'translateX(-50%)' }}>
-                                <span className="tooltip-title">Refactoring Optimization Gain</span>
-                                Points earned by refactoring and improving your initial solution's performance. Great job!
-                              </span>
-                            </div>
-                          </span>
-                        )}
-
                       </div>
-                    </div>
-                    {activeComplexityTab === "overall" ? (
-                      <div className="overall-complexity-wrapper">
-                        {analysisResult.overall_explanation ? (
-                          <div className="overall-markdown-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(analysisResult.overall_explanation)) }} />
-                        ) : (
-                          <div className="empty-analysis-state">
-                            <p>Run code analysis to see the complete overall complexity report.</p>
-                          </div>
-                        )}
-                      </div>
-                    ) : activeComplexityTab === "memory" ? (
-                      <div className="memory-wrapper">
-                        <MemoryVisualizer analysisData={analysisResult.lines} currentStep={analysisResult.lines.length > 0 ? analysisResult.lines.length - 1 : 0} />
-                      </div>
-                    ) : activeComplexityTab === "callgraph" ? (
-                      <div className="callgraph-wrapper" style={{ height: '100%', overflow: 'hidden' }}>
-                        <CallGraphVisualizer analysisData={analysisResult} />
-                      </div>
-                    ) : (
-                      <div className="complexity-table-wrapper">
-                        <table className="complexity-table">
-                          <thead>
-                            <tr>
-                              <th>Line of Code</th>
-                              <th>Operation</th>
-                              <th className="right-align">{activeComplexityTab === "local" ? "Local Time" : "Global Time"}</th>
-                              <th className="right-align">{activeComplexityTab === "local" ? "Local Space" : "Global Space"}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {analysisResult.lines.map((line, i) => {
-                              const timeComplexity = activeComplexityTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)";
-                              const spaceComplexity = activeComplexityTab === "local" ? line.local_space || "O(1)" : line.global_space || "O(1)";
-                              let timeExp = line.time_explanation ?? line.local_explanation ?? "Not available.";
-                              let spaceExp = line.space_explanation ?? line.global_explanation ?? "Not available.";
-
-                              const isBottleneck = actualBottleneckIndices.includes(i);
-                              const timeColor = getComplexityColor(timeComplexity); const spaceColor = getComplexityColor(spaceComplexity);
-                              const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
-                              const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("√n") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
-
-                              return (
-                                <React.Fragment key={i}>
-                                  <tr className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`} onClick={() => toggleLine(i)} style={{ borderLeftColor: isBottleneck ? "#EF4444" : isEfficient ? "#10B981" : expandedLines[i] ? timeColor : "transparent" }}>
-                                    <td className="code-cell" style={{ paddingLeft: line.indent ? `${line.indent * 15 + 20}px` : "20px" }}>{line.lineOfCode || line.code}</td>
-                                    <td className="operation-cell">
-                                      {line.operation || "-"}
-                                      {isBottleneck && <span className="bottleneck-badge">Bottleneck</span>}
-                                      {isEfficient && <span className="efficient-badge">Efficient</span>}
-                                    </td>
-                                    <td className="complexity-cell" style={{ color: timeColor }}>{formatComplexity(timeComplexity)}</td>
-                                    <td className="complexity-cell" style={{ color: spaceColor }}>{formatComplexity(spaceComplexity)} <FiChevronDown className={`dropdown-chevron ${expandedLines[i] ? "open" : ""}`} /></td>
-                                  </tr>
-                                  {expandedLines[i] && (
-                                    <tr className="explanation-row">
-                                      <td colSpan="4">
-                                        <div className="explanation-grid" style={{ borderLeftColor: timeColor }}>
-                                          <div className="explanation-section">
-                                            <div className="explanation-icon-wrapper" style={{ color: timeColor }}><FiInfo size={20} /></div>
-                                            <div className="explanation-text-content">
-                                              <strong className="explanation-header" style={{ color: timeColor }}>Time Complexity</strong>
-                                              <div className="explanation-body">{formatExplanation(timeExp, isBottleneck, activeComplexityTab === "local")}</div>
-                                            </div>
-                                          </div>
-                                          <div className="explanation-section space-section">
-                                            <div className="explanation-icon-wrapper" style={{ color: spaceColor }}><FiInfo size={20} /></div>
-                                            <div className="explanation-text-content">
-                                              <strong className="explanation-header" style={{ color: spaceColor }}>Space Complexity</strong>
-                                              <div className="explanation-body">{formatExplanation(spaceExp, isBottleneck, activeComplexityTab === "local")}</div>
-                                            </div>
-                                          </div>
-                                          <div className="explanation-graph-wrapper"><ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" /></div>
-                                          <div className="explanation-graph-wrapper space-graph-wrapper"><ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" /></div>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  )}
-                                </React.Fragment>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+                    </span>
+                  )}
+                </>
+              }
+            />
           )}
 
-          <footer className="workspace-footer">
-            <div className="footer-left">
-              <button className={`footer-tab ${bottomPanel === "console" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "console" ? null : "console")}>
-                <FiTerminal size={16} /> Console
-              </button>
-              <button className={`footer-tab ${bottomPanel === "complexity" ? "active" : ""}`} onClick={() => setBottomPanel(bottomPanel === "complexity" ? null : "complexity")}>
-                <FiActivity size={16} /> Complexity
-              </button>
-              <button className="footer-tab big-o-btn" onClick={() => setIsBigOModalOpen(true)}>
-                <FiBookOpen size={16} /> Big O Reference
-              </button>
-            </div>
-            <div className="footer-right">
-              <button className="footer-action-icon clear-btn" title="Restart Activity" onClick={() =>
+          <WorkspaceFooterBar
+            bottomPanel={bottomPanel}
+            onTogglePanel={(panel) => setBottomPanel(bottomPanel === panel ? null : panel)}
+            onOpenBigOModal={() => setIsBigOModalOpen(true)}
+          >
+            <button
+              className="footer-action-icon clear-btn"
+              title="Restart Activity"
+              onClick={() =>
                 setModalConfig({
                   isOpen: true, title: "Restart Activity?", message: "Are you sure you want to restart this activity? Your progress will be lost.",
                   confirmText: "Restart", cancelText: "Cancel", isDanger: true,
@@ -1355,14 +922,13 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
                     window.location.reload();
                   }, onCancelAction: closeModal
                 })
-              }>
-                <FiActivity size={16} /> Restart
-              </button>
-            </div>
-          </footer>
+              }
+            >
+              <FiActivity size={16} /> Restart
+            </button>
+          </WorkspaceFooterBar>
         </main>
 
-        {/* RIGHT PANEL */}
         <aside className="activity-right-panel">
           <div className="activity-panel-header">
             <h3>Test Cases</h3>
