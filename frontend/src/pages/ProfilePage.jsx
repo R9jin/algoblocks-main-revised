@@ -11,7 +11,8 @@ import {
   FiInfo,
   FiLock,
   FiTarget,
-  FiTrendingUp
+  FiTrendingUp,
+  FiUnlock
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -44,7 +45,6 @@ export default function ProfilePage() {
     setExpandedModules((prev) => ({ ...prev, [moduleId]: !prev[moduleId] }));
   };
 
-  // Helper to safely format milestone scores regardless of storage payload schema
   const formatMilestoneScore = (data) => {
     if (!data) return "--";
     if (data.score !== undefined && data.score !== null) return `${Math.round(data.score)}%`;
@@ -68,7 +68,6 @@ export default function ProfilePage() {
         let initialProg = parsed.progress || {};
         let initialAssm = parsed.assessments || {};
 
-        // 1. Sync Base Progress and Assessments (Strictly blocked for Guest accounts)
         if (!isGuest) {
           await progressDB.iterate((value, key) => { initialProg[key] = value.score !== undefined ? value.score : value; });
           await assessmentsDB.iterate((value, key) => { initialAssm[key] = value.data || value; });
@@ -101,7 +100,6 @@ export default function ProfilePage() {
         const finalUser = { ...parsed, progress: isGuest ? {} : initialProg, assessments: isGuest ? {} : initialAssm };
         setUser(finalUser);
 
-        // 2. Fetch local submissions to extract AES and ROG (Blocked for Guest accounts)
         const userSubs = {};
         if (!isGuest) {
           await submissionsDB.iterate((val) => {
@@ -112,11 +110,8 @@ export default function ProfilePage() {
           });
         }
 
-        // Deep Fuzzy Scanner across all storage dictionaries to catch one-time assessments
         const findMilestoneData = (keywords) => {
           const cleanKws = keywords.map(k => k.toLowerCase().replace(/[-_ ]/g, ''));
-          
-          // Scan assessments dictionary
           for (const [k, v] of Object.entries(finalUser.assessments || {})) {
             const cleanKey = k.toLowerCase().replace(/[-_ ]/g, '');
             if (cleanKws.some(kw => cleanKey.includes(kw))) {
@@ -125,7 +120,6 @@ export default function ProfilePage() {
               }
             }
           }
-          // Scan progress dictionary
           for (const [k, v] of Object.entries(finalUser.progress || {})) {
             const cleanKey = k.toLowerCase().replace(/[-_ ]/g, '');
             if (cleanKws.some(kw => cleanKey.includes(kw))) {
@@ -140,12 +134,8 @@ export default function ProfilePage() {
         const preTestData = findMilestoneData(['pretest', 'coursepretest']);
         const postTestData = findMilestoneData(['posttest', 'courseposttest']);
 
-        setMilestones({
-          preTest: preTestData,
-          postTest: postTestData
-        });
+        setMilestones({ preTest: preTestData, postTest: postTestData });
 
-        // 3. Fetch all JSON activity definitions to build hierarchy
         const allActivities = {};
         for (let i = 0; i <= 6; i++) {
           try {
@@ -154,10 +144,10 @@ export default function ProfilePage() {
           } catch (e) { console.warn(`Could not load module_${i}.json`); }
         }
 
-        // 4. Build Curriculum Mastery Tree
         let tLessons = 0, cLessons = 0;
         let globalAesSum = 0, globalAesCount = 0;
         let globalRogSum = 0, globalRogCount = 0;
+        let pathUnlocked = true; // Tracks continuous curriculum completion status
 
         const masteryData = curriculumIndex.map((mod) => {
           const modActs = allActivities[mod.moduleId] || {};
@@ -168,7 +158,10 @@ export default function ProfilePage() {
           tLessons += mod.lessons.length;
 
           const mappedLessons = mod.lessons.map((lesson) => {
-            const lessonKeyJson = lesson.lessonId.replace(/-/g, '_');
+            // Correctly parse JSON property keys like "lesson_1" from "lesson-0-1"
+            const lessonParts = lesson.lessonId.split('-');
+            const lessonNum = lessonParts[2];
+            const lessonKeyJson = `lesson_${lessonNum}`;
             const acts = modActs[lessonKeyJson] || [];
 
             let lessonCompletedActs = 0;
@@ -194,19 +187,35 @@ export default function ProfilePage() {
               return { ...act, aes, rog, isCompleted };
             });
 
+            const minRequired = lesson.minimumActivities || acts.length;
             let isLessonCompleted = false;
-            if (acts.length > 0 && lessonCompletedActs === acts.length) isLessonCompleted = true;
-            else if (finalUser.progress[lesson.lessonId] >= 50 || finalUser.progress[lesson.lessonId] === true) isLessonCompleted = true;
+            if (acts.length > 0 && lessonCompletedActs >= minRequired) {
+              isLessonCompleted = true;
+            } else if (finalUser.progress[lesson.lessonId] >= 50 || finalUser.progress[lesson.lessonId] === true) {
+              isLessonCompleted = true;
+            }
+
+            const currentUnlockState = pathUnlocked;
+
+            if (!isLessonCompleted && acts.length > 0) {
+              pathUnlocked = false; // Stop progression if minimum activities aren't completed
+            }
 
             if (isLessonCompleted) {
               modCompletedLessons++;
               cLessons++;
             }
 
-            return { ...lesson, activities: mappedActs, isCompleted: isLessonCompleted };
+            return { 
+              ...lesson, 
+              activities: mappedActs, 
+              isCompleted: isLessonCompleted, 
+              isUnlocked: currentUnlockState,
+              completedCount: lessonCompletedActs,
+              minRequired: minRequired
+            };
           });
 
-          // Module Quiz Resolution
           const modClean = mod.moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
           const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean];
           let quizData = null;
@@ -219,10 +228,15 @@ export default function ProfilePage() {
             }
           }
 
+          const isQuizUnlocked = pathUnlocked;
+          if (!quizData || (!quizData.passed && quizData.score < 50 && quizData.score !== undefined)) {
+            pathUnlocked = false; // Lock next module if quiz isn't done
+          }
+
           return {
             ...mod,
             lessons: mappedLessons,
-            quiz: quizData,
+            quiz: quizData ? { ...quizData, isUnlocked: isQuizUnlocked } : { isUnlocked: isQuizUnlocked },
             completed: modCompletedLessons,
             total: mod.lessons.length,
             percentage: mod.lessons.length > 0 ? Math.round((modCompletedLessons / mod.lessons.length) * 100) : 0,
@@ -231,7 +245,6 @@ export default function ProfilePage() {
           };
         });
 
-        // 5. Strict Gatekeeper: Unlock Post-Test only when all lessons and module quizzes M0-M6 are completed
         const checkPostTestUnlock = masteryData.length > 0 && masteryData.every(mod => {
           const lessonsDone = mod.total === 0 ? true : mod.completed >= mod.total;
           const quizDone = mod.quiz !== null && mod.quiz !== undefined && (mod.quiz.completed || mod.quiz.passed || mod.quiz.score !== undefined);
@@ -253,7 +266,6 @@ export default function ProfilePage() {
 
         setModuleMastery(masteryData);
 
-        // Rank Calculation
         if (isGuest) {
           setUserRank("Guest Visitor");
         } else {
@@ -390,7 +402,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="mastery-list chronological-curriculum">
-              {/* STAGE 0: PRE-TEST (STRICTLY ONE-TIME BASELINE) */}
+              {/* STAGE 0: PRE-TEST */}
               <div className="mastery-card-container milestone-card-container">
                 <div className={`mastery-card milestone-card ${milestones.preTest ? 'completed' : ''}`}>
                   <div className="mastery-card-left">
@@ -451,12 +463,22 @@ export default function ProfilePage() {
 
                     {isExpanded && (
                       <div className="module-dropdown-content">
-                        {/* A. LESSONS AND CONTAINED ACTIVITIES */}
                         {mod.lessons.map((lesson, lIdx) => (
-                          <div key={lesson.lessonId} className="lesson-block">
+                          <div key={lesson.lessonId} className={`lesson-block ${lesson.isUnlocked ? '' : 'locked-block'}`}>
                             <div className="lesson-header">
                               <span className="lesson-title">Lesson {modNumber}.{lIdx + 1}: {lesson.title}</span>
-                              {lesson.isCompleted && <FiCheckCircle className="lesson-check" />}
+                              <div className="lesson-status-indicators">
+                                {lesson.activities.length > 0 && (
+                                  <span className={`activity-count-badge ${lesson.isCompleted ? 'cleared' : ''}`}>
+                                    {lesson.completedCount}/{lesson.minRequired} Acts 
+                                  </span>
+                                )}
+                                {!lesson.isUnlocked ? (
+                                  <FiLock className="lesson-lock-icon" title="Complete previous activities to unlock" />
+                                ) : lesson.isCompleted ? (
+                                  <FiCheckCircle className="lesson-check cleared" />
+                                ) : null}
+                              </div>
                             </div>
                             
                             {lesson.activities.length === 0 ? (
@@ -466,21 +488,27 @@ export default function ProfilePage() {
                             ) : (
                               <div className="activities-list">
                                 {lesson.activities.map((act) => (
-                                  <div key={act.id} className="activity-row">
+                                  <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!lesson.isUnlocked ? 'locked-row' : ''}`}>
                                     <div className="act-left">
-                                      <FiCode className="act-icon" />
+                                      {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : lesson.isUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
                                       <div className="act-info">
                                         <span className="act-title">{act.title}</span>
                                         <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'easy'}`}>{act.difficulty || 'Easy'}</span>
                                       </div>
                                     </div>
                                     <div className="act-right">
-                                      <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
-                                        AES: {act.aes > 0 ? `${act.aes}%` : '--'}
-                                      </span>
-                                      <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
-                                        ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
-                                      </span>
+                                      {lesson.isUnlocked ? (
+                                        <>
+                                          <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
+                                            AES: {act.aes > 0 ? `${act.aes}%` : '--'}
+                                          </span>
+                                          <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
+                                            ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span className="locked-text">Locked</span>
+                                      )}
                                     </div>
                                   </div>
                                 ))}
@@ -489,29 +517,32 @@ export default function ProfilePage() {
                           </div>
                         ))}
 
-                        {/* B. MODULE QUIZ / ASSESSMENT BLOCK */}
-                        <div className="lesson-block module-quiz-block">
+                        <div className={`lesson-block module-quiz-block ${mod.quiz && mod.quiz.isUnlocked ? '' : 'locked-block'}`}>
                           <div className="lesson-header">
                             <span className="lesson-title quiz-label">Module {modNumber} Verification Quiz</span>
                             {mod.quiz && (mod.quiz.passed || (mod.quiz.score !== undefined && mod.quiz.score >= 50)) && <FiCheckCircle className="lesson-check passed" />}
                           </div>
                           <div className="activity-row">
                             <div className="act-left">
-                              <FiActivity className="act-icon quiz-icon" />
+                              {mod.quiz && mod.quiz.isUnlocked ? <FiActivity className="act-icon quiz-icon" /> : <FiLock className="act-icon locked" />}
                               <div className="act-info">
                                 <span className="act-title">Post-Module Assessment</span>
                                 <span className="act-difficulty medium">Required</span>
                               </div>
                             </div>
                             <div className="act-right">
-                              {mod.quiz ? (
+                              {mod.quiz && (mod.quiz.passed || mod.quiz.score !== undefined) ? (
                                 <span className={`metric-badge aes-badge ${mod.quiz.passed || (mod.quiz.score !== undefined && mod.quiz.score >= 50) ? 'perfect' : 'good'}`}>
                                   Score: {formatMilestoneScore(mod.quiz)}
                                 </span>
-                              ) : (
+                              ) : mod.quiz && mod.quiz.isUnlocked ? (
                                 <Link to={`/assessment/module-${modNumber}`} className="btn-take-quiz">
                                   Take Quiz
                                 </Link>
+                              ) : (
+                                <span className="btn-take-quiz locked" style={{ backgroundColor: '#e2e8f0', color: '#94a3b8', cursor: 'not-allowed', display: 'flex', alignItems: 'center' }}>
+                                  <FiLock style={{ marginRight: '6px' }} /> Locked
+                                </span>
                               )}
                             </div>
                           </div>
@@ -523,7 +554,7 @@ export default function ProfilePage() {
                 );
               })}
 
-              {/* STAGE FINAL: POST-TEST (GATED BEHIND ALL MODULES & QUIZZES) */}
+              {/* STAGE FINAL: POST-TEST */}
               <div className="mastery-card-container milestone-card-container final-milestone">
                 <div className={`mastery-card milestone-card ${milestones.postTest ? 'completed' : !isPostTestUnlocked ? 'locked' : 'ready'}`}>
                   <div className="mastery-card-left">
@@ -540,7 +571,7 @@ export default function ProfilePage() {
                           : (
                             <span className="locked-reason-span">
                               <FiLock className="inline-lock-icon" />
-                              Locked (Clear all Modules M0–M6 & Quizzes first)
+                              Locked (Clear all Modules & Quizzes first)
                             </span>
                           )
                         }
@@ -554,7 +585,7 @@ export default function ProfilePage() {
                       </span>
                     ) : isPostTestUnlocked ? (
                       <Link to="/assessment/course-post-test" className="btn-milestone-action gold">
-                        Take Final Exam
+                        <FiUnlock style={{ marginRight: '6px' }}/> Take Final Exam
                       </Link>
                     ) : (
                       <span className="milestone-status disabled">
