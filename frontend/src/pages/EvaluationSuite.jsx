@@ -366,48 +366,108 @@ export default function EvaluationSuite() {
             </div>
 
             <div className="metrics-help-body">
-              
               <div className="metric-card-info" style={{ borderLeft: "4px solid #3B82F6" }}>
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>Precision (Trustworthiness)</span>
+                  <span
+                    className="metric-name-badge"
+                    style={{
+                      backgroundColor: "#EFF6FF",
+                      color: "#1D4ED8",
+                      border: "1px solid #BFDBFE"
+                    }}
+                  >
+                    Precision (Trustworthiness)
+                  </span>
                   <span className="metric-formula">TP / (TP + FP)</span>
                 </div>
+
                 <p className="metric-desc">
-                  <strong>&quot;When the AST engine flags an algorithm as <code>O(N)</code>, how often can you actually trust it?&quot;</strong><br/>
-                  Imagine a classroom fire alarm. If it rings 10 times, but only 8 times there was a real fire (and 2 burnt toast false alarms), its Precision is <strong>80%</strong>. High precision proves that when the system identifies a complexity bottleneck, it is almost certainly a genuine code bottleneck rather than a static analysis hallucination.
+                  <strong>Measures the correctness of the engine's positive complexity predictions.</strong>
+                  <br />
+                  Precision represents the proportion of predicted complexity classifications that are
+                  actually correct according to the ground truth dataset. A high Precision value indicates
+                  that the AST-based analysis engine rarely assigns an incorrect complexity class,
+                  minimizing false positive classifications and improving the reliability of reported
+                  algorithmic complexity results.
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #10B981" }}>
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>Recall (Catch Rate)</span>
+                  <span
+                    className="metric-name-badge"
+                    style={{
+                      backgroundColor: "#ECFDF5",
+                      color: "#065F46",
+                      border: "1px solid #A7F3D0"
+                    }}
+                  >
+                    Recall (Detection Coverage)
+                  </span>
                   <span className="metric-formula">TP / (TP + FN)</span>
                 </div>
+
                 <p className="metric-desc">
-                  <strong>&quot;Out of all the real <code>O(N)</code> algorithms hidden in the test bank, how many did the engine successfully find?&quot;</strong><br/>
-                  Imagine casting a fishing net into a lake containing 100 salmon. If your net captures 85 salmon (and 15 slip through the mesh holes), your Recall is <strong>85%</strong>. High recall proves that the static AST visitor rarely overlooks or misses true algorithmic complexity patterns across generalized datasets.
+                  <strong>Measures the engine's ability to identify all valid complexity classifications.</strong>
+                  <br />
+                  Recall represents the proportion of actual algorithm complexity classes that were
+                  successfully detected by the AST analysis engine. A high Recall value indicates that
+                  the system rarely overlooks valid algorithmic patterns, thereby minimizing false
+                  negatives and providing comprehensive complexity detection across the evaluation
+                  dataset.
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #8B5CF6" }}>
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>F1-Score (Reliability Balance)</span>
+                  <span
+                    className="metric-name-badge"
+                    style={{
+                      backgroundColor: "#F5F3FF",
+                      color: "#6D28D9",
+                      border: "1px solid #DDD6FE"
+                    }}
+                  >
+                    F1-Score (Balanced Performance)
+                  </span>
                   <span className="metric-formula">2 × (P × R) / (P + R)</span>
                 </div>
+
                 <p className="metric-desc">
-                  <strong>&quot;Why standard arithmetic averages lie, and why F1 keeps static validation honest.&quot;</strong><br/>
-                  If an AI lazily predicts <code>O(1)</code> for *every single file*, its Recall for <code>O(1)</code> hits 100%, but its Precision drops near 0%. A standard mean grade <code>((100 + 0) / 2)</code> would falsely claim a &quot;50% passing grade&quot;. The F1 harmonic mean severely punishes extreme cheating—if either Precision or Recall crashes toward zero, the F1-Score crashes with it.
+                  <strong>Provides a balanced evaluation of Precision and Recall.</strong>
+                  <br />
+                  The F1-Score is the harmonic mean of Precision and Recall, providing a single measure
+                  that reflects both prediction accuracy and detection completeness. Unlike a simple
+                  arithmetic average, the harmonic mean penalizes situations where one metric is high
+                  while the other is low. Consequently, a high F1-Score indicates that the complexity
+                  classification engine produces predictions that are both accurate and comprehensive.
                 </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #64748B" }}>
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#F1F5F9", color: "#334155", border: "1px solid #CBD5E1" }}>Support (Statistical Sample Weight)</span>
+                  <span
+                    className="metric-name-badge"
+                    style={{
+                      backgroundColor: "#F1F5F9",
+                      color: "#334155",
+                      border: "1px solid #CBD5E1"
+                    }}
+                  >
+                    Support (Ground Truth Frequency)
+                  </span>
                   <span className="metric-formula">Actual Ground Truth Occurrences</span>
                 </div>
+
                 <p className="metric-desc">
-                  <strong>&quot;How much statistical proof backs up this specific complexity rating?&quot;</strong><br/>
-                  In computer science benchmarking, sample size is everything. Achieving a 100% F1-Score on a rare complexity class with a Support of <code>2</code> is statistically fragile, whereas an 88% F1-Score backed by a Support of <code>550</code> algorithms proves genuine, enterprise-grade parsing resilience.
+                  <strong>Represents the number of ground truth instances for each complexity class.</strong>
+                  <br />
+                  Support indicates how many samples belonging to a particular complexity category are
+                  present in the evaluation dataset. Although it does not directly measure predictive
+                  performance, Support provides important statistical context when interpreting Precision,
+                  Recall, and F1-Score. Performance metrics computed from larger support values are
+                  generally considered more representative and statistically reliable than those derived
+                  from only a small number of observations.
                 </p>
               </div>
 
