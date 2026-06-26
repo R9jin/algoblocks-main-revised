@@ -1,6 +1,7 @@
 // frontend/src/pages/EvaluationSuite.jsx
 import { useEffect, useState } from "react";
 import {
+  FiActivity,
   FiArrowLeft,
   FiCheckCircle, FiClock, FiCode,
   FiCpu, FiDatabase,
@@ -289,13 +290,35 @@ export default function EvaluationSuite() {
     return true;
   });
 
+  // --- PEDAGOGICAL UI FORMATTERS ---
+  // Converts standard Scikit-Learn raw decimal strings (e.g. "0.85") into intuitive dual displays
+  const renderMetricCell = (val) => {
+    if (val === undefined || val === null || val === "-" || val === "") return <span>-</span>;
+    const num = parseFloat(val);
+    if (isNaN(num)) return <span>{val}</span>;
+    
+    const pct = num <= 1.0 ? num * 100 : num;
+    const pctFormatted = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1).replace('.0', '')}%`;
+    
+    return (
+      <div className="dual-metric-cell">
+        <strong className="metric-pct">{pctFormatted}</strong>
+        <span className="metric-raw">({num <= 1.0 ? num.toFixed(2) : num})</span>
+      </div>
+    );
+  };
+
   const renderF1Badge = (scoreStr) => {
     const s = parseFloat(scoreStr);
     if (isNaN(s)) return <span>-</span>;
-    if (s >= 0.80) return <span className="f1-excellent">{scoreStr}</span>;
-    if (s >= 0.60) return <span className="f1-good">{scoreStr}</span>;
-    if (s >= 0.40) return <span className="f1-warning">{scoreStr}</span>;
-    return <span className="f1-poor">{scoreStr}</span>;
+    
+    const pct = s <= 1.0 ? s * 100 : s;
+    const pctFormatted = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1).replace('.0', '')}%`;
+    
+    if (s >= 0.80) return <span className="f1-excellent">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
+    if (s >= 0.60) return <span className="f1-good">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
+    if (s >= 0.40) return <span className="f1-warning">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
+    return <span className="f1-poor">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
   };
 
   return (
@@ -334,8 +357,8 @@ export default function EvaluationSuite() {
           <div className="eval-modal-content metrics-help-modal" onClick={(e) => e.stopPropagation()}>
             <div className="eval-modal-header">
               <div>
-                <h3 className="eval-modal-title">Understanding Classification Metrics</h3>
-                <span className="eval-dataset-subtitle">A practical guide to Precision, Recall, F1-Score, and Support</span>
+                <h3 className="eval-modal-title">Understanding Scikit-Learn Validation Metrics</h3>
+                <span className="eval-dataset-subtitle">Translating academic AI benchmarking statistics into plain classroom insights</span>
               </div>
               <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close-sm">
                 <FiXCircle size={22} />
@@ -343,71 +366,101 @@ export default function EvaluationSuite() {
             </div>
 
             <div className="metrics-help-body">
-              <div className="metric-card-info">
+              
+              <div className="metric-card-info" style={{ borderLeft: "4px solid #3B82F6" }}>
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>Precision</span>
+                  <span className="metric-name-badge" style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE" }}>Precision (Trustworthiness)</span>
                   <span className="metric-formula">TP / (TP + FP)</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>&quot;Quality of Predictions&quot;</strong> — When the AST engine predicts an algorithm has a specific complexity (e.g., <code>O(N)</code>), Precision measures how often that prediction is correct. A score of 1.0 means every time it guessed <code>O(N)</code>, it was absolutely right.
+                  <strong>&quot;When the AST engine flags an algorithm as <code>O(N)</code>, how often can you actually trust it?&quot;</strong><br/>
+                  Imagine a classroom fire alarm. If it rings 10 times, but only 8 times there was a real fire (and 2 burnt toast false alarms), its Precision is <strong>80%</strong>. High precision proves that when the system identifies a complexity bottleneck, it is almost certainly a genuine code bottleneck rather than a static analysis hallucination.
                 </p>
               </div>
 
-              <div className="metric-card-info">
+              <div className="metric-card-info" style={{ borderLeft: "4px solid #10B981" }}>
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>Recall</span>
+                  <span className="metric-name-badge" style={{ backgroundColor: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }}>Recall (Catch Rate)</span>
                   <span className="metric-formula">TP / (TP + FN)</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>&quot;Detection Completeness&quot;</strong> — Out of all algorithms that *actually* have a specific complexity in the ground truth, Recall measures how many the AST engine successfully detected. A score of 1.0 means it didn&apos;t miss a single <code>O(N)</code> algorithm.
+                  <strong>&quot;Out of all the real <code>O(N)</code> algorithms hidden in the test bank, how many did the engine successfully find?&quot;</strong><br/>
+                  Imagine casting a fishing net into a lake containing 100 salmon. If your net captures 85 salmon (and 15 slip through the mesh holes), your Recall is <strong>85%</strong>. High recall proves that the static AST visitor rarely overlooks or misses true algorithmic complexity patterns across generalized datasets.
                 </p>
               </div>
 
-              <div className="metric-card-info">
+              <div className="metric-card-info" style={{ borderLeft: "4px solid #8B5CF6" }}>
                 <div className="metric-card-header">
-                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>F1-Score</span>
+                  <span className="metric-name-badge" style={{ backgroundColor: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE" }}>F1-Score (Reliability Balance)</span>
                   <span className="metric-formula">2 × (P × R) / (P + R)</span>
                 </div>
                 <p className="metric-desc">
-                  <strong>&quot;Harmonic Balance&quot;</strong> — F1 is the harmonic mean of Precision and Recall.
+                  <strong>&quot;Why standard arithmetic averages lie, and why F1 keeps static validation honest.&quot;</strong><br/>
+                  If an AI lazily predicts <code>O(1)</code> for *every single file*, its Recall for <code>O(1)</code> hits 100%, but its Precision drops near 0%. A standard mean grade <code>((100 + 0) / 2)</code> would falsely claim a &quot;50% passing grade&quot;. The F1 harmonic mean severely punishes extreme cheating—if either Precision or Recall crashes toward zero, the F1-Score crashes with it.
+                </p>
+              </div>
+
+              <div className="metric-card-info" style={{ borderLeft: "4px solid #64748B" }}>
+                <div className="metric-card-header">
+                  <span className="metric-name-badge" style={{ backgroundColor: "#F1F5F9", color: "#334155", border: "1px solid #CBD5E1" }}>Support (Statistical Sample Weight)</span>
+                  <span className="metric-formula">Actual Ground Truth Occurrences</span>
+                </div>
+                <p className="metric-desc">
+                  <strong>&quot;How much statistical proof backs up this specific complexity rating?&quot;</strong><br/>
+                  In computer science benchmarking, sample size is everything. Achieving a 100% F1-Score on a rare complexity class with a Support of <code>2</code> is statistically fragile, whereas an 88% F1-Score backed by a Support of <code>550</code> algorithms proves genuine, enterprise-grade parsing resilience.
                 </p>
               </div>
 
               <div className="metric-interactive-box">
-                <h4 className="interactive-box-title"><FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }}/> Interactive Metric Sandbox</h4>
+                <h4 className="interactive-box-title"><FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }}/> Interactive Live Metric Sandbox</h4>
+                <p className="interactive-box-subtitle">Adjust simulated test suite outcomes below to observe how academic classification percentages react in real-time:</p>
+                
                 <div className="sandbox-controls">
                   <div className="slider-group">
-                    <label>True Positives (Correct Detections): <strong>{sandboxTP}</strong></label>
+                    <label>True Positives (Correctly spotted complexities): <strong>{sandboxTP} cases</strong></label>
                     <input type="range" min="1" max="100" value={sandboxTP} onChange={(e) => setSandboxTP(parseInt(e.target.value))} />
                   </div>
                   <div className="slider-group">
-                    <label>False Positives (False Alarms / Guessed Wrong): <strong>{sandboxFP}</strong></label>
+                    <label>False Positives (False alarms / Hallucinated guesses): <strong>{sandboxFP} cases</strong></label>
                     <input type="range" min="0" max="100" value={sandboxFP} onChange={(e) => setSandboxFP(parseInt(e.target.value))} />
                   </div>
                   <div className="slider-group">
-                    <label>False Negatives (Missed Detections / Failed to Spot): <strong>{sandboxFN}</strong></label>
+                    <label>False Negatives (Missed complexities / Failed to detect): <strong>{sandboxFN} cases</strong></label>
                     <input type="range" min="0" max="100" value={sandboxFN} onChange={(e) => setSandboxFN(parseInt(e.target.value))} />
                   </div>
                 </div>
+
                 <div className="sandbox-results">
                   <div className="sandbox-stat">
                     <span>Simulated Precision</span>
-                    <strong style={{ color: "#1D4ED8" }}>{simPrecision.toFixed(2)}</strong>
+                    <strong style={{ color: "#1D4ED8" }}>{(simPrecision * 100).toFixed(1)}%</strong>
+                    <small className="stat-dec">({simPrecision.toFixed(2)})</small>
                   </div>
                   <div className="sandbox-stat">
                     <span>Simulated Recall</span>
-                    <strong style={{ color: "#065F46" }}>{simRecall.toFixed(2)}</strong>
+                    <strong style={{ color: "#065F46" }}>{(simRecall * 100).toFixed(1)}%</strong>
+                    <small className="stat-dec">({simRecall.toFixed(2)})</small>
                   </div>
                   <div className="sandbox-stat" style={{ backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" }}>
                     <span style={{ color: "#6B21A8" }}>Simulated F1-Score</span>
-                    <strong style={{ color: "#6D28D9" }}>{simF1.toFixed(2)}</strong>
+                    <strong style={{ color: "#6D28D9" }}>{(simF1 * 100).toFixed(1)}%</strong>
+                    <small className="stat-dec">({simF1.toFixed(2)})</small>
                   </div>
+                </div>
+
+                <div className="sandbox-live-commentary">
+                  <FiActivity size={16} />
+                  <span>
+                    {simF1 >= 0.8 ? "🌟 Excellent harmonic equilibrium! The engine demonstrates high reliability across both false alarms and omissions." :
+                     simF1 >= 0.6 ? "👍 Solid balance. Static visitor catches most cases with acceptable noise levels." :
+                     "⚠️ Severe statistical skew detected! Notice how a deficiency in either catch rate or prediction quality severely penalizes the harmonic F1 rating."}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="eval-modal-footer">
-              <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close">Got It, Close Guide</button>
+              <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close">Return to Benchmark Matrix</button>
             </div>
           </div>
         </div>
@@ -548,12 +601,12 @@ export default function EvaluationSuite() {
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
                 <strong className="eval-sklearn-title">
-                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Advanced Classification Metrics (Scikit-Learn Audit)
+                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Advanced Classification Matrix (Scikit-Learn Audit)
                 </strong>
-                <span className="eval-sklearn-subtitle">Per-class asymptotic token precision, recall, and harmonic F1-score distributions</span>
+                <span className="eval-sklearn-subtitle">Intuitive classroom percentages paired with exact IEEE validation decimals</span>
               </div>
               <button onClick={() => setIsMetricsHelpOpen(true)} className="eval-btn-metrics-help">
-                <FiHelpCircle size={16} /> Understand Metric Numbers
+                <FiHelpCircle size={16} /> Understand Metric Percentages
               </button>
             </div>
 
@@ -562,17 +615,17 @@ export default function EvaluationSuite() {
               {/* TABLE 1: TIME COMPLEXITY REPORT */}
               <div className="sklearn-table-box">
                 <div className="sklearn-table-title">
-                  <span>Time Complexity Matrix</span>
-                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Support: {results.totalTested}</span>
+                  <span>Time Complexity Validation Matrix</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Algorithms: {results.totalTested}</span>
                 </div>
                 <table className="sklearn-table">
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP)">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN)">Recall ⓘ</th>
-                      <th title="Harmonic Mean">F1-Score ⓘ</th>
-                      <th title="Ground truth occurrence">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision ⓘ</th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall ⓘ</th>
+                      <th title="Harmonic Mean Balance">F1-Score ⓘ</th>
+                      <th title="Ground truth dataset count">Support ⓘ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -580,35 +633,35 @@ export default function EvaluationSuite() {
                       const row = results.timeReport.perClass[cKey];
                       return (
                         <tr key={`time_${cKey}`}>
-                          <td>{cKey}</td>
-                          <td>{row.precision}</td>
-                          <td>{row.recall}</td>
+                          <td className="td-class-code">{cKey}</td>
+                          <td>{renderMetricCell(row.precision)}</td>
+                          <td>{renderMetricCell(row.recall)}</td>
                           <td>{renderF1Badge(row.f1Score)}</td>
-                          <td>{row.support}</td>
+                          <td className="td-support-count"><strong>{row.support}</strong> <small>cases</small></td>
                         </tr>
                       );
                     })}
 
                     <tr className="tr-divider">
-                      <td>accuracy</td>
+                      <td>overall accuracy</td>
                       <td>-</td>
                       <td>-</td>
-                      <td>{(results.timePassed / results.totalTested).toFixed(2)}</td>
-                      <td>{results.totalTested}</td>
+                      <td><strong style={{ color: "#10B981", fontSize: "14px" }}>{((results.timePassed / results.totalTested) * 100).toFixed(1)}%</strong> <small style={{ color: "#94A3B8" }}>({(results.timePassed / results.totalTested).toFixed(2)})</small></td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr>
                       <td>macro avg</td>
-                      <td>{results.timeReport.macroAvg.precision}</td>
-                      <td>{results.timeReport.macroAvg.recall}</td>
-                      <td>{results.timeReport.macroAvg.f1Score}</td>
-                      <td>{results.totalTested}</td>
+                      <td>{renderMetricCell(results.timeReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(results.timeReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(results.timeReport.macroAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
-                      <td>{results.timeReport.weightedAvg.precision}</td>
-                      <td>{results.timeReport.weightedAvg.recall}</td>
-                      <td>{results.timeReport.weightedAvg.f1Score}</td>
-                      <td>{results.totalTested}</td>
+                      <td>{renderMetricCell(results.timeReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(results.timeReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(results.timeReport.weightedAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
                 </table>
@@ -617,17 +670,17 @@ export default function EvaluationSuite() {
               {/* TABLE 2: SPACE COMPLEXITY REPORT */}
               <div className="sklearn-table-box">
                 <div className="sklearn-table-title">
-                  <span>Space Complexity Matrix</span>
-                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Support: {results.totalTested}</span>
+                  <span>Space Complexity Validation Matrix</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Algorithms: {results.totalTested}</span>
                 </div>
                 <table className="sklearn-table">
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP)">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN)">Recall ⓘ</th>
-                      <th title="Harmonic Mean">F1-Score ⓘ</th>
-                      <th title="Ground truth occurrence">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision ⓘ</th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall ⓘ</th>
+                      <th title="Harmonic Mean Balance">F1-Score ⓘ</th>
+                      <th title="Ground truth dataset count">Support ⓘ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -635,35 +688,35 @@ export default function EvaluationSuite() {
                       const row = results.spaceReport.perClass[cKey];
                       return (
                         <tr key={`space_${cKey}`}>
-                          <td>{cKey}</td>
-                          <td>{row.precision}</td>
-                          <td>{row.recall}</td>
+                          <td className="td-class-code">{cKey}</td>
+                          <td>{renderMetricCell(row.precision)}</td>
+                          <td>{renderMetricCell(row.recall)}</td>
                           <td>{renderF1Badge(row.f1Score)}</td>
-                          <td>{row.support}</td>
+                          <td className="td-support-count"><strong>{row.support}</strong> <small>cases</small></td>
                         </tr>
                       );
                     })}
 
                     <tr className="tr-divider">
-                      <td>accuracy</td>
+                      <td>overall accuracy</td>
                       <td>-</td>
                       <td>-</td>
-                      <td>{(results.spacePassed / results.totalTested).toFixed(2)}</td>
-                      <td>{results.totalTested}</td>
+                      <td><strong style={{ color: "#0EA5E9", fontSize: "14px" }}>{((results.spacePassed / results.totalTested) * 100).toFixed(1)}%</strong> <small style={{ color: "#94A3B8" }}>({(results.spacePassed / results.totalTested).toFixed(2)})</small></td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr>
                       <td>macro avg</td>
-                      <td>{results.spaceReport.macroAvg.precision}</td>
-                      <td>{results.spaceReport.macroAvg.recall}</td>
-                      <td>{results.spaceReport.macroAvg.f1Score}</td>
-                      <td>{results.totalTested}</td>
+                      <td>{renderMetricCell(results.spaceReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(results.spaceReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(results.spaceReport.macroAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
-                      <td>{results.spaceReport.weightedAvg.precision}</td>
-                      <td>{results.spaceReport.weightedAvg.recall}</td>
-                      <td>{results.spaceReport.weightedAvg.f1Score}</td>
-                      <td>{results.totalTested}</td>
+                      <td>{renderMetricCell(results.spaceReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(results.spaceReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(results.spaceReport.weightedAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
                 </table>
