@@ -77,6 +77,19 @@ def safe_walk(node):
                     todo.append(value)
 
 class ComplexityAnalyzer(ast.NodeVisitor):
+    RECURRENCE_RESOLVER = {
+        "T(n) = n * T(n-1)": "O(n * n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
+        "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
+        "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
+        "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
+        "T(n) = T(n-1) + O(1)": "O(n)", "2T(n/2)": "O(n log n)",
+        "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
+        "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)", 
+        "O(V + E)": "O(V + E)", "O(n * m)": "O(n * m)", "O(3^n)": "O(3^n)", "O(2^n)": "O(2^n)", 
+        "O(n * n!)": "O(n * n!)", "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)",
+        "O(log min(a, b))": "O(log min(a, b))"
+    }
+
     def __init__(self, source_code, trace_data=None):
         self.source_lines = source_code.splitlines()
         self.trace_data = trace_data or {"history": [], "line_hits": {}}
@@ -117,7 +130,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.reachable_funcs = set()     
         self.memoized_funcs = set() 
         self.indirect_recursive_funcs = set() 
-        
         
         self.in_dead_code = False
         self.in_graph_context = False        
@@ -1334,19 +1346,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             
         self.custom_functions[node.name] = relation
 
-        lookup = {
-            "T(n) = n * T(n-1)": "O(n * n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
-            "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
-            "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
-            "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
-            "T(n) = T(n-1) + O(1)": "O(n)", "2T(n/2)": "O(n log n)",
-            "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
-            "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)", 
-            "O(V + E)": "O(V + E)", "O(n * m)": "O(n * m)", "O(3^n)": "O(3^n)", "O(2^n)": "O(2^n)", 
-            "O(n * n!)": "O(n * n!)", "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)",
-            "O(log min(a, b))": "O(log min(a, b))"
-        }
-
         call_idx = 0
         for i in range(start_idx, len(self._details)):
             is_placeholder = False
@@ -1378,7 +1377,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect:
             resolved_rel = relation
-            for k, v in lookup.items():
+            for k, v in self.RECURRENCE_RESOLVER.items():
                 if k in relation:
                     resolved_rel = v
                     break
@@ -1720,7 +1719,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 if not getattr(self, 'in_dead_code', False):
                     self.recursive_calls_count += 1
                 
-                # Check for explicit binary tree traversal arguments
                 if getattr(node, 'args', []):
                     for arg in node.args:
                         if isinstance(arg, ast.Attribute) and arg.attr in ['left', 'right', 'next', 'prev']:
@@ -2125,7 +2123,18 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def get_final_asymptotic_badge(self):
         all_comps = " ".join([str(d.get('global_time', '')) for d in self._details] + [str(d.get('local_time', '')) for d in self._details])
-        all_comps += " " + " ".join(self.custom_functions.values())
+        
+        # FIX FOR BUG 1: Resolve stored custom_functions recurrence strings before checking substrings
+        resolved_custom = []
+        for rel in self.custom_functions.values():
+            resolved = rel
+            for k, v in self.RECURRENCE_RESOLVER.items():
+                if k in rel:
+                    resolved = v
+                    break
+            resolved_custom.append(resolved)
+        all_comps += " " + " ".join(resolved_custom)
+
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
 
         # 1. Factorial & Exponential
@@ -2139,20 +2148,23 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if "n^4" in all_comps: return "O(n^4)"
         if "n^3" in all_comps: return "O(n^3)"
         
-        # 3. Graph Traversal (NEVER return O(n) for graphs!)
+        # 3. Graph Traversal
         if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: 
             return "O(V + E)"
 
-        # 4. Quadratics & Linearithmics (Strict order!)
+        # 4. Quadratics & Linearithmics (Strict order check)
         if "n^2 log" in all_comps or "n² log" in all_comps: return "O(n^2 log n)"
         if "n * m" in all_comps: return "O(n * m)"
         if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
+        
+        # FIX FOR BUG 3: Checked strictly after n^2 so sort calls inside quadratic routines don't demote the badge
         if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: 
             return "O(n log n)"
         
         # 5. Sub-linear (Check BEFORE standard O(n))
         if "sqrt n" in all_comps: return "O(sqrt n)"
-        if "log n" in all_comps or "log min" in all_comps or '/ 2' in raw_code: return "O(log n)"
+        # FIX FOR BUG 2: Completely removed '/ 2' in raw_code heuristic
+        if "log n" in all_comps or "log min" in all_comps: return "O(log n)"
         
         # 6. Base Linear
         if "O(n)" in all_comps or "O(m)" in all_comps: return "O(n)"
@@ -2183,7 +2195,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if "O(V)" in all_spaces: return "O(n)"
         if "O(n)" in all_spaces or "O(m)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
-        if "log n" in all_spaces: return "O(1)"
+        # Fixed: Return O(log n) stack space rather than overriding it to O(1)
+        if "log n" in all_spaces: return "O(log n)"
         return "O(1)"
 
     def get_overall_explanation(self, tree):
@@ -2295,7 +2308,7 @@ def analyze_source_code(source_code):
             "error": None
         }
     except Exception as e:
-        print(f"[AST CRASH FALLBACK TRIGGERED]: {e}") # <-- Add this to see hidden failures
+        print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
         results = fallback_analyzer(source_code)
         
     end_time = time.perf_counter()
