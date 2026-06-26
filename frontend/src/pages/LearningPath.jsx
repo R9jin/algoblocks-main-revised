@@ -128,7 +128,6 @@ export default function LearningPath() {
         const acts = {};
         const fetchPromises = [];
 
-        // Helper function to handle Cache or Network Fetch
         const fetchWithCache = async (url, type, key) => {
           try {
             const cachedData = await curriculumCacheDB.getItem(url);
@@ -164,7 +163,6 @@ export default function LearningPath() {
           }
         }
 
-        // Wait for all promises in parallel
         await Promise.all(fetchPromises);
 
         setLessonDetails(details);
@@ -204,11 +202,17 @@ export default function LearningPath() {
     const module = curriculumIndex.find((m) => m.moduleId === moduleId);
     if (!module) return false;
 
+    // Properly map Activities JSON definitions
+    const modActs = activitiesData[moduleId] || {};
+
     return module.lessons.every((lesson) => {
       const details = lessonDetails[lesson.lessonId];
       if (!details) return false;
 
-      const activities = details.activities || [];
+      // Ensure we fetch activities from module_x.json using 'lesson_1', 'lesson_2' mapping correctly
+      const lessonNum = lesson.lessonId.split("-")[2];
+      const activities = modActs[`lesson_${lessonNum}`] || [];
+      
       if (activities.length === 0) return (userProgress[lesson.lessonId] || 0) >= 1;
       
       const minReq = lesson.minimumActivities || details.minimumActivities || activities.length;
@@ -224,22 +228,29 @@ export default function LearningPath() {
     let isNextLocked = isAdmin ? false : !isGlobalPreTestDone;
 
     for (const module of curriculumIndex) {
+      const modActs = activitiesData[module.moduleId] || {};
+
       for (const lesson of module.lessons) {
         lockMap[lesson.lessonId] = isAdmin ? false : isNextLocked;
 
         if (!isNextLocked) {
           const details = lessonDetails[lesson.lessonId];
-          const activities = details?.activities || [];
+          const lessonNum = lesson.lessonId.split("-")[2];
+          const activities = modActs[`lesson_${lessonNum}`] || [];
 
           if (activities.length > 0) {
-            const minReq = lesson.minimumActivities || details.minimumActivities || activities.length;
+            const minReq = lesson.minimumActivities || details?.minimumActivities || activities.length;
             const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
-            if (completedCount < minReq) isNextLocked = true;
+            
+            if (completedCount < minReq) {
+               isNextLocked = true; // Still processing minimum requirement lock
+            }
           } else {
             if ((userProgress[lesson.lessonId] || 0) < 1) isNextLocked = true;
           }
         }
       }
+      
       const postComplete = hasPostAssessment(module.moduleId);
       if (!postComplete && !isAdmin) isNextLocked = true;
     }
@@ -386,9 +397,15 @@ export default function LearningPath() {
                   <div className="module-lessons-dropdown">
                     {module.lessons.map((lesson) => {
                       const details = lessonDetails[lesson.lessonId];
-                      const activities = details?.activities || [];
+                      
+                      // Map directly to `activitiesData` dictionary for the correct target lesson Activities
+                      const lessonNum = lesson.lessonId.split("-")[2];
+                      const activities = activitiesData[module.moduleId]?.[`lesson_${lessonNum}`] || [];
+                      
                       const totalActivities = activities.length;
                       const completedCount = activities.filter((a) => checkActivityDone(module.moduleId, a.id)).length;
+                      
+                      // Evaluate real minimal activity boundaries
                       const minReq = lesson.minimumActivities || details?.minimumActivities || totalActivities;
 
                       const allDone = totalActivities > 0 ? completedCount >= minReq : (userProgress[lesson.lessonId] || 0) >= 1;
