@@ -355,8 +355,6 @@ output
       });
       pyodide.globals.set("user_code", code);
       
-      // BUG-02 Fix: Removed internal setTimeout watchdog completely
-
       await pyodide.runPythonAsync(`
 import builtins
 import sys
@@ -429,6 +427,11 @@ except Exception:
         let timePassedCount = 0;
         let spacePassedCount = 0;
         let bothPassedCount = 0;
+        
+        let totalLinesTestedCount = 0;
+        let lineTimePassedCount = 0;
+        let lineSpacePassedCount = 0;
+
         const detailedResults = [];
 
         const startSuiteTime = performance.now();
@@ -466,7 +469,7 @@ try:
     from analyzer import analyze_source_code
     res = analyze_source_code(user_code)
 except Exception as err:
-    res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "overall_explanation": f"AST Parse crash: {str(err)}"}
+    res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "lines": [], "overall_explanation": f"AST Parse crash: {str(err)}"}
 
 _, peak_mem = tracemalloc.get_traced_memory()
 res["_peak_mem"] = peak_mem
@@ -497,6 +500,75 @@ json.dumps(res)
           if (isSpaceCorrect) spacePassedCount++;
           if (isTimeCorrect && isSpaceCorrect) bothPassedCount++;
 
+          // --- LINE BY LINE COMPLEXITY EXTRACTION & AUDIT ---
+          const predictedLines = resultJs.lines || [];
+          const expectedLines = item.line_metrics || item.lineMetrics || item.expected_lines || item.lines_gt || item.line_details || [];
+
+          const lineValidationResults = predictedLines.map(pLine => {
+            const lineNo = pLine.lineno || pLine.line || 0;
+            const matchedExp = expectedLines.find(e => (e.lineno || e.line) === lineNo);
+            
+            const predLineTime = strictBigONormalizer(pLine.global_time || pLine.local_time || "O(1)");
+            const predLineSpace = strictBigONormalizer(pLine.global_space || pLine.local_space || "O(1)");
+            
+            let expLineTime = matchedExp ? strictBigONormalizer(matchedExp.global_time || matchedExp.time || matchedExp.time_complexity || "") : null;
+            let expLineSpace = matchedExp ? strictBigONormalizer(matchedExp.global_space || matchedExp.space || matchedExp.space_complexity || "") : null;
+            
+            let isLineTimeMatch = expLineTime ? (predLineTime.toLowerCase() === expLineTime.toLowerCase()) : true;
+            let isLineSpaceMatch = expLineSpace ? (predLineSpace.toLowerCase() === expLineSpace.toLowerCase()) : true;
+            
+            return {
+              lineno: lineNo,
+              lineOfCode: pLine.lineOfCode || pLine.code || "",
+              operation: pLine.operation || "Statement",
+              localTime: strictBigONormalizer(pLine.local_time || "O(1)"),
+              localSpace: strictBigONormalizer(pLine.local_space || "O(1)"),
+              predTime: predLineTime,
+              predSpace: predLineSpace,
+              expTime: expLineTime,
+              expSpace: expLineSpace,
+              hasGroundTruth: !!matchedExp,
+              isTimeMatch: isLineTimeMatch,
+              isSpaceMatch: isLineSpaceMatch,
+              isPassed: isLineTimeMatch && isLineSpaceMatch,
+              hits: pLine.hits || 0
+            };
+          });
+
+          // Handle trapped expected lines missed by AST execution
+          expectedLines.forEach(eLine => {
+            const lineNo = eLine.lineno || eLine.line || 0;
+            if (!lineValidationResults.some(r => r.lineno === lineNo)) {
+              const expLineTime = strictBigONormalizer(eLine.global_time || eLine.time || "");
+              const expLineSpace = strictBigONormalizer(eLine.global_space || eLine.space || "");
+              lineValidationResults.push({
+                lineno: lineNo,
+                lineOfCode: eLine.lineOfCode || eLine.code || "(Unparsed statement)",
+                operation: eLine.operation || "Statement",
+                localTime: "-",
+                localSpace: "-",
+                predTime: "MISSING",
+                predSpace: "MISSING",
+                expTime: expLineTime,
+                expSpace: expLineSpace,
+                hasGroundTruth: true,
+                isTimeMatch: false,
+                isSpaceMatch: false,
+                isPassed: false,
+                hits: 0
+              });
+            }
+          });
+          lineValidationResults.sort((a, b) => a.lineno - b.lineno);
+
+          lineValidationResults.forEach(l => {
+            if (l.hasGroundTruth) {
+              totalLinesTestedCount++;
+              if (l.isTimeMatch) lineTimePassedCount++;
+              if (l.isSpaceMatch) lineSpacePassedCount++;
+            }
+          });
+
           detailedResults.push({
             id: item.id || `case_${i + 1}`,
             name: testName,
@@ -511,7 +583,8 @@ json.dumps(res)
             isCompletelyCorrect: (isTimeCorrect && isSpaceCorrect),
             explanation: resultJs.overall_explanation || "AST VM Traversal yielded no stack trace.",
             processingTimeMs: parseFloat(processingTimeMs.toFixed(2)),
-            peakMemBytes: resultJs._peak_mem || 0
+            peakMemBytes: resultJs._peak_mem || 0,
+            lineValidationResults: lineValidationResults
           });
         }
 
@@ -576,6 +649,9 @@ json.dumps(res)
             spaceAccuracyRate: parseFloat(spaceAcc.toFixed(2)),
             perfectPassed: bothPassedCount,
             perfectAccuracyRate: parseFloat(perfectAcc.toFixed(2)),
+            totalLinesTested: totalLinesTestedCount,
+            lineTimePassed: lineTimePassedCount,
+            lineSpacePassed: lineSpacePassedCount,
             timeReport: timeReportData,
             spaceReport: spaceReportData,
             efficiency: efficiencyMetrics,

@@ -1,13 +1,18 @@
 // frontend/src/pages/EvaluationSuite.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FiActivity,
   FiArrowLeft,
   FiBarChart2,
-  FiCheckCircle, FiClock, FiCode,
+  FiCheckCircle,
+  FiChevronDown, FiChevronUp,
+  FiClock, FiCode,
+  FiCornerDownRight,
   FiCpu, FiDatabase,
   FiDownload,
-  FiHelpCircle, FiLayers, FiPlay,
+  FiHelpCircle, FiLayers,
+  FiList,
+  FiPlay,
   FiRefreshCw, FiTrendingUp, FiXCircle, FiZap
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
@@ -32,6 +37,7 @@ export default function EvaluationSuite() {
   const [activeTab, setActiveTab] = useState("all"); 
   const [selectedItemCode, setSelectedItemCode] = useState(null);
   const [datasetOption, setDatasetOption] = useState("both");
+  const [expandedRows, setExpandedRows] = useState({});
 
   // Explainer Modal State & Interactive Sandbox State
   const [isMetricsHelpOpen, setIsMetricsHelpOpen] = useState(false);
@@ -43,6 +49,13 @@ export default function EvaluationSuite() {
   const simPrecision = sandboxTP / (sandboxTP + sandboxFP) || 0;
   const simRecall = sandboxTP / (sandboxTP + sandboxFN) || 0;
   const simF1 = (simPrecision + simRecall > 0) ? (2 * simPrecision * simRecall) / (simPrecision + simRecall) : 0;
+
+  const toggleRowDropdown = (rowId) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [rowId]: !prev[rowId]
+    }));
+  };
 
   useEffect(() => {
     if (!worker) return;
@@ -71,7 +84,6 @@ export default function EvaluationSuite() {
       const res = await fetch(url);
       if (!res.ok) return null;
       const text = await res.text();
-      // If Vite returns index.html instead of the requested asset, block it
       if (text.trim().toLowerCase().startsWith("<!doctype") || text.trim().toLowerCase().startsWith("<html")) {
         return null; 
       }
@@ -97,22 +109,19 @@ export default function EvaluationSuite() {
     let currentVal = '';
     let row = [];
     
-    // Normalize line endings to avoid \r\n vs \n split issues
     csvText = csvText.replace(/\r\n/g, '\n');
 
     for (let i = 0; i < csvText.length; i++) {
       const char = csvText[i];
       const nextChar = csvText[i + 1];
 
-      // CSV FAILSAFE: If a single column is astronomically long and we hit a newline, 
-      // a quote was left unmatched in the dataset. Force-close the quote loop to save the rest of the file.
       if (isInsideQuotes && char === '\n' && currentVal.length > 15000) {
           isInsideQuotes = false;
       }
 
       if (char === '"' && nextChar === '"') {
         currentVal += '"';
-        i++; // Skip escaped double-quotes
+        i++; 
       } else if (char === '"') {
         isInsideQuotes = !isInsideQuotes;
       } else if (char === ',' && !isInsideQuotes) {
@@ -182,8 +191,6 @@ export default function EvaluationSuite() {
         let spaceComp = rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
         let timeComp = rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
         
-        // --- SALVAGE MANGLED CSV ---
-        // The pandas script trapped the complexities inside the code trailing quotes.
         if (!spaceComp && !timeComp && codeText.includes(',')) {
            const parts = codeText.split(',');
            if (parts.length >= 3) {
@@ -196,21 +203,18 @@ export default function EvaluationSuite() {
                if (isTimeValid && isSpaceValid) {
                    timeComp = possibleTime;
                    spaceComp = possibleSpace;
-                   parts.pop(); // Remove time
-                   parts.pop(); // Remove space
-                   codeText = parts.join(','); // Restore pure code!
+                   parts.pop(); 
+                   parts.pop(); 
+                   codeText = parts.join(','); 
                }
            }
         }
 
-        // --- AST ENGINE PRE-SANITIZER ---
-        // Converts escaped CSV string variables back into valid executable multi-line Python.
-        // Without this, ast.parse() throws SyntaxError on literally rendered "\n" or spaces.
         codeText = codeText
-            .replace(/\\n/g, '\n')           // Un-flatten explicit \n into physical carriage returns
-            .replace(/\\t/g, '    ')         // Replace explicit \t with 4 spaces
-            .replace(/^["']|["']$/g, '')     // Strip trailing/leading CSV wrapping quotes
-            .replace(/^\s+|\s+$/g, '');      // Trim to prevent global IndentationErrors
+            .replace(/\\n/g, '\n')           
+            .replace(/\\t/g, '    ')         
+            .replace(/^["']|["']$/g, '')     
+            .replace(/^\s+|\s+$/g, '');      
         
         dataset.push({
           id: `tasty_csv_${i}`,
@@ -241,7 +245,7 @@ export default function EvaluationSuite() {
       return;
     }
 
-    setIsLoading(true); setProgress(0); setResults(null);
+    setIsLoading(true); setProgress(0); setResults(null); setExpandedRows({});
     
     const gauntletPayload = await fetchActiveGauntletData(datasetOption);
 
@@ -269,6 +273,12 @@ export default function EvaluationSuite() {
             logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
             logText += `Diagnostic Explanation: ${m.explanation}\n`;
             logText += `Code Snippet:\n${m.codeSnippet.slice(0, 300)}...\n`;
+            if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
+              logText += `\nLine Level Mismatches:\n`;
+              m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
+                logText += `  -> Line ${l.lineno}: Time Exp [${l.expTime}] Act [${l.predTime}] | Space Exp [${l.expSpace}] Act [${l.predSpace}]\n`;
+              });
+            }
             logText += `${'-'.repeat(60)}\n\n`;
         });
     }
@@ -291,8 +301,6 @@ export default function EvaluationSuite() {
     return true;
   });
 
-  // --- PEDAGOGICAL UI FORMATTERS ---
-  // Converts standard Scikit-Learn raw decimal strings (e.g. "0.85") into intuitive dual displays
   const renderMetricCell = (val) => {
     if (val === undefined || val === null || val === "-" || val === "") return <span>-</span>;
     const num = parseFloat(val);
@@ -607,7 +615,7 @@ export default function EvaluationSuite() {
           <div className="eval-dataset-info">
             <FiDatabase style={{ color: "#7928CA" }} size={24} />
             <div>
-              <strong className="eval-dataset-title">Select Benchamark Dataset</strong>
+              <strong className="eval-dataset-title">Select Benchmark Dataset</strong>
               <span className="eval-dataset-subtitle">Select the benchmark dataset to evaluate the accuracy and performance of the system's Complexity Analyzer.</span>
             </div>
           </div>
@@ -657,12 +665,34 @@ export default function EvaluationSuite() {
             )}
             <span className="eval-status-label-sm">AST Virtual Machine:</span>
             {isEngineReady ? (
-              <span className="eval-vm-ready">● Pyodide 3.11 AST Active</span>
+              <span className="eval-vm-ready"><FiCheckCircle size={13}/> Pyodide 3.11 AST Active</span>
             ) : (
-              <span className="eval-vm-booting">○ Wasm Engine Initializing...</span>
+              <span className="eval-vm-booting"><FiRefreshCw className="spinner" size={13}/> Wasm Engine Initializing...</span>
             )}
           </div>
         </div>
+
+        {results && results.totalLinesTested > 0 && (
+          <div className="eval-status-banner line-stats-banner">
+            <div className="eval-status-group">
+              <FiLayers style={{ color: "#7928CA" }} size={20} />
+              <div>
+                <strong style={{ display: "block", color: "#0F172A", fontSize: "14px" }}>Statement-Level Ground Truth Audit</strong>
+                <span style={{ fontSize: "12px", color: "#64748B" }}>Verified {results.totalLinesTested} individual source lines against academic ground truth annotations.</span>
+              </div>
+            </div>
+            <div className="eval-status-group" style={{ gap: "24px" }}>
+              <div>
+                <span className="eval-status-label-sm">Line Time Acc: </span>
+                <strong style={{ color: "#10B981", fontSize: "16px" }}>{((results.lineTimePassed / results.totalLinesTested) * 100).toFixed(1)}%</strong>
+              </div>
+              <div>
+                <span className="eval-status-label-sm">Line Space Acc: </span>
+                <strong style={{ color: "#0EA5E9", fontSize: "16px" }}>{((results.lineSpacePassed / results.totalLinesTested) * 100).toFixed(1)}%</strong>
+              </div>
+            </div>
+          </div>
+        )}
 
         {isRunning && (
           <div className="eval-progress-track">
@@ -708,7 +738,6 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {/* --- NEW SECTION: AST COMPUTATIONAL EFFICIENCY & HARDWARE PROFILING --- */}
         {results && results.efficiency && (
           <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
             <div className="eval-sklearn-header">
@@ -792,7 +821,6 @@ export default function EvaluationSuite() {
 
             <div className="eval-sklearn-grid">
               
-              {/* TABLE 1: TIME COMPLEXITY REPORT */}
               <div className="sklearn-table-box">
                 <div className="sklearn-table-title">
                   <span>Time Complexity Validation Matrix</span>
@@ -847,7 +875,6 @@ export default function EvaluationSuite() {
                 </table>
               </div>
 
-              {/* TABLE 2: SPACE COMPLEXITY REPORT */}
               <div className="sklearn-table-box">
                 <div className="sklearn-table-title">
                   <span>Space Complexity Validation Matrix</span>
@@ -933,59 +960,186 @@ export default function EvaluationSuite() {
                   <th>AST Model Output (T / S)</th>
                   <th>Time Status</th>
                   <th>Space Status</th>
-                  <th>Diagnostic</th>
+                  <th>Diagnostic & Verification</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredDetails.map((row, idx) => (
-                  <tr key={`${row.id}_${idx}`}>
-                    <td className="cell-algo-name">
-                      {row.name}
-                      <span style={{ display: "block", fontSize: "11px", color: "#94A3B8", fontWeight: "normal" }}>{row.id}</span>
-                    </td>
-                    <td className="cell-category">{row.category}</td>
-                    
-                    <td>
-                      <code className="code-badge-gt" style={{ marginBottom: "4px" }}>
-                        T: {row.expectedTime}
-                      </code>
-                      <code className="code-badge-gt" style={{ backgroundColor: "#E0F2FE", color: "#0369A1", borderColor: "#BAE6FD" }}>
-                        S: {row.expectedSpace}
-                      </code>
-                    </td>
+                {filteredDetails.map((row, idx) => {
+                  const isExpanded = !!expandedRows[row.id];
+                  return (
+                    <React.Fragment key={`${row.id}_${idx}`}>
+                      <tr className={isExpanded ? "tr-expanded-parent" : ""}>
+                        <td className="cell-algo-name">
+                          {row.name}
+                          <span style={{ display: "block", fontSize: "11px", color: "#94A3B8", fontWeight: "normal" }}>{row.id}</span>
+                        </td>
+                        <td className="cell-category">{row.category}</td>
+                        
+                        <td>
+                          <code className="code-badge-gt" style={{ marginBottom: "4px" }}>
+                            T: {row.expectedTime}
+                          </code>
+                          <code className="code-badge-gt" style={{ backgroundColor: "#E0F2FE", color: "#0369A1", borderColor: "#BAE6FD" }}>
+                            S: {row.expectedSpace}
+                          </code>
+                        </td>
 
-                    <td>
-                      <code className={row.isTimeCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ marginBottom: "4px" }}>
-                        T: {row.predictedTime}
-                      </code>
-                      <code className={row.isSpaceCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ backgroundColor: row.isSpaceCorrect ? "#ECFDF5" : "#FEF2F2", color: row.isSpaceCorrect ? "#0EA5E9" : "#991B1B", borderColor: row.isSpaceCorrect ? "#A7F3D0" : "#FECACA" }}>
-                        S: {row.predictedSpace}
-                      </code>
-                    </td>
+                        <td>
+                          <code className={row.isTimeCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ marginBottom: "4px" }}>
+                            T: {row.predictedTime}
+                          </code>
+                          <code className={row.isSpaceCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ backgroundColor: row.isSpaceCorrect ? "#ECFDF5" : "#FEF2F2", color: row.isSpaceCorrect ? "#0EA5E9" : "#991B1B", borderColor: row.isSpaceCorrect ? "#A7F3D0" : "#FECACA" }}>
+                            S: {row.predictedSpace}
+                          </code>
+                        </td>
 
-                    <td>
-                      {row.isTimeCorrect ? (
-                        <span className="eval-verdict verdict-pass"><FiCheckCircle size={15}/> Pass</span>
-                      ) : (
-                        <span className="eval-verdict verdict-fail"><FiXCircle size={15}/> Mismatch</span>
+                        <td>
+                          {row.isTimeCorrect ? (
+                            <span className="eval-verdict verdict-pass"><FiCheckCircle size={15}/> Pass</span>
+                          ) : (
+                            <span className="eval-verdict verdict-fail"><FiXCircle size={15}/> Mismatch</span>
+                          )}
+                        </td>
+
+                        <td>
+                          {row.isSpaceCorrect ? (
+                            <span className="eval-verdict verdict-pass" style={{ color: "#0EA5E9" }}><FiCheckCircle size={15}/> Pass</span>
+                          ) : (
+                            <span className="eval-verdict verdict-fail"><FiXCircle size={15}/> Mismatch</span>
+                          )}
+                        </td>
+
+                        <td>
+                          <div className="action-buttons-group">
+                            <button onClick={() => setSelectedItemCode(row)} className="eval-btn-inspect">
+                              <FiCode size={14} /> Inspect AST
+                            </button>
+                            <button onClick={() => toggleRowDropdown(row.id)} className={`eval-btn-dropdown ${isExpanded ? "active-dropdown" : ""}`}>
+                              <FiList size={14} /> <span>{isExpanded ? "Hide Lines" : "Line Checks"}</span> {isExpanded ? <FiChevronUp size={14}/> : <FiChevronDown size={14}/>}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* --- REVEALING LINE BY LINE CHECKING DROPDOWN WITH FOOTER SUMMARY --- */}
+                      {isExpanded && (
+                        <tr className="tr-dropdown-content">
+                          <td colSpan="7" className="td-dropdown-cell">
+                            <div className="line-checks-dropdown-box">
+                              <div className="dropdown-box-header">
+                                <div className="dbh-left">
+                                  <FiCornerDownRight size={16} className="dbh-icon" />
+                                  <strong>Line-by-Line Complexity & Execution Verification</strong>
+                                  <span className="dbh-sub">Statement-level Big-O detection trace for {row.name}</span>
+                                </div>
+                                <div className="dbh-right">
+                                  <span className="line-count-pill">
+                                    <FiLayers size={13} style={{ marginRight: "5px" }}/>
+                                    {row.lineValidationResults?.length || 0} Statements Evaluated
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="dropdown-table-wrapper">
+                                <table className="dropdown-line-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Line #</th>
+                                      <th>Source Statement</th>
+                                      <th>AST Operation</th>
+                                      <th>Time Complexity (Expected vs Actual)</th>
+                                      <th>Space Complexity (Expected vs Actual)</th>
+                                      <th>Line Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {(row.lineValidationResults || []).map((lineItem, lIdx) => (
+                                      <tr key={`line_${row.id}_${lineItem.lineno}_${lIdx}`} className={!lineItem.isPassed && lineItem.hasGroundTruth ? "line-tr-fail" : ""}>
+                                        <td className="line-td-num">{lineItem.lineno}</td>
+                                        <td className="line-td-code"><code>{lineItem.lineOfCode || "-"}</code></td>
+                                        <td className="line-td-op"><span className="op-pill">{lineItem.operation}</span></td>
+                                        
+                                        <td className="line-td-comp">
+                                          {lineItem.hasGroundTruth && lineItem.expTime ? (
+                                            <div className="dual-comp-badge">
+                                              <span className="comp-exp">Exp: <strong>{lineItem.expTime}</strong></span>
+                                              <span className="comp-arrow">→</span>
+                                              <span className={`comp-act ${lineItem.isTimeMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predTime}</span>
+                                            </div>
+                                          ) : (
+                                            <span className="comp-act comp-neutral">{lineItem.predTime}</span>
+                                          )}
+                                        </td>
+
+                                        <td className="line-td-comp">
+                                          {lineItem.hasGroundTruth && lineItem.expSpace ? (
+                                            <div className="dual-comp-badge">
+                                              <span className="comp-exp">Exp: <strong>{lineItem.expSpace}</strong></span>
+                                              <span className="comp-arrow">→</span>
+                                              <span className={`comp-act ${lineItem.isSpaceMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predSpace}</span>
+                                            </div>
+                                          ) : (
+                                            <span className="comp-act comp-neutral">{lineItem.predSpace}</span>
+                                          )}
+                                        </td>
+
+                                        <td className="line-td-status">
+                                          {lineItem.hasGroundTruth ? (
+                                            lineItem.isPassed ? (
+                                              <span className="line-verdict verdict-pass"><FiCheckCircle size={13}/> Match</span>
+                                            ) : (
+                                              <span className="line-verdict verdict-fail"><FiXCircle size={13}/> Mismatch</span>
+                                            )
+                                          ) : (
+                                            <span className="line-verdict verdict-none">AST Verified</span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    {(!row.lineValidationResults || row.lineValidationResults.length === 0) && (
+                                      <tr>
+                                        <td colSpan="6" style={{ padding: "28px", textAlign: "center", color: "#64748B" }}>
+                                          No statement-level AST trace recorded for this dataset snippet.
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+
+                              {/* OVERALL RESULTS AT THE BOTTOM RIGHT OR WRONG */}
+                              <div className="dropdown-box-footer">
+                                <div className="dbf-verdict">
+                                  <span>Overall Algorithm Verdict:</span>
+                                  {row.isCompletelyCorrect ? (
+                                    <strong className="verdict-pass"><FiCheckCircle size={16}/> PASSED OVERALL</strong>
+                                  ) : (
+                                    <strong className="verdict-fail"><FiXCircle size={16}/> FAILED OVERALL</strong>
+                                  )}
+                                </div>
+                                <div className="dbf-metrics">
+                                  <div className="dbf-metric-item">
+                                    <span>Overall Time:</span>
+                                    <strong className={row.isTimeCorrect ? "verdict-pass" : "verdict-fail"}>
+                                      Exp {row.expectedTime} vs Act {row.predictedTime}
+                                    </strong>
+                                  </div>
+                                  <div className="dbf-metric-item">
+                                    <span>Overall Space:</span>
+                                    <strong className={row.isSpaceCorrect ? "verdict-pass" : "verdict-fail"}>
+                                      Exp {row.expectedSpace} vs Act {row.predictedSpace}
+                                    </strong>
+                                  </div>
+                                </div>
+                              </div>
+
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-
-                    <td>
-                      {row.isSpaceCorrect ? (
-                        <span className="eval-verdict verdict-pass" style={{ color: "#0EA5E9" }}><FiCheckCircle size={15}/> Pass</span>
-                      ) : (
-                        <span className="eval-verdict verdict-fail"><FiXCircle size={15}/> Mismatch</span>
-                      )}
-                    </td>
-
-                    <td>
-                      <button onClick={() => setSelectedItemCode(row)} className="eval-btn-inspect">
-                        <FiCode size={14} /> Inspect AST
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
             
