@@ -67,7 +67,6 @@ def check_match(actual, expected):
     return False
 
 def calc_percentile(data, pct):
-    """Computes exact statistical percentiles inside Pyodide without heavy numpy imports."""
     if not data: return 0.0
     if len(data) == 1: return float(data[0])
     s = sorted(data)
@@ -261,7 +260,6 @@ def calculate_metrics(injected_dataset=None):
     line_time_acc = (lines_time_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
     line_space_acc = (lines_space_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
 
-    # Efficiency Statistics
     sorted_times = sorted(case_times_ms)
     mean_ms = statistics.mean(sorted_times) if sorted_times else 0.0
     median_ms = statistics.median(sorted_times) if sorted_times else 0.0
