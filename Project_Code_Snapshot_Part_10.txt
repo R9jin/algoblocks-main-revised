@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 10 OF 10) ---
 
---- TIMESTAMP: 2026-06-28 15:59:50 ---
+--- TIMESTAMP: 2026-06-28 17:13:29 ---
 
 
 --- FILE: frontend/src/styles/ProfilePage.css ---
@@ -3211,7 +3211,6 @@ const getAuthHeaders = () => {
 const addToSyncQueue = async (type, data) => {
     try {
         const id = `sync_${type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        // Uses the modernized format expected by the batch syncer
         await syncQueueDB.setItem(id, { type: type.toUpperCase(), action: "UPSERT", data, timestamp: Date.now() });
         console.log(`[Offline] Saved ${type} to sync queue.`);
     } catch (err) {
@@ -3220,7 +3219,6 @@ const addToSyncQueue = async (type, data) => {
 };
 
 export const syncManager = {
-    // Backwards compatible method for older components
     syncSubmission: async (activityId, code, output, isCompleted) => {
         const payload = { activityId, code, output, isCompleted, timestamp: new Date().toISOString() };
 
@@ -3243,7 +3241,6 @@ export const syncManager = {
             if (!response.ok) throw new Error(`Server returned ${response.status}`);
             return await response.json();
         } catch (error) {
-            // Even if it's an AbortError from navigation, save to queue so we don't lose the user's data
             await addToSyncQueue("SUBMISSION", payload);
             return false;
         }
@@ -3270,7 +3267,6 @@ export const syncManager = {
             if (!response.ok) throw new Error("Failed to update progress");
             return await response.json();
         } catch (error) {
-            // Save to queue to persist user data if request fails or is aborted
             await addToSyncQueue("PROGRESS", payload);
             return false;
         }
@@ -3297,13 +3293,11 @@ export const syncManager = {
             if (!response.ok) throw new Error("Failed to update assessment");
             return await response.json();
         } catch (error) {
-            // Save to queue to persist user data if request fails or is aborted
             await addToSyncQueue("ASSESSMENT", payload);
             return false;
         }
     },
 
-    // Modernized batch-processor
     processSyncQueue: async () => {
         if (!navigator.onLine) return;
         try {
@@ -3317,7 +3311,6 @@ export const syncManager = {
                 const item = await syncQueueDB.getItem(key);
                 if (!item) continue;
 
-                // Handle both the modern {type, data} format and legacy fallback
                 const itemType = (item.type || "").toUpperCase();
                 const itemData = item.data || item.payload;
 
@@ -3329,7 +3322,7 @@ export const syncManager = {
                 if (itemType === "SUBMISSION") batchPayload.submissions.push(itemData);
                 else if (itemType === "PROGRESS") batchPayload.progress.push(itemData);
                 else if (itemType === "ASSESSMENT") batchPayload.assessments.push(itemData);
-                else keysToDelete.push(key); // Clear unrecognizable garbage
+                else keysToDelete.push(key); 
                 
                 keysToDelete.push(key);
             }
@@ -3350,11 +3343,9 @@ export const syncManager = {
                     console.warn(`[Sync] Batch sync failed with status ${response.status}`);
                 }
             } else {
-                // If there were only invalid items, clean them up
                 for (const key of keysToDelete) await syncQueueDB.removeItem(key);
             }
         } catch (err) {
-            // Silently ignore browser aborts (like page reloads/navigation)
             if (err.name === 'AbortError') return;
             console.error("[Sync] Error processing sync queue:", err);
         }
@@ -3366,7 +3357,6 @@ export const syncDownFromServer = async () => {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
 
-        // 1. Progress
         const progRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
         if (progRes.ok) {
             const data = await progRes.json();
@@ -3384,7 +3374,6 @@ export const syncDownFromServer = async () => {
             }
         }
 
-        // 2. Assessments
         const assRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
         if (assRes.ok) {
             const data = await assRes.json();
@@ -3402,7 +3391,6 @@ export const syncDownFromServer = async () => {
             }
         }
 
-        // 3. Submissions
         const subRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
         if (subRes.ok) {
             const data = await subRes.json();
@@ -3421,7 +3409,6 @@ export const syncDownFromServer = async () => {
         }
         window.dispatchEvent(new Event("localDataSynced"));
     } catch (error) { 
-        // Silently ignore browser aborts (like page reloads/navigation)
         if (error.name === 'AbortError') return;
         console.error("[Sync] Error pulling from server:", error);
     }
@@ -3429,11 +3416,18 @@ export const syncDownFromServer = async () => {
 
 let syncInterval = null;
 
+// BUG-15 Fix: Expose terminator to clear intervals on logout
+export const stopBackgroundSync = () => {
+    if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+    }
+};
+
 export const startBackgroundSync = () => {
     syncDownFromServer();
     syncManager.processSyncQueue();
     
-    // Clear existing interval to prevent duplicated intervals running simultaneously
     if (syncInterval) clearInterval(syncInterval);
     
     syncInterval = setInterval(() => { syncManager.processSyncQueue(); }, 30000);
@@ -3449,9 +3443,7 @@ let pyodidePromise = null;
 
 let inputResolve = null;
 let isWaitingForInput = false;
-let executionTimeout = null;
 
-// Strict Asymptotic Tokenizer (Eliminates fuzzy substring collisions and normalizes text properties from CSV files)
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
@@ -3459,7 +3451,6 @@ function strictBigONormalizer(raw) {
   s = s.replace(/Â²/g, "^2").replace(/Â³/g, "^3").replace(/â¿/g, "^n");
   s = s.replace(/^o\((.*)\)$/, "$1");
 
-  // Interpret plain words mapped from CSV/Tasty Datasets
   if (s === "1" || s === "constant") return "O(1)";
   if (s === "n" || s === "linear") return "O(n)";
   if (s === "n^2" || s === "quadratic") return "O(n^2)";
@@ -3478,7 +3469,6 @@ function strictBigONormalizer(raw) {
   return `O(${s})`;
 }
 
-// Failsafe Ground Truth Key Extractors
 function getGroundTruthTime(obj) {
   if (!obj) return "O(1)";
   if (obj.expected_overall_time) return obj.expected_overall_time;
@@ -3520,7 +3510,6 @@ function getGroundTruthSpace(obj) {
   return "O(1)";
 }
 
-// Asymptotic Rank Sorter for Scikit-Learn Matrix Presentation
 function sortBigOClasses(classes) {
   const order = [
     "O(1)",
@@ -3548,7 +3537,6 @@ function sortBigOClasses(classes) {
   });
 }
 
-// Scikit-Learn Authentic Classification Matrix Generator
 function generateClassificationReport(details, expKey, predKey, standardClasses) {
   const classSet = new Set(standardClasses);
   details.forEach(d => {
@@ -3631,7 +3619,6 @@ async function initPyodide() {
           fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
         ]);
 
-        // Catch Vite serving index.html if the user hasn't copied files over properly
         if ([analyzerCode, astCode, nlgCode, tracerCode].some(c => c.toLowerCase().includes("<!doctype html>"))) {
             throw new Error("Service Worker served Vite's index.html fallback instead of the Python backend files!");
         }
@@ -3657,7 +3644,7 @@ self.onmessage = async (e) => {
   const { type, code, data, testCases } = e.data;
 
   if (type === 'INPUT_RESPONSE') {
-    if (inputResolve) { clearTimeout(executionTimeout); isWaitingForInput = false; inputResolve(data); inputResolve = null; }
+    if (inputResolve) { isWaitingForInput = false; inputResolve(data); inputResolve = null; }
     return;
   }
 
@@ -3678,11 +3665,7 @@ self.onmessage = async (e) => {
   try {
     await initPyodide();
 
-    // ======================
-    // 1. ANALYZE MODE
-    // ======================
     if (type === 'ANALYZE_CODE') {
-      // Silence stdout/stderr during background background analysis
       pyodide.setStdout({ batched: () => {} });
       pyodide.setStderr({ batched: () => {} });
 
@@ -3768,9 +3751,6 @@ output
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
     }
 
-    // ======================
-    // 2. PYTHON TO BLOCKS MODE
-    // ======================
     else if (type === 'PYTHON_TO_BLOCKS') {
       pyodide.setStdout({ batched: () => {} });
       pyodide.setStderr({ batched: () => {} });
@@ -3793,9 +3773,6 @@ output
       self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
     }
 
-    // ======================
-    // 3. RUN MODE (OUTPUT STREAMING RESTORED)
-    // ======================
     else if (type === 'RUN_CODE') {
       pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
       pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
@@ -3816,9 +3793,8 @@ output
         });
       });
       pyodide.globals.set("user_code", code);
-      executionTimeout = setTimeout(() => {
-        if (!isWaitingForInput) self.postMessage({ type: 'ERROR', data: "Execution Prevented:\nRoot Cause: Infinite Loop detected." });
-      }, 3000);
+      
+      // BUG-02 Fix: Removed internal setTimeout watchdog completely
 
       await pyodide.runPythonAsync(`
 import builtins
@@ -3877,18 +3853,13 @@ except Exception:
       `);
       const countsStr = pyodide.globals.get("run_hits_json");
       const counts = countsStr ? JSON.parse(countsStr) : {};
-      clearTimeout(executionTimeout);
       self.postMessage({ type: 'RUN_RESULT', data: "", counts });
     }
 
-    // ======================
-    // 4. BENCHMARK SUITE MODE (CONSOLES COMPLETELY MUTED)
-    // ======================
     else if (type === 'RUN_BENCHMARK_SUITE') {
       try {
         await initPyodide();
         
-        // SILENCE STDOUT & STDERR: Prevents dataset algorithms containing print() from spamming browser console
         pyodide.setStdout({ batched: () => {} });
         pyodide.setStderr({ batched: () => {} });
 
@@ -3899,9 +3870,17 @@ except Exception:
         let bothPassedCount = 0;
         const detailedResults = [];
 
+        const startSuiteTime = performance.now();
+        const caseTimesMs = [];
+        const caseAstPeakBytes = [];
+        let totalSourceLines = 0;
+
         for (let i = 0; i < dataset.length; i++) {
           const item = dataset[i];
           const testName = item.name || item.title || item.algorithm || item.id || `Gauntlet Case #${i + 1}`;
+          const codeSnippet = item.code || "";
+          const lineCount = codeSnippet ? codeSnippet.split('\n').length : 0;
+          totalSourceLines += lineCount;
           
           self.postMessage({ 
             type: 'BENCHMARK_PROGRESS', 
@@ -3909,18 +3888,35 @@ except Exception:
             currentItem: testName
           });
 
-          pyodide.globals.set("user_code", item.code || "");
+          pyodide.globals.set("user_code", codeSnippet);
+
+          const t0 = performance.now();
           const pyResultStr = await pyodide.runPythonAsync(`
 import json
 import sys
+import tracemalloc
+
+if not tracemalloc.is_tracing():
+    tracemalloc.start()
+else:
+    tracemalloc.reset_peak()
+
 try:
     from analyzer import analyze_source_code
     res = analyze_source_code(user_code)
 except Exception as err:
     res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "overall_explanation": f"AST Parse crash: {str(err)}"}
+
+_, peak_mem = tracemalloc.get_traced_memory()
+res["_peak_mem"] = peak_mem
 json.dumps(res)
           `);
+          const t1 = performance.now();
+          const processingTimeMs = t1 - t0;
+          caseTimesMs.push(processingTimeMs);
+
           const resultJs = JSON.parse(pyResultStr);
+          caseAstPeakBytes.push(resultJs._peak_mem || 0);
 
           const rawExpectedTime = getGroundTruthTime(item);
           const rawExpectedSpace = getGroundTruthSpace(item);
@@ -3944,7 +3940,7 @@ json.dumps(res)
             id: item.id || `case_${i + 1}`,
             name: testName,
             category: item.category || item.algorithm_type || "AST Token Verification",
-            codeSnippet: item.code || "# No code snippet yielded",
+            codeSnippet: codeSnippet || "# No code snippet yielded",
             expectedTime: normExpTime,
             predictedTime: normPredTime,
             isTimeCorrect: isTimeCorrect,
@@ -3952,9 +3948,49 @@ json.dumps(res)
             predictedSpace: normPredSpace,
             isSpaceCorrect: isSpaceCorrect,
             isCompletelyCorrect: (isTimeCorrect && isSpaceCorrect),
-            explanation: resultJs.overall_explanation || "AST VM Traversal yielded no stack trace."
+            explanation: resultJs.overall_explanation || "AST VM Traversal yielded no stack trace.",
+            processingTimeMs: parseFloat(processingTimeMs.toFixed(2)),
+            peakMemBytes: resultJs._peak_mem || 0
           });
         }
+
+        const endSuiteTime = performance.now();
+        const totalExecutionSec = (endSuiteTime - startSuiteTime) / 1000.0;
+
+        const sortedTimes = [...caseTimesMs].sort((a, b) => a - b);
+        const calcPercentile = (arr, pct) => {
+          if (!arr || arr.length === 0) return 0.0;
+          if (arr.length === 1) return arr[0];
+          const k = (arr.length - 1) * (pct / 100.0);
+          const f = Math.floor(k);
+          const c = Math.min(f + 1, arr.length - 1);
+          return arr[f] + (arr[c] - arr[f]) * (k - f);
+        };
+
+        const meanMs = sortedTimes.length > 0 ? sortedTimes.reduce((acc, val) => acc + val, 0) / sortedTimes.length : 0.0;
+        const medianMs = calcPercentile(sortedTimes, 50.0);
+        const maxMs = sortedTimes.length > 0 ? sortedTimes[sortedTimes.length - 1] : 0.0;
+        const p95Ms = calcPercentile(sortedTimes, 95.0);
+
+        const throughputAlgos = totalExecutionSec > 0 ? dataset.length / totalExecutionSec : 0.0;
+        const throughputLines = totalExecutionSec > 0 ? totalSourceLines / totalExecutionSec : 0.0;
+
+        const peakAstMemBytes = caseAstPeakBytes.length > 0 ? Math.max(...caseAstPeakBytes) : 0;
+        const peakAstMemMB = peakAstMemBytes / (1024.0 * 1024.0);
+        const meanAstMemKB = (caseAstPeakBytes.length > 0 ? caseAstPeakBytes.reduce((acc, val) => acc + val, 0) / caseAstPeakBytes.length : 0) / 1024.0;
+
+        const efficiencyMetrics = {
+          totalExecutionSec: parseFloat(totalExecutionSec.toFixed(4)),
+          throughputAlgos: parseFloat(throughputAlgos.toFixed(2)),
+          throughputLines: parseFloat(throughputLines.toFixed(2)),
+          meanTimeMs: parseFloat(meanMs.toFixed(2)),
+          medianTimeMs: parseFloat(medianMs.toFixed(2)),
+          maxTimeMs: parseFloat(maxMs.toFixed(2)),
+          p95TimeMs: parseFloat(p95Ms.toFixed(2)),
+          peakAstMemMB: parseFloat(peakAstMemMB.toFixed(4)),
+          meanAstMemKB: parseFloat(meanAstMemKB.toFixed(2)),
+          totalLines: totalSourceLines
+        };
 
         const totalCases = dataset.length > 0 ? dataset.length : 1;
         const timeAcc = (timePassedCount / totalCases) * 100;
@@ -3981,6 +4017,7 @@ json.dumps(res)
             perfectAccuracyRate: parseFloat(perfectAcc.toFixed(2)),
             timeReport: timeReportData,
             spaceReport: spaceReportData,
+            efficiency: efficiencyMetrics,
             details: detailedResults
           }
         });
@@ -3991,7 +4028,6 @@ json.dumps(res)
     }
 
   } catch (err) {
-    clearTimeout(executionTimeout);
     if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: err.message } });
     else self.postMessage({ type: 'ERROR', data: err.message });
   }

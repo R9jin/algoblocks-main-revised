@@ -62,10 +62,16 @@
 .sidebar-toggle-btn.right-panel-toggle { left: auto; right: 0; border-radius: 8px 0 0 8px; }
 .sidebar-toggle-btn.right-panel-toggle.closed .toggle-icon { transform: rotate(180deg); }
 
-.activity-split.left-hidden .activity-left-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; }
+.activity-split.left-hidden .activity-left-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
 .activity-split.left-hidden .gutter.gutter-horizontal:first-of-type { display: none !important; }
-.activity-split.right-hidden .activity-right-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; }
+.activity-split.right-hidden .activity-right-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
 .activity-split.right-hidden .gutter.gutter-horizontal:last-of-type { display: none !important; }
+
+.activity-split.left-hidden .activity-center-panel,
+.activity-split.right-hidden .activity-center-panel {
+  flex: 1 !important;
+  width: auto !important;
+}
 
 /* AES & ROG Badges */
 .aes-badge { background: var(--purple-alpha); border: 1px solid rgba(121, 40, 202, 0.3); color: var(--purple-main); }

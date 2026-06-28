@@ -128,7 +128,26 @@ body {
 /* =========================================
    SIDEBAR
    ========================================= */
-.templates-sidebar { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden; border-right: 1px solid var(--border-light); }
+.templates-sidebar { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden; border-right: 1px solid var(--border-light); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease; }
+
+.workspace-split.sidebar-hidden .templates-sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  opacity: 0;
+  border: none;
+  overflow: hidden !important;
+}
+
+.workspace-split.sidebar-hidden .gutter.gutter-horizontal:first-of-type {
+  display: none !important;
+}
+
+.workspace-split.sidebar-hidden .workspace-main {
+  flex: 1 !important;
+  width: auto !important;
+}
+
 .sidebar-search { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-light); background: var(--panel-bg); }
 .search-icon { margin-right: 12px; color: var(--text-muted); }
 .sidebar-search input { border: none; outline: none; font-size: 0.95rem; width: 100%; color: var(--text-main); background: transparent; }

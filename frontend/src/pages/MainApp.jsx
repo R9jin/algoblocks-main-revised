@@ -747,7 +747,7 @@ export default function MainApp() {
         isAdmin={isAdmin}
       />
 
-      <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[250, 400]} gutterSize={8}>
+      <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[isSidebarVisible ? 250 : 0, 400]} gutterSize={8}>
         <aside className="templates-sidebar">
           <div className="sidebar-search">
             <FiSearch className="search-icon" size={18} />

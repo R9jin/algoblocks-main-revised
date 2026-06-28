@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 3 OF 10) ---
 
---- TIMESTAMP: 2026-06-28 15:59:50 ---
+--- TIMESTAMP: 2026-06-28 17:13:29 ---
 
 
 --- FILE: evaluation/scripts/convert_tasty_to_json.py ---
@@ -8804,7 +8804,6 @@ export default defineConfig([
     "@monaco-editor/react": "^4.7.0",
     "@react-oauth/google": "^0.13.5",
     "blockly": "^12.5.1",
-    "dexie": "^4.4.2",
     "dompurify": "^3.4.7",
     "localforage": "^1.10.0",
     "pyodide": "^0.29.3",

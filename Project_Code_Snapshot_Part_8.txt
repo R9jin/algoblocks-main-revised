@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 8 OF 10) ---
 
---- TIMESTAMP: 2026-06-28 15:59:50 ---
+--- TIMESTAMP: 2026-06-28 17:13:29 ---
 
 
 --- FILE: frontend/src/components/Footer.jsx ---
@@ -36,25 +36,22 @@ import { Link } from "react-router-dom";
 export default function Header() {
 
   const handleGuestLogin = () => {
-    // Generate a random guest identity
     const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
     const guestUser = {
       _id: guestId,
       name: "Guest Explorer",
       email: `${guestId}@guest.local`,
-      isGuest: true, // Flag to identify guest users across the app
+      isGuest: true,
       progress: {},
       assessments: {}
     };
     
     const guestToken = `guest_token_${Date.now()}`;
     
-    // Store in localStorage to authenticate the session
     localStorage.setItem("user", JSON.stringify(guestUser));
     localStorage.setItem("token", guestToken);
     localStorage.setItem("authToken", guestToken);
     
-    // Hard redirect to immediately bypass any lingering React state
     window.location.href = "/dashboard";
   };
 
@@ -2655,7 +2652,7 @@ export default ActivityApp;
 
 // frontend/src/pages/AssessmentPage.jsx
 import { useEffect, useRef, useState } from "react";
-import { FiAward, FiCheck, FiChevronLeft, FiChevronRight, FiSave, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiAward, FiBarChart2, FiBookOpen, FiCheck, FiCheckCircle, FiChevronLeft, FiChevronRight, FiClock, FiFileText, FiInfo, FiLock, FiSave, FiTarget, FiTrendingUp, FiX } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { assessmentsDB, progressDB, syncQueueDB } from "../db";
@@ -2663,8 +2660,13 @@ import "../styles/AssessmentPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// â”€â”€ Storage helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const getDraftKey = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
+// BUG-09 Fix: Scope draft keys by user email
+const getDraftKey = (moduleId, type) => {
+  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  const user = JSON.parse(userStr || "{}");
+  const userEmail = user.email || "anonymous";
+  return `algoblocks_draft_${userEmail}_${moduleId}_${type}`;
+};
 
 function saveDraft(moduleId, type, payload) {
   try {
@@ -2686,12 +2688,11 @@ function loadDraft(moduleId, type) {
 function clearDraft(moduleId, type) {
   try {
     localStorage.removeItem(getDraftKey(moduleId, type));
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
 
-// â”€â”€ Shuffle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function shuffleArray(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -2701,7 +2702,6 @@ function shuffleArray(arr) {
   return a;
 }
 
-// â”€â”€ Code Block component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CodeBlock({ code }) {
   if (!code) return null;
   return (
@@ -2716,9 +2716,8 @@ function CodeBlock({ code }) {
   );
 }
 
-// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function AssessmentPage() {
-  const { moduleId, type } = useParams(); // type = "pre" | "post"
+  const { moduleId, type } = useParams();
   const navigate = useNavigate();
 
   const [questions, setQuestions] = useState([]);
@@ -2741,11 +2740,9 @@ export default function AssessmentPage() {
   const isGlobalPostTest = moduleId === "course-post-test";
   const moduleNum = (isGlobalPreTest || isGlobalPostTest) ? "Overall" : moduleId?.split("-").pop();
 
-  // â”€â”€ 1. Load assessment JSON + restore draft / previous result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     const load = async () => {
       try {
-        // OFFLINE FIRST: Check IndexedDB for previously submitted result
         const assessmentKey = `${moduleId}_${type}_assessment`;
         const existingResult = await assessmentsDB.getItem(assessmentKey);
         
@@ -2753,11 +2750,10 @@ export default function AssessmentPage() {
           const normalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
           setPrevResult(normalized);
 
-          // Thesis Data Integrity Lock: Prevent re-taking Pre-Test and Post-Test
           if (isGlobalPreTest || isGlobalPostTest) {
             setIsLocked(true);
             setLoading(false);
-            return; // Exit early so questions and drafts aren't loaded
+            return;
           }
         }
 
@@ -2765,7 +2761,6 @@ export default function AssessmentPage() {
         if (!res.ok) throw new Error("Assessment not found");
         const data = await res.json();
 
-        // Check if there's an in-progress draft (local storage)
         const draft = loadDraft(moduleId, type);
         if (draft && draft.questionIds) {
           const idMap = Object.fromEntries(data.questions.map((q) => [q.id, q]));
@@ -2782,7 +2777,6 @@ export default function AssessmentPage() {
           }
         }
 
-        // Fresh start â€” shuffle
         const shuffled = shuffleArray(data.questions);
         setQuestions(shuffled);
         setModuleTitle(data.moduleTitle);
@@ -2795,7 +2789,6 @@ export default function AssessmentPage() {
     load();
   }, [moduleId, type, isGlobalPreTest, isGlobalPostTest]);
 
-  // â”€â”€ 2. Auto-save draft every 10 seconds while answering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (submitted || loading || questions.length === 0 || isLocked) return;
 
@@ -2816,7 +2809,6 @@ export default function AssessmentPage() {
     return () => clearInterval(autoSaveRef.current);
   }, [submitted, loading, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type, isLocked]);
 
-  // â”€â”€ 4. Timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (submitted || loading || questions.length === 0 || isLocked) return;
     timerRef.current = setInterval(() => {
@@ -2825,7 +2817,6 @@ export default function AssessmentPage() {
     return () => clearInterval(timerRef.current);
   }, [submitted, loading, questions.length, isLocked]);
 
-  // â”€â”€ 5. Save draft on tab close / visibility change â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (isLocked) return;
 
@@ -2868,7 +2859,6 @@ export default function AssessmentPage() {
     };
   }, [submitted, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type, isLocked]);
 
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
     const s = (secs % 60).toString().padStart(2, "0");
@@ -2876,13 +2866,12 @@ export default function AssessmentPage() {
   };
 
   const getScoreLabel = (s) => {
-    if (s >= 90) return { label: "Excellent!", color: "#22c55e", icon: "ðŸ†" };
-    if (s >= 75) return { label: "Proficient", color: "#3b82f6", icon: "ðŸŽ¯" };
-    if (s >= 60) return { label: "Developing", color: "#f97316", icon: "ðŸ“ˆ" };
-    return { label: "Needs Review", color: "#ef4444", icon: "ðŸ“š" };
+    if (s >= 90) return { label: "Excellent!", color: "#22c55e", icon: <FiAward size={20} /> };
+    if (s >= 75) return { label: "Proficient", color: "#3b82f6", icon: <FiTarget size={20} /> };
+    if (s >= 60) return { label: "Developing", color: "#f97316", icon: <FiTrendingUp size={20} /> };
+    return { label: "Needs Review", color: "#ef4444", icon: <FiBookOpen size={20} /> };
   };
 
-  // â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSelectAnswer = (optionIndex) => {
     if (submitted || isLocked) return;
 
@@ -2982,7 +2971,7 @@ export default function AssessmentPage() {
         } else {
           throw new Error("Sync failed");
         }
-      } catch (err) {
+      } catch {
         const syncId = `sync_${Date.now()}`;
         await syncQueueDB.setItem(`${syncId}_assm`, queuePayloadAssm);
         await syncQueueDB.setItem(`${syncId}_prog`, queuePayloadProg);
@@ -3018,11 +3007,9 @@ export default function AssessmentPage() {
     setQuestions((prev) => shuffleArray(prev));
   };
 
-  // â”€â”€ Derived values â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const answeredCount = Object.keys(selectedAnswers).length;
   const currentQuestion = questions[currentIndex];
 
-  // â”€â”€ Loading / empty / locked guards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading) {
     return (
       <div className="assessment-page">
@@ -3041,7 +3028,7 @@ export default function AssessmentPage() {
           <div className="results-card">
             <div className="results-header">
               <div className="results-badge" style={{ borderColor: color }}>
-                <span className="results-icon">{icon}</span>
+                <span className="results-icon" style={{ display: "inline-flex", color }}>{icon}</span>
                 <span className="results-label" style={{ color }}>{label}</span>
               </div>
               <h1 className="results-score" style={{ color }}>{prevResult?.score || 0}%</h1>
@@ -3049,8 +3036,8 @@ export default function AssessmentPage() {
                 {isGlobalPreTest ? "Course Diagnostic Completed" : "Final Exam Completed"}
               </p>
               <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#fef2f2", borderLeft: "4px solid #ef4444", borderRadius: "0 8px 8px 0" }}>
-                <p className="results-note" style={{ color: "#b91c1c", margin: 0, fontWeight: "600", fontSize: "0.95rem" }}>
-                  ðŸ”’ For research and data integrity purposes, this assessment can only be taken once. Your score has been securely recorded.
+                <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b91c1c", margin: 0, fontWeight: "600", fontSize: "0.95rem" }}>
+                  <FiLock size={18} style={{ flexShrink: 0 }} /> For research and data integrity purposes, this assessment can only be taken once. Your score has been securely recorded.
                 </p>
               </div>
             </div>
@@ -3074,7 +3061,6 @@ export default function AssessmentPage() {
     );
   }
 
-  // â”€â”€ RESULTS SCREEN (Immediately after submitting) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (submitted) {
     const { label, color, icon } = getScoreLabel(score);
     const correctCount = Math.round((score / 100) * questions.length);
@@ -3085,7 +3071,7 @@ export default function AssessmentPage() {
           <div className="results-card">
             <div className="results-header">
               <div className="results-badge" style={{ borderColor: color }}>
-                <span className="results-icon">{icon}</span>
+                <span className="results-icon" style={{ display: "inline-flex", color }}>{icon}</span>
                 <span className="results-label" style={{ color }}>{label}</span>
               </div>
               <h1 className="results-score" style={{ color }}>{score}%</h1>
@@ -3143,7 +3129,9 @@ export default function AssessmentPage() {
                           <span className="correct-answer">
                             Correct: <em>{q.options[q.answer]}</em>
                           </span>
-                          <span className="explanation-text">ðŸ’¡ {q.explanation}</span>
+                          <span className="explanation-text" style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                            <FiInfo style={{ marginTop: "3px", flexShrink: 0, color: "#eab308" }} /> {q.explanation}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -3162,20 +3150,26 @@ export default function AssessmentPage() {
             </div>
 
             {isGlobalPreTest && (
-              <p className="results-note">
-                ðŸ“Œ The curriculum is now fully unlocked. Use this score as a baseline to track your growth over the course! <br/> 
-                <strong>Note: This pre-test has now been locked.</strong>
+              <p className="results-note" style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                <FiInfo size={18} style={{ flexShrink: 0, marginTop: "2px" }} />
+                <span>
+                  The curriculum is now fully unlocked. Use this score as a baseline to track your growth over the course! <br/> 
+                  <strong>Note: This pre-test has now been locked.</strong>
+                </span>
               </p>
             )}
             {isGlobalPostTest && (
-              <p className="results-note" style={{ color: "#f59e0b", fontSize: "1.1rem" }}>
-                ðŸŽ‰ Congratulations on completing the AlgoBlocks curriculum! You have proven your mastery of algorithmic foundations.<br/>
-                <strong>Note: This post-test has now been locked.</strong>
+              <p className="results-note" style={{ display: "flex", alignItems: "flex-start", gap: "8px", color: "#f59e0b", fontSize: "1.1rem" }}>
+                <FiCheckCircle size={20} style={{ flexShrink: 0, marginTop: "2px" }} />
+                <span>
+                  Congratulations on completing the AlgoBlocks curriculum! You have proven your mastery of algorithmic foundations.<br/>
+                  <strong>Note: This post-test has now been locked.</strong>
+                </span>
               </p>
             )}
             {!(isGlobalPreTest || isGlobalPostTest) && score >= 75 && (
-              <p className="results-note" style={{ color: "#22c55e" }}>
-                âœ… Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
+              <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#22c55e" }}>
+                <FiCheckCircle size={18} style={{ flexShrink: 0 }} /> Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
               </p>
             )}
           </div>
@@ -3184,7 +3178,6 @@ export default function AssessmentPage() {
     );
   }
 
-  // â”€â”€ QUESTION SCREEN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="assessment-page">
       <DashboardHeader />
@@ -3203,11 +3196,15 @@ export default function AssessmentPage() {
             </p>
           </div>
           <div className="assessment-meta">
-            <div className="meta-pill">â± {formatTime(timeElapsed)}</div>
-            <div className="meta-pill">ðŸ“ {answeredCount}/{questions.length} answered</div>
+            <div className="meta-pill" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiClock size={14} /> {formatTime(timeElapsed)}
+            </div>
+            <div className="meta-pill" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiFileText size={14} /> {answeredCount}/{questions.length} answered
+            </div>
             {lastSavedAt && (
-              <div className="meta-pill saved">
-                <FiSave size={12} />
+              <div className="meta-pill saved" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <FiSave size={14} />
                 Saved {new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
             )}
@@ -3225,8 +3222,8 @@ export default function AssessmentPage() {
 
         {prevResult && !hasDraft && (
           <div className="prev-result-banner">
-            <span>
-              ðŸ“Š You previously scored <strong>{prevResult.score}%</strong> on this assessment
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiBarChart2 /> You previously scored <strong>{prevResult.score}%</strong> on this assessment
               (Attempt #{prevResult.attempts}).
             </span>
           </div>
@@ -3326,8 +3323,8 @@ export default function AssessmentPage() {
               </div>
 
               {answeredCount < questions.length && currentIndex === questions.length - 1 && (
-                <p className="submit-warning">
-                  âš  Please answer all {questions.length} questions before submitting.
+                <p className="submit-warning" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                  <FiAlertTriangle size={16} /> Please answer all {questions.length} questions before submitting.
                   ({questions.length - answeredCount} remaining)
                 </p>
               )}
@@ -3859,11 +3856,12 @@ import { useEffect, useState } from "react";
 import {
   FiActivity,
   FiArrowLeft,
+  FiBarChart2,
   FiCheckCircle, FiClock, FiCode,
   FiCpu, FiDatabase,
   FiDownload,
   FiHelpCircle, FiLayers, FiPlay,
-  FiRefreshCw, FiXCircle
+  FiRefreshCw, FiTrendingUp, FiXCircle, FiZap
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { usePyodide } from "../context/PyodideContext";
@@ -4563,6 +4561,74 @@ export default function EvaluationSuite() {
           </div>
         )}
 
+        {/* --- NEW SECTION: AST COMPUTATIONAL EFFICIENCY & HARDWARE PROFILING --- */}
+        {results && results.efficiency && (
+          <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiZap style={{ display: "inline", color: "#F59E0B", marginRight: "8px" }} /> Computational Efficiency & Hardware Profiling Report
+                </strong>
+                <span className="eval-sklearn-subtitle">
+                  Execution efficiency benchmarks measuring Wasm AST engine throughput, latency percentiles, and memory allocation across {results.efficiency.totalLines} source lines of code.
+                </span>
+              </div>
+            </div>
+
+            <div className="eval-stats-grid" style={{ padding: "16px 20px 20px", gap: "16px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #F59E0B" }}>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }}/> Suite Execution</div>
+                <div className="eval-stat-value" style={{ color: "#D97706" }}>
+                  {results.efficiency.totalExecutionSec}s
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  {results.totalTested} algorithms processed
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #3B82F6" }}>
+                <div className="eval-stat-title"><FiTrendingUp style={{ display: "inline", marginRight: "4px" }}/> Engine Throughput</div>
+                <div className="eval-stat-value" style={{ color: "#2563EB" }}>
+                  {results.efficiency.throughputAlgos} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>algos/s</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  {results.efficiency.throughputLines} lines/sec
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #8B5CF6" }}>
+                <div className="eval-stat-title"><FiActivity style={{ display: "inline", marginRight: "4px" }}/> Mean AST Latency</div>
+                <div className="eval-stat-value" style={{ color: "#7C3AED" }}>
+                  {results.efficiency.meanTimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Median: {results.efficiency.medianTimeMs} ms
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EC4899" }}>
+                <div className="eval-stat-title"><FiBarChart2 style={{ display: "inline", marginRight: "4px" }}/> Latency (P95 / Max)</div>
+                <div className="eval-stat-value" style={{ color: "#DB2777" }}>
+                  {results.efficiency.p95TimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Peak Max: {results.efficiency.maxTimeMs} ms
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }}/> Peak Wasm Memory</div>
+                <div className="eval-stat-value" style={{ color: "#059669" }}>
+                  {results.efficiency.peakAstMemMB} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>MB</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Mean Traversal: {results.efficiency.meanAstMemKB} KB
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {results && results.timeReport && results.spaceReport && (
           <div className="eval-sklearn-container">
             <div className="eval-sklearn-header">
@@ -4789,60 +4855,36 @@ export default function EvaluationSuite() {
 
 --- FILE: frontend/src/pages/ForgotPassword.jsx ---
 
-// frontend\src\pages\ForgotPassword.jsx
-import { useState } from "react";
-import { FiCheckCircle, FiMail } from "react-icons/fi";
+// frontend/src/pages/ForgotPassword.jsx
+import { FiAlertCircle, FiArrowLeft, FiLock } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import "../styles/Auth.css";
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Reset password for", email);
-    setSubmitted(true);
-  };
-
-  if (submitted) {
-    return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <h2 className="auth-title-with-icon">
-            <FiCheckCircle aria-hidden="true" />
-            Check Your Email
-          </h2>
-          <p>We've sent a password reset link to {email}.</p>
-          <Link to="/signin" className="auth-link">Back to Sign In</Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2>Reset Password</h2>
-        <p>Enter your email address and we'll send you a link to reset your password.</p>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email</label>
-            <div className="auth-input-wrap">
-              <FiMail className="auth-input-icon" aria-hidden="true" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email address"
-                required
-              />
-            </div>
-          </div>
-          <button type="submit" className="auth-button">Send Reset Link</button>
-        </form>
-        <div className="auth-links">
-          <Link to="/signin">Back to Sign In</Link>
+        <div className="auth-header" style={{ textAlign: "center", marginBottom: "16px" }}>
+          <FiLock className="auth-icon" size={32} style={{ color: "#818cf8", marginBottom: "8px" }} />
+          <h2>Credential Reset Notice</h2>
+        </div>
+        
+        {/* BUG-04 Fix: Replaced deceptive email reset with thesis study instructions */}
+        <div className="notice-banner" style={{ display: "flex", gap: "12px", padding: "16px", background: "#332e49", border: "1px solid #6366f1", borderRadius: "8px", margin: "20px 0", color: "#e0e7ff" }}>
+          <FiAlertCircle size={24} style={{ flexShrink: 0, color: "#818cf8" }} />
+          <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.5" }}>
+            AlgoBlocks operates under active academic thesis research protocols. Automated email credential resets are disabled to preserve participant identity tracking.
+          </p>
+        </div>
+
+        <p className="auth-instruction" style={{ textAlign: "center", marginBottom: "24px", color: "#cbd5e1", fontSize: "0.95rem" }}>
+          Please contact your research facilitator or lab supervisor directly to request a manual credential reset.
+        </p>
+
+        <div className="auth-links" style={{ textAlign: "center" }}>
+          <Link to="/signin" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+            <FiArrowLeft size={16} /> Back to Sign In
+          </Link>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 10) ---
 
---- TIMESTAMP: 2026-06-28 15:59:50 ---
+--- TIMESTAMP: 2026-06-28 17:13:29 ---
 
 
 --- FILE: README.md ---
@@ -3110,36 +3110,39 @@ class BlocklyASTConverter:
 --- FILE: api/database.py ---
 
 # api/database.py
-
 import os
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
-# Get the absolute path to the directory where this file (database.py) lives
-api_dir = Path(__file__).resolve().parent
+# BUG-17 Fix: Initialize structured application logger
+logger = logging.getLogger(__name__)
 
-# Explicitly load the .env file located in the 'api' directory
+api_dir = Path(__file__).resolve().parent
 env_path = api_dir / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# Get MongoDB URI from environment
 MONGO_URI = os.getenv("MONGODB_URI")
 if not MONGO_URI:
     raise ValueError(f"No MONGODB_URI found in environment variables. Please check your .env file at {env_path}")
 
-# Initialize MongoDB Client
 try:
     client = MongoClient(MONGO_URI)
     db = client.get_default_database("algoblocks_db")
     
     projects_collection = db["projects"]
     users_collection = db["users"]
-    templates_collection = db["templates"] # <--- ADD THIS LINE
+    templates_collection = db["templates"]
     
-    print("Successfully connected to MongoDB.")
+    # BUG-10 Fix: Explicitly define collections required by progress routers
+    progress_collection = db["progress"]
+    submissions_collection = db["submissions"]
+    assessments_collection = db["assessments"]
+    
+    logger.info("Successfully connected to MongoDB.")
 except Exception as e:
-    print(f"Error connecting to MongoDB: {e}")
+    logger.error(f"Error connecting to MongoDB: {e}", exc_info=True)
     raise
 
 --- FILE: api/dynamic_tracer.py ---
@@ -3254,20 +3257,23 @@ class AlgoBlocksTracer:
 import os
 import sys
 
-# Tell Vercel/Python to look inside the 'api' folder for modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import db
+# BUG-05 Fix: Register SlowAPI limiter and middleware pipeline
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from limiter import limiter
 
 from routers import (
     auth_router,
     project_router,
     analyze_router,
     template_router
-    # Removed progress_router to prevent route duplication and conflict
 )
 
 app = FastAPI(
@@ -3276,16 +3282,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration
+# BUG-05 Fix: Attach limiter state and exception handlers
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    # 1. Explicitly allow local development
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://algoblocks-main-revised.vercel.app" # Put your primary custom domain here if you have one
+        "https://algoblocks-main-revised.vercel.app"
     ], 
-    # 2. Dynamically allow ALL Vercel deployments (previews, branches, etc.)
     allow_origin_regex=r"https://.*\.vercel\.app", 
     allow_credentials=True,
     allow_methods=["*"],
@@ -3296,7 +3304,6 @@ app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
-# Duplicate progress routes removed; auth_router handles them safely with JWT context
 
 @app.get("/api/health")
 async def health_check():
@@ -3313,7 +3320,6 @@ async def health_check():
     }
 
 if __name__ == "__main__":
-    # Changed host to 127.0.0.1 to explicitly bind to IPv4 matching the Vite proxy
     uvicorn.run("index:app", host="127.0.0.1", port=8000, reload=True)
 
 --- FILE: api/limiter.py ---
@@ -3334,13 +3340,14 @@ limiter = Limiter(key_func=get_real_client_ip, default_limits=["100/minute"])
 --- FILE: api/models.py ---
 
 # api/models.py
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Dict, Any, Optional, List
 
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
-    password: str
+    # BUG-11 Fix: Enforce minimum password boundary
+    password: str = Field(..., min_length=6)
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -3380,7 +3387,6 @@ class ProjectSyncRequest(BaseModel):
     timestamp: Optional[int] = None
     isSynced: Optional[bool] = False
 
-# FIX: Added TemplateSyncRequest to resolve template_router import error
 class TemplateSyncRequest(BaseModel):
     templateId: str
     title: Optional[str] = "Untitled Template"
@@ -3400,17 +3406,14 @@ class ActivitySubmission(BaseModel):
     score: float = 0
     maxScore: float = 100
     
-    # Original Legacy Tracking (Preserved for backwards compatibility with Dashboard)
     passedTestCases: int = 0
     totalTestCases: int = 0
     passed_tests: Optional[int] = 0
     total_tests: Optional[int] = 0
     
-    # THESIS METRICS: Pure Functional Tracking for accurate TSR
     functional_passed: Optional[int] = 0
     functional_total: Optional[int] = 0
     
-    # THESIS METRICS: Continuous Scoring
     initial_aes: Optional[float] = None
     final_aes: Optional[float] = None
     rog: Optional[float] = 0.0
@@ -3580,30 +3583,21 @@ from fastapi import APIRouter, Body
 
 router = APIRouter()
 
-# -------------------------------------------------------------
-# RUN ENDPOINT REMOVED
-# As requested, /run is removed because Python execution 
-# is strictly handled by Pyodide in the browser.
-# -------------------------------------------------------------
-
-# -------------------------------------------------------------
-# ANALYZE ENDPOINT
-# Added to stop the 404 Not Found spam when the frontend editor
-# asks for static analysis or Big-O complexity estimates.
-# -------------------------------------------------------------
 @router.post("/analyze")
 async def analyze_code(payload: dict = Body(...)):
     """
-    Provides static analysis/feedback for the frontend editor.
+    ARCHITECTURAL STUB NOTICE (BUG-12 Remediation):
+    All real-time AST computational complexity analysis is executed client-side inside 
+    Pyodide Web Workers (analyzer.worker.js). This endpoint is preserved strictly as 
+    a static test harness fallback for the editor.
     """
     code = payload.get("code", "")
     
-    # Return a basic structure so the frontend parser doesn't crash
     return {
         "status": "success",
         "analysis": {
             "message": "Code parsed successfully. Use the Run button to execute output via Pyodide.",
-            "complexity": "O(N) Estimated - Subject to Pyodide trace",
+            "complexity": "O(N) Estimated - Subject to Pyodide client execution trace",
             "suggestions": [],
             "issues": []
         }
@@ -3701,28 +3695,26 @@ from typing import List, Dict, Any
 import logging
 from ..models import ProgressUpdate, ActivitySubmission, AssessmentSubmission, BatchSyncPayload, SyncResponse
 from ..database import users_collection, progress_collection, submissions_collection, assessments_collection
-from ..security import get_current_user
+# BUG-10 Fix: Align with live security signature get_current_user_email
+from ..security import get_current_user_email
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.post("/update-progress")
-async def update_progress(data: ProgressUpdate, current_user: dict = Depends(get_current_user)):
+async def update_progress(data: ProgressUpdate, current_user_email: str = Depends(get_current_user_email)):
     try:
-        user_email = current_user.get("email")
-        if data.email != user_email:
+        if data.email != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to update this progress")
 
-        # Update in users collection
         users_collection.update_one(
-            {"email": user_email},
+            {"email": current_user_email},
             {"$set": {f"progress.{data.lesson_id}": data.score}},
             upsert=True
         )
 
-        # Update in progress collection
         progress_collection.update_one(
-            {"userId": user_email, "lessonId": data.lesson_id},
+            {"userId": current_user_email, "lessonId": data.lesson_id},
             {
                 "$set": {
                     "score": data.score,
@@ -3734,15 +3726,16 @@ async def update_progress(data: ProgressUpdate, current_user: dict = Depends(get
         )
 
         return {"status": "success", "message": "Progress updated"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error updating progress: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sync-submission")
-async def sync_submission(data: ActivitySubmission, current_user: dict = Depends(get_current_user)):
+async def sync_submission(data: ActivitySubmission, current_user_email: str = Depends(get_current_user_email)):
     try:
-        user_email = current_user.get("email")
-        if data.userId != user_email:
+        if data.userId != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this submission")
 
         submission_dict = data.dict()
@@ -3750,7 +3743,7 @@ async def sync_submission(data: ActivitySubmission, current_user: dict = Depends
 
         submissions_collection.update_one(
             {
-                "userId": user_email,
+                "userId": current_user_email,
                 "moduleId": data.moduleId,
                 "activityId": data.activityId
             },
@@ -3759,20 +3752,21 @@ async def sync_submission(data: ActivitySubmission, current_user: dict = Depends
         )
 
         return {"status": "success", "message": "Submission synced"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error syncing submission: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sync-assessment")
-async def sync_assessment(data: AssessmentSubmission, current_user: dict = Depends(get_current_user)):
+async def sync_assessment(data: AssessmentSubmission, current_user_email: str = Depends(get_current_user_email)):
     try:
-        user_email = current_user.get("email")
-        if data.userId != user_email:
+        if data.userId != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this assessment")
 
         assessments_collection.update_one(
             {
-                "userId": user_email,
+                "userId": current_user_email,
                 "assessmentId": data.assessmentId
             },
             {"$set": data.dict()},
@@ -3780,40 +3774,39 @@ async def sync_assessment(data: AssessmentSubmission, current_user: dict = Depen
         )
 
         return {"status": "success", "message": "Assessment synced"}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error syncing assessment: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/batch-sync", response_model=SyncResponse)
-async def batch_sync(payload: BatchSyncPayload, current_user: dict = Depends(get_current_user)):
+async def batch_sync(payload: BatchSyncPayload, current_user_email: str = Depends(get_current_user_email)):
     try:
-        user_email = current_user.get("email")
         synced_count = 0
 
-        # Sync Progress
         if payload.progress:
             for prog in payload.progress:
-                if prog.get("email") == user_email:
+                if prog.get("email") == current_user_email:
                     progress_collection.update_one(
-                        {"userId": user_email, "lessonId": prog.get("lesson_id")},
+                        {"userId": current_user_email, "lessonId": prog.get("lesson_id")},
                         {"$set": prog},
                         upsert=True
                     )
                     users_collection.update_one(
-                        {"email": user_email},
+                        {"email": current_user_email},
                         {"$set": {f"progress.{prog.get('lesson_id')}": prog.get("score")}},
                         upsert=True
                     )
                     synced_count += 1
 
-        # Sync Submissions
         if payload.submissions:
             for sub in payload.submissions:
-                if sub.get("userId") == user_email:
+                if sub.get("userId") == current_user_email:
                     sub["isSynced"] = True
                     submissions_collection.update_one(
                         {
-                            "userId": user_email,
+                            "userId": current_user_email,
                             "moduleId": sub.get("moduleId"),
                             "activityId": sub.get("activityId")
                         },
@@ -3822,13 +3815,12 @@ async def batch_sync(payload: BatchSyncPayload, current_user: dict = Depends(get
                     )
                     synced_count += 1
 
-        # Sync Assessments
         if payload.assessments:
             for ass in payload.assessments:
-                if ass.get("userId") == user_email:
+                if ass.get("userId") == current_user_email:
                     assessments_collection.update_one(
                         {
-                            "userId": user_email,
+                            "userId": current_user_email,
                             "assessmentId": ass.get("assessmentId")
                         },
                         {"$set": ass},
@@ -3843,11 +3835,10 @@ async def batch_sync(payload: BatchSyncPayload, current_user: dict = Depends(get
         raise HTTPException(status_code=500, detail="Internal server error during batch sync")
 
 @router.get("/get-submission")
-async def get_submission(activityId: str, moduleId: str, current_user: dict = Depends(get_current_user)):
+async def get_submission(activityId: str, moduleId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
-        user_email = current_user.get("email")
         submission = submissions_collection.find_one(
-            {"userId": user_email, "moduleId": moduleId, "activityId": activityId},
+            {"userId": current_user_email, "moduleId": moduleId, "activityId": activityId},
             {"_id": 0}
         )
         if submission:
@@ -3858,11 +3849,10 @@ async def get_submission(activityId: str, moduleId: str, current_user: dict = De
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/get-assessment")
-async def get_assessment(assessmentId: str, current_user: dict = Depends(get_current_user)):
+async def get_assessment(assessmentId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
-        user_email = current_user.get("email")
         assessment = assessments_collection.find_one(
-            {"userId": user_email, "assessmentId": assessmentId},
+            {"userId": current_user_email, "assessmentId": assessmentId},
             {"_id": 0}
         )
         if assessment:
@@ -3931,24 +3921,23 @@ def delete_project(
 --- FILE: api/routers/template_router.py ---
 
 # api/routers/template_router.py
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any, Optional
 from services.template_service import TemplateService
-
-# FIX: Updated import to match the actual class name in models.py
 from models import TemplateSyncRequest 
+# BUG-07 Fix: Inject current user dependency
+from security import get_current_user_email
 
 router = APIRouter()
 
-# FIX: Added "" to prevent 307 redirects on /api/templates
 @router.get("")
 @router.get("/")
 def get_all_templates(userId: Optional[str] = Query(None)):
     return TemplateService.get_all_templates()
 
-# ADDED/UPDATED: The save endpoint
+# BUG-07 Fix: Require valid JWT token to persist templates
 @router.post("/save")
-def save_template(req: TemplateSyncRequest): # FIX: Updated type hint
+def save_template(req: TemplateSyncRequest, current_user: str = Depends(get_current_user_email)):
     try:
         return TemplateService.save_template(req)
     except Exception as e:
@@ -3961,6 +3950,7 @@ def get_templates_by_category(category: str):
 --- FILE: api/security.py ---
 
 # api/security.py
+import os
 import logging
 import jwt
 from datetime import datetime, timedelta
@@ -3970,7 +3960,11 @@ from fastapi.security import OAuth2PasswordBearer
 
 logger = logging.getLogger(__name__)
 
-SECRET_KEY = "8f4e2a1b9c7d6e5f8a4b2c1d9e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f" 
+# BUG-01 Fix: Strictly load secret from environment variables
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("CRITICAL SECURITY ERROR: JWT_SECRET_KEY environment variable is not set.")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
