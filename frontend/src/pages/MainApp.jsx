@@ -1,3 +1,4 @@
+// frontend/src/pages/MainApp.jsx
 import React, { useEffect, useRef, useState } from "react";
 import {
   UNSAFE_NavigationContext as NavigationContext,
@@ -113,6 +114,7 @@ export default function MainApp() {
 
   const currentUser = getUser();
   const isAdmin = !!currentUser?.isAdmin;
+  const isGuest = currentUser?.isGuest === true;
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -503,6 +505,7 @@ export default function MainApp() {
       showToast("The workspace is empty. Nothing to save!", "error"); return;
     }
     if (!getUser()) { showToast("You must be logged in to save.", "error"); return; }
+    if (isGuest) { showToast("Guest accounts cannot save projects or templates.", "error"); return; }
     setSaveModal({
       isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
       title: activeTab.title !== "Untitled Project" ? activeTab.title : "",
@@ -544,6 +547,11 @@ export default function MainApp() {
   };
 
   const handleImportJson = (event) => {
+    if (isGuest) {
+      showToast("Guest accounts cannot import workspace files.", "error");
+      event.target.value = "";
+      return;
+    }
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -567,6 +575,10 @@ export default function MainApp() {
 
   const handleEditItem = (e, item) => {
     e.stopPropagation();
+    if (isGuest) {
+      showToast("Guest accounts cannot edit projects or templates.", "error");
+      return;
+    }
     setSaveModal({
       isOpen: true, isEditMetadataOnly: true, editingId: item._id, editingData: item.data,
       title: item.title, description: item.description || "", category: item.category || "Custom Templates",
@@ -577,6 +589,7 @@ export default function MainApp() {
   const submitSave = async () => {
     const user = getUser();
     if (!user) { showToast("Error: You must be logged in to save.", "error"); return; }
+    if (user.isGuest) { showToast("Error: Guest accounts cannot save.", "error"); return; }
 
     const id = saveModal.editingId || (saveModal.saveType === "template" ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
     const payload = {
@@ -620,6 +633,10 @@ export default function MainApp() {
 
   const handleDeleteItem = async (e, item) => {
     e.stopPropagation();
+    if (isGuest) {
+      showToast("Guest accounts cannot delete projects or templates.", "error");
+      return;
+    }
     const itemLabel = item.saveType === "template" ? "Template" : "Project";
     if (!window.confirm(`Are you sure you want to delete this ${itemLabel}?`)) return;
 

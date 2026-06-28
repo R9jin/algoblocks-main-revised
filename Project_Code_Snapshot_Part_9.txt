@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 9 OF 10) ---
 
---- TIMESTAMP: 2026-06-28 17:13:29 ---
+--- TIMESTAMP: 2026-06-28 22:01:22 ---
 
 
 --- FILE: frontend/src/pages/MainApp.jsx ---
@@ -754,7 +754,7 @@ export default function MainApp() {
         isAdmin={isAdmin}
       />
 
-      <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[250, 400]} gutterSize={8}>
+      <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[isSidebarVisible ? 250 : 0, 400]} gutterSize={8}>
         <aside className="templates-sidebar">
           <div className="sidebar-search">
             <FiSearch className="search-icon" size={18} />
@@ -2452,10 +2452,16 @@ export default function UserHomePage() {
 .sidebar-toggle-btn.right-panel-toggle { left: auto; right: 0; border-radius: 8px 0 0 8px; }
 .sidebar-toggle-btn.right-panel-toggle.closed .toggle-icon { transform: rotate(180deg); }
 
-.activity-split.left-hidden .activity-left-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; }
+.activity-split.left-hidden .activity-left-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
 .activity-split.left-hidden .gutter.gutter-horizontal:first-of-type { display: none !important; }
-.activity-split.right-hidden .activity-right-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; }
+.activity-split.right-hidden .activity-right-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
 .activity-split.right-hidden .gutter.gutter-horizontal:last-of-type { display: none !important; }
+
+.activity-split.left-hidden .activity-center-panel,
+.activity-split.right-hidden .activity-center-panel {
+  flex: 1 !important;
+  width: auto !important;
+}
 
 /* AES & ROG Badges */
 .aes-badge { background: var(--purple-alpha); border: 1px solid rgba(121, 40, 202, 0.3); color: var(--purple-main); }
@@ -4999,6 +5005,11 @@ export default function UserHomePage() {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
+.line-stats-banner {
+  background-color: #F8FAFC;
+  border-left: 4px solid #7928CA;
+}
+
 .eval-status-group {
   display: flex;
   align-items: center;
@@ -5405,7 +5416,6 @@ export default function UserHomePage() {
   font-size: 14px;
 }
 
-/* Sandbox inside modal */
 .metric-interactive-box {
   background-color: #FFFFFF;
   border: 2px dashed #CBD5E1;
@@ -5693,6 +5703,12 @@ export default function UserHomePage() {
 .verdict-pass { color: #10B981; }
 .verdict-fail { color: #EF4444; }
 
+.action-buttons-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .eval-btn-inspect {
   background-color: #FFFFFF;
   color: #475569;
@@ -5715,12 +5731,268 @@ export default function UserHomePage() {
   box-shadow: 0 2px 4px rgba(121, 40, 202, 0.2);
 }
 
+.eval-btn-dropdown {
+  background-color: #F8FAFC;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.eval-btn-dropdown:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.eval-btn-dropdown.active-dropdown {
+  background-color: #F3E8FF;
+  color: #6D28D9;
+  border-color: #D8B4FE;
+}
+
 .eval-empty-state {
   padding: 48px;
   text-align: center;
   color: #64748B;
   font-weight: 500;
   font-size: 15px;
+}
+
+/* --- REVEALING LINE CHECKING DROPDOWN MATRIX --- */
+.tr-expanded-parent td {
+  background-color: #F8FAFC !important;
+  border-bottom: none !important;
+}
+
+.tr-dropdown-content td {
+  padding: 0 !important;
+  background-color: #F8FAFC;
+  border-bottom: 2px solid #CBD5E1 !important;
+}
+
+.td-dropdown-cell {
+  padding: 0 24px 24px 24px !important;
+}
+
+.line-checks-dropdown-box {
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  animation: dropdownSlideDown 0.2s ease-out;
+}
+
+@keyframes dropdownSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-box-header {
+  background-color: #F1F5F9;
+  padding: 14px 20px;
+  border-bottom: 1px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dbh-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dbh-icon {
+  color: #7928CA;
+}
+
+.dbh-left strong {
+  font-size: 14px;
+  color: #0F172A;
+}
+
+.dbh-sub {
+  font-size: 12px;
+  color: #64748B;
+  margin-left: 6px;
+}
+
+.line-count-pill {
+  background-color: #FFFFFF;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dropdown-table-wrapper {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.dropdown-line-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.dropdown-line-table th {
+  background-color: #F8FAFC;
+  color: #64748B;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #E2E8F0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.dropdown-line-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #334155;
+}
+
+.line-td-num {
+  font-family: Consolas, monospace;
+  font-weight: 700;
+  color: #94A3B8 !important;
+  width: 60px;
+}
+
+.line-td-code code {
+  font-family: Consolas, 'Courier New', monospace;
+  color: #0F172A;
+  background-color: #F8FAFC;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #E2E8F0;
+  display: inline-block;
+}
+
+.op-pill {
+  background-color: #F1F5F9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.dual-comp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #F8FAFC;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  font-family: Consolas, monospace;
+}
+
+.comp-exp {
+  color: #64748B;
+  font-size: 12px;
+}
+
+.comp-exp strong {
+  color: #0F172A;
+}
+
+.comp-arrow {
+  color: #CBD5E1;
+  font-size: 12px;
+}
+
+.comp-act {
+  font-weight: 800;
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.comp-pass { background-color: #D1FAE5; color: #065F46; }
+.comp-fail { background-color: #FEE2E2; color: #991B1B; }
+.comp-neutral { font-family: Consolas, monospace; font-weight: 700; color: #475569; }
+
+.line-tr-fail td {
+  background-color: #FFFAFA;
+}
+
+.line-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.verdict-none { color: #94A3B8; font-style: italic; }
+
+/* SUMMARY BAR AT BOTTOM OF DROPDOWN BAR */
+.dropdown-box-footer {
+  background-color: #F8FAFC;
+  border-top: 1px solid #CBD5E1;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dbf-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.dbf-verdict strong {
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dbf-metrics {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.dbf-metric-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.dbf-metric-item strong {
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
 }
 
 /* --- CODE INSPECTION MODAL --- */
@@ -5823,7 +6095,6 @@ export default function UserHomePage() {
   background-color: #7928CA;
   box-shadow: 0 4px 12px rgba(121, 40, 202, 0.25);
 }
-
 
 --- FILE: frontend/src/styles/Footer.css ---
 
@@ -7841,7 +8112,26 @@ body {
 /* =========================================
    SIDEBAR
    ========================================= */
-.templates-sidebar { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden; border-right: 1px solid var(--border-light); }
+.templates-sidebar { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden; border-right: 1px solid var(--border-light); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease; }
+
+.workspace-split.sidebar-hidden .templates-sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  opacity: 0;
+  border: none;
+  overflow: hidden !important;
+}
+
+.workspace-split.sidebar-hidden .gutter.gutter-horizontal:first-of-type {
+  display: none !important;
+}
+
+.workspace-split.sidebar-hidden .workspace-main {
+  flex: 1 !important;
+  width: auto !important;
+}
+
 .sidebar-search { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid var(--border-light); background: var(--panel-bg); }
 .search-icon { margin-right: 12px; color: var(--text-muted); }
 .sidebar-search input { border: none; outline: none; font-size: 0.95rem; width: 100%; color: var(--text-main); background: transparent; }

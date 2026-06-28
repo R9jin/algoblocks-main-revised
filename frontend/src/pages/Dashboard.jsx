@@ -1,5 +1,6 @@
 // frontend/src/pages/Dashboard.jsx
 import { useCallback, useEffect, useState } from "react";
+import { FiLock } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
@@ -107,6 +108,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [expandedFaq, setExpandedFaq] = useState(null);
 
+  const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  const currentUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+  const isGuest = currentUser?.isGuest === true;
+
   // Dynamic progress state
   const [progressData, setProgressData] = useState({
     percent: 0,
@@ -118,8 +123,7 @@ export default function Dashboard() {
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
-      const user = storedUser ? JSON.parse(storedUser) : null;
+      const user = currentUser;
 
       // 1. Compute User Learning Progress
       let total = 0;
@@ -166,7 +170,7 @@ export default function Dashboard() {
       });
 
       // 2. Fetch and Sync Projects and Templates from Cloud
-      if (navigator.onLine && user) {
+      if (navigator.onLine && user && !user.isGuest) {
         try {
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
           const headers = {
@@ -233,7 +237,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     loadDashboardData();
@@ -310,26 +314,47 @@ export default function Dashboard() {
             {/* Learning Path Card */}
             <section className="bento-learning-card">
               <div className="learning-content">
-                <span className="module-badge">{progressData.moduleBadge}</span>
-                <h3 className="learning-title">{progressData.moduleTitle}</h3>
-                <p className="learning-desc">{progressData.moduleDesc}</p>
-                <div className="progress-container">
-                  <div className="progress-header">
-                    <span>Course Progress</span>
-                    <span>{progressData.percent}%</span>
+                <span className="module-badge">
+                  {isGuest ? "Locked • Guest Explorer" : progressData.moduleBadge}
+                </span>
+                <h3 className="learning-title">
+                  {isGuest ? "Curriculum Locked" : progressData.moduleTitle}
+                </h3>
+                <p className="learning-desc">
+                  {isGuest 
+                    ? "The structured learning path and assessments are disabled in Guest Mode. Please create a full account to track your progress and access the curriculum." 
+                    : progressData.moduleDesc}
+                </p>
+                {!isGuest && (
+                  <div className="progress-container">
+                    <div className="progress-header">
+                      <span>Course Progress</span>
+                      <span>{progressData.percent}%</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div className="progress-bar-fill" style={{ width: `${progressData.percent}%` }}></div>
+                    </div>
                   </div>
-                  <div className="progress-bar-bg">
-                    <div className="progress-bar-fill" style={{ width: `${progressData.percent}%` }}></div>
-                  </div>
-                </div>
+                )}
               </div>
               <div className="learning-action">
-                <button className="banner-icon-btn" onClick={() => navigate("/learning-path")}>
-                  <img 
-                    src="/assets/learning-icon.png" 
-                    alt="Learning Path" 
-                    className="learning-path-img"
-                  />
+                <button 
+                  className="banner-icon-btn" 
+                  onClick={() => {
+                    if (!isGuest) navigate("/learning-path");
+                  }}
+                  style={isGuest ? { backgroundColor: '#F1F5F9', cursor: 'not-allowed', boxShadow: 'none', border: '1px solid #E2E8F0' } : {}}
+                  disabled={isGuest}
+                >
+                  {isGuest ? (
+                    <FiLock size={32} color="#94A3B8" />
+                  ) : (
+                    <img 
+                      src="/assets/learning-icon.png" 
+                      alt="Learning Path" 
+                      className="learning-path-img"
+                    />
+                  )}
                 </button>
               </div>
             </section>
