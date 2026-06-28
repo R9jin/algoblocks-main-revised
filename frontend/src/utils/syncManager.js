@@ -17,7 +17,6 @@ const getAuthHeaders = () => {
 const addToSyncQueue = async (type, data) => {
     try {
         const id = `sync_${type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        // Uses the modernized format expected by the batch syncer
         await syncQueueDB.setItem(id, { type: type.toUpperCase(), action: "UPSERT", data, timestamp: Date.now() });
         console.log(`[Offline] Saved ${type} to sync queue.`);
     } catch (err) {
@@ -26,7 +25,6 @@ const addToSyncQueue = async (type, data) => {
 };
 
 export const syncManager = {
-    // Backwards compatible method for older components
     syncSubmission: async (activityId, code, output, isCompleted) => {
         const payload = { activityId, code, output, isCompleted, timestamp: new Date().toISOString() };
 
@@ -49,7 +47,6 @@ export const syncManager = {
             if (!response.ok) throw new Error(`Server returned ${response.status}`);
             return await response.json();
         } catch (error) {
-            // Even if it's an AbortError from navigation, save to queue so we don't lose the user's data
             await addToSyncQueue("SUBMISSION", payload);
             return false;
         }
@@ -76,7 +73,6 @@ export const syncManager = {
             if (!response.ok) throw new Error("Failed to update progress");
             return await response.json();
         } catch (error) {
-            // Save to queue to persist user data if request fails or is aborted
             await addToSyncQueue("PROGRESS", payload);
             return false;
         }
@@ -103,13 +99,11 @@ export const syncManager = {
             if (!response.ok) throw new Error("Failed to update assessment");
             return await response.json();
         } catch (error) {
-            // Save to queue to persist user data if request fails or is aborted
             await addToSyncQueue("ASSESSMENT", payload);
             return false;
         }
     },
 
-    // Modernized batch-processor
     processSyncQueue: async () => {
         if (!navigator.onLine) return;
         try {
@@ -123,7 +117,6 @@ export const syncManager = {
                 const item = await syncQueueDB.getItem(key);
                 if (!item) continue;
 
-                // Handle both the modern {type, data} format and legacy fallback
                 const itemType = (item.type || "").toUpperCase();
                 const itemData = item.data || item.payload;
 
@@ -135,7 +128,7 @@ export const syncManager = {
                 if (itemType === "SUBMISSION") batchPayload.submissions.push(itemData);
                 else if (itemType === "PROGRESS") batchPayload.progress.push(itemData);
                 else if (itemType === "ASSESSMENT") batchPayload.assessments.push(itemData);
-                else keysToDelete.push(key); // Clear unrecognizable garbage
+                else keysToDelete.push(key); 
                 
                 keysToDelete.push(key);
             }
@@ -156,11 +149,9 @@ export const syncManager = {
                     console.warn(`[Sync] Batch sync failed with status ${response.status}`);
                 }
             } else {
-                // If there were only invalid items, clean them up
                 for (const key of keysToDelete) await syncQueueDB.removeItem(key);
             }
         } catch (err) {
-            // Silently ignore browser aborts (like page reloads/navigation)
             if (err.name === 'AbortError') return;
             console.error("[Sync] Error processing sync queue:", err);
         }
@@ -172,7 +163,6 @@ export const syncDownFromServer = async () => {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
 
-        // 1. Progress
         const progRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
         if (progRes.ok) {
             const data = await progRes.json();
@@ -190,7 +180,6 @@ export const syncDownFromServer = async () => {
             }
         }
 
-        // 2. Assessments
         const assRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
         if (assRes.ok) {
             const data = await assRes.json();
@@ -208,7 +197,6 @@ export const syncDownFromServer = async () => {
             }
         }
 
-        // 3. Submissions
         const subRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
         if (subRes.ok) {
             const data = await subRes.json();
@@ -227,7 +215,6 @@ export const syncDownFromServer = async () => {
         }
         window.dispatchEvent(new Event("localDataSynced"));
     } catch (error) { 
-        // Silently ignore browser aborts (like page reloads/navigation)
         if (error.name === 'AbortError') return;
         console.error("[Sync] Error pulling from server:", error);
     }
@@ -235,11 +222,18 @@ export const syncDownFromServer = async () => {
 
 let syncInterval = null;
 
+// BUG-15 Fix: Expose terminator to clear intervals on logout
+export const stopBackgroundSync = () => {
+    if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+    }
+};
+
 export const startBackgroundSync = () => {
     syncDownFromServer();
     syncManager.processSyncQueue();
     
-    // Clear existing interval to prevent duplicated intervals running simultaneously
     if (syncInterval) clearInterval(syncInterval);
     
     syncInterval = setInterval(() => { syncManager.processSyncQueue(); }, 30000);

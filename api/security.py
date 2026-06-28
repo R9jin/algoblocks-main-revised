@@ -1,4 +1,5 @@
 # api/security.py
+import os
 import logging
 import jwt
 from datetime import datetime, timedelta
@@ -8,7 +9,11 @@ from fastapi.security import OAuth2PasswordBearer
 
 logger = logging.getLogger(__name__)
 
-SECRET_KEY = "8f4e2a1b9c7d6e5f8a4b2c1d9e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f" 
+# BUG-01 Fix: Strictly load secret from environment variables
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("CRITICAL SECURITY ERROR: JWT_SECRET_KEY environment variable is not set.")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 

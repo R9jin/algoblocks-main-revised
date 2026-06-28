@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import {
   FiActivity,
   FiArrowLeft,
+  FiBarChart2,
   FiCheckCircle, FiClock, FiCode,
   FiCpu, FiDatabase,
   FiDownload,
   FiHelpCircle, FiLayers, FiPlay,
-  FiRefreshCw, FiXCircle
+  FiRefreshCw, FiTrendingUp, FiXCircle, FiZap
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { usePyodide } from "../context/PyodideContext";
@@ -703,6 +704,74 @@ export default function EvaluationSuite() {
             <div className="eval-stat-card">
               <div className="eval-stat-title">Space Mismatches</div>
               <div className={`eval-stat-value ${results.spaceFailed > 0 ? "val-danger" : "val-muted"}`}>{results.spaceFailed}</div>
+            </div>
+          </div>
+        )}
+
+        {/* --- NEW SECTION: AST COMPUTATIONAL EFFICIENCY & HARDWARE PROFILING --- */}
+        {results && results.efficiency && (
+          <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiZap style={{ display: "inline", color: "#F59E0B", marginRight: "8px" }} /> Computational Efficiency & Hardware Profiling Report
+                </strong>
+                <span className="eval-sklearn-subtitle">
+                  Execution efficiency benchmarks measuring Wasm AST engine throughput, latency percentiles, and memory allocation across {results.efficiency.totalLines} source lines of code.
+                </span>
+              </div>
+            </div>
+
+            <div className="eval-stats-grid" style={{ padding: "16px 20px 20px", gap: "16px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #F59E0B" }}>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }}/> Suite Execution</div>
+                <div className="eval-stat-value" style={{ color: "#D97706" }}>
+                  {results.efficiency.totalExecutionSec}s
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  {results.totalTested} algorithms processed
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #3B82F6" }}>
+                <div className="eval-stat-title"><FiTrendingUp style={{ display: "inline", marginRight: "4px" }}/> Engine Throughput</div>
+                <div className="eval-stat-value" style={{ color: "#2563EB" }}>
+                  {results.efficiency.throughputAlgos} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>algos/s</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  {results.efficiency.throughputLines} lines/sec
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #8B5CF6" }}>
+                <div className="eval-stat-title"><FiActivity style={{ display: "inline", marginRight: "4px" }}/> Mean AST Latency</div>
+                <div className="eval-stat-value" style={{ color: "#7C3AED" }}>
+                  {results.efficiency.meanTimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Median: {results.efficiency.medianTimeMs} ms
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EC4899" }}>
+                <div className="eval-stat-title"><FiBarChart2 style={{ display: "inline", marginRight: "4px" }}/> Latency (P95 / Max)</div>
+                <div className="eval-stat-value" style={{ color: "#DB2777" }}>
+                  {results.efficiency.p95TimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Peak Max: {results.efficiency.maxTimeMs} ms
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }}/> Peak Wasm Memory</div>
+                <div className="eval-stat-value" style={{ color: "#059669" }}>
+                  {results.efficiency.peakAstMemMB} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>MB</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Mean Traversal: {results.efficiency.meanAstMemKB} KB
+                </span>
+              </div>
             </div>
           </div>
         )}

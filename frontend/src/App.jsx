@@ -50,7 +50,6 @@ function App() {
 
   return (
     <PyodideProvider>
-      {/* The singleton logic in OfflineIndicator now ensures this is the ONLY one rendered */}
       <OfflineIndicator />
       
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
@@ -71,7 +70,8 @@ function App() {
           <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           
-          <Route path="/admin/evaluation-suite" element={<EvaluationSuite />} />
+          {/* BUG-03 Fix: Enforced ProtectedRoute guard around evaluation suite */}
+          <Route path="/admin/evaluation-suite" element={<ProtectedRoute><EvaluationSuite /></ProtectedRoute>} />
         </Routes>
       </Suspense>
     </PyodideProvider>
