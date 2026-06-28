@@ -6,6 +6,8 @@ import os
 import time
 import glob
 import builtins
+import statistics
+import tracemalloc
 
 # --- PREVENT HANGING ON INPUT() ---
 class MockBuffer:
@@ -64,92 +66,120 @@ def check_match(actual, expected):
     if EQUIVALENCE_MAP.get(expected) == actual: return True
     return False
 
-def calculate_metrics():
+def calc_percentile(data, pct):
+    """Computes exact statistical percentiles inside Pyodide without heavy numpy imports."""
+    if not data: return 0.0
+    if len(data) == 1: return float(data[0])
+    s = sorted(data)
+    k = (len(s) - 1) * (pct / 100.0)
+    f = int(k)
+    c = min(f + 1, len(s) - 1)
+    return s[f] + (s[c] - s[f]) * (k - f)
+
+def calculate_metrics(injected_dataset=None):
     dataset_dir = os.path.join(os.path.dirname(__file__), 'dataset')
     dataset = []
     
-    part_files = glob.glob(os.path.join(dataset_dir, 'curated_part_*.json'))
-    if not part_files:
-        part_files = [os.path.join(dataset_dir, 'ground_truth.json')]
-        print("Evaluating default ground_truth.json...\n")
+    if injected_dataset and isinstance(injected_dataset, list):
+        dataset = injected_dataset
     else:
-        print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
-        
-    for file_path in part_files:
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as f:
-                dataset.extend(json.load(f))
+        part_files = glob.glob(os.path.join(dataset_dir, 'curated_part_*.json'))
+        if not part_files:
+            part_files = [os.path.join(dataset_dir, 'ground_truth.json')]
+            print("Evaluating default ground_truth.json...\n")
+        else:
+            print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
             
-    # Include the Tasty Processed dataset CSV
-    csv_path = os.path.join(dataset_dir, 'processed', 'algo_blocks_dataset.csv')
-    if os.path.exists(csv_path):
-        print(f"Found Tasty processed dataset CSV at {csv_path}. Adding to evaluation...\n")
-        with open(csv_path, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                code_text = row.get('code', '')
-                space_comp = row.get('space_complexity', '')
-                time_comp = row.get('time_complexity', '')
+        for file_path in part_files:
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    dataset.extend(json.load(f))
                 
-                if space_comp: space_comp = space_comp.strip()
-                if time_comp: time_comp = time_comp.strip()
+        csv_path = os.path.join(dataset_dir, 'processed', 'algo_blocks_dataset.csv')
+        if os.path.exists(csv_path):
+            print(f"Found Tasty processed dataset CSV at {csv_path}. Adding to evaluation...\n")
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    code_text = row.get('code', '')
+                    space_comp = row.get('space_complexity', '')
+                    time_comp = row.get('time_complexity', '')
+                    
+                    if space_comp: space_comp = space_comp.strip()
+                    if time_comp: time_comp = time_comp.strip()
 
-                # --- SALVAGE MANGLED CSV LOGIC ---
-                if not space_comp and not time_comp and ',' in code_text:
-                    parts = code_text.split(',')
-                    if len(parts) >= 3:
-                        pos_time = parts[-1].strip().replace('"', '').lower()
-                        pos_space = parts[-2].strip().replace('"', '').lower()
-                        
-                        valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e']
-                        if pos_time in valids or pos_time.startswith('o('):
-                            time_comp = pos_time
-                            space_comp = pos_space
-                            code_text = ','.join(parts[:-2])
+                    if not space_comp and not time_comp and ',' in code_text:
+                        parts = code_text.split(',')
+                        if len(parts) >= 3:
+                            pos_time = parts[-1].strip().replace('"', '').lower()
+                            pos_space = parts[-2].strip().replace('"', '').lower()
+                            
+                            valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e']
+                            if pos_time in valids or pos_time.startswith('o('):
+                                time_comp = pos_time
+                                space_comp = pos_space
+                                code_text = ','.join(parts[:-2])
 
-                dataset.append({
-                    "id": f"tasty_csv_{reader.line_num}",
-                    "name": f"Tasty Algo {reader.line_num}",
-                    "code": code_text,
-                    "expected_overall_time": time_comp if time_comp else 'O(1)',
-                    "expected_overall_space": space_comp if space_comp else 'O(1)'
-                })
+                    dataset.append({
+                        "id": f"tasty_csv_{reader.line_num}",
+                        "name": f"Tasty Algo {reader.line_num}",
+                        "code": code_text,
+                        "expected_overall_time": time_comp if time_comp else 'O(1)',
+                        "expected_overall_space": space_comp if space_comp else 'O(1)',
+                        "category": "Tasty Processed CSV"
+                    })
         
     total_algorithms = len(dataset)
     if total_algorithms == 0:
         print("Dataset is empty. Exiting.")
-        return
+        return {}
 
     overall_time_correct = 0
     overall_space_correct = 0
+    perfect_passed_count = 0
     total_lines_evaluated = 0
     lines_time_correct = 0
     lines_space_correct = 0
-    total_processing_time = 0
     
     y_true_time = []
     y_pred_time = []
     y_true_space = []
     y_pred_space = []
-    
+    details_list = []
     failures_log = []
 
-    print(f"Starting Independent AST Complexity Evaluation on {total_algorithms} algorithms...\n")
+    # --- CLIENT-SIDE PYODIDE WASM PROFILERS ---
+    case_times_ms = []
+    case_ast_peak_bytes = []
+    total_source_lines = 0
+
+    tracemalloc.start()
+    start_time_suite = time.perf_counter()
+
+    print(f"Starting Client-Side Pyodide Wasm Complexity Evaluation on {total_algorithms} algorithms...\n")
 
     for index, item in enumerate(dataset, 1):
         code_snippet = item.get('code', '')
+        line_count = len(code_snippet.splitlines()) if code_snippet else 0
+        total_source_lines += line_count
         
         expected_time = normalize_complexity(item.get('expected_overall_time', item.get('time_complexity', 'O(1)')))
         expected_space = normalize_complexity(item.get('expected_overall_space', item.get('space_complexity', 'O(1)')))
         
         print(f"[{index}/{total_algorithms}] Analyzing {item.get('id', item.get('name', 'Unknown'))}...", end="", flush=True)
         
-        start_time = time.perf_counter()
+        if hasattr(tracemalloc, 'reset_peak'):
+            tracemalloc.reset_peak()
+
+        t0 = time.perf_counter()
         results = analyze_source_code(code_snippet)
-        end_time = time.perf_counter()
+        t1 = time.perf_counter()
         
-        processing_time_ms = (end_time - start_time) * 1000
-        total_processing_time += processing_time_ms
+        processing_time_ms = (t1 - t0) * 1000.0
+        case_times_ms.append(processing_time_ms)
+
+        _, peak_bytes = tracemalloc.get_traced_memory()
+        case_ast_peak_bytes.append(peak_bytes)
 
         if results.get("status") == "error":
             err_msg = results.get('message', 'Unknown Error')
@@ -171,6 +201,9 @@ def calculate_metrics():
             
         if is_space_match: overall_space_correct += 1
         else: print(f"  -> [Space Mismatch]: Expected {expected_space}, got {actual_space}")
+
+        if is_time_match and is_space_match:
+            perfect_passed_count += 1
             
         if not is_time_match or not is_space_match:
             failures_log.append(f"[{item.get('id', item.get('name', 'Unknown'))}]\n"
@@ -184,6 +217,21 @@ def calculate_metrics():
         
         y_true_space.append(expected_space)
         y_pred_space.append(EQUIVALENCE_MAP.get(actual_space, actual_space))
+
+        details_list.append({
+            "id": item.get('id', f"case_{index}"),
+            "name": item.get('name', f"Algorithm {index}"),
+            "category": item.get('category', "Standard Benchmark"),
+            "expectedTime": expected_time,
+            "expectedSpace": expected_space,
+            "predictedTime": actual_time,
+            "predictedSpace": actual_space,
+            "isTimeCorrect": is_time_match,
+            "isSpaceCorrect": is_space_match,
+            "isCompletelyCorrect": (is_time_match and is_space_match),
+            "explanation": results.get('overall_explanation', 'AST parsed successfully.'),
+            "codeSnippet": code_snippet
+        })
             
         actual_lines_dict = { detail.get('lineno'): detail for detail in actual_details }
         
@@ -204,56 +252,82 @@ def calculate_metrics():
                 if check_match(actual_global_space, expected_line_space) or check_match(actual_line.get('local_space', 'O(1)'), expected_line_space):
                     lines_space_correct += 1
 
+    end_time_suite = time.perf_counter()
+    total_execution_sec = end_time_suite - start_time_suite
+    tracemalloc.stop()
+
     time_accuracy = (overall_time_correct / total_algorithms) * 100 if total_algorithms > 0 else 0
     space_accuracy = (overall_space_correct / total_algorithms) * 100 if total_algorithms > 0 else 0
-    
     line_time_acc = (lines_time_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
     line_space_acc = (lines_space_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
-    
-    avg_processing_time = total_processing_time / total_algorithms if total_algorithms > 0 else 0
-    time_error_rate = 100 - time_accuracy
-    space_error_rate = 100 - space_accuracy
+
+    # Efficiency Statistics
+    sorted_times = sorted(case_times_ms)
+    mean_ms = statistics.mean(sorted_times) if sorted_times else 0.0
+    median_ms = statistics.median(sorted_times) if sorted_times else 0.0
+    max_ms = sorted_times[-1] if sorted_times else 0.0
+    p95_ms = calc_percentile(sorted_times, 95.0)
+
+    throughput_algos = total_algorithms / total_execution_sec if total_execution_sec > 0 else 0.0
+    throughput_lines = total_source_lines / total_execution_sec if total_execution_sec > 0 else 0.0
+
+    peak_ast_mb = (max(case_ast_peak_bytes) if case_ast_peak_bytes else 0) / (1024.0 * 1024.0)
+    mean_ast_kb = (statistics.mean(case_ast_peak_bytes) if case_ast_peak_bytes else 0) / 1024.0
 
     print("\n" + "="*60)
     print("   SOP 2: ALGORITHM STRUCTURAL ACCURACY")
     print("="*60)
     print(f"Total Algorithms Tested   : {total_algorithms}")
     print(f"Total Lines Evaluated     : {total_lines_evaluated}")
-    print("-" * 60)
     print(f"1. Time Complexity Detection Acc  : {time_accuracy:.2f}%")
     print(f"2. Space Complexity Detection Acc : {space_accuracy:.2f}%")
-    print(f"3. Line-Level Time Class. Acc     : {line_time_acc:.2f}%")
-    print(f"4. Line-Level Space Class. Acc    : {line_space_acc:.2f}%")
-    print(f"5. Average Processing Time        : {avg_processing_time:.2f} ms")
-    print(f"6. Time Error Rate                : {time_error_rate:.2f}%")
-    print(f"7. Space Error Rate               : {space_error_rate:.2f}%")
+    print(f"3. Average Processing Time        : {mean_ms:.2f} ms")
     
-    # Write failures log
-    log_path = os.path.join(os.path.dirname(__file__), 'evaluation_failures_log.txt')
-    with open(log_path, 'w', encoding='utf-8') as f:
-        f.write("=== EVALUATION FAILURES LOG ===\n\n")
-        if failures_log:
-            f.write("\n\n".join(failures_log))
-        else:
-            f.write("No mismatches found. Perfect accuracy!\n")
-    print(f"\nSaved failures log to {log_path}")
-
-    print("\n" + "="*60)
-    print("   ADVANCED CLASSIFICATION METRICS (Precision/Recall/F1)")
-    print("="*60)
+    time_report_dict = {}
+    space_report_dict = {}
+    
     try:
         from sklearn.metrics import classification_report
-        print("--- TIME COMPLEXITY REPORT ---")
-        time_report = classification_report(y_true_time, y_pred_time, zero_division=0)
-        print(time_report)
+        time_report_raw = classification_report(y_true_time, y_pred_time, output_dict=True, zero_division=0)
+        space_report_raw = classification_report(y_true_space, y_pred_space, output_dict=True, zero_division=0)
         
-        print("\n--- SPACE COMPLEXITY REPORT ---")
-        space_report = classification_report(y_true_space, y_pred_space, zero_division=0)
-        print(space_report)
-        
-    except ImportError:
+        def format_report_dict(raw):
+            classes = {k: v for k, v in raw.items() if k not in ('accuracy', 'macro avg', 'weighted avg')}
+            return {
+                "perClass": {k: {"precision": round(v['precision'], 2), "recall": round(v['recall'], 2), "f1Score": round(v['f1-score'], 2), "support": v['support']} for k, v in classes.items()},
+                "macroAvg": {"precision": round(raw['macro avg']['precision'], 2), "recall": round(raw['macro avg']['recall'], 2), "f1Score": round(raw['macro avg']['f1-score'], 2)},
+                "weightedAvg": {"precision": round(raw['weighted avg']['precision'], 2), "recall": round(raw['weighted avg']['recall'], 2), "f1Score": round(raw['weighted avg']['f1-score'], 2)}
+            }
+        time_report_dict = format_report_dict(time_report_raw)
+        space_report_dict = format_report_dict(space_report_raw)
+    except Exception:
         pass
-    print("="*60)
+
+    return {
+        "totalTested": total_algorithms,
+        "timePassed": overall_time_correct,
+        "timeFailed": total_algorithms - overall_time_correct,
+        "timeAccuracyRate": round(time_accuracy, 1),
+        "spacePassed": overall_space_correct,
+        "spaceFailed": total_algorithms - overall_space_correct,
+        "spaceAccuracyRate": round(space_accuracy, 1),
+        "perfectPassed": perfect_passed_count,
+        "details": details_list,
+        "timeReport": time_report_dict,
+        "spaceReport": space_report_dict,
+        "efficiency": {
+            "totalExecutionSec": round(total_execution_sec, 4),
+            "throughputAlgos": round(throughput_algos, 2),
+            "throughputLines": round(throughput_lines, 2),
+            "meanTimeMs": round(mean_ms, 2),
+            "medianTimeMs": round(median_ms, 2),
+            "maxTimeMs": round(max_ms, 2),
+            "p95TimeMs": round(p95_ms, 2),
+            "peakAstMemMB": round(peak_ast_mb, 4),
+            "meanAstMemKB": round(mean_ast_kb, 2),
+            "totalLines": total_source_lines
+        }
+    }
 
 if __name__ == "__main__":
     calculate_metrics()
