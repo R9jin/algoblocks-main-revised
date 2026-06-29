@@ -5,9 +5,13 @@ from bson import ObjectId
 class ProjectRepository:
     @staticmethod
     def find_by_user(user_id: str):
-        projects = list(projects_collection.find({"userId": user_id}))
+        projects = list(projects_collection.find({"$or": [{"userId": user_id}, {"owner_id": user_id}]}))
         for proj in projects:
             proj["_id"] = str(proj["_id"])
+            if "userId" not in proj and "owner_id" in proj:
+                proj["userId"] = proj["owner_id"]
+            if "owner_id" not in proj and "userId" in proj:
+                proj["owner_id"] = proj["userId"]
         return projects
 
     @staticmethod
@@ -17,11 +21,19 @@ class ProjectRepository:
 
     @staticmethod
     def update(project_id: str, user_id: str, data: dict):
+        try:
+            obj_id = ObjectId(project_id)
+        except Exception:
+            obj_id = project_id
         return projects_collection.update_one(
-            {"_id": ObjectId(project_id), "userId": user_id},
+            {"_id": obj_id, "$or": [{"userId": user_id}, {"owner_id": user_id}]},
             {"$set": data}
         )
 
     @staticmethod
     def delete(project_id: str, user_id: str):
-        return projects_collection.delete_one({"_id": ObjectId(project_id), "userId": user_id})
+        try:
+            obj_id = ObjectId(project_id)
+        except Exception:
+            obj_id = project_id
+        return projects_collection.delete_one({"_id": obj_id, "$or": [{"userId": user_id}, {"owner_id": user_id}]})

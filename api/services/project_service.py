@@ -1,6 +1,5 @@
 # api/services/project_service.py
-from repositories.project_repo import ProjectRepository  # Removed api. prefix
-# FIX: Updated import to ProjectSyncRequest
+from repositories.project_repo import ProjectRepository
 from models import ProjectSyncRequest
 from fastapi import HTTPException
 from datetime import datetime
@@ -14,29 +13,33 @@ class ProjectService:
         return {"status": "success", "projects": projects}
 
     @staticmethod
-    def save_project(req: ProjectSyncRequest): # FIX: Updated parameter type hint
+    def save_project(req: ProjectSyncRequest):
+        proj_name = req.name or req.title or "Untitled Project"
         update_data = {
-            "name": req.name,
-            "workspace": req.workspace,
-            "pythonCode": req.pythonCode,
-            "updatedAt": datetime.utcnow().isoformat()
+            "name": proj_name,
+            "title": proj_name,
+            "description": req.description or "",
+            "workspace": req.workspace or {},
+            "pythonCode": req.pythonCode or "",
+            "updatedAt": datetime.utcnow().isoformat(),
+            "userId": req.userId,
+            "owner_id": req.userId
         }
 
-        if req.projectId:
+        if req.projectId and not str(req.projectId).startswith("local_"):
             result = ProjectRepository.update(req.projectId, req.userId, update_data)
             if result.matched_count == 0:
                 raise HTTPException(status_code=404, detail="Project not found or unauthorized")
-            return {"status": "success", "projectId": req.projectId}
+            return {"status": "success", "projectId": req.projectId, "synced": True}
         else:
-            update_data["userId"] = req.userId
             update_data["createdAt"] = update_data["updatedAt"]
             project_id = ProjectRepository.insert(update_data)
-            return {"status": "success", "projectId": project_id}
+            return {"status": "success", "projectId": project_id, "synced": True}
 
     @staticmethod
     def delete_project(payload: dict):
         project_id = payload.get("projectId")
-        user_id = payload.get("userId")
+        user_id = payload.get("userId") or payload.get("owner_id")
 
         if not project_id or not user_id:
             raise HTTPException(status_code=400, detail="Missing projectId or userId")

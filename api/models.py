@@ -5,7 +5,6 @@ from typing import Dict, Any, Optional, List
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
-    # BUG-11 Fix: Enforce minimum password boundary
     password: str = Field(..., min_length=6)
 
 class UserLogin(BaseModel):
@@ -38,8 +37,10 @@ class AssessmentUpdateRequest(BaseModel):
 
 class ProjectSyncRequest(BaseModel):
     userId: Optional[str] = None
-    projectId: str
+    owner_id: Optional[str] = None
+    projectId: Optional[str] = None
     title: Optional[str] = "Untitled Project"
+    name: Optional[str] = "Untitled Project"
     description: Optional[str] = ""
     workspace: Optional[Dict[str, Any]] = {}
     pythonCode: Optional[str] = ""
@@ -47,12 +48,15 @@ class ProjectSyncRequest(BaseModel):
     isSynced: Optional[bool] = False
 
 class TemplateSyncRequest(BaseModel):
-    templateId: str
+    templateId: Optional[str] = None
     title: Optional[str] = "Untitled Template"
+    name: Optional[str] = "Untitled Template"
     description: Optional[str] = ""
+    category: Optional[str] = "Custom Templates"
     workspace: Optional[Dict[str, Any]] = {}
     pythonCode: Optional[str] = ""
     userId: Optional[str] = None
+    owner_id: Optional[str] = None
     timestamp: Optional[int] = None
     isSynced: Optional[bool] = False
 

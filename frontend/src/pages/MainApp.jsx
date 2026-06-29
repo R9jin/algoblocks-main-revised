@@ -20,6 +20,7 @@ import { FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, 
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
+import { syncManager } from "../utils/syncManager.js";
 
 const SIDEBAR_TEMPLATES = [
   { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element.", category: "Search" },
@@ -46,6 +47,8 @@ const createInitialTab = (locState = null) => {
     pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
     analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project",
+    isDirty: false,
+    ignoreDirtyUntil: Date.now() + 1200
   };
 
   if (locState?.projectToLoad) {
@@ -65,7 +68,8 @@ export default function MainApp() {
   const navigate = useNavigate();
   const navigationContext = React.useContext(NavigationContext);
   const navigator = navigationContext?.navigator;
-  const API_BASE = import.meta.env.VITE_API_URL || "";
+  
+  const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const { worker, isEngineReady, resetWorker } = usePyodide();
 
@@ -129,11 +133,7 @@ export default function MainApp() {
   useEffect(() => {
     if (!navigator || !navigator.block) return;
     const unblock = navigator.block((tx) => {
-      const hasUnsavedChanges = latestTabsRef.current.some((t) => {
-        const hasCode = t.pythonCode && t.pythonCode !== "# Drag blocks to generate Python code";
-        const hasBlocks = t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
-        return hasCode || hasBlocks || t.isEditingCode;
-      });
+      const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
       if (hasUnsavedChanges && !isNavigatingAwayRef.current) setLeaveModal({ isOpen: true, tx, targetPath: null });
       else tx.retry();
     });
@@ -142,11 +142,7 @@ export default function MainApp() {
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      const hasUnsavedChanges = latestTabsRef.current.some((t) => {
-        const hasCode = t.pythonCode && t.pythonCode !== "# Drag blocks to generate Python code";
-        const hasBlocks = t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
-        return hasCode || hasBlocks || t.isEditingCode;
-      });
+      const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
       if (hasUnsavedChanges && !isNavigatingAwayRef.current) { e.preventDefault(); e.returnValue = "You have unsaved changes. Are you sure you want to leave?"; }
     };
     const handleGlobalClick = (e) => {
@@ -159,11 +155,7 @@ export default function MainApp() {
       const isBackButton = el.className && typeof el.className === "string" && el.className.includes("wh-back-btn");
 
       if (isInternalNav || isBackButton) {
-        const hasUnsavedChanges = latestTabsRef.current.some((t) => {
-          const hasCode = t.pythonCode && t.pythonCode !== "# Drag blocks to generate Python code";
-          const hasBlocks = t.blocklyJson && Object.keys(t.blocklyJson).length > 0;
-          return hasCode || hasBlocks || t.isEditingCode;
-        });
+        const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
         if (hasUnsavedChanges) {
           e.preventDefault(); e.stopPropagation();
           let targetUrl = "/dashboard";
@@ -269,21 +261,21 @@ export default function MainApp() {
       if (navigator && navigator.onLine && API_BASE) {
         try {
           const headers = getAuthHeaders();
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
-          if (pRes.ok) {
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
             const pData = await pRes.json();
             for (const cp of pData.projects || pData || []) {
               if (cp.owner_id === user.email || cp.userId === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true });
             }
           }
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`, { headers });
-          if (tRes.ok) {
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
             const tData = await tRes.json();
             for (const ct of tData.templates || tData || []) {
               if (ct.owner_id === user.email || ct.userId === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true });
             }
           }
-        } catch (e) { console.error("MainApp cloud sync failed:", e); }
+        } catch (e) { console.warn("MainApp templates cloud sync degraded offline:", e); }
       }
 
       let customItems = [];
@@ -343,22 +335,20 @@ export default function MainApp() {
       const isClean = activeTab.title === "Untitled Project" && !activeTab.blocklyJson;
       const targetId = isClean ? activeTab.id : `tab-${Date.now()}`;
 
+      const loadedState = {
+        title: item.title, blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
+        isEditingCode: false, syntaxErrors: [], 
+        analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
+        lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
+        isDirty: false,
+        ignoreDirtyUntil: Date.now() + 1200
+      };
+
       if (isClean) {
-        updateTab(targetId, {
-          title: item.title, blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
-          isEditingCode: false, syntaxErrors: [], 
-          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
-          lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
-        });
+        updateTab(targetId, loadedState);
         if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json);
       } else {
-        const newTabState = {
-          id: targetId, title: item.title, viewMode: "workspace", blocklyJson: json,
-          pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
-          analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
-          lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
-        };
-        setTabs((prev) => [...prev, newTabState]);
+        setTabs((prev) => [...prev, { id: targetId, viewMode: "workspace", ...loadedState }]);
         setActiveTabId(targetId);
       }
     } catch (error) { showToast("Failed to load template", "error"); }
@@ -411,11 +401,20 @@ export default function MainApp() {
     const oldCode = (tab.pythonCode || "").trim();
     const newCode = (pythonCode || "").trim();
 
+    const canMarkDirty = Date.now() > (tab.ignoreDirtyUntil || 0);
+
     if (!tab.isEditingCode) {
       if (oldCode !== newCode) analyzeCode(tabId, newCode);
-      updateTab(tabId, { blocklyJson: json, pythonCode: newCode });
+      updateTab(tabId, { 
+        blocklyJson: json, 
+        pythonCode: newCode,
+        ...(canMarkDirty ? { isDirty: true } : {})
+      });
     } else {
-      updateTab(tabId, { blocklyJson: json });
+      updateTab(tabId, { 
+        blocklyJson: json,
+        ...(canMarkDirty ? { isDirty: true } : {})
+      });
     }
   };
 
@@ -451,6 +450,8 @@ export default function MainApp() {
             analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
             analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
             currentLoadedId: null, title: "Untitled Project", saveType: "project",
+            isDirty: false,
+            ignoreDirtyUntil: Date.now() + 1200
           });
           setBottomPanel(null);
         }
@@ -564,7 +565,14 @@ export default function MainApp() {
 
         if (workspaceRefs.current[activeTabId]) {
           workspaceRefs.current[activeTabId].loadTemplate(blocks);
-          updateTab(activeTabId, { title: title, saveType: "project", pythonCode: pythonCode, isEditingCode: pythonCode !== "# Drag blocks to generate Python code" });
+          updateTab(activeTabId, { 
+            title: title, 
+            saveType: "project", 
+            pythonCode: pythonCode, 
+            isEditingCode: pythonCode !== "# Drag blocks to generate Python code",
+            isDirty: false,
+            ignoreDirtyUntil: Date.now() + 1200
+          });
           showToast("Workspace imported successfully", "success");
         }
       } catch (err) { showToast("Invalid JSON file format", "error"); }
@@ -592,12 +600,14 @@ export default function MainApp() {
     if (user.isGuest) { showToast("Error: Guest accounts cannot save.", "error"); return; }
 
     const id = saveModal.editingId || (saveModal.saveType === "template" ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
+    const nowMs = Date.now();
     const payload = {
       _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description,
       category: saveModal.saveType === "template" ? saveModal.category : undefined,
       data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson,
       workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
-      owner_id: user.email, userId: user.email, synced: false, updatedAt: Date.now(),
+      pythonCode: activeTab.pythonCode || "",
+      owner_id: user.email, userId: user.email, synced: false, updatedAt: nowMs,
     };
 
     const db = saveModal.saveType === "template" ? templatesDB : projectsDB;
@@ -606,11 +616,17 @@ export default function MainApp() {
     if (navigator && navigator.onLine && user.email && API_BASE) {
       try {
         const endpoint = saveModal.saveType === "template" ? "/api/templates/save" : "/api/projects/save";
+        const fallbackEndpoint = saveModal.saveType === "template" ? "/api/templates" : "/api/projects";
         const apiPayload = saveModal.saveType === "template"
           ? { templateId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
           : { projectId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
-        const res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
-        if (res.ok) {
+        
+        let res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        if (res.status === 404) {
+           res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        }
+        
+        if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
           const responseData = await res.json();
           const realId = responseData.projectId || responseData.templateId || responseData._id || id;
           payload._id = realId; payload.synced = true;
@@ -618,16 +634,29 @@ export default function MainApp() {
           await db.setItem(realId, payload);
           showToast("Saved directly to cloud!", "success");
           setSaveModal({ ...saveModal, isOpen: false });
-          if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType });
+          
+          if (!saveModal.isEditMetadataOnly) {
+            updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
+          }
+          window.dispatchEvent(new Event("localDataSynced"));
           fetchTemplates(); return;
         }
-      } catch (err) { console.warn("Direct save failed, falling back to background queue.", err); }
+      } catch (err) { console.warn("Direct save degraded offline:", err); }
     }
 
-    await syncQueueDB.setItem(`sync_${id}_${Date.now()}`, { type: saveModal.saveType.toUpperCase(), action: "UPSERT", data: payload });
+    await syncQueueDB.setItem(`sync_${id}_${nowMs}`, { type: saveModal.saveType.toUpperCase(), action: "UPSERT", data: payload });
     showToast("Saved locally. Background sync queued.");
     setSaveModal({ ...saveModal, isOpen: false });
-    if (!saveModal.isEditMetadataOnly) updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType });
+    
+    if (!saveModal.isEditMetadataOnly) {
+      updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
+    }
+    
+    // Force immediate background processing trigger
+    if (syncManager?.processSyncQueue) {
+       syncManager.processSyncQueue();
+    }
+    
     fetchTemplates();
   };
 
@@ -650,9 +679,10 @@ export default function MainApp() {
       tabs.forEach((t) => {
         if (t.currentLoadedId === item._id) {
           workspaceRefs.current[t.id]?.clear();
-          updateTab(t.id, { currentLoadedId: null, title: "Untitled Project" });
+          updateTab(t.id, { currentLoadedId: null, title: "Untitled Project", isDirty: false });
         }
       });
+      if (syncManager?.processSyncQueue) syncManager.processSyncQueue();
     } catch (err) { showToast("Error deleting item.", "error"); fetchTemplates(); }
   };
 
@@ -700,7 +730,7 @@ export default function MainApp() {
         onSyncToBlocks={handleSyncToBlocks}
         onChangeCode={(value) => {
           const cleanValue = sanitizePythonCode(value);
-          updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [] });
+          updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
         }}
         onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
       />
@@ -812,7 +842,7 @@ export default function MainApp() {
                 <span className="tab-indicator">
                   {tab.viewMode === "python" ? <FiTerminal size={14} /> : <FiGrid size={14} />}
                 </span>
-                <span className="tab-title">{tab.title} {tab.isEditingCode && "*"}</span>
+                <span className="tab-title">{tab.title} {tab.isDirty && "*"}</span>
                 <button className="tab-close-btn" onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}><FiX size={12} /></button>
               </div>
             ))}

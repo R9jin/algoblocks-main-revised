@@ -1,11 +1,10 @@
 // frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuUser } from "react-icons/lu";
+import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/DashboardHeader.css";
-import LogoutConfirmModal from "./LogoutConfirmModal";
-// BUG-13, BUG-15 Fix: Import syncManager and poller terminator
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 
 export default function DashboardHeader({
   backTo = "/home",
@@ -14,6 +13,7 @@ export default function DashboardHeader({
   const [user, setUser] = useState(null);
   const [open, setOpen] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
+  const [isGlobalSyncing, setIsGlobalSyncing] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
@@ -22,6 +22,17 @@ export default function DashboardHeader({
     if (storedUser) {
       setUser(JSON.parse(storedUser || "{}"));
     }
+  }, []);
+
+  useEffect(() => {
+    const onStart = () => setIsGlobalSyncing(true);
+    const onEnd = () => setIsGlobalSyncing(false);
+    window.addEventListener("sync-start", onStart);
+    window.addEventListener("sync-end", onEnd);
+    return () => {
+      window.removeEventListener("sync-start", onStart);
+      window.removeEventListener("sync-end", onEnd);
+    };
   }, []);
 
   const initials = useMemo(() => {
@@ -48,7 +59,6 @@ export default function DashboardHeader({
     };
   }, []);
 
-  // BUG-13, BUG-15 Fix: Surgical purge + sync loop termination
   const handleLogout = async () => {
     stopBackgroundSync();
     await syncManager.processSyncQueue();
@@ -63,6 +73,11 @@ export default function DashboardHeader({
 
   return (
     <>
+      <style>{`
+        @keyframes dhSpin { 100% { transform: rotate(360deg); } }
+        .dh-spin-anim { animation: dhSpin 1s linear infinite; }
+      `}</style>
+
       <header className="dashboard-header">
         <div className="header-left">
           <Link to={backTo} className="back-home">
@@ -77,7 +92,16 @@ export default function DashboardHeader({
           </div>
         </div>
 
-        <div className="header-right">
+        <div className="header-right" style={{ display: "flex", alignItems: "center" }}>
+          
+          {/* Live Sync Loader Indicator */}
+          {isGlobalSyncing && (
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(96, 165, 250, 0.12)", border: "1px solid rgba(96, 165, 250, 0.35)", color: "#60A5FA", padding: "5px 12px", borderRadius: "20px", fontSize: "0.8rem", fontWeight: "600", marginRight: "14px" }}>
+              <LuRefreshCw className="dh-spin-anim" size={15} />
+              <span>Syncing</span>
+            </div>
+          )}
+
           <div className="user-menu" ref={menuRef}>
             <button
               type="button"
@@ -107,16 +131,21 @@ export default function DashboardHeader({
                   <LuFolder size={18} /> Projects
                 </button>
 
-                <div className="user-dd-divider" />
-                <button 
-                  type="button" 
-                  className="user-dd-item" 
-                  style={{ color: "#10B981", fontWeight: "bold" }}
-                  onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
-                  role="menuitem"
-                >
-                  <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
-                </button>
+                {/* RESTRICTED: Only revealed if account holds admin privileges */}
+                {user?.isAdmin && (
+                  <>
+                    <div className="user-dd-divider" />
+                    <button 
+                      type="button" 
+                      className="user-dd-item" 
+                      style={{ color: "#10B981", fontWeight: "bold" }}
+                      onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
+                      role="menuitem"
+                    >
+                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                    </button>
+                  </>
+                )}
 
                 <div className="user-dd-divider" />
                 <button type="button" className="user-dd-item danger" onClick={(e) => { e.stopPropagation(); setOpen(false); setShowLogout(true); }} role="menuitem">

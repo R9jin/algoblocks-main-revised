@@ -1,13 +1,13 @@
 // frontend/src/pages/Dashboard.jsx
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiLock } from "react-icons/fi";
+import { FiLock, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
 import { projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 const SYSTEM_TEMPLATES = {
   sorting: [
@@ -30,7 +30,6 @@ const SYSTEM_TEMPLATES = {
   ]
 };
 
-// FAQ Data accurately aligned with the system's static structural analysis 
 const FAQ_ITEMS = [
   {
     question: "What is AlgoBlocks and how do I use the Workspace?",
@@ -66,7 +65,6 @@ const FAQ_ITEMS = [
   }
 ];
 
-// SVG Icons for modern UI
 const PlusIcon = () => (
   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -106,18 +104,17 @@ export default function Dashboard() {
   const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
   const [userTemplates, setUserTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncingLive, setIsSyncingLive] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
   
-  // Stabilized memory reference to prevent infinite render loops
   const currentUser = useMemo(() => {
     return storedUserStr ? JSON.parse(storedUserStr) : null;
   }, [storedUserStr]);
 
   const isGuest = currentUser?.isGuest === true;
 
-  // Dynamic progress state
   const [progressData, setProgressData] = useState({
     percent: 0,
     moduleTitle: "Welcome",
@@ -130,7 +127,6 @@ export default function Dashboard() {
       setLoading(true);
       const user = currentUser;
 
-      // 1. Compute User Learning Progress
       let total = 0;
       let completed = 0;
       let nextMod = curriculumIndex[0];
@@ -174,8 +170,7 @@ export default function Dashboard() {
         moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
       });
 
-      // 2. Fetch and Sync Projects and Templates from Cloud
-      if (navigator.onLine && user && !user.isGuest) {
+      if (navigator.onLine && user && !user.isGuest && API_BASE) {
         try {
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
           const headers = {
@@ -183,9 +178,8 @@ export default function Dashboard() {
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           };
 
-          // Fetch Projects
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
-          if (pRes.ok) {
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
             const pData = await pRes.json();
             const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
             for (const cp of cloudProjects) {
@@ -195,9 +189,8 @@ export default function Dashboard() {
             }
           }
 
-          // Fetch Custom Templates
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`, { headers });
-          if (tRes.ok) {
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
             const tData = await tRes.json();
             const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
             for (const ct of cloudTemplates) {
@@ -208,11 +201,10 @@ export default function Dashboard() {
           }
 
         } catch (fetchErr) {
-          console.error("Failed to fetch cloud projects or templates:", fetchErr);
+          console.warn("Cloud sync check dropped to local cache:", fetchErr);
         }
       }
 
-      // 3. Load from local IndexedDB (handles offline or newly synced data)
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
         if (!user || value.owner_id === user.email || value.userId === user.email) {
@@ -244,8 +236,24 @@ export default function Dashboard() {
     }
   }, [currentUser]);
 
+  // LIVE EVENT BUS: Instantly flips Local tags to Cloud tags whenever background sync dispatches
   useEffect(() => {
     loadDashboardData();
+
+    const onSyncTrigger = () => loadDashboardData();
+    const onStart = () => setIsSyncingLive(true);
+    const onEnd = () => { setIsSyncingLive(false); loadDashboardData(); };
+
+    window.addEventListener("localDataSynced", onSyncTrigger);
+    window.addEventListener("online", onSyncTrigger);
+    window.addEventListener("sync-start", onStart);
+    window.addEventListener("sync-end", onEnd);
+    return () => {
+      window.removeEventListener("localDataSynced", onSyncTrigger);
+      window.removeEventListener("online", onSyncTrigger);
+      window.removeEventListener("sync-start", onStart);
+      window.removeEventListener("sync-end", onEnd);
+    };
   }, [loadDashboardData]);
 
   const handleTryTemplate = async (template) => {
@@ -255,7 +263,6 @@ export default function Dashboard() {
         if (!response.ok) throw new Error("Template file not found");
         const data = await response.json();
         
-        // Wrap system template securely inside `data` property
         const proj = { 
           data: data, 
           isTemplate: true, 
@@ -265,7 +272,6 @@ export default function Dashboard() {
         };
         navigate("/workspace", { state: { projectToLoad: proj } });
       } else {
-        // Extract dynamically located blocks securely into `data` property
         const proj = { 
           data: template.blocks || template.data || template.workspace?.blocklyJson, 
           isTemplate: true, 
@@ -291,15 +297,18 @@ export default function Dashboard() {
 
   return (
     <div className="bento-dashboard-layout">
+      <style>{`
+        @keyframes dashSpin { 100% { transform: rotate(360deg); } }
+        .dash-spin-anim { animation: dashSpin 1s linear infinite; }
+      `}</style>
+
       <DashboardHeader />
       
       <main className="bento-dashboard-content">
         <div className="bento-grid-container">
           
-          {/* Main Content Column */}
           <div className="bento-main-column">
             
-            {/* Hero Card */}
             <section className="bento-hero-card">
               <div className="hero-text">
                 <h1 className="hero-title">Welcome to AlgoBlocks!</h1>
@@ -307,16 +316,12 @@ export default function Dashboard() {
                   An interactive platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
                 </p>
               </div>
-              <button 
-                className="hero-primary-btn" 
-                onClick={() => navigate("/workspace")}
-              >
+              <button className="hero-primary-btn" onClick={() => navigate("/workspace")}>
                 <PlusIcon />
                 <span>Blank Workspace</span>
               </button>
             </section>
 
-            {/* Learning Path Card */}
             <section className="bento-learning-card">
               <div className="learning-content">
                 <span className="module-badge">
@@ -345,26 +350,19 @@ export default function Dashboard() {
               <div className="learning-action">
                 <button 
                   className="banner-icon-btn" 
-                  onClick={() => {
-                    if (!isGuest) navigate("/learning-path");
-                  }}
+                  onClick={() => { if (!isGuest) navigate("/learning-path"); }}
                   style={isGuest ? { backgroundColor: '#F1F5F9', cursor: 'not-allowed', boxShadow: 'none', border: '1px solid #E2E8F0' } : {}}
                   disabled={isGuest}
                 >
                   {isGuest ? (
                     <FiLock size={32} color="#94A3B8" />
                   ) : (
-                    <img 
-                      src="/assets/learning-icon.png" 
-                      alt="Learning Path" 
-                      className="learning-path-img"
-                    />
+                    <img src="/assets/learning-icon.png" alt="Learning Path" className="learning-path-img" />
                   )}
                 </button>
               </div>
             </section>
 
-            {/* Custom User Templates Section */}
             <section className="bento-library-section" style={{ marginTop: "20px" }}>
               <div className="section-header">
                 <h2>Your Custom Templates</h2>
@@ -380,12 +378,7 @@ export default function Dashboard() {
                 <div className="bento-category-group">
                   <div className="bento-template-grid">
                     {userTemplates.map((tpl, i) => (
-                      <div 
-                        key={tpl._id || i} 
-                        className="bento-template-card custom-template-card"
-                        onClick={() => handleTryTemplate(tpl)}
-                        style={{ borderTop: "3px solid #db7fff" }}
-                      >
+                      <div key={tpl._id || i} className="bento-template-card custom-template-card" onClick={() => handleTryTemplate(tpl)} style={{ borderTop: "3px solid #db7fff" }}>
                         <div className="template-card-header">
                           <div className="template-icon-wrapper" style={{ background: "rgba(108, 92, 231, 0.2)" }}>
                             <img src={tpl.icon} alt="icon" className="template-icon" />
@@ -404,7 +397,6 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* System Template Library Grid */}
             <section className="bento-library-section" style={{ marginTop: "20px" }}>
               <div className="section-header">
                 <h2>System Algorithm Library</h2>
@@ -416,11 +408,7 @@ export default function Dashboard() {
                   <h3 className="category-title">{category.toUpperCase()}</h3>
                   <div className="bento-template-grid">
                     {items.map((tpl, i) => (
-                      <div 
-                        key={i} 
-                        className="bento-template-card"
-                        onClick={() => handleTryTemplate(tpl)}
-                      >
+                      <div key={i} className="bento-template-card" onClick={() => handleTryTemplate(tpl)}>
                         <div className="template-card-header">
                           <div className="template-icon-wrapper">
                             <img src={tpl.icon} alt="icon" className="template-icon" />
@@ -439,7 +427,6 @@ export default function Dashboard() {
               ))}
             </section>
 
-            {/* Help / FAQ Section */}
             <section className="bento-help-section" style={{ marginTop: "20px", marginBottom: "40px" }}>
               <div className="section-header">
                 <h2>Help & Resources</h2>
@@ -447,25 +434,12 @@ export default function Dashboard() {
               </div>
               <div className="bento-faq-container">
                 {FAQ_ITEMS.map((faq, index) => (
-                  <div 
-                    key={index} 
-                    className={`bento-faq-item ${expandedFaq === index ? "expanded" : ""}`}
-                  >
-                    <button 
-                      className="bento-faq-question" 
-                      onClick={() => toggleFaq(index)}
-                    >
+                  <div key={index} className={`bento-faq-item ${expandedFaq === index ? "expanded" : ""}`}>
+                    <button className="bento-faq-question" onClick={() => toggleFaq(index)}>
                       <span>{faq.question}</span>
                       <ChevronDownIcon expanded={expandedFaq === index} />
                     </button>
-                    <div 
-                      className="bento-faq-answer"
-                      style={{
-                        maxHeight: expandedFaq === index ? "500px" : "0",
-                        opacity: expandedFaq === index ? 1 : 0,
-                        padding: expandedFaq === index ? "0 20px 20px 20px" : "0 20px"
-                      }}
-                    >
+                    <div className="bento-faq-answer" style={{ maxHeight: expandedFaq === index ? "500px" : "0", opacity: expandedFaq === index ? 1 : 0, padding: expandedFaq === index ? "0 20px 20px 20px" : "0 20px" }}>
                       <p>{faq.answer}</p>
                     </div>
                   </div>
@@ -475,20 +449,22 @@ export default function Dashboard() {
 
           </div>
 
-          {/* Sidebar Column */}
           <aside className="bento-sidebar-column">
             <div className="bento-recent-card">
-              <div className="recent-header">
-                <h3>Recent Projects</h3>
+              
+              {/* Dynamic Header with Live Spinning Sync Indicator */}
+              <div className="recent-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <h3>Recent Projects</h3>
+                  {(loading || isSyncingLive) && (
+                    <FiRefreshCw className="dash-spin-anim" size={14} style={{ color: "#60A5FA" }} title="Synchronizing cloud..." />
+                  )}
+                </div>
                 <span className="recent-badge">{recentProjects.length}</span>
               </div>
 
-              {/* View All Projects Moved to Top */}
               {recentProjects.length > 0 && (
-                <button 
-                  className="view-all-projects-btn"
-                  onClick={() => navigate("/projects")}
-                >
+                <button className="view-all-projects-btn" onClick={() => navigate("/projects")}>
                   View All Projects
                 </button>
               )}
@@ -505,11 +481,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="bento-recent-list">
                     {recentProjects.map((proj) => (
-                      <div 
-                        key={proj._id || proj.id} 
-                        className="bento-recent-item" 
-                        onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}
-                      >
+                      <div key={proj._id || proj.id} className="bento-recent-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                         <div className="recent-item-icon">
                           <CodeIcon />
                         </div>
