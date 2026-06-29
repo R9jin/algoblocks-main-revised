@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 10) ---
 
---- TIMESTAMP: 2026-06-29 13:48:19 ---
+--- TIMESTAMP: 2026-06-29 19:49:54 ---
 
 
 --- FILE: README.md ---
@@ -32,9 +32,6 @@
 ## Phase 4 â€” Verification
 - [ ] Run backend analyzer flow (smoke test) to ensure no runtime errors
 - [ ] Manually validate a few known outputs (e.g., binary search, quick sort patterns, recursive factorial, nested loops)
-
-
---- FILE: ai_context.txt ---
 
 
 --- FILE: api/analyzer.py ---
@@ -3347,7 +3344,6 @@ from typing import Dict, Any, Optional, List
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
-    # BUG-11 Fix: Enforce minimum password boundary
     password: str = Field(..., min_length=6)
 
 class UserLogin(BaseModel):
@@ -3380,8 +3376,10 @@ class AssessmentUpdateRequest(BaseModel):
 
 class ProjectSyncRequest(BaseModel):
     userId: Optional[str] = None
-    projectId: str
+    owner_id: Optional[str] = None
+    projectId: Optional[str] = None
     title: Optional[str] = "Untitled Project"
+    name: Optional[str] = "Untitled Project"
     description: Optional[str] = ""
     workspace: Optional[Dict[str, Any]] = {}
     pythonCode: Optional[str] = ""
@@ -3389,12 +3387,15 @@ class ProjectSyncRequest(BaseModel):
     isSynced: Optional[bool] = False
 
 class TemplateSyncRequest(BaseModel):
-    templateId: str
+    templateId: Optional[str] = None
     title: Optional[str] = "Untitled Template"
+    name: Optional[str] = "Untitled Template"
     description: Optional[str] = ""
+    category: Optional[str] = "Custom Templates"
     workspace: Optional[Dict[str, Any]] = {}
     pythonCode: Optional[str] = ""
     userId: Optional[str] = None
+    owner_id: Optional[str] = None
     timestamp: Optional[int] = None
     isSynced: Optional[bool] = False
 
@@ -3462,9 +3463,13 @@ from bson import ObjectId
 class ProjectRepository:
     @staticmethod
     def find_by_user(user_id: str):
-        projects = list(projects_collection.find({"userId": user_id}))
+        projects = list(projects_collection.find({"$or": [{"userId": user_id}, {"owner_id": user_id}]}))
         for proj in projects:
             proj["_id"] = str(proj["_id"])
+            if "userId" not in proj and "owner_id" in proj:
+                proj["userId"] = proj["owner_id"]
+            if "owner_id" not in proj and "userId" in proj:
+                proj["owner_id"] = proj["userId"]
         return projects
 
     @staticmethod
@@ -3474,14 +3479,22 @@ class ProjectRepository:
 
     @staticmethod
     def update(project_id: str, user_id: str, data: dict):
+        try:
+            obj_id = ObjectId(project_id)
+        except Exception:
+            obj_id = project_id
         return projects_collection.update_one(
-            {"_id": ObjectId(project_id), "userId": user_id},
+            {"_id": obj_id, "$or": [{"userId": user_id}, {"owner_id": user_id}]},
             {"$set": data}
         )
 
     @staticmethod
     def delete(project_id: str, user_id: str):
-        return projects_collection.delete_one({"_id": ObjectId(project_id), "userId": user_id})
+        try:
+            obj_id = ObjectId(project_id)
+        except Exception:
+            obj_id = project_id
+        return projects_collection.delete_one({"_id": obj_id, "$or": [{"userId": user_id}, {"owner_id": user_id}]})
 
 --- FILE: api/repositories/template_repo.py ---
 
@@ -3869,7 +3882,6 @@ async def get_assessment(assessmentId: str, current_user_email: str = Depends(ge
 from fastapi import APIRouter, Request, Depends
 from typing import Dict, Optional
 
-# FIX: Updated to ProjectSyncRequest to match models.py
 from models import ProjectSyncRequest
 from services.project_service import ProjectService
 from limiter import limiter
@@ -3884,28 +3896,28 @@ def get_user_projects(
     request: Request, 
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # Ensure graceful handling if token misses email
     if not trusted_email:
         return {"status": "success", "projects": []}
         
-    # Get projects from DB safely using the authenticated JWT email
     projects = ProjectService.get_user_projects(trusted_email)
     
-    # Ensure consistent dictionary return so frontend data.projects never breaks
     if isinstance(projects, list):
         return {"status": "success", "projects": projects}
         
     return projects
 
+@router.post("")
+@router.post("/")
 @router.post("/save")
 @limiter.limit("20/minute")
 def save_project(
     request: Request, 
-    req: ProjectSyncRequest, # FIX: Updated type hint
+    req: ProjectSyncRequest,
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # FIX: Use userId to match ProjectSyncRequest and ProjectService
     req.userId = trusted_email
+    if not req.owner_id:
+        req.owner_id = trusted_email
     return ProjectService.save_project(req)
 
 @router.post("/delete")
@@ -3915,8 +3927,9 @@ def delete_project(
     payload: Dict[str, str], 
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # FIX: Inject userId instead of owner_id
     payload["userId"] = trusted_email
+    if "owner_id" not in payload:
+        payload["owner_id"] = trusted_email
     return ProjectService.delete_project(payload)
 
 --- FILE: api/routers/template_router.py ---
@@ -5169,367 +5182,3 @@ class EducationalInsightGenerator:
 
     def _format_recurrence_relation(self, relation: str) -> str:
         return relation
-
---- FILE: api/services/auth_service.py ---
-
-# api/services/auth_service.py
-from fastapi import HTTPException
-from google.oauth2 import id_token
-from google.auth.transport import requests
-import os
-import bcrypt
-
-from repositories.user_repo import UserRepository
-from models import UserLogin, UserCreate, ProgressUpdate, AssessmentUpdateRequest
-from database import db
-from security import create_access_token
-
-class AuthService:
-    @staticmethod
-    def hash_password(password: str) -> str:
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
-
-    @staticmethod
-    def verify_password(plain_password: str, hashed_password: str) -> bool:
-        try:
-            if isinstance(hashed_password, str):
-                hashed_password = hashed_password.encode('utf-8')
-            if isinstance(plain_password, str):
-                plain_password = plain_password.encode('utf-8')
-                
-            return bcrypt.checkpw(plain_password, hashed_password)
-        except (ValueError, TypeError):
-            return False
-
-    @staticmethod
-    def login(req: UserLogin):
-        user = UserRepository.find_by_email(req.email)
-        stored_password = user.get("password") if user else None
-
-        if not user or not stored_password or not AuthService.verify_password(req.password, stored_password):
-            raise HTTPException(
-                status_code=401, 
-                detail="Invalid credentials."
-            )
-
-        token = create_access_token({"sub": req.email})
-
-        return {
-            "status": "success",
-            "email": req.email,
-            "name": user.get("name"),
-            "progress": user.get("progress", {}),
-            "assessments": user.get("assessments", {}),
-            "token": token
-        }
-
-    @staticmethod
-    def signup(req: UserCreate):
-        if UserRepository.find_by_email(req.email):
-            raise HTTPException(status_code=400, detail="Email already registered")
-
-        hashed_password = AuthService.hash_password(req.password)
-
-        UserRepository.insert({
-            "name": req.name,
-            "email": req.email,
-            "password": hashed_password,
-            "progress": {},
-            "assessments": {} 
-        })
-
-        token = create_access_token({"sub": req.email})
-
-        return {
-            "status": "success",
-            "email": req.email,
-            "name": req.name,
-            "token": token
-        }
-
-    @staticmethod
-    def update_progress(req: ProgressUpdate):
-        if not req.email or not req.lesson_id:
-            return {"status": "ignored", "message": "Fired before state loaded"}
-            
-        if "guest" in req.email.lower():
-            return {"status": "ignored", "message": "Guest persistence disabled"}
-
-        try:
-            score_val = float(req.score) if req.score is not None else 0.0
-        except:
-            score_val = 0.0
-
-        UserRepository.update_progress(req.email, req.lesson_id, score_val)
-        user = UserRepository.find_by_email(req.email)
-        return {
-            "status": "success",
-            "progress": user.get("progress", {}) if user else {}
-        }
-
-    @staticmethod
-    def update_assessment(req: AssessmentUpdateRequest):
-        if not req.email or not req.assessment_key:
-            return {"status": "ignored", "message": "Fired before state loaded"}
-            
-        if "guest" in req.email.lower():
-            return {"status": "ignored", "message": "Guest persistence disabled"}
-
-        save_data = {
-            "score": req.score,
-            "correct": req.correct,
-            "total": req.total,
-            "timeElapsed": req.timeElapsed,
-            "completedAt": req.completedAt,
-            "attempts": req.attempts
-        }
-            
-        UserRepository.update_assessment(req.email, req.assessment_key, save_data)
-        user = UserRepository.find_by_email(req.email)
-        return {
-            "status": "success",
-            "assessments": user.get("assessments", {}) if user else {}
-        }
-
-    @staticmethod
-    def get_progress(email: str):
-        user = UserRepository.find_by_email(email)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        return {
-            "status": "success",
-            "progress": user.get("progress", {})
-        }
-
-    @staticmethod
-    def get_assessments(email: str):
-        user = UserRepository.find_by_email(email)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        return {
-            "status": "success",
-            "assessments": user.get("assessments", {})
-        }
-
-    @staticmethod
-    def google_login(token: str):
-        try:
-            client_id = os.getenv("GOOGLE_CLIENT_ID")
-
-            if not client_id:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Missing GOOGLE_CLIENT_ID in environment"
-                )
-
-            idinfo = id_token.verify_oauth2_token(
-                token,
-                requests.Request(),
-                client_id
-            )
-
-            email = idinfo.get("email")
-            name = idinfo.get("name", "")
-
-            if not email:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Google account has no email"
-                )
-
-            user = UserRepository.find_by_email(email)
-
-            if not user:
-                UserRepository.insert({
-                    "name": name,
-                    "email": email,
-                    "password": None,
-                    "progress": {},
-                    "assessments": {} 
-                })
-                user = UserRepository.find_by_email(email)
-
-            backend_token = create_access_token({"sub": email})
-
-            return {
-                "status": "success",
-                "email": email,
-                "name": user.get("name"),
-                "progress": user.get("progress", {}),
-                "assessments": user.get("assessments", {}),
-                "token": backend_token
-            }
-
-        except ValueError:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid Google OAuth token"
-            )
-
-    @staticmethod
-    def sync_submission(payload: dict):
-        user_id = payload.get("userId")
-        module_id = payload.get("moduleId")
-        activity_id = payload.get("activityId")
-
-        if not user_id or not activity_id:
-            return {"status": "ignored"}
-
-        if "guest" in str(user_id).lower():
-            return {"status": "ignored", "message": "Guest persistence disabled"}
-
-        allowed_fields = [
-            "userId", "moduleId", "activityId", "type", "status", 
-            "score", "maxScore", "passedTestCases", "totalTestCases", 
-            "passed_tests", "total_tests", "testCases", 
-            "target_complexity", "actual_complexity", 
-            "target_space_complexity", "actual_space_complexity", 
-            "workspace", "pythonCode", "timestamp", "submittedAt", "isSynced",
-            "initial_aes", "final_aes", "rog", "functional_passed", "functional_total"
-        ]
-        
-        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
-
-        db["submissions"].update_one(
-            {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
-            {"$set": safe_update_data},
-            upsert=True
-        )
-        return {"status": "success", "message": "Submission synced"}
-
-    @staticmethod
-    def get_submission(email: str, activityId: str, moduleId: str = None):
-        if not email or not activityId:
-             return {"status": "ignored"}
-             
-        query = {"userId": email, "activityId": activityId}
-        if moduleId:
-            query["moduleId"] = moduleId
-            
-        submission = db["submissions"].find_one(query, {"_id": 0})
-        return {"status": "success", "submission": submission}
-
-    @staticmethod
-    def sync_assessment(payload: dict):
-        user_id = payload.get("userId")
-        module_id = payload.get("moduleId")
-
-        if not module_id and payload.get("assessmentId"):
-            module_id = payload.get("assessmentId")
-            payload["moduleId"] = module_id
-
-        if not user_id or not module_id:
-            return {"status": "ignored"}
-
-        if "guest" in str(user_id).lower():
-            return {"status": "ignored", "message": "Guest persistence disabled"}
-
-        allowed_fields = [
-            "userId", "moduleId", "assessmentId", "answers", "score", 
-            "maxScore", "completed", "timestamp", "passed", "correct", 
-            "total", "timeElapsed", "completedAt", "attempts", "isSynced"
-        ]
-        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
-
-        db["assessments"].update_one(
-            {"userId": user_id, "moduleId": module_id},
-            {"$set": safe_update_data},
-            upsert=True
-        )
-        return {"status": "success", "message": "Assessment synced"}
-
-    @staticmethod
-    def get_assessment(email: str, moduleId: str):
-        if not email or not moduleId:
-            return {"status": "ignored"}
-            
-        assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
-        return {"status": "success", "assessment": assessment}
-    
-    @staticmethod
-    def get_all_submissions(email: str):
-        if not email:
-            return {"status": "ignored"}
-            
-        submissions = list(db["submissions"].find({"userId": email}, {"_id": 0}))
-        
-        return {"status": "success", "submissions": submissions}
-
-    @staticmethod
-    def batch_sync(payload: dict, trusted_email: str):
-        if "guest" in trusted_email.lower():
-            return {"status": "success", "message": "Ignored: Guest account", "synced_items": 0}
-
-        synced_count = 0
-
-        for sub in payload.get("submissions", []):
-            if sub.get("userId") == trusted_email:
-                sub["isSynced"] = True
-                AuthService.sync_submission(sub)
-                synced_count += 1
-                
-        for prog in payload.get("progress", []):
-            if prog.get("email") == trusted_email:
-                UserRepository.update_progress(trusted_email, prog.get("lesson_id"), float(prog.get("score", 0)))
-                synced_count += 1
-                
-        for ass in payload.get("assessments", []):
-            if ass.get("userId") == trusted_email:
-                ass["isSynced"] = True
-                AuthService.sync_assessment(ass)
-                synced_count += 1
-                
-        return {"status": "success", "message": "Batch sync completed", "synced_items": synced_count}
-
---- FILE: api/services/project_service.py ---
-
-# api/services/project_service.py
-from repositories.project_repo import ProjectRepository  # Removed api. prefix
-# FIX: Updated import to ProjectSyncRequest
-from models import ProjectSyncRequest
-from fastapi import HTTPException
-from datetime import datetime
-
-class ProjectService:
-    @staticmethod
-    def get_user_projects(user_id: str):
-        if not user_id:
-            raise HTTPException(status_code=400, detail="Missing userId")
-        projects = ProjectRepository.find_by_user(user_id)
-        return {"status": "success", "projects": projects}
-
-    @staticmethod
-    def save_project(req: ProjectSyncRequest): # FIX: Updated parameter type hint
-        update_data = {
-            "name": req.name,
-            "workspace": req.workspace,
-            "pythonCode": req.pythonCode,
-            "updatedAt": datetime.utcnow().isoformat()
-        }
-
-        if req.projectId:
-            result = ProjectRepository.update(req.projectId, req.userId, update_data)
-            if result.matched_count == 0:
-                raise HTTPException(status_code=404, detail="Project not found or unauthorized")
-            return {"status": "success", "projectId": req.projectId}
-        else:
-            update_data["userId"] = req.userId
-            update_data["createdAt"] = update_data["updatedAt"]
-            project_id = ProjectRepository.insert(update_data)
-            return {"status": "success", "projectId": project_id}
-
-    @staticmethod
-    def delete_project(payload: dict):
-        project_id = payload.get("projectId")
-        user_id = payload.get("userId")
-
-        if not project_id or not user_id:
-            raise HTTPException(status_code=400, detail="Missing projectId or userId")
-
-        result = ProjectRepository.delete(project_id, user_id)
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Project not found or unauthorized")
-
-        return {"status": "success"}

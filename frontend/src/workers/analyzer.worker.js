@@ -637,6 +637,9 @@ json.dumps(res)
         const timeReportData = generateClassificationReport(detailedResults, "expectedTime", "predictedTime", timeBaseClasses);
         const spaceReportData = generateClassificationReport(detailedResults, "expectedSpace", "predictedSpace", spaceBaseClasses);
 
+        const lineTimeAcc = totalLinesTestedCount > 0 ? (lineTimePassedCount / totalLinesTestedCount) * 100 : 0;
+        const lineSpaceAcc = totalLinesTestedCount > 0 ? (lineSpacePassedCount / totalLinesTestedCount) * 100 : 0;
+
         self.postMessage({
           type: 'BENCHMARK_COMPLETE',
           payload: {
@@ -652,6 +655,8 @@ json.dumps(res)
             totalLinesTested: totalLinesTestedCount,
             lineTimePassed: lineTimePassedCount,
             lineSpacePassed: lineSpacePassedCount,
+            lineTimeAccuracyRate: parseFloat(lineTimeAcc.toFixed(2)),
+            lineSpaceAccuracyRate: parseFloat(lineSpaceAcc.toFixed(2)),
             timeReport: timeReportData,
             spaceReport: spaceReportData,
             efficiency: efficiencyMetrics,

@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 10 OF 10) ---
 
---- TIMESTAMP: 2026-06-29 13:48:19 ---
+--- TIMESTAMP: 2026-06-29 19:49:54 ---
 
 
 --- FILE: frontend/src/styles/MemoryVisualizer.css ---
@@ -3422,11 +3422,9 @@ export function resolveRecurrenceToBigO(compStr) {
 --- FILE: frontend/src/utils/syncManager.js ---
 
 // frontend/src/utils/syncManager.js
-import { assessmentsDB, progressDB, submissionsDB, syncQueueDB } from "../db";
+import { assessmentsDB, progressDB, projectsDB, submissionsDB, syncQueueDB, templatesDB } from "../db";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-    : "/api";
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, '') + "/api";
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
@@ -3446,6 +3444,9 @@ const addToSyncQueue = async (type, data) => {
         console.error("Failed to add to sync queue", err);
     }
 };
+
+const notifySyncStart = () => window.dispatchEvent(new Event("sync-start"));
+const notifySyncEnd = () => window.dispatchEvent(new Event("sync-end"));
 
 export const syncManager = {
     syncSubmission: async (activityId, code, output, isCompleted) => {
@@ -3529,6 +3530,8 @@ export const syncManager = {
 
     processSyncQueue: async () => {
         if (!navigator.onLine) return;
+        notifySyncStart();
+
         try {
             const keys = await syncQueueDB.keys();
             if (keys.length === 0) return;
@@ -3543,7 +3546,7 @@ export const syncManager = {
                 const itemType = (item.type || "").toUpperCase();
                 const itemData = item.data || item.payload;
 
-                if (!itemData) {
+                if (!itemData && item.action !== "DELETE") {
                     keysToDelete.push(key);
                     continue;
                 }
@@ -3551,9 +3554,66 @@ export const syncManager = {
                 if (itemType === "SUBMISSION") batchPayload.submissions.push(itemData);
                 else if (itemType === "PROGRESS") batchPayload.progress.push(itemData);
                 else if (itemType === "ASSESSMENT") batchPayload.assessments.push(itemData);
-                else keysToDelete.push(key); 
                 
-                keysToDelete.push(key);
+                // NATIVE WORKSPACE ENGINE: Intercept Projects & Templates
+                else if (itemType === "PROJECT" || itemType === "TEMPLATE") {
+                    const isTpl = itemType === "TEMPLATE";
+                    const targetDB = isTpl ? templatesDB : projectsDB;
+
+                    if (item.action === "DELETE") {
+                        try {
+                            const delId = itemData._id || itemData.id;
+                            const delRoute = isTpl ? `/templates/${delId}` : `/projects/${delId}`;
+                            await fetch(`${API_BASE_URL}${delRoute}`, { method: "DELETE", headers: getAuthHeaders() });
+                            keysToDelete.push(key);
+                        } catch (e) { continue; }
+                        continue;
+                    }
+
+                    try {
+                        const userEmail = itemData.userId || itemData.owner_id;
+                        const apiPayload = isTpl
+                            ? { templateId: itemData._id?.startsWith("local_") ? null : itemData._id, userId: userEmail, name: itemData.title || itemData.name, description: itemData.description || "", category: itemData.category || "Custom Templates", workspace: itemData.workspace || { blocklyJson: itemData.data } }
+                            : { projectId: itemData._id?.startsWith("local_") ? null : itemData._id, userId: userEmail, name: itemData.title || itemData.name, workspace: itemData.workspace || { blocklyJson: itemData.data }, pythonCode: itemData.pythonCode || "" };
+
+                        let primaryPath = isTpl ? "/templates/save" : "/projects/save";
+                        let res = await fetch(`${API_BASE_URL}${primaryPath}`, {
+                            method: "POST",
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify(apiPayload)
+                        });
+
+                        // Fallback against strict REST prefix routes
+                        if (res.status === 404) {
+                            let fallbackPath = isTpl ? "/templates" : "/projects";
+                            res = await fetch(`${API_BASE_URL}${fallbackPath}`, {
+                                method: "POST",
+                                headers: getAuthHeaders(),
+                                body: JSON.stringify(apiPayload)
+                            });
+                        }
+
+                        if (res.ok) {
+                            const savedData = await res.json();
+                            const cloudId = savedData.projectId || savedData.templateId || savedData._id || itemData._id;
+                            
+                            const syncedDoc = { ...itemData, _id: cloudId, synced: true };
+                            if (cloudId !== itemData._id) {
+                                await targetDB.removeItem(itemData._id);
+                            }
+                            await targetDB.setItem(cloudId, syncedDoc);
+                            keysToDelete.push(key);
+                            window.dispatchEvent(new Event("localDataSynced"));
+                        } else if (res.status !== 401 && res.status >= 400 && res.status < 500) {
+                            keysToDelete.push(key); // Drop unfixable 4xx schemas
+                        }
+                    } catch (netErr) {
+                        continue; // Network partition, retry next cycle
+                    }
+                }
+                else {
+                    keysToDelete.push(key);
+                }
             }
 
             if (batchPayload.progress.length || batchPayload.submissions.length || batchPayload.assessments.length) {
@@ -3567,9 +3627,7 @@ export const syncManager = {
                     for (const key of keysToDelete) {
                         await syncQueueDB.removeItem(key);
                     }
-                    console.log(`[Sync] Batch synced ${keysToDelete.length} items successfully.`);
-                } else if (response.status !== 401) {
-                    console.warn(`[Sync] Batch sync failed with status ${response.status}`);
+                    console.log(`[Sync] Batch synced items successfully.`);
                 }
             } else {
                 for (const key of keysToDelete) await syncQueueDB.removeItem(key);
@@ -3577,11 +3635,14 @@ export const syncManager = {
         } catch (err) {
             if (err.name === 'AbortError') return;
             console.error("[Sync] Error processing sync queue:", err);
+        } finally {
+            notifySyncEnd();
         }
     }
 };
 
 export const syncDownFromServer = async () => {
+    notifySyncStart();
     try {
         const headers = getAuthHeaders();
         if (!headers.Authorization) return;
@@ -3640,12 +3701,13 @@ export const syncDownFromServer = async () => {
     } catch (error) { 
         if (error.name === 'AbortError') return;
         console.error("[Sync] Error pulling from server:", error);
+    } finally {
+        notifySyncEnd();
     }
 };
 
 let syncInterval = null;
 
-// BUG-15 Fix: Expose terminator to clear intervals on logout
 export const stopBackgroundSync = () => {
     if (syncInterval) {
         clearInterval(syncInterval);
