@@ -762,6 +762,7 @@ export default function MainApp() {
         handleUpdateDB={openSaveModal} 
         isEvaluating={isEvaluating} 
         isAdmin={isAdmin}
+        isGuest={isGuest}
       />
 
       <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[isSidebarVisible ? 250 : 0, 400]} gutterSize={8}>

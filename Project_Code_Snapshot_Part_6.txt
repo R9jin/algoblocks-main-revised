@@ -1,7 +1,274 @@
 ﻿--- PROJECT SNAPSHOT (PART 6 OF 10) ---
 
---- TIMESTAMP: 2026-06-29 10:42:46 ---
+--- TIMESTAMP: 2026-06-29 13:48:19 ---
 
+
+--- FILE: frontend/public/data/optimizations/m5_opt_1.json ---
+
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "09e2b131-c411-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "n",
+                "id": "n"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "fib_optimized"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "controls_if",
+                "id": "c44f7718-f5a8-4",
+                "inputs": {
+                  "IF0": {
+                    "block": {
+                      "type": "logic_compare",
+                      "id": "712cc3bd-6932-4",
+                      "fields": {
+                        "OP": "LTE"
+                      },
+                      "inputs": {
+                        "A": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "b0d09cca-c3f5-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "n"
+                              }
+                            }
+                          }
+                        },
+                        "B": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "3365a8a9-6622-4",
+                            "fields": {
+                              "NUM": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "DO0": {
+                    "block": {
+                      "type": "procedure_return_value",
+                      "id": "e6506e10-5d69-4",
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "ca09b59e-4384-4",
+                            "fields": {
+                              "NUM": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "controls_if",
+                    "id": "467fa080-6c82-4",
+                    "inputs": {
+                      "IF0": {
+                        "block": {
+                          "type": "logic_compare",
+                          "id": "88a856db-752f-4",
+                          "fields": {
+                            "OP": "EQ"
+                          },
+                          "inputs": {
+                            "A": {
+                              "block": {
+                                "type": "variables_get",
+                                "id": "2c2607ce-bd7e-4",
+                                "fields": {
+                                  "VAR": {
+                                    "id": "n"
+                                  }
+                                }
+                              }
+                            },
+                            "B": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "068decae-bf5a-4",
+                                "fields": {
+                                  "NUM": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "DO0": {
+                        "block": {
+                          "type": "procedure_return_value",
+                          "id": "2a3c4f12-830a-4",
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "28009073-6d3f-4",
+                                "fields": {
+                                  "NUM": 1
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "math_arithmetic",
+                "id": "290684b5-92e6-4",
+                "fields": {
+                  "OP": "ADD"
+                },
+                "inputs": {
+                  "A": {
+                    "block": {
+                      "type": "procedures_callreturn",
+                      "id": "21a19323-ae0b-4",
+                      "extraState": {
+                        "name": "fib_optimized",
+                        "params": [
+                          "arg0"
+                        ]
+                      },
+                      "inputs": {
+                        "ARG0": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "3c0251c0-ecab-4",
+                            "fields": {
+                              "OP": "MINUS"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "cf827d79-c61c-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "n"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "9cbb44fe-e986-4",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "B": {
+                    "block": {
+                      "type": "procedures_callreturn",
+                      "id": "48ac5901-8acf-4",
+                      "extraState": {
+                        "name": "fib_optimized",
+                        "params": [
+                          "arg0"
+                        ]
+                      },
+                      "inputs": {
+                        "ARG0": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "12a0f7b0-b433-4",
+                            "fields": {
+                              "OP": "MINUS"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "917b420b-8891-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "n"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "ced6a891-2271-4",
+                                  "fields": {
+                                    "NUM": 2
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "n",
+        "id": "n"
+      },
+      {
+        "name": "arg0",
+        "id": ",Jmue|%SD)o3D*]NKbsT"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def fib_optimized(n):\n    if n <= 0:\n        return 0\n\n    if n == 1:\n        return 1\n\n    return fib_optimized(n - 1) + fib_optimized(n - 2)"
+}
 
 --- FILE: frontend/public/data/optimizations/m5_opt_2.json ---
 
@@ -12284,261 +12551,3 @@ class EducationalInsightGenerator:
 
     def _format_recurrence_relation(self, relation: str) -> str:
         return relation
-
---- FILE: frontend/public/templates/recursive/recursive_factorial.json ---
-
-{
-  "blocks": {
-    "languageVersion": 0,
-    "blocks": [
-      {
-        "type": "procedures_defreturn",
-        "id": "4PS@EAvin2ZT1:*,w-y:",
-        "x": 90,
-        "y": 193,
-        "extraState": {
-          "params": [
-            {
-              "name": "n",
-              "id": ";yViQuIL}[jV_xq#yebV"
-            }
-          ]
-        },
-        "icons": {
-          "comment": {
-            "text": "Describe this function...",
-            "pinned": false,
-            "height": 80,
-            "width": 160
-          }
-        },
-        "fields": {
-          "NAME": "factorial"
-        },
-        "inputs": {
-          "STACK": {
-            "block": {
-              "type": "controls_if",
-              "id": "=9emB0n.48yCU#VTGsY*",
-              "extraState": {
-                "hasElse": true
-              },
-              "inputs": {
-                "IF0": {
-                  "block": {
-                    "type": "logic_compare",
-                    "id": "JWJFs=7YBJ:r(f5]Y0wQ",
-                    "fields": {
-                      "OP": "EQ"
-                    },
-                    "inputs": {
-                      "A": {
-                        "block": {
-                          "type": "variables_get",
-                          "id": "/!8`I$IV[7QB,`^R-L-Q",
-                          "fields": {
-                            "VAR": {
-                              "id": ";yViQuIL}[jV_xq#yebV"
-                            }
-                          }
-                        }
-                      },
-                      "B": {
-                        "block": {
-                          "type": "math_number",
-                          "id": "w3:Q,;#.3zjZZ`9.t1+a",
-                          "fields": {
-                            "NUM": 1
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "DO0": {
-                  "block": {
-                    "type": "procedure_return_value",
-                    "id": "U]?6@@Q)(j?jK;G,2y[.",
-                    "inputs": {
-                      "VALUE": {
-                        "block": {
-                          "type": "math_number",
-                          "id": "x%Lj|{@R5I)49HcwJ5/N",
-                          "fields": {
-                            "NUM": 1
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "ELSE": {
-                  "block": {
-                    "type": "procedure_return_value",
-                    "id": "s:h3CP8*Y5OzWYvI@Fnt",
-                    "inputs": {
-                      "VALUE": {
-                        "block": {
-                          "type": "math_arithmetic",
-                          "id": "byy5N_x9j@3j*KbV08Py",
-                          "fields": {
-                            "OP": "MULTIPLY"
-                          },
-                          "inputs": {
-                            "A": {
-                              "shadow": {
-                                "type": "math_number",
-                                "id": "n[d4%_+Um(~Ta-2jiaw$",
-                                "fields": {
-                                  "NUM": 1
-                                }
-                              },
-                              "block": {
-                                "type": "variables_get",
-                                "id": "hZnKUnevG|Hb?u/#rJJ#",
-                                "fields": {
-                                  "VAR": {
-                                    "id": ";yViQuIL}[jV_xq#yebV"
-                                  }
-                                }
-                              }
-                            },
-                            "B": {
-                              "shadow": {
-                                "type": "math_number",
-                                "id": "d0t6U/?2$mf/#$S]+yNf",
-                                "fields": {
-                                  "NUM": 1
-                                }
-                              },
-                              "block": {
-                                "type": "procedures_callreturn",
-                                "id": "6`+vloyriTHnV;SvLt.W",
-                                "extraState": {
-                                  "name": "factorial",
-                                  "params": [
-                                    "n"
-                                  ]
-                                },
-                                "inputs": {
-                                  "ARG0": {
-                                    "block": {
-                                      "type": "math_arithmetic",
-                                      "id": ")pj`U*YXWKaIWfJMMAk2",
-                                      "fields": {
-                                        "OP": "MINUS"
-                                      },
-                                      "inputs": {
-                                        "A": {
-                                          "shadow": {
-                                            "type": "math_number",
-                                            "id": "C!!/=,Xv@R4=)T{Q4YAx",
-                                            "fields": {
-                                              "NUM": 1
-                                            }
-                                          },
-                                          "block": {
-                                            "type": "variables_get",
-                                            "id": ".V=Ho~:vw*9x,9o[koI:",
-                                            "fields": {
-                                              "VAR": {
-                                                "id": ";yViQuIL}[jV_xq#yebV"
-                                              }
-                                            }
-                                          }
-                                        },
-                                        "B": {
-                                          "shadow": {
-                                            "type": "math_number",
-                                            "id": "Wl!n9(`cHVrI{RGMVkX7",
-                                            "fields": {
-                                              "NUM": 1
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "type": "variables_set",
-        "id": "2%3k3eP[0d$yA9j!^qi(",
-        "x": 86,
-        "y": 432,
-        "fields": {
-          "VAR": {
-            "id": "IAh*GC#oAjMh0Zu3P,/m"
-          }
-        },
-        "inputs": {
-          "VALUE": {
-            "block": {
-              "type": "math_number",
-              "id": "_dWDdbqraxn0U%i~J0ys",
-              "fields": {
-                "NUM": 5
-              }
-            }
-          }
-        },
-        "next": {
-          "block": {
-            "type": "text_print",
-            "id": "OpH)If8O[R,-GXQa%ao}",
-            "inputs": {
-              "TEXT": {
-                "block": {
-                  "type": "procedures_callreturn",
-                  "id": "WVT:@GWtAs-@{E9aT=p,",
-                  "extraState": {
-                    "name": "factorial",
-                    "params": [
-                      "n"
-                    ]
-                  },
-                  "inputs": {
-                    "ARG0": {
-                      "block": {
-                        "type": "variables_get",
-                        "id": "=zH,E`Zz~SN?Zg$)LZ$5",
-                        "fields": {
-                          "VAR": {
-                            "id": "IAh*GC#oAjMh0Zu3P,/m"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    ]
-  },
-  "variables": [
-    {
-      "name": "n",
-      "id": ";yViQuIL}[jV_xq#yebV"
-    },
-    {
-      "name": "num",
-      "id": "IAh*GC#oAjMh0Zu3P,/m"
-    }
-  ],
-  "backpack": []
-}

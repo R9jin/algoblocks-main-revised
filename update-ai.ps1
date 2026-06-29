@@ -1,58 +1,61 @@
-# update-ai.ps1
+# Configuration
+$outputPrefix = "Project_Code_Snapshot_Part_"
+$numParts = 10
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
-# Define the root of the project
-$rootDir = ".\"
-$outputFile = "ai_context.txt"
+Write-Host "Gathering files and splitting into $numParts parts... please wait." -ForegroundColor Cyan
 
-# Define extensions to capture (Source Code)
-$includedExtensions = @("*.py", "*.jsx", "*.js", "*.css", "*.html")
+# 1. Get all tracked files (respecting .gitignore), excluding existing snapshots
+$allFiles = git ls-files --cached --others --exclude-standard | Where-Object {
+    $_ -notmatch "Project_Code_Snapshot"
+}
 
-# Define folders/files to explicitly exclude (Datasets, Dependencies, Builds)
-$excludedPaths = @(
-    "*frontend\public\data\*",
-    "*node_modules\*",
-    "*.git\*",
-    "*__pycache__\*",
-    "*.json",
-    "*.csv",
-    "*.jsonl"
-)
+# 2. Filter for code-related files
+$validFiles = @()
+foreach ($file in $allFiles) {
+    $ext = [System.IO.Path]::GetExtension($file)
+    if ($ext -match '\.(py|js|jsx|ts|tsx|html|css|json|java|cpp|h|md|txt)$') {
+        $validFiles += $file
+    }
+}
 
-# Fetch all relevant files
-$files = Get-ChildItem -Path $rootDir -Include $includedExtensions -File -Recurse | Where-Object {
-    $currentFile = $_.FullName
-    $skip = $false
+$totalFiles = $validFiles.Count
+if ($totalFiles -eq 0) {
+    Write-Host "No code files found!" -ForegroundColor Red
+    exit
+}
+
+# 3. Calculate chunk size
+$chunkSize = [math]::Ceiling($totalFiles / $numParts)
+Write-Host "Found $totalFiles files. Putting roughly $chunkSize files in each part." -ForegroundColor Yellow
+
+# 4. Generate the snapshot files
+for ($i = 0; $i -lt $numParts; $i++) {
+    $partNumber = $i + 1
+    $outputFile = "$outputPrefix$partNumber.txt"
     
-    foreach ($exclude in $excludedPaths) {
-        if ($currentFile -like $exclude) {
-            $skip = $true
-            break
+    # Calculate the range of files for this chunk
+    $startIndex = $i * $chunkSize
+    $endIndex = [math]::Min((($i + 1) * $chunkSize) - 1, $totalFiles - 1)
+    
+    if ($startIndex -ge $totalFiles) { break } # Handle rounding edge cases
+    
+    $chunkFiles = $validFiles[$startIndex..$endIndex]
+    
+    # Build the content in memory for this part
+    $partContent = & {
+        "--- PROJECT SNAPSHOT (PART $partNumber OF $numParts) ---`n"
+        "--- TIMESTAMP: $timestamp ---`n"
+        
+        foreach ($file in $chunkFiles) {
+            "`n--- FILE: $file ---`n"
+            Get-Content $file -ErrorAction SilentlyContinue
         }
     }
     
-    return -not $skip
+    # Write to file
+    $partContent | Out-File -FilePath $outputFile -Encoding utf8 -Force
+    Write-Host "Created $outputFile ($($chunkFiles.Count) files)" -ForegroundColor Green
 }
 
-# Clear previous output
-Clear-Content -Path $outputFile -ErrorAction SilentlyContinue
-
-# Generate Snapshot Header
-$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-Add-Content -Path $outputFile -Value "--- PROJECT SNAPSHOT ---`n"
-Add-Content -Path $outputFile -Value "--- TIMESTAMP: $timestamp ---`n`n"
-
-# Append files
-foreach ($file in $files) {
-    # Format path relative to the root directory
-    $relativePath = $file.FullName.Replace((Resolve-Path $rootDir).Path + "\", "").Replace("\", "/")
-    
-    Add-Content -Path $outputFile -Value "--- FILE: $relativePath ---`n`n"
-    
-    $content = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
-    if ($content) {
-        Add-Content -Path $outputFile -Value $content
-        Add-Content -Path $outputFile -Value "`n`n"
-    }
-}
-
-Write-Host "Snapshot successfully generated to $outputFile (Datasets excluded)." -ForegroundColor Green
+Write-Host "`nSuccess! All $numParts parts have been generated." -ForegroundColor Green

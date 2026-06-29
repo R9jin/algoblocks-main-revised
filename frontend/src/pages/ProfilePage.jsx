@@ -184,7 +184,7 @@ export default function ProfilePage() {
                 if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
               }
 
-              return { ...act, aes, rog, isCompleted };
+              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted };
             });
 
             const minRequired = lesson.minimumActivities || acts.length;
@@ -216,6 +216,35 @@ export default function ProfilePage() {
             };
           });
 
+          // ADDED: Parse Optimization Challenge Activities
+          const rawOptimizations = modActs.optimizations || [];
+          let optCompletedCount = 0;
+          const isOptUnlocked = pathUnlocked; // Unlocks once standard module lessons are finished
+
+          const mappedOptimizations = rawOptimizations.map((act) => {
+            const sub = userSubs[mod.moduleId]?.[act.id];
+            let aes = 0; let rog = 0; let isCompleted = false;
+
+            if (sub) {
+              aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
+              if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100;
+              aes = Math.min(aes, 100);
+
+              rog = sub.rog || 0;
+              isCompleted = aes >= 50 || sub.status === "passed";
+
+              if (isCompleted) optCompletedCount++;
+
+              modAesSum += aes; modAesCount++; globalAesSum += aes; globalAesCount++;
+              if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
+            } else if (finalUser.progress[act.id] >= 50 || finalUser.progress[act.id] === true) {
+              isCompleted = true;
+              optCompletedCount++;
+            }
+
+            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted };
+          });
+
           const modClean = mod.moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
           const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean];
           let quizData = null;
@@ -236,6 +265,11 @@ export default function ProfilePage() {
           return {
             ...mod,
             lessons: mappedLessons,
+            optimizations: {
+              activities: mappedOptimizations,
+              isUnlocked: isOptUnlocked,
+              completedCount: optCompletedCount
+            },
             quiz: quizData ? { ...quizData, isUnlocked: isQuizUnlocked } : { isUnlocked: isQuizUnlocked },
             completed: modCompletedLessons,
             total: mod.lessons.length,
@@ -430,7 +464,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* STAGES 1-7: REPEATING MODULES -> LESSONS -> QUIZZES */}
+              {/* STAGES 1-7: REPEATING MODULES -> LESSONS -> OPTIMIZATIONS -> QUIZZES */}
               {moduleMastery.map((mod) => {
                 const modNumber = mod.moduleId ? mod.moduleId.replace("module-", "") : "0";
                 const isComplete = mod.completed === mod.total && mod.total > 0;
@@ -516,6 +550,56 @@ export default function ProfilePage() {
                             )}
                           </div>
                         ))}
+
+                        {/* ADDED: Optimization Challenges Section */}
+                        {mod.optimizations && mod.optimizations.activities.length > 0 && (
+                          <div className={`lesson-block optimization-block ${mod.optimizations.isUnlocked ? '' : 'locked-block'}`}>
+                            <div className="lesson-header">
+                              <span className="lesson-title" style={{ display: 'flex', alignItems: 'center' }}>
+                                <FiTarget style={{ marginRight: '8px', color: '#7c5cff' }} />
+                                Module {modNumber} Optimization Challenges
+                              </span>
+                              <div className="lesson-status-indicators">
+                                <span className={`activity-count-badge ${mod.optimizations.completedCount === mod.optimizations.activities.length ? 'cleared' : ''}`}>
+                                  {mod.optimizations.completedCount}/{mod.optimizations.activities.length} Acts
+                                </span>
+                                {!mod.optimizations.isUnlocked ? (
+                                  <FiLock className="lesson-lock-icon" title="Complete module lessons to unlock" />
+                                ) : mod.optimizations.completedCount === mod.optimizations.activities.length ? (
+                                  <FiCheckCircle className="lesson-check cleared" />
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="activities-list">
+                              {mod.optimizations.activities.map((act) => (
+                                <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!mod.optimizations.isUnlocked ? 'locked-row' : ''}`}>
+                                  <div className="act-left">
+                                    {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : mod.optimizations.isUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
+                                    <div className="act-info">
+                                      <span className="act-title">{act.title}</span>
+                                      <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'medium'}`}>{act.difficulty || 'Medium'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="act-right">
+                                    {mod.optimizations.isUnlocked ? (
+                                      <>
+                                        <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
+                                          AES: {act.aes > 0 ? `${act.aes}%` : '--'}
+                                        </span>
+                                        <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
+                                          ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="locked-text">Locked</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         <div className={`lesson-block module-quiz-block ${mod.quiz && mod.quiz.isUnlocked ? '' : 'locked-block'}`}>
                           <div className="lesson-header">

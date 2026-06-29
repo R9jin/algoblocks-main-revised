@@ -1,7 +1,600 @@
 ﻿--- PROJECT SNAPSHOT (PART 9 OF 10) ---
 
---- TIMESTAMP: 2026-06-29 10:42:46 ---
+--- TIMESTAMP: 2026-06-29 13:48:19 ---
 
+
+--- FILE: frontend/src/pages/LessonViewer.jsx ---
+
+// frontend/src/pages/LessonViewer.jsx
+import { useEffect, useState } from "react";
+import {
+  FiBarChart2,
+  FiBookOpen,
+  FiCheckCircle,
+  FiChevronLeft,
+  FiChevronRight,
+  FiCircle,
+  FiClipboard,
+  FiClock,
+  FiLock,
+  FiTarget,
+} from "react-icons/fi";
+import { useNavigate, useParams } from "react-router-dom";
+import BigOChart from "../components/BigOChart";
+import CodeSnippet from "../components/CodeSnippet";
+import curriculumIndex from "../data/curriculumIndex";
+import { assessmentsDB, curriculumCacheDB, progressDB } from "../db";
+import "../styles/LessonViewer.css";
+
+function formatText(text) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
+function renderParagraphs(content, className = "lesson-section-content") {
+  if (!content) return null;
+
+  return (
+    <div className={className}>
+      {content.split("\n\n").map((paragraph, index) => {
+        const lines = paragraph.split("\n");
+
+        const hasBullets = lines.some(
+          (line) => line.trim().startsWith("* ") || line.trim().startsWith("- "),
+        );
+
+        if (!hasBullets) {
+          return (
+            <p key={index}>
+              {lines.map((line, lineIndex) => (
+                <span key={lineIndex}>
+                  {formatText(line)}
+                  {lineIndex !== lines.length - 1 && <br />}
+                </span>
+              ))}
+            </p>
+          );
+        }
+
+        const elements = [];
+        let currentList = [];
+
+        lines.forEach((line, i) => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+            currentList.push(
+              <li key={`li-${i}`}>
+                {formatText(trimmed.substring(2).trim())}
+              </li>,
+            );
+          } else {
+            if (currentList.length > 0) {
+              elements.push(
+                <ul key={`ul-${i}`} className="lesson-bullet-list">
+                  {currentList}
+                </ul>,
+              );
+              currentList = [];
+            }
+            elements.push(
+              <span key={`span-${i}`}>
+                {formatText(line)}
+                <br />
+              </span>,
+            );
+          }
+        });
+
+        if (currentList.length > 0) {
+          elements.push(
+            <ul key="ul-end" className="lesson-bullet-list">
+              {currentList}
+            </ul>,
+          );
+        }
+
+        return (
+          <div key={index} style={{ marginBottom: "1em" }}>
+            {elements}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderBullets(items) {
+  if (!items?.length) return null;
+  return (
+    <ul className="lesson-bullet-list">
+      {items.map((item, index) => (
+        <li key={index}>
+          {item.split("\n\n").map((paragraph, pIndex, pArray) => (
+            <div key={pIndex} style={{ marginBottom: pIndex !== pArray.length - 1 ? "0.5em" : "0" }}>
+              {paragraph.split("\n").map((line, lIndex, lArray) => (
+                <span key={lIndex}>
+                  {formatText(line)}
+                  {lIndex !== lArray.length - 1 && <br />}
+                </span>
+              ))}
+            </div>
+          ))}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function renderCodeSnippets(snippets) {
+  if (!snippets?.length) return null;
+  return (
+    <div className="lesson-code-snippets">
+      {snippets.map((snippet, index) => (
+        <CodeSnippet
+          key={`${snippet.title || "snippet"}-${index}`}
+          snippet={snippet}
+        />
+      ))}
+    </div>
+  );
+}
+
+function renderChart(chart) {
+  if (!chart) return null;
+  return (
+    <figure className="lesson-chart-panel">
+      {(chart.title || chart.description) && (
+        <figcaption>
+          {chart.title && <strong>{chart.title}</strong>}
+          {chart.description && <span>{formatText(chart.description)}</span>}
+        </figcaption>
+      )}
+      <BigOChart maxN={chart.maxN} curves={chart.curves} normalize={chart.normalize} />
+    </figure>
+  );
+}
+
+export default function LessonViewer() {
+  const { moduleId, lessonId } = useParams();
+  const navigate = useNavigate();
+
+  const [lesson, setLesson] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedModules, setExpandedModules] = useState(new Set([moduleId]));
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+
+  const [userProgress, setUserProgress] = useState({});
+  const [lessonDetails, setLessonDetails] = useState({});
+  const [activitiesData, setActivitiesData] = useState({});
+  const [assessments, setAssessments] = useState({});
+
+  const storedUser = JSON.parse(
+    localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
+  );
+  const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
+
+  useEffect(() => {
+    const loadOfflineData = async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || "";
+        let initialProg = storedUser.progress || {};
+        let initialAssm = storedUser.assessments || {};
+
+        await progressDB.iterate((value, key) => {
+          initialProg[key] = value.score !== undefined ? value.score : value;
+        });
+        await assessmentsDB.iterate((value, key) => {
+          initialAssm[key] = value;
+        });
+
+        setUserProgress(initialProg);
+        setAssessments(initialAssm);
+
+        if (navigator.onLine && storedUser.email && !storedUser.isGuest) {
+          try {
+            const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+            if (progRes.ok) {
+              const data = await progRes.json();
+              const progData = data.progress || data;
+              for (const [key, val] of Object.entries(progData)) {
+                initialProg[key] = val;
+                await progressDB.setItem(key, { score: val, isSynced: true });
+              }
+            }
+
+            const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
+            if (assRes.ok) {
+              const data = await assRes.json();
+              const assData = data.assessments || data;
+              for (const [key, val] of Object.entries(assData)) {
+                initialAssm[key] = val;
+                await assessmentsDB.setItem(key, { ...val, isSynced: true });
+              }
+            }
+
+            setUserProgress({ ...initialProg });
+            setAssessments({ ...initialAssm });
+
+            storedUser.progress = initialProg;
+            storedUser.assessments = initialAssm;
+            localStorage.setItem("user", JSON.stringify(storedUser));
+          } catch (e) {
+            console.warn("Could not fetch latest progress from cloud:", e);
+          }
+        }
+      } catch (e) {
+        console.warn("Error loading offline progress:", e);
+      }
+    };
+    loadOfflineData();
+  }, []);
+
+  useEffect(() => {
+    const fetchAllData = async () => {
+      const details = {};
+      const acts = {};
+      const fetchPromises = [];
+
+      const fetchWithCache = async (url, type, key) => {
+        try {
+          const cachedData = await curriculumCacheDB.getItem(url);
+          if (cachedData) {
+            if (type === 'activity') acts[key] = cachedData;
+            if (type === 'lesson') details[key] = cachedData;
+            return;
+          }
+
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            await curriculumCacheDB.setItem(url, data);
+            if (type === 'activity') acts[key] = data;
+            if (type === 'lesson') details[key] = data;
+          }
+        } catch (e) {
+          console.warn(`Failed to load ${url}`, e);
+        }
+      };
+
+      for (const module of curriculumIndex) {
+        const mid = module.moduleId.split("-").pop();
+        
+        fetchPromises.push(
+          fetchWithCache(`/data/activities/module_${mid}.json`, 'activity', module.moduleId)
+        );
+
+        for (const lessonMeta of module.lessons) {
+          fetchPromises.push(
+            fetchWithCache(`/data/curriculum/${module.moduleId}/${lessonMeta.lessonId}.json`, 'lesson', lessonMeta.lessonId)
+          );
+        }
+      }
+
+      // Parallel fetch for the sidebar mapping
+      await Promise.all(fetchPromises);
+
+      setLessonDetails(details);
+      setActivitiesData(acts);
+    };
+    fetchAllData();
+  }, []);
+
+  useEffect(() => {
+    const loadLesson = async () => {
+      setLoading(true);
+      try {
+        const module = curriculumIndex.find((m) => m.moduleId === moduleId);
+        if (!module) return;
+        const lessonMeta = module.lessons.find((l) => l.lessonId === lessonId);
+        if (!lessonMeta) return;
+
+        const fetchPath = `/data/curriculum/${moduleId}/${lessonId}.json`;
+        
+        // Optimize actual lesson text load with Cache
+        const cachedData = await curriculumCacheDB.getItem(fetchPath);
+        if (cachedData) {
+          setLesson(cachedData);
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(fetchPath);
+        if (!response.ok) throw new Error(`Failed to fetch lesson: ${response.status}`);
+
+        const data = await response.json();
+        await curriculumCacheDB.setItem(fetchPath, data); // Save for next time
+        setLesson(data);
+      } catch (error) {
+        console.error("Failed to load lesson:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadLesson();
+  }, [moduleId, lessonId]);
+
+  const hasPostAssessment = (mId) => assessments[`${mId}_post_assessment`] !== undefined;
+
+  const isModuleComplete = (mId) => {
+    const module = curriculumIndex.find((m) => m.moduleId === mId);
+    if (!module) return false;
+    return module.lessons.every((l) => {
+      const details = lessonDetails[l.lessonId];
+      const firstActivityId = details?.activities?.[0]?.id;
+      if (!firstActivityId) return (userProgress[l.lessonId] || 0) >= 1;
+      return (userProgress[l.lessonId] || 0) >= 1; 
+    });
+  };
+
+  const buildLockMap = () => {
+    const lockMap = {};
+    const isGlobalPreTestDone = assessments["course-pre-test_pre_assessment"] !== undefined;
+    let isNextLocked = isAdmin ? false : !isGlobalPreTestDone;
+
+    for (const module of curriculumIndex) {
+      for (const l of module.lessons) {
+        lockMap[l.lessonId] = isAdmin ? false : isNextLocked;
+        if (!isNextLocked) {
+          const details = lessonDetails[l.lessonId];
+          const firstActivityId = details?.activities?.[0]?.id;
+          const prog = userProgress[l.lessonId] || 0;
+          if (prog < 1) {
+            isNextLocked = true;
+          }
+        }
+      }
+      const postComplete = hasPostAssessment(module.moduleId);
+      if (!postComplete && !isAdmin) isNextLocked = true;
+    }
+    return lockMap;
+  };
+
+  const lockMap = buildLockMap();
+  const isCurrentLessonLocked = lockMap[lessonId];
+
+  const toggleModule = (mId) => {
+    const newExpanded = new Set(expandedModules);
+    if (newExpanded.has(mId)) newExpanded.delete(mId);
+    else newExpanded.add(mId);
+    setExpandedModules(newExpanded);
+  };
+
+  const currentModule = curriculumIndex.find((m) => m.moduleId === moduleId);
+  const moduleNum = moduleId?.split("-").pop();
+  const lessonNum = lessonId?.split("-").pop();
+  const currentActivityId = lesson?.activities?.[0]?.id;
+
+  if (Object.keys(lessonDetails).length === 0) {
+    return <div className="lesson-loading">Loading curriculum data...</div>;
+  }
+
+  return (
+    <div className="lesson-viewer-wrapper">
+      <aside className={`lesson-modules-sidebar ${!isSidebarVisible ? "hidden" : ""}`}>
+        <div className="sidebar-header">
+          <button className="back-button" onClick={() => navigate("/learning-path")}>
+            <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
+          </button>
+        </div>
+        <div className="modules-header">
+          <h3>Curriculum</h3>
+        </div>
+        <nav className="modules-nav">
+          {curriculumIndex.map((module) => {
+            const modNumber = module.moduleId.split("-").pop();
+            const isExpanded = expandedModules.has(module.moduleId);
+            const modComplete = isModuleComplete(module.moduleId);
+            const postComplete = hasPostAssessment(module.moduleId);
+
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
+            const hasOptimizations = optimizations.length > 0;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
+
+            const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
+            const postAssessmentUnlocked = isAdmin || modComplete || postComplete;
+
+            return (
+              <div key={module.moduleId} className="module-group">
+                <button
+                  className={`module-title ${isExpanded ? "expanded" : ""}`}
+                  onClick={() => toggleModule(module.moduleId)}
+                >
+                  <span className="module-info">
+                    <FiBookOpen className="module-icon" />
+                    <span>
+                      <span className="module-number">Module {modNumber}</span>
+                      <span className="module-name" style={{ fontSize: "0.85rem" }}>{module.title}</span>
+                    </span>
+                  </span>
+                  <span className="expand-icon">v</span>
+                </button>
+
+                {isExpanded && (
+                  <div className="lessons-list" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px 0" }}>
+                    
+                    {module.lessons.map((lessonItem) => {
+                      const lesNumber = lessonItem.lessonId.split("-").pop();
+                      const isActive = lessonId === lessonItem.lessonId;
+                      const isLocked = lockMap[lessonItem.lessonId];
+                      const prog = userProgress[lessonItem.lessonId] || 0;
+
+                      return (
+                        <a
+                          key={lessonItem.lessonId}
+                          href={`/learning-path/${module.moduleId}/${lessonItem.lessonId}`}
+                          className={`lesson-item ${isActive ? "active" : ""}`}
+                          style={{
+                            opacity: isLocked ? 0.5 : 1,
+                            pointerEvents: isLocked ? "none" : "auto",
+                            paddingLeft: "45px",
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lessonItem.lessonId}`);
+                          }}
+                        >
+                          <span className="lesson-number">{modNumber}.{lesNumber}</span>
+                          <span className="lesson-title">{lessonItem.title}</span>
+                          <span className="lesson-indicator">
+                            {isLocked ? <FiLock size={12} /> : prog >= 1 ? <FiCheckCircle size={12} color="#22c55e" /> : isActive ? "â—" : "â—‹"}
+                          </span>
+                        </a>
+                      );
+                    })}
+
+                    {hasOptimizations && (
+                      <div
+                        onClick={() => {
+                          if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
+                        }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
+                          cursor: optimizationsLocked ? "not-allowed" : "pointer", opacity: optimizationsLocked ? 0.5 : 1,
+                          color: "#d35400", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(243, 156, 18, 0.05)",
+                        }}
+                      >
+                        <span style={{ color: "#f39c12", fontSize: "1.1rem" }}>â˜…</span>
+                        <span>Optimization Challenges</span>
+                        <span style={{ marginLeft: "auto" }}>
+                          {optimizationsLocked ? <FiLock size={12} /> : userProgress[`lesson-${modNumber}-optimizations`] ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#f39c12" />}
+                        </span>
+                      </div>
+                    )}
+
+                    <div
+                      onClick={() => {
+                        if (postAssessmentUnlocked) navigate(`/assessment/${module.moduleId}/post`);
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
+                        cursor: postAssessmentUnlocked ? "pointer" : "not-allowed", opacity: postAssessmentUnlocked ? 1 : 0.5,
+                        color: postComplete ? "#22c55e" : "#2b005c", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      <FiClipboard size={14} />
+                      <span>Post-Assessment Quiz</span>
+                      <span style={{ marginLeft: "auto" }}>
+                        {!postAssessmentUnlocked ? <FiLock size={14} /> : postComplete ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#7c5cff" />}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <main className="lesson-viewer-container">
+        <div style={{ position: 'sticky', top: '50vh', zIndex: 1000, width: 0, height: 0, left: 0 }}>
+          <button className="lesson-sidebar-toggle-btn" onClick={() => setIsSidebarVisible(!isSidebarVisible)} title="Toggle Sidebar">
+            {isSidebarVisible ? <FiChevronLeft size={16} /> : <FiChevronRight size={16} />}
+          </button>
+        </div>
+
+        {isCurrentLessonLocked ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b" }}>
+            <FiLock size={64} style={{ marginBottom: "20px", color: "#cbd5e1" }} />
+            <h2>Lesson Locked</h2>
+            <p>Please complete the Global Course Pre-Test and preceding activities to unlock this lesson.</p>
+            <button
+              onClick={() => navigate("/learning-path")}
+              style={{ marginTop: "20px", padding: "10px 20px", backgroundColor: "#7c5cff", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+            >
+              Return to Path
+            </button>
+          </div>
+        ) : loading ? (
+          <div style={{ display: "flex", flex: 1, justifyContent: "center", alignItems: "center", height: "100%", color: "#7c5cff" }}>
+            <h3>Loading lesson content...</h3>
+          </div>
+        ) : (
+          <>
+            <div className="lesson-top-nav">
+              <div className="breadcrumb">
+                <a href="/learning-path">Learning Path</a>
+                <FiChevronRight className="breadcrumb-icon" />
+                <span>Module {moduleNum}: {currentModule?.title}</span>
+                <FiChevronRight className="breadcrumb-icon" />
+                <span className="breadcrumb-current">Lesson {moduleNum}.{lessonNum}: {lesson?.title}</span>
+              </div>
+            </div>
+
+            <div className="lesson-content-wrapper">
+              <div className="lesson-header">
+                <div className="lesson-label">LESSON {moduleNum}.{lessonNum}</div>
+                <h1>{lesson?.title}</h1>
+                <p>{formatText(lesson?.description)}</p>
+                <div className="lesson-meta-grid">
+                  <div className="lesson-meta-card"><FiClock className="meta-icon" /><span>Estimated Time</span><strong>{lesson?.estimatedTime}</strong></div>
+                  <div className="lesson-meta-card"><FiBarChart2 className="meta-icon" /><span>Difficulty</span><strong>{lesson?.difficulty}</strong></div>
+                  <div className="lesson-meta-card"><FiTarget className="meta-icon" /><span>Prerequisites</span><strong>{lesson?.prerequisites}</strong></div>
+                </div>
+              </div>
+
+              <article className="lesson-article">
+                {lesson?.sections?.map((section) => (
+                  <section key={section.id} id={section.id} className={`lesson-section ${section.type}`}>
+                    <h2>{section.title}</h2>
+                    {renderParagraphs(section.content)}
+                    {renderBullets(section.bullets)}
+                    {renderChart(section.chart)}
+                    {renderCodeSnippets(section.codeSnippets)}
+                    {section.subsections?.map((subsection) => (
+                      <div key={subsection.id || subsection.title} className="lesson-subsection">
+                        <h3>{subsection.title}</h3>
+                        {renderParagraphs(subsection.content, "lesson-subsection-content")}
+                        {renderBullets(subsection.bullets)}
+                        {renderChart(subsection.chart)}
+                        {renderCodeSnippets(subsection.codeSnippets)}
+                      </div>
+                    ))}
+                  </section>
+                ))}
+              </article>
+
+              {lesson?.references?.length > 0 && (
+                <div className="lesson-resources">
+                  <h2>References</h2>
+                  <ul>
+                    {lesson.references?.map((reference, index) => (
+                      <li key={index}><a href={reference.url} target="_blank" rel="noreferrer">{reference.title}</a></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {currentActivityId && (
+                <div style={{ marginTop: "50px", padding: "30px", backgroundColor: "rgba(124, 92, 255, 0.05)", borderRadius: "12px", border: "1px solid rgba(124, 92, 255, 0.3)", textAlign: "center" }}>
+                  <h3 style={{ color: "#2b005c", marginBottom: "10px", fontSize: "1.5rem" }}>Ready to practice?</h3>
+                  <p style={{ marginBottom: "25px", color: "#4b5563", fontSize: "1.05rem" }}>Put your knowledge to the test with an interactive coding activity.</p>
+                  <button
+                    onClick={() => navigate(`/activity/${moduleId}/${currentActivityId}`)}
+                    style={{ padding: "14px 28px", backgroundColor: "#7c5cff", color: "white", border: "none", borderRadius: "6px", fontSize: "1.1rem", fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 14px rgba(124, 92, 255, 0.4)", transition: "transform 0.2s" }}
+                    onMouseOver={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
+                    onMouseOut={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+                  >
+                    Start Activity
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
 
 --- FILE: frontend/src/pages/MainApp.jsx ---
 
@@ -769,6 +1362,7 @@ export default function MainApp() {
         handleUpdateDB={openSaveModal} 
         isEvaluating={isEvaluating} 
         isAdmin={isAdmin}
+        isGuest={isGuest}
       />
 
       <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[isSidebarVisible ? 250 : 0, 400]} gutterSize={8}>
@@ -1057,7 +1651,7 @@ export default function ProfilePage() {
                 if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
               }
 
-              return { ...act, aes, rog, isCompleted };
+              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted };
             });
 
             const minRequired = lesson.minimumActivities || acts.length;
@@ -1089,6 +1683,35 @@ export default function ProfilePage() {
             };
           });
 
+          // ADDED: Parse Optimization Challenge Activities
+          const rawOptimizations = modActs.optimizations || [];
+          let optCompletedCount = 0;
+          const isOptUnlocked = pathUnlocked; // Unlocks once standard module lessons are finished
+
+          const mappedOptimizations = rawOptimizations.map((act) => {
+            const sub = userSubs[mod.moduleId]?.[act.id];
+            let aes = 0; let rog = 0; let isCompleted = false;
+
+            if (sub) {
+              aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
+              if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100;
+              aes = Math.min(aes, 100);
+
+              rog = sub.rog || 0;
+              isCompleted = aes >= 50 || sub.status === "passed";
+
+              if (isCompleted) optCompletedCount++;
+
+              modAesSum += aes; modAesCount++; globalAesSum += aes; globalAesCount++;
+              if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
+            } else if (finalUser.progress[act.id] >= 50 || finalUser.progress[act.id] === true) {
+              isCompleted = true;
+              optCompletedCount++;
+            }
+
+            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted };
+          });
+
           const modClean = mod.moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
           const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean];
           let quizData = null;
@@ -1109,6 +1732,11 @@ export default function ProfilePage() {
           return {
             ...mod,
             lessons: mappedLessons,
+            optimizations: {
+              activities: mappedOptimizations,
+              isUnlocked: isOptUnlocked,
+              completedCount: optCompletedCount
+            },
             quiz: quizData ? { ...quizData, isUnlocked: isQuizUnlocked } : { isUnlocked: isQuizUnlocked },
             completed: modCompletedLessons,
             total: mod.lessons.length,
@@ -1303,7 +1931,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* STAGES 1-7: REPEATING MODULES -> LESSONS -> QUIZZES */}
+              {/* STAGES 1-7: REPEATING MODULES -> LESSONS -> OPTIMIZATIONS -> QUIZZES */}
               {moduleMastery.map((mod) => {
                 const modNumber = mod.moduleId ? mod.moduleId.replace("module-", "") : "0";
                 const isComplete = mod.completed === mod.total && mod.total > 0;
@@ -1389,6 +2017,56 @@ export default function ProfilePage() {
                             )}
                           </div>
                         ))}
+
+                        {/* ADDED: Optimization Challenges Section */}
+                        {mod.optimizations && mod.optimizations.activities.length > 0 && (
+                          <div className={`lesson-block optimization-block ${mod.optimizations.isUnlocked ? '' : 'locked-block'}`}>
+                            <div className="lesson-header">
+                              <span className="lesson-title" style={{ display: 'flex', alignItems: 'center' }}>
+                                <FiTarget style={{ marginRight: '8px', color: '#7c5cff' }} />
+                                Module {modNumber} Optimization Challenges
+                              </span>
+                              <div className="lesson-status-indicators">
+                                <span className={`activity-count-badge ${mod.optimizations.completedCount === mod.optimizations.activities.length ? 'cleared' : ''}`}>
+                                  {mod.optimizations.completedCount}/{mod.optimizations.activities.length} Acts
+                                </span>
+                                {!mod.optimizations.isUnlocked ? (
+                                  <FiLock className="lesson-lock-icon" title="Complete module lessons to unlock" />
+                                ) : mod.optimizations.completedCount === mod.optimizations.activities.length ? (
+                                  <FiCheckCircle className="lesson-check cleared" />
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="activities-list">
+                              {mod.optimizations.activities.map((act) => (
+                                <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!mod.optimizations.isUnlocked ? 'locked-row' : ''}`}>
+                                  <div className="act-left">
+                                    {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : mod.optimizations.isUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
+                                    <div className="act-info">
+                                      <span className="act-title">{act.title}</span>
+                                      <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'medium'}`}>{act.difficulty || 'Medium'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="act-right">
+                                    {mod.optimizations.isUnlocked ? (
+                                      <>
+                                        <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
+                                          AES: {act.aes > 0 ? `${act.aes}%` : '--'}
+                                        </span>
+                                        <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
+                                          ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="locked-text">Locked</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         <div className={`lesson-block module-quiz-block ${mod.quiz && mod.quiz.isUnlocked ? '' : 'locked-block'}`}>
                           <div className="lesson-header">
@@ -8543,232 +9221,3 @@ body {
 
 .save-modal-confirm-btn { padding: 10px 20px; border-radius: 8px; border: none; background: var(--purple-main); color: white; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(121, 40, 202, 0.3); }
 .save-modal-confirm-btn:hover { background: var(--purple-hover); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(121, 40, 202, 0.4); }
-
---- FILE: frontend/src/styles/MemoryVisualizer.css ---
-
-/* MemoryVisualizer.css */
-.memory-visualizer {
-  background-color: #1e1e2e;
-  border-radius: 8px;
-  padding: 1.25rem;
-  color: #ecf0f1;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  font-family: 'Inter', -apple-system, sans-serif;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.memory-visualizer.empty-state {
-  align-items: center;
-  justify-content: center;
-  color: #7f8c8d;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-/* Header & Badges */
-.memory-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #34495e;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.header-icon {
-  color: #3498db;
-  font-size: 1.25rem;
-}
-
-.header-title h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.trace-depth-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: #2c3e50;
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-family: 'Fira Code', monospace;
-  font-weight: bold;
-  color: #3498db;
-  border: 1px solid #34495e;
-}
-
-/* Grid Layout */
-.memory-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1rem;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-.memory-grid::-webkit-scrollbar {
-  width: 6px;
-}
-.memory-grid::-webkit-scrollbar-thumb {
-  background-color: #454d5a;
-  border-radius: 4px;
-}
-
-.no-vars {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #7f8c8d;
-  font-style: italic;
-  padding: 1rem;
-  background-color: #252836;
-  border-radius: 6px;
-}
-
-/* Memory Cards */
-.memory-card {
-  background-color: #252836;
-  border-top: 4px solid;
-  border-radius: 6px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-.memory-card.hovered {
-  transform: translateY(-2px);
-  background-color: #2a2d3d;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
-
-.card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.card-name-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.card-icon {
-  font-size: 1rem;
-  display: flex;
-}
-
-.card-name {
-  font-weight: bold;
-  font-family: 'Fira Code', monospace;
-  font-size: 1rem;
-  color: #ffffff;
-}
-
-.card-stats {
-  font-size: 0.75rem;
-  color: #bdc3c7;
-  font-family: 'Fira Code', monospace;
-  background-color: #1e1e2e;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-}
-
-/* The Restored Visual Segments */
-.memory-segments-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: #1e1e2e;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #34495e;
-}
-
-.segment-label {
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  color: #7f8c8d;
-  font-weight: bold;
-}
-
-.segment-blocks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  flex-grow: 1;
-  align-items: center;
-}
-
-.segment-block {
-  width: 12px;
-  height: 16px;
-  border-radius: 2px;
-  box-shadow: inset 0 0 2px rgba(0,0,0,0.5);
-}
-
-.segment-overflow {
-  color: #95a5a6;
-  font-weight: bold;
-  letter-spacing: 2px;
-  margin-left: 4px;
-}
-
-/* Explanation Box */
-.card-explanation {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  padding: 0.75rem;
-  font-size: 0.8rem;
-  color: #bdc3c7;
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  border-left: 3px solid;
-  line-height: 1.4;
-  margin-top: 0.25rem;
-}
-
-.explanation-icon {
-  margin-top: 0.1rem;
-  flex-shrink: 0;
-  font-size: 0.9rem;
-}
-
-.explanation-text {
-  flex-grow: 1;
-}
-
-/* Footer of the card */
-.card-bottom {
-  display: flex;
-  justify-content: flex-end;
-  border-top: 1px dashed #34495e;
-  padding-top: 0.5rem;
-}
-
-.space-complexity {
-  font-size: 0.75rem;
-  color: #e74c3c;
-  font-family: 'Fira Code', monospace;
-  font-weight: bold;
-}
