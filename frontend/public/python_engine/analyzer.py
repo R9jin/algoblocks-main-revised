@@ -328,11 +328,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
     def _register_and_get_dim(self, var_name):
         try:
-            if not var_name or len(var_name) <= 1: return 'n'
+            if not var_name or len(var_name) <= 1:
+                if var_name and var_name.lower() == 'm': return 'm'
+                return 'n'
             if isinstance(var_name, str):
                 lower_name = var_name.lower()
-                if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
-                if any(kw in lower_name for kw in ['[0]', 'col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'val', 'm']): 
+                if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_', 'i', 'j', 'k']: return None
+                # Exact matching & distinct suffixes to avoid greedy substring trapping (e.g. nuMbers)
+                if lower_name in ['m', 'col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'val', 'cols'] or '[0]' in lower_name or lower_name.endswith('_m') or lower_name.endswith('arr2') or lower_name.endswith('list2'): 
                     return 'm'
                 return 'n'
         except Exception:
@@ -1988,7 +1991,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                             t_ov = "O(n * m)"; s_ov = "O(n * m)"
             elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice): 
                 custom_op = "Array Slicing"
-                t_ov = "O(n)"; s_ov = "O(1)" 
+                t_ov = "O(n)"; s_ov = "O(n)" 
             
             target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
             for t_id in target_ids:
@@ -2057,7 +2060,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             slice_str = ast.dump(node.slice).lower()
             if any(kw in slice_str for kw in ['div', 'mid', 'half', 'part', '/']):
                 self.has_partitioning = True
-            self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Array Slicing")
+            self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Array Slicing")
         self.generic_visit(node)  
 
     def visit_BinOp(self, node):
@@ -2103,7 +2106,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     custom_op = f"Return {type(node.value).__name__.replace('Comp', ' Comprehension')}"
                     
             elif isinstance(node.value, ast.Subscript) and isinstance(getattr(node.value, 'slice', None), ast.Slice):
-                t_ov, s_ov = "O(n)", "O(1)"
+                t_ov, s_ov = "O(n)", "O(n)"
                 custom_op = "Return Sliced Array"
             elif isinstance(node.value, ast.Call) and getattr(getattr(node.value, 'func', None), 'id', '') in ['sorted', 'list', 'set', 'dict']:
                 func_id = node.value.func.id
@@ -2124,7 +2127,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
     def get_final_asymptotic_badge(self):
         all_comps = " ".join([str(d.get('global_time', '')) for d in self._details] + [str(d.get('local_time', '')) for d in self._details])
         
-        # FIX FOR BUG 1: Resolve stored custom_functions recurrence strings before checking substrings
         resolved_custom = []
         for rel in self.custom_functions.values():
             resolved = rel
@@ -2143,30 +2145,27 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if "3^n" in all_comps: return "O(3^n)"
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
         
-        # 2. High Polynomials
+        # 2. High Polynomials & Intercept Cubics
         if "n^5" in all_comps: return "O(n^5)"
         if "n^4" in all_comps: return "O(n^4)"
-        if "n^3" in all_comps: return "O(n^3)"
+        if "n^3" in all_comps or "n^2 * m" in all_comps or "n * m^2" in all_comps: return "O(n^3)"
         
         # 3. Graph Traversal
         if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: 
             return "O(V + E)"
 
-        # 4. Quadratics & Linearithmics (Strict order check)
+        # 4. Quadratics & Linearithmics
         if "n^2 log" in all_comps or "n² log" in all_comps: return "O(n^2 log n)"
-        if "n * m" in all_comps: return "O(n * m)"
         if "n^2" in all_comps or "n²" in all_comps: return "O(n^2)"
+        if "n * m" in all_comps: return "O(n * m)"
         
-        # FIX FOR BUG 3: Checked strictly after n^2 so sort calls inside quadratic routines don't demote the badge
         if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: 
             return "O(n log n)"
         
-        # 5. Sub-linear (Check BEFORE standard O(n))
+        # 5. Sub-linear & Base
         if "sqrt n" in all_comps: return "O(sqrt n)"
-        # FIX FOR BUG 2: Completely removed '/ 2' in raw_code heuristic
-        if "log n" in all_comps or "log min" in all_comps: return "O(log n)"
-        
-        # 6. Base Linear
+        if "log min" in all_comps: return "O(log min(a, b))"
+        if "log n" in all_comps: return "O(log n)"
         if "O(n)" in all_comps or "O(m)" in all_comps: return "O(n)"
         
         return "O(1)"
@@ -2195,7 +2194,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if "O(V)" in all_spaces: return "O(n)"
         if "O(n)" in all_spaces or "O(m)" in all_spaces: return "O(n)"
         if "sqrt n" in all_spaces: return "O(sqrt n)"
-        # Fixed: Return O(log n) stack space rather than overriding it to O(1)
         if "log n" in all_spaces: return "O(log n)"
         return "O(1)"
 
@@ -2244,7 +2242,7 @@ def fallback_analyzer(source_code):
     time_w = max(1, max_loop_depth)
     time_comp = "O(n)"
     
-    if 'dfs' in code_clean or 'bfs' in code_clean or 'adj' in code_clean: time_comp = "O(n)"
+    if 'dfs' in code_clean or 'bfs' in code_clean or 'adj' in code_clean: time_comp = "O(V + E)"
     elif re.search(r'\b(sorted|sort|qsort)\s*\(', code_clean):
         time_comp = "O(n log n)" if time_w <= 1 else f"O(n^{time_w})"
     elif time_w == 1:
@@ -2265,7 +2263,7 @@ def fallback_analyzer(source_code):
     if '[[' in code_clean or 'vector<vector' in code_clean or 'mat[' in code_clean:
         space_comp = "O(n^2)"
     if 'dfs' in code_clean or 'bfs' in code_clean or 'graph' in code_clean:
-        space_comp = "O(n)"
+        space_comp = "O(V + E)"
 
     return {
         "status": "success",

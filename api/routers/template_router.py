@@ -1,22 +1,21 @@
 # api/routers/template_router.py
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Dict, Any, Optional
 from services.template_service import TemplateService
-
-# FIX: Updated import to match the actual class name in models.py
 from models import TemplateSyncRequest 
+# BUG-07 Fix: Inject current user dependency
+from security import get_current_user_email
 
 router = APIRouter()
 
-# FIX: Added "" to prevent 307 redirects on /api/templates
 @router.get("")
 @router.get("/")
 def get_all_templates(userId: Optional[str] = Query(None)):
     return TemplateService.get_all_templates()
 
-# ADDED/UPDATED: The save endpoint
+# BUG-07 Fix: Require valid JWT token to persist templates
 @router.post("/save")
-def save_template(req: TemplateSyncRequest): # FIX: Updated type hint
+def save_template(req: TemplateSyncRequest, current_user: str = Depends(get_current_user_email)):
     try:
         return TemplateService.save_template(req)
     except Exception as e:

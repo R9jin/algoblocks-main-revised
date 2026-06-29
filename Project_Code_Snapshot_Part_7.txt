@@ -1,955 +1,7 @@
 ﻿--- PROJECT SNAPSHOT (PART 7 OF 10) ---
 
---- TIMESTAMP: 2026-06-15 23:12:44 ---
+--- TIMESTAMP: 2026-06-29 13:48:19 ---
 
-
---- FILE: frontend/public/python_engine/profiler.py ---
-
-# frontend\public\python_engine\profiler.py
-import sys
-import traceback
-from collections import defaultdict
-
-class LineExecutionProfiler:
-    def __init__(self):
-        self.hits = defaultdict(int)
-
-    def trace_lines(self, frame, event, arg):
-        if event == 'line':
-            filename = frame.f_code.co_filename
-            if filename == "<string>":
-                self.hits[frame.f_lineno] += 1
-        return self.trace_lines
-
-    def run_code(self, source_code):
-        self.hits.clear()
-        try:
-            compiled_code = compile(source_code, '<string>', 'exec')
-            sys.settrace(self.trace_lines)
-            
-            # Prevent input() from hanging the analyzer worker
-            def dummy_input(*args, **kwargs):
-                return "1"
-                
-            isolated_globals = {"input": dummy_input}
-            exec(compiled_code, isolated_globals)
-            
-        except Exception as e:
-            pass # Fails gracefully, returning whatever hits we tracked so far
-        finally:
-            sys.settrace(None)
-            
-        return dict(self.hits)
-
---- FILE: frontend/public/python_engine/semantic_nlg.py ---
-
-# semantic_nlg.py
-import ast
-import random
-import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
-
-# =========================================================================
-# DATACLASSES & SIGNAL TRACKING
-# =========================================================================
-
-@dataclass
-class BigOInfo:
-    raw: str
-    normalized: str
-    family: str  
-    factors: Dict[str, Any]
-
-@dataclass
-class MemorySignals:
-    allocates_lists: bool = False
-    allocates_2d_lists: bool = False
-    allocates_dicts: bool = False
-    allocates_sets: bool = False
-    uses_list_comprehension: bool = False
-    uses_dict_comprehension: bool = False
-    uses_set_comprehension: bool = False
-    uses_generator: bool = False
-    performs_slicing: bool = False
-    string_concatenation_in_loop: bool = False
-    geometric_capacity_growth: bool = False
-    tracks_visited_nodes: bool = False
-    recursive_stack_risk: bool = False
-    efficient_deque_pop: bool = False
-    set_and_dict_updates: bool = False
-    caches_results: bool = False
-    dp_tabulation_array: bool = False
-    array_preallocation: bool = False  # Agnostic detection of [val] * N
-    inplace_swap: bool = False
-
-@dataclass
-class ComplexitySignals:
-    inefficient_list_pop: bool = False      
-    inefficient_list_insert: bool = False   
-    repeated_sort: bool = False             
-    membership_in_list: bool = False        
-    heavy_math_operations: bool = False     
-    quadratic_math: bool = False            # Agnostic detection of x ** 2
-    set_mathematical_ops: bool = False
-    dict_lookup_constant: bool = False
-    amortized_operation: bool = False
-    aggregation_in_loop: bool = False 
-    bitwise_operations: bool = False
-    boolean_short_circuit: bool = False
-    f_string_usage: bool = False
-    exception_control_flow: bool = False    # Using try/except in a loop
-
-@dataclass
-class AlgorithmicParadigms:
-    is_halving: bool = False                     # Binary Search / Divide & Conquer
-    is_doubling: bool = False                    # Exponential growth
-    is_two_pointer: bool = False                 # Agnostic: while var1 < var2
-    is_sliding_window: bool = False              # window_sum, left++, right++
-    is_fast_slow_pointer: bool = False           # Floyd's Cycle finding
-    is_grid_traversal: bool = False              # Nested loops or 2D array accessing
-    is_memoization_check: bool = False           # Agnostic: if key in struct
-    is_tabulation_setup: bool = False            # Agnostic: struct = [val] * n
-    is_brian_kernighan: bool = False             # n & (n - 1)
-    is_fibonacci_sequence: bool = False          # a, b = b, a + b
-    is_bfs_queue: bool = False                   # queue.popleft()
-    is_dfs_stack: bool = False                   # stack.pop()
-    is_modulo_arithmetic: bool = False           # n % 2
-    is_matrix_math: bool = False                 # nested array indexing
-    is_combinatorics: bool = False               # math.comb, math.factorial
-    is_euclidean_distance: bool = False          # math.sqrt((x2-x1)**2 + (y2-y1)**2)
-    is_prefix_sum: bool = False                  # Agnostic: arr[i] = arr[i] + arr[i-1]
-    is_bitmasking: bool = False                  # Advanced bitwise context (1 << n)
-
-@dataclass
-class PatternSignals:
-    loop_depth: int = 0
-    nested_loops: bool = False
-    
-    has_recursion: bool = False
-    indirect_recursion: bool = False
-    recursion_branching: Optional[str] = None  
-    has_backtracking_risk: bool = False
-    has_memoization: bool = False
-    recursion_in_loop: bool = False
-    
-    membership_in_loop: bool = False
-    comprehension_expansion: bool = False
-    
-    graph_traversal: bool = False
-    visited_tracking: bool = False
-    
-    repeated_calls_in_loop: bool = False
-    has_early_exits: bool = False  
-    has_continue: bool = False
-
-    inline_ternary: bool = False
-    string_interpolation: bool = False
-    variable_swapping: bool = False
-    
-    # Text and Structure Recognition
-    has_comment_block: bool = False
-    has_docstring: bool = False
-    uses_try_except: bool = False
-    uses_context_manager: bool = False
-    uses_lambda: bool = False
-    uses_yield: bool = False
-    uses_raise: bool = False
-    uses_assert: bool = False
-
-    memory_signals: MemorySignals = field(default_factory=MemorySignals)
-    complexity_signals: ComplexitySignals = field(default_factory=ComplexitySignals)
-    paradigms: AlgorithmicParadigms = field(default_factory=AlgorithmicParadigms)
-    
-    extra_notes: List[str] = field(default_factory=list)
-
-
-# =========================================================================
-# COMPREHENSIVE AST VISITOR (Deep Structural Detection)
-# =========================================================================
-
-class ComprehensiveASTVisitor(ast.NodeVisitor):
-    """
-    Analyzes the AST to detect specific structural patterns, exact algorithmic
-    paradigms, and behaviors that impact time and space complexity.
-    It utilizes variable-name agnostic logic wherever possible to ensure robust
-    detection across diverse coding styles.
-    """
-    def __init__(self, ctx):
-        self.ctx = ctx
-        self.signals = PatternSignals()
-        
-        self._current_loop_depth = getattr(ctx, "active_poly_dims", [])
-        self.signals.loop_depth = len(self._current_loop_depth)
-        self.signals.nested_loops = self.signals.loop_depth > 1
-        
-        self._in_loop = self.signals.loop_depth > 0
-        self._function_calls: Set[str] = set()
-        self._modified_structures: Set[str] = set()
-        self._assigned_vars: Set[str] = set()
-
-    def analyze(self, node: ast.AST) -> PatternSignals:
-        if node:
-            self.visit(node)
-            
-        self._evaluate_recursion()
-        self._evaluate_graph_context()
-        self._evaluate_memoization()
-        self._evaluate_backtracking()
-        
-        return self.signals
-
-    def visit_FunctionDef(self, node: ast.FunctionDef):
-        # Detect if a proper docstring is present at the function level
-        if ast.get_docstring(node):
-            self.signals.has_docstring = True
-        self.generic_visit(node)
-
-    def visit_ClassDef(self, node: ast.ClassDef):
-        if ast.get_docstring(node):
-            self.signals.has_docstring = True
-        self.generic_visit(node)
-
-    def visit_Module(self, node: ast.Module):
-        if ast.get_docstring(node):
-            self.signals.has_docstring = True
-        self.generic_visit(node)
-
-    def visit_Call(self, node: ast.Call):
-        if self._in_loop:
-            self.signals.repeated_calls_in_loop = True
-
-        if isinstance(node.func, ast.Attribute):
-            method_name = node.func.attr
-            self._function_calls.add(method_name)
-            
-            if isinstance(node.func.value, ast.Name):
-                self._modified_structures.add(f"{node.func.value.id}.{method_name}")
-                
-                # Math library agnostic detection
-                if node.func.value.id == 'math':
-                    self.signals.complexity_signals.heavy_math_operations = True
-                    if method_name in ['comb', 'perm', 'factorial']:
-                        self.signals.paradigms.is_combinatorics = True
-                    elif method_name in ['sqrt', 'dist', 'hypot']:
-                        self.signals.paradigms.is_euclidean_distance = True
-            
-            # Detect pop(0) vs pop()
-            if method_name == 'pop':
-                if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
-                    self.signals.complexity_signals.inefficient_list_pop = True
-                else:
-                    self.signals.paradigms.is_dfs_stack = True # Standard pop acts as a stack
-            
-            elif method_name == 'insert':
-                if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == 0:
-                    self.signals.complexity_signals.inefficient_list_insert = True
-                    
-            elif method_name == 'sort':
-                if self._in_loop:
-                    self.signals.complexity_signals.repeated_sort = True
-
-            elif method_name == 'popleft':
-                self.signals.memory_signals.efficient_deque_pop = True
-                self.signals.paradigms.is_bfs_queue = True
-                
-            elif method_name == 'append':
-                self.signals.complexity_signals.amortized_operation = True
-                # Agnostic visited tracking: adding items to a collection inside a loop or graph context
-                if self._in_loop or getattr(self.ctx, "in_graph_context", False):
-                    self.signals.visited_tracking = True
-                
-            elif method_name == 'extend':
-                if self._in_loop and node.args and isinstance(node.args[0], ast.Name) and isinstance(node.func.value, ast.Name):
-                    if node.func.value.id == node.args[0].id:
-                        self.signals.memory_signals.geometric_capacity_growth = True
-
-            elif method_name in ['union', 'intersection', 'difference']:
-                self.signals.complexity_signals.set_mathematical_ops = True
-
-            elif method_name == 'get':
-                self.signals.complexity_signals.dict_lookup_constant = True
-
-            elif method_name in ['update', 'add']:
-                self.signals.memory_signals.set_and_dict_updates = True
-                # Agnostic visited tracking
-                if self._in_loop or getattr(self.ctx, "in_graph_context", False):
-                    self.signals.visited_tracking = True
-
-        elif isinstance(node.func, ast.Name):
-            func_name = node.func.id
-            self._function_calls.add(func_name)
-            
-            if func_name in ['sum', 'max', 'min', 'all', 'any'] and self._in_loop:
-                self.signals.complexity_signals.aggregation_in_loop = True
-                
-            # Generic math functions without 'math.' prefix
-            if func_name in ['sqrt', 'pow', 'abs']:
-                self.signals.complexity_signals.heavy_math_operations = True
-
-            current_fn = getattr(self.ctx, "current_function_name", None)
-            indirect_fns = getattr(self.ctx, "indirect_recursive_funcs", set())
-            
-            if func_name == current_fn:
-                self.signals.has_recursion = True
-                self.signals.memory_signals.recursive_stack_risk = True
-                if self._in_loop:
-                    self.signals.recursion_in_loop = True
-            elif func_name in indirect_fns:
-                self.signals.indirect_recursion = True
-                self.signals.has_recursion = True
-                self.signals.memory_signals.recursive_stack_risk = True
-
-        self.generic_visit(node)
-
-    def visit_Compare(self, node: ast.Compare):
-        for op in node.ops:
-            if isinstance(op, (ast.In, ast.NotIn)):
-                if self._in_loop:
-                    self.signals.membership_in_loop = True
-                    self.signals.complexity_signals.membership_in_list = True
-                
-                # Agnostic Dynamic Programming / Memoization check
-                # If we are checking membership inside a dictionary/set (represented by a variable)
-                if isinstance(node.comparators[0], (ast.Name, ast.Attribute)):
-                    self.signals.has_memoization = True
-                    self.signals.paradigms.is_memoization_check = True
-                    self.signals.memory_signals.caches_results = True
-
-            # Two Pointer Paradigm Agnostic Detection (var1 < var2)
-            if isinstance(op, (ast.Lt, ast.LtE)):
-                if isinstance(node.left, ast.Name) and isinstance(node.comparators[0], ast.Name):
-                    self.signals.paradigms.is_two_pointer = True
-
-        self.generic_visit(node)
-
-    def visit_BinOp(self, node: ast.BinOp):
-        # Bitwise Ops
-        if isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.BitXor, ast.LShift, ast.RShift)):
-            self.signals.complexity_signals.bitwise_operations = True
-            
-            if isinstance(node.op, ast.LShift):
-                self.signals.paradigms.is_bitmasking = True
-            
-            # Brian Kernighan's Algorithm snippet: n & (n - 1)
-            if isinstance(node.op, ast.BitAnd) and isinstance(node.right, ast.BinOp) and isinstance(node.right.op, ast.Sub):
-                if getattr(node.right.right, 'value', None) == 1:
-                    self.signals.paradigms.is_brian_kernighan = True
-                    
-        # Mathematical Sets
-        if isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.Sub, ast.BitXor)):
-            self.signals.complexity_signals.set_mathematical_ops = True
-
-        # Halving (Binary Search / Divide & Conquer)
-        if isinstance(node.op, ast.FloorDiv) and getattr(node.right, 'value', None) == 2:
-            self.signals.paradigms.is_halving = True
-        elif isinstance(node.op, ast.Div) and getattr(node.right, 'value', None) == 2:
-            self.signals.paradigms.is_halving = True
-
-        # Modulo
-        if isinstance(node.op, ast.Mod):
-            self.signals.paradigms.is_modulo_arithmetic = True
-            
-        # Power / Quadratic / Euclidean
-        if isinstance(node.op, ast.Pow):
-            self.signals.complexity_signals.heavy_math_operations = True
-            if getattr(node.right, 'value', None) == 2:
-                self.signals.complexity_signals.quadratic_math = True
-
-        self.generic_visit(node)
-        
-    def visit_BoolOp(self, node: ast.BoolOp):
-        self.signals.complexity_signals.boolean_short_circuit = True
-        self.generic_visit(node)
-
-    def visit_Expr(self, node: ast.Expr):
-        # Bare expressions are often string blocks or unassigned variable calls.
-        # Check specifically for multi-line strings or block comments (""" comment """)
-        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-            # If it's a bare string expression and wasn't picked up as a module/class/func docstring,
-            # it's acting as an inline block comment.
-            self.signals.has_comment_block = True
-        self.generic_visit(node)
-
-    def visit_ListComp(self, node: ast.ListComp):
-        is_nested = len(node.generators) > 1
-        if isinstance(node.elt, ast.ListComp) or (isinstance(node.elt, ast.BinOp) and isinstance(node.elt.op, ast.Mult) and isinstance(node.elt.left, ast.List)):
-            is_nested = True
-            
-        if is_nested:
-            self.signals.memory_signals.allocates_2d_lists = True
-            self.signals.paradigms.is_grid_traversal = True
-            
-        self.signals.comprehension_expansion = True
-        self.signals.memory_signals.uses_list_comprehension = True
-        self.signals.memory_signals.allocates_lists = True
-        self.generic_visit(node)
-
-    def visit_SetComp(self, node: ast.SetComp):
-        self.signals.comprehension_expansion = True
-        self.signals.memory_signals.uses_set_comprehension = True
-        self.signals.memory_signals.allocates_sets = True
-        self.generic_visit(node)
-
-    def visit_DictComp(self, node: ast.DictComp):
-        self.signals.comprehension_expansion = True
-        self.signals.memory_signals.uses_dict_comprehension = True
-        self.signals.memory_signals.allocates_dicts = True
-        self.generic_visit(node)
-        
-    def visit_GeneratorExp(self, node: ast.GeneratorExp):
-        self.signals.comprehension_expansion = True
-        self.signals.memory_signals.uses_generator = True
-        self.signals.uses_yield = True
-        self.generic_visit(node)
-
-    def visit_Subscript(self, node: ast.Subscript):
-        if isinstance(node.slice, ast.Slice):
-            self.signals.memory_signals.performs_slicing = True
-        
-        # Matrix Math Detection (e.g. arr[i][j])
-        if isinstance(node.slice, ast.Tuple) or (hasattr(node, 'value') and isinstance(node.value, ast.Subscript)):
-            self.signals.paradigms.is_matrix_math = True
-
-        self.generic_visit(node)
-
-    def visit_AugAssign(self, node: ast.AugAssign):
-        if self._in_loop and isinstance(node.op, ast.Add):
-            if isinstance(node.target, ast.Name) and getattr(self.ctx, "var_types", {}).get(node.target.id) == 'str':
-                self.signals.memory_signals.string_concatenation_in_loop = True
-            elif isinstance(node.target, ast.Name) and isinstance(node.value, ast.Name) and node.value.id == node.target.id:
-                self.signals.memory_signals.geometric_capacity_growth = True
-                self.signals.paradigms.is_doubling = True
-            elif isinstance(node.target, ast.Subscript):
-                self.signals.paradigms.is_prefix_sum = True
-                
-        elif self._in_loop and isinstance(node.op, ast.Mult) and isinstance(node.target, ast.Name):
-            self.signals.memory_signals.geometric_capacity_growth = True
-            self.signals.paradigms.is_doubling = True
-            
-        self.generic_visit(node)
-        
-    def visit_Assign(self, node: ast.Assign):
-        # Swap paradigm (e.g., a, b = b, a)
-        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Tuple) and isinstance(node.value, ast.Tuple):
-            self.signals.variable_swapping = True
-            self.signals.memory_signals.inplace_swap = True
-            
-            # Fibonacci Paradigm: a, b = b, a + b
-            if len(node.value.elts) == 2 and isinstance(node.value.elts[1], ast.BinOp) and isinstance(node.value.elts[1].op, ast.Add):
-                self.signals.paradigms.is_fibonacci_sequence = True
-                
-        # Agnostic Tabulation Setup: array = [val] * N
-        if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult) and isinstance(node.value.left, ast.List):
-            self.signals.paradigms.is_tabulation_setup = True
-            self.signals.memory_signals.dp_tabulation_array = True
-            self.signals.memory_signals.array_preallocation = True
-
-        if isinstance(node.value, ast.ListComp):
-            if isinstance(node.value.elt, ast.ListComp) or (isinstance(node.value.elt, ast.BinOp) and isinstance(node.value.elt.op, ast.Mult) and isinstance(node.value.elt.left, ast.List)):
-                self.signals.memory_signals.allocates_2d_lists = True
-                self.signals.paradigms.is_grid_traversal = True
-                
-        if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Add):
-            target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
-            for t_id in target_ids:
-                if getattr(self.ctx, "var_types", {}).get(t_id) in ['str', 'list', 'tuple', 'deque']:
-                    count = sum(1 for n in ast.walk(node.value) if isinstance(n, ast.Name) and n.id == t_id)
-                    if count >= 2:
-                        self.signals.memory_signals.geometric_capacity_growth = True
-                        
-        if isinstance(node.value, ast.BinOp) and isinstance(node.value.op, ast.Mult):
-            target_ids = [t.id for t in node.targets if isinstance(t, ast.Name)]
-            for t_id in target_ids:
-                for child in ast.walk(node.value):
-                    if isinstance(child, ast.Name) and child.id == t_id:
-                        self.signals.memory_signals.geometric_capacity_growth = True
-                        self.signals.paradigms.is_doubling = True
-                        
-        self.generic_visit(node)
-
-    def visit_Break(self, node: ast.Break):
-        self.signals.has_early_exits = True
-        self.generic_visit(node)
-        
-    def visit_Continue(self, node: ast.Continue):
-        self.signals.has_continue = True
-        self.generic_visit(node)
-
-    def visit_Return(self, node: ast.Return):
-        if self._in_loop:
-            self.signals.has_early_exits = True
-        self.generic_visit(node)
-
-    def visit_IfExp(self, node: ast.IfExp):
-        self.signals.inline_ternary = True
-        self.generic_visit(node)
-        
-    def visit_JoinedStr(self, node: ast.JoinedStr):
-        self.signals.string_interpolation = True
-        self.signals.complexity_signals.f_string_usage = True
-        self.generic_visit(node)
-
-    def visit_Try(self, node: ast.Try):
-        self.signals.uses_try_except = True
-        if self._in_loop:
-            self.signals.complexity_signals.exception_control_flow = True
-        self.generic_visit(node)
-
-    def visit_With(self, node: ast.With):
-        self.signals.uses_context_manager = True
-        self.generic_visit(node)
-
-    def visit_AsyncWith(self, node: ast.AsyncWith):
-        self.signals.uses_context_manager = True
-        self.generic_visit(node)
-
-    def visit_Lambda(self, node: ast.Lambda):
-        self.signals.uses_lambda = True
-        self.generic_visit(node)
-
-    def visit_Yield(self, node: ast.Yield):
-        self.signals.uses_yield = True
-        self.signals.memory_signals.uses_generator = True
-        self.generic_visit(node)
-
-    def visit_YieldFrom(self, node: ast.YieldFrom):
-        self.signals.uses_yield = True
-        self.signals.memory_signals.uses_generator = True
-        self.generic_visit(node)
-
-    def visit_Raise(self, node: ast.Raise):
-        self.signals.uses_raise = True
-        self.generic_visit(node)
-
-    def visit_Assert(self, node: ast.Assert):
-        self.signals.uses_assert = True
-        self.generic_visit(node)
-
-    def _evaluate_recursion(self):
-        if self.signals.has_recursion:
-            if getattr(self.ctx, "recursive_calls_count", 0) > 1:
-                self.signals.recursion_branching = "multi"
-            else:
-                self.signals.recursion_branching = "linear_or_unknown"
-                
-            if getattr(self.ctx, "has_recursion_in_loop", False) or self.signals.loop_depth > 0:
-                self.signals.has_backtracking_risk = True
-                self.signals.recursion_in_loop = True
-
-    def _evaluate_graph_context(self):
-        if getattr(self.ctx, "in_graph_context", False):
-            self.signals.graph_traversal = True
-            self.signals.visited_tracking = True
-            self.signals.memory_signals.tracks_visited_nodes = True
-
-    def _evaluate_memoization(self):
-        # We also check the agnostic signal captured in visit_Compare
-        if getattr(self.ctx, "current_function_name", None) in getattr(self.ctx, "memoized_funcs", set()) or self.signals.has_memoization:
-            self.signals.has_memoization = True
-            self.signals.memory_signals.caches_results = True
-
-    def _evaluate_backtracking(self):
-        if self.signals.has_recursion and 'append' in self._function_calls and 'pop' in self._function_calls:
-            self.signals.has_backtracking_risk = True
-
-
-# =========================================================================
-# EDUCATIONAL INSIGHT GENERATOR (NLG Engine)
-# =========================================================================
-
-class EducationalInsightGenerator:
-    """
-    Constructs highly modular, educational explanations for the user.
-    It builds sentences like puzzle pieces:
-    [Action] + [Local Reality] + [Global Reality] + [Educational Insight].
-    """
-    def __init__(self, ctx):
-        self.ctx = ctx
-
-    def _classify_big_o(self, complexity_str: str) -> BigOInfo:
-        c = complexity_str.lower()
-        family = "unknown"
-        
-        if c == "o(1)" or "amortized" in c:
-            family = "constant"
-        elif "n log n" in c:
-            family = "linearithmic"
-        elif "log" in c:
-            family = "logarithmic"
-        elif "âˆš" in c or "sqrt" in c:
-            family = "root"
-        elif "n!" in c:
-            family = "factorial"
-        elif "n^n" in c:
-            family = "super_exponential"
-        elif "2^n" in c or "c(" in c or "2â¿" in c:
-            family = "exponential"
-        elif "n^2" in c or "nÂ²" in c or "n^3" in c or "nÂ³" in c or "n * m" in c or "n^d" in c:
-            family = "polynomial"
-        elif "v + e" in c or "v" in c:
-            family = "graph"
-        elif "n" in c:
-            family = "linear"
-        elif "t(" in c:
-            family = "recursive_branching"
-            
-        return BigOInfo(
-            raw=complexity_str,
-            normalized=complexity_str,
-            family=family,
-            factors={}
-        )
-
-    # -------------------------------------------------------------------------
-    # PIECE 1: THE ACTION BUILDERS (What is the code doing?)
-    # -------------------------------------------------------------------------
-    def _build_action_intro(self, node: ast.AST, code_snippet: str, sig: PatternSignals) -> str:
-        """Generates the opening sentence based on the AST node type and paradigms."""
-        # High priority paradigms
-        if sig.paradigms.is_halving:
-            return f"Looking at `{code_snippet}`, the algorithm performs a crucial mathematical division, actively halving the problem space."
-        if sig.paradigms.is_two_pointer:
-            return f"In this line (`{code_snippet}`), we see a convergence checkâ€”a foundational signature of the 'Two-Pointer' or 'Sliding Window' technique."
-        if sig.paradigms.is_tabulation_setup:
-            return f"Looking at `{code_snippet}`, the code pre-allocates an entire memory block upfront, a classic setup for Tabulation."
-        if sig.paradigms.is_fibonacci_sequence:
-            return f"Here in `{code_snippet}`, we are performing a simultaneous tuple unpacking to cleanly shift variables forwardâ€”a staple of sequence progression."
-        if sig.paradigms.is_brian_kernighan:
-            return f"This specific line (`{code_snippet}`) utilizes a brilliant bitwise trick to drop the lowest set bit instantly."
-        if sig.paradigms.is_combinatorics:
-            return f"This step (`{code_snippet}`) executes a heavy combinatorial math equation (like permutations or factorials), which scales incredibly fast."
-        if sig.paradigms.is_euclidean_distance:
-            return f"Looking at `{code_snippet}`, the engine is calculating a spatial distance metric, applying quadratic squaring and rooting."
-
-        snippet_ref = f"Looking at `{code_snippet}`" if code_snippet else "Reviewing this specific line"
-
-        # Structural/AST node types
-        if isinstance(node, ast.Assign):
-            return f"{snippet_ref}, the code assigns a calculated value, capturing a specific state."
-        elif isinstance(node, ast.AugAssign):
-            return f"{snippet_ref}, we are directly updating or mutating an existing variable."
-        elif isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Attribute):
-                return f"{snippet_ref}, a method (`.{node.func.attr}()`) is invoked to manipulate the targeted data structure."
-            elif isinstance(node.func, ast.Name):
-                return f"{snippet_ref}, the code triggers the core `{node.func.id}()` function."
-            return f"{snippet_ref}, a complex function call is being executed."
-        elif isinstance(node, ast.For):
-            return f"{snippet_ref}, an iterative loop is established to sequentially process a collection."
-        elif isinstance(node, ast.While):
-            return f"{snippet_ref}, a dynamic `while` loop is engaged to continuously run based on an evolving condition."
-        elif isinstance(node, ast.If):
-            return f"{snippet_ref}, the execution flow hits a conditional branch, slicing the logic path."
-        elif isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp)):
-            return f"{snippet_ref}, Python leverages a syntactic comprehension to construct a collection dynamically in one pass."
-        elif isinstance(node, ast.Return):
-            return f"{snippet_ref}, the function completes its mathematical evaluation and returns the final payload."
-        elif isinstance(node, ast.Subscript):
-            if isinstance(getattr(node, 'slice', None), ast.Slice):
-                return f"{snippet_ref}, the array is being explicitly sliced to extract a localized segment."
-            return f"{snippet_ref}, a specific precise element is accessed via index or dictionary key."
-        elif isinstance(node, ast.Try):
-            return f"{snippet_ref}, an exception handling block (`try/except`) is established to safely catch runtime errors."
-        elif isinstance(node, ast.With):
-            return f"{snippet_ref}, a context manager (`with` block) is opened to handle sensitive resources cleanly."
-        elif isinstance(node, ast.Yield) or isinstance(node, ast.YieldFrom):
-            return f"{snippet_ref}, execution halts momentarily to `yield` a value, turning this function into a powerful generator."
-        elif isinstance(node, ast.Lambda):
-            return f"{snippet_ref}, an anonymous, inline `lambda` function is declared for quick, on-the-fly execution."
-        elif isinstance(node, ast.Raise):
-            return f"{snippet_ref}, an error or exception is intentionally triggered, stopping normal execution."
-        elif isinstance(node, ast.Assert):
-            return f"{snippet_ref}, a strict assertion check is performed to guarantee program state integrity."
-        elif sig.has_docstring:
-            return f"{snippet_ref}, we observe a formal docstring, embedding vital documentation and metadata directly into the structure."
-        elif sig.has_comment_block:
-            return f"{snippet_ref}, a block string or comment is present to clarify logic or safely disable code."
-        
-        return f"{snippet_ref}, we observe a distinct operational step."
-
-    # -------------------------------------------------------------------------
-    # PIECE 2: LOCAL EXPLANATIONS
-    # -------------------------------------------------------------------------
-    def _build_local_time_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
-        family = local_info.family
-        
-        # Meta/Text structures usually cost nothing
-        if sig.has_docstring or sig.has_comment_block:
-            return "This acts strictly as documentation or passive string data; it imposes absolutely zero computational penalty during live execution, resolving to a pure $O(1)$ footprint."
-
-        if sig.complexity_signals.amortized_operation:
-            return "In isolation, this evaluates to amortized constant time. Usually, it happens instantly, but occasionally it requires a heavier background operation (like resizing an array). On average, it remains a highly efficient $O(1)$ step."
-        
-        if family == "constant":
-            return "Evaluated strictly on its own, this is an instant $O(1)$ operation. The CPU executes it directly without needing to iterate or scan through external data."
-        elif family == "linear":
-            return f"Locally, this step inherently takes linear time ({local_info.raw}). Under the hood, Python is forced to traverse the involved elements one by one."
-        elif family == "logarithmic":
-            return f"In a vacuum, this step executes logarithmically ({local_info.raw}), meaning it bypasses a massive amount of redundant checks by cutting the search space down."
-        elif family == "polynomial":
-            return f"By itself, this action triggers a nested evaluation ({local_info.raw}), structurally demanding a repetitive combination of work."
-        elif "placeholder" in local_info.raw or local_info.raw.startswith("T("):
-            return "Since this is a recursive invocation, its exact local execution time is deferred; it strictly depends on how the recursive tree branches out from this point."
-            
-        return f"Locally, this executes with a baseline operational cost of {local_info.raw}."
-
-    def _build_local_space_explanation(self, local_info: BigOInfo, sig: PatternSignals) -> str:
-        family = local_info.family
-        
-        if sig.has_docstring or sig.has_comment_block:
-            return "Because this is static metadata parsed only during initial compilation, it consumes no dynamic runtime memory, preserving an immaculate $O(1)$ local environment."
-
-        if sig.memory_signals.inplace_swap:
-            return "Because this is an elegant in-place swap, it requires absolutely zero additional memory allocations, maintaining a pristine $O(1)$ local footprint."
-        
-        if family == "constant":
-            return "Locally, this line operates with a highly efficient $O(1)$ memory footprint, meaning it either reuses existing space or only creates tiny scalar variables."
-        elif family == "linear":
-            return f"In isolation, this step explicitly demands new memory proportional to the data ({local_info.raw}), forcing the system to allocate fresh RAM for the resulting structure."
-        elif family == "polynomial":
-            return f"Locally, this generates a multi-dimensional array or dense matrix ({local_info.raw}), consuming significantly more contiguous memory blocks than standard flat lists."
-        elif "placeholder" in local_info.raw:
-            return "The immediate memory required here fluctuates fluidly based on the dynamically evaluated state."
-            
-        return f"This isolated instruction claims a localized memory footprint of {local_info.raw}."
-
-    # -------------------------------------------------------------------------
-    # PIECE 3: GLOBAL EXPLANATIONS
-    # -------------------------------------------------------------------------
-    def _build_global_time_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
-        if sig.has_docstring or sig.has_comment_block:
-            return "Its presence has no cascading effects on the global performance. The total systemic time complexity is fundamentally anchored by the actual operational logic of the block."
-
-        if local_info.raw == global_info.raw:
-            return f"Because this operation dictates the heaviest work done in this path, it establishes the function's overall algorithmic time complexity at {global_info.raw}."
-        
-        # Escalation Logic (Local is smaller than Global)
-        if global_info.family == "polynomial" and local_info.family in ["linear", "constant"]:
-            if sig.nested_loops:
-                return f"However, because this step is trapped deep inside nested loops, its execution frequency multiplies dramatically, ballooning the overall time complexity to a quadratic {global_info.raw}."
-            return f"However, because this step is repeated heavily, the sheer volume of iterations forces the total systemic time complexity to escalate to {global_info.raw}."
-            
-        if global_info.family in ["exponential", "recursive_branching", "super_exponential"]:
-            if sig.has_recursion:
-                return f"When factoring in the recursive tree this operation spawns, the workload effectively doubles (or worse) with each added depth, crashing the global efficiency to {global_info.raw}."
-            return f"The algorithmic design surrounding this line causes explosive combinatorial growth, pushing the global processing time to a severe {global_info.raw}."
-            
-        if global_info.family == "linear" and local_info.family == "constant":
-            if sig.loop_depth > 0:
-                return f"Since this instantaneous $O(1)$ action cycles continuously inside a loop, the total time required to finish all passes accumulates to a linear {global_info.raw}."
-                
-        if global_info.family == "linearithmic" and local_info.family in ["constant", "linear"]:
-            return f"Driven by the surrounding 'Divide and Conquer' logic (like sorting or halving trees), the aggregate execution scales out to an efficient {global_info.raw}."
-
-        return f"When nested within the surrounding architectural structure, the total global time complexity evaluates to {global_info.raw}."
-
-    def _build_global_space_explanation(self, local_info: BigOInfo, global_info: BigOInfo, sig: PatternSignals) -> str:
-        if sig.has_docstring or sig.has_comment_block:
-            return "Comments and docstrings do not compound globally. The actual global space complexity is entirely dependent on the variables and structures dynamically built within the execution path."
-
-        if local_info.raw == global_info.raw:
-            return f"As this is the peak structural allocation event in the entire algorithm, it cleanly defines the overarching global space complexity at {global_info.raw}."
-        
-        # Escalation Logic
-        if global_info.family == "linear" and local_info.family == "constant":
-            if sig.has_recursion:
-                return f"However, because this function calls itself recursively, the interpreter stacks these $O(1)$ frames on top of each other, expanding the peak global memory usage to {global_info.raw}."
-            return f"However, as the algorithm continuously cycles and accumulates data state, the total peak memory held by the system scales up to {global_info.raw}."
-            
-        if global_info.family == "polynomial" and local_info.family in ["linear", "constant"]:
-            return f"While locally manageable, the surrounding logic forces the creation of a dense, multi-layered data landscape, driving the absolute peak memory consumption to {global_info.raw}."
-
-        return f"Factoring in the peak high-water mark of the entire executing function, the global spatial footprint reaches {global_info.raw}."
-
-    # -------------------------------------------------------------------------
-    # PIECE 4: ALGORITHMIC INSIGHTS
-    # -------------------------------------------------------------------------
-    def _gather_time_insights(self, sig: PatternSignals, local_t: str) -> List[str]:
-        insights = []
-        
-        # Paradigms
-        if sig.paradigms.is_halving:
-            insights.append("Mathematical Optimization: By explicitly halving the input (often via `// 2`), the algorithm safely discards 50% of the remaining search space. This is the cornerstone of Logarithmic ($O(\\log n)$) efficiency, making it blisteringly fast even for huge datasets.")
-        if sig.paradigms.is_two_pointer:
-            insights.append("Algorithmic Technique: Monitoring variables converging upon one another (like pointers approaching from opposite ends) frequently reduces what would be a slow nested $O(n^2)$ loop down to a clean, single-pass $O(n)$ scan.")
-        if sig.paradigms.is_brian_kernighan:
-            insights.append("Bitwise Mastery: The bitwise operation here elegantly drops the least significant set bit directly. This allows the algorithm to skip over zeroes completely, counting bits exponentially faster than an iterative scan.")
-        if sig.paradigms.is_memoization_check:
-            insights.append("Dynamic Programming: Intercepting execution to check if a state already exists inside a dictionary or hash map is the essence of Memoization. By instantly returning the saved answer, you drastically prune massive calculation branches off the execution tree.")
-        if sig.paradigms.is_fibonacci_sequence:
-            insights.append("State Advancement: Updating multiple variables on a single line evaluates the right side entirely before assigning to the left, seamlessly shifting the 'sliding window' of mathematical state forward without needing temporary variables.")
-        if sig.paradigms.is_combinatorics:
-            insights.append("Combinatorial Math: Operations dealing with permutations or factorials grow at an intensely aggressive rate ($O(n!)$ or worse). They mathematically force the CPU to account for every possible permutation, creating monumental workloads even for small inputs.")
-        if sig.complexity_signals.quadratic_math:
-            insights.append("Mathematical Overhead: Squaring numbers (`**2`) or dealing with quadratic distance equations introduces heavier arithmetic operations, though modern CPUs pipeline these specific instructions extremely efficiently.")
-
-        # Complexity Traps & Patterns
-        if sig.memory_signals.geometric_capacity_growth:
-            insights.append("Architectural Warning: Continuously multiplying or adding a sequence to itself inside a loop forces the computer to reallocate exponentially doubling chunks of memory. This turns what appears to be a simple loop into an incredibly slow, volatile process.")
-        elif sig.memory_signals.string_concatenation_in_loop:
-            insights.append("Common Trap: Python strings are fully immutable. Appending to a string directly inside a loop forces Python to construct a brand new string from scratch every single cycle. For better performance, append to a list and use `.join()` at the end.")
-        elif sig.complexity_signals.f_string_usage:
-            insights.append("Best Practice: Utilizing modern interpolation techniques (like f-strings) is exceptionally efficient. It calculates and builds the full string natively in C in one pass, avoiding the creation of slow intermediate memory copies.")
-        
-        if sig.complexity_signals.aggregation_in_loop:
-            insights.append("Bottleneck Risk: Placing aggregation functions like `sum()`, `max()`, or `min()` directly inside a loop causes Python to secretly scan the entire sub-array over and over. Maintaining a running total variable instead will drastically improve speed.")
-        
-        if sig.complexity_signals.inefficient_list_pop:
-            insights.append("Data Structure Risk: Triggering a removal at the very start of a standard Python list is structurally slow. Because elements are packed tightly, Python must manually drag every remaining item one slot to the left. If you need a queue, `collections.deque` provides instant $O(1)$ pops.")
-        if sig.complexity_signals.inefficient_list_insert:
-            insights.append("Data Structure Risk: Mechanically inserting an item at the exact start of a populated list forces Python to push all existing elements backward to make room. This is a heavy $O(n)$ operation that stalls large arrays.")
-        if sig.complexity_signals.repeated_sort:
-            insights.append("Bottleneck Risk: Sorting is fundamentally heavy ($O(n \\log n)$). Placing a sorting mechanism directly inside a loop forces the CPU to repeat that intense mathematical lifting unnecessarily. Gather the data first, then sort exactly once outside the loop.")
-        if sig.complexity_signals.set_mathematical_ops:
-            insights.append("Best Practice: Native Set operations (like unions or intersections) are implemented at the lowest hardware levels in Python. Utilizing them is exponentially faster and cleaner than writing manual nested loops to check for duplication.")
-        if sig.complexity_signals.dict_lookup_constant:
-            insights.append("Best Practice: Leveraging specific dictionary getter methods or native hashed lookups yields an instant $O(1)$ data retrieval, bypassing the need to search linearly.")
-        if sig.has_early_exits or sig.has_continue:
-            insights.append("Optimization: Interacting with the loop flow (`break`, `continue`, or `return`) here acts as an excellent functional optimization. It grants the algorithm permission to completely bypass useless iterations the exact moment the logic resolves.")
-
-        # New Text / Syntax recognition insights
-        if sig.uses_try_except:
-            if sig.complexity_signals.exception_control_flow:
-                insights.append("Performance Trap: While `try/except` blocks are powerful, relying on exceptions for standard control flow *inside* a heavy loop is surprisingly slow. Generating a traceback object in Python carries a tangible processing penalty.")
-            else:
-                insights.append("Robust Engineering: Utilizing a `try/except` block ensures that unpredictable runtime anomalies are gracefully caught, preventing hard application crashes during execution.")
-        if sig.uses_context_manager:
-            insights.append("Resource Safety: The `with` statement elegantly guarantees that external connections (like files or database locks) are automatically and securely closed the moment execution leaves the block, even if an error violently halts the program.")
-
-        return insights
-
-    def _gather_space_insights(self, sig: PatternSignals, mem_state: dict) -> List[str]:
-        insights = []
-        
-        if sig.paradigms.is_tabulation_setup or sig.memory_signals.array_preallocation:
-            insights.append("Memory Optimization: Pre-allocating an array directly with a specific size (e.g., `[val] * n`) is a highly optimized way to reserve memory. It forces the system to grab exactly what it needs upfront, avoiding the constant reallocation penalties of `.append()`.")
-        if sig.memory_signals.inplace_swap:
-            insights.append("Memory Optimization: This operation modifies the data pointers strictly in-place. Because it doesn't require instantiating a completely new array, it is incredibly friendly to the computer's memory management system.")
-            
-        if sig.memory_signals.allocates_2d_lists:
-            insights.append("Memory Footprint: Creating nested arrays, such as a grid or a matrix, commands a significantly denser memory reservation from the Operating System than generating a standard flat list.")
-        elif sig.memory_signals.allocates_lists or sig.memory_signals.uses_list_comprehension:
-            insights.append("Memory Footprint: When instantiating a new list or array, the computer actively searches for and reserves a fresh, contiguous block of RAM to permanently house the incoming data elements.")
-            
-        if sig.memory_signals.allocates_sets or sig.memory_signals.uses_set_comprehension:
-            insights.append("Trade-off: Sets are astonishingly fast for lookups, but they achieve this by generating an invisible 'hash table'. This table intentionally leaves blank memory gaps to prevent data collisions, meaning a Set occupies substantially more raw RAM than a List of the exact same length.")
-        if sig.memory_signals.performs_slicing:
-            insights.append("Common Trap: Explicit array slicing physically cuts out and copies the targeted data, creating a complete duplicate array in memory. Executing slices inside recursive calls or loops will rapidly exhaust memory.")
-        if sig.memory_signals.recursive_stack_risk:
-            insights.append("System Risk: Every time a recursive function calls itself, Python saves a 'frame' of the current variable state directly to the call stack. If the sequence plunges thousands of levels deep, Python will intentionally crash with a `RecursionError` to protect system RAM.")
-
-        if sig.uses_yield:
-            insights.append("Memory Mastery: The `yield` generator paradigm is the pinnacle of space optimization. Instead of allocating massive chunks of RAM to hold an entire array of results, `yield` pauses execution and emits exactly one element at a time, sustaining an astonishing $O(1)$ memory footprint regardless of dataset size.")
-
-        if mem_state:
-            largest = max(mem_state.items(), key=lambda x: x[1]['size'], default=None)
-            if largest and largest[1]['size'] > 1:
-                insights.append(f"Runtime Diagnostic: The internal profiler directly observed that during live execution, the tracked variable `{largest[0]}` aggressively expanded to hold {largest[1]['size']} active elements in memory.")
-
-        return insights
-
-    # =========================================================================
-    # CORE GENERATOR METHOD
-    # =========================================================================
-    def generate_explanations(self, node, local_t, global_t, local_s, global_s, is_dead, code_snippet, hits=0, mem_state=None):
-        """Builds the distinct Local Context, Global Impact, and Educational Insights."""
-        if is_dead and hits == 0:
-            t_desc = (
-                f"**Local & Global Analysis:**\nThe targeted sequence `{code_snippet}` is classified strictly as Dead Code. Because the fundamental logic "
-                f"mechanically forbids execution flow from ever traversing inside this block, it contributes absolute zero processing overhead, "
-                f"resolving its impact to an immaculate $O(1)$ runtime penalty."
-            )
-            s_desc = (
-                "**Local & Global Analysis:**\nDue to the structural impossibility of triggering this block, the engine never requests memory allocations "
-                "for it. The spatial footprint remains completely unblemished at $O(1)$."
-            )
-            return t_desc, s_desc
-
-        visitor = ComprehensiveASTVisitor(self.ctx)
-        sig = visitor.analyze(node)
-
-        # Classify the strings into structured data
-        g_time_info = self._classify_big_o(str(global_t))
-        l_time_info = self._classify_big_o(str(local_t))
-        g_space_info = self._classify_big_o(str(global_s))
-        l_space_info = self._classify_big_o(str(local_s))
-
-        # --- ASSEMBLE TIME EXPLANATION ---
-        time_intro = self._build_action_intro(node, code_snippet, sig)
-        time_local = self._build_local_time_explanation(l_time_info, sig)
-        time_global = self._build_global_time_explanation(l_time_info, g_time_info, sig)
-        
-        time_insights = self._gather_time_insights(sig, str(local_t))
-        time_insight_text = "\n\n**Educational Insight:**\n" + "\n\n".join(time_insights) if time_insights else ""
-        time_hits = f"\n\n*Profiler verified this line executed {hits} times during the last run.*" if hits > 0 else ""
-
-        full_time_desc = (
-            f"{time_intro}\n\n"
-            f"**Local Analysis:**\n{time_local}\n\n"
-            f"**Global Impact:**\n{time_global}"
-            f"{time_insight_text}"
-            f"{time_hits}"
-        )
-
-        # --- ASSEMBLE SPACE EXPLANATION ---
-        space_local = self._build_local_space_explanation(l_space_info, sig)
-        space_global = self._build_global_space_explanation(l_space_info, g_space_info, sig)
-        
-        space_insights = self._gather_space_insights(sig, mem_state)
-        space_insight_text = "\n\n**Educational Insight:**\n" + "\n\n".join(space_insights) if space_insights else ""
-
-        full_space_desc = (
-            f"**Local Analysis:**\n{space_local}\n\n"
-            f"**Global Impact:**\n{space_global}"
-            f"{space_insight_text}"
-        )
-
-        return full_time_desc, full_space_desc
-
-    # =========================================================================
-    # BOTTLENECK & PRAISE GENERATORS
-    # =========================================================================
-    def get_time_bottleneck_warning(self, operation: str, final_time: str) -> str:
-        op_lower = operation.lower()
-        
-        if "loop" in op_lower:
-            return f"\n\n**Bottleneck Warning:** The primary reason this algorithm evaluates to {final_time} is the massive volume of repetitions mathematically forced by this {op_lower}. It acts as the anchor dragging performance down."
-        elif "recur" in op_lower or "call" in op_lower:
-            return f"\n\n**Bottleneck Warning:** Because this {op_lower} aggressively creates overlapping sub-problems without remembering past answers, it forces a massive cascade of redundant mathematical operations causing a severe {final_time} delay."
-        elif "comprehension" in op_lower:
-            return f"\n\n**Bottleneck Warning:** Do not be computationally fooled by its one-line elegance. Physically expanding this {op_lower} requires intense, hidden iteration under the hood, heavily defining the {final_time} runtime performance ceiling."
-        elif "sort" in op_lower:
-            return f"\n\n**Bottleneck Warning:** Sorting arrays is a fundamentally heavy mathematical task. Relying on this {op_lower} acts as a massive execution barrier, strictly preventing the algorithm from running any faster than {final_time}."
-        else:
-            return f"\n\n**Bottleneck Warning:** The most computationally intensive work happens entirely within this {op_lower}, ruthlessly dictating the final systemic {final_time} time complexity."
-
-    def get_space_bottleneck_warning(self, operation: str, final_space: str) -> str:
-        op_lower = operation.lower()
-        
-        if "recur" in op_lower or "call" in op_lower:
-            return f"\n\n**Space Bottleneck:** Every single functional jump deep inside this {op_lower} mandates a completely new required block of memory on the call stack, violently driving the peak system memory directly up to {final_space}."
-        elif "comprehension" in op_lower or "list" in op_lower or "assignment" in op_lower or "expansion" in op_lower:
-            return f"\n\n**Space Bottleneck:** Rather than intelligently shuffling data lightly in-place, this {op_lower} forcefully clones memory structures entirely, absolutely ensuring the systemic memory requirements escalate to {final_space}."
-        elif "slice" in op_lower or "string" in op_lower or "concat" in op_lower:
-            return f"\n\n**Space Bottleneck:** Because array slicing and string building forcefully creates duplicate memory clones rather than relying on simple reference pointers, this {op_lower} heavily balloons the peak spatial limits to {final_space}."
-        else:
-            return f"\n\n**Space Bottleneck:** The sheer volume of newly generated intermediate data that must strictly be held actively in RAM because of this {op_lower} brutally causes the overall capacity to reach {final_space}."
-
-    def get_time_optimization_praise(self, operation: str, global_time: str) -> str:
-        time_lower = global_time.lower()
-        
-        if "log" in time_lower:
-            return f"\n\n**Algorithmic Mastery:** Systematically halving the problem space is a truly brilliant mathematical optimization. By proactively discarding half the unneeded data at every step, this deeply refined {operation.lower()} absolutely boasts hyper-scalable {global_time} pristine execution speeds."
-        elif "âˆš" in time_lower or "sqrt" in time_lower:
-            return f"\n\n**Algorithmic Mastery:** Phenomenal logical optimization. By recognizing that you legitimately only need to verify factors up to the numeric square root, this {operation.lower()} intelligently bypasses staggering amounts of useless cyclic iterations, cleanly locking in a fast {global_time} boundary."
-        elif "1" in time_lower:
-            return f"\n\n**Algorithmic Mastery:** Pristine operational execution. By intelligently grabbing target values absolutely instantly through hashed memory keys or explicitly direct index pointers, this refined {operation.lower()} completely avoids redundant sequential scanning, elegantly executing at a mathematically perfect {global_time} rating."
-        else:
-            return f"\n\n**Algorithmic Mastery:** The internal processing logic embedded deeply inside this {operation.lower()} is exceptionally well-structured. By cleanly sidestepping bloated redundant execution cycles, it successfully maintains a highly optimal {global_time} processing speed."
-
-    def _format_recurrence_relation(self, relation: str) -> str:
-        return relation
 
 --- FILE: frontend/public/templates/recursive/recursive_factorial.json ---
 
@@ -11599,6 +10651,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import { PyodideProvider } from "./context/PyodideContext";
 import Dashboard from "./pages/Dashboard";
+import EvaluationSuite from "./pages/EvaluationSuite";
 import ForgotPassword from "./pages/ForgotPassword";
 import LandingPage from "./pages/HomePage";
 import LearningPath from "./pages/LearningPath";
@@ -11617,7 +10670,6 @@ const LessonViewer = lazy(() => import("./pages/LessonViewer"));
 const ProtectedRoute = ({ children }) => {
   const user = localStorage.getItem("user") || sessionStorage.getItem("user");
   if (!user) {
-    // FIXED: Let PublicRoute handle the landing page, kills the /signin race condition
     return <Navigate to="/" replace />; 
   }
   return children;
@@ -11646,6 +10698,7 @@ function App() {
   return (
     <PyodideProvider>
       <OfflineIndicator />
+      
       <Suspense fallback={<div style={{ padding: "20px", color: "white", textAlign: "center", marginTop: "50px" }}>Loading application...</div>}>
         <Routes>
           <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
@@ -11663,6 +10716,9 @@ function App() {
           <Route path="/activity/:moduleId/:activityId" element={<ProtectedRoute><ActivityApp /></ProtectedRoute>} />
           <Route path="/assessment/:moduleId/:type" element={<ProtectedRoute><AssessmentPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          
+          {/* BUG-03 Fix: Enforced ProtectedRoute guard around evaluation suite */}
+          <Route path="/admin/evaluation-suite" element={<ProtectedRoute><EvaluationSuite /></ProtectedRoute>} />
         </Routes>
       </Suspense>
     </PyodideProvider>
@@ -11986,119 +11042,119 @@ const sanitizePythonCode = (code) => {
 };
 
 const customBlocks = [
-  { type: "comment_block", message0: "Comment %1", colour: "#999999", tooltip: "Adds a comment to the Python code",
+  { type: "comment_block", message0: "Comment %1", colour: "#999999", tooltip: "Adds a single-line comment to the Python code. Comments are ignored by the computer but help human readers understand the logic of the code.",
     args0: [{ type: "field_input", name: "TEXT", text: "write note here" }], previousStatement: null, nextStatement: null },
-  { type: "math_assignment", message0: "%1 %2 %3", colour: "#4C97FF", tooltip: "Modify a variable using Add, Subtract, Multiply, or Divide",
+  { type: "math_assignment", message0: "%1 %2 %3", colour: "#4C97FF", tooltip: "Modifies an existing variable using an assignment operator (+=, -=, *=, /=). For example, using '+=' with a value of 1 will increment the current value of the variable by 1.",
     args0: [{ type: "field_variable", name: "VAR", variable: "item" }, { type: "field_dropdown", name: "OP", options: [["+=", "ADD"], ["-=", "MINUS"], ["*=", "MULTIPLY"], ["/=", "DIVIDE"]] }, { type: "input_value", name: "DELTA", check: "Number" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "procedure_return_value", message0: "return %1", colour: "#7a6b66", tooltip: "Returns the value from this function",
+  { type: "procedure_return_value", message0: "return %1", colour: "#7a6b66", tooltip: "Exits the current function and returns the specified value back to where the function was called. Any code written after this block inside the same function will not run.",
     args0: [{ type: "input_value", name: "VALUE" }], previousStatement: null, nextStatement: null },
-  { type: "custom_string_join", message0: "join list %1 with delimiter %2", colour: "#d5a52a", tooltip: "Joins a list of strings into one string using a specified delimiter",
+  { type: "custom_string_join", message0: "join list %1 with delimiter %2", colour: "#d5a52a", tooltip: "Joins all items in a list into a single continuous string, placing the specified delimiter between each item. Great for converting arrays into readable, formatted text.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "input_value", name: "DELIMITER", check: "String" }], output: "String" },
-  { type: "string_to_list", message0: "create list from string %1", style: "list_blocks", tooltip: "Converts a string into a list of its characters",
+  { type: "string_to_list", message0: "create list from string %1", style: "list_blocks", tooltip: "Converts a string into a list where each character (or separated word) becomes an individual element in the newly created list array.",
     args0: [{ type: "input_value", name: "STRING", check: "String" }], output: "Array" },
-  { type: "math_advanced_operators", message0: "%1 %2 %3", colour: "#4C97FF", tooltip: "Performs advanced math operations such as Floor Division, Power, Bitwise Shifts, and Bitwise Logic",
+  { type: "math_advanced_operators", message0: "%1 %2 %3", colour: "#4C97FF", tooltip: "Performs advanced mathematical operations: Floor Division (//) divides and discards the remainder, Power (**) calculates exponents, and Bitwise operators shift or logic-match binary bits.",
     args0: [{ type: "input_value", name: "A", check: "Number" }, { type: "field_dropdown", name: "OP", options: [["//", "FLOOR_DIV"], ["**", "POWER"], [">>", "RSHIFT"], ["<<", "LSHIFT"], ["&", "BIT_AND"], ["|", "BIT_OR"]] }, { type: "input_value", name: "B", check: "Number" }], inputsInline: true, output: "Number" },
-  { type: "type_cast_int", message0: "int %1", colour: "#4C97FF", tooltip: "Converts the given value to an integer",
+  { type: "type_cast_int", message0: "int %1", colour: "#4C97FF", tooltip: "Converts a given value (like a float or a string containing numbers) into an integer (whole number). Decimals are completely truncated, not rounded.",
     args0: [{ type: "input_value", name: "VALUE" }], output: "Number" },
-  { type: "math_min_max", message0: "%1 of %2 and %3", colour: "#4C97FF", tooltip: "Returns the maximum or minimum of two numbers",
+  { type: "math_min_max", message0: "%1 of %2 and %3", colour: "#4C97FF", tooltip: "Compares two numbers and returns either the highest (maximum) or the lowest (minimum) value among them depending on the selected dropdown.",
     args0: [{ type: "field_dropdown", name: "OP", options: [["max", "MAX"], ["min", "MIN"]] }, { type: "input_value", name: "A", check: "Number" }, { type: "input_value", name: "B", check: "Number" }], inputsInline: true, output: "Number" },
-  { type: "dict_create_empty", message0: "create empty dictionary", style: "dict_blocks", tooltip: "Creates a new, empty Python dictionary", output: null },
-  { type: "dict_set", message0: "in dictionary %1 set key %2 to %3", style: "dict_blocks", tooltip: "Sets a key-value pair in a dictionary",
+  { type: "dict_create_empty", message0: "create empty dictionary", style: "dict_blocks", tooltip: "Initializes a new, empty Python dictionary {}. Dictionaries store data in key-value pairs, allowing for extremely fast lookups by key.", output: null },
+  { type: "dict_set", message0: "in dictionary %1 set key %2 to %3", style: "dict_blocks", tooltip: "Adds a new key-value pair to a dictionary or updates the value of an existing key. The key must be a unique, immutable type like a string or number.",
     args0: [{ type: "input_value", name: "DICT" }, { type: "input_value", name: "KEY" }, { type: "input_value", name: "VALUE" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "dict_get", message0: "in dictionary %1 get key %2", style: "dict_blocks", tooltip: "Retrieves the value for a specific key in a dictionary",
+  { type: "dict_get", message0: "in dictionary %1 get key %2", style: "dict_blocks", tooltip: "Retrieves the value associated with a specific key in a dictionary. If the key does not exist in the dictionary, Python will throw a KeyError.",
     args0: [{ type: "input_value", name: "DICT" }, { type: "input_value", name: "KEY" }], inputsInline: true, output: null },
-  { type: "dict_pair", message0: "key %1 : value %2", style: "dict_blocks", tooltip: "Creates a single Key-Value pair",
+  { type: "dict_pair", message0: "key %1 : value %2", style: "dict_blocks", tooltip: "Creates a single Key-Value pair block. This is specifically used to populate a new dictionary literal directly upon creation.",
     args0: [{ type: "input_value", name: "KEY" }, { type: "input_value", name: "VALUE" }], inputsInline: true, output: "DictPair" },
-  { type: "dict_from_pairs", message0: "create dictionary with %1", style: "dict_blocks", tooltip: "Converts a list of key-value pairs into a dictionary literal",
+  { type: "dict_from_pairs", message0: "create dictionary with %1", style: "dict_blocks", tooltip: "Constructs a new dictionary populated with a given list of pre-defined key-value pairs.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }], output: null },
-  { type: "dict_pop", message0: "remove and get value for key/index %1 in %2", style: "dict_blocks", tooltip: "Removes the specified key or index and returns the corresponding value.",
+  { type: "dict_pop", message0: "remove and get value for key/index %1 in %2", style: "dict_blocks", tooltip: "Removes the specified key from the dictionary and returns its associated value. Helpful for extracting and deleting data in one step.",
     args0: [{ type: "input_value", name: "KEY" }, { type: "input_value", name: "DICT" }], inputsInline: true, output: null },
-  { type: "set_create_empty", message0: "create empty set", style: "set_tuple_blocks", tooltip: "Creates a new, empty Python set", output: null },
-  { type: "set_from_list", message0: "create set from list %1", style: "set_tuple_blocks", tooltip: "Converts a list into a set, removing duplicates and enabling O(1) lookups",
+  { type: "set_create_empty", message0: "create empty set", style: "set_tuple_blocks", tooltip: "Initializes a new, empty Python set. Sets are unordered collections that strictly do not allow any duplicate elements.", output: null },
+  { type: "set_from_list", message0: "create set from list %1", style: "set_tuple_blocks", tooltip: "Converts an existing list into a set. This automatically filters out and removes any duplicate values from the list and optimizes it for O(1) constant time lookups.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }], output: null },
-  { type: "set_add", message0: "add %1 to set %2", style: "set_tuple_blocks", tooltip: "Adds an item to a set in constant time",
+  { type: "set_add", message0: "add %1 to set %2", style: "set_tuple_blocks", tooltip: "Adds a single item to a set. If the item already exists in the set, the set remains completely unchanged (no duplicates are added).",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "SET" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "set_remove", message0: "remove %1 from set %2", style: "set_tuple_blocks", tooltip: "Removes an item from a set in constant time",
+  { type: "set_remove", message0: "remove %1 from set %2", style: "set_tuple_blocks", tooltip: "Removes a specific item from a set. If the item is not found inside the set, Python will throw a KeyError and halt execution.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "SET" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "set_operations", message0: "set %1 of %2 and %3", style: "set_tuple_blocks", tooltip: "Performs mathematical set operations (union, intersection, difference).",
+  { type: "set_operations", message0: "set %1 of %2 and %3", style: "set_tuple_blocks", tooltip: "Performs mathematical set operations: Union combines all elements from both sets, Intersection finds only the common elements, and Difference finds unique elements.",
     args0: [{ type: "field_dropdown", name: "OP", options: [["union", "UNION"], ["intersection", "INTERSECTION"], ["difference", "DIFFERENCE"]] }, { type: "input_value", name: "SET1" }, { type: "input_value", name: "SET2" }], inputsInline: true, output: null },
-  { type: "tuple_create", message0: "create tuple with %1 and %2", style: "set_tuple_blocks", tooltip: "Creates an immutable tuple containing two elements",
+  { type: "tuple_create", message0: "create tuple with %1 and %2", style: "set_tuple_blocks", tooltip: "Creates a tuple, which is an ordered, unchangeable (immutable) collection of elements. Once created, its items cannot be modified or reassigned.",
     args0: [{ type: "input_value", name: "A" }, { type: "input_value", name: "B" }], inputsInline: true, output: null },
-  { type: "multi_line_comment", message0: "comment %1", colour: "#999999", tooltip: "Adds a multi-line comment to the Python code",
+  { type: "multi_line_comment", message0: "comment %1", colour: "#999999", tooltip: "Adds a multi-line docstring comment (wrapped in triple quotes) to the Python code. Often used to document entire functions or block out large text descriptions.",
     args0: [{ type: "field_multilinetext", name: "TEXT", text: "Write multi-line note here", spellcheck: false }], previousStatement: null, nextStatement: null },
-  { type: "raw_python_statement", message0: "Raw Code \n %1", style: "raw_blocks", tooltip: "Dumps exact text string to Python code",
+  { type: "raw_python_statement", message0: "Raw Code \n %1", style: "raw_blocks", tooltip: "Directly injects the exact text string as a raw Python statement into the generated code. Use with caution as it bypasses Blockly's syntax and safety checks.",
     args0: [{ type: "field_multilinetext", name: "CODE", text: "print('Hello World')", spellcheck: false }], previousStatement: null, nextStatement: null },
-  { type: "raw_python_expression", message0: "Raw Eval \n %1", style: "raw_blocks", tooltip: "Evaluates exact text string as a value",
+  { type: "raw_python_expression", message0: "Raw Eval \n %1", style: "raw_blocks", tooltip: "Evaluates an exact text string as a raw Python expression, returning a value that can be plugged into other blocks.",
     args0: [{ type: "field_multilinetext", name: "CODE", text: "x + y", spellcheck: false }], output: null },
-  { type: "raw_python_multiline", message0: "Raw Block \n %1", style: "raw_blocks", tooltip: "Dumps multi-line exact text string to Python code",
+  { type: "raw_python_multiline", message0: "Raw Block \n %1", style: "raw_blocks", tooltip: "Injects multiple lines of raw, unformatted Python code directly into the workspace generation. Useful for pasting complex custom logic.",
     args0: [{ type: "field_multilinetext", name: "CODE", text: "def custom_func():\n    pass", spellcheck: false }], previousStatement: null, nextStatement: null },
-  { type: "python_input", message0: "ask user for input with prompt %1", style: "io_blocks", tooltip: "Displays a message and waits for the user to type something in the console.",
+  { type: "python_input", message0: "ask user for input with prompt %1", style: "io_blocks", tooltip: "Halts program execution, prints the specified prompt message to the console, and waits for the user to type a response and press Enter. Returns the user input as a string.",
     args0: [{ type: "input_value", name: "PROMPT", check: "String" }], output: "String" },
-  { type: "python_type", message0: "type of %1", colour: "#c1a0e8", tooltip: "Returns the type of the given value",
+  { type: "python_type", message0: "type of %1", colour: "#c1a0e8", tooltip: "Returns the data type of the provided value or variable (e.g., int, float, str, list, dict). Very useful for debugging and dynamic type checking.",
     args0: [{ type: "input_value", name: "VALUE" }], output: null },
-  { type: "python_type_primitive", message0: "type %1", colour: "#c1a0e8", tooltip: "Python primitive types",
+  { type: "python_type_primitive", message0: "type %1", colour: "#c1a0e8", tooltip: "Selects a built-in Python primitive type class (like int, str, or list) to be used for type checking via isinstance or casting.",
     args0: [{ type: "field_dropdown", name: "TYPE", options: [["int", "int"], ["float", "float"], ["str", "str"], ["list", "list"], ["dict", "dict"], ["bool", "bool"], ["tuple", "tuple"], ["set", "set"]] }], output: null },
-  { type: "python_isinstance", message0: "is %1 a %2?", colour: "#c1a0e8", tooltip: "Checks if a value is of a specific type",
+  { type: "python_isinstance", message0: "is %1 a %2?", colour: "#c1a0e8", tooltip: "Checks if a specific value or variable is exactly an instance of a given data type, returning True if it matches and False otherwise.",
     args0: [{ type: "input_value", name: "VALUE" }, { type: "input_value", name: "TYPE" }], inputsInline: true, output: "Boolean" },
-  { type: "text_multiply", message0: "repeat text %1 %2 times", colour: "#d5a52a", tooltip: "Repeats a string a given number of times",
+  { type: "text_multiply", message0: "repeat text %1 %2 times", colour: "#d5a52a", tooltip: "Repeats a given string a specified number of times sequentially. For example, multiplying the string 'A' by 3 results in 'AAA'.",
     args0: [{ type: "input_value", name: "TEXT", check: "String" }, { type: "input_value", name: "MULTIPLIER", check: "Number" }], inputsInline: true, output: "String" },
-  { type: "text_newline", message0: "Line Break", colour: "#d5a52a", tooltip: "Returns a newline character", output: "String" },
-  { type: "list_append", message0: "append %1 to list %2", style: "list_blocks", tooltip: "Appends an item to the end of a list",
+  { type: "text_newline", message0: "Line Break", colour: "#d5a52a", tooltip: "Inserts a newline character (\\n) into a string, which forces subsequent text to drop down to the next line when printed to the console.", output: "String" },
+  { type: "list_append", message0: "append %1 to list %2", style: "list_blocks", tooltip: "Adds a new item to the very end of an existing list. The list is modified in-place and its overall size increases by one.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "list_count", message0: "count occurrences of %1 in list %2", style: "list_blocks", tooltip: "Counts how many times an item appears in a list.",
+  { type: "list_count", message0: "count occurrences of %1 in list %2", style: "list_blocks", tooltip: "Scans the entire list from start to finish and counts exactly how many times the specified item appears within it.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, output: "Number" },
-  { type: "list_reverse", message0: "reverse list %1", style: "list_blocks", tooltip: "Reverses the items of a list in place.",
+  { type: "list_reverse", message0: "reverse list %1", style: "list_blocks", tooltip: "Reverses the order of the items in the list entirely in-place. The first item becomes the last, and the last becomes the first.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }], previousStatement: null, nextStatement: null },
-  { type: "list_clear", message0: "clear all items from %1", style: "list_blocks", tooltip: "Removes all elements from the list or dictionary.",
+  { type: "list_clear", message0: "clear all items from %1", style: "list_blocks", tooltip: "Empties the entire collection, aggressively removing all items from the list or dictionary and leaving it completely blank.",
     args0: [{ type: "input_value", name: "LIST" }], previousStatement: null, nextStatement: null },
-  { type: "list_range", message0: "create list from %1 to %2 (exclusive)", style: "list_blocks", tooltip: "Creates a list of numbers from start to end",
+  { type: "list_range", message0: "create list from %1 to %2 (exclusive)", style: "list_blocks", tooltip: "Generates a list of sequential numbers starting from the 'start' value up to, but strictly not including, the 'end' value.",
     args0: [{ type: "input_value", name: "START", check: "Number" }, { type: "input_value", name: "END", check: "Number" }], inputsInline: true, output: "Array" },
-  { type: "variable_swap", message0: "swap variable %1 and %2", style: "variable_blocks", tooltip: "Swaps the values of two variables",
+  { type: "variable_swap", message0: "swap variable %1 and %2", style: "variable_blocks", tooltip: "Exchanges the values of two variables simultaneously in a single, atomic Python operation, completely avoiding the need for a temporary third variable.",
     args0: [{ type: "field_variable", name: "VAR1", variable: "a" }, { type: "field_variable", name: "VAR2", variable: "b" }], previousStatement: null, nextStatement: null },
-  { type: "logic_in", message0: "%1 is in %2", colour: "#c1a0e8", tooltip: "Checks if an item exists within a collection.",
+  { type: "logic_in", message0: "%1 is in %2", colour: "#c1a0e8", tooltip: "Checks if a specific item exists anywhere inside a collection (like a list, set, dictionary keys, or string). Returns True if found, False otherwise.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "COLLECTION" }], inputsInline: true, output: "Boolean" },
-  { type: "list_slice_advanced", message0: "slice list %1 from index %2 to %3", style: "list_blocks", tooltip: "Python list slicing. Leave inputs blank to default to the beginning or end of the list.",
+  { type: "list_slice_advanced", message0: "slice list %1 from index %2 to %3", style: "list_blocks", tooltip: "Extracts a portion (slice) of a list starting from the start index and going up to the end index. Leave indices blank to default to the beginning or end of the list.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "input_value", name: "START" }, { type: "input_value", name: "END" }], inputsInline: true, output: "Array" },
-  { type: "list_concat", message0: "join list %1 and list %2", style: "list_blocks", tooltip: "Concatenates two arrays together.",
+  { type: "list_concat", message0: "join list %1 and list %2", style: "list_blocks", tooltip: "Joins two separate lists together end-to-end to form a single, newly combined list array.",
     args0: [{ type: "input_value", name: "LIST1", check: "Array" }, { type: "input_value", name: "LIST2", check: "Array" }], inputsInline: true, output: "Array" },
-  { type: "list_remove_value", message0: "remove first occurrence of %1 from list %2", style: "list_blocks", tooltip: "Removes the first matching value from an array.",
+  { type: "list_remove_value", message0: "remove first occurrence of %1 from list %2", style: "list_blocks", tooltip: "Searches for the very first exact match of the specified value in the list and removes it. Subsequent elements shift left to fill the gap.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "list_pop", message0: "remove and get last item from list %1", style: "list_blocks", tooltip: "Removes the last item from a list and returns it.",
+  { type: "list_pop", message0: "remove and get last item from list %1", style: "list_blocks", tooltip: "Removes the last item from the very end of the list and returns that item so it can be assigned to a variable or used immediately.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }], output: null },
-  { type: "list_pop_statement", message0: "remove last item from list %1", style: "list_blocks", tooltip: "Removes the last item from a list without returning it.",
+  { type: "list_pop_statement", message0: "remove last item from list %1", style: "list_blocks", tooltip: "Removes the last item from the very end of the list but does not return it. The removed item is simply discarded.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }], previousStatement: null, nextStatement: null },
-  { type: "dict_keys_values", message0: "get %1 from dict %2", style: "dict_blocks", tooltip: "Returns the keys, values, or items from a dictionary as a list.",
+  { type: "dict_keys_values", message0: "get %1 from dict %2", style: "dict_blocks", tooltip: "Extracts all keys, all values, or all key-value pairs (items) from a dictionary and immediately converts them into a flat list format for easy looping.",
     args0: [{ type: "field_dropdown", name: "OP", options: [["keys", "keys"], ["values", "values"], ["items", "items"]] }, { type: "input_value", name: "DICT" }], inputsInline: true, output: "Array" },
-  { type: "controls_pass", message0: "pass", colour: "#8bcf8b", tooltip: "The pass statement does nothing. Used as a placeholder.", previousStatement: null, nextStatement: null },
-  { type: "list_sort", message0: "sort list %1 %2", style: "list_blocks", tooltip: "Sorts the list in-place.",
+  { type: "controls_pass", message0: "pass", colour: "#8bcf8b", tooltip: "The 'pass' statement does absolutely nothing. It is used as a syntactic placeholder in loops, conditionals, or functions where code is eventually intended to go but cannot be left entirely blank.", previousStatement: null, nextStatement: null },
+  { type: "list_sort", message0: "sort list %1 %2", style: "list_blocks", tooltip: "Sorts the elements of the list permanently in-place (modifying the original list) in either standard ascending or reversed descending order.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "field_dropdown", name: "REVERSE", options: [["in ascending order", "FALSE"], ["in descending order", "TRUE"]] }], previousStatement: null, nextStatement: null },
-  { type: "list_sorted", message0: "get sorted copy of list %1 %2", style: "list_blocks", tooltip: "Returns a new sorted list from the given list.",
+  { type: "list_sorted", message0: "get sorted copy of list %1 %2", style: "list_blocks", tooltip: "Creates and returns a brand new list containing the sorted elements, leaving the original list completely untouched and unmodified.",
     args0: [{ type: "input_value", name: "LIST", check: "Array" }, { type: "field_dropdown", name: "REVERSE", options: [["in ascending order", "FALSE"], ["in descending order", "TRUE"]] }], output: "Array" },
-  { type: "list_insert", message0: "insert %1 at index %2 in list %3", style: "list_blocks", tooltip: "Inserts an item into a list at a specified index.",
+  { type: "list_insert", message0: "insert %1 at index %2 in list %3", style: "list_blocks", tooltip: "Inserts a new item into the list exactly at the given index position. All elements originally at or after this index are shifted one position to the right.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "INDEX", check: "Number" }, { type: "input_value", name: "LIST", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "string_split", message0: "split string %1 by delimiter %2", colour: "#d5a52a", tooltip: "Splits a string into a list using the given delimiter.",
+  { type: "string_split", message0: "split string %1 by delimiter %2", colour: "#d5a52a", tooltip: "Divides a single string into a list of multiple strings, breaking the text apart wherever the specified delimiter substring occurs.",
     args0: [{ type: "input_value", name: "STRING", check: "String" }, { type: "input_value", name: "DELIMITER", check: "String" }], inputsInline: true, output: "Array" },
-  { type: "math_abs_round", message0: "%1 of %2", colour: "#4C97FF", tooltip: "Calculates the absolute value or rounds a number.",
+  { type: "math_abs_round", message0: "%1 of %2", colour: "#4C97FF", tooltip: "Performs standard mathematical formatting: 'absolute value' strictly strips away any negative signs, while 'round' snaps floating-point decimals to the nearest whole integer.",
     args0: [{ type: "field_dropdown", name: "OP", options: [["absolute value", "abs"], ["round", "round"]] }, { type: "input_value", name: "VALUE", check: "Number" }], output: "Number" },
-  { type: "type_cast_advanced", message0: "convert %1 to %2", colour: "#c1a0e8", tooltip: "Converts a value to the specified type.",
+  { type: "type_cast_advanced", message0: "convert %1 to %2", colour: "#c1a0e8", tooltip: "Forcefully converts a given variable or value into the designated Python data type (for example, turning a text string '5' into a usable integer 5).",
     args0: [{ type: "input_value", name: "VALUE" }, { type: "field_dropdown", name: "TYPE", options: [["float", "float"], ["boolean", "bool"], ["string", "str"], ["list", "list"]] }], inputsInline: true, output: null },
-  { type: "string_case_formatting", message0: "convert text %1 to %2", colour: "#d5a52a", tooltip: "Converts text to uppercase, lowercase, title case, or capitalized.",
+  { type: "string_case_formatting", message0: "convert text %1 to %2", colour: "#d5a52a", tooltip: "Transforms the capitalization styling of a string. Options include forcing all letters to UPPERCASE, making all letters lowercase, Capitalizing Every Word (Title Case), or just capitalizing the first letter.",
     args0: [{ type: "input_value", name: "STRING", check: "String" }, { type: "field_dropdown", name: "CASE", options: [["UPPERCASE", "upper"], ["lowercase", "lower"], ["Title Case", "title"], ["Capitalized", "capitalize"]] }], inputsInline: true, output: "String" },
-  { type: "stack_push", message0: "push %1 to stack %2", style: "stack_queue_blocks", tooltip: "Pushes an item onto the top of the stack (equivalent to list.append).",
+  { type: "stack_push", message0: "push %1 to stack %2", style: "stack_queue_blocks", tooltip: "Adds an element to the absolute top of the stack data structure. Under the hood in Python, this is functionally equivalent to appending an item to the end of a list.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "STACK", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "stack_pop", message0: "pop and get top of stack %1", style: "stack_queue_blocks", tooltip: "Pops the top item off the stack and returns it (equivalent to list.pop()).",
+  { type: "stack_pop", message0: "pop and get top of stack %1", style: "stack_queue_blocks", tooltip: "Removes and explicitly returns the element currently at the top of the stack (the most recently added item), strictly following the Last-In-First-Out (LIFO) logical principle.",
     args0: [{ type: "input_value", name: "STACK", check: "Array" }], output: null },
-  { type: "stack_pop_statement", message0: "pop from stack %1", style: "stack_queue_blocks", tooltip: "Pops the top item off the stack.",
+  { type: "stack_pop_statement", message0: "pop from stack %1", style: "stack_queue_blocks", tooltip: "Removes the element currently at the top of the stack (the most recently added item) but instantly discards it without returning the value.",
     args0: [{ type: "input_value", name: "STACK", check: "Array" }], previousStatement: null, nextStatement: null },
-  { type: "stack_peek", message0: "peek top of stack %1", style: "stack_queue_blocks", tooltip: "Returns the top item of the stack without removing it.",
+  { type: "stack_peek", message0: "peek top of stack %1", style: "stack_queue_blocks", tooltip: "Looks at and returns the element currently at the top of the stack (the most recently added item) without actually modifying or removing it from the stack.",
     args0: [{ type: "input_value", name: "STACK", check: "Array" }], output: null },
-  { type: "queue_enqueue", message0: "enqueue %1 to queue %2", style: "stack_queue_blocks", tooltip: "Adds an item to the back of the queue (equivalent to list.append).",
+  { type: "queue_enqueue", message0: "enqueue %1 to queue %2", style: "stack_queue_blocks", tooltip: "Adds an element to the back of the queue data structure. Under the hood in Python, this is equivalent to appending an item to the end of a list.",
     args0: [{ type: "input_value", name: "ITEM" }, { type: "input_value", name: "QUEUE", check: "Array" }], inputsInline: true, previousStatement: null, nextStatement: null },
-  { type: "queue_dequeue", message0: "dequeue and get front of queue %1", style: "stack_queue_blocks", tooltip: "Removes and returns the front item of the queue (equivalent to list.pop(0)).",
+  { type: "queue_dequeue", message0: "dequeue and get front of queue %1", style: "stack_queue_blocks", tooltip: "Removes and explicitly returns the element currently at the very front of the queue (the oldest item added), strictly following the First-In-First-Out (FIFO) logical principle.",
     args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], output: null },
-  { type: "queue_dequeue_statement", message0: "dequeue from queue %1", style: "stack_queue_blocks", tooltip: "Removes the front item of the queue.",
+  { type: "queue_dequeue_statement", message0: "dequeue from queue %1", style: "stack_queue_blocks", tooltip: "Removes the element currently at the very front of the queue (the oldest item added) but instantly discards it without returning the value.",
     args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], previousStatement: null, nextStatement: null },
-  { type: "queue_peek", message0: "peek front of queue %1", style: "stack_queue_blocks", tooltip: "Returns the front item of the queue without removing it.",
+  { type: "queue_peek", message0: "peek front of queue %1", style: "stack_queue_blocks", tooltip: "Looks at and returns the element currently at the very front of the queue (the oldest item added) without actually modifying or removing it from the queue.",
     args0: [{ type: "input_value", name: "QUEUE", check: "Array" }], output: null },
 ];
 
@@ -12244,8 +11300,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
   const executeLoad = (json, preservePythonCode) => {
     if (!workspace.current) return;
     try {
-      // Fix: Use setGroup to allow events to fire so plugins like Minimap can correctly render 
-      // the incoming blocks. Disabling events completely blanks the Minimap.
       Blockly.Events.setGroup(true); 
       workspace.current.clear();
       
@@ -12308,7 +11362,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
         if (data.status === "error") throw new Error(data.message || "Failed to parse Python code.");
         
         try { 
-          // Fix: Allow events to group rather than disable so minimap updates on Sync to Blocks
           Blockly.Events.setGroup(true);
           workspace.current.clear(); 
           if (data.status === "success" && data.blocks) {
@@ -12370,7 +11423,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
         (highlightPlugin = new ContentHighlight(workspace.current)).init();
         workspace.current.addChangeListener(shadowBlockConversionChangeListener);
         
-        // Fix: Initialize minimap synchronously with the rest of the plugins. No unreliable setTimeouts
         minimapPlugin = new PositionedMinimap(workspace.current);
         minimapPlugin.init();
       } catch (e) { 
@@ -12401,6 +11453,30 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
 
       const getCode = (b, n, o = pythonGenerator.ORDER_NONE) => pythonGenerator.valueToCode(b, n, o);
       
+      // >>> BUG FIXES FOR DEFAULT BLOCKLY GENERATORS <<<
+      
+      // Fixes the ugly isinstance check for variables_change
+      pythonGenerator.forBlock["math_change"] = function (block) {
+        const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
+        const val = getCode(block, "DELTA", pythonGenerator.ORDER_ATOMIC) || "0";
+        return `${v} += ${val}\n`;
+      };
+
+      // Fixes the ugly int() casting for repeat loops
+      pythonGenerator.forBlock["controls_repeat_ext"] = function (block) {
+        const repeats = getCode(block, "TIMES", pythonGenerator.ORDER_NONE) || "0";
+        const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
+        return `for _ in range(${repeats}):\n${branch}`;
+      };
+
+      pythonGenerator.forBlock["controls_repeat"] = function (block) {
+        const repeats = parseInt(block.getFieldValue("TIMES"), 10) || 0;
+        const branch = pythonGenerator.statementToCode(block, "DO") || pythonGenerator.PASS;
+        return `for _ in range(${repeats}):\n${branch}`;
+      };
+
+      // >>> END BUG FIXES <<<
+
       pythonGenerator.forBlock["math_assignment"] = function (block) {
         const v = pythonGenerator.getVariableName(block.getFieldValue("VAR"));
         const op = block.getFieldValue("OP");
@@ -12557,7 +11633,6 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
       observer.observe(blocklyDiv.current); 
       blocklyDiv.current.resizeObserver = observer;
 
-      // Declarative Initialization Load
       if (initialJson) {
          executeLoad(initialJson);
       } else if (pendingLoadRef.current) {
@@ -12590,41 +11665,1135 @@ const BlocklyWorkspace = forwardRef(({ onChange, syntaxError, initialJson }, ref
 
 export default BlocklyWorkspace;
 
+--- FILE: frontend/src/components/CallGraphVisualizer.jsx ---
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FaCompressArrowsAlt, FaCubes, FaNetworkWired, FaProjectDiagram, FaSearchMinus, FaSearchPlus } from 'react-icons/fa';
+import '../styles/CallGraphVisualizer.css';
+
+const CallGraphVisualizer = ({ analysisData, callGraph: callGraphProp }) => {
+  const containerRef = useRef(null);
+  const svgRef = useRef(null);
+  const [containerSize, setContainerSize] = useState({ width: 800, height: 600 });
+  const [hoveredNode, setHoveredNode] = useState(null);
+
+  // Pan and Zoom State
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [showZoomHint, setShowZoomHint] = useState(false);
+  
+  const lastMousePos = useRef({ x: 0, y: 0 });
+  const hintTimeoutRef = useRef(null);
+
+  // Theme Colors
+  const themePurple = "#7928CA";
+  const themeRed = "#EF4444";
+  const themeSlateDark = "#1E293B";
+  const themeSlateMuted = "#64748B";
+  const themeSlateBorder = "#CBD5E1";
+  const themeEdge = "#94A3B8";
+
+  // Robustly extract the call graph and normalize it
+  const extractCallGraph = () => {
+    let raw = {};
+    if (callGraphProp && typeof callGraphProp === 'object' && Object.keys(callGraphProp).length > 0) raw = callGraphProp;
+    else if (analysisData?.call_graph && typeof analysisData.call_graph === 'object') raw = analysisData.call_graph;
+    else if (analysisData?.callGraph && typeof analysisData.callGraph === 'object') raw = analysisData.callGraph;
+    else if (analysisData?.analysis?.call_graph && typeof analysisData.analysis.call_graph === 'object') raw = analysisData.analysis.call_graph;
+
+    const norm = {};
+    if (!raw) return norm;
+    
+    for (const [caller, targets] of Object.entries(raw)) {
+      norm[caller] = (Array.isArray(targets) ? targets : []).map(t => {
+        if (typeof t === 'string') return { target: t, line: '?', hits: 0 };
+        return t;
+      });
+    }
+    return norm;
+  };
+
+  const callGraph = extractCallGraph();
+  const rawNodes = Object.keys(callGraph).filter(k => typeof k === 'string');
+
+  const totalEdges = Object.values(callGraph).reduce((sum, calls) => sum + calls.length, 0);
+  const isEmpty = rawNodes.length === 0 || (rawNodes.length === 1 && rawNodes[0] === '__main__' && totalEdges === 0);
+
+  const graphSignature = JSON.stringify(callGraph);
+
+  const NODE_W = 180;
+  const NODE_H = 60;
+
+  // Layout Engine
+  const { nodes, edges, layoutWidth, layoutHeight } = useMemo(() => {
+    if (isEmpty) return { nodes: [], edges: [], layoutWidth: 0, layoutHeight: 0 };
+
+    const layers = {};
+    const visited = {};
+
+    const root = callGraph['__main__'] ? '__main__' : rawNodes[0];
+
+    const queue = [root];
+    visited[root] = 0;
+    layers[0] = [root];
+
+    while (queue.length > 0) {
+      const u = queue.shift();
+      const currLayer = visited[u];
+      const neighbors = callGraph[u] || [];
+
+      neighbors.forEach(edgeInfo => {
+        const v = edgeInfo.target;
+        if (visited[v] === undefined) {
+          visited[v] = currLayer + 1;
+          if (!layers[currLayer + 1]) layers[currLayer + 1] = [];
+          layers[currLayer + 1].push(v);
+          queue.push(v);
+        }
+      });
+    }
+
+    const layerKeys = Object.keys(layers).map(Number);
+    let maxLayer = layerKeys.length > 0 ? Math.max(...layerKeys) : 0;
+
+    rawNodes.forEach(node => {
+      if (visited[node] === undefined) {
+        visited[node] = maxLayer + 1;
+        if (!layers[maxLayer + 1]) layers[maxLayer + 1] = [];
+        layers[maxLayer + 1].push(node);
+      }
+    });
+
+    const Y_SPACING = 160;
+    const MIN_X_SPACING = 280; 
+
+    let maxNodesInLayer = 0;
+    Object.values(layers).forEach(layerNodes => {
+      if (layerNodes.length > maxNodesInLayer) maxNodesInLayer = layerNodes.length;
+    });
+
+    const reqWidth = Math.max(800, maxNodesInLayer * MIN_X_SPACING);
+    const reqHeight = Math.max(600, (Object.keys(layers).length) * Y_SPACING + 100);
+
+    const nodeCoords = {};
+    const nodeArr = [];
+
+    Object.entries(layers).forEach(([layerIdx, layerNodes]) => {
+      const y = (parseInt(layerIdx) + 1) * Y_SPACING - (Y_SPACING / 2);
+      const count = layerNodes.length;
+      const sectionWidth = reqWidth / count;
+
+      layerNodes.forEach((nodeId, idx) => {
+        const x = sectionWidth * idx + (sectionWidth / 2);
+        nodeCoords[nodeId] = { x, y };
+        nodeArr.push({ id: nodeId, x, y, layer: parseInt(layerIdx) });
+      });
+    });
+
+    const edgeArr = [];
+    Object.entries(callGraph).forEach(([u, neighbors]) => {
+      neighbors.forEach(edgeInfo => {
+        const v = edgeInfo.target;
+        const line = edgeInfo.line;
+        const hits = edgeInfo.hits;
+
+        if (nodeCoords[u]) {
+          if (!nodeCoords[v]) {
+             const exX = reqWidth / 2;
+             const exY = reqHeight - 50;
+             nodeCoords[v] = { x: exX, y: exY };
+             nodeArr.push({ id: v, x: exX, y: exY, layer: maxLayer + 2, isExternal: true });
+          }
+
+          edgeArr.push({
+            id: `${u}-${v}-${line}-${Math.random().toString(36).substring(2, 7)}`,
+            source: u,
+            target: v,
+            line: line,
+            hits: hits,
+            sx: nodeCoords[u].x,
+            sy: nodeCoords[u].y,
+            tx: nodeCoords[v].x,
+            ty: nodeCoords[v].y,
+            isSelf: u === v,
+            isBack: visited[v] <= visited[u] && u !== v
+          });
+        }
+      });
+    });
+
+    return { nodes: nodeArr, edges: edgeArr, layoutWidth: reqWidth, layoutHeight: reqHeight };
+
+  }, [graphSignature, isEmpty]);
+
+  // Center Graph on Load
+  const resetView = () => {
+    if (containerRef.current && layoutWidth > 0 && layoutHeight > 0) {
+      const cw = containerRef.current.clientWidth;
+      const ch = containerRef.current.clientHeight;
+      const fitScale = Math.min(cw / layoutWidth, ch / layoutHeight, 1) * 0.9;
+
+      setTransform({
+        x: (cw - layoutWidth * fitScale) / 2,
+        y: (ch - layoutHeight * fitScale) / 2,
+        scale: fitScale
+      });
+    }
+  };
+
+  useEffect(() => {
+    resetView();
+  }, [graphSignature, layoutWidth, layoutHeight]);
+
+  // --- PAN AND ZOOM HANDLERS ---
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastMousePos.current.x;
+    const dy = e.clientY - lastMousePos.current.y;
+    setTransform((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Attach wheel event to the container
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      if (!e.ctrlKey && !e.metaKey) {
+        setShowZoomHint(true);
+        if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
+        hintTimeoutRef.current = setTimeout(() => setShowZoomHint(false), 1500);
+        return; 
+      }
+
+      e.preventDefault();
+      
+      const zoomSensitivity = 0.0015;
+      const zoomFactor = -e.deltaY * zoomSensitivity;
+
+      setTransform((prev) => {
+        const newScale = Math.min(Math.max(0.1, prev.scale * (1 + zoomFactor)), 5);
+        const rect = el.getBoundingClientRect();
+        
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const xs = (mouseX - prev.x) / prev.scale;
+        const ys = (mouseY - prev.y) / prev.scale;
+
+        const newX = mouseX - xs * newScale;
+        const newY = mouseY - ys * newScale;
+
+        return { x: newX, y: newY, scale: newScale };
+      });
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      if (hintTimeoutRef.current) clearTimeout(hintTimeoutRef.current);
+    };
+  }, []);
+
+  const manualZoom = (factor) => {
+    setTransform(prev => {
+      const newScale = Math.min(Math.max(0.1, prev.scale * factor), 5);
+      const cw = containerRef.current?.clientWidth || 800;
+      const ch = containerRef.current?.clientHeight || 600;
+      const cx = cw / 2;
+      const cy = ch / 2;
+      const xs = (cx - prev.x) / prev.scale;
+      const ys = (cy - prev.y) / prev.scale;
+      return { x: cx - xs * newScale, y: cy - ys * newScale, scale: newScale };
+    });
+  };
+
+  if (isEmpty) {
+    return (
+      <div className="callgraph-empty">
+        <FaProjectDiagram className="empty-icon" />
+        <p>No function calls detected to map.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="callgraph-visualizer" style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+      
+      {/* Header Panel */}
+      <div className="callgraph-header" style={{ flexShrink: 0 }}>
+        <div className="header-title">
+          <FaProjectDiagram className="header-icon" />
+          <h3>Dynamic Call Graph</h3>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <div className="nodes-badge">
+            <FaCubes />
+            <span>{nodes.length} Executable Nodes</span>
+          </div>
+          {/* Inheriting the Emerald standard theme colors for the edges badge */}
+          <div className="nodes-badge" style={{ backgroundColor: '#ECFDF5', color: '#10B981', borderColor: '#A7F3D0' }}>
+            <FaNetworkWired />
+            <span>{totalEdges} Edges</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Ctrl + Scroll Overlay Hint */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        backgroundColor: 'rgba(30, 41, 59, 0.85)',
+        color: 'white',
+        padding: '12px 24px',
+        borderRadius: '8px',
+        fontSize: '15px',
+        fontWeight: '500',
+        pointerEvents: 'none',
+        opacity: showZoomHint ? 1 : 0,
+        transition: 'opacity 0.3s ease',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+      }}>
+        <FaSearchPlus /> Use Ctrl + Scroll to zoom
+      </div>
+
+      {/* Interactive Graph Area */}
+      <div 
+        className="callgraph-canvas-container" 
+        ref={containerRef}
+        style={{ 
+          flexGrow: 1, 
+          overflow: 'hidden', 
+          position: 'relative',
+          backgroundColor: '#F8FAFC',
+          userSelect: 'none'
+        }}
+      >
+        {/* Floating Zoom Controls */}
+        <div style={{ position: 'absolute', right: '20px', bottom: '20px', display: 'flex', flexDirection: 'column', gap: '5px', zIndex: 10 }}>
+          <button onClick={() => manualZoom(1.2)} style={controlBtnStyle} title="Zoom In"><FaSearchPlus /></button>
+          <button onClick={resetView} style={controlBtnStyle} title="Reset View"><FaCompressArrowsAlt /></button>
+          <button onClick={() => manualZoom(0.8)} style={controlBtnStyle} title="Zoom Out"><FaSearchMinus /></button>
+        </div>
+
+        {/* Pure SVG Implementation */}
+        <svg 
+          ref={svgRef}
+          width="100%" 
+          height="100%" 
+          style={{ cursor: isDragging ? 'grabbing' : 'grab', position: 'absolute', top: 0, left: 0 }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+        >
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill={themeEdge} />
+            </marker>
+            <marker id="arrowhead-highlight" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill={themeRed} />
+            </marker>
+            <filter id="node-shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.05" />
+            </filter>
+            <filter id="badge-shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.08" />
+            </filter>
+          </defs>
+
+          {/* Group that handles Pan and Zoom */}
+          <g transform={`translate(${transform.x}, ${transform.y}) scale(${transform.scale})`}>
+            
+            {/* Draw Edges */}
+            {edges.map((edge) => {
+              const { sx, sy, tx, ty, isSelf, isBack, source, target, line, hits } = edge;
+              let pathData = "";
+              let labelX, labelY;
+
+              if (isSelf) {
+                pathData = `M ${sx + NODE_W/2},${sy - 15} C ${sx + NODE_W/2 + 60},${sy - 50} ${sx + NODE_W/2 + 60},${sy + 50} ${sx + NODE_W/2},${sy + 15}`;
+                labelX = sx + NODE_W/2 + 60;
+                labelY = sy;
+              } else if (isBack) {
+                pathData = `M ${sx - NODE_W/2},${sy} C ${sx - NODE_W/2 - 80},${sy} ${tx - NODE_W/2 - 80},${ty} ${tx - NODE_W/2},${ty}`;
+                labelX = (sx + tx) / 2 - NODE_W/2 - 60;
+                labelY = (sy + ty) / 2;
+              } else {
+                const midY = (sy + ty) / 2;
+                pathData = `M ${sx},${sy + NODE_H/2} C ${sx},${midY} ${tx},${midY} ${tx},${ty - NODE_H/2 - 5}`;
+                labelX = (sx + tx) / 2;
+                labelY = midY;
+              }
+
+              const isHighlighted = hoveredNode === source || hoveredNode === target;
+
+              return (
+                <g key={edge.id}>
+                  <path
+                    d={pathData}
+                    fill="none"
+                    stroke={isHighlighted ? themeRed : themeEdge}
+                    strokeWidth={isHighlighted ? "3" : "2"}
+                    markerEnd={`url(#${isHighlighted ? 'arrowhead-highlight' : 'arrowhead'})`}
+                    style={{ transition: 'stroke 0.3s, stroke-width 0.3s' }}
+                  />
+                  
+                  {/* Floating Metadata Badge for the Edge */}
+                  <g transform={`translate(${labelX}, ${labelY})`}>
+                    <rect 
+                      x="-45" y="-12" 
+                      width="90" height="24" 
+                      rx="12" 
+                      fill="#FFFFFF" 
+                      stroke={isHighlighted ? themeRed : themeSlateBorder} 
+                      strokeWidth="1" 
+                      filter="url(#badge-shadow)"
+                      style={{ transition: 'stroke 0.3s' }}
+                    />
+                    <text x="0" y="4" textAnchor="middle" fill={isHighlighted ? themeRed : themeSlateMuted} fontSize="10px" fontWeight="bold" fontFamily="sans-serif" style={{ pointerEvents: 'none' }}>
+                      L{line} : {hits || 0} hits
+                    </text>
+                  </g>
+
+                </g>
+              );
+            })}
+
+            {/* Draw SVG Nodes */}
+            {nodes.map((node) => {
+              const isMain = node.id === "__main__";
+              const isHovered = hoveredNode === node.id;
+              const isExternal = node.isExternal;
+
+              let strokeColor = themeSlateBorder;
+              let bgColor = "#FFFFFF";
+              let textColor = themeSlateDark;
+              let strokeDasharray = "none";
+              let strokeWidth = "2";
+
+              if (isMain) {
+                strokeColor = themePurple;
+                bgColor = "#FAF5FF";
+                textColor = "#4C1D95";
+              } else if (isExternal) {
+                strokeColor = themeEdge;
+                bgColor = "#F1F5F9";
+                strokeDasharray = "6,4";
+                textColor = themeSlateMuted;
+              }
+
+              if (isHovered) {
+                strokeColor = themeRed;
+                strokeWidth = "3";
+              }
+
+              const titleText = isMain ? "Main Program" : `${node.id}()`;
+
+              return (
+                <g
+                  key={node.id}
+                  transform={`translate(${node.x}, ${node.y})`}
+                  onMouseEnter={() => setHoveredNode(node.id)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <rect
+                    x={-NODE_W/2} 
+                    y={-NODE_H/2} 
+                    width={NODE_W} 
+                    height={NODE_H} 
+                    rx="8"
+                    fill={bgColor}
+                    stroke={strokeColor}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={strokeDasharray}
+                    filter="url(#node-shadow)"
+                    style={{ transition: 'all 0.2s ease' }}
+                  />
+                  <text x="0" y="-3" textAnchor="middle" fill={textColor} fontSize="14px" fontWeight="bold" fontFamily="Consolas, monospace" style={{ pointerEvents: 'none' }}>
+                    {titleText}
+                  </text>
+                  <text x="0" y="16" textAnchor="middle" fill={themeSlateMuted} fontSize="12px" fontFamily="sans-serif" style={{ pointerEvents: 'none' }}>
+                    Layer {node.layer}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+const controlBtnStyle = {
+  width: '36px', height: '36px',
+  backgroundColor: '#FFFFFF',
+  border: '1px solid #CBD5E1',
+  borderRadius: '6px',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+  color: '#64748B',
+  fontSize: '14px',
+  transition: 'all 0.2s ease'
+};
+
+export default CallGraphVisualizer;
+
 --- FILE: frontend/src/components/CodeSnippet.jsx ---
 
-import React from "react";
-
-function escapeHtml(s) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+// frontend/src/components/CodeSnippet.jsx
+import DOMPurify from "dompurify";
+import { useState } from "react";
+import { FiCheck, FiCopy } from "react-icons/fi";
 
 export default function CodeSnippet({ snippet }) {
   const { title, language = "text", code = "" } = snippet || {};
+  const [copied, setCopied] = useState(false);
 
+  // BUG-19 Fix: Toggle Copied confirmation indicator
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
-      // minimal feedback â€” could be enhanced
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (e) {
       console.warn("copy failed", e);
     }
   };
+
+  // BUG-16 Fix: Standardized DOMPurify AST HTML sanitization
+  const cleanHtml = DOMPurify.sanitize(code);
 
   return (
     <div className="code-snippet-wrapper">
       <div className="code-snippet-header">
         <strong>{title || (language + " snippet")}</strong>
         <div className="code-snippet-meta">{language}</div>
-        <button className="code-copy-button" onClick={copy}>Copy</button>
+        <button className="code-copy-button" onClick={copy} style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+          {copied ? (
+            <>
+              <FiCheck style={{ color: "#10B981" }} />
+              <span style={{ color: "#10B981" }}>Copied!</span>
+            </>
+          ) : (
+            <>
+              <FiCopy />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
       </div>
       <pre className={`code-block language-${language}`}>
-        <code dangerouslySetInnerHTML={{ __html: escapeHtml(code) }} />
+        <code dangerouslySetInnerHTML={{ __html: cleanHtml }} />
       </pre>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/components/ComplexityGraph.jsx ---
+
+// frontend/src/components/ComplexityGraph.jsx
+import { useMemo } from 'react';
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts';
+import '../styles/ComplexityGraph.css';
+import { resolveRecurrenceToBigO } from '../utils/formatters';
+
+// Simple math helper for calculating O(n!)
+const factorial = (n) => (n <= 1 ? 1 : n * factorial(n - 1));
+
+const ComplexityGraph = ({ complexity, color, label }) => {
+  // 1. Resolve any T(n) recurrence relations into standard Big-O notation
+  const resolvedComplexity = resolveRecurrenceToBigO(complexity);
+  
+  // Extract and evaluate the complexity string outside the useMemo so axes can read it
+  const comp = resolvedComplexity.toLowerCase().replace(/\s+/g, '');
+  const isConstant = comp.includes("o(1)");
+
+  // 2. Generate curve data based on the mathematical shape of the resolved complexity
+  const data = useMemo(() => {
+    const dataPoints = [];
+    
+    // Start at 0 to ensure the line touches the far left Y-axis
+    for (let i = 0; i <= 10; i++) {
+      let yVal = 0;
+      
+      if (isConstant) {
+        yVal = 1; // Constant: flat line
+      } else if (comp.includes("logn")) {
+        yVal = Math.log2(i + 1); // Logarithmic: slow curve up
+      } else if (comp.includes("nlogn")) {
+        yVal = i * Math.log2(i + 1); // Linearithmic: slight bend
+      } else if (comp.includes("n^2") || comp.includes("nÂ²")) {
+        yVal = Math.pow(i, 2); // Quadratic: steep curve
+      } else if (comp.includes("n^3") || comp.includes("nÂ³")) {
+        yVal = Math.pow(i, 3); // Cubic: very steep curve
+      } else if (comp.includes("2^n") || comp.includes("2â¿")) {
+        yVal = Math.pow(2, i); // Exponential: rocket ship
+      } else if (comp.includes("n!")) {
+        yVal = factorial(i); // Factorial: near vertical wall
+      } else if (comp.includes("o(n)")) {
+        yVal = i; // Linear: straight diagonal line
+      } else {
+        yVal = i; // Default fallback to linear
+      }
+
+      dataPoints.push({
+        n: i,
+        operations: Number(yVal.toFixed(2))
+      });
+    }
+    return dataPoints;
+  }, [comp, isConstant]);
+
+  return (
+    <div className="complexity-graph-container">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          
+          <XAxis 
+            dataKey="n" 
+            type="number"           
+            domain={[0, 'dataMax']} 
+            stroke="#888" 
+            tickLine={false} 
+            axisLine={{ stroke: '#A096B9', strokeWidth: 2 }} // Colored, visible X-axis
+            tick={false} 
+          />
+          
+          <YAxis 
+            type="number"           
+            domain={[0, isConstant ? 10 : 'auto']} 
+            stroke="#888" 
+            tickLine={false} 
+            axisLine={{ stroke: '#A096B9', strokeWidth: 2 }} // Colored, visible Y-axis
+            tick={false} 
+          />
+          
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: '#1C1236', 
+              border: `1px solid ${color}`, 
+              borderRadius: '6px',
+              color: '#fff', 
+              fontSize: '0.8rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}
+            itemStyle={{ color: color, fontWeight: 'bold' }}
+            labelStyle={{ color: '#A096B9', marginBottom: '4px' }}
+            labelFormatter={(label) => `Input Size (n): ${label}`}
+            formatter={(value) => [value, label || 'Operations']}
+            animationDuration={200}
+          />
+          
+          <Line 
+            type="monotone" 
+            dataKey="operations" 
+            stroke={color} 
+            strokeWidth={3} 
+            dot={false} 
+            activeDot={{ r: 5, fill: '#fff', stroke: color, strokeWidth: 2 }}
+            animationDuration={1200}
+            animationEasing="ease-out"
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+export default ComplexityGraph;
+
+--- FILE: frontend/src/components/ConfirmModal.jsx ---
+
+/*frontend\src\components\ConfirmModal.jsx*/
+import '../styles/ConfirmModal.css';
+
+const ConfirmModal = ({ 
+  isOpen, 
+  title, 
+  message, 
+  onConfirm, 
+  onCancel, 
+  confirmText = "Confirm", 
+  cancelText = "Cancel",
+  isDanger = false 
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="custom-modal-content">
+        <div className="custom-modal-header">
+          <h3>{title}</h3>
+        </div>
+        <div className="custom-modal-body">
+          <p>{message}</p>
+        </div>
+        <div className="custom-modal-footer">
+          <button className="btn-modal btn-modal-cancel" onClick={onCancel}>
+            {cancelText}
+          </button>
+          <button 
+            className={`btn-modal ${isDanger ? 'btn-modal-danger' : 'btn-modal-confirm'}`} 
+            onClick={onConfirm}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ConfirmModal;
+
+--- FILE: frontend/src/components/DashboardHeader.jsx ---
+
+// frontend/src/components/DashboardHeader.jsx
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuUser } from "react-icons/lu";
+import { Link, useNavigate } from "react-router-dom";
+import "../styles/DashboardHeader.css";
+import LogoutConfirmModal from "./LogoutConfirmModal";
+// BUG-13, BUG-15 Fix: Import syncManager and poller terminator
+import { stopBackgroundSync, syncManager } from "../utils/syncManager";
+
+export default function DashboardHeader({
+  backTo = "/home",
+  backText = "Back to Home",
+}) {
+  const [user, setUser] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
+  const menuRef = useRef(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser || "{}"));
+    }
+  }, []);
+
+  const initials = useMemo(() => {
+    const parts = (user?.name || "User").trim().split(/\s+/);
+    const a = parts[0]?.[0] || "U";
+    const b = parts.length > 1 ? parts[parts.length - 1][0] : "";
+    return (a + b).toUpperCase();
+  }, [user?.name]);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const onEsc = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, []);
+
+  // BUG-13, BUG-15 Fix: Surgical purge + sync loop termination
+  const handleLogout = async () => {
+    stopBackgroundSync();
+    await syncManager.processSyncQueue();
+
+    ["token", "authToken", "user"].forEach(k => {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    });
+    
+    window.location.replace("/");
+  };
+
+  return (
+    <>
+      <header className="dashboard-header">
+        <div className="header-left">
+          <Link to={backTo} className="back-home">
+            <img src="/assets/back-icon.png" alt="Back" className="btn-icon-open" />
+            {backText}
+          </Link>
+          <div className="logo-container">
+            <Link to="/dashboard" className="logo-link">
+              <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
+              <h1 className="logo-text">ALGOBLOCKS</h1>
+            </Link>
+          </div>
+        </div>
+
+        <div className="header-right">
+          <div className="user-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="user-menu-btn user-profile-icon"
+              onClick={() => setOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={open}
+            >
+              <div className="user-profile-img">{initials}</div>
+            </button>
+
+            {open && (
+              <div className="user-dropdown" role="menu">
+                <div className="user-dropdown-head">
+                  <div className="dropdown-avatar-img">{initials}</div>
+                  <div className="user-name">{user?.name || "User"}</div>
+                  <div className="user-email">{user?.email || ""}</div>
+                </div>
+
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/profile"); }} role="menuitem">
+                  <LuUser size={18} aria-hidden="true" /> My Profile
+                </button>
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/dashboard"); }} role="menuitem">
+                  <LuLayoutDashboard size={18} /> Go to Dashboard
+                </button>
+                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
+                  <LuFolder size={18} /> Projects
+                </button>
+
+                <div className="user-dd-divider" />
+                <button 
+                  type="button" 
+                  className="user-dd-item" 
+                  style={{ color: "#10B981", fontWeight: "bold" }}
+                  onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
+                  role="menuitem"
+                >
+                  <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                </button>
+
+                <div className="user-dd-divider" />
+                <button type="button" className="user-dd-item danger" onClick={(e) => { e.stopPropagation(); setOpen(false); setShowLogout(true); }} role="menuitem">
+                  <LuLogOut size={18} /> Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <LogoutConfirmModal isOpen={showLogout} onClose={() => setShowLogout(false)} onLogoutClick={handleLogout} />
+    </>
+  );
+}
+
+--- FILE: frontend/src/components/DockedBottomPanel.jsx ---
+
+// frontend/src/components/DockedBottomPanel.jsx
+import DOMPurify from "dompurify";
+import React, { useEffect, useRef, useState } from "react";
+import { FiChevronDown, FiChevronRight, FiInfo, FiX } from "react-icons/fi";
+import { formatExplanation, getComplexityColor, getComplexityWeight, parseMarkdown } from "../utils/asymptoticParser.jsx";
+import { formatComplexity } from "../utils/formatters";
+import CallGraphVisualizer from "./CallGraphVisualizer.jsx";
+import ComplexityGraph from "./ComplexityGraph.jsx";
+import MemoryVisualizer from "./MemoryVisualizer.jsx";
+
+export default function DockedBottomPanel({
+  bottomPanel,
+  onClosePanel,
+  panelHeight,
+  onDragStart,
+  consoleTab,
+  onConsoleTabChange,
+  consoleOutput,
+  onClearConsole,
+  isWaitingForInput,
+  userInput,
+  setUserInput,
+  onSendInput,
+  pythonCode,
+  lineExecutions,
+  activeComplexityTab,
+  onComplexityTabChange,
+  analysisResult,
+  analysisTime,
+  defaultWeight = 0,
+  analysisTimeLabel = "Analysis:",
+  analysisBadgeStyle = null,
+  analysisLabelStyle = null,
+  analysisValStyle = null,
+  extraBadges = null
+}) {
+  const [expandedLines, setExpandedLines] = useState({});
+  const consoleEndRef = useRef(null);
+
+  useEffect(() => {
+    if (consoleEndRef.current && consoleTab === "output") {
+      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [consoleOutput, isWaitingForInput, consoleTab]);
+
+  const toggleLine = (index) => setExpandedLines((prev) => ({ ...prev, [index]: !prev[index] }));
+
+  const lines = analysisResult?.lines || [];
+  const safeTotal = analysisResult?.total || "O(1)";
+  const safeSpaceTotal = analysisResult?.space_total || "O(1)";
+  const safeExplanation = analysisResult?.overall_explanation || "";
+
+  let maxWeight = 0;
+  let bottleneckIndices = [];
+
+  lines.forEach((line, index) => {
+    const weight = getComplexityWeight(activeComplexityTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)", defaultWeight);
+    if (weight > maxWeight) {
+      maxWeight = weight;
+      bottleneckIndices = [index];
+    } else if (weight === maxWeight && weight > 0) {
+      bottleneckIndices.push(index);
+    }
+  });
+
+  const actualBottleneckIndices = maxWeight >= 5 ? bottleneckIndices : [];
+  const pythonLines = (pythonCode || "").split("\n");
+  const maxExecutions = Math.max(0, ...Object.values(lineExecutions || {}));
+
+  return (
+    <div className="bottom-docked-panel" style={{ height: `${panelHeight}px` }}>
+      <div className="panel-resizer" onMouseDown={onDragStart}>
+        <div className="panel-resizer-handle"></div>
+      </div>
+      <div className="panel-header">
+        <span className="panel-title">{bottomPanel === "console" ? "Console Panel" : "Complexity Analysis"}</span>
+        <button onClick={onClosePanel} className="panel-close-btn"><FiX size={18} /></button>
+      </div>
+      <div className="panel-body">
+        {bottomPanel === "console" ? (
+          <div className="console-content-wrapper">
+            <div className="complexity-tabs">
+              <div className="tab-btn-group">
+                <button onClick={() => onConsoleTabChange("output")} className={`tab-btn ${consoleTab === "output" ? "active" : ""}`}>Terminal Output</button>
+                <button onClick={() => onConsoleTabChange("executions")} className={`tab-btn ${consoleTab === "executions" ? "active" : ""}`}>Line Executions</button>
+              </div>
+              {consoleTab === "output" && (
+                <button className="clear-console-btn" onClick={onClearConsole}>Clear</button>
+              )}
+            </div>
+            <div className="console-view-area">
+              {consoleTab === "output" ? (
+                <div className="console-container">
+                  <pre className="console-output">{consoleOutput}</pre>
+                  {isWaitingForInput && (
+                    <div className="console-input-line">
+                      <span className="console-cursor"><FiChevronRight size={14} /></span>
+                      <input
+                        autoFocus
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyDown={onSendInput}
+                        className="console-input-field"
+                        placeholder="Type here and press Enter..."
+                      />
+                    </div>
+                  )}
+                  <div ref={consoleEndRef} />
+                </div>
+              ) : (
+                <div className="complexity-table-wrapper console-table-override">
+                  <table className="complexity-table">
+                    <thead>
+                      <tr>
+                        <th className="line-num-th">Line</th>
+                        <th>Source Code</th>
+                        <th className="hits-th">Hits</th>
+                        <th className="freq-th">Frequency</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pythonLines.map((lineText, idx) => {
+                        const hits = (lineExecutions || {})[idx + 1] || 0;
+                        return (
+                          <tr key={idx} className={hits > 0 ? "row-has-hits" : ""}>
+                            <td className="line-num-td">{idx + 1}</td>
+                            <td className="source-code-td">{lineText || " "}</td>
+                            <td className={`hits-td ${hits > 0 ? "active-hits" : ""}`}>{hits > 0 ? hits : "-"}</td>
+                            <td className="freq-td">
+                              {hits > 0 && maxExecutions > 0 && (
+                                <div className={`freq-bar ${hits === maxExecutions ? "max-freq" : ""}`} style={{ width: `${(hits / maxExecutions) * 100}%` }} title={`${Math.round((hits / maxExecutions) * 100)}%`} />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="complexity-content">
+            <div className="complexity-tabs">
+              <div className="tab-btn-group">
+                <button onClick={() => { onComplexityTabChange("overall"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "overall" ? "active" : ""}`}>Overall</button>
+                <button onClick={() => { onComplexityTabChange("local"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "local" ? "active" : ""}`}>Local</button>
+                <button onClick={() => { onComplexityTabChange("global"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "global" ? "active" : ""}`}>Global</button>
+                <button onClick={() => { onComplexityTabChange("memory"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "memory" ? "active" : ""}`}>Memory Map</button>
+                <button onClick={() => { onComplexityTabChange("callgraph"); setExpandedLines({}); }} className={`tab-btn ${activeComplexityTab === "callgraph" ? "active" : ""}`}>Call Graph</button>
+              </div>
+              <div className="total-badge-group">
+                {analysisBadgeStyle ? (
+                  <span className="total-badge analysis-time-badge" style={analysisBadgeStyle}>
+                    <span className="total-label" style={analysisLabelStyle || {}}>{analysisTimeLabel}</span>
+                    <span className="total-val" style={analysisValStyle || {}}>{analysisTime}ms</span>
+                  </span>
+                ) : (
+                  <span className="total-badge total-time-badge">
+                    <span className="total-label">Total Time:</span> <span className="total-val">{formatComplexity(safeTotal)}</span>
+                  </span>
+                )}
+                {analysisBadgeStyle ? (
+                  <>
+                    <span className="total-badge total-time-badge"><span className="total-label">Total Time:</span> <span className="total-val">{formatComplexity(safeTotal)}</span></span>
+                    <span className="total-badge total-space-badge"><span className="total-label space-label">Total Space:</span> <span className="total-val">{formatComplexity(safeSpaceTotal)}</span></span>
+                  </>
+                ) : (
+                  <>
+                    <span className="total-badge total-space-badge">
+                      <span className="total-label space-label">Total Space:</span> <span className="total-val">{formatComplexity(safeSpaceTotal)}</span>
+                    </span>
+                    <span className="total-badge total-analysis-badge">
+                      <span className="total-label analysis-label">{analysisTimeLabel}</span> <span className="total-val">{analysisTime} ms</span>
+                    </span>
+                  </>
+                )}
+                {extraBadges}
+              </div>
+            </div>
+
+            {activeComplexityTab === "overall" ? (
+              <div className="overall-complexity-wrapper">
+                {safeExplanation ? (
+                  <div className="overall-markdown-content" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseMarkdown(safeExplanation)) }} />
+                ) : (
+                  <div className="empty-analysis-state">
+                    <p>Run code analysis to see the complete overall complexity report.</p>
+                  </div>
+                )}
+              </div>
+            ) : activeComplexityTab === "memory" ? (
+              <div className="memory-wrapper">
+                <MemoryVisualizer analysisData={lines} currentStep={lines.length > 0 ? lines.length - 1 : 0} />
+              </div>
+            ) : activeComplexityTab === "callgraph" ? (
+              <div className="callgraph-wrapper" style={{ height: '100%', overflow: 'hidden' }}>
+                <CallGraphVisualizer analysisData={analysisResult || {}} />
+              </div>
+            ) : (
+              <div className="complexity-table-wrapper">
+                <table className="complexity-table">
+                  <thead>
+                    <tr>
+                      <th>Line of Code</th>
+                      <th>Operation</th>
+                      <th className="right-align">{activeComplexityTab === "local" ? "Local Time" : "Global Time"}</th>
+                      <th className="right-align">{activeComplexityTab === "local" ? "Local Space" : "Global Space"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, i) => {
+                      const timeComplexity = activeComplexityTab === "local" ? line.local_time || "O(1)" : line.global_time || "O(1)";
+                      const spaceComplexity = activeComplexityTab === "local" ? line.local_space || "O(1)" : line.global_space || "O(1)";
+                      let timeExp = line.time_explanation ?? line.local_explanation ?? "Not available.";
+                      let spaceExp = line.space_explanation ?? line.global_explanation ?? "Not available.";
+
+                      const isBottleneck = actualBottleneckIndices.includes(i);
+                      const timeColor = getComplexityColor(timeComplexity);
+                      const spaceColor = getComplexityColor(spaceComplexity);
+                      const compStripped = timeComplexity.toLowerCase().replace(/\s+/g, "");
+                      const isEfficient = !isBottleneck && (compStripped.includes("logn") || compStripped.includes("âˆšn") || compStripped.includes("sqrt") || compStripped.includes("t(n/2)+o(1)")) && !compStripped.includes("nlogn");
+
+                      return (
+                        <React.Fragment key={i}>
+                          <tr
+                            className={`complexity-row ${expandedLines[i] ? "expanded" : ""} ${isBottleneck ? "bottleneck-active" : ""} ${isEfficient ? "efficient-active" : ""}`}
+                            onClick={() => toggleLine(i)}
+                            style={{ borderLeftColor: isBottleneck ? "#EF4444" : isEfficient ? "#10B981" : expandedLines[i] ? timeColor : "transparent", }}
+                          >
+                            <td className="code-cell" style={{ paddingLeft: line.indent ? `${line.indent * 15 + 20}px` : "20px" }}>{line.lineOfCode || line.code}</td>
+                            <td className="operation-cell">
+                              {line.operation || "-"}
+                              {isBottleneck && <span className="bottleneck-badge">Bottleneck</span>}
+                              {isEfficient && <span className="efficient-badge">Efficient</span>}
+                            </td>
+                            <td className="complexity-cell" style={{ color: timeColor }}>{formatComplexity(timeComplexity)}</td>
+                            <td className="complexity-cell" style={{ color: spaceColor }}>
+                              {formatComplexity(spaceComplexity)} <FiChevronDown className={`dropdown-chevron ${expandedLines[i] ? "open" : ""}`} />
+                            </td>
+                          </tr>
+                          {expandedLines[i] && (
+                            <tr className="explanation-row">
+                              <td colSpan="4">
+                                <div className="explanation-grid" style={{ borderLeftColor: timeColor }}>
+                                  <div className="explanation-section">
+                                    <div className="explanation-icon-wrapper" style={{ color: timeColor }}><FiInfo size={20} /></div>
+                                    <div className="explanation-text-content">
+                                      <strong className="explanation-header" style={{ color: timeColor }}>Time Complexity</strong>
+                                      <div className="explanation-body">{formatExplanation(timeExp, isBottleneck, activeComplexityTab === "local")}</div>
+                                    </div>
+                                  </div>
+                                  <div className="explanation-section space-section">
+                                    <div className="explanation-icon-wrapper" style={{ color: spaceColor }}><FiInfo size={20} /></div>
+                                    <div className="explanation-text-content">
+                                      <strong className="explanation-header" style={{ color: spaceColor }}>Space Complexity</strong>
+                                      <div className="explanation-body">{formatExplanation(spaceExp, isBottleneck, activeComplexityTab === "local")}</div>
+                                    </div>
+                                  </div>
+                                  <div className="explanation-graph-wrapper">
+                                    <ComplexityGraph complexity={timeComplexity} color={timeColor} label="Time Curve" />
+                                  </div>
+                                  <div className="explanation-graph-wrapper space-graph-wrapper">
+                                    <ComplexityGraph complexity={spaceComplexity} color={spaceColor} label="Space Curve" />
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

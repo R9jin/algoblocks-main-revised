@@ -45,11 +45,20 @@ export default function SignUp() {
         const inactiveStorage = rememberMe ? sessionStorage : localStorage;
         
         inactiveStorage.removeItem("authToken");
+        inactiveStorage.removeItem("token");
         inactiveStorage.removeItem("user");
 
-        // FIXED: Adjusted to map the restored backend top-level dictionary
+        // BUG-06 Fix: Mirror both authToken and token keys
         activeStorage.setItem("authToken", data.token);
-        activeStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
+        activeStorage.setItem("token", data.token);
+        
+        // BUG-08 Fix: Initialize complete user schema
+        activeStorage.setItem("user", JSON.stringify({ 
+          email: data.email, 
+          name: data.name,
+          progress: {},
+          assessments: {}
+        }));
 
         navigate("/home");
       } else {
@@ -80,13 +89,20 @@ export default function SignUp() {
       ]);
 
       localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
       sessionStorage.removeItem("authToken");
+      sessionStorage.removeItem("token");
+
+      const guestToken = `guest_token_${Date.now()}`;
+      sessionStorage.setItem("authToken", guestToken);
+      sessionStorage.setItem("token", guestToken);
 
       sessionStorage.setItem("user", JSON.stringify({
           email: `guest_${Date.now()}@algoblocks.local`,
           name: "Guest User",
           isGuest: true,
-          progress: {} 
+          progress: {},
+          assessments: {}
       }));
 
       navigate("/dashboard");
@@ -107,7 +123,6 @@ export default function SignUp() {
       <div className="auth-container">
         <div className="auth-card">
           
-          {/* ACADEMIC RESEARCH NOTICE */}
           <div className="auth-research-banner">
             <div className="banner-icon-wrapper">
               <FiAlertTriangle size={18} />
@@ -155,12 +170,14 @@ export default function SignUp() {
               <label>Password</label>
               <div className="auth-input-wrap">
                 <FiLock className="auth-input-icon" aria-hidden="true" />
+                {/* BUG-11 Fix: Enforce HTML5 minLength={6} */}
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Minimum 6 characters"
                   required
+                  minLength={6}
                   disabled={isLoading}
                 />
               </div>

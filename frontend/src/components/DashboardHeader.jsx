@@ -4,6 +4,8 @@ import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuUser } from "react
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/DashboardHeader.css";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+// BUG-13, BUG-15 Fix: Import syncManager and poller terminator
+import { stopBackgroundSync, syncManager } from "../utils/syncManager";
 
 export default function DashboardHeader({
   backTo = "/home",
@@ -46,11 +48,16 @@ export default function DashboardHeader({
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    sessionStorage.clear();
+  // BUG-13, BUG-15 Fix: Surgical purge + sync loop termination
+  const handleLogout = async () => {
+    stopBackgroundSync();
+    await syncManager.processSyncQueue();
+
+    ["token", "authToken", "user"].forEach(k => {
+      localStorage.removeItem(k);
+      sessionStorage.removeItem(k);
+    });
     
-    // HARD REDIRECT to landing page
     window.location.replace("/");
   };
 

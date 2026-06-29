@@ -648,3 +648,201 @@
     gap: 10px;
   }
 }
+
+/* ==========================================================================
+   APPEND TO BOTTOM OF ProfilePage.css
+   Milestone Curriculum, Badges & Gatekeeper Styles (Iconic Violet Theme)
+   ========================================================================== */
+
+.chronological-curriculum {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.milestone-card-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.milestone-card {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1.5px solid rgba(139, 92, 246, 0.4);
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.25s ease;
+}
+
+.milestone-card.completed {
+  background: rgba(124, 58, 237, 0.15);
+  border-color: #8b5cf6;
+}
+
+.milestone-card.ready {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(109, 40, 217, 0.28) 100%);
+  border-color: #a855f7;
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.25);
+}
+
+.milestone-card.locked {
+  background: rgba(30, 27, 75, 0.35);
+  border-color: rgba(139, 92, 246, 0.18);
+  opacity: 0.88;
+}
+
+.milestone-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pre-badge {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #c4b5fd;
+}
+
+.post-badge {
+  background: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.45);
+}
+
+.post-badge.locked {
+  background: #3b0764;
+  color: #a78bfa;
+  box-shadow: none;
+}
+
+.milestone-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.milestone-status.cleared,
+.milestone-status.validated {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
+.milestone-status.disabled {
+  background: rgba(139, 92, 246, 0.1);
+  color: #dfd4ff;
+  border: 1px dashed rgba(139, 92, 246, 0.35);
+}
+
+.status-inline-icon {
+  font-size: 16px;
+}
+
+.btn-milestone-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-milestone-action.violet {
+  background: #7c3aed;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+}
+
+.btn-milestone-action.violet:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+}
+
+.btn-milestone-action.gold {
+  background: linear-gradient(135deg, #8b5cf6, #d946ef);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(217, 70, 239, 0.4);
+}
+
+.btn-milestone-action.gold:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.locked-reason-span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #f5f3ff;
+  font-size: 13px;
+}
+
+.inline-lock-icon {
+  color: #a855f7;
+  flex-shrink: 0;
+}
+
+.guest-warning-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ddd6fe;
+  background: rgba(109, 40, 217, 0.3);
+  border: 1px solid #8b5cf6;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.status-icon.warning {
+  color: #c4b5fd;
+  flex-shrink: 0;
+}
+
+.module-quiz-block {
+  margin-top: 12px;
+  border-top: 1px dashed rgba(139, 92, 246, 0.35);
+  padding-top: 14px;
+}
+
+.quiz-label {
+  color: #c4b5fd;
+}
+
+.quiz-icon {
+  color: #a855f7;
+  font-size: 18px;
+}
+
+.btn-take-quiz {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ede9fe;
+  background: rgba(124, 58, 237, 0.35);
+  border: 1px solid #8b5cf6;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btn-take-quiz:hover {
+  background: #7c3aed;
+  color: #ffffff;
+}

@@ -80,6 +80,9 @@ class AuthService:
         if not req.email or not req.lesson_id:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
+        if "guest" in req.email.lower():
+            return {"status": "ignored", "message": "Guest persistence disabled"}
+
         try:
             score_val = float(req.score) if req.score is not None else 0.0
         except:
@@ -97,6 +100,9 @@ class AuthService:
         if not req.email or not req.assessment_key:
             return {"status": "ignored", "message": "Fired before state loaded"}
             
+        if "guest" in req.email.lower():
+            return {"status": "ignored", "message": "Guest persistence disabled"}
+
         save_data = {
             "score": req.score,
             "correct": req.correct,
@@ -197,7 +203,9 @@ class AuthService:
         if not user_id or not activity_id:
             return {"status": "ignored"}
 
-        # Added the new thesis mathematical model components to the whitelist
+        if "guest" in str(user_id).lower():
+            return {"status": "ignored", "message": "Guest persistence disabled"}
+
         allowed_fields = [
             "userId", "moduleId", "activityId", "type", "status", 
             "score", "maxScore", "passedTestCases", "totalTestCases", 
@@ -234,7 +242,6 @@ class AuthService:
         user_id = payload.get("userId")
         module_id = payload.get("moduleId")
 
-        # Also support alternative ID maps
         if not module_id and payload.get("assessmentId"):
             module_id = payload.get("assessmentId")
             payload["moduleId"] = module_id
@@ -242,7 +249,9 @@ class AuthService:
         if not user_id or not module_id:
             return {"status": "ignored"}
 
-        # Updated allowed_fields to mirror latest assessment models
+        if "guest" in str(user_id).lower():
+            return {"status": "ignored", "message": "Guest persistence disabled"}
+
         allowed_fields = [
             "userId", "moduleId", "assessmentId", "answers", "score", 
             "maxScore", "completed", "timestamp", "passed", "correct", 
@@ -276,7 +285,9 @@ class AuthService:
 
     @staticmethod
     def batch_sync(payload: dict, trusted_email: str):
-        """Processes an array of data flushed by the syncManager"""
+        if "guest" in trusted_email.lower():
+            return {"status": "success", "message": "Ignored: Guest account", "synced_items": 0}
+
         synced_count = 0
 
         for sub in payload.get("submissions", []):

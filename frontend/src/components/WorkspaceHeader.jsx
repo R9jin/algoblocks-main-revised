@@ -12,7 +12,8 @@ export default function WorkspaceHeader({
   handleSaveToDB,
   currentProjectTitle,
   isEvaluating,
-  isAdmin
+  isAdmin,
+  isGuest
 }) {
   return (
     <header className="workspace-header-purple">
@@ -45,7 +46,7 @@ export default function WorkspaceHeader({
       </div>
 
       <div className="wh-right">
-        {isAdmin && (
+        {!isGuest && (
           <div className="wh-file-actions">
             <button className="wh-action-icon" onClick={handleExport} title="Export JSON">
               <FiDownload size={18} />
@@ -62,9 +63,11 @@ export default function WorkspaceHeader({
           </div>
         )}
 
-        <button className="wh-btn-save" onClick={handleSaveToDB}>
-          <FiSave size={16} /> Save
-        </button>
+        {!isGuest && (
+          <button className="wh-btn-save" onClick={handleSaveToDB}>
+            <FiSave size={16} /> Save
+          </button>
+        )}
 
         <button 
           className={`wh-btn-run ${isEvaluating ? 'running' : ''}`} 
