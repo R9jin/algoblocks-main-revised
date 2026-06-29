@@ -3,9 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuUser } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/DashboardHeader.css";
-import LogoutConfirmModal from "./LogoutConfirmModal";
-// BUG-13, BUG-15 Fix: Import syncManager and poller terminator
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 
 export default function DashboardHeader({
   backTo = "/home",
@@ -48,7 +47,6 @@ export default function DashboardHeader({
     };
   }, []);
 
-  // BUG-13, BUG-15 Fix: Surgical purge + sync loop termination
   const handleLogout = async () => {
     stopBackgroundSync();
     await syncManager.processSyncQueue();
@@ -107,16 +105,21 @@ export default function DashboardHeader({
                   <LuFolder size={18} /> Projects
                 </button>
 
-                <div className="user-dd-divider" />
-                <button 
-                  type="button" 
-                  className="user-dd-item" 
-                  style={{ color: "#10B981", fontWeight: "bold" }}
-                  onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
-                  role="menuitem"
-                >
-                  <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
-                </button>
+                {/* RESTRICTED: Only revealed if account holds admin privileges */}
+                {user?.isAdmin && (
+                  <>
+                    <div className="user-dd-divider" />
+                    <button 
+                      type="button" 
+                      className="user-dd-item" 
+                      style={{ color: "#10B981", fontWeight: "bold" }}
+                      onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
+                      role="menuitem"
+                    >
+                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                    </button>
+                  </>
+                )}
 
                 <div className="user-dd-divider" />
                 <button type="button" className="user-dd-item danger" onClick={(e) => { e.stopPropagation(); setOpen(false); setShowLogout(true); }} role="menuitem">

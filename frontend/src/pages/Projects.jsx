@@ -1,33 +1,65 @@
 // frontend/src/pages/Projects.jsx
 import { useEffect, useState } from "react";
-import { FiChevronRight, FiClock, FiCloud, FiFileText, FiFolder, FiHardDrive, FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiChevronRight, FiClock, FiCloud, FiFileText, FiFolder, FiHardDrive, FiPlus, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { projectsDB, syncQueueDB } from "../db";
 import "../styles/Projects.css";
+import { syncManager } from "../utils/syncManager";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+// Vercel Fix: Strip trailing slashes to prevent 308 redirect double-slash API drops
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 export default function Projects() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncState, setSyncState] = useState({ syncing: false, pendingCount: 0, lastSynced: null });
 
   useEffect(() => {
     loadProjects();
+    
+    const handleAutoSync = () => loadProjects();
+    window.addEventListener("online", handleAutoSync);
+    window.addEventListener("localDataSynced", handleAutoSync);
+    return () => {
+      window.removeEventListener("online", handleAutoSync);
+      window.removeEventListener("localDataSynced", handleAutoSync);
+    };
   }, []);
+
+  const normalizeEpoch = (val) => {
+    if (!val) return Date.now();
+    if (typeof val === 'string') {
+      const parsed = new Date(val).getTime();
+      return isNaN(parsed) ? Date.now() : parsed;
+    }
+    // If Unix timestamp is in seconds (10 digits), convert to milliseconds
+    return typeof val === 'number' && val < 10000000000 ? val * 1000 : val;
+  };
+
+  const formatDisplayDate = (val) => {
+    const ms = normalizeEpoch(val);
+    return new Date(ms).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   const loadProjects = async () => {
     try {
+      setSyncState(prev => ({ ...prev, syncing: true }));
       const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
       if (!storedUser) {
         setLoading(false);
+        setSyncState(prev => ({ ...prev, syncing: false }));
         return;
       }
       const user = JSON.parse(storedUser);
 
-      // --- 1. PULL CLOUD DATA FIRST ---
-      if (navigator.onLine) {
+      // 1. PULL CLOUD DATA FIRST
+      if (navigator.onLine && API_BASE) {
         try {
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
           const headers = {
@@ -35,65 +67,73 @@ export default function Projects() {
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           };
 
-          const res = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
-          if (res.ok) {
+          const res = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
+          
+          // Vercel Fix: Guard against serverless HTML fallbacks
+          const contentType = res.headers.get("content-type") || "";
+          if (res.ok && contentType.includes("application/json")) {
             const data = await res.json();
-            
-            let cloudProjects = [];
-            if (data && Array.isArray(data.projects)) {
-                cloudProjects = data.projects;
-            } else if (Array.isArray(data)) {
-                cloudProjects = data;
-            }
+            let cloudProjects = Array.isArray(data?.projects) ? data.projects : (Array.isArray(data) ? data : []);
 
             for (const cp of cloudProjects) {
               if (cp.owner_id === user.email || cp.userId === user.email) {
-                await projectsDB.setItem(cp._id, { ...cp, synced: true });
+                await projectsDB.setItem(cp._id, { ...cp, synced: true, updatedAt: normalizeEpoch(cp.updatedAt || cp.updated_at) });
               }
             }
           }
         } catch (fetchErr) {
-          console.error("Failed to fetch cloud projects:", fetchErr);
+          console.warn("Cloud pull degraded gracefully to offline storage:", fetchErr);
         }
       }
 
-      // --- 2. LOAD FROM LOCAL DB ---
+      // 2. CHECK PENDING SYNC QUEUE COUNT
+      const queueKeys = await syncQueueDB.keys();
+      const pendingUploads = queueKeys.filter(k => k.includes("local_proj") || k.startsWith("sync_project") || k.startsWith("local_"));
+
+      // 3. LOAD FROM LOCAL DB
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
         if (value.owner_id === user.email || value.userId === user.email) {
-          loadedProjects.push(value);
+          loadedProjects.push({
+            ...value,
+            updatedAt: normalizeEpoch(value.updatedAt || value.updated_at)
+          });
         }
       });
+
       setProjects(loadedProjects.sort((a, b) => b.updatedAt - a.updatedAt));
+      setSyncState({ syncing: false, pendingCount: pendingUploads.length, lastSynced: new Date() });
     } catch (error) {
       console.error("Failed to load projects:", error);
+      setSyncState(prev => ({ ...prev, syncing: false }));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleManualTrigger = async () => {
+    setSyncState(prev => ({ ...prev, syncing: true }));
+    if (syncManager?.processSyncQueue) {
+      await syncManager.processSyncQueue();
+    }
+    await loadProjects();
+  };
+
   const handleDeleteProject = async (e, projectId) => {
     e.stopPropagation();
-    const confirmDelete = window.confirm("Are you sure you want to delete this project? This action cannot be undone.");
-    if (!confirmDelete) return;
+    if (!window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
 
     try {
-      // 1. Delete locally
       await projectsDB.removeItem(projectId);
-
-      // 2. Queue for Cloud Sync Deletion
       if (projectId.startsWith('local_')) {
         await syncQueueDB.removeItem(projectId);
       } else {
         await syncQueueDB.setItem(`delete_${projectId}`, {
-          type: 'PROJECT',
-          action: 'DELETE',
-          data: { _id: projectId }
+          type: 'PROJECT', action: 'DELETE', data: { _id: projectId }
         });
       }
-
-      // 3. Update UI
       setProjects(projects.filter(p => p._id !== projectId));
+      loadProjects();
     } catch (error) {
       console.error("Failed to delete project:", error);
     }
@@ -101,44 +141,67 @@ export default function Projects() {
 
   return (
     <div className="projects-bento-layout">
+      <style>{`
+        @keyframes projSpin { 100% { transform: rotate(360deg); } }
+        .spin-anim { animation: projSpin 1s linear infinite; }
+      `}</style>
+
       <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
 
       <main className="projects-bento-content">
         <div className="projects-grid-container">
           
-          {/* Hero Section */}
           <section className="bento-hero-card projects-hero">
             <div className="hero-text">
               <h1 className="hero-title">My Projects</h1>
-              <p className="hero-subtitle">
-                Manage, edit, and load your saved algorithm workspaces.
-              </p>
+              <p className="hero-subtitle">Manage, edit, and load your saved algorithm workspaces.</p>
             </div>
-            <button 
-              className="hero-primary-btn" 
-              onClick={() => navigate('/workspace')}
-            >
+            <button className="hero-primary-btn" onClick={() => navigate('/workspace')}>
               <FiPlus size={20} strokeWidth={3} />
               <span>Blank Workspace</span>
             </button>
           </section>
 
-          {/* Projects List Section */}
+          {/* Live Sync Status Bar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', marginBottom: '16px', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem' }}>
+              {syncState.syncing ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60A5FA' }}>
+                  <FiRefreshCw className="spin-anim" /> Synchronizing cloud storage...
+                </span>
+              ) : (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981' }}>
+                  <FiCloud /> Storage up to date {syncState.lastSynced && `(${syncState.lastSynced.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`}
+                </span>
+              )}
+
+              {syncState.pendingCount > 0 && (
+                <span style={{ background: '#F59E0B', color: '#000', padding: '2px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800' }}>
+                  {syncState.pendingCount} Local Pending
+                </span>
+              )}
+            </div>
+
+            <button 
+              onClick={handleManualTrigger} 
+              disabled={syncState.syncing}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 14px', borderRadius: '8px', cursor: syncState.syncing ? 'wait' : 'pointer', fontSize: '0.82rem', fontWeight: '600' }}
+            >
+              <FiRefreshCw className={syncState.syncing ? "spin-anim" : ""} /> Force Sync
+            </button>
+          </div>
+
           <section className="projects-list-section">
             {loading ? (
               <div className="projects-loading-state">
                 <div className="spinner"></div>
-                <p>Syncing your workspace data...</p>
+                <p>Reading workspace databases...</p>
               </div>
             ) : projects.length === 0 ? (
               <div className="projects-empty-state">
-                <div className="empty-state-icon">
-                  <FiFileText size={48} />
-                </div>
+                <div className="empty-state-icon"><FiFileText size={48} /></div>
                 <h3 className="empty-title">No projects found</h3>
-                <p className="empty-desc">
-                  You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!
-                </p>
+                <p className="empty-desc">You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!</p>
                 <button className="empty-action-btn" onClick={() => navigate('/workspace')}>
                   <FiPlus size={18} strokeWidth={3} /> Create First Project
                 </button>
@@ -146,20 +209,10 @@ export default function Projects() {
             ) : (
               <div className="projects-bento-grid">
                 {projects.map(proj => (
-                  <div 
-                    key={proj._id} 
-                    className="bento-project-card" 
-                    onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}
-                  >
+                  <div key={proj._id} className="bento-project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                     <div className="project-card-top">
-                      <div className="project-icon-wrapper">
-                        <FiFolder size={24} />
-                      </div>
-                      <button
-                        className="btn-delete-project"
-                        title="Delete Project"
-                        onClick={(e) => handleDeleteProject(e, proj._id)}
-                      >
+                      <div className="project-icon-wrapper"><FiFolder size={24} /></div>
+                      <button className="btn-delete-project" title="Delete Project" onClick={(e) => handleDeleteProject(e, proj._id)}>
                         <FiTrash2 size={18} />
                       </button>
                     </div>
@@ -168,15 +221,10 @@ export default function Projects() {
                       <h3 className="project-title">{proj.title || proj.name || "Untitled Project"}</h3>
                       <div className="project-meta-info">
                         <span className="meta-date">
-                          <FiClock size={14} /> 
-                          {new Date(proj.updatedAt || Date.now()).toLocaleDateString()}
+                          <FiClock size={14} /> {formatDisplayDate(proj.updatedAt)}
                         </span>
                         <span className={`sync-status ${proj.synced ? "synced" : "local"}`}>
-                          {proj.synced ? (
-                            <><FiCloud size={14} /> Cloud</>
-                          ) : (
-                            <><FiHardDrive size={14} /> Local</>
-                          )}
+                          {proj.synced ? <><FiCloud size={14} /> Cloud</> : <><FiHardDrive size={14} /> Local</>}
                         </span>
                       </div>
                     </div>
