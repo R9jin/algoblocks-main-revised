@@ -1,5 +1,5 @@
 // frontend/src/pages/Dashboard.jsx
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FiLock } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
@@ -109,7 +109,12 @@ export default function Dashboard() {
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
-  const currentUser = storedUserStr ? JSON.parse(storedUserStr) : null;
+  
+  // Stabilized memory reference to prevent infinite render loops
+  const currentUser = useMemo(() => {
+    return storedUserStr ? JSON.parse(storedUserStr) : null;
+  }, [storedUserStr]);
+
   const isGuest = currentUser?.isGuest === true;
 
   // Dynamic progress state
