@@ -20,6 +20,7 @@ import { FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, 
 import { usePyodide } from "../context/PyodideContext.jsx";
 import { sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
 import { translatePythonError } from "../utils/errorTranslator.js";
+import { syncManager } from "../utils/syncManager.js";
 
 const SIDEBAR_TEMPLATES = [
   { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element.", category: "Search" },
@@ -47,7 +48,7 @@ const createInitialTab = (locState = null) => {
     analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
     lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project",
     isDirty: false,
-    ignoreDirtyUntil: Date.now() + 1200 // Buffer window to ignore Blockly initial mount render fires
+    ignoreDirtyUntil: Date.now() + 1200
   };
 
   if (locState?.projectToLoad) {
@@ -68,7 +69,6 @@ export default function MainApp() {
   const navigationContext = React.useContext(NavigationContext);
   const navigator = navigationContext?.navigator;
   
-  // Vercel Fix: Strip trailing slash
   const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
   const { worker, isEngineReady, resetWorker } = usePyodide();
@@ -130,7 +130,6 @@ export default function MainApp() {
   const latestTabsRef = useRef(tabs);
   useEffect(() => { latestTabsRef.current = tabs; }, [tabs]);
 
-  // FIXED: Strictly checks `t.isDirty === true` instead of checking if workspace contains blocks
   useEffect(() => {
     if (!navigator || !navigator.block) return;
     const unblock = navigator.block((tx) => {
@@ -141,7 +140,6 @@ export default function MainApp() {
     return unblock;
   }, [navigator]);
 
-  // FIXED: Strictly checks `t.isDirty === true`
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
@@ -397,7 +395,6 @@ export default function MainApp() {
     if (workerRef.current) workerRef.current.postMessage({ type: "ANALYZE_CODE", code: cleanCode });
   };
 
-  // FIXED: Respects `ignoreDirtyUntil` window so initial mount deserialization doesn't mark tabs dirty
   const handleBlocklyChange = (tabId, json, pythonCode) => {
     const tab = tabs.find((t) => t.id === tabId);
     if (!tab) return;
@@ -597,7 +594,6 @@ export default function MainApp() {
     });
   };
 
-  // FIXED: Explicitly marks `isDirty: false` on successful save
   const submitSave = async () => {
     const user = getUser();
     if (!user) { showToast("Error: You must be logged in to save.", "error"); return; }
@@ -610,6 +606,7 @@ export default function MainApp() {
       category: saveModal.saveType === "template" ? saveModal.category : undefined,
       data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson,
       workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
+      pythonCode: activeTab.pythonCode || "",
       owner_id: user.email, userId: user.email, synced: false, updatedAt: nowMs,
     };
 
@@ -619,10 +616,15 @@ export default function MainApp() {
     if (navigator && navigator.onLine && user.email && API_BASE) {
       try {
         const endpoint = saveModal.saveType === "template" ? "/api/templates/save" : "/api/projects/save";
+        const fallbackEndpoint = saveModal.saveType === "template" ? "/api/templates" : "/api/projects";
         const apiPayload = saveModal.saveType === "template"
           ? { templateId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
           : { projectId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
-        const res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        
+        let res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        if (res.status === 404) {
+           res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        }
         
         if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
           const responseData = await res.json();
@@ -636,6 +638,7 @@ export default function MainApp() {
           if (!saveModal.isEditMetadataOnly) {
             updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
           }
+          window.dispatchEvent(new Event("localDataSynced"));
           fetchTemplates(); return;
         }
       } catch (err) { console.warn("Direct save degraded offline:", err); }
@@ -648,6 +651,12 @@ export default function MainApp() {
     if (!saveModal.isEditMetadataOnly) {
       updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
     }
+    
+    // Force immediate background processing trigger
+    if (syncManager?.processSyncQueue) {
+       syncManager.processSyncQueue();
+    }
+    
     fetchTemplates();
   };
 
@@ -673,6 +682,7 @@ export default function MainApp() {
           updateTab(t.id, { currentLoadedId: null, title: "Untitled Project", isDirty: false });
         }
       });
+      if (syncManager?.processSyncQueue) syncManager.processSyncQueue();
     } catch (err) { showToast("Error deleting item.", "error"); fetchTemplates(); }
   };
 

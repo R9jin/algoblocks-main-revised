@@ -7,24 +7,31 @@ import { projectsDB, syncQueueDB } from "../db";
 import "../styles/Projects.css";
 import { syncManager } from "../utils/syncManager";
 
-// Vercel Fix: Strip trailing slashes to prevent 308 redirect double-slash API drops
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 export default function Projects() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [globalSyncing, setGlobalSyncing] = useState(false);
   const [syncState, setSyncState] = useState({ syncing: false, pendingCount: 0, lastSynced: null });
 
   useEffect(() => {
     loadProjects();
     
     const handleAutoSync = () => loadProjects();
+    const onStart = () => setGlobalSyncing(true);
+    const onEnd = () => { setGlobalSyncing(false); loadProjects(); };
+
     window.addEventListener("online", handleAutoSync);
     window.addEventListener("localDataSynced", handleAutoSync);
+    window.addEventListener("sync-start", onStart);
+    window.addEventListener("sync-end", onEnd);
     return () => {
       window.removeEventListener("online", handleAutoSync);
       window.removeEventListener("localDataSynced", handleAutoSync);
+      window.removeEventListener("sync-start", onStart);
+      window.removeEventListener("sync-end", onEnd);
     };
   }, []);
 
@@ -34,7 +41,6 @@ export default function Projects() {
       const parsed = new Date(val).getTime();
       return isNaN(parsed) ? Date.now() : parsed;
     }
-    // If Unix timestamp is in seconds (10 digits), convert to milliseconds
     return typeof val === 'number' && val < 10000000000 ? val * 1000 : val;
   };
 
@@ -58,7 +64,7 @@ export default function Projects() {
       }
       const user = JSON.parse(storedUser);
 
-      // 1. PULL CLOUD DATA FIRST
+      // 1. PULL CLOUD DATA
       if (navigator.onLine && API_BASE) {
         try {
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -68,9 +74,8 @@ export default function Projects() {
           };
 
           const res = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
-          
-          // Vercel Fix: Guard against serverless HTML fallbacks
           const contentType = res.headers.get("content-type") || "";
+          
           if (res.ok && contentType.includes("application/json")) {
             const data = await res.json();
             let cloudProjects = Array.isArray(data?.projects) ? data.projects : (Array.isArray(data) ? data : []);
@@ -86,11 +91,11 @@ export default function Projects() {
         }
       }
 
-      // 2. CHECK PENDING SYNC QUEUE COUNT
+      // 2. CHECK QUEUE COUNT
       const queueKeys = await syncQueueDB.keys();
       const pendingUploads = queueKeys.filter(k => k.includes("local_proj") || k.startsWith("sync_project") || k.startsWith("local_"));
 
-      // 3. LOAD FROM LOCAL DB
+      // 3. READ LOCAL DB
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
         if (value.owner_id === user.email || value.userId === user.email) {
@@ -139,6 +144,8 @@ export default function Projects() {
     }
   };
 
+  const isActivelySyncing = syncState.syncing || globalSyncing;
+
   return (
     <div className="projects-bento-layout">
       <style>{`
@@ -165,7 +172,7 @@ export default function Projects() {
           {/* Live Sync Status Bar */}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', marginBottom: '16px', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem' }}>
-              {syncState.syncing ? (
+              {isActivelySyncing ? (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60A5FA' }}>
                   <FiRefreshCw className="spin-anim" /> Synchronizing cloud storage...
                 </span>
@@ -184,10 +191,10 @@ export default function Projects() {
 
             <button 
               onClick={handleManualTrigger} 
-              disabled={syncState.syncing}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 14px', borderRadius: '8px', cursor: syncState.syncing ? 'wait' : 'pointer', fontSize: '0.82rem', fontWeight: '600' }}
+              disabled={isActivelySyncing}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 14px', borderRadius: '8px', cursor: isActivelySyncing ? 'wait' : 'pointer', fontSize: '0.82rem', fontWeight: '600' }}
             >
-              <FiRefreshCw className={syncState.syncing ? "spin-anim" : ""} /> Force Sync
+              <FiRefreshCw className={isActivelySyncing ? "spin-anim" : ""} /> Force Sync
             </button>
           </div>
 
