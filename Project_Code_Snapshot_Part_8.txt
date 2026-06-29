@@ -1,479 +1,7 @@
 ﻿--- PROJECT SNAPSHOT (PART 8 OF 10) ---
 
---- TIMESTAMP: 2026-06-29 13:48:19 ---
+--- TIMESTAMP: 2026-06-29 19:49:54 ---
 
-
---- FILE: frontend/src/components/FloatingErrorDropdown.jsx ---
-
-// frontend/src/components/FloatingErrorDropdown.jsx
-import { useState } from "react";
-import { FiAlertCircle } from "react-icons/fi";
-
-export default function FloatingErrorDropdown({ syntaxErrors = [] }) {
-  const [isErrorDropdownOpen, setIsErrorDropdownOpen] = useState(false);
-  const [errorPanelSize, setErrorPanelSize] = useState({ width: 400, height: 250 });
-
-  if (!syntaxErrors || syntaxErrors.length === 0) return null;
-
-  const handleErrorResizeStart = (e, direction) => {
-    e.preventDefault(); e.stopPropagation();
-    const startX = e.clientX; const startY = e.clientY;
-    const startWidth = errorPanelSize.width; const startHeight = errorPanelSize.height;
-
-    const onMouseMove = (moveEvent) => {
-      let newWidth = startWidth; let newHeight = startHeight;
-      if (direction.includes('w')) newWidth = startWidth + (startX - moveEvent.clientX);
-      if (direction.includes('n')) newHeight = startHeight + (startY - moveEvent.clientY);
-      setErrorPanelSize({
-        width: Math.max(300, Math.min(newWidth, window.innerWidth * 0.9)),
-        height: Math.max(150, Math.min(newHeight, window.innerHeight * 0.8)),
-      });
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-      document.body.style.cursor = "default"; document.body.style.userSelect = "auto";
-    };
-
-    document.addEventListener("mousemove", onMouseMove); document.addEventListener("mouseup", onMouseUp);
-    if (direction === 'n') document.body.style.cursor = 'ns-resize';
-    else if (direction === 'w') document.body.style.cursor = 'ew-resize';
-    else document.body.style.cursor = 'nwse-resize';
-    document.body.style.userSelect = "none";
-  };
-
-  return (
-    <div className="floating-error-container">
-      {isErrorDropdownOpen && (
-        <div
-          className="error-dropdown-menu"
-          style={{ width: `${errorPanelSize.width}px`, height: `${errorPanelSize.height}px` }}
-        >
-          <div className="error-resizer-top" onMouseDown={(e) => handleErrorResizeStart(e, 'n')} />
-          <div className="error-resizer-left" onMouseDown={(e) => handleErrorResizeStart(e, 'w')} />
-          <div className="error-resizer-nw" onMouseDown={(e) => handleErrorResizeStart(e, 'nw')}>
-            <FiAlertCircle color="rgba(239, 68, 68, 0.4)" />
-          </div>
-
-          <div className="error-dropdown-header">
-            <strong>Detected Issues ({syntaxErrors.length})</strong>
-          </div>
-          <div className="error-dropdown-list">
-            {syntaxErrors.map((err, idx) => (
-              <div key={idx} className="error-dropdown-item">
-                <span className="error-line-badge">Line {err.line}</span>
-                <span className="error-message">{err.message}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <button
-        className={`floating-error-btn ${isErrorDropdownOpen ? "open" : ""}`}
-        onClick={() => setIsErrorDropdownOpen(!isErrorDropdownOpen)}
-      >
-        <FiAlertCircle size={18} /> {syntaxErrors.length} Error{syntaxErrors.length > 1 ? "s" : ""}
-      </button>
-    </div>
-  );
-}
-
---- FILE: frontend/src/components/Footer.jsx ---
-
-// frontend/src/components/Footer.jsx
-import '../styles/Footer.css';
-
-export default function Footer() {
-  return (
-    <>
-      {/*
-      <footer className="landing-footer">
-        <p className="footer-title">
-          <strong>AlgoBlocks</strong>
-        </p>
-        <p className="footer-subtitle">
-          A Computer Science Thesis Project
-        </p>
-        <p className="footer-disclaimer">
-          Built strictly for educational and research purposes.
-        </p>
-      </footer>
-      */}
-    </>
-  );
-}
-
---- FILE: frontend/src/components/Header.jsx ---
-
-// frontend/src/components/Header.jsx
-import { Link } from "react-router-dom";
-
-export default function Header() {
-
-  const handleGuestLogin = () => {
-    const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
-    const guestUser = {
-      _id: guestId,
-      name: "Guest Explorer",
-      email: `${guestId}@guest.local`,
-      isGuest: true,
-      progress: {},
-      assessments: {}
-    };
-    
-    const guestToken = `guest_token_${Date.now()}`;
-    
-    localStorage.setItem("user", JSON.stringify(guestUser));
-    localStorage.setItem("token", guestToken);
-    localStorage.setItem("authToken", guestToken);
-    
-    window.location.href = "/dashboard";
-  };
-
-  return (
-    <nav className="landing-nav">
-      <div className="logo-container">
-        <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
-        <h1 className="logo-text" style={{ color: "#EBE4FF" }}>ALGOBLOCKS</h1>
-      </div>
-
-      <div className="nav-links">
-        <Link to="/signin" className="nav-btn signin">Sign In</Link>
-        <button 
-          onClick={handleGuestLogin} 
-          className="nav-btn signup" 
-          style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
-        >
-          Try as Guest
-        </button>
-      </div>
-    </nav>
-  );
-}
-
---- FILE: frontend/src/components/LogoutConfirmModal.jsx ---
-
-// frontend/src/components/LogoutConfirmModal.jsx
-import "../styles/LogoutConfirmModal.css";
-
-export default function LogoutConfirmModal({ isOpen, onClose, onLogoutClick }) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="logout-modal-overlay">
-      <div className="logout-modal glass-panel">
-        <h2>Logout Confirmation</h2>
-        <p>Are you sure you want to sign out of AlgoBlocks?</p>
-        <div className="logout-modal-actions">
-          <button className="logout-btn" onClick={onLogoutClick}>Confirm</button>
-          <button className="logout-btn logout-btn-cancel" onClick={onClose}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
---- FILE: frontend/src/components/MemoryVisualizer.jsx ---
-
-// MemoryVisualizer.jsx
-import { useMemo, useState } from 'react';
-import {
-  FaCodeBranch,
-  FaCube,
-  FaFont,
-  FaHashtag,
-  FaInfoCircle,
-  FaLayerGroup,
-  FaMemory,
-  FaRegHdd,
-  FaSitemap
-} from 'react-icons/fa';
-import '../styles/MemoryVisualizer.css';
-import { formatComplexity } from '../utils/formatters';
-
-const MemoryVisualizer = ({ analysisData, currentStep }) => {
-  const [hoveredAlloc, setHoveredAlloc] = useState(null);
-
-  // Safely extract the current line's memory state
-  const currentMemoryState = useMemo(() => {
-    if (!analysisData || analysisData.length === 0 || currentStep < 0) return {};
-    const stepData = analysisData[currentStep];
-    return stepData?.memory_state || {};
-  }, [analysisData, currentStep]);
-
-  // Helper to map python data types to appropriate React Icons and Categories
-  const getTypeConfig = (type) => {
-    const t = (type || '').toLowerCase();
-    if (['int', 'float', 'bool', 'complex'].includes(t)) {
-      return { icon: <FaHashtag />, category: 'Primitive', color: '#3498db' }; // Blue
-    }
-    if (t === 'str') {
-      return { icon: <FaFont />, category: 'String', color: '#9b59b6' }; // Purple
-    }
-    if (['list', 'tuple', 'deque'].includes(t)) {
-      return { icon: <FaLayerGroup />, category: 'Linear Structure', color: '#2ecc71' }; // Green
-    }
-    if (['dict', 'set', 'defaultdict'].includes(t)) {
-      return { icon: <FaSitemap />, category: 'Hash Structure', color: '#e74c3c' }; // Red
-    }
-    return { icon: <FaCube />, category: 'Object/Reference', color: '#f1c40f' }; // Yellow
-  };
-
-  const variables = Object.entries(currentMemoryState);
-
-  if (!analysisData || analysisData.length === 0) {
-    return (
-      <div className="memory-visualizer empty-state">
-        <FaRegHdd className="empty-icon" />
-        <p>Awaiting analysis data to map memory footprint...</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="memory-visualizer">
-      <div className="memory-header">
-        <div className="header-title">
-          <FaMemory className="header-icon" />
-          <h3>Memory Allocation Visualizer</h3>
-        </div>
-        <div className="trace-depth-badge">
-          <FaCodeBranch />
-          <span>Trace Depth: {currentStep >= 0 ? currentStep : 0}</span>
-        </div>
-      </div>
-
-      <div className="memory-grid">
-        {variables.length === 0 ? (
-          <div className="no-vars">
-            <FaRegHdd className="dim-icon" />
-            <span>No active memory allocations at this step.</span>
-          </div>
-        ) : (
-          variables.map(([varName, varData], index) => {
-            const config = getTypeConfig(varData.type);
-            const isHovered = hoveredAlloc === varName;
-            const size = varData.size || 1;
-            
-            // Limit rendering to 50 blocks so massive arrays don't crash the browser
-            const visualBlocks = Array.from({ length: Math.min(size, 50) });
-            const hasOverflow = size > 50;
-
-            return (
-              <div 
-                key={`${varName}-${index}`}
-                className={`memory-card ${isHovered ? 'hovered' : ''}`}
-                onMouseEnter={() => setHoveredAlloc(varName)}
-                onMouseLeave={() => setHoveredAlloc(null)}
-                style={{ borderTopColor: config.color }}
-              >
-                <div className="card-top">
-                  <div className="card-name-group">
-                    <span className="card-icon" style={{ color: config.color }}>{config.icon}</span>
-                    <span className="card-name">{varName}</span>
-                  </div>
-                  <div className="card-stats">
-                    <span>(Type: {varData.type || 'Unknown'}, Size: {size})</span>
-                  </div>
-                </div>
-
-                <div className="memory-segments-wrapper">
-                  <span className="segment-label">(0)</span>
-                  <div className="segment-blocks">
-                    {visualBlocks.map((_, i) => (
-                      <div 
-                        key={i} 
-                        className="segment-block" 
-                        style={{ backgroundColor: config.color, opacity: 0.8 }}
-                      ></div>
-                    ))}
-                    {hasOverflow && <span className="segment-overflow">...</span>}
-                  </div>
-                  <span className="segment-label">({size})</span>
-                </div>
-
-                {/* Educational Insight Explanation */}
-                {varData.explanation && (
-                  <div className="card-explanation" style={{ borderLeftColor: config.color }}>
-                    <FaInfoCircle className="explanation-icon" style={{ color: config.color }} />
-                    <span className="explanation-text">{varData.explanation}</span>
-                  </div>
-                )}
-
-                {varData.complexity && (
-                  <div className="card-bottom">
-                     <span className="space-complexity">Complexity: {formatComplexity(varData.complexity)}</span>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default MemoryVisualizer;
-
---- FILE: frontend/src/components/OfflineIndicator.jsx ---
-
-// frontend/src/components/OfflineIndicator.jsx
-import { useEffect, useRef, useState } from 'react';
-
-// Global variable to enforce a Strict Singleton pattern.
-// This guarantees only ONE popup can ever exist in the DOM, 
-// even if the component is accidentally rendered in multiple files.
-let activeInstanceId = null;
-
-export default function OfflineIndicator() {
-    const [status, setStatus] = useState('online'); 
-    const [isVisible, setIsVisible] = useState(false);
-    const [isPrimary, setIsPrimary] = useState(false);
-    
-    const statusRef = useRef('online');
-    const hideTimeoutRef = useRef(null);
-    const abortControllerRef = useRef(null);
-    const instanceId = useRef(Math.random().toString(36).substring(2, 9));
-
-    useEffect(() => {
-        // --- Singleton Logic ---
-        if (!activeInstanceId) {
-            activeInstanceId = instanceId.current;
-            setIsPrimary(true);
-        } else if (activeInstanceId !== instanceId.current) {
-            return; // A primary instance already exists. Ignore this duplicate.
-        }
-
-        // --- Network Logic ---
-        const triggerOnline = () => {
-            if (statusRef.current === 'offline') {
-                statusRef.current = 'restored';
-                setStatus('restored');
-                setIsVisible(true);
-
-                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-
-                hideTimeoutRef.current = setTimeout(() => {
-                    setIsVisible(false);
-                    setTimeout(() => {
-                        if (statusRef.current === 'restored') {
-                            statusRef.current = 'online';
-                            setStatus('online');
-                        }
-                    }, 400); 
-                }, 3000);
-            }
-        };
-
-        const triggerOffline = () => {
-            if (statusRef.current !== 'offline') {
-                statusRef.current = 'offline';
-                setStatus('offline');
-                setIsVisible(true);
-                
-                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-
-                hideTimeoutRef.current = setTimeout(() => {
-                    setIsVisible(false);
-                }, 10000); 
-            }
-        };
-
-        const handleOnline = () => {
-            checkRealConnectivity();
-        };
-
-        const handleOffline = () => {
-            // Instantly cancel any pending background checks to prevent race conditions
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-            }
-            triggerOffline();
-        };
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        const checkRealConnectivity = async () => {
-            if (!navigator.onLine) {
-                triggerOffline();
-                return;
-            }
-
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort();
-            }
-            abortControllerRef.current = new AbortController();
-            const signal = abortControllerRef.current.signal;
-
-            try {
-                // Add a 3 second timeout so the fetch doesn't hang indefinitely on poor networks
-                const timeoutId = setTimeout(() => {
-                    if (abortControllerRef.current) abortControllerRef.current.abort();
-                }, 3000);
-
-                await fetch('https://www.google.com/favicon.ico?t=' + Date.now(), {
-                    mode: 'no-cors',
-                    cache: 'no-store',
-                    signal: signal
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!signal.aborted) {
-                    triggerOnline();
-                }
-            } catch (error) {
-                if (!signal.aborted) {
-                    triggerOffline();
-                }
-            }
-        };
-
-        const pollingInterval = setInterval(checkRealConnectivity, 5000);
-        checkRealConnectivity();
-
-        return () => {
-            if (activeInstanceId === instanceId.current) {
-                activeInstanceId = null;
-                window.removeEventListener('online', handleOnline);
-                window.removeEventListener('offline', handleOffline);
-                clearInterval(pollingInterval);
-                if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-                if (abortControllerRef.current) abortControllerRef.current.abort();
-            }
-        };
-    }, []);
-
-    // If this is a duplicate mount, render absolutely nothing!
-    if (!isPrimary) return null;
-
-    return (
-        <div className={`network-popup ${status} ${isVisible ? 'show' : 'hide'}`}>
-            <div className="network-popup-content">
-                {status === 'offline' ? (
-                    <>
-                        <span className="network-icon">âš ï¸</span>
-                        <div>
-                            <strong>Connection Lost</strong>
-                            <p>You are working offline. Changes will sync later.</p>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <span className="network-icon">âœ…</span>
-                        <div>
-                            <strong>Back Online</strong>
-                            <p>Your connection has been restored.</p>
-                        </div>
-                    </>
-                )}
-            </div>
-        </div>
-    );
-}
 
 --- FILE: frontend/src/components/PythonCodeEditor.jsx ---
 
@@ -777,6 +305,8 @@ export default function UserHeader({ user, onLogoutClick }) {
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
+  const isAdmin = user?.isAdmin === true || user?.role === "admin";
+
   const initials = useMemo(() => {
     const parts = (user?.name || "User").trim().split(/\s+/);
     const a = parts[0]?.[0] || "U";
@@ -872,16 +402,20 @@ export default function UserHeader({ user, onLogoutClick }) {
                   <LuFolder size={18} aria-hidden="true" /> Projects
                 </button>
                 
-                <div className="user-dd-divider" />
-                <button 
-                  type="button" 
-                  className="user-dd-item" 
-                  style={{ color: "#10B981", fontWeight: "bold" }}
-                  onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
-                  role="menuitem"
-                >
-                  <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
-                </button>
+                {isAdmin && (
+                  <>
+                    <div className="user-dd-divider" />
+                    <button 
+                      type="button" 
+                      className="user-dd-item" 
+                      style={{ color: "#10B981", fontWeight: "bold" }}
+                      onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
+                      role="menuitem"
+                    >
+                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                    </button>
+                  </>
+                )}
 
                 <div className="user-dd-divider" />
                 
@@ -3419,14 +2953,14 @@ export default function AssessmentPage() {
 
 // frontend/src/pages/Dashboard.jsx
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FiLock } from "react-icons/fi";
+import { FiLock, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import curriculumIndex from "../data/curriculumIndex";
 import { projectsDB, templatesDB } from "../db";
 import "../styles/Dashboard.css";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 const SYSTEM_TEMPLATES = {
   sorting: [
@@ -3449,7 +2983,6 @@ const SYSTEM_TEMPLATES = {
   ]
 };
 
-// FAQ Data accurately aligned with the system's static structural analysis 
 const FAQ_ITEMS = [
   {
     question: "What is AlgoBlocks and how do I use the Workspace?",
@@ -3485,7 +3018,6 @@ const FAQ_ITEMS = [
   }
 ];
 
-// SVG Icons for modern UI
 const PlusIcon = () => (
   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -3525,18 +3057,17 @@ export default function Dashboard() {
   const [systemTemplates, setSystemTemplates] = useState(SYSTEM_TEMPLATES);
   const [userTemplates, setUserTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncingLive, setIsSyncingLive] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState(null);
 
   const storedUserStr = localStorage.getItem("user") || sessionStorage.getItem("user");
   
-  // Stabilized memory reference to prevent infinite render loops
   const currentUser = useMemo(() => {
     return storedUserStr ? JSON.parse(storedUserStr) : null;
   }, [storedUserStr]);
 
   const isGuest = currentUser?.isGuest === true;
 
-  // Dynamic progress state
   const [progressData, setProgressData] = useState({
     percent: 0,
     moduleTitle: "Welcome",
@@ -3549,7 +3080,6 @@ export default function Dashboard() {
       setLoading(true);
       const user = currentUser;
 
-      // 1. Compute User Learning Progress
       let total = 0;
       let completed = 0;
       let nextMod = curriculumIndex[0];
@@ -3593,8 +3123,7 @@ export default function Dashboard() {
         moduleDesc: nextMod ? modDescriptions[nextMod.moduleId] || "Continue your algorithm learning journey." : "Continue your algorithm learning journey."
       });
 
-      // 2. Fetch and Sync Projects and Templates from Cloud
-      if (navigator.onLine && user && !user.isGuest) {
+      if (navigator.onLine && user && !user.isGuest && API_BASE) {
         try {
           const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
           const headers = {
@@ -3602,9 +3131,8 @@ export default function Dashboard() {
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           };
 
-          // Fetch Projects
-          const pRes = await fetch(`${API_BASE}/api/projects?userId=${user.email}`, { headers });
-          if (pRes.ok) {
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
             const pData = await pRes.json();
             const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
             for (const cp of cloudProjects) {
@@ -3614,9 +3142,8 @@ export default function Dashboard() {
             }
           }
 
-          // Fetch Custom Templates
-          const tRes = await fetch(`${API_BASE}/api/templates?userId=${user.email}`, { headers });
-          if (tRes.ok) {
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
             const tData = await tRes.json();
             const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
             for (const ct of cloudTemplates) {
@@ -3627,11 +3154,10 @@ export default function Dashboard() {
           }
 
         } catch (fetchErr) {
-          console.error("Failed to fetch cloud projects or templates:", fetchErr);
+          console.warn("Cloud sync check dropped to local cache:", fetchErr);
         }
       }
 
-      // 3. Load from local IndexedDB (handles offline or newly synced data)
       const loadedProjects = [];
       await projectsDB.iterate((value) => {
         if (!user || value.owner_id === user.email || value.userId === user.email) {
@@ -3663,8 +3189,24 @@ export default function Dashboard() {
     }
   }, [currentUser]);
 
+  // LIVE EVENT BUS: Instantly flips Local tags to Cloud tags whenever background sync dispatches
   useEffect(() => {
     loadDashboardData();
+
+    const onSyncTrigger = () => loadDashboardData();
+    const onStart = () => setIsSyncingLive(true);
+    const onEnd = () => { setIsSyncingLive(false); loadDashboardData(); };
+
+    window.addEventListener("localDataSynced", onSyncTrigger);
+    window.addEventListener("online", onSyncTrigger);
+    window.addEventListener("sync-start", onStart);
+    window.addEventListener("sync-end", onEnd);
+    return () => {
+      window.removeEventListener("localDataSynced", onSyncTrigger);
+      window.removeEventListener("online", onSyncTrigger);
+      window.removeEventListener("sync-start", onStart);
+      window.removeEventListener("sync-end", onEnd);
+    };
   }, [loadDashboardData]);
 
   const handleTryTemplate = async (template) => {
@@ -3674,7 +3216,6 @@ export default function Dashboard() {
         if (!response.ok) throw new Error("Template file not found");
         const data = await response.json();
         
-        // Wrap system template securely inside `data` property
         const proj = { 
           data: data, 
           isTemplate: true, 
@@ -3684,7 +3225,6 @@ export default function Dashboard() {
         };
         navigate("/workspace", { state: { projectToLoad: proj } });
       } else {
-        // Extract dynamically located blocks securely into `data` property
         const proj = { 
           data: template.blocks || template.data || template.workspace?.blocklyJson, 
           isTemplate: true, 
@@ -3710,15 +3250,18 @@ export default function Dashboard() {
 
   return (
     <div className="bento-dashboard-layout">
+      <style>{`
+        @keyframes dashSpin { 100% { transform: rotate(360deg); } }
+        .dash-spin-anim { animation: dashSpin 1s linear infinite; }
+      `}</style>
+
       <DashboardHeader />
       
       <main className="bento-dashboard-content">
         <div className="bento-grid-container">
           
-          {/* Main Content Column */}
           <div className="bento-main-column">
             
-            {/* Hero Card */}
             <section className="bento-hero-card">
               <div className="hero-text">
                 <h1 className="hero-title">Welcome to AlgoBlocks!</h1>
@@ -3726,16 +3269,12 @@ export default function Dashboard() {
                   An interactive platform to build, visualize, and analyze algorithms with real-time Big-O feedback.
                 </p>
               </div>
-              <button 
-                className="hero-primary-btn" 
-                onClick={() => navigate("/workspace")}
-              >
+              <button className="hero-primary-btn" onClick={() => navigate("/workspace")}>
                 <PlusIcon />
                 <span>Blank Workspace</span>
               </button>
             </section>
 
-            {/* Learning Path Card */}
             <section className="bento-learning-card">
               <div className="learning-content">
                 <span className="module-badge">
@@ -3764,26 +3303,19 @@ export default function Dashboard() {
               <div className="learning-action">
                 <button 
                   className="banner-icon-btn" 
-                  onClick={() => {
-                    if (!isGuest) navigate("/learning-path");
-                  }}
+                  onClick={() => { if (!isGuest) navigate("/learning-path"); }}
                   style={isGuest ? { backgroundColor: '#F1F5F9', cursor: 'not-allowed', boxShadow: 'none', border: '1px solid #E2E8F0' } : {}}
                   disabled={isGuest}
                 >
                   {isGuest ? (
                     <FiLock size={32} color="#94A3B8" />
                   ) : (
-                    <img 
-                      src="/assets/learning-icon.png" 
-                      alt="Learning Path" 
-                      className="learning-path-img"
-                    />
+                    <img src="/assets/learning-icon.png" alt="Learning Path" className="learning-path-img" />
                   )}
                 </button>
               </div>
             </section>
 
-            {/* Custom User Templates Section */}
             <section className="bento-library-section" style={{ marginTop: "20px" }}>
               <div className="section-header">
                 <h2>Your Custom Templates</h2>
@@ -3799,12 +3331,7 @@ export default function Dashboard() {
                 <div className="bento-category-group">
                   <div className="bento-template-grid">
                     {userTemplates.map((tpl, i) => (
-                      <div 
-                        key={tpl._id || i} 
-                        className="bento-template-card custom-template-card"
-                        onClick={() => handleTryTemplate(tpl)}
-                        style={{ borderTop: "3px solid #db7fff" }}
-                      >
+                      <div key={tpl._id || i} className="bento-template-card custom-template-card" onClick={() => handleTryTemplate(tpl)} style={{ borderTop: "3px solid #db7fff" }}>
                         <div className="template-card-header">
                           <div className="template-icon-wrapper" style={{ background: "rgba(108, 92, 231, 0.2)" }}>
                             <img src={tpl.icon} alt="icon" className="template-icon" />
@@ -3823,7 +3350,6 @@ export default function Dashboard() {
               )}
             </section>
 
-            {/* System Template Library Grid */}
             <section className="bento-library-section" style={{ marginTop: "20px" }}>
               <div className="section-header">
                 <h2>System Algorithm Library</h2>
@@ -3835,11 +3361,7 @@ export default function Dashboard() {
                   <h3 className="category-title">{category.toUpperCase()}</h3>
                   <div className="bento-template-grid">
                     {items.map((tpl, i) => (
-                      <div 
-                        key={i} 
-                        className="bento-template-card"
-                        onClick={() => handleTryTemplate(tpl)}
-                      >
+                      <div key={i} className="bento-template-card" onClick={() => handleTryTemplate(tpl)}>
                         <div className="template-card-header">
                           <div className="template-icon-wrapper">
                             <img src={tpl.icon} alt="icon" className="template-icon" />
@@ -3858,7 +3380,6 @@ export default function Dashboard() {
               ))}
             </section>
 
-            {/* Help / FAQ Section */}
             <section className="bento-help-section" style={{ marginTop: "20px", marginBottom: "40px" }}>
               <div className="section-header">
                 <h2>Help & Resources</h2>
@@ -3866,25 +3387,12 @@ export default function Dashboard() {
               </div>
               <div className="bento-faq-container">
                 {FAQ_ITEMS.map((faq, index) => (
-                  <div 
-                    key={index} 
-                    className={`bento-faq-item ${expandedFaq === index ? "expanded" : ""}`}
-                  >
-                    <button 
-                      className="bento-faq-question" 
-                      onClick={() => toggleFaq(index)}
-                    >
+                  <div key={index} className={`bento-faq-item ${expandedFaq === index ? "expanded" : ""}`}>
+                    <button className="bento-faq-question" onClick={() => toggleFaq(index)}>
                       <span>{faq.question}</span>
                       <ChevronDownIcon expanded={expandedFaq === index} />
                     </button>
-                    <div 
-                      className="bento-faq-answer"
-                      style={{
-                        maxHeight: expandedFaq === index ? "500px" : "0",
-                        opacity: expandedFaq === index ? 1 : 0,
-                        padding: expandedFaq === index ? "0 20px 20px 20px" : "0 20px"
-                      }}
-                    >
+                    <div className="bento-faq-answer" style={{ maxHeight: expandedFaq === index ? "500px" : "0", opacity: expandedFaq === index ? 1 : 0, padding: expandedFaq === index ? "0 20px 20px 20px" : "0 20px" }}>
                       <p>{faq.answer}</p>
                     </div>
                   </div>
@@ -3894,20 +3402,22 @@ export default function Dashboard() {
 
           </div>
 
-          {/* Sidebar Column */}
           <aside className="bento-sidebar-column">
             <div className="bento-recent-card">
-              <div className="recent-header">
-                <h3>Recent Projects</h3>
+              
+              {/* Dynamic Header with Live Spinning Sync Indicator */}
+              <div className="recent-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <h3>Recent Projects</h3>
+                  {(loading || isSyncingLive) && (
+                    <FiRefreshCw className="dash-spin-anim" size={14} style={{ color: "#60A5FA" }} title="Synchronizing cloud..." />
+                  )}
+                </div>
                 <span className="recent-badge">{recentProjects.length}</span>
               </div>
 
-              {/* View All Projects Moved to Top */}
               {recentProjects.length > 0 && (
-                <button 
-                  className="view-all-projects-btn"
-                  onClick={() => navigate("/projects")}
-                >
+                <button className="view-all-projects-btn" onClick={() => navigate("/projects")}>
                   View All Projects
                 </button>
               )}
@@ -3924,11 +3434,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="bento-recent-list">
                     {recentProjects.map((proj) => (
-                      <div 
-                        key={proj._id || proj.id} 
-                        className="bento-recent-item" 
-                        onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}
-                      >
+                      <div key={proj._id || proj.id} className="bento-recent-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                         <div className="recent-item-icon">
                           <CodeIcon />
                         </div>
@@ -5954,6 +5460,2188 @@ export default function LearningPath() {
             </div>
           </div>
 
+        </div>
+      </div>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/pages/LessonViewer.jsx ---
+
+// frontend/src/pages/LessonViewer.jsx
+import { useEffect, useState } from "react";
+import {
+  FiBarChart2,
+  FiBookOpen,
+  FiCheckCircle,
+  FiChevronLeft,
+  FiChevronRight,
+  FiCircle,
+  FiClipboard,
+  FiClock,
+  FiLock,
+  FiTarget,
+} from "react-icons/fi";
+import { useNavigate, useParams } from "react-router-dom";
+import BigOChart from "../components/BigOChart";
+import CodeSnippet from "../components/CodeSnippet";
+import curriculumIndex from "../data/curriculumIndex";
+import { assessmentsDB, curriculumCacheDB, progressDB } from "../db";
+import "../styles/LessonViewer.css";
+
+function formatText(text) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
+function renderParagraphs(content, className = "lesson-section-content") {
+  if (!content) return null;
+
+  return (
+    <div className={className}>
+      {content.split("\n\n").map((paragraph, index) => {
+        const lines = paragraph.split("\n");
+
+        const hasBullets = lines.some(
+          (line) => line.trim().startsWith("* ") || line.trim().startsWith("- "),
+        );
+
+        if (!hasBullets) {
+          return (
+            <p key={index}>
+              {lines.map((line, lineIndex) => (
+                <span key={lineIndex}>
+                  {formatText(line)}
+                  {lineIndex !== lines.length - 1 && <br />}
+                </span>
+              ))}
+            </p>
+          );
+        }
+
+        const elements = [];
+        let currentList = [];
+
+        lines.forEach((line, i) => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+            currentList.push(
+              <li key={`li-${i}`}>
+                {formatText(trimmed.substring(2).trim())}
+              </li>,
+            );
+          } else {
+            if (currentList.length > 0) {
+              elements.push(
+                <ul key={`ul-${i}`} className="lesson-bullet-list">
+                  {currentList}
+                </ul>,
+              );
+              currentList = [];
+            }
+            elements.push(
+              <span key={`span-${i}`}>
+                {formatText(line)}
+                <br />
+              </span>,
+            );
+          }
+        });
+
+        if (currentList.length > 0) {
+          elements.push(
+            <ul key="ul-end" className="lesson-bullet-list">
+              {currentList}
+            </ul>,
+          );
+        }
+
+        return (
+          <div key={index} style={{ marginBottom: "1em" }}>
+            {elements}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderBullets(items) {
+  if (!items?.length) return null;
+  return (
+    <ul className="lesson-bullet-list">
+      {items.map((item, index) => (
+        <li key={index}>
+          {item.split("\n\n").map((paragraph, pIndex, pArray) => (
+            <div key={pIndex} style={{ marginBottom: pIndex !== pArray.length - 1 ? "0.5em" : "0" }}>
+              {paragraph.split("\n").map((line, lIndex, lArray) => (
+                <span key={lIndex}>
+                  {formatText(line)}
+                  {lIndex !== lArray.length - 1 && <br />}
+                </span>
+              ))}
+            </div>
+          ))}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function renderCodeSnippets(snippets) {
+  if (!snippets?.length) return null;
+  return (
+    <div className="lesson-code-snippets">
+      {snippets.map((snippet, index) => (
+        <CodeSnippet
+          key={`${snippet.title || "snippet"}-${index}`}
+          snippet={snippet}
+        />
+      ))}
+    </div>
+  );
+}
+
+function renderChart(chart) {
+  if (!chart) return null;
+  return (
+    <figure className="lesson-chart-panel">
+      {(chart.title || chart.description) && (
+        <figcaption>
+          {chart.title && <strong>{chart.title}</strong>}
+          {chart.description && <span>{formatText(chart.description)}</span>}
+        </figcaption>
+      )}
+      <BigOChart maxN={chart.maxN} curves={chart.curves} normalize={chart.normalize} />
+    </figure>
+  );
+}
+
+export default function LessonViewer() {
+  const { moduleId, lessonId } = useParams();
+  const navigate = useNavigate();
+
+  const [lesson, setLesson] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedModules, setExpandedModules] = useState(new Set([moduleId]));
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+
+  const [userProgress, setUserProgress] = useState({});
+  const [lessonDetails, setLessonDetails] = useState({});
+  const [activitiesData, setActivitiesData] = useState({});
+  const [assessments, setAssessments] = useState({});
+
+  const storedUser = JSON.parse(
+    localStorage.getItem("user") || sessionStorage.getItem("user") || "{}",
+  );
+  const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
+
+  useEffect(() => {
+    const loadOfflineData = async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_API_URL || "";
+        let initialProg = storedUser.progress || {};
+        let initialAssm = storedUser.assessments || {};
+
+        await progressDB.iterate((value, key) => {
+          initialProg[key] = value.score !== undefined ? value.score : value;
+        });
+        await assessmentsDB.iterate((value, key) => {
+          initialAssm[key] = value;
+        });
+
+        setUserProgress(initialProg);
+        setAssessments(initialAssm);
+
+        if (navigator.onLine && storedUser.email && !storedUser.isGuest) {
+          try {
+            const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+            if (progRes.ok) {
+              const data = await progRes.json();
+              const progData = data.progress || data;
+              for (const [key, val] of Object.entries(progData)) {
+                initialProg[key] = val;
+                await progressDB.setItem(key, { score: val, isSynced: true });
+              }
+            }
+
+            const assRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
+            if (assRes.ok) {
+              const data = await assRes.json();
+              const assData = data.assessments || data;
+              for (const [key, val] of Object.entries(assData)) {
+                initialAssm[key] = val;
+                await assessmentsDB.setItem(key, { ...val, isSynced: true });
+              }
+            }
+
+            setUserProgress({ ...initialProg });
+            setAssessments({ ...initialAssm });
+
+            storedUser.progress = initialProg;
+            storedUser.assessments = initialAssm;
+            localStorage.setItem("user", JSON.stringify(storedUser));
+          } catch (e) {
+            console.warn("Could not fetch latest progress from cloud:", e);
+          }
+        }
+      } catch (e) {
+        console.warn("Error loading offline progress:", e);
+      }
+    };
+    loadOfflineData();
+  }, []);
+
+  useEffect(() => {
+    const fetchAllData = async () => {
+      const details = {};
+      const acts = {};
+      const fetchPromises = [];
+
+      const fetchWithCache = async (url, type, key) => {
+        try {
+          const cachedData = await curriculumCacheDB.getItem(url);
+          if (cachedData) {
+            if (type === 'activity') acts[key] = cachedData;
+            if (type === 'lesson') details[key] = cachedData;
+            return;
+          }
+
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            await curriculumCacheDB.setItem(url, data);
+            if (type === 'activity') acts[key] = data;
+            if (type === 'lesson') details[key] = data;
+          }
+        } catch (e) {
+          console.warn(`Failed to load ${url}`, e);
+        }
+      };
+
+      for (const module of curriculumIndex) {
+        const mid = module.moduleId.split("-").pop();
+        
+        fetchPromises.push(
+          fetchWithCache(`/data/activities/module_${mid}.json`, 'activity', module.moduleId)
+        );
+
+        for (const lessonMeta of module.lessons) {
+          fetchPromises.push(
+            fetchWithCache(`/data/curriculum/${module.moduleId}/${lessonMeta.lessonId}.json`, 'lesson', lessonMeta.lessonId)
+          );
+        }
+      }
+
+      // Parallel fetch for the sidebar mapping
+      await Promise.all(fetchPromises);
+
+      setLessonDetails(details);
+      setActivitiesData(acts);
+    };
+    fetchAllData();
+  }, []);
+
+  useEffect(() => {
+    const loadLesson = async () => {
+      setLoading(true);
+      try {
+        const module = curriculumIndex.find((m) => m.moduleId === moduleId);
+        if (!module) return;
+        const lessonMeta = module.lessons.find((l) => l.lessonId === lessonId);
+        if (!lessonMeta) return;
+
+        const fetchPath = `/data/curriculum/${moduleId}/${lessonId}.json`;
+        
+        // Optimize actual lesson text load with Cache
+        const cachedData = await curriculumCacheDB.getItem(fetchPath);
+        if (cachedData) {
+          setLesson(cachedData);
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(fetchPath);
+        if (!response.ok) throw new Error(`Failed to fetch lesson: ${response.status}`);
+
+        const data = await response.json();
+        await curriculumCacheDB.setItem(fetchPath, data); // Save for next time
+        setLesson(data);
+      } catch (error) {
+        console.error("Failed to load lesson:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadLesson();
+  }, [moduleId, lessonId]);
+
+  const hasPostAssessment = (mId) => assessments[`${mId}_post_assessment`] !== undefined;
+
+  const isModuleComplete = (mId) => {
+    const module = curriculumIndex.find((m) => m.moduleId === mId);
+    if (!module) return false;
+    return module.lessons.every((l) => {
+      const details = lessonDetails[l.lessonId];
+      const firstActivityId = details?.activities?.[0]?.id;
+      if (!firstActivityId) return (userProgress[l.lessonId] || 0) >= 1;
+      return (userProgress[l.lessonId] || 0) >= 1; 
+    });
+  };
+
+  const buildLockMap = () => {
+    const lockMap = {};
+    const isGlobalPreTestDone = assessments["course-pre-test_pre_assessment"] !== undefined;
+    let isNextLocked = isAdmin ? false : !isGlobalPreTestDone;
+
+    for (const module of curriculumIndex) {
+      for (const l of module.lessons) {
+        lockMap[l.lessonId] = isAdmin ? false : isNextLocked;
+        if (!isNextLocked) {
+          const details = lessonDetails[l.lessonId];
+          const firstActivityId = details?.activities?.[0]?.id;
+          const prog = userProgress[l.lessonId] || 0;
+          if (prog < 1) {
+            isNextLocked = true;
+          }
+        }
+      }
+      const postComplete = hasPostAssessment(module.moduleId);
+      if (!postComplete && !isAdmin) isNextLocked = true;
+    }
+    return lockMap;
+  };
+
+  const lockMap = buildLockMap();
+  const isCurrentLessonLocked = lockMap[lessonId];
+
+  const toggleModule = (mId) => {
+    const newExpanded = new Set(expandedModules);
+    if (newExpanded.has(mId)) newExpanded.delete(mId);
+    else newExpanded.add(mId);
+    setExpandedModules(newExpanded);
+  };
+
+  const currentModule = curriculumIndex.find((m) => m.moduleId === moduleId);
+  const moduleNum = moduleId?.split("-").pop();
+  const lessonNum = lessonId?.split("-").pop();
+  const currentActivityId = lesson?.activities?.[0]?.id;
+
+  if (Object.keys(lessonDetails).length === 0) {
+    return <div className="lesson-loading">Loading curriculum data...</div>;
+  }
+
+  return (
+    <div className="lesson-viewer-wrapper">
+      <aside className={`lesson-modules-sidebar ${!isSidebarVisible ? "hidden" : ""}`}>
+        <div className="sidebar-header">
+          <button className="back-button" onClick={() => navigate("/learning-path")}>
+            <img src="/assets/back-icon.png" alt="Back" className="btn-icon" /> Back to Dashboard
+          </button>
+        </div>
+        <div className="modules-header">
+          <h3>Curriculum</h3>
+        </div>
+        <nav className="modules-nav">
+          {curriculumIndex.map((module) => {
+            const modNumber = module.moduleId.split("-").pop();
+            const isExpanded = expandedModules.has(module.moduleId);
+            const modComplete = isModuleComplete(module.moduleId);
+            const postComplete = hasPostAssessment(module.moduleId);
+
+            const optimizations = activitiesData[module.moduleId]?.optimizations || [];
+            const hasOptimizations = optimizations.length > 0;
+            const lastLessonId = module.lessons[module.lessons.length - 1]?.lessonId;
+
+            const optimizationsLocked = isAdmin ? false : lockMap[lastLessonId] || (userProgress[lastLessonId] || 0) < 1;
+            const postAssessmentUnlocked = isAdmin || modComplete || postComplete;
+
+            return (
+              <div key={module.moduleId} className="module-group">
+                <button
+                  className={`module-title ${isExpanded ? "expanded" : ""}`}
+                  onClick={() => toggleModule(module.moduleId)}
+                >
+                  <span className="module-info">
+                    <FiBookOpen className="module-icon" />
+                    <span>
+                      <span className="module-number">Module {modNumber}</span>
+                      <span className="module-name" style={{ fontSize: "0.85rem" }}>{module.title}</span>
+                    </span>
+                  </span>
+                  <span className="expand-icon">v</span>
+                </button>
+
+                {isExpanded && (
+                  <div className="lessons-list" style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px 0" }}>
+                    
+                    {module.lessons.map((lessonItem) => {
+                      const lesNumber = lessonItem.lessonId.split("-").pop();
+                      const isActive = lessonId === lessonItem.lessonId;
+                      const isLocked = lockMap[lessonItem.lessonId];
+                      const prog = userProgress[lessonItem.lessonId] || 0;
+
+                      return (
+                        <a
+                          key={lessonItem.lessonId}
+                          href={`/learning-path/${module.moduleId}/${lessonItem.lessonId}`}
+                          className={`lesson-item ${isActive ? "active" : ""}`}
+                          style={{
+                            opacity: isLocked ? 0.5 : 1,
+                            pointerEvents: isLocked ? "none" : "auto",
+                            paddingLeft: "45px",
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (!isLocked) navigate(`/learning-path/${module.moduleId}/${lessonItem.lessonId}`);
+                          }}
+                        >
+                          <span className="lesson-number">{modNumber}.{lesNumber}</span>
+                          <span className="lesson-title">{lessonItem.title}</span>
+                          <span className="lesson-indicator">
+                            {isLocked ? <FiLock size={12} /> : prog >= 1 ? <FiCheckCircle size={12} color="#22c55e" /> : isActive ? "â—" : "â—‹"}
+                          </span>
+                        </a>
+                      );
+                    })}
+
+                    {hasOptimizations && (
+                      <div
+                        onClick={() => {
+                          if (!optimizationsLocked) navigate(`/activity/${module.moduleId}/${optimizations[0].id}`);
+                        }}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
+                          cursor: optimizationsLocked ? "not-allowed" : "pointer", opacity: optimizationsLocked ? 0.5 : 1,
+                          color: "#d35400", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(243, 156, 18, 0.05)",
+                        }}
+                      >
+                        <span style={{ color: "#f39c12", fontSize: "1.1rem" }}>â˜…</span>
+                        <span>Optimization Challenges</span>
+                        <span style={{ marginLeft: "auto" }}>
+                          {optimizationsLocked ? <FiLock size={12} /> : userProgress[`lesson-${modNumber}-optimizations`] ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#f39c12" />}
+                        </span>
+                      </div>
+                    )}
+
+                    <div
+                      onClick={() => {
+                        if (postAssessmentUnlocked) navigate(`/assessment/${module.moduleId}/post`);
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "10px", padding: "10px 15px", paddingLeft: "45px",
+                        cursor: postAssessmentUnlocked ? "pointer" : "not-allowed", opacity: postAssessmentUnlocked ? 1 : 0.5,
+                        color: postComplete ? "#22c55e" : "#2b005c", fontSize: "0.85rem", fontWeight: "bold", backgroundColor: "rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      <FiClipboard size={14} />
+                      <span>Post-Assessment Quiz</span>
+                      <span style={{ marginLeft: "auto" }}>
+                        {!postAssessmentUnlocked ? <FiLock size={14} /> : postComplete ? <FiCheckCircle size={14} color="#22c55e" /> : <FiCircle size={14} color="#7c5cff" />}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <main className="lesson-viewer-container">
+        <div style={{ position: 'sticky', top: '50vh', zIndex: 1000, width: 0, height: 0, left: 0 }}>
+          <button className="lesson-sidebar-toggle-btn" onClick={() => setIsSidebarVisible(!isSidebarVisible)} title="Toggle Sidebar">
+            {isSidebarVisible ? <FiChevronLeft size={16} /> : <FiChevronRight size={16} />}
+          </button>
+        </div>
+
+        {isCurrentLessonLocked ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748b" }}>
+            <FiLock size={64} style={{ marginBottom: "20px", color: "#cbd5e1" }} />
+            <h2>Lesson Locked</h2>
+            <p>Please complete the Global Course Pre-Test and preceding activities to unlock this lesson.</p>
+            <button
+              onClick={() => navigate("/learning-path")}
+              style={{ marginTop: "20px", padding: "10px 20px", backgroundColor: "#7c5cff", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
+            >
+              Return to Path
+            </button>
+          </div>
+        ) : loading ? (
+          <div style={{ display: "flex", flex: 1, justifyContent: "center", alignItems: "center", height: "100%", color: "#7c5cff" }}>
+            <h3>Loading lesson content...</h3>
+          </div>
+        ) : (
+          <>
+            <div className="lesson-top-nav">
+              <div className="breadcrumb">
+                <a href="/learning-path">Learning Path</a>
+                <FiChevronRight className="breadcrumb-icon" />
+                <span>Module {moduleNum}: {currentModule?.title}</span>
+                <FiChevronRight className="breadcrumb-icon" />
+                <span className="breadcrumb-current">Lesson {moduleNum}.{lessonNum}: {lesson?.title}</span>
+              </div>
+            </div>
+
+            <div className="lesson-content-wrapper">
+              <div className="lesson-header">
+                <div className="lesson-label">LESSON {moduleNum}.{lessonNum}</div>
+                <h1>{lesson?.title}</h1>
+                <p>{formatText(lesson?.description)}</p>
+                <div className="lesson-meta-grid">
+                  <div className="lesson-meta-card"><FiClock className="meta-icon" /><span>Estimated Time</span><strong>{lesson?.estimatedTime}</strong></div>
+                  <div className="lesson-meta-card"><FiBarChart2 className="meta-icon" /><span>Difficulty</span><strong>{lesson?.difficulty}</strong></div>
+                  <div className="lesson-meta-card"><FiTarget className="meta-icon" /><span>Prerequisites</span><strong>{lesson?.prerequisites}</strong></div>
+                </div>
+              </div>
+
+              <article className="lesson-article">
+                {lesson?.sections?.map((section) => (
+                  <section key={section.id} id={section.id} className={`lesson-section ${section.type}`}>
+                    <h2>{section.title}</h2>
+                    {renderParagraphs(section.content)}
+                    {renderBullets(section.bullets)}
+                    {renderChart(section.chart)}
+                    {renderCodeSnippets(section.codeSnippets)}
+                    {section.subsections?.map((subsection) => (
+                      <div key={subsection.id || subsection.title} className="lesson-subsection">
+                        <h3>{subsection.title}</h3>
+                        {renderParagraphs(subsection.content, "lesson-subsection-content")}
+                        {renderBullets(subsection.bullets)}
+                        {renderChart(subsection.chart)}
+                        {renderCodeSnippets(subsection.codeSnippets)}
+                      </div>
+                    ))}
+                  </section>
+                ))}
+              </article>
+
+              {lesson?.references?.length > 0 && (
+                <div className="lesson-resources">
+                  <h2>References</h2>
+                  <ul>
+                    {lesson.references?.map((reference, index) => (
+                      <li key={index}><a href={reference.url} target="_blank" rel="noreferrer">{reference.title}</a></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {currentActivityId && (
+                <div style={{ marginTop: "50px", padding: "30px", backgroundColor: "rgba(124, 92, 255, 0.05)", borderRadius: "12px", border: "1px solid rgba(124, 92, 255, 0.3)", textAlign: "center" }}>
+                  <h3 style={{ color: "#2b005c", marginBottom: "10px", fontSize: "1.5rem" }}>Ready to practice?</h3>
+                  <p style={{ marginBottom: "25px", color: "#4b5563", fontSize: "1.05rem" }}>Put your knowledge to the test with an interactive coding activity.</p>
+                  <button
+                    onClick={() => navigate(`/activity/${moduleId}/${currentActivityId}`)}
+                    style={{ padding: "14px 28px", backgroundColor: "#7c5cff", color: "white", border: "none", borderRadius: "6px", fontSize: "1.1rem", fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 14px rgba(124, 92, 255, 0.4)", transition: "transform 0.2s" }}
+                    onMouseOver={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
+                    onMouseOut={(e) => (e.currentTarget.style.transform = "translateY(0)")}
+                  >
+                    Start Activity
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/pages/MainApp.jsx ---
+
+// frontend/src/pages/MainApp.jsx
+import React, { useEffect, useRef, useState } from "react";
+import {
+  UNSAFE_NavigationContext as NavigationContext,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import Split from "react-split";
+import BigOModal from "../components/BigOModal.jsx";
+import BlocklyWorkspace from "../components/BlocklyWorkspace.jsx";
+import ConfirmModal from "../components/ConfirmModal.jsx";
+import DockedBottomPanel from "../components/DockedBottomPanel.jsx";
+import PythonCodeEditor from "../components/PythonCodeEditor.jsx";
+import WorkspaceFooterBar from "../components/WorkspaceFooterBar.jsx";
+import WorkspaceHeader from "../components/WorkspaceHeader.jsx";
+import { projectsDB, syncQueueDB, templatesDB } from "../db.js";
+import "../styles/MainApp.css";
+
+import { FiChevronRight, FiEdit2, FiFolder, FiGrid, FiLayers, FiPlus, FiSearch, FiTerminal, FiTrash2, FiX } from "react-icons/fi";
+import { usePyodide } from "../context/PyodideContext.jsx";
+import { sanitizePythonCode, usePanelResizer } from "../utils/asymptoticParser.jsx";
+import { translatePythonError } from "../utils/errorTranslator.js";
+import { syncManager } from "../utils/syncManager.js";
+
+const SIDEBAR_TEMPLATES = [
+  { name: "Linear Search", path: "search/linear_search", desc: "Sequentially checks each element.", category: "Search" },
+  { name: "Binary Search", path: "search/binary_search", desc: "Finds the position of a target value.", category: "Search" },
+  { name: "Exponential Search", path: "search/exponential_search", desc: "Repeated doubling, then binary search.", category: "Search" },
+  { name: "Bubble Sort", path: "sort/bubble_sort", desc: "Repeatedly swaps adjacent elements.", category: "Sort" },
+  { name: "Selection Sort", path: "sort/selection_sort", desc: "Finds minimum element from unsorted part.", category: "Sort" },
+  { name: "Insertion Sort", path: "sort/insertion_sort", desc: "Builds sorted array one element at a time.", category: "Sort" },
+  { name: "Merge Sort", path: "sort/merge_sort", desc: "Divides array into halves, sorts, and merges.", category: "Sort" },
+  { name: "Quick Sort", path: "sort/quick_sort", desc: "Partitions elements around a pivot.", category: "Sort" },
+  { name: "Factorial (Recursive)", path: "recursive/recursive_factorial", desc: "Calculates factorial using recursion.", category: "Recursive" },
+  { name: "Fibonacci (Recursive)", path: "recursive/recursive_fibonacci", desc: "Generates Fibonacci sequence recursively.", category: "Recursive" },
+  { name: "Permutation (Recursive)", path: "recursive/recursive_permutation", desc: "Generates all permutations of a string.", category: "Recursive" },
+  { name: "Tower of Hanoi (Recursive)", path: "recursive/recursive_tower_of_hanoi", desc: "Moves disks following rules.", category: "Recursive" },
+];
+
+const getToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+const getUser = () => { const userStr = localStorage.getItem("user") || sessionStorage.getItem("user"); return userStr ? JSON.parse(userStr) : null; };
+const getAuthHeaders = () => { const token = getToken(); return token ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` } : { "Content-Type": "application/json" }; };
+
+const createInitialTab = (locState = null) => {
+  const base = {
+    id: `tab-${Date.now()}`, title: "Untitled Project", viewMode: "workspace", blocklyJson: null,
+    pythonCode: "# Drag blocks to generate Python code", isEditingCode: false, syntaxErrors: [],
+    analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
+    lineExecutions: {}, analysisTime: "0.0", currentLoadedId: null, saveType: "project",
+    isDirty: false,
+    ignoreDirtyUntil: Date.now() + 1200
+  };
+
+  if (locState?.projectToLoad) {
+    const proj = locState.projectToLoad;
+    base.blocklyJson = proj.data || proj.workspace?.blocklyJson || proj.blocks || proj;
+    base.title = proj.title || proj.name || "Untitled Project";
+    base.saveType = proj.isTemplate ? "template" : "project";
+    base.pythonCode = proj.pythonCode || "# Drag blocks to generate Python code";
+    base.currentLoadedId = proj._id || proj.templateId;
+    base.isEditingCode = !!(proj.pythonCode && proj.pythonCode !== "# Drag blocks to generate Python code");
+  }
+  return base;
+};
+
+export default function MainApp() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const navigationContext = React.useContext(NavigationContext);
+  const navigator = navigationContext?.navigator;
+  
+  const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+  const { worker, isEngineReady, resetWorker } = usePyodide();
+
+  const [tabs, setTabs] = useState([createInitialTab(location.state)]);
+  const [activeTabId, setActiveTabId] = useState(tabs[0].id);
+
+  const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? window.navigator.onLine : true);
+  const [bottomPanel, setBottomPanel] = useState(null);
+  const [consoleOutput, setConsoleOutput] = useState("Ready to run...\n");
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isWaitingForInput, setIsWaitingForInput] = useState(false);
+  const [userInput, setUserInput] = useState("");
+  const [consoleTab, setConsoleTab] = useState("output");
+  const [activeComplexityTab, setActiveComplexityTab] = useState("overall");
+
+  const [allTemplates, setAllTemplates] = useState([]);
+  const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: "", message: "", confirmText: "Confirm", isDanger: false, onConfirmAction: null });
+
+  const { panelHeight, handleDragStart } = usePanelResizer(300);
+
+  const [leaveModal, setLeaveModal] = useState({ isOpen: false, tx: null, targetPath: null });
+  const isNavigatingAwayRef = useRef(false);
+
+  const [saveModal, setSaveModal] = useState({
+    isOpen: false, isEditMetadataOnly: false, editingId: null, editingData: null,
+    title: "", description: "", category: "Custom Templates", saveType: "project",
+  });
+  const [isBigOModalOpen, setIsBigOModalOpen] = useState(false);
+
+  const workspaceRefs = useRef({});
+  const workerRef = useRef(null);
+  const runTimeoutRef = useRef(null);
+  const renderIntervalRef = useRef(null);
+  const outputCountRef = useRef(0);
+  const pendingOutputRef = useRef("");
+  const analyzingTabId = useRef(activeTabId);
+
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+
+  const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
+  const updateTab = (id, updates) => setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+
+  const currentUser = getUser();
+  const isAdmin = !!currentUser?.isAdmin;
+  const isGuest = currentUser?.isGuest === true;
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
+  };
+
+  const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+
+  const latestTabsRef = useRef(tabs);
+  useEffect(() => { latestTabsRef.current = tabs; }, [tabs]);
+
+  useEffect(() => {
+    if (!navigator || !navigator.block) return;
+    const unblock = navigator.block((tx) => {
+      const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
+      if (hasUnsavedChanges && !isNavigatingAwayRef.current) setLeaveModal({ isOpen: true, tx, targetPath: null });
+      else tx.retry();
+    });
+    return unblock;
+  }, [navigator]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
+      if (hasUnsavedChanges && !isNavigatingAwayRef.current) { e.preventDefault(); e.returnValue = "You have unsaved changes. Are you sure you want to leave?"; }
+    };
+    const handleGlobalClick = (e) => {
+      if (isNavigatingAwayRef.current) return;
+      const el = e.target.closest("a, [class*='wh-back-btn']");
+      if (!el) return;
+      const isDownloadLink = el.hasAttribute("download") || (el.href && el.href.startsWith("blob:"));
+      if (isDownloadLink) return;
+      const isInternalNav = el.tagName === "A" && el.origin === window.location.origin;
+      const isBackButton = el.className && typeof el.className === "string" && el.className.includes("wh-back-btn");
+
+      if (isInternalNav || isBackButton) {
+        const hasUnsavedChanges = latestTabsRef.current.some((t) => t.isDirty === true);
+        if (hasUnsavedChanges) {
+          e.preventDefault(); e.stopPropagation();
+          let targetUrl = "/dashboard";
+          if (el.tagName === "A") targetUrl = el.getAttribute("href");
+          setLeaveModal({ isOpen: true, tx: null, targetPath: targetUrl });
+        }
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload); document.addEventListener("click", handleGlobalClick, { capture: true });
+    return () => { window.removeEventListener("beforeunload", handleBeforeUnload); document.removeEventListener("click", handleGlobalClick, { capture: true }); };
+  }, []);
+
+  const confirmLeaveSite = () => {
+    isNavigatingAwayRef.current = true;
+    if (leaveModal.tx) leaveModal.tx.retry();
+    else navigate(leaveModal.targetPath || "/dashboard");
+    setLeaveModal({ isOpen: false, tx: null, targetPath: null });
+  };
+  const cancelLeaveSite = () => setLeaveModal({ isOpen: false, tx: null, targetPath: null });
+
+  const initWorker = () => {
+    if (!workerRef.current) return;
+    workerRef.current.onmessage = (event) => {
+      const { type, data, counts } = event.data;
+      if (type === "ANALYZE_RESULT") {
+        const targetId = analyzingTabId.current;
+        if (data.status === "success") {
+          const initialCounts = {};
+          (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
+          updateTab(targetId, {
+            analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
+            analysisResult: {
+              total: data.total,
+              space_total: data.space_total || "O(1)",
+              overall_explanation: data.overall_explanation || "",
+              lines: data.lines || [],
+              call_graph: data.call_graph || {},
+              is_recursive: data.is_recursive || false
+            },
+            lineExecutions: (prev) => ({ ...prev, ...initialCounts }),
+            syntaxErrors: [],
+          });
+        } else {
+          if (data.multiple_errors && data.multiple_errors.length > 0) {
+            const mappedErrors = data.multiple_errors.map((err) => ({ line: err.line, message: `${err.message}. ${translatePythonError(err.message)}` }));
+            updateTab(targetId, { syntaxErrors: mappedErrors });
+          } else {
+            updateTab(targetId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${translatePythonError(data.message)}` }] });
+          }
+        }
+      } else if (type === "RUN_RESULT") {
+        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+        const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
+        setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
+        if (counts) updateTab(analyzingTabId.current, { lineExecutions: counts });
+        setIsEvaluating(false); setIsWaitingForInput(false);
+      } else if (type === "OUTPUT") {
+        outputCountRef.current += 1; pendingOutputRef.current += data;
+        if (outputCountRef.current > 5000) {
+          clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); resetWorker();
+          const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+          setConsoleOutput((prev) => prev + flushed + "\n\n Execution Prevented: \nRoot Cause: Output Flood detected (5000+ lines).\nSuggestion: Check your loop conditions.\n");
+          setIsEvaluating(false); setIsWaitingForInput(false); outputCountRef.current = 0;
+        }
+      } else if (type === "INPUT_REQUEST") {
+        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+        setConsoleOutput((prev) => prev + flushed + data.prompt);
+        setIsWaitingForInput(true);
+      } else if (type === "ERROR") {
+        clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+        const hint = translatePythonError(data);
+        setConsoleOutput((prev) => prev + flushed + "\n Runtime Error:\n" + data + (hint ? `\n${hint}\n` : ""));
+        setIsEvaluating(false); setIsWaitingForInput(false);
+      }
+    };
+  };
+
+  useEffect(() => { if (worker) { workerRef.current = worker; initWorker(); } }, [worker]);
+
+  useEffect(() => {
+    const handleOnline = () => { setIsOnline(true); showToast("Connection restored.", "success"); };
+    const handleOffline = () => { setIsOnline(false); showToast("Connection lost. Using local Pyodide.", "error"); };
+    window.addEventListener("online", handleOnline); window.addEventListener("offline", handleOffline);
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current); };
+  }, []);
+
+  useEffect(() => {
+    if (workspaceRefs.current[activeTabId] && activeTab?.viewMode === "workspace") {
+      setTimeout(() => workspaceRefs.current[activeTabId].resize(), 50);
+      setTimeout(() => workspaceRefs.current[activeTabId].resize(), 300);
+    }
+  }, [activeTabId, activeTab?.viewMode, isSidebarVisible]);
+
+  const fetchTemplates = async () => {
+    const baseTemplates = SIDEBAR_TEMPLATES.map((t) => ({ ...t, title: t.name, description: t.desc, isSystem: true }));
+    try {
+      const user = getUser();
+      if (!user) { setAllTemplates(baseTemplates); return; }
+
+      if (navigator && navigator.onLine && API_BASE) {
+        try {
+          const headers = getAuthHeaders();
+          const pRes = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (pRes.ok && pRes.headers.get("content-type")?.includes("application/json")) {
+            const pData = await pRes.json();
+            for (const cp of pData.projects || pData || []) {
+              if (cp.owner_id === user.email || cp.userId === user.email) await projectsDB.setItem(cp._id, { ...cp, synced: true });
+            }
+          }
+          const tRes = await fetch(`${API_BASE}/api/templates?userId=${encodeURIComponent(user.email)}`, { headers });
+          if (tRes.ok && tRes.headers.get("content-type")?.includes("application/json")) {
+            const tData = await tRes.json();
+            for (const ct of tData.templates || tData || []) {
+              if (ct.owner_id === user.email || ct.userId === user.email) await templatesDB.setItem(ct._id, { ...ct, synced: true });
+            }
+          }
+        } catch (e) { console.warn("MainApp templates cloud sync degraded offline:", e); }
+      }
+
+      let customItems = [];
+      await projectsDB.iterate((value) => {
+        if (value.owner_id === user.email || value.userId === user.email) {
+          customItems.push({
+            _id: value._id, title: value.title || value.name || "Untitled Project",
+            description: value.description || "Saved Project", category: "My Projects",
+            isSystem: false, saveType: "project", data: value.data || value.workspace?.blocklyJson, synced: value.synced,
+          });
+        }
+      });
+      await templatesDB.iterate((value) => {
+        if (value.owner_id === user.email || value.userId === user.email) {
+          customItems.push({
+            _id: value._id, title: value.title || value.name || "Untitled Template",
+            description: value.description || "Custom template", category: value.category || "Custom Templates",
+            isSystem: false, saveType: "template", data: value.data || value.workspace?.blocklyJson, synced: value.synced,
+          });
+        }
+      });
+      const uniqueItemsMap = new Map();
+      customItems.forEach((item) => uniqueItemsMap.set(item._id, item));
+      setAllTemplates([...baseTemplates, ...Array.from(uniqueItemsMap.values())]);
+    } catch (e) { setAllTemplates(baseTemplates); }
+  };
+
+  useEffect(() => { fetchTemplates(); }, []);
+
+  const createNewTab = () => {
+    const newTab = createInitialTab();
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+  };
+
+  const closeTab = (id) => {
+    setTabs((prev) => {
+      const filtered = prev.filter((t) => t.id !== id);
+      if (filtered.length === 0) {
+        const newTab = createInitialTab(); setActiveTabId(newTab.id); return [newTab];
+      }
+      if (activeTabId === id) setActiveTabId(filtered[filtered.length - 1].id);
+      return filtered;
+    });
+    delete workspaceRefs.current[id];
+  };
+
+  const executeSidebarLoad = async (item) => {
+    try {
+      let json;
+      if (item.isSystem) {
+        const response = await fetch(`/templates/${item.path}.json`);
+        if (!response.ok) throw new Error("Template not found");
+        json = await response.json();
+      } else { json = item.data; }
+
+      const isClean = activeTab.title === "Untitled Project" && !activeTab.blocklyJson;
+      const targetId = isClean ? activeTab.id : `tab-${Date.now()}`;
+
+      const loadedState = {
+        title: item.title, blocklyJson: json, pythonCode: "# Drag blocks to generate Python code",
+        isEditingCode: false, syntaxErrors: [], 
+        analysisResult: { lines: [], total: "Analyzing...", space_total: "Analyzing...", overall_explanation: "", is_recursive: false, call_graph: {} },
+        lineExecutions: {}, analysisTime: "...", currentLoadedId: item.isSystem ? null : item._id, saveType: item.isSystem ? "project" : item.saveType || "project",
+        isDirty: false,
+        ignoreDirtyUntil: Date.now() + 1200
+      };
+
+      if (isClean) {
+        updateTab(targetId, loadedState);
+        if (workspaceRefs.current[targetId]) workspaceRefs.current[targetId].loadTemplate(json);
+      } else {
+        setTabs((prev) => [...prev, { id: targetId, viewMode: "workspace", ...loadedState }]);
+        setActiveTabId(targetId);
+      }
+    } catch (error) { showToast("Failed to load template", "error"); }
+  };
+
+  const loadConfirm = (item) => {
+    setModalConfig({
+      isOpen: true, title: `Load ${item.title}?`, message: "This will open the template in your workspace.",
+      confirmText: "Load", isDanger: false, onConfirmAction: () => { closeModal(); executeSidebarLoad(item); },
+    });
+  };
+
+  const analyzeCode = async (tabId, code) => {
+    if (!code || code.trim() === "" || code === "# Drag blocks to generate Python code") return;
+    analyzingTabId.current = tabId;
+    const cleanCode = sanitizePythonCode(code);
+
+    if (isOnline && API_BASE) {
+      try {
+        const response = await fetch(`${API_BASE}/api/analyze`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify({ code: cleanCode }) });
+        if (!response.ok) throw new Error("FastAPI analyze failed");
+        const data = await response.json();
+        if (data.status === "success") {
+          const initialCounts = {};
+          (data.lines || []).forEach((l) => { if (l.lineno && l.hits) initialCounts[l.lineno] = l.hits; });
+          updateTab(tabId, {
+            analysisTime: data.analysis_time_ms ? data.analysis_time_ms.toFixed(2) : "0.00",
+            analysisResult: {
+              total: data.total,
+              space_total: data.space_total || "O(1)",
+              overall_explanation: data.overall_explanation || "",
+              lines: data.lines || [],
+              call_graph: data.call_graph || {},
+              is_recursive: data.is_recursive || false
+            },
+            lineExecutions: (prev) => ({ ...prev, ...initialCounts }), syntaxErrors: [],
+          });
+        } else {
+          updateTab(tabId, { syntaxErrors: [{ line: data.line, message: `${data.message}. ${translatePythonError(data.message)}` }] });
+        }
+        return;
+      } catch (error) { console.warn("Online analysis failed, safely falling back locally.", error); }
+    }
+    if (workerRef.current) workerRef.current.postMessage({ type: "ANALYZE_CODE", code: cleanCode });
+  };
+
+  const handleBlocklyChange = (tabId, json, pythonCode) => {
+    const tab = tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    const oldCode = (tab.pythonCode || "").trim();
+    const newCode = (pythonCode || "").trim();
+
+    const canMarkDirty = Date.now() > (tab.ignoreDirtyUntil || 0);
+
+    if (!tab.isEditingCode) {
+      if (oldCode !== newCode) analyzeCode(tabId, newCode);
+      updateTab(tabId, { 
+        blocklyJson: json, 
+        pythonCode: newCode,
+        ...(canMarkDirty ? { isDirty: true } : {})
+      });
+    } else {
+      updateTab(tabId, { 
+        blocklyJson: json,
+        ...(canMarkDirty ? { isDirty: true } : {})
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isEngineReady && activeTab.pythonCode !== "# Drag blocks to generate Python code" && activeTab.isEditingCode) {
+      const timeoutId = setTimeout(() => analyzeCode(activeTabId, activeTab.pythonCode), 800);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [activeTab.pythonCode, activeTab.isEditingCode, isOnline, activeTabId, isEngineReady]);
+
+  const handleSyncToBlocks = async () => {
+    const hasErrors = activeTab.syntaxErrors && activeTab.syntaxErrors.length > 0;
+    if (hasErrors) { showToast("Cannot sync to blocks. Please fix Python syntax errors first.", "error"); return; }
+    if (workspaceRefs.current[activeTabId] && activeTab.pythonCode) {
+      try {
+        const cleanCode = sanitizePythonCode(activeTab.pythonCode);
+        await workspaceRefs.current[activeTabId].loadFromPython(cleanCode);
+        updateTab(activeTabId, { isEditingCode: false, viewMode: "workspace" });
+        showToast("Code successfully synced to Blocks", "success");
+      } catch (e) { showToast(`Sync Failed: ${e.message}`, "error"); }
+    }
+  };
+
+  const handleClear = () => {
+    setModalConfig({
+      isOpen: true, title: "Clear Workspace?", message: "Are you sure you want to clear? All unsaved progress will be lost.",
+      confirmText: "Clear", isDanger: true, onConfirmAction: () => {
+        closeModal();
+        if (workspaceRefs.current[activeTabId]) {
+          workspaceRefs.current[activeTabId].clear();
+          updateTab(activeTabId, {
+            pythonCode: "# Drag blocks to generate Python code", blocklyJson: null,
+            analysisResult: { lines: [], total: "O(1)", space_total: "O(1)", overall_explanation: "", is_recursive: false, call_graph: {} },
+            analysisTime: "0.0", lineExecutions: {}, syntaxErrors: [],
+            currentLoadedId: null, title: "Untitled Project", saveType: "project",
+            isDirty: false,
+            ignoreDirtyUntil: Date.now() + 1200
+          });
+          setBottomPanel(null);
+        }
+      },
+    });
+  };
+
+  const handleRunCode = async () => {
+    if (isEvaluating) return;
+    if (!activeTab.pythonCode || activeTab.pythonCode.trim() === "" || activeTab.pythonCode === "# Drag blocks to generate Python code") {
+      setConsoleOutput("Error: No code to execute."); setBottomPanel("console"); setConsoleTab("output"); return;
+    }
+    clearTimeout(runTimeoutRef.current); clearInterval(renderIntervalRef.current);
+    setIsEvaluating(true); updateTab(activeTabId, { lineExecutions: {} });
+    setBottomPanel("console"); setConsoleTab("output"); setConsoleOutput((prev) => prev + "\n> Running the program...\n");
+
+    outputCountRef.current = 0; pendingOutputRef.current = "";
+    renderIntervalRef.current = setInterval(() => {
+      if (pendingOutputRef.current) { setConsoleOutput((prev) => prev + pendingOutputRef.current); pendingOutputRef.current = ""; }
+    }, 100);
+
+    const safePayload = sanitizePythonCode(activeTab.pythonCode);
+    workerRef.current.postMessage({ type: "RUN_CODE", code: safePayload });
+
+    runTimeoutRef.current = setTimeout(() => {
+      resetWorker();
+      const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+      setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+      setIsEvaluating(false); setIsWaitingForInput(false);
+    }, 10000);
+  };
+
+  const handleSendInput = (e) => {
+    if (e.key === "Enter" && isWaitingForInput && workerRef.current) {
+      setConsoleOutput((prev) => prev + userInput + "\n");
+      workerRef.current.postMessage({ type: "INPUT_RESPONSE", data: userInput });
+      outputCountRef.current = 0; setUserInput(""); setIsWaitingForInput(false);
+      renderIntervalRef.current = setInterval(() => {
+        if (pendingOutputRef.current) { setConsoleOutput((prev) => prev + pendingOutputRef.current); pendingOutputRef.current = ""; }
+      }, 100);
+      runTimeoutRef.current = setTimeout(() => {
+        resetWorker();
+        const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
+        setConsoleOutput((prev) => prev + flushed + "\n Execution Prevented: \nRoot Cause: Infinite Loop detected.\n");
+        setIsEvaluating(false); setIsWaitingForInput(false);
+      }, 10000);
+    }
+  };
+
+  const openSaveModal = () => {
+    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) {
+      showToast("The workspace is empty. Nothing to save!", "error"); return;
+    }
+    if (!getUser()) { showToast("You must be logged in to save.", "error"); return; }
+    if (isGuest) { showToast("Guest accounts cannot save projects or templates.", "error"); return; }
+    setSaveModal({
+      isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
+      title: activeTab.title !== "Untitled Project" ? activeTab.title : "",
+      description: "", category: "Custom Templates", saveType: activeTab.saveType,
+    });
+  };
+
+  const openSaveModalRef = useRef(openSaveModal);
+  useEffect(() => { openSaveModalRef.current = openSaveModal; }, [openSaveModal]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) { e.preventDefault(); openSaveModalRef.current(); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleExportJson = () => {
+    const hasBlocks = activeTab.blocklyJson && Object.keys(activeTab.blocklyJson).length > 0;
+    const hasCode = activeTab.pythonCode && activeTab.pythonCode !== "# Drag blocks to generate Python code";
+    if (!hasBlocks && !hasCode) { showToast("The workspace is empty. Nothing to export!", "error"); return; }
+
+    const exportPayload = {
+      type: "algoblocks_project", version: "1.0",
+      title: activeTab.title !== "Untitled Project" ? activeTab.title : "algoblocks_workspace",
+      blocklyJson: activeTab.blocklyJson || {}, pythonCode: activeTab.pythonCode || "",
+    };
+    const jsonString = JSON.stringify(exportPayload, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.href = url; downloadAnchorNode.download = `${exportPayload.title}.json`;
+    document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); document.body.removeChild(downloadAnchorNode);
+
+    setTimeout(() => { URL.revokeObjectURL(url); }, 150);
+    showToast("Workspace exported as JSON", "success");
+  };
+
+  const handleImportJson = (event) => {
+    if (isGuest) {
+      showToast("Guest accounts cannot import workspace files.", "error");
+      event.target.value = "";
+      return;
+    }
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+        let blocks = json; let pythonCode = "# Drag blocks to generate Python code"; let title = file.name.replace(".json", "");
+        if (json.type === "algoblocks_project") { blocks = json.blocklyJson; pythonCode = json.pythonCode; title = json.title || title; }
+        else if (json.workspace && json.workspace.blocklyJson) { blocks = json.workspace.blocklyJson; pythonCode = json.pythonCode || pythonCode; }
+
+        if (workspaceRefs.current[activeTabId]) {
+          workspaceRefs.current[activeTabId].loadTemplate(blocks);
+          updateTab(activeTabId, { 
+            title: title, 
+            saveType: "project", 
+            pythonCode: pythonCode, 
+            isEditingCode: pythonCode !== "# Drag blocks to generate Python code",
+            isDirty: false,
+            ignoreDirtyUntil: Date.now() + 1200
+          });
+          showToast("Workspace imported successfully", "success");
+        }
+      } catch (err) { showToast("Invalid JSON file format", "error"); }
+      event.target.value = "";
+    };
+    reader.readAsText(file);
+  };
+
+  const handleEditItem = (e, item) => {
+    e.stopPropagation();
+    if (isGuest) {
+      showToast("Guest accounts cannot edit projects or templates.", "error");
+      return;
+    }
+    setSaveModal({
+      isOpen: true, isEditMetadataOnly: true, editingId: item._id, editingData: item.data,
+      title: item.title, description: item.description || "", category: item.category || "Custom Templates",
+      saveType: item.saveType || "project",
+    });
+  };
+
+  const submitSave = async () => {
+    const user = getUser();
+    if (!user) { showToast("Error: You must be logged in to save.", "error"); return; }
+    if (user.isGuest) { showToast("Error: Guest accounts cannot save.", "error"); return; }
+
+    const id = saveModal.editingId || (saveModal.saveType === "template" ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
+    const nowMs = Date.now();
+    const payload = {
+      _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description,
+      category: saveModal.saveType === "template" ? saveModal.category : undefined,
+      data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson,
+      workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
+      pythonCode: activeTab.pythonCode || "",
+      owner_id: user.email, userId: user.email, synced: false, updatedAt: nowMs,
+    };
+
+    const db = saveModal.saveType === "template" ? templatesDB : projectsDB;
+    await db.setItem(id, payload);
+
+    if (navigator && navigator.onLine && user.email && API_BASE) {
+      try {
+        const endpoint = saveModal.saveType === "template" ? "/api/templates/save" : "/api/projects/save";
+        const fallbackEndpoint = saveModal.saveType === "template" ? "/api/templates" : "/api/projects";
+        const apiPayload = saveModal.saveType === "template"
+          ? { templateId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
+          : { projectId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
+        
+        let res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        if (res.status === 404) {
+           res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
+        }
+        
+        if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
+          const responseData = await res.json();
+          const realId = responseData.projectId || responseData.templateId || responseData._id || id;
+          payload._id = realId; payload.synced = true;
+          if (realId !== id) await db.removeItem(id);
+          await db.setItem(realId, payload);
+          showToast("Saved directly to cloud!", "success");
+          setSaveModal({ ...saveModal, isOpen: false });
+          
+          if (!saveModal.isEditMetadataOnly) {
+            updateTab(activeTabId, { title: saveModal.title, currentLoadedId: realId, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
+          }
+          window.dispatchEvent(new Event("localDataSynced"));
+          fetchTemplates(); return;
+        }
+      } catch (err) { console.warn("Direct save degraded offline:", err); }
+    }
+
+    await syncQueueDB.setItem(`sync_${id}_${nowMs}`, { type: saveModal.saveType.toUpperCase(), action: "UPSERT", data: payload });
+    showToast("Saved locally. Background sync queued.");
+    setSaveModal({ ...saveModal, isOpen: false });
+    
+    if (!saveModal.isEditMetadataOnly) {
+      updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
+    }
+    
+    // Force immediate background processing trigger
+    if (syncManager?.processSyncQueue) {
+       syncManager.processSyncQueue();
+    }
+    
+    fetchTemplates();
+  };
+
+  const handleDeleteItem = async (e, item) => {
+    e.stopPropagation();
+    if (isGuest) {
+      showToast("Guest accounts cannot delete projects or templates.", "error");
+      return;
+    }
+    const itemLabel = item.saveType === "template" ? "Template" : "Project";
+    if (!window.confirm(`Are you sure you want to delete this ${itemLabel}?`)) return;
+
+    setAllTemplates((prev) => prev.filter((t) => t._id !== item._id));
+    try {
+      if (item.saveType === "template") await templatesDB.removeItem(item._id); else await projectsDB.removeItem(item._id);
+      if (item._id.startsWith("local_")) await syncQueueDB.removeItem(item._id);
+      else await syncQueueDB.setItem(`delete_${item._id}`, { type: item.saveType.toUpperCase(), action: "DELETE", data: { _id: item._id } });
+
+      showToast(`${itemLabel} deleted locally!`, "success");
+      tabs.forEach((t) => {
+        if (t.currentLoadedId === item._id) {
+          workspaceRefs.current[t.id]?.clear();
+          updateTab(t.id, { currentLoadedId: null, title: "Untitled Project", isDirty: false });
+        }
+      });
+      if (syncManager?.processSyncQueue) syncManager.processSyncQueue();
+    } catch (err) { showToast("Error deleting item.", "error"); fetchTemplates(); }
+  };
+
+  useEffect(() => {
+    if (monacoRef.current && editorRef.current) {
+      const model = editorRef.current.getModel();
+      if (model && activeTab?.syntaxErrors) {
+        const errors = activeTab.syntaxErrors || [];
+        const markers = errors.map(err => ({
+          startLineNumber: err.line || 1, startColumn: 1, endLineNumber: err.line || 1, endColumn: 1000,
+          message: err.message, severity: monacoRef.current.MarkerSeverity.Error,
+        }));
+        monacoRef.current.editor.setModelMarkers(model, "owner", markers);
+      }
+    }
+  }, [activeTab?.syntaxErrors, activeTabId]);
+
+  const filteredTemplates = allTemplates.filter((t) => String(t.title || "").toLowerCase().includes(String(searchTerm || "").toLowerCase()));
+  const groupedTemplates = filteredTemplates.reduce((acc, template) => {
+    const category = template.category || "Uncategorized";
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(template);
+    return acc;
+  }, {});
+
+  const renderEditorArea = () => (
+    <>
+      <div className={activeTab.viewMode === "workspace" ? "workspace-view d-flex" : "workspace-view d-none"} style={{ width: "100%", height: "100%" }}>
+        {tabs.map((tab) => (
+          <div key={tab.id} className={activeTabId === tab.id ? "d-block" : "d-none"} style={{ width: "100%", height: "100%" }}>
+            <BlocklyWorkspace
+              initialJson={tab.blocklyJson}
+              ref={(el) => (workspaceRefs.current[tab.id] = el)}
+              onChange={(json, py) => handleBlocklyChange(tab.id, json, py)}
+            />
+          </div>
+        ))}
+      </div>
+
+      <PythonCodeEditor
+        viewMode={activeTab.viewMode}
+        pythonCode={activeTab.pythonCode}
+        isEditingCode={activeTab.isEditingCode}
+        syntaxErrors={activeTab.syntaxErrors || []}
+        onSyncToBlocks={handleSyncToBlocks}
+        onChangeCode={(value) => {
+          const cleanValue = sanitizePythonCode(value);
+          updateTab(activeTabId, { pythonCode: cleanValue, isEditingCode: true, syntaxErrors: [], isDirty: true });
+        }}
+        onMountEditor={(editor, monaco) => { editorRef.current = editor; monacoRef.current = monaco; }}
+      />
+    </>
+  );
+
+  return (
+    <div className="workspace-app-container">
+      <ConfirmModal isOpen={leaveModal.isOpen} title="Unsaved Changes" message="You have unsaved changes in your workspace. Are you sure you want to leave? All unsaved progress will be lost." confirmText="Leave Workspace" cancelText="Stay" isDanger={true} onCancel={cancelLeaveSite} onConfirm={confirmLeaveSite} />
+      <ConfirmModal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} confirmText={modalConfig.confirmText} isDanger={modalConfig.isDanger} onCancel={closeModal} onConfirm={modalConfig.onConfirmAction} />
+
+      {toast.show && <div className={`toast-notification ${toast.type === "error" ? "toast-error" : "toast-success"}`}>{toast.message}</div>}
+
+      {saveModal.isOpen && (
+        <div className="modal-overlay">
+          <div className="save-modal-content">
+            <h2 className="save-modal-title">{saveModal.isEditMetadataOnly ? "Edit Details" : "Save Workspace"}</h2>
+            <div className="save-type-selector">
+              <label className={saveModal.editingId ? "disabled" : ""}>
+                <input type="radio" name="saveType" disabled={!!saveModal.editingId} checked={saveModal.saveType === "project"} onChange={() => setSaveModal({ ...saveModal, saveType: "project" })} /> Project (Dashboard)
+              </label>
+              <label className={saveModal.editingId ? "disabled" : ""}>
+                <input type="radio" name="saveType" disabled={!!saveModal.editingId} checked={saveModal.saveType === "template"} onChange={() => setSaveModal({ ...saveModal, saveType: "template" })} /> Template (Sidebar)
+              </label>
+            </div>
+            <div className="save-modal-form">
+              <div>
+                <label className="save-modal-label">Name</label>
+                <input type="text" value={saveModal.title} onChange={(e) => setSaveModal({ ...saveModal, title: e.target.value })} className="save-modal-input" />
+              </div>
+              {saveModal.saveType === "template" && (
+                <div>
+                  <label className="save-modal-label">Category</label>
+                  <input type="text" value={saveModal.category} onChange={(e) => setSaveModal({ ...saveModal, category: e.target.value })} className="save-modal-input" />
+                </div>
+              )}
+              <div>
+                <label className="save-modal-label">Description</label>
+                <textarea value={saveModal.description} onChange={(e) => setSaveModal({ ...saveModal, description: e.target.value })} className="save-modal-textarea" />
+              </div>
+            </div>
+            <div className="save-modal-actions">
+              <button onClick={() => setSaveModal({ ...saveModal, isOpen: false })} className="save-modal-cancel-btn">Cancel</button>
+              <button onClick={submitSave} className="save-modal-confirm-btn">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <WorkspaceHeader 
+        viewMode={activeTab.viewMode} 
+        setViewMode={(mode) => updateTab(activeTabId, { viewMode: mode })} 
+        runCode={handleRunCode} 
+        handleExport={handleExportJson} 
+        handleImport={handleImportJson} 
+        handleSaveToDB={openSaveModal} 
+        currentProjectId={activeTab.currentLoadedId} 
+        currentProjectTitle={activeTab.title} 
+        handleUpdateDB={openSaveModal} 
+        isEvaluating={isEvaluating} 
+        isAdmin={isAdmin}
+        isGuest={isGuest}
+      />
+
+      <Split className={`workspace-split ${!isSidebarVisible ? "sidebar-hidden" : ""}`} sizes={[20, 80]} minSize={[isSidebarVisible ? 250 : 0, 400]} gutterSize={8}>
+        <aside className="templates-sidebar">
+          <div className="sidebar-search">
+            <FiSearch className="search-icon" size={18} />
+            <input type="text" placeholder="Search templates..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          </div>
+          <div className="sidebar-list">
+            {Object.keys(groupedTemplates).map((category) => (
+              <div key={category} className="sidebar-category-group">
+                <h3 className="sidebar-category-header">{category}</h3>
+                {groupedTemplates[category].map((item) => (
+                  <div key={item._id || item.title} className={`sidebar-card ${item.isSystem ? "system-card" : "custom-card"}`} onClick={() => loadConfirm(item)}>
+                    <div className="sidebar-card-header">
+                      <div className="title-wrapper">
+                        {item.isSystem ? <FiLayers className="card-type-icon" /> : <FiFolder className="card-type-icon" />}
+                        <h4>{item.title}</h4>
+                      </div>
+                      {item.isSystem ? (
+                        <span className="badge-system-polished"><span className="dot"></span> System</span>
+                      ) : (
+                        <div className="badge-custom-group-polished">
+                          <span className="badge-custom-polished">{item.saveType === "project" ? "Project" : "Custom"}</span>
+                          <button onClick={(e) => handleEditItem(e, item)} className="sidebar-edit-btn-polished" title="Edit"><FiEdit2 size={14} /></button>
+                          <button onClick={(e) => handleDeleteItem(e, item)} className="sidebar-delete-btn-polished" title="Delete"><FiTrash2 size={14} /></button>
+                        </div>
+                      )}
+                    </div>
+                    <p>{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            ))}
+            {filteredTemplates.length === 0 && <p className="no-results">No templates found.</p>}
+          </div>
+        </aside>
+
+        <main className="workspace-main">
+          <button className={`sidebar-toggle-btn ${!isSidebarVisible ? "closed" : ""}`} onClick={() => setIsSidebarVisible(!isSidebarVisible)} title="Toggle Sidebar">
+            <FiChevronRight className="toggle-icon" size={16} />
+          </button>
+
+          <div className="editor-tab-bar">
+            {tabs.map((tab) => (
+              <div key={tab.id} className={`editor-tab ${activeTabId === tab.id ? "active" : ""}`} onClick={() => setActiveTabId(tab.id)}>
+                <span className="tab-indicator">
+                  {tab.viewMode === "python" ? <FiTerminal size={14} /> : <FiGrid size={14} />}
+                </span>
+                <span className="tab-title">{tab.title} {tab.isDirty && "*"}</span>
+                <button className="tab-close-btn" onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}><FiX size={12} /></button>
+              </div>
+            ))}
+            <button className="new-tab-btn" onClick={createNewTab}><FiPlus size={18} /></button>
+          </div>
+
+          <div className="editor-split-vertical">
+            <div className="editor-container">{renderEditorArea()}</div>
+
+            {bottomPanel && (
+              <DockedBottomPanel
+                bottomPanel={bottomPanel}
+                onClosePanel={() => setBottomPanel(null)}
+                panelHeight={panelHeight}
+                onDragStart={handleDragStart}
+                consoleTab={consoleTab}
+                onConsoleTabChange={setConsoleTab}
+                consoleOutput={consoleOutput}
+                onClearConsole={() => setConsoleOutput("Ready to run...\n")}
+                isWaitingForInput={isWaitingForInput}
+                userInput={userInput}
+                setUserInput={setUserInput}
+                onSendInput={handleSendInput}
+                pythonCode={activeTab.pythonCode}
+                lineExecutions={activeTab.lineExecutions}
+                activeComplexityTab={activeComplexityTab}
+                onComplexityTabChange={setActiveComplexityTab}
+                analysisResult={activeTab.analysisResult}
+                analysisTime={activeTab.analysisTime}
+                defaultWeight={0}
+              />
+            )}
+          </div>
+
+          <WorkspaceFooterBar
+            bottomPanel={bottomPanel}
+            onTogglePanel={(panel) => setBottomPanel(bottomPanel === panel ? null : panel)}
+            onOpenBigOModal={() => setIsBigOModalOpen(true)}
+          >
+            <button className="footer-action-icon clear-btn" onClick={handleClear} title="Clear Current Tab Workspace">
+              <FiTrash2 size={16} /> Clear Workspace
+            </button>
+          </WorkspaceFooterBar>
+        </main>
+      </Split>
+      <BigOModal isOpen={isBigOModalOpen} onClose={() => setIsBigOModalOpen(false)} />
+    </div>
+  );
+}
+
+--- FILE: frontend/src/pages/ProfilePage.jsx ---
+
+// frontend/src/pages/ProfilePage.jsx
+import { useEffect, useState } from "react";
+import {
+  FiActivity,
+  FiAlertTriangle,
+  FiBookOpen,
+  FiCheckCircle,
+  FiChevronDown,
+  FiCode,
+  FiCpu,
+  FiInfo,
+  FiLock,
+  FiTarget,
+  FiTrendingUp,
+  FiUnlock
+} from "react-icons/fi";
+import { Link } from "react-router-dom";
+import DashboardHeader from "../components/DashboardHeader";
+import curriculumIndex from "../data/curriculumIndex";
+import { assessmentsDB, progressDB, submissionsDB } from "../db";
+import "../styles/ProfilePage.css";
+
+export default function ProfilePage() {
+  const [user, setUser] = useState({ name: "User", email: "", progress: {}, assessments: {} });
+  const [metrics, setMetrics] = useState({
+    lessonsCompleted: 0,
+    totalLessons: 0,
+    overallAes: 0,
+    overallRog: 0,
+    assessmentsTaken: 0,
+  });
+  const [moduleMastery, setModuleMastery] = useState([]);
+  const [expandedModules, setExpandedModules] = useState({});
+  const [userRank, setUserRank] = useState("Novice Coder");
+  const [loading, setLoading] = useState(true);
+
+  // Global Milestones State
+  const [milestones, setMilestones] = useState({
+    preTest: null,
+    postTest: null
+  });
+  const [isPostTestUnlocked, setIsPostTestUnlocked] = useState(false);
+
+  const toggleModule = (moduleId) => {
+    setExpandedModules((prev) => ({ ...prev, [moduleId]: !prev[moduleId] }));
+  };
+
+  const formatMilestoneScore = (data) => {
+    if (!data) return "--";
+    if (data.score !== undefined && data.score !== null) return `${Math.round(data.score)}%`;
+    if (data.correct !== undefined && data.total !== undefined && data.total > 0) {
+      return `${Math.round((data.correct / data.total) * 100)}% (${data.correct}/${data.total})`;
+    }
+    return "Completed";
+  };
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        const API_BASE = import.meta.env.VITE_API_URL || "";
+        const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
+        let parsed = JSON.parse(stored || "{}");
+        if (!parsed.email && !parsed.isGuest) parsed = { name: "User", email: "", progress: {}, assessments: {} };
+
+        const isGuest = parsed.isGuest === true;
+
+        let initialProg = parsed.progress || {};
+        let initialAssm = parsed.assessments || {};
+
+        if (!isGuest) {
+          await progressDB.iterate((value, key) => { initialProg[key] = value.score !== undefined ? value.score : value; });
+          await assessmentsDB.iterate((value, key) => { initialAssm[key] = value.data || value; });
+        }
+
+        if (navigator.onLine && parsed.email && !isGuest) {
+          try {
+            const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+            const headers = { "Content-Type": "application/json" };
+            if (token) headers["Authorization"] = `Bearer ${token}`;
+
+            const progRes = await fetch(`${API_BASE}/api/get-progress`, { headers });
+            if (progRes.ok) {
+              const data = await progRes.json();
+              for (const [key, val] of Object.entries(data.progress || data)) {
+                initialProg[key] = val; await progressDB.setItem(key, { score: val, isSynced: true });
+              }
+            }
+
+            const assmRes = await fetch(`${API_BASE}/api/get-assessments`, { headers });
+            if (assmRes.ok) {
+              const data = await assmRes.json();
+              for (const [key, val] of Object.entries(data.assessments || data)) {
+                initialAssm[key] = val; await assessmentsDB.setItem(key, { ...val, isSynced: true });
+              }
+            }
+          } catch (e) { console.warn("Cloud sync warning:", e); }
+        }
+
+        const finalUser = { ...parsed, progress: isGuest ? {} : initialProg, assessments: isGuest ? {} : initialAssm };
+        setUser(finalUser);
+
+        const userSubs = {};
+        if (!isGuest) {
+          await submissionsDB.iterate((val) => {
+            if (val.userId === finalUser.email) {
+              if (!userSubs[val.moduleId]) userSubs[val.moduleId] = {};
+              userSubs[val.moduleId][val.activityId] = val;
+            }
+          });
+        }
+
+        const findMilestoneData = (keywords) => {
+          const cleanKws = keywords.map(k => k.toLowerCase().replace(/[-_ ]/g, ''));
+          for (const [k, v] of Object.entries(finalUser.assessments || {})) {
+            const cleanKey = k.toLowerCase().replace(/[-_ ]/g, '');
+            if (cleanKws.some(kw => cleanKey.includes(kw))) {
+              if (v !== null && v !== undefined && (v.completed || v.passed || v.score !== undefined || v.correct !== undefined)) {
+                return v;
+              }
+            }
+          }
+          for (const [k, v] of Object.entries(finalUser.progress || {})) {
+            const cleanKey = k.toLowerCase().replace(/[-_ ]/g, '');
+            if (cleanKws.some(kw => cleanKey.includes(kw))) {
+              if (v !== null && v !== undefined && (v === true || v >= 50 || (typeof v === 'object' && (v.completed || v.score !== undefined)))) {
+                return typeof v === 'object' ? v : { score: v, completed: true };
+              }
+            }
+          }
+          return null;
+        };
+
+        const preTestData = findMilestoneData(['pretest', 'coursepretest']);
+        const postTestData = findMilestoneData(['posttest', 'courseposttest']);
+
+        setMilestones({ preTest: preTestData, postTest: postTestData });
+
+        const allActivities = {};
+        for (let i = 0; i <= 6; i++) {
+          try {
+            const res = await fetch(`/data/activities/module_${i}.json`);
+            if (res.ok) allActivities[`module-${i}`] = await res.json();
+          } catch (e) { console.warn(`Could not load module_${i}.json`); }
+        }
+
+        let tLessons = 0, cLessons = 0;
+        let globalAesSum = 0, globalAesCount = 0;
+        let globalRogSum = 0, globalRogCount = 0;
+        let pathUnlocked = true; // Tracks continuous curriculum completion status
+
+        const masteryData = curriculumIndex.map((mod) => {
+          const modActs = allActivities[mod.moduleId] || {};
+          let modCompletedLessons = 0;
+          let modAesSum = 0, modAesCount = 0;
+          let modRogSum = 0, modRogCount = 0;
+
+          tLessons += mod.lessons.length;
+
+          const mappedLessons = mod.lessons.map((lesson) => {
+            // Correctly parse JSON property keys like "lesson_1" from "lesson-0-1"
+            const lessonParts = lesson.lessonId.split('-');
+            const lessonNum = lessonParts[2];
+            const lessonKeyJson = `lesson_${lessonNum}`;
+            const acts = modActs[lessonKeyJson] || [];
+
+            let lessonCompletedActs = 0;
+
+            const mappedActs = acts.map((act) => {
+              const sub = userSubs[mod.moduleId]?.[act.id];
+              let aes = 0; let rog = 0; let isCompleted = false;
+
+              if (sub) {
+                aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
+                if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100; 
+                aes = Math.min(aes, 100);
+
+                rog = sub.rog || 0;
+                isCompleted = aes >= 50 || sub.status === "passed";
+
+                if (isCompleted) lessonCompletedActs++;
+                
+                modAesSum += aes; modAesCount++; globalAesSum += aes; globalAesCount++;
+                if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
+              }
+
+              return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted };
+            });
+
+            const minRequired = lesson.minimumActivities || acts.length;
+            let isLessonCompleted = false;
+            if (acts.length > 0 && lessonCompletedActs >= minRequired) {
+              isLessonCompleted = true;
+            } else if (finalUser.progress[lesson.lessonId] >= 50 || finalUser.progress[lesson.lessonId] === true) {
+              isLessonCompleted = true;
+            }
+
+            const currentUnlockState = pathUnlocked;
+
+            if (!isLessonCompleted && acts.length > 0) {
+              pathUnlocked = false; // Stop progression if minimum activities aren't completed
+            }
+
+            if (isLessonCompleted) {
+              modCompletedLessons++;
+              cLessons++;
+            }
+
+            return { 
+              ...lesson, 
+              activities: mappedActs, 
+              isCompleted: isLessonCompleted, 
+              isUnlocked: currentUnlockState,
+              completedCount: lessonCompletedActs,
+              minRequired: minRequired
+            };
+          });
+
+          // ADDED: Parse Optimization Challenge Activities
+          const rawOptimizations = modActs.optimizations || [];
+          let optCompletedCount = 0;
+          const isOptUnlocked = pathUnlocked; // Unlocks once standard module lessons are finished
+
+          const mappedOptimizations = rawOptimizations.map((act) => {
+            const sub = userSubs[mod.moduleId]?.[act.id];
+            let aes = 0; let rog = 0; let isCompleted = false;
+
+            if (sub) {
+              aes = sub.final_aes !== null && sub.final_aes !== undefined ? sub.final_aes : sub.score || 0;
+              if (sub.maxScore === 5 && aes <= 5) aes = (aes / 5) * 100;
+              aes = Math.min(aes, 100);
+
+              rog = sub.rog || 0;
+              isCompleted = aes >= 50 || sub.status === "passed";
+
+              if (isCompleted) optCompletedCount++;
+
+              modAesSum += aes; modAesCount++; globalAesSum += aes; globalAesCount++;
+              if (rog > 0) { modRogSum += rog; modRogCount++; globalRogSum += rog; globalRogCount++; }
+            } else if (finalUser.progress[act.id] >= 50 || finalUser.progress[act.id] === true) {
+              isCompleted = true;
+              optCompletedCount++;
+            }
+
+            return { ...act, aes: Math.round(aes), rog: Math.round(rog), isCompleted };
+          });
+
+          const modClean = mod.moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
+          const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean];
+          let quizData = null;
+
+          for (const [k, v] of Object.entries(finalUser.assessments || {})) {
+            const kc = k.toLowerCase().replace(/[-_ ]/g, '');
+            if (targetQuizKeys.includes(kc)) {
+              quizData = v;
+              break;
+            }
+          }
+
+          const isQuizUnlocked = pathUnlocked;
+          if (!quizData || (!quizData.passed && quizData.score < 50 && quizData.score !== undefined)) {
+            pathUnlocked = false; // Lock next module if quiz isn't done
+          }
+
+          return {
+            ...mod,
+            lessons: mappedLessons,
+            optimizations: {
+              activities: mappedOptimizations,
+              isUnlocked: isOptUnlocked,
+              completedCount: optCompletedCount
+            },
+            quiz: quizData ? { ...quizData, isUnlocked: isQuizUnlocked } : { isUnlocked: isQuizUnlocked },
+            completed: modCompletedLessons,
+            total: mod.lessons.length,
+            percentage: mod.lessons.length > 0 ? Math.round((modCompletedLessons / mod.lessons.length) * 100) : 0,
+            avgAes: modAesCount > 0 ? Math.round(modAesSum / modAesCount) : 0,
+            avgRog: modRogCount > 0 ? Math.round(modRogSum / modRogCount) : 0
+          };
+        });
+
+        const checkPostTestUnlock = masteryData.length > 0 && masteryData.every(mod => {
+          const lessonsDone = mod.total === 0 ? true : mod.completed >= mod.total;
+          const quizDone = mod.quiz !== null && mod.quiz !== undefined && (mod.quiz.completed || mod.quiz.passed || mod.quiz.score !== undefined);
+          return lessonsDone && quizDone;
+        });
+        setIsPostTestUnlocked(checkPostTestUnlock);
+
+        const assessmentsTaken = Object.keys(finalUser.assessments || {}).filter(k => k.includes('_assessment') || k.includes('test') || k.includes('quiz')).length;
+        const avgScore = globalAesCount > 0 ? Math.round(globalAesSum / globalAesCount) : 0;
+        const avgRog = globalRogCount > 0 ? Math.round(globalRogSum / globalRogCount) : 0;
+
+        setMetrics({
+          lessonsCompleted: cLessons,
+          totalLessons: tLessons,
+          overallAes: avgScore,
+          overallRog: avgRog,
+          assessmentsTaken: assessmentsTaken
+        });
+
+        setModuleMastery(masteryData);
+
+        if (isGuest) {
+          setUserRank("Guest Visitor");
+        } else {
+          const completionRatio = tLessons > 0 ? cLessons / tLessons : 0;
+          if (completionRatio === 1 && avgScore > 90) setUserRank("Algorithm Grandmaster");
+          else if (completionRatio >= 0.8) setUserRank("Algorithm Scholar");
+          else if (completionRatio >= 0.4) setUserRank("Intermediate Architect");
+          else if (completionRatio > 0) setUserRank("Syntax Explorer");
+          else setUserRank("Novice Coder");
+        }
+
+      } catch (e) {
+        console.error("Profile data load error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
+
+  const initials = user.name ? user.name.charAt(0).toUpperCase() : "U";
+
+  if (loading) {
+    return (
+      <div className="profile-page-v2">
+        <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+          <div className="loading-spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="profile-page-v2">
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+
+      <div className="profile-container-v2">
+        <div className="profile-cover">
+          <div className="cover-pattern"></div>
+        </div>
+
+        <div className="profile-header-card">
+          <div className="profile-avatar-wrapper">
+            <div className="profile-avatar-v2">{initials}</div>
+            <div className="avatar-status-badge" title="Online & Ready"></div>
+          </div>
+
+          <div className="profile-user-details">
+            <div className="user-title-row">
+              <h1>{user.name}</h1>
+              <span className="role-badge"><FiCpu style={{ marginRight: '6px' }} /> {userRank}</span>
+            </div>
+            
+            <div className="user-email-wrapper">
+              {user.isGuest ? (
+                <span className="guest-warning-badge">
+                  <FiAlertTriangle className="status-icon warning" />
+                  Guest Mode â€” Educational Thesis Session (Local persistence disabled)
+                </span>
+              ) : (
+                <span className="user-email">{user.email}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="profile-header-actions">
+            <Link to="/learning-path" className="btn-resume-learning">
+              <FiCode size={18} /> Continue Learning
+            </Link>
+          </div>
+        </div>
+
+        <div className="profile-content-grid">
+          <aside className="profile-sidebar">
+            <h3 className="sidebar-title">Performance Metrics</h3>
+
+            <div className="stat-box">
+              <div className="stat-icon-wrapper blue"><FiBookOpen /></div>
+              <div className="stat-info">
+                <h4>Lessons Conquered</h4>
+                <p><strong>{metrics.lessonsCompleted}</strong> <span className="text-muted">/ {metrics.totalLessons}</span></p>
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <div className="stat-icon-wrapper purple"><FiTarget /></div>
+              <div className="stat-info">
+                <h4 style={{ display: 'flex', alignItems: 'center' }}>
+                  Efficiency Rate
+                  <div className="info-tooltip">
+                    <FiInfo size={14} />
+                    <span className="tooltip-text">
+                      <span className="tooltip-title">Algorithmic Efficiency Score (AES)</span>
+                      Measures how close your code's Time and Space complexity is to optimal. 100% represents optimal complexity.
+                    </span>
+                  </div>
+                </h4>
+                <p><strong>{metrics.overallAes}%</strong> <span className="text-muted">avg AES</span></p>
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <div className="stat-icon-wrapper orange"><FiTrendingUp /></div>
+              <div className="stat-info">
+                <h4 style={{ display: 'flex', alignItems: 'center' }}>
+                  Optimization Gain
+                  <div className="info-tooltip">
+                    <FiInfo size={14} />
+                    <span className="tooltip-text">
+                      <span className="tooltip-title">Refactoring Optimization Gain (ROG)</span>
+                      Tracks AES point increases after reading automated complexity analysis and refactoring working code.
+                    </span>
+                  </div>
+                </h4>
+                <p><strong>+{metrics.overallRog}</strong> <span className="text-muted">avg ROG</span></p>
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <div className="stat-icon-wrapper green"><FiActivity /></div>
+              <div className="stat-info">
+                <h4>Assessments</h4>
+                <p><strong>{metrics.assessmentsTaken}</strong> <span className="text-muted">evaluations recorded</span></p>
+              </div>
+            </div>
+          </aside>
+
+          <main className="profile-main-content">
+            <div className="content-header-row">
+              <h2>Curriculum Path & Mastery</h2>
+              <span className="mastery-subtitle">Chronological tracking from baseline evaluation to final verification</span>
+            </div>
+
+            <div className="mastery-list chronological-curriculum">
+              {/* STAGE 0: PRE-TEST */}
+              <div className="mastery-card-container milestone-card-container">
+                <div className={`mastery-card milestone-card ${milestones.preTest ? 'completed' : ''}`}>
+                  <div className="mastery-card-left">
+                    <div className="mastery-module-number milestone-badge pre-badge">PRE</div>
+                    <div className="mastery-details">
+                      <h4>Course Pre-Test Evaluation</h4>
+                      <span className="mastery-fraction">
+                        {milestones.preTest 
+                          ? `Completed â€¢ Baseline Recorded: ${formatMilestoneScore(milestones.preTest)}` 
+                          : "Pending Initial Baseline Assessment"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mastery-card-right">
+                    {milestones.preTest ? (
+                      <span className="milestone-status cleared">
+                        <FiCheckCircle className="status-inline-icon" /> Baseline Recorded
+                      </span>
+                    ) : (
+                      <Link to="/assessment/course-pre-test" className="btn-milestone-action violet">
+                        Take Pre-Test
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* STAGES 1-7: REPEATING MODULES -> LESSONS -> OPTIMIZATIONS -> QUIZZES */}
+              {moduleMastery.map((mod) => {
+                const modNumber = mod.moduleId ? mod.moduleId.replace("module-", "") : "0";
+                const isComplete = mod.completed === mod.total && mod.total > 0;
+                const isExpanded = expandedModules[mod.moduleId];
+
+                return (
+                  <div key={mod.moduleId} className="mastery-card-container">
+                    <div className={`mastery-card ${isComplete ? 'completed' : ''} ${isExpanded ? 'expanded' : ''}`} onClick={() => toggleModule(mod.moduleId)}>
+                      <div className="mastery-card-left">
+                        <div className="mastery-module-number">M{modNumber}</div>
+                        <div className="mastery-details">
+                          <h4>{mod.title}</h4>
+                          <span className="mastery-fraction">
+                            {mod.completed} of {mod.total} lessons cleared
+                            {mod.avgAes > 0 && <span className="mod-inline-metric"> â€¢ Avg AES: {mod.avgAes}%</span>}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mastery-card-right">
+                        <div className="progress-bar-container">
+                          <div className="progress-bar-track">
+                            <div className={`progress-bar-fill ${isComplete ? 'gold' : ''}`} style={{ width: `${mod.percentage}%` }}></div>
+                          </div>
+                          <span className="progress-percentage">{mod.percentage}%</span>
+                        </div>
+                        <FiChevronDown className={`module-chevron ${isExpanded ? 'rotated' : ''}`} />
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="module-dropdown-content">
+                        {mod.lessons.map((lesson, lIdx) => (
+                          <div key={lesson.lessonId} className={`lesson-block ${lesson.isUnlocked ? '' : 'locked-block'}`}>
+                            <div className="lesson-header">
+                              <span className="lesson-title">Lesson {modNumber}.{lIdx + 1}: {lesson.title}</span>
+                              <div className="lesson-status-indicators">
+                                {lesson.activities.length > 0 && (
+                                  <span className={`activity-count-badge ${lesson.isCompleted ? 'cleared' : ''}`}>
+                                    {lesson.completedCount}/{lesson.minRequired} Acts 
+                                  </span>
+                                )}
+                                {!lesson.isUnlocked ? (
+                                  <FiLock className="lesson-lock-icon" title="Complete previous activities to unlock" />
+                                ) : lesson.isCompleted ? (
+                                  <FiCheckCircle className="lesson-check cleared" />
+                                ) : null}
+                              </div>
+                            </div>
+                            
+                            {lesson.activities.length === 0 ? (
+                              <div className="activity-row empty-row">
+                                <span className="empty-text">Concept / Interactive Reading Content</span>
+                              </div>
+                            ) : (
+                              <div className="activities-list">
+                                {lesson.activities.map((act) => (
+                                  <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!lesson.isUnlocked ? 'locked-row' : ''}`}>
+                                    <div className="act-left">
+                                      {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : lesson.isUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
+                                      <div className="act-info">
+                                        <span className="act-title">{act.title}</span>
+                                        <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'easy'}`}>{act.difficulty || 'Easy'}</span>
+                                      </div>
+                                    </div>
+                                    <div className="act-right">
+                                      {lesson.isUnlocked ? (
+                                        <>
+                                          <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
+                                            AES: {act.aes > 0 ? `${act.aes}%` : '--'}
+                                          </span>
+                                          <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
+                                            ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span className="locked-text">Locked</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* ADDED: Optimization Challenges Section */}
+                        {mod.optimizations && mod.optimizations.activities.length > 0 && (
+                          <div className={`lesson-block optimization-block ${mod.optimizations.isUnlocked ? '' : 'locked-block'}`}>
+                            <div className="lesson-header">
+                              <span className="lesson-title" style={{ display: 'flex', alignItems: 'center' }}>
+                                <FiTarget style={{ marginRight: '8px', color: '#7c5cff' }} />
+                                Module {modNumber} Optimization Challenges
+                              </span>
+                              <div className="lesson-status-indicators">
+                                <span className={`activity-count-badge ${mod.optimizations.completedCount === mod.optimizations.activities.length ? 'cleared' : ''}`}>
+                                  {mod.optimizations.completedCount}/{mod.optimizations.activities.length} Acts
+                                </span>
+                                {!mod.optimizations.isUnlocked ? (
+                                  <FiLock className="lesson-lock-icon" title="Complete module lessons to unlock" />
+                                ) : mod.optimizations.completedCount === mod.optimizations.activities.length ? (
+                                  <FiCheckCircle className="lesson-check cleared" />
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="activities-list">
+                              {mod.optimizations.activities.map((act) => (
+                                <div key={act.id} className={`activity-row ${act.isCompleted ? 'completed-row' : ''} ${!mod.optimizations.isUnlocked ? 'locked-row' : ''}`}>
+                                  <div className="act-left">
+                                    {act.isCompleted ? <FiCheckCircle className="act-icon success" /> : mod.optimizations.isUnlocked ? <FiCode className="act-icon pending" /> : <FiLock className="act-icon locked" />}
+                                    <div className="act-info">
+                                      <span className="act-title">{act.title}</span>
+                                      <span className={`act-difficulty ${act.difficulty?.toLowerCase() || 'medium'}`}>{act.difficulty || 'Medium'}</span>
+                                    </div>
+                                  </div>
+                                  <div className="act-right">
+                                    {mod.optimizations.isUnlocked ? (
+                                      <>
+                                        <span className={`metric-badge aes-badge ${act.aes >= 100 ? 'perfect' : act.aes > 0 ? 'good' : 'empty'}`}>
+                                          AES: {act.aes > 0 ? `${act.aes}%` : '--'}
+                                        </span>
+                                        <span className={`metric-badge rog-badge ${act.rog > 0 ? 'active' : 'empty'}`}>
+                                          ROG: {act.rog > 0 ? `+${act.rog}` : '--'}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="locked-text">Locked</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className={`lesson-block module-quiz-block ${mod.quiz && mod.quiz.isUnlocked ? '' : 'locked-block'}`}>
+                          <div className="lesson-header">
+                            <span className="lesson-title quiz-label">Module {modNumber} Verification Quiz</span>
+                            {mod.quiz && (mod.quiz.passed || (mod.quiz.score !== undefined && mod.quiz.score >= 50)) && <FiCheckCircle className="lesson-check passed" />}
+                          </div>
+                          <div className="activity-row">
+                            <div className="act-left">
+                              {mod.quiz && mod.quiz.isUnlocked ? <FiActivity className="act-icon quiz-icon" /> : <FiLock className="act-icon locked" />}
+                              <div className="act-info">
+                                <span className="act-title">Post-Module Assessment</span>
+                                <span className="act-difficulty medium">Required</span>
+                              </div>
+                            </div>
+                            <div className="act-right">
+                              {mod.quiz && (mod.quiz.passed || mod.quiz.score !== undefined) ? (
+                                <span className={`metric-badge aes-badge ${mod.quiz.passed || (mod.quiz.score !== undefined && mod.quiz.score >= 50) ? 'perfect' : 'good'}`}>
+                                  Score: {formatMilestoneScore(mod.quiz)}
+                                </span>
+                              ) : mod.quiz && mod.quiz.isUnlocked ? (
+                                <Link to={`/assessment/module-${modNumber}`} className="btn-take-quiz">
+                                  Take Quiz
+                                </Link>
+                              ) : (
+                                <span className="btn-take-quiz locked" style={{ backgroundColor: '#e2e8f0', color: '#94a3b8', cursor: 'not-allowed', display: 'flex', alignItems: 'center' }}>
+                                  <FiLock style={{ marginRight: '6px' }} /> Locked
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* STAGE FINAL: POST-TEST */}
+              <div className="mastery-card-container milestone-card-container final-milestone">
+                <div className={`mastery-card milestone-card ${milestones.postTest ? 'completed' : !isPostTestUnlocked ? 'locked' : 'ready'}`}>
+                  <div className="mastery-card-left">
+                    <div className={`mastery-module-number milestone-badge post-badge ${!isPostTestUnlocked && !milestones.postTest ? 'locked' : ''}`}>
+                      POST
+                    </div>
+                    <div className="mastery-details">
+                      <h4>Course Post-Test Final Verification</h4>
+                      <span className="mastery-fraction">
+                        {milestones.postTest 
+                          ? `Completed â€¢ Final Score: ${formatMilestoneScore(milestones.postTest)}` 
+                          : isPostTestUnlocked 
+                          ? "Unlocked â€¢ Ready for Final Examination" 
+                          : (
+                            <span className="locked-reason-span">
+                              <FiLock className="inline-lock-icon" />
+                              Locked (Clear all Modules & Quizzes first)
+                            </span>
+                          )
+                        }
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mastery-card-right">
+                    {milestones.postTest ? (
+                      <span className="milestone-status validated">
+                        <FiCheckCircle className="status-inline-icon" /> Thesis Validated
+                      </span>
+                    ) : isPostTestUnlocked ? (
+                      <Link to="/assessment/course-post-test" className="btn-milestone-action gold">
+                        <FiUnlock style={{ marginRight: '6px' }}/> Take Final Exam
+                      </Link>
+                    ) : (
+                      <span className="milestone-status disabled">
+                        <FiLock className="status-inline-icon" /> Exam Locked
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </main>
         </div>
       </div>
     </div>

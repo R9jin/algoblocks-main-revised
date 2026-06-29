@@ -672,7 +672,7 @@ export default function EvaluationSuite() {
           </div>
         </div>
 
-        {results && results.totalLinesTested > 0 && (
+        {results && results.totalLinesTested >= 0 && (
           <div className="eval-status-banner line-stats-banner">
             <div className="eval-status-group">
               <FiLayers style={{ color: "#7928CA" }} size={20} />
@@ -684,11 +684,11 @@ export default function EvaluationSuite() {
             <div className="eval-status-group" style={{ gap: "24px" }}>
               <div>
                 <span className="eval-status-label-sm">Line Time Acc: </span>
-                <strong style={{ color: "#10B981", fontSize: "16px" }}>{((results.lineTimePassed / results.totalLinesTested) * 100).toFixed(1)}%</strong>
+                <strong style={{ color: "#10B981", fontSize: "16px" }}>{results.totalLinesTested > 0 ? ((results.lineTimePassed / results.totalLinesTested) * 100).toFixed(1) : "0.0"}%</strong>
               </div>
               <div>
                 <span className="eval-status-label-sm">Line Space Acc: </span>
-                <strong style={{ color: "#0EA5E9", fontSize: "16px" }}>{((results.lineSpacePassed / results.totalLinesTested) * 100).toFixed(1)}%</strong>
+                <strong style={{ color: "#0EA5E9", fontSize: "16px" }}>{results.totalLinesTested > 0 ? ((results.lineSpacePassed / results.totalLinesTested) * 100).toFixed(1) : "0.0"}%</strong>
               </div>
             </div>
           </div>
