@@ -177,7 +177,7 @@ export default function EvaluationSuite() {
       if (rows.length < 2) return [];
       
       const headers = rows[0].map(h => h.trim());
-      const codeIdx = headers.indexOf('code');
+      const codeIdx = headers.indexOf('code') !== -1 ? headers.indexOf('code') : 0;
       const spaceIdx = headers.indexOf('space_complexity');
       const timeIdx = headers.indexOf('time_complexity');
       
@@ -185,14 +185,21 @@ export default function EvaluationSuite() {
       const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'n*m'];
 
       for (let i = 1; i < rows.length; i++) {
-        if (rows[i].length < headers.length) continue; 
+        // Robust malformed CSV check (Allows row length 1 to trigger fallback split)
+        if (!rows[i] || rows[i].length === 0 || (rows[i].length === 1 && !rows[i][0].trim())) continue; 
         
-        let codeText = rows[i][codeIdx] || '';
-        let spaceComp = rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
-        let timeComp = rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
+        let codeText = rows[i][codeIdx] !== undefined ? rows[i][codeIdx] : (rows[i][0] || '');
+        let spaceComp = spaceIdx !== -1 && rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
+        let timeComp = timeIdx !== -1 && rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
         
         if (!spaceComp && !timeComp && codeText.includes(',')) {
            const parts = codeText.split(',');
+           
+           // Clean up trailing empty columns from excel save bloat
+           while (parts.length > 0 && !parts[parts.length - 1].replace(/"/g, '').trim()) {
+               parts.pop();
+           }
+
            if (parts.length >= 3) {
                let possibleTime = parts[parts.length - 1].trim().replace(/"/g, '').toLowerCase();
                let possibleSpace = parts[parts.length - 2].trim().replace(/"/g, '').toLowerCase();

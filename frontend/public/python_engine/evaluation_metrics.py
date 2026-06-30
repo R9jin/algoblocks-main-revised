@@ -101,6 +101,11 @@ def calculate_metrics(injected_dataset=None):
                 reader = csv.DictReader(f)
                 for row in reader:
                     code_text = row.get('code', '')
+                    
+                    # Some malformed rows map the whole thing to 'None' key in DictReader
+                    if not code_text and None in row:
+                        code_text = row[None][0] if isinstance(row[None], list) else str(row[None])
+                        
                     space_comp = row.get('space_complexity', '')
                     time_comp = row.get('time_complexity', '')
                     
@@ -109,11 +114,16 @@ def calculate_metrics(injected_dataset=None):
 
                     if not space_comp and not time_comp and ',' in code_text:
                         parts = code_text.split(',')
+                        
+                        # Active pop fallback to slice off bloated empty trailing commas
+                        while len(parts) > 0 and not parts[-1].replace('"', '').strip():
+                            parts.pop()
+                            
                         if len(parts) >= 3:
                             pos_time = parts[-1].strip().replace('"', '').lower()
                             pos_space = parts[-2].strip().replace('"', '').lower()
                             
-                            valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e']
+                            valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'n*m']
                             if pos_time in valids or pos_time.startswith('o('):
                                 time_comp = pos_time
                                 space_comp = pos_space
