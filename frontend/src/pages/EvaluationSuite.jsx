@@ -271,8 +271,7 @@ export default function EvaluationSuite() {
             logText += `[${m.id} - ${m.name}]\n`;
             logText += `Time Expected: ${m.expectedTime} | Actual: ${m.predictedTime}\n`;
             logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
-            logText += `Diagnostic Explanation: ${m.explanation}\n`;
-            logText += `Code Snippet:\n${m.codeSnippet.slice(0, 300)}...\n`;
+            logText += `Full Code:\n${m.codeSnippet}\n`;
             if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
               logText += `\nLine Level Mismatches:\n`;
               m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
