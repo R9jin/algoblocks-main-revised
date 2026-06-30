@@ -338,6 +338,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 lower_name = var_name.lower()
                 if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
                 if lower_name in ['m', 'p', 'k', 'w', 'c', 'v', 'e', 'q', 'd']: return lower_name
+                # Exact matching & distinct suffixes to avoid greedy substring trapping
                 if lower_name in ['col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'val', 'cols'] or '[0]' in lower_name or lower_name.endswith('_m') or lower_name.endswith('arr2') or lower_name.endswith('list2'): 
                     return 'm'
                 return 'n'
@@ -543,7 +544,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         has_grid_checks = True
 
         func_name = getattr(node, 'name', '').lower()
-        name_hints = any(k in func_name for k in ['maze', 'graph', 'dfs', 'bfs', 'flood', 'fill', 'island', 'rotten', 'grid', 'matrix', 'adj', 'tree', 'node', 'mirror', 'child'])
+        name_hints = any(re.search(rf'\b{k}\b', func_name) for k in ['maze', 'graph', 'dfs', 'bfs', 'flood', 'fill', 'island', 'rotten', 'grid', 'matrix', 'adj', 'tree', 'node', 'mirror', 'child'])
         
         return (has_queue_while and (has_neighbor_for or has_visited_set)) or \
                (has_recursive_for and (has_neighbor_for or has_visited_set)) or \
@@ -646,8 +647,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                                 val = extract_constant(child.value)
                                 if val is True or val == 1:
                                     return True
-                                if isinstance(child.value, ast.Name) and isinstance(getattr(t, 'slice', None), (ast.Name, ast.Index, ast.Slice)):
-                                    return True
                                     
             return pops_container
         except Exception:
@@ -658,8 +657,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             for child in node.body:
                 for sub in safe_walk(child):
                     if isinstance(sub, ast.Call):
-                        is_attr = isinstance(getattr(sub, 'func', None), ast.Attribute)
-                        f_id = getattr(sub.func, 'attr', '') if is_attr else getattr(getattr(sub, 'func', None), 'id', '')
+                        f_id = getattr(getattr(sub, 'func', None), 'id', getattr(getattr(sub, 'func', None), 'attr', ''))
                         if f_id in self.builtin_complexities and 'log' in self.builtin_complexities.get(f_id, {}).get('time', ''):
                             return True
                         if f_id in self.custom_functions and 'log' in self.custom_functions.get(f_id, ''):
@@ -672,13 +670,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         try:
             if not isinstance(node, ast.While): return False, None
             cond_vars = set()
-            
-            if isinstance(node.test, ast.Compare):
-                left = node.test.left
-                for right in getattr(node.test, 'comparators', []):
-                    if isinstance(left, ast.BinOp) and isinstance(left.op, ast.LShift):
-                        return True, None
-
             for child in safe_walk(node.test):
                 if isinstance(child, ast.Name): cond_vars.add(child.id)
                 if isinstance(child, ast.BinOp) and isinstance(child.op, (ast.LShift, ast.RShift)):
@@ -2210,24 +2201,29 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         raw_code = re.sub(r'//.*|#.*|/\*[\s\S]*?\*/', '', "\n".join(self.source_lines)).lower()
 
+        # 1. Factorial & Exponential
         if "n * n!" in all_comps: return "O(n * n!)"
         if "n!" in all_comps: return "O(n!)"
         if "3^n" in all_comps: return "O(3^n)"
         if "2^n" in all_comps or "2ⁿ" in all_comps: return "O(2^n)"
         
+        # 2. High Polynomials & Intercept Cubics
         if "n^5" in all_comps: return "O(n^5)"
         if "n^4" in all_comps: return "O(n^4)"
         if any(x in all_comps for x in ["n^3", "n^2 * m", "n * m^2", "n * m * p", "n * m * k", "n * p * k"]): return "O(n^3)"
         
+        # 3. Graph Traversal
         if "V + E" in all_comps or "o(v + e)" in all_comps or 'dfs(' in raw_code or 'bfs(' in raw_code: 
             return "O(V + E)"
 
+        # 4. Quadratics & Linearithmics
         if "n^2 log n" in all_comps or "n² log n" in all_comps: return "O(n^2 log n)"
         if any(x in all_comps for x in ["n^2", "n²", "n * m", "n * p", "n * k", "np", "m * n", "m * p", "m * k"]): return "O(n^2)"
         
         if "n log n" in all_comps or re.search(r'\b(sorted|sort|qsort)\s*\(', raw_code) or 'heappush' in raw_code: 
             return "O(n log n)"
         
+        # 5. Sub-linear & Base
         if "sqrt n" in all_comps: return "O(sqrt n)"
         if "log min" in all_comps: return "O(log min(a, b))"
         if "log n" in all_comps: return "O(log n)"
@@ -2387,6 +2383,3 @@ def analyze_source_code(source_code):
     results["analysis_time_ms"] = (end_time - start_time) * 1000
     
     return results
-
-if __name__ == "__main__":
-    pass
