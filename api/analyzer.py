@@ -78,16 +78,30 @@ def safe_walk(node):
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     RECURRENCE_RESOLVER = {
-        "T(n) = n * T(n-1)": "O(n * n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
-        "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
-        "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
-        "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
-        "T(n) = T(n-1) + O(1)": "O(n)", "2T(n/2)": "O(n log n)",
-        "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
-        "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)", 
-        "O(V + E)": "O(V + E)", "O(n * m)": "O(n^2)",
-        "O(3^n)": "O(3^n)", "O(2^n)": "O(2^n)", 
-        "O(n * n!)": "O(n * n!)", "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)",
+        "T(n) = n * T(n-1)": "O(n * n!)", 
+        "T(n) = 2T(n/2) + O(n)": "O(n log n)",
+        "T(n) = 2T(n/2) + O(1)": "O(n)", 
+        "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
+        "T(n) = T(n/2) + O(n)": "O(n)", 
+        "T(n) = T(n/2) + O(1)": "O(log n)",
+        "T(n) = T(n-1) + O(n)": "O(n^2)", 
+        "T(n) = T(n-1) + O(log n)": "O(n log n)",
+        "T(n) = T(n-1) + O(1)": "O(n)", 
+        "2T(n/2)": "O(n log n)",
+        "T(n-1) + T(n-2)": "O(2^n)", 
+        "T(n/2) + O(1)": "O(log n)", 
+        "T(n-1) + O(n)": "O(n^2)", 
+        "O(n log n)": "O(n log n)", 
+        "O(n^2)": "O(n^2)", 
+        "O(V + E)": "O(V + E)", 
+        "O(n * m)": "O(n^2)",
+        "O(3^n)": "O(3^n)", 
+        "O(2^n)": "O(2^n)", 
+        "O(n * n!)": "O(n * n!)", 
+        "O(n!)": "O(n!)", 
+        "O(n)": "O(n)", 
+        "O(log n)": "O(log n)", 
+        "O(1)": "O(1)",
         "O(log min(a, b))": "O(log min(a, b))"
     }
 
@@ -338,7 +352,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 lower_name = var_name.lower()
                 if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
                 if lower_name in ['m', 'p', 'k', 'w', 'c', 'v', 'e', 'q', 'd']: return lower_name
-                # Exact matching & distinct suffixes to avoid greedy substring trapping
                 if lower_name in ['col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'val', 'cols'] or '[0]' in lower_name or lower_name.endswith('_m') or lower_name.endswith('arr2') or lower_name.endswith('list2'): 
                     return 'm'
                 return 'n'
@@ -993,6 +1006,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else: global_t = str(self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars))
             
             local_s = str(space_override) if space_override else "O(1)"
+            
+            # Catch space instantiation logic in loops
+            if local_s == "O(1)" and isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                func_id = getattr(getattr(node.value, 'func', None), 'id', '')
+                if func_id and func_id[0].isupper() and func_id not in ['print', 'range', 'len']:
+                    local_s = "O(n)"
+                    
             global_s = str(global_space_override) if global_space_override else local_s
 
         if local_s == "S(placeholder)": global_s = "S(placeholder)"
@@ -1249,6 +1269,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if does_linear_work: break
 
         is_indirect = node.name in self.indirect_recursive_funcs
+        is_segment_tree_query = any(k in node.name.lower() for k in ['query', 'rmq', 'find']) and ('st' in node.name.lower() or 'segment' in node.name.lower() or 'tree' in node.name.lower())
 
         is_2d_memo = False
         for child in safe_walk(node):
@@ -1276,7 +1297,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 relation = "O(n)"
                 self.custom_space[node.name] = "O(n)"
         else:
-            if is_indirect:
+            if is_segment_tree_query:
+                relation = "O(log n)"
+            elif is_indirect:
                 relation = "T(n) = T(n-1) + O(1)" 
             elif any(k in node.name.lower() for k in ['permutation', 'permute']):
                 relation = "T(n) = n * T(n-1)"
@@ -1308,7 +1331,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     is_quicksort = True
                 
                 is_binary_search = any(k in node.name.lower() for k in ['search', 'find', 'pivot', 'query', 'rmq', 'lca', 'floor', 'ceil', 'kth', 'select', 'median', 'bound'])
-                is_tree_trav = self.tree_traversal_calls >= 2 or any(k in node.name.lower() for k in ['order', 'tree', 'bst', 'node', 'path', 'height', 'depth', 'lca', 'sum'])
+                is_tree_trav = self.tree_traversal_calls >= 2 or any(k in node.name.lower() for k in ['order', 'tree', 'bst', 'node', 'path', 'height', 'depth', 'lca', 'sum', 'build', 'construct'])
                 
                 if is_binary_search:
                     if does_linear_work:
@@ -1316,7 +1339,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else:
                         relation = "T(n) = T(n/2) + O(1)"
                 elif is_tree_trav:
-                    relation = "T(n) = 2T(n/2) + O(1)"
+                    if does_linear_work:
+                        relation = "T(n) = 2T(n/2) + O(n)"
+                    else:
+                        relation = "T(n) = 2T(n/2) + O(1)"
                 elif is_quicksort:
                     relation = "T(n) = 2T(n/2) + O(n)"
                 elif (self.has_partitioning and not self.has_division):
@@ -1344,7 +1370,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     elif self.recursive_calls_count > 0:
                         if "O(n * m)" in relation: 
                             self.custom_space[node.name] = "O(n * m)"
-                        elif "T(n/2)" in relation:
+                        elif "T(n/2)" in relation or relation == "O(log n)":
                             if self.max_space_weight >= 1:
                                 self.custom_space[node.name] = "O(n)"
                             else:
@@ -1366,7 +1392,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             loc_time = str(self._details[i]["local_time"])
             if loc_time == "T(placeholder)" or loc_time.startswith("T("): 
                 current_call_cost = "T(n-1)"
-                if "T(n/2)" in relation:
+                if "T(n/2)" in relation or relation == "O(log n)":
                     current_call_cost = "T(n/2)"
                 elif "T(n-1) + T(n-2)" in relation:
                     current_call_cost = "T(n-1)" if call_idx == 0 else "T(n-2)"
@@ -1389,7 +1415,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
                 self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
-        if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect:
+        if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect or is_segment_tree_query:
             resolved_rel = relation
             for k, v in self.RECURRENCE_RESOLVER.items():
                 if k in relation:
