@@ -71,7 +71,7 @@ export default function UserHeader({ user, onLogoutClick }) {
             alt="AlgoBlocks Logo"
             className="logo-img"
           />
-          <h1 className="logo-text user-header-logo-text" style={{ color: "#EBE4FF" }}>
+          <h1 className="logo-text user-header-logo-text" style={{ color: "#222222" }}>
             ALGOBLOCKS
           </h1>
         </div>

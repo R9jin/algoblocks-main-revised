@@ -175,7 +175,7 @@ export default function SignUp() {
                 disabled={isLoading}
                 style={{ cursor: "pointer", width: "16px", height: "16px" }}
               />
-              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#30363d", margin: 0 }}>
                 Stay signed in
               </label>
             </div>
@@ -184,15 +184,14 @@ export default function SignUp() {
               {isLoading ? "Signing Up..." : "Sign Up"}
             </button>
 
-            <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "0.9rem" }}>
+            <div style={{ textAlign: "center", margin: "15px 0", color: "#59636e", fontSize: "0.9rem" }}>
               <span>— OR —</span>
             </div>
             <button 
               type="button" 
-              className="auth-button" 
+              className="auth-button guest-button"
               onClick={handleGuestLogin} 
               disabled={isLoading}
-              style={{ backgroundColor: "#6c757d", border: "none" }}
             >
               {isLoading ? "Preparing..." : "Continue as Guest"}
             </button>

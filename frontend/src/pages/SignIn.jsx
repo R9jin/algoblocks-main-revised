@@ -265,7 +265,7 @@ export default function SignIn() {
                 disabled={isLoading}
                 style={{ cursor: "pointer", width: "16px", height: "16px" }}
               />
-              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#30363d", margin: 0 }}>
                 Stay signed in
               </label>
             </div>
@@ -284,7 +284,8 @@ export default function SignIn() {
                 onError={() => showToast("Google Sign-In sequence interrupted.")}
                 theme="outline" 
                 size="large"
-                shape="rectangular"
+                shape="pill"
+                width="360"
                 text="signin_with"
               />
             </div>
