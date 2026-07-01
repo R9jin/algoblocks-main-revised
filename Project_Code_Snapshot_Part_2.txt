@@ -1,7 +1,320 @@
 ﻿--- PROJECT SNAPSHOT (PART 2 OF 10) ---
 
---- TIMESTAMP: 2026-06-30 22:34:56 ---
+--- TIMESTAMP: 2026-07-01 22:02:24 ---
 
+
+--- FILE: api/services/auth_service.py ---
+
+# api/services/auth_service.py
+from fastapi import HTTPException
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import os
+import bcrypt
+
+from repositories.user_repo import UserRepository
+from models import UserLogin, UserCreate, ProgressUpdate, AssessmentUpdateRequest
+from database import db
+from security import create_access_token
+
+class AuthService:
+    @staticmethod
+    def hash_password(password: str) -> str:
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+        return hashed.decode('utf-8')
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        try:
+            if isinstance(hashed_password, str):
+                hashed_password = hashed_password.encode('utf-8')
+            if isinstance(plain_password, str):
+                plain_password = plain_password.encode('utf-8')
+                
+            return bcrypt.checkpw(plain_password, hashed_password)
+        except (ValueError, TypeError):
+            return False
+
+    @staticmethod
+    def login(req: UserLogin):
+        user = UserRepository.find_by_email(req.email)
+        stored_password = user.get("password") if user else None
+
+        if not user or not stored_password or not AuthService.verify_password(req.password, stored_password):
+            raise HTTPException(
+                status_code=401, 
+                detail="Invalid credentials."
+            )
+
+        token = create_access_token({"sub": req.email})
+
+        return {
+            "status": "success",
+            "email": req.email,
+            "name": user.get("name"),
+            "progress": user.get("progress", {}),
+            "assessments": user.get("assessments", {}),
+            "token": token
+        }
+
+    @staticmethod
+    def signup(req: UserCreate):
+        if UserRepository.find_by_email(req.email):
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        hashed_password = AuthService.hash_password(req.password)
+
+        UserRepository.insert({
+            "name": req.name,
+            "email": req.email,
+            "password": hashed_password,
+            "progress": {},
+            "assessments": {} 
+        })
+
+        token = create_access_token({"sub": req.email})
+
+        return {
+            "status": "success",
+            "email": req.email,
+            "name": req.name,
+            "token": token
+        }
+
+    @staticmethod
+    def update_progress(req: ProgressUpdate):
+        if not req.email or not req.lesson_id:
+            return {"status": "ignored", "message": "Fired before state loaded"}
+            
+        if "guest" in req.email.lower():
+            return {"status": "ignored", "message": "Guest persistence disabled"}
+
+        try:
+            score_val = float(req.score) if req.score is not None else 0.0
+        except:
+            score_val = 0.0
+
+        UserRepository.update_progress(req.email, req.lesson_id, score_val)
+        user = UserRepository.find_by_email(req.email)
+        return {
+            "status": "success",
+            "progress": user.get("progress", {}) if user else {}
+        }
+
+    @staticmethod
+    def update_assessment(req: AssessmentUpdateRequest):
+        if not req.email or not req.assessment_key:
+            return {"status": "ignored", "message": "Fired before state loaded"}
+            
+        if "guest" in req.email.lower():
+            return {"status": "ignored", "message": "Guest persistence disabled"}
+
+        save_data = {
+            "score": req.score,
+            "correct": req.correct,
+            "total": req.total,
+            "timeElapsed": req.timeElapsed,
+            "completedAt": req.completedAt,
+            "attempts": req.attempts
+        }
+            
+        UserRepository.update_assessment(req.email, req.assessment_key, save_data)
+        user = UserRepository.find_by_email(req.email)
+        return {
+            "status": "success",
+            "assessments": user.get("assessments", {}) if user else {}
+        }
+
+    @staticmethod
+    def get_progress(email: str):
+        user = UserRepository.find_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "status": "success",
+            "progress": user.get("progress", {})
+        }
+
+    @staticmethod
+    def get_assessments(email: str):
+        user = UserRepository.find_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "status": "success",
+            "assessments": user.get("assessments", {})
+        }
+
+    @staticmethod
+    def google_login(token: str):
+        try:
+            client_id = os.getenv("GOOGLE_CLIENT_ID")
+
+            if not client_id:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Missing GOOGLE_CLIENT_ID in environment"
+                )
+
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                client_id
+            )
+
+            email = idinfo.get("email")
+            name = idinfo.get("name", "")
+
+            if not email:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Google account has no email"
+                )
+
+            user = UserRepository.find_by_email(email)
+
+            if not user:
+                UserRepository.insert({
+                    "name": name,
+                    "email": email,
+                    "password": None,
+                    "progress": {},
+                    "assessments": {} 
+                })
+                user = UserRepository.find_by_email(email)
+
+            backend_token = create_access_token({"sub": email})
+
+            return {
+                "status": "success",
+                "email": email,
+                "name": user.get("name"),
+                "progress": user.get("progress", {}),
+                "assessments": user.get("assessments", {}),
+                "token": backend_token
+            }
+
+        except ValueError:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Google OAuth token"
+            )
+
+    @staticmethod
+    def sync_submission(payload: dict):
+        user_id = payload.get("userId")
+        module_id = payload.get("moduleId")
+        activity_id = payload.get("activityId")
+
+        if not user_id or not activity_id:
+            return {"status": "ignored"}
+
+        if "guest" in str(user_id).lower():
+            return {"status": "ignored", "message": "Guest persistence disabled"}
+
+        allowed_fields = [
+            "userId", "moduleId", "activityId", "type", "status", 
+            "score", "maxScore", "passedTestCases", "totalTestCases", 
+            "passed_tests", "total_tests", "testCases", 
+            "target_complexity", "actual_complexity", 
+            "target_space_complexity", "actual_space_complexity", 
+            "workspace", "pythonCode", "timestamp", "submittedAt", "isSynced",
+            "initial_aes", "final_aes", "rog", "functional_passed", "functional_total"
+        ]
+        
+        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
+
+        db["submissions"].update_one(
+            {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
+            {"$set": safe_update_data},
+            upsert=True
+        )
+        return {"status": "success", "message": "Submission synced"}
+
+    @staticmethod
+    def get_submission(email: str, activityId: str, moduleId: str = None):
+        if not email or not activityId:
+             return {"status": "ignored"}
+             
+        query = {"userId": email, "activityId": activityId}
+        if moduleId:
+            query["moduleId"] = moduleId
+            
+        submission = db["submissions"].find_one(query, {"_id": 0})
+        return {"status": "success", "submission": submission}
+
+    @staticmethod
+    def sync_assessment(payload: dict):
+        user_id = payload.get("userId")
+        module_id = payload.get("moduleId")
+
+        if not module_id and payload.get("assessmentId"):
+            module_id = payload.get("assessmentId")
+            payload["moduleId"] = module_id
+
+        if not user_id or not module_id:
+            return {"status": "ignored"}
+
+        if "guest" in str(user_id).lower():
+            return {"status": "ignored", "message": "Guest persistence disabled"}
+
+        allowed_fields = [
+            "userId", "moduleId", "assessmentId", "answers", "score", 
+            "maxScore", "completed", "timestamp", "passed", "correct", 
+            "total", "timeElapsed", "completedAt", "attempts", "isSynced"
+        ]
+        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
+
+        db["assessments"].update_one(
+            {"userId": user_id, "moduleId": module_id},
+            {"$set": safe_update_data},
+            upsert=True
+        )
+        return {"status": "success", "message": "Assessment synced"}
+
+    @staticmethod
+    def get_assessment(email: str, moduleId: str):
+        if not email or not moduleId:
+            return {"status": "ignored"}
+            
+        assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
+        return {"status": "success", "assessment": assessment}
+    
+    @staticmethod
+    def get_all_submissions(email: str):
+        if not email:
+            return {"status": "ignored"}
+            
+        submissions = list(db["submissions"].find({"userId": email}, {"_id": 0}))
+        
+        return {"status": "success", "submissions": submissions}
+
+    @staticmethod
+    def batch_sync(payload: dict, trusted_email: str):
+        if "guest" in trusted_email.lower():
+            return {"status": "success", "message": "Ignored: Guest account", "synced_items": 0}
+
+        synced_count = 0
+
+        for sub in payload.get("submissions", []):
+            if sub.get("userId") == trusted_email:
+                sub["isSynced"] = True
+                AuthService.sync_submission(sub)
+                synced_count += 1
+                
+        for prog in payload.get("progress", []):
+            if prog.get("email") == trusted_email:
+                UserRepository.update_progress(trusted_email, prog.get("lesson_id"), float(prog.get("score", 0)))
+                synced_count += 1
+                
+        for ass in payload.get("assessments", []):
+            if ass.get("userId") == trusted_email:
+                ass["isSynced"] = True
+                AuthService.sync_assessment(ass)
+                synced_count += 1
+                
+        return {"status": "success", "message": "Batch sync completed", "synced_items": synced_count}
 
 --- FILE: api/services/project_service.py ---
 
@@ -15443,404 +15756,6 @@ export default defineConfig([
       ],
       "answer": 2,
       "explanation": "An auxiliary array is a helper data structure used alongside the main data to store intermediate values \u2014 for example, a seen-values array used to track visited elements in O(n) duplicate detection."
-    }
-  ]
-}
-
---- FILE: frontend/public/data/assessments/module-3.json ---
-
-{
-  "moduleId": "module-3",
-  "moduleTitle": "Divide and Conquer",
-  "questions": [
-    {
-      "id": "m3_q1",
-      "question": "What is the Divide and Conquer paradigm?",
-      "options": [
-        "An approach that tries all possible solutions exhaustively",
-        "A problem-solving strategy that breaks a problem into smaller subproblems, solves each recursively, and combines results",
-        "A technique that uses memoization to avoid duplicate computations",
-        "A method that always selects the locally optimal choice at each step"
-      ],
-      "answer": 1,
-      "explanation": "Divide and Conquer splits a problem into smaller, independent subproblems, solves them recursively, and merges the solutions to get the final answer."
-    },
-    {
-      "id": "m3_q2",
-      "question": "What are the three steps of Divide and Conquer?",
-      "options": [
-        "Initialize, Loop, Return",
-        "Search, Sort, Merge",
-        "Divide (split), Conquer (solve recursively), Combine (merge results)",
-        "Compare, Swap, Repeat"
-      ],
-      "answer": 2,
-      "explanation": "Every Divide and Conquer algorithm follows three phases: Divide the problem into subproblems, Conquer by solving each recursively, and Combine the sub-solutions into a final answer."
-    },
-    {
-      "id": "m3_q3",
-      "type": "code",
-      "code": "def binary_search(arr, target):\n    left, right = 0, len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1",
-      "question": "What is the time complexity of this Binary Search implementation?",
-      "options": [
-        "O(n) \u2014 visits every element in the worst case",
-        "O(n\u00b2) \u2014 two pointer variables cause quadratic growth",
-        "O(log n) \u2014 the search space is halved each iteration",
-        "O(1) \u2014 returns immediately when mid matches"
-      ],
-      "answer": 2,
-      "explanation": "Each iteration halves the remaining search space (left\u2013right range). Starting from n elements, after k iterations there are n/2\u1d4f remaining \u2014 so at most log\u2082(n) iterations are needed."
-    },
-    {
-      "id": "m3_q4",
-      "question": "What is the time complexity of Binary Search?",
-      "options": [
-        "O(n) \u2014 linear",
-        "O(n\u00b2) \u2014 quadratic",
-        "O(1) \u2014 constant",
-        "O(log n) \u2014 logarithmic"
-      ],
-      "answer": 3,
-      "explanation": "Binary Search is O(log n) because at each step it halves the search space, meaning for n=1,000,000 it needs only about 20 comparisons."
-    },
-    {
-      "id": "m3_q5",
-      "type": "code",
-      "code": "arr = [1, 3, 5, 7, 9, 11, 13]\ntarget = 6\nresult = binary_search(arr, target)  # returns -1\n\narr2 = [9, 3, 1, 7, 5, 13, 11]  # unsorted\nresult2 = binary_search(arr2, target)  # unpredictable!",
-      "question": "Why does Binary Search on arr2 produce unreliable results?",
-      "options": [
-        "Because arr2 has an odd number of elements",
-        "Because Binary Search requires a sorted array \u2014 the midpoint comparison logic only works correctly when elements are in order",
-        "Because target=6 is not in either array",
-        "Because Binary Search only works with even-length arrays"
-      ],
-      "answer": 1,
-      "explanation": "Binary Search relies on sorted order to decide which half to discard. On unsorted data, discarding a half based on midpoint comparison may eliminate the actual target \u2014 producing incorrect results."
-    },
-    {
-      "id": "m3_q6",
-      "question": "What is the formula for the mathematical midpoint in Binary Search?",
-      "options": [
-        "mid = left + right",
-        "mid = (left + right) // 2",
-        "mid = right - left",
-        "mid = left * right // 2"
-      ],
-      "answer": 1,
-      "explanation": "The midpoint is calculated as (left + right) // 2 using integer division, giving the index of the middle element between the current left and right bounds."
-    },
-    {
-      "id": "m3_q7",
-      "question": "What is Merge Sort?",
-      "options": [
-        "A sorting algorithm that selects a pivot and partitions elements around it",
-        "A sorting algorithm that repeatedly swaps adjacent out-of-order elements",
-        "A stable, recursive sorting algorithm that divides the array in half, sorts each half, and merges them back together",
-        "A sorting algorithm that finds the minimum element and places it at the front in each pass"
-      ],
-      "answer": 2,
-      "explanation": "Merge Sort recursively splits the array into halves down to single elements, then merges adjacent sorted halves back together, guaranteeing O(n log n) performance."
-    },
-    {
-      "id": "m3_q8",
-      "type": "code",
-      "code": "def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])   # T(n/2)\n    right = merge_sort(arr[mid:])  # T(n/2)\n    return merge(left, right)      # O(n)",
-      "question": "What is the time complexity of this Merge Sort and what drives it?",
-      "options": [
-        "O(n\u00b2) \u2014 two recursive calls per level",
-        "O(n log n) \u2014 log n levels of recursion, each level doing O(n) merge work",
-        "O(n) \u2014 only the merge step is counted",
-        "O(log n) \u2014 recursion depth is log n"
-      ],
-      "answer": 1,
-      "explanation": "Merge Sort splits into log n levels of recursion. At each level, the merge step processes all n elements total across that level. log n levels \u00d7 O(n) work per level = O(n log n) overall."
-    },
-    {
-      "id": "m3_q9",
-      "question": "Is Merge Sort considered stable?",
-      "options": [
-        "No, Merge Sort changes the relative order of equal elements",
-        "Yes, Merge Sort preserves the original relative order of equal elements",
-        "Stability depends on the implementation language",
-        "Stability is not a property that applies to sorting algorithms"
-      ],
-      "answer": 1,
-      "explanation": "Merge Sort is stable \u2014 when two elements are equal, it preserves their original order from the input, which is important for multi-key sorting scenarios."
-    },
-    {
-      "id": "m3_q10",
-      "question": "What is Quick Sort?",
-      "options": [
-        "A sorting algorithm that merges two sorted halves into one",
-        "A sorting algorithm that selects a pivot element and partitions the array into elements smaller and larger than the pivot, then sorts each part recursively",
-        "A sorting algorithm that scans sequentially to find out-of-order pairs",
-        "A sorting algorithm that builds the sorted output one element at a time by insertion"
-      ],
-      "answer": 1,
-      "explanation": "Quick Sort selects a pivot, partitions elements around it, and recursively sorts each partition \u2014 achieving O(n log n) average case performance."
-    },
-    {
-      "id": "m3_q11",
-      "type": "code",
-      "code": "def partition(arr, low, high):\n    pivot = arr[low]   # always choose first element as pivot\n    # ... partitioning logic ...\n\n# Called on: arr = [1, 2, 3, 4, 5]  (already sorted)",
-      "question": "What problem does this pivot selection cause on the already-sorted input?",
-      "options": [
-        "No problem \u2014 Quick Sort always runs in O(n log n)",
-        "The pivot is always the smallest element, creating maximally unbalanced partitions of size 0 and n-1 each time, degrading to O(n\u00b2)",
-        "Sorted input always gives the best case O(n) for Quick Sort",
-        "The pivot selection makes no difference to performance"
-      ],
-      "answer": 1,
-      "explanation": "Choosing the first element as pivot on sorted data always selects the minimum \u2014 one partition gets 0 elements and the other gets n-1, making the recursion depth n instead of log n and degrading to O(n\u00b2)."
-    },
-    {
-      "id": "m3_q12",
-      "question": "What is the worst-case time complexity of Quick Sort?",
-      "options": [
-        "O(n log n) \u2014 same as average case",
-        "O(n) \u2014 linear",
-        "O(n\u00b2) \u2014 quadratic, when pivot selection consistently results in unbalanced partitions",
-        "O(log n) \u2014 logarithmic"
-      ],
-      "answer": 2,
-      "explanation": "Quick Sort degrades to O(n\u00b2) when the pivot is always the smallest or largest element (e.g., sorted array with first-element pivot), creating maximally unbalanced partitions."
-    },
-    {
-      "id": "m3_q13",
-      "question": "How does partitioning work in Quick Sort?",
-      "options": [
-        "By merging two pre-sorted halves into one array",
-        "By finding the minimum element and placing it at the beginning",
-        "By rearranging elements so all values less than the pivot appear before it and all greater values appear after it",
-        "By comparing all pairs of adjacent elements and swapping them if out of order"
-      ],
-      "answer": 2,
-      "explanation": "Partitioning reorganizes the array in-place: elements smaller than the pivot move to the left side, elements larger move to the right side, and the pivot lands in its final sorted position."
-    },
-    {
-      "id": "m3_q14",
-      "type": "code",
-      "code": "# Searching in a sorted array of 1,000,000 elements\n\n# Option A: Linear Search\nfor i in range(len(arr)):      # up to 1,000,000 steps\n    if arr[i] == target: return i\n\n# Option B: Binary Search  \nleft, right = 0, len(arr) - 1\nwhile left <= right:           # up to ~20 steps\n    mid = (left + right) // 2\n    ...",
-      "question": "For n=1,000,000, approximately how many steps does each option take?",
-      "options": [
-        "Option A: ~500,000 steps average; Option B: ~20 steps \u2014 Binary Search is about 25,000x faster",
-        "They take the same number of steps for large inputs",
-        "Option A: 1,000 steps; Option B: 100 steps",
-        "Option B always takes exactly 2 steps regardless of n"
-      ],
-      "answer": 0,
-      "explanation": "Linear Search averages n/2 = 500,000 steps. Binary Search takes at most log\u2082(1,000,000) \u2248 20 steps. This dramatic difference is why O(log n) vs O(n) matters enormously at scale."
-    },
-    {
-      "id": "m3_q15",
-      "question": "Why is O(n log n) superior to O(n\u00b2)?",
-      "options": [
-        "O(n log n) always uses less memory than O(n\u00b2)",
-        "O(n log n) grows much more slowly than O(n\u00b2) for large n, making it far more scalable",
-        "O(n log n) algorithms are always easier to implement",
-        "O(n\u00b2) is actually faster for most real-world input sizes"
-      ],
-      "answer": 1,
-      "explanation": "For n=1,000,000: O(n log n) \u2248 20,000,000 operations vs O(n\u00b2) = 1,000,000,000,000 operations \u2014 O(n log n) is orders of magnitude faster at scale."
-    }
-  ]
-}
-
---- FILE: frontend/public/data/assessments/module-4.json ---
-
-{
-  "moduleId": "module-4",
-  "moduleTitle": "Greedy Algorithms",
-  "questions": [
-    {
-      "id": "m4_q1",
-      "question": "What defines a Greedy Algorithm?",
-      "options": [
-        "An algorithm that explores all possible paths before choosing the best",
-        "An algorithm that makes the locally optimal choice at each step without reconsidering previous decisions",
-        "An algorithm that divides the problem into equal halves recursively",
-        "An algorithm that stores previously computed results to avoid recomputation"
-      ],
-      "answer": 1,
-      "explanation": "A greedy algorithm makes the best-looking choice at each decision point with the hope that local optima lead to a global optimum."
-    },
-    {
-      "id": "m4_q2",
-      "question": "What is local optimization?",
-      "options": [
-        "Minimizing the total cost across all future steps simultaneously",
-        "Choosing the best option available at the current step without considering future consequences",
-        "Finding the globally optimal solution by exhaustive search",
-        "Dividing resources equally among all steps"
-      ],
-      "answer": 1,
-      "explanation": "Local optimization means selecting the best immediate option at each step, as opposed to evaluating the impact on all future steps."
-    },
-    {
-      "id": "m4_q3",
-      "type": "code",
-      "code": "coins = [1, 3, 4]\namount = 6\n# Greedy picks: 4, 1, 1 \u2192 3 coins\n# Optimal:      3, 3   \u2192 2 coins",
-      "question": "What does this example demonstrate about greedy algorithms?",
-      "options": [
-        "Greedy always finds the optimal solution for any coin system",
-        "Greedy fails here because coins [1,3,4] is a non-canonical system \u2014 local optimal choice (4) leads to a suboptimal global result (3 coins vs 2 coins)",
-        "The greedy algorithm produces the correct answer of 2 coins",
-        "This proves greedy is always slower than dynamic programming"
-      ],
-      "answer": 1,
-      "explanation": "This non-canonical coin system breaks the greedy choice property. Picking the largest coin (4) first leads to 3 coins total, while the optimal DP solution uses 3+3=2 coins \u2014 proving greedy doesn't always find the global optimum."
-    },
-    {
-      "id": "m4_q4",
-      "question": "What is the Coin Change problem?",
-      "options": [
-        "Finding the minimum number of coins needed to make a given amount using available denominations",
-        "Finding the maximum value that can be stored in a coin-sized container",
-        "Sorting coins by denomination using a comparison algorithm",
-        "Counting the total number of coins in an unsorted collection"
-      ],
-      "answer": 0,
-      "explanation": "The Coin Change problem asks for the fewest coins needed to make exact change for a target amount using available denominations."
-    },
-    {
-      "id": "m4_q5",
-      "type": "code",
-      "code": "def greedy_coins(amount, denominations):\n    denominations.sort(reverse=True)  # O(d log d)\n    count = 0\n    for coin in denominations:         # O(d)\n        while amount >= coin:          # O(amount/coin)\n            amount -= coin\n            count += 1\n    return count",
-      "question": "What is the dominant time complexity of this greedy coin change function?",
-      "options": [
-        "O(amount) \u2014 the while loop drives the complexity",
-        "O(d log d) \u2014 the sort dominates where d is the number of denominations",
-        "O(d \u00d7 amount) \u2014 nested loops multiply",
-        "O(1) \u2014 greedy algorithms always run in constant time"
-      ],
-      "answer": 1,
-      "explanation": "The sort is O(d log d) where d is the number of denominations. The selection loop is O(d) at most. For typical small coin sets, the sort dominates \u2014 overall O(d log d)."
-    },
-    {
-      "id": "m4_q6",
-      "question": "What is the time complexity of the greedy coin change algorithm?",
-      "options": [
-        "O(n\u00b2)",
-        "O(n log n) due to the required sorting step",
-        "O(n) where n is the number of available denominations",
-        "O(1) regardless of input"
-      ],
-      "answer": 2,
-      "explanation": "After sorting denominations once, the greedy coin selection loop is O(n) where n is the number of denominations."
-    },
-    {
-      "id": "m4_q7",
-      "question": "What is Activity Selection?",
-      "options": [
-        "Sorting activities by their start time to find the earliest one",
-        "Scheduling the maximum number of non-overlapping activities from a given set",
-        "Finding the activity with the longest duration",
-        "Assigning activities to multiple parallel rooms to minimize total time"
-      ],
-      "answer": 1,
-      "explanation": "Activity Selection greedily selects the maximum number of activities that can be performed without overlap \u2014 the classic interval scheduling problem."
-    },
-    {
-      "id": "m4_q8",
-      "type": "code",
-      "code": "activities = [(1,4), (3,5), (0,6), (5,7), (3,9), (5,9), (6,10), (8,11)]\n# sorted by end time: [(1,4),(3,5),(0,6),(5,7),...]\n\nselected = []\nlast_end = 0\nfor start, end in sorted(activities, key=lambda x: x[1]):\n    if start >= last_end:\n        selected.append((start, end))\n        last_end = end",
-      "question": "What is the time complexity and why is sorting by end time critical here?",
-      "options": [
-        "O(n\u00b2) \u2014 comparing every activity pair",
-        "O(n log n) for sorting + O(n) for selection = O(n log n) overall; end-time sort ensures each greedy pick leaves maximum future time",
-        "O(n) \u2014 only one pass through activities is needed",
-        "O(2n) \u2014 sort and selection each take O(n)"
-      ],
-      "answer": 1,
-      "explanation": "Sorting is O(n log n) and the selection pass is O(n), so overall O(n log n). Sorting by end time is essential \u2014 it ensures each selected activity finishes as early as possible, maximizing remaining time for future picks."
-    },
-    {
-      "id": "m4_q9",
-      "question": "What is Fractional Knapsack?",
-      "options": [
-        "A knapsack problem where only whole items can be included",
-        "A knapsack problem where items can be split into fractions to maximize total value within a weight capacity",
-        "A knapsack problem solved using dynamic programming tables",
-        "A knapsack problem where items are selected by brute force"
-      ],
-      "answer": 1,
-      "explanation": "Fractional Knapsack allows taking fractions of items, enabling greedy selection by value-to-weight ratio to always produce an optimal solution."
-    },
-    {
-      "id": "m4_q10",
-      "question": "How does Fractional Knapsack differ from 0/1 Knapsack?",
-      "options": [
-        "Fractional Knapsack requires dynamic programming; 0/1 does not",
-        "In Fractional Knapsack items can be partially taken; in 0/1 Knapsack each item must be taken entirely or not at all",
-        "0/1 Knapsack is always more efficient than Fractional Knapsack",
-        "They are identical problems solved by the same algorithm"
-      ],
-      "answer": 1,
-      "explanation": "0/1 Knapsack requires selecting whole items (hence the 0 or 1), while Fractional allows splitting \u2014 this key difference makes greedy work for Fractional but not for 0/1."
-    },
-    {
-      "id": "m4_q11",
-      "type": "code",
-      "code": "items = [(value=60, weight=10), (value=100, weight=20), (value=120, weight=30)]\ncapacity = 50\n\n# Sort by value/weight ratio descending:\n# item1: 60/10=6.0, item2: 100/20=5.0, item3: 120/30=4.0\n# Take item1 fully (w=10), item2 fully (w=20), item3 partially (20/30)\n# Total value = 60 + 100 + 80 = 240",
-      "question": "What metric drives greedy selection in Fractional Knapsack and what is its time complexity?",
-      "options": [
-        "Sort by weight ascending \u2014 O(n)",
-        "Sort by value descending \u2014 O(n log n)",
-        "Sort by value/weight ratio descending \u2014 O(n log n) for sort + O(n) for selection = O(n log n)",
-        "No sorting needed \u2014 O(n)"
-      ],
-      "answer": 2,
-      "explanation": "Fractional Knapsack sorts items by value-to-weight ratio in descending order to always take the most 'efficient' item first. The sort costs O(n log n) which dominates the O(n) selection pass."
-    },
-    {
-      "id": "m4_q12",
-      "question": "What is an optimal substructure?",
-      "options": [
-        "A problem property where the optimal solution can be built from optimal solutions of its subproblems",
-        "A data structure that automatically optimizes memory usage",
-        "A programming pattern that reduces code duplication",
-        "A property where subproblems always have the same size"
-      ],
-      "answer": 0,
-      "explanation": "Optimal substructure means the globally optimal solution incorporates optimal solutions to its sub-problems \u2014 a requirement for both greedy algorithms and dynamic programming."
-    },
-    {
-      "id": "m4_q13",
-      "question": "What is the greedy choice property?",
-      "options": [
-        "The property that a locally optimal choice at each step can be extended to a globally optimal solution",
-        "The property that all choices must be evaluated before selecting one",
-        "The property that the algorithm must backtrack when a choice leads to failure",
-        "The property that the problem can be solved in constant time"
-      ],
-      "answer": 0,
-      "explanation": "The greedy choice property guarantees that making the locally optimal decision at each step leads to the globally optimal solution \u2014 this is what separates greedy-solvable from non-greedy-solvable problems."
-    },
-    {
-      "id": "m4_q14",
-      "type": "code",
-      "code": "# Greedy Activity Selection\nactivities.sort(key=lambda x: x[1])  # sort by end time\nfor activity in activities:\n    if activity.start >= last_end:\n        select(activity)\n\n# vs. Brute Force\nfor subset in all_subsets(activities):  # 2^n subsets\n    if is_valid(subset):\n        track_max(subset)",
-      "question": "What is the time complexity difference between these two approaches for n=20 activities?",
-      "options": [
-        "They have the same time complexity for small n",
-        "Greedy: O(n log n) \u2248 86 operations; Brute Force: O(2\u207f) = 1,048,576 operations \u2014 greedy is over 12,000x faster",
-        "Greedy: O(n\u00b2) = 400; Brute Force: O(n\u00b3) = 8,000",
-        "Brute Force is faster because it finds the globally optimal solution directly"
-      ],
-      "answer": 1,
-      "explanation": "For n=20: Greedy runs in O(n log n) \u2248 86 operations while Brute Force evaluates all 2\u00b2\u2070 = 1,048,576 subsets. Sorting by end time enables the greedy approach to skip this exponential explosion entirely."
-    },
-    {
-      "id": "m4_q15",
-      "question": "What is the total time complexity of Activity Selection?",
-      "options": [
-        "O(n) after pre-sorted input",
-        "O(n\u00b2) due to nested comparison loops",
-        "O(n log n) dominated by the initial sort, followed by a linear O(n) selection pass",
-        "O(log n) using binary search for conflict detection"
-      ],
-      "answer": 2,
-      "explanation": "Activity Selection is O(n log n) overall: sorting takes O(n log n), and the greedy selection loop is O(n) \u2014 the sort dominates the total complexity."
     }
   ]
 }

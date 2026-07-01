@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 10) ---
 
---- TIMESTAMP: 2026-06-30 22:34:56 ---
+--- TIMESTAMP: 2026-07-01 22:02:24 ---
 
 
 --- FILE: README.md ---
@@ -68,6 +68,10 @@ def preprocess_source(source_code):
     and common syntactical typos into valid Python 3 before AST parsing.
     """
     try:
+        # Fix unescaped newlines in string literals that crash the AST
+        source_code = re.sub(r"'\s*\n\s*'", r"'\\n'", source_code)
+        source_code = re.sub(r'"\s*\n\s*"', r'"\\n"', source_code)
+        
         source_code = re.sub(r'\bxrange\(', 'range(', source_code)
         
         def fix_print_comma(m):
@@ -116,16 +120,30 @@ def safe_walk(node):
 
 class ComplexityAnalyzer(ast.NodeVisitor):
     RECURRENCE_RESOLVER = {
-        "T(n) = n * T(n-1)": "O(n * n!)", "T(n) = 2T(n/2) + O(n)": "O(n log n)",
-        "T(n) = 2T(n/2) + O(1)": "O(n)", "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
-        "T(n) = T(n/2) + O(n)": "O(n)", "T(n) = T(n/2) + O(1)": "O(log n)",
-        "T(n) = T(n-1) + O(n)": "O(n^2)", "T(n) = T(n-1) + O(log n)": "O(n log n)",
-        "T(n) = T(n-1) + O(1)": "O(n)", "2T(n/2)": "O(n log n)",
-        "T(n-1) + T(n-2)": "O(2^n)", "T(n/2) + O(1)": "O(log n)", 
-        "T(n-1) + O(n)": "O(n^2)", "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)", 
-        "O(V + E)": "O(V + E)", "O(n * m)": "O(n^2)",
-        "O(3^n)": "O(3^n)", "O(2^n)": "O(2^n)", 
-        "O(n * n!)": "O(n * n!)", "O(n!)": "O(n!)", "O(n)": "O(n)", "O(log n)": "O(log n)", "O(1)": "O(1)",
+        "T(n) = n * T(n-1)": "O(n * n!)", 
+        "T(n) = 2T(n/2) + O(n)": "O(n log n)",
+        "T(n) = 2T(n/2) + O(1)": "O(n)", 
+        "T(n) = T(n-1) + T(n-2) + O(1)": "O(2^n)",
+        "T(n) = T(n/2) + O(n)": "O(n)", 
+        "T(n) = T(n/2) + O(1)": "O(log n)",
+        "T(n) = T(n-1) + O(n)": "O(n^2)", 
+        "T(n) = T(n-1) + O(log n)": "O(n log n)",
+        "T(n) = T(n-1) + O(1)": "O(n)", 
+        "2T(n/2)": "O(n log n)",
+        "T(n-1) + T(n-2)": "O(2^n)", 
+        "T(n/2) + O(1)": "O(log n)", 
+        "T(n-1) + O(n)": "O(n^2)", 
+        "O(n log n)": "O(n log n)", 
+        "O(n^2)": "O(n^2)", 
+        "O(V + E)": "O(V + E)", 
+        "O(n * m)": "O(n^2)",
+        "O(3^n)": "O(3^n)", 
+        "O(2^n)": "O(2^n)", 
+        "O(n * n!)": "O(n * n!)", 
+        "O(n!)": "O(n!)", 
+        "O(n)": "O(n)", 
+        "O(log n)": "O(log n)", 
+        "O(1)": "O(1)",
         "O(log min(a, b))": "O(log min(a, b))"
     }
 
@@ -376,7 +394,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 lower_name = var_name.lower()
                 if lower_name in ['t', 'tc', 'test', 'tests', 'testcases', '_']: return None
                 if lower_name in ['m', 'p', 'k', 'w', 'c', 'v', 'e', 'q', 'd']: return lower_name
-                # Exact matching & distinct suffixes to avoid greedy substring trapping
                 if lower_name in ['col', 'width', 'capacity', 'amount', 'target', 'arr2', 'list2', 'arrb', 'val', 'cols'] or '[0]' in lower_name or lower_name.endswith('_m') or lower_name.endswith('arr2') or lower_name.endswith('list2'): 
                     return 'm'
                 return 'n'
@@ -1031,6 +1048,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else: global_t = str(self._build_time_str(tot_dims, tot_log, tot_sqrt, self.max_exp, tot_graph, gcd_vars))
             
             local_s = str(space_override) if space_override else "O(1)"
+            
+            # Catch space instantiation logic in loops
+            if local_s == "O(1)" and isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+                func_id = getattr(getattr(node.value, 'func', None), 'id', '')
+                if func_id and func_id[0].isupper() and func_id not in ['print', 'range', 'len']:
+                    local_s = "O(n)"
+                    
             global_s = str(global_space_override) if global_space_override else local_s
 
         if local_s == "S(placeholder)": global_s = "S(placeholder)"
@@ -1057,7 +1081,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if context_w > self.max_complexity:
                 self.max_complexity = context_w
                 if context_w < 150: 
-                    self.max_poly_str = self._build_time_str(tot_dims, 0, 0, 0, 0)
+                    # Fix: Make sure max_poly_str retains logarithmic components
+                    self.max_poly_str = self._build_time_str(tot_dims, tot_log, 0, 0, 0)
                     self.max_log = tot_log
                     self.max_sqrt = tot_sqrt
                     self.max_graph_ve = tot_graph
@@ -1274,9 +1299,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not does_linear_work:
             for called_info in self.call_graph.get(node.name, []):
                 called = called_info['target']
+                # Fix: Don't let a recursive function upgrade its own complexity just because the first pass had linear bounds
+                if called == node.name: continue
                 if called in self.custom_functions:
                     called_rel = self.custom_functions[called]
-                    if called_rel != "T(n)" and ("n" in called_rel or "V" in called_rel):
+                    # Fix: Ensure O(log n) sub-routines don't falsely trigger linear work flags
+                    if called_rel != "T(n)" and called_rel not in ["O(1)", "O(log n)", "O(sqrt n)"] and ("n" in called_rel or "V" in called_rel):
                         does_linear_work = True
                         break
                 if called in self.symbol_table and called != node.name:
@@ -1287,6 +1315,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     if does_linear_work: break
 
         is_indirect = node.name in self.indirect_recursive_funcs
+        is_segment_tree_query = any(k in node.name.lower() for k in ['query', 'rmq', 'find']) and ('st' in node.name.lower() or 'segment' in node.name.lower() or 'tree' in node.name.lower())
 
         is_2d_memo = False
         for child in safe_walk(node):
@@ -1314,7 +1343,9 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 relation = "O(n)"
                 self.custom_space[node.name] = "O(n)"
         else:
-            if is_indirect:
+            if is_segment_tree_query:
+                relation = "O(log n)"
+            elif is_indirect:
                 relation = "T(n) = T(n-1) + O(1)" 
             elif any(k in node.name.lower() for k in ['permutation', 'permute']):
                 relation = "T(n) = n * T(n-1)"
@@ -1346,7 +1377,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     is_quicksort = True
                 
                 is_binary_search = any(k in node.name.lower() for k in ['search', 'find', 'pivot', 'query', 'rmq', 'lca', 'floor', 'ceil', 'kth', 'select', 'median', 'bound'])
-                is_tree_trav = self.tree_traversal_calls >= 2 or any(k in node.name.lower() for k in ['order', 'tree', 'bst', 'node', 'path', 'height', 'depth', 'lca', 'sum'])
+                is_tree_trav = self.tree_traversal_calls >= 2 or any(k in node.name.lower() for k in ['order', 'tree', 'bst', 'node', 'path', 'height', 'depth', 'lca', 'sum', 'build', 'construct'])
                 
                 if is_binary_search:
                     if does_linear_work:
@@ -1354,7 +1385,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     else:
                         relation = "T(n) = T(n/2) + O(1)"
                 elif is_tree_trav:
-                    relation = "T(n) = 2T(n/2) + O(1)"
+                    if does_linear_work:
+                        relation = "T(n) = 2T(n/2) + O(n)"
+                    else:
+                        relation = "T(n) = 2T(n/2) + O(1)"
                 elif is_quicksort:
                     relation = "T(n) = 2T(n/2) + O(n)"
                 elif (self.has_partitioning and not self.has_division):
@@ -1382,7 +1416,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     elif self.recursive_calls_count > 0:
                         if "O(n * m)" in relation: 
                             self.custom_space[node.name] = "O(n * m)"
-                        elif "T(n/2)" in relation:
+                        elif "T(n/2)" in relation or relation == "O(log n)":
                             if self.max_space_weight >= 1:
                                 self.custom_space[node.name] = "O(n)"
                             else:
@@ -1404,7 +1438,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             loc_time = str(self._details[i]["local_time"])
             if loc_time == "T(placeholder)" or loc_time.startswith("T("): 
                 current_call_cost = "T(n-1)"
-                if "T(n/2)" in relation:
+                if "T(n/2)" in relation or relation == "O(log n)":
                     current_call_cost = "T(n/2)"
                 elif "T(n-1) + T(n-2)" in relation:
                     current_call_cost = "T(n-1)" if call_idx == 0 else "T(n-2)"
@@ -1427,7 +1461,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 formatted_rel = self.nlg_engine._format_recurrence_relation(relation)
                 self._details[i]["time_explanation"] = self._details[i]["time_explanation"].replace("T(placeholder)", formatted_rel)
 
-        if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect:
+        if self.recursive_calls_count > 0 or self.has_recursion_in_loop or is_indirect or is_segment_tree_query:
             resolved_rel = relation
             for k, v in self.RECURRENCE_RESOLVER.items():
                 if k in relation:
@@ -1524,13 +1558,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         else_rec = self.recursive_calls_count
         else_tree = self.tree_traversal_calls
         
-        is_search = any(k in (self.current_function_name or "").lower() for k in ['search', 'find', 'query', 'get', 'has'])
-        if is_search and (if_rec == 1 or else_rec == 1):
-            self.recursive_calls_count = prev_rec + max(if_rec, else_rec)
-        else:
-            self.recursive_calls_count = prev_rec + if_rec + else_rec
-            
-        self.tree_traversal_calls = prev_tree + if_tree + else_tree
+        # Fix: Using max tracks the single worst-case mutually exclusive path 
+        # naturally preserving AVL, BST, branching recursion complexity
+        self.recursive_calls_count = prev_rec + max(if_rec, else_rec)
+        self.tree_traversal_calls = prev_tree + max(if_tree, else_tree)
         self.in_if_depth -= 1
 
     def visit_ListComp(self, node):
@@ -1788,11 +1819,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             is_local_accumulation = True
             
         active_loops = [d for d in self.loop_stack if d != '1']
+        
+        # Fix: Exclude adjacency list buildup (graphs) from space complexity penalization
         if is_accumulating and len(active_loops) > 0 and is_local_accumulation:
-            if is_appending_list:
-                self.max_space_weight = max(self.max_space_weight, 2)
-            else:
-                self.max_space_weight = max(self.max_space_weight, 1)
+            if not getattr(self, 'in_graph_context', False):
+                if is_appending_list:
+                    self.max_space_weight = max(self.max_space_weight, 2)
+                else:
+                    self.max_space_weight = max(self.max_space_weight, 1)
 
         if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(getattr(node, 'func', None), 'id', '') == 'append':
             self.add_logic_hint(node, "Logic Hint (Amortized Analysis): mainly, the `.append()` operation is mainly O(1) constant time, but occasionally triggers an O(n) background array resize sequence when memory capacity is breached.")
@@ -1800,10 +1834,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if getattr(getattr(node, 'func', None), 'attr', '') == 'remove' or getattr(getattr(node, 'func', None), 'id', '') == 'remove':
             self.add_logic_hint(node, "Logic Hint: The `.remove()` operation is O(n) linear time for Lists mainly finding and shifting elements. However, it is mainly O(1) constant time for Sets.")
 
-        if isinstance(getattr(node, 'func', None), ast.Name):
-            f_id = node.func.id
-            if f_id == 'set2': f_id = 'set'
-            f_id = self.aliases.get(f_id, f_id)
+        # Fix: Method call ast.Attribute custom function delegation
+        func_node = getattr(node, 'func', None)
+        f_id_extracted = getattr(func_node, 'id', getattr(func_node, 'attr', None))
+        is_custom = f_id_extracted in self.custom_functions or f_id_extracted == self.current_function_name or f_id_extracted in self.indirect_recursive_funcs
+
+        if is_custom:
+            f_id = self.aliases.get(f_id_extracted, f_id_extracted)
             is_indirect_call = f_id in self.indirect_recursive_funcs and self.current_function_name in self.indirect_recursive_funcs
             
             if f_id == self.current_function_name or is_indirect_call:
@@ -1821,7 +1858,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.has_recursion_in_loop = True  
 
                 self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
-            elif f_id in self.builtin_complexities and f_id in bare_builtins:
+            else:
+                call_comp = self.custom_functions[f_id]
+                self.record_line(node, time_override=call_comp, space_override=self.custom_space.get(f_id, "O(1)"), custom_op="Function Call")
+
+        elif isinstance(func_node, ast.Name):
+            f_id = func_node.id
+            if f_id == 'set2': f_id = 'set'
+            f_id = self.aliases.get(f_id, f_id)
+            
+            if f_id in self.builtin_complexities and f_id in bare_builtins:
                 if f_id in ['set', 'list', 'dict', 'deque', 'tuple']:
                     has_args = bool(getattr(node, 'args', []))
                     is_single_arg = False
@@ -1861,25 +1907,23 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 
                 if is_linear: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Print (Iterable)")
                 else: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print Statement")
-            elif f_id in self.custom_functions:
-                call_comp = self.custom_functions[f_id]
-                self.record_line(node, time_override=call_comp, space_override=self.custom_space.get(f_id, "O(1)"), custom_op="Function Call")
             else: self.record_line(node, time_override=None, space_override=None)
-        elif isinstance(getattr(node, 'func', None), ast.Attribute):
-            if node.func.attr == 'pop':
-                is_dict = isinstance(getattr(node.func, 'value', None), ast.Name) and self.var_types.get(node.func.value.id) == 'dict'
+            
+        elif isinstance(func_node, ast.Attribute):
+            if func_node.attr == 'pop':
+                is_dict = isinstance(getattr(func_node, 'value', None), ast.Name) and self.var_types.get(func_node.value.id) == 'dict'
                 if len(getattr(node, 'args', [])) > 0:
                     if is_dict: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
                     else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
                 else:
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
-            elif node.func.attr == 'popleft':
+            elif func_node.attr == 'popleft':
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop Left (Deque)")
-            elif node.func.attr == 'remove':
-                is_set = isinstance(getattr(node.func, 'value', None), ast.Name) and self.var_types.get(node.func.value.id) == 'set'
+            elif func_node.attr == 'remove':
+                is_set = isinstance(getattr(func_node, 'value', None), ast.Name) and self.var_types.get(func_node.value.id) == 'set'
                 if is_set: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
                 else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
-            elif node.func.attr == 'copy':
+            elif func_node.attr == 'copy':
                 curr_f = self.current_function_name or ""
                 is_rec = any(c['target'] == curr_f for c in self.call_graph.get(curr_f, []))
                 if is_rec or getattr(self, 'in_accumulation_context', False):
@@ -1887,10 +1931,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Deep Copy Allocation")
                 else:
                     self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Shallow Copy")
-            elif node.func.attr == 'append':
+            elif func_node.attr == 'append':
                 if getattr(self, 'in_graph_context', False):
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append")
-                elif is_appending_list and len(active_loops) > 0 and is_local_accumulation:
+                # Fix: Make sure graph contexts bypass 2D allocation penalty for looping appends
+                elif is_appending_list and len(active_loops) > 0 and is_local_accumulation and not getattr(self, 'in_graph_context', False):
                     self.max_space_weight = max(self.max_space_weight, 2)
                     sp_str = "O(n * m)" if "n * m" in self.max_poly_str else "O(n^2)"
                     self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override=sp_str, custom_op="Append Row")
@@ -1900,12 +1945,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 else:
                     self.record_line(node, time_override="O(1) amortized", space_override="O(1)", custom_op="Append")
                     
-            elif node.func.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
-                b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
-                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize())
-            elif node.func.attr in self.builtin_complexities:
-                b = self.builtin_complexities[node.func.attr]
-                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize())
+            elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
+                b = self.builtin_complexities.get(func_node.attr, {'time': 'O(1)', 'space': 'O(1)'})
+                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
+            elif func_node.attr in self.builtin_complexities:
+                b = self.builtin_complexities[func_node.attr]
+                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
             else: 
                 self.record_line(node, time_override=None, space_override=None)
         
@@ -5252,316 +5297,3 @@ class EducationalInsightGenerator:
 
     def _format_recurrence_relation(self, relation: str) -> str:
         return relation
-
---- FILE: api/services/auth_service.py ---
-
-# api/services/auth_service.py
-from fastapi import HTTPException
-from google.oauth2 import id_token
-from google.auth.transport import requests
-import os
-import bcrypt
-
-from repositories.user_repo import UserRepository
-from models import UserLogin, UserCreate, ProgressUpdate, AssessmentUpdateRequest
-from database import db
-from security import create_access_token
-
-class AuthService:
-    @staticmethod
-    def hash_password(password: str) -> str:
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
-
-    @staticmethod
-    def verify_password(plain_password: str, hashed_password: str) -> bool:
-        try:
-            if isinstance(hashed_password, str):
-                hashed_password = hashed_password.encode('utf-8')
-            if isinstance(plain_password, str):
-                plain_password = plain_password.encode('utf-8')
-                
-            return bcrypt.checkpw(plain_password, hashed_password)
-        except (ValueError, TypeError):
-            return False
-
-    @staticmethod
-    def login(req: UserLogin):
-        user = UserRepository.find_by_email(req.email)
-        stored_password = user.get("password") if user else None
-
-        if not user or not stored_password or not AuthService.verify_password(req.password, stored_password):
-            raise HTTPException(
-                status_code=401, 
-                detail="Invalid credentials."
-            )
-
-        token = create_access_token({"sub": req.email})
-
-        return {
-            "status": "success",
-            "email": req.email,
-            "name": user.get("name"),
-            "progress": user.get("progress", {}),
-            "assessments": user.get("assessments", {}),
-            "token": token
-        }
-
-    @staticmethod
-    def signup(req: UserCreate):
-        if UserRepository.find_by_email(req.email):
-            raise HTTPException(status_code=400, detail="Email already registered")
-
-        hashed_password = AuthService.hash_password(req.password)
-
-        UserRepository.insert({
-            "name": req.name,
-            "email": req.email,
-            "password": hashed_password,
-            "progress": {},
-            "assessments": {} 
-        })
-
-        token = create_access_token({"sub": req.email})
-
-        return {
-            "status": "success",
-            "email": req.email,
-            "name": req.name,
-            "token": token
-        }
-
-    @staticmethod
-    def update_progress(req: ProgressUpdate):
-        if not req.email or not req.lesson_id:
-            return {"status": "ignored", "message": "Fired before state loaded"}
-            
-        if "guest" in req.email.lower():
-            return {"status": "ignored", "message": "Guest persistence disabled"}
-
-        try:
-            score_val = float(req.score) if req.score is not None else 0.0
-        except:
-            score_val = 0.0
-
-        UserRepository.update_progress(req.email, req.lesson_id, score_val)
-        user = UserRepository.find_by_email(req.email)
-        return {
-            "status": "success",
-            "progress": user.get("progress", {}) if user else {}
-        }
-
-    @staticmethod
-    def update_assessment(req: AssessmentUpdateRequest):
-        if not req.email or not req.assessment_key:
-            return {"status": "ignored", "message": "Fired before state loaded"}
-            
-        if "guest" in req.email.lower():
-            return {"status": "ignored", "message": "Guest persistence disabled"}
-
-        save_data = {
-            "score": req.score,
-            "correct": req.correct,
-            "total": req.total,
-            "timeElapsed": req.timeElapsed,
-            "completedAt": req.completedAt,
-            "attempts": req.attempts
-        }
-            
-        UserRepository.update_assessment(req.email, req.assessment_key, save_data)
-        user = UserRepository.find_by_email(req.email)
-        return {
-            "status": "success",
-            "assessments": user.get("assessments", {}) if user else {}
-        }
-
-    @staticmethod
-    def get_progress(email: str):
-        user = UserRepository.find_by_email(email)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        return {
-            "status": "success",
-            "progress": user.get("progress", {})
-        }
-
-    @staticmethod
-    def get_assessments(email: str):
-        user = UserRepository.find_by_email(email)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        return {
-            "status": "success",
-            "assessments": user.get("assessments", {})
-        }
-
-    @staticmethod
-    def google_login(token: str):
-        try:
-            client_id = os.getenv("GOOGLE_CLIENT_ID")
-
-            if not client_id:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Missing GOOGLE_CLIENT_ID in environment"
-                )
-
-            idinfo = id_token.verify_oauth2_token(
-                token,
-                requests.Request(),
-                client_id
-            )
-
-            email = idinfo.get("email")
-            name = idinfo.get("name", "")
-
-            if not email:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Google account has no email"
-                )
-
-            user = UserRepository.find_by_email(email)
-
-            if not user:
-                UserRepository.insert({
-                    "name": name,
-                    "email": email,
-                    "password": None,
-                    "progress": {},
-                    "assessments": {} 
-                })
-                user = UserRepository.find_by_email(email)
-
-            backend_token = create_access_token({"sub": email})
-
-            return {
-                "status": "success",
-                "email": email,
-                "name": user.get("name"),
-                "progress": user.get("progress", {}),
-                "assessments": user.get("assessments", {}),
-                "token": backend_token
-            }
-
-        except ValueError:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid Google OAuth token"
-            )
-
-    @staticmethod
-    def sync_submission(payload: dict):
-        user_id = payload.get("userId")
-        module_id = payload.get("moduleId")
-        activity_id = payload.get("activityId")
-
-        if not user_id or not activity_id:
-            return {"status": "ignored"}
-
-        if "guest" in str(user_id).lower():
-            return {"status": "ignored", "message": "Guest persistence disabled"}
-
-        allowed_fields = [
-            "userId", "moduleId", "activityId", "type", "status", 
-            "score", "maxScore", "passedTestCases", "totalTestCases", 
-            "passed_tests", "total_tests", "testCases", 
-            "target_complexity", "actual_complexity", 
-            "target_space_complexity", "actual_space_complexity", 
-            "workspace", "pythonCode", "timestamp", "submittedAt", "isSynced",
-            "initial_aes", "final_aes", "rog", "functional_passed", "functional_total"
-        ]
-        
-        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
-
-        db["submissions"].update_one(
-            {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
-            {"$set": safe_update_data},
-            upsert=True
-        )
-        return {"status": "success", "message": "Submission synced"}
-
-    @staticmethod
-    def get_submission(email: str, activityId: str, moduleId: str = None):
-        if not email or not activityId:
-             return {"status": "ignored"}
-             
-        query = {"userId": email, "activityId": activityId}
-        if moduleId:
-            query["moduleId"] = moduleId
-            
-        submission = db["submissions"].find_one(query, {"_id": 0})
-        return {"status": "success", "submission": submission}
-
-    @staticmethod
-    def sync_assessment(payload: dict):
-        user_id = payload.get("userId")
-        module_id = payload.get("moduleId")
-
-        if not module_id and payload.get("assessmentId"):
-            module_id = payload.get("assessmentId")
-            payload["moduleId"] = module_id
-
-        if not user_id or not module_id:
-            return {"status": "ignored"}
-
-        if "guest" in str(user_id).lower():
-            return {"status": "ignored", "message": "Guest persistence disabled"}
-
-        allowed_fields = [
-            "userId", "moduleId", "assessmentId", "answers", "score", 
-            "maxScore", "completed", "timestamp", "passed", "correct", 
-            "total", "timeElapsed", "completedAt", "attempts", "isSynced"
-        ]
-        safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
-
-        db["assessments"].update_one(
-            {"userId": user_id, "moduleId": module_id},
-            {"$set": safe_update_data},
-            upsert=True
-        )
-        return {"status": "success", "message": "Assessment synced"}
-
-    @staticmethod
-    def get_assessment(email: str, moduleId: str):
-        if not email or not moduleId:
-            return {"status": "ignored"}
-            
-        assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
-        return {"status": "success", "assessment": assessment}
-    
-    @staticmethod
-    def get_all_submissions(email: str):
-        if not email:
-            return {"status": "ignored"}
-            
-        submissions = list(db["submissions"].find({"userId": email}, {"_id": 0}))
-        
-        return {"status": "success", "submissions": submissions}
-
-    @staticmethod
-    def batch_sync(payload: dict, trusted_email: str):
-        if "guest" in trusted_email.lower():
-            return {"status": "success", "message": "Ignored: Guest account", "synced_items": 0}
-
-        synced_count = 0
-
-        for sub in payload.get("submissions", []):
-            if sub.get("userId") == trusted_email:
-                sub["isSynced"] = True
-                AuthService.sync_submission(sub)
-                synced_count += 1
-                
-        for prog in payload.get("progress", []):
-            if prog.get("email") == trusted_email:
-                UserRepository.update_progress(trusted_email, prog.get("lesson_id"), float(prog.get("score", 0)))
-                synced_count += 1
-                
-        for ass in payload.get("assessments", []):
-            if ass.get("userId") == trusted_email:
-                ass["isSynced"] = True
-                AuthService.sync_assessment(ass)
-                synced_count += 1
-                
-        return {"status": "success", "message": "Batch sync completed", "synced_items": synced_count}

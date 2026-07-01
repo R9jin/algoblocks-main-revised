@@ -1,7 +1,1107 @@
 ﻿--- PROJECT SNAPSHOT (PART 9 OF 10) ---
 
---- TIMESTAMP: 2026-06-30 22:34:56 ---
+--- TIMESTAMP: 2026-07-01 22:02:24 ---
 
+
+--- FILE: frontend/src/pages/Projects.jsx ---
+
+// frontend/src/pages/Projects.jsx
+import { useEffect, useState } from "react";
+import { FiChevronRight, FiClock, FiCloud, FiFileText, FiFolder, FiHardDrive, FiPlus, FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import DashboardHeader from "../components/DashboardHeader";
+import { projectsDB, syncQueueDB } from "../db";
+import "../styles/Projects.css";
+import { syncManager } from "../utils/syncManager";
+
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+export default function Projects() {
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [globalSyncing, setGlobalSyncing] = useState(false);
+  const [syncState, setSyncState] = useState({ syncing: false, pendingCount: 0, lastSynced: null });
+
+  useEffect(() => {
+    loadProjects();
+    
+    const handleAutoSync = () => loadProjects();
+    const onStart = () => setGlobalSyncing(true);
+    const onEnd = () => { setGlobalSyncing(false); loadProjects(); };
+
+    window.addEventListener("online", handleAutoSync);
+    window.addEventListener("localDataSynced", handleAutoSync);
+    window.addEventListener("sync-start", onStart);
+    window.addEventListener("sync-end", onEnd);
+    return () => {
+      window.removeEventListener("online", handleAutoSync);
+      window.removeEventListener("localDataSynced", handleAutoSync);
+      window.removeEventListener("sync-start", onStart);
+      window.removeEventListener("sync-end", onEnd);
+    };
+  }, []);
+
+  const normalizeEpoch = (val) => {
+    if (!val) return Date.now();
+    if (typeof val === 'string') {
+      const parsed = new Date(val).getTime();
+      return isNaN(parsed) ? Date.now() : parsed;
+    }
+    return typeof val === 'number' && val < 10000000000 ? val * 1000 : val;
+  };
+
+  const formatDisplayDate = (val) => {
+    const ms = normalizeEpoch(val);
+    return new Date(ms).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const loadProjects = async () => {
+    try {
+      setSyncState(prev => ({ ...prev, syncing: true }));
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+      if (!storedUser) {
+        setLoading(false);
+        setSyncState(prev => ({ ...prev, syncing: false }));
+        return;
+      }
+      const user = JSON.parse(storedUser);
+
+      // 1. PULL CLOUD DATA
+      if (navigator.onLine && API_BASE) {
+        try {
+          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          };
+
+          const res = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
+          const contentType = res.headers.get("content-type") || "";
+          
+          if (res.ok && contentType.includes("application/json")) {
+            const data = await res.json();
+            let cloudProjects = Array.isArray(data?.projects) ? data.projects : (Array.isArray(data) ? data : []);
+
+            for (const cp of cloudProjects) {
+              if (cp.owner_id === user.email || cp.userId === user.email) {
+                await projectsDB.setItem(cp._id, { ...cp, synced: true, updatedAt: normalizeEpoch(cp.updatedAt || cp.updated_at) });
+              }
+            }
+          }
+        } catch (fetchErr) {
+          console.warn("Cloud pull degraded gracefully to offline storage:", fetchErr);
+        }
+      }
+
+      // 2. CHECK QUEUE COUNT
+      const queueKeys = await syncQueueDB.keys();
+      const pendingUploads = queueKeys.filter(k => k.includes("local_proj") || k.startsWith("sync_project") || k.startsWith("local_"));
+
+      // 3. READ LOCAL DB
+      const loadedProjects = [];
+      await projectsDB.iterate((value) => {
+        if (value.owner_id === user.email || value.userId === user.email) {
+          loadedProjects.push({
+            ...value,
+            updatedAt: normalizeEpoch(value.updatedAt || value.updated_at)
+          });
+        }
+      });
+
+      setProjects(loadedProjects.sort((a, b) => b.updatedAt - a.updatedAt));
+      setSyncState({ syncing: false, pendingCount: pendingUploads.length, lastSynced: new Date() });
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+      setSyncState(prev => ({ ...prev, syncing: false }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManualTrigger = async () => {
+    setSyncState(prev => ({ ...prev, syncing: true }));
+    if (syncManager?.processSyncQueue) {
+      await syncManager.processSyncQueue();
+    }
+    await loadProjects();
+  };
+
+  const handleDeleteProject = async (e, projectId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
+
+    try {
+      await projectsDB.removeItem(projectId);
+      if (projectId.startsWith('local_')) {
+        await syncQueueDB.removeItem(projectId);
+      } else {
+        await syncQueueDB.setItem(`delete_${projectId}`, {
+          type: 'PROJECT', action: 'DELETE', data: { _id: projectId }
+        });
+      }
+      setProjects(projects.filter(p => p._id !== projectId));
+      loadProjects();
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+    }
+  };
+
+  const isActivelySyncing = syncState.syncing || globalSyncing;
+
+  return (
+    <div className="projects-bento-layout">
+      <style>{`
+        @keyframes projSpin { 100% { transform: rotate(360deg); } }
+        .spin-anim { animation: projSpin 1s linear infinite; }
+      `}</style>
+
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+
+      <main className="projects-bento-content">
+        <div className="projects-grid-container">
+          
+          <section className="bento-hero-card projects-hero">
+            <div className="hero-text">
+              <h1 className="hero-title">My Projects</h1>
+              <p className="hero-subtitle">Manage, edit, and load your saved algorithm workspaces.</p>
+            </div>
+            <button className="hero-primary-btn" onClick={() => navigate('/workspace')}>
+              <FiPlus size={20} strokeWidth={3} />
+              <span>Blank Workspace</span>
+            </button>
+          </section>
+
+          {/* Live Sync Status Bar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', marginBottom: '16px', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem' }}>
+              {isActivelySyncing ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60A5FA' }}>
+                  <FiRefreshCw className="spin-anim" /> Synchronizing cloud storage...
+                </span>
+              ) : (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981' }}>
+                  <FiCloud /> Storage up to date {syncState.lastSynced && `(${syncState.lastSynced.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`}
+                </span>
+              )}
+
+              {syncState.pendingCount > 0 && (
+                <span style={{ background: '#F59E0B', color: '#000', padding: '2px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800' }}>
+                  {syncState.pendingCount} Local Pending
+                </span>
+              )}
+            </div>
+
+            <button 
+              onClick={handleManualTrigger} 
+              disabled={isActivelySyncing}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 14px', borderRadius: '8px', cursor: isActivelySyncing ? 'wait' : 'pointer', fontSize: '0.82rem', fontWeight: '600' }}
+            >
+              <FiRefreshCw className={isActivelySyncing ? "spin-anim" : ""} /> Force Sync
+            </button>
+          </div>
+
+          <section className="projects-list-section">
+            {loading ? (
+              <div className="projects-loading-state">
+                <div className="spinner"></div>
+                <p>Reading workspace databases...</p>
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="projects-empty-state">
+                <div className="empty-state-icon"><FiFileText size={48} /></div>
+                <h3 className="empty-title">No projects found</h3>
+                <p className="empty-desc">You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!</p>
+                <button className="empty-action-btn" onClick={() => navigate('/workspace')}>
+                  <FiPlus size={18} strokeWidth={3} /> Create First Project
+                </button>
+              </div>
+            ) : (
+              <div className="projects-bento-grid">
+                {projects.map(proj => (
+                  <div key={proj._id} className="bento-project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
+                    <div className="project-card-top">
+                      <div className="project-icon-wrapper"><FiFolder size={24} /></div>
+                      <button className="btn-delete-project" title="Delete Project" onClick={(e) => handleDeleteProject(e, proj._id)}>
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
+                    
+                    <div className="project-card-body">
+                      <h3 className="project-title">{proj.title || proj.name || "Untitled Project"}</h3>
+                      <div className="project-meta-info">
+                        <span className="meta-date">
+                          <FiClock size={14} /> {formatDisplayDate(proj.updatedAt)}
+                        </span>
+                        <span className={`sync-status ${proj.synced ? "synced" : "local"}`}>
+                          {proj.synced ? <><FiCloud size={14} /> Cloud</> : <><FiHardDrive size={14} /> Local</>}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="project-card-footer">
+                      <span className="open-text">Open Project</span>
+                      <FiChevronRight size={18} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+        </div>
+      </main>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/pages/SignIn.jsx ---
+
+// frontend/src/pages/SignIn.jsx
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
+import { useState } from "react";
+import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
+import "../styles/Auth.css";
+
+export default function SignIn() {
+  const [email, setEmail] = useState(""); 
+  const [password, setPassword] = useState(""); 
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); 
+  const [rememberMe, setRememberMe] = useState(false);
+  
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  
+  const navigate = useNavigate(); 
+
+  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
+
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
+  };
+
+  const syncUserCloudData = async (userEmail, token) => {
+    try {
+      await Promise.all([
+        projectsDB.clear(),
+        templatesDB.clear(),
+        syncQueueDB.clear()
+      ]); 
+
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      };
+
+      const [projRes, tempRes] = await Promise.all([
+        fetch(`${API_BASE}/api/projects`, { headers }),
+        fetch(`${API_BASE}/api/templates`, { headers })
+      ]); 
+
+      if (projRes.ok) {
+        const projData = await projRes.json();
+        if (projData.status === 'success') {
+          for (let p of projData.projects) {
+            if (p.owner_id === userEmail) {
+              await projectsDB.setItem(p._id, { ...p, synced: true });
+            }
+          }
+        }
+      } 
+
+      if (tempRes.ok) {
+        const tempData = await tempRes.json();
+        if (tempData.status === 'success') {
+          for (let t of tempData.templates) {
+            if (t.owner_id === userEmail) {
+              await templatesDB.setItem(t._id, { ...t, synced: true });
+            }
+          }
+        }
+      } 
+    } catch (error) {
+      console.warn("Could not pull data from cloud. Proceeding with local data.", error); 
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true); 
+
+    try {
+      const response = await fetch(`${API_BASE}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      }); 
+
+      const data = await response.json(); 
+
+      if (!response.ok || data.status !== "success") {
+        showToast(data.detail || "Invalid email or password"); 
+        setIsLoading(false);
+        return;
+      }
+
+      const activeStorage = rememberMe ? localStorage : sessionStorage;
+      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+      
+      // FIX: Wipe BOTH key variations from the inactive storage to prevent leakage
+      inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
+      inactiveStorage.removeItem("user");
+
+      // FIX: Save BOTH key variations to active storage so ALL pages pass auth checks
+      activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
+      activeStorage.setItem("user", JSON.stringify({
+        email: data.email,
+        name: data.name,
+        progress: data.progress || {},
+        assessments: data.assessments || {}
+      })); 
+
+      await syncUserCloudData(data.email, data.token); 
+      navigate("/dashboard"); 
+      
+    } catch (error) {
+      console.error(error); 
+      showToast("Server not reachable. Check backend connection."); 
+    } finally {
+      setIsLoading(false); 
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsLoading(true); 
+    try {
+      await Promise.all([
+        projectsDB.clear(),
+        templatesDB.clear(),
+        syncQueueDB.clear()
+      ]); 
+
+      // FIX: Wipe ALL token keys
+      localStorage.removeItem("authToken");
+      sessionStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+
+      sessionStorage.setItem("user", JSON.stringify({
+        email: `guest_${Date.now()}@algoblocks.local`,
+        name: "Guest User",
+        isGuest: true,
+        progress: {},
+        assessments: {}
+      })); 
+
+      navigate("/dashboard"); 
+    } catch (error) {
+      console.error("Guest login failed:", error); 
+      showToast("Failed to initialize guest session.");
+    } finally {
+      setIsLoading(false); 
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.status !== "success") {
+        showToast(data.detail || "Google authentication failed");
+        return;
+      }
+
+      const activeStorage = rememberMe ? localStorage : sessionStorage;
+      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+      
+      // FIX: Wipe BOTH key variations from inactive storage
+      inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
+      inactiveStorage.removeItem("user");
+
+      // FIX: Save BOTH key variations so ALL pages pass auth checks
+      activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
+      activeStorage.setItem("user", JSON.stringify({
+        email: data.email,
+        name: data.name,
+        progress: data.progress || {},
+        assessments: data.assessments || {}
+      }));
+
+      await syncUserCloudData(data.email, data.token);
+      navigate("/dashboard");
+      
+    } catch (error) {
+      console.error("Google Authentication error:", error);
+      showToast("Server not reachable. Check backend connection.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
+        {toast.message}
+      </div>
+
+      <div className="auth-container">
+        <div className="auth-card">
+
+          {/* ACADEMIC RESEARCH NOTICE */}
+          <div className="auth-research-banner">
+            <div className="banner-icon-wrapper">
+              <FiAlertTriangle size={18} />
+            </div>
+            <div className="banner-text">
+              <strong>Academic Research Notice</strong>
+              <p>
+                To ensure data validity for this thesis, please use <b>strictly one account</b> throughout your evaluation. 
+                Progress, assessments, and learning analytics are being actively monitored and recorded to a single ID.
+              </p>
+            </div>
+          </div>
+
+          <h2>Sign In to AlgoBlocks</h2>
+          <form onSubmit={handleSubmit}>
+            
+            <div className="form-group">
+              <label>Email</label>
+              <div className="auth-input-wrap">
+                <FiMail className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  disabled={isLoading}
+                /> 
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Password</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  disabled={isLoading}
+                  className="password-input"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+                Stay signed in
+              </label>
+            </div>
+            
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              {isLoading ? "Signing In..." : "Sign In"}
+            </button> 
+
+            <div className="social-divider">
+              <span>OR</span>
+            </div> 
+
+            <div className="google-auth-wrapper">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => showToast("Google Sign-In sequence interrupted.")}
+                theme="outline" 
+                size="large"
+                shape="rectangular"
+                text="signin_with"
+              />
+            </div>
+
+            <button
+              type="button"
+              className="auth-button guest-button"
+              onClick={handleGuestLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? "Preparing..." : "Continue as Guest"}
+            </button> 
+
+          </form>
+
+          <div className="auth-links">
+            <Link to="/forgot-password">Forgot password?</Link>
+            <p>Don't have an account? <Link to="/signup">Sign up</Link></p>
+          </div> 
+        </div>
+      </div>
+    </GoogleOAuthProvider>
+  );
+}
+
+--- FILE: frontend/src/pages/SignUp.jsx ---
+
+// frontend/src/pages/SignUp.jsx
+import { useState } from "react";
+import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
+import "../styles/Auth.css";
+
+export default function SignUp() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  
+  const navigate = useNavigate();
+  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.status === "success") {
+        const activeStorage = rememberMe ? localStorage : sessionStorage;
+        const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+        
+        inactiveStorage.removeItem("authToken");
+        inactiveStorage.removeItem("token");
+        inactiveStorage.removeItem("user");
+
+        // BUG-06 Fix: Mirror both authToken and token keys
+        activeStorage.setItem("authToken", data.token);
+        activeStorage.setItem("token", data.token);
+        
+        // BUG-08 Fix: Initialize complete user schema
+        activeStorage.setItem("user", JSON.stringify({ 
+          email: data.email, 
+          name: data.name,
+          progress: {},
+          assessments: {}
+        }));
+
+        navigate("/home");
+      } else {
+        let errorMessage = "Sign up failed. Please try again.";
+        if (typeof data.detail === "string") {
+            errorMessage = data.detail;
+        } else if (Array.isArray(data.detail)) {
+            errorMessage = data.detail.map(err => err.msg).join(" | ");
+        }
+        
+        showToast(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error connecting to server:", error);
+      showToast("Failed to connect to the server.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([
+        projectsDB.clear(), 
+        templatesDB.clear(), 
+        syncQueueDB.clear()
+      ]);
+
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("authToken");
+      sessionStorage.removeItem("token");
+
+      const guestToken = `guest_token_${Date.now()}`;
+      sessionStorage.setItem("authToken", guestToken);
+      sessionStorage.setItem("token", guestToken);
+
+      sessionStorage.setItem("user", JSON.stringify({
+          email: `guest_${Date.now()}@algoblocks.local`,
+          name: "Guest User",
+          isGuest: true,
+          progress: {},
+          assessments: {}
+      }));
+
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Guest login failed:", error);
+      showToast("Failed to initialize guest session.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
+        {toast.message}
+      </div>
+
+      <div className="auth-container">
+        <div className="auth-card">
+          
+          <div className="auth-research-banner">
+            <div className="banner-icon-wrapper">
+              <FiAlertTriangle size={18} />
+            </div>
+            <div className="banner-text">
+              <strong>Participant Protocol</strong>
+              <p>
+                By creating an account, you agree to participate in an educational system evaluation. 
+                <b> Please do not create multiple accounts.</b> Your learning data, assessments, and code executions are monitored strictly for research integrity.
+              </p>
+            </div>
+          </div>
+
+          <h2>Create Account</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Full Name</label>
+              <div className="auth-input-wrap">
+                <FiUser className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <div className="auth-input-wrap">
+                <FiMail className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" aria-hidden="true" />
+                {/* BUG-11 Fix: Enforce HTML5 minLength={6} */}
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  required
+                  minLength={6}
+                  disabled={isLoading}
+                  className="password-input"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+                Stay signed in
+              </label>
+            </div>
+            
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              {isLoading ? "Signing Up..." : "Sign Up"}
+            </button>
+
+            <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "0.9rem" }}>
+              <span>â€” OR â€”</span>
+            </div>
+            <button 
+              type="button" 
+              className="auth-button" 
+              onClick={handleGuestLogin} 
+              disabled={isLoading}
+              style={{ backgroundColor: "#6c757d", border: "none" }}
+            >
+              {isLoading ? "Preparing..." : "Continue as Guest"}
+            </button>
+
+          </form>
+
+          <div className="auth-links">
+            <p>Already have an account?<Link to="/signin">Sign in</Link></p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+--- FILE: frontend/src/pages/UserHomePage.jsx ---
+
+// frontend/src/pages/UserHomePage.jsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Footer from "../components/Footer";
+import UserHeader from "../components/UserHeader";
+import "../styles/UserHomePage.css";
+
+import { IoArrowForward } from "react-icons/io5";
+import { LuBookOpen, LuChartBar, LuCirclePlay, LuFolder } from "react-icons/lu";
+
+export default function UserHomePage() {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser || "{}"));
+    } else {
+      navigate("/"); // Protect the route
+    }
+  }, [navigate]);
+
+  const confirmLogout = () => {
+    // 1. Nuke all stored auth data completely
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 2. HARD REDIRECT FIRST. DO NOT UPDATE REACT STATE (do not call setShowLogoutModal(false))
+    // This prevents protected routes from intercepting the transition.
+    window.location.replace("/");
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="landing-container user-homepage">
+      <UserHeader user={user} onLogoutClick={() => setShowLogoutModal(true)} />
+      <main className="landing-main">
+        {/* Hero Section */}
+        <section className="hero home-hero">
+          <div className="home-hero-copy">
+            <div className="hero-badge">Welcome Back, {user.name}!</div>
+            
+            <h1 className="slogan-text">
+              Think in <span className="accent">Steps</span>.<br />
+              <span className="accent">Analyze</span> in Depth.
+            </h1>
+
+            <p className="hero-subtitle">
+              Continue where you left off, open a saved project, or start a new workspace
+              with line-by-line time and space complexity feedback.
+            </p>
+
+            <div className="hero-buttons">
+              <button 
+                className="btn-primary" 
+                onClick={() => navigate('/dashboard')}
+              >
+                Continue to Dashboard
+                <IoArrowForward className="btn-icon-inline" aria-hidden="true" />
+              </button>
+
+              <button className="btn-secondary" type="button">
+                <LuCirclePlay className="btn-icon-inline" aria-hidden="true" />
+                Watch Demo
+              </button>
+            </div>
+          </div>
+
+          <div className="home-hero-media" aria-hidden="true">
+            <div className="hero-glow"></div>
+            <img
+              src="/assets/programming-code-editor-illustration-design-vector-removebg-preview.png"
+              alt="Programming code editor illustration"
+              className="home-hero-image"
+            />
+          </div>
+        </section>
+
+        {/* Feature Cards Section */}
+        <section className="feature-cards">
+          <div className="section-header">
+            <h2>Your Learning Hub</h2>
+            <p className="section-subtitle">
+              Quick actions to practice, review projects, and improve your algorithm solutions.
+            </p>
+          </div>
+
+          <div className="cards-grid">
+            <div className="card glass-panel" onClick={() => navigate("/projects")} style={{ cursor: "pointer" }}>
+              <div className="card-icon">
+                <span className="card-icon-badge">
+                  <LuFolder size={28} color="#E058FB" aria-hidden="true" />
+                </span>
+              </div>
+              <h3>Open Saved Projects</h3>
+              <p>Resume previous sessions and refine your logic with line-by-line complexity insights.</p>
+            </div>
+
+            <div className="card glass-panel" onClick={() => navigate("/learning-path")} style={{ cursor: "pointer" }}>
+              <div className="card-icon">
+                <span className="card-icon-badge">
+                  <LuBookOpen size={28} color="#E058FB" aria-hidden="true" />
+                </span>
+              </div>
+              <h3>Learning Mode</h3>
+              <p>Practice guided tasks with structured hints to strengthen your step-by-step understanding.</p>
+            </div>
+
+            <div className="card glass-panel" onClick={() => navigate('/workspace')} style={{ cursor: "pointer" }}>
+              <div className="card-icon">
+                <span className="card-icon-badge">
+                  <LuChartBar size={28} color="#E058FB" aria-hidden="true" />
+                </span>
+              </div>
+              <h3>Performance Feedback</h3>
+              <p>See how edits change Big-O and identify where inefficiencies appear in your solution.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Everything You Need Section */}
+        <section className="features-list">
+          <div className="features-content">
+            <h2>Everything You Need, in One Place</h2>
+            <p className="features-description">
+              Master the fundamentals of computer science with tools designed to make complex theories visual and interactive.
+            </p>
+            <ul className="modern-list">
+              <li>
+                <div className="list-icon">âœ“</div>
+                <span>Continue learning with saved sessions and templates</span>
+              </li>
+              <li>
+                <div className="list-icon">âœ“</div>
+                <span>Line-by-line time and space complexity feedback</span>
+              </li>
+              <li>
+                <div className="list-icon">âœ“</div>
+                <span>Python code output for review and submission</span>
+              </li>
+              <li>
+                <div className="list-icon">âœ“</div>
+                <span>Access dashboard, history, and settings anytime</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="feature-image-container relative-container">
+            <div className="feature-glow"></div>
+            <img 
+              src="/assets/example.png" 
+              alt="AlgoBlocks Interface Example" 
+              className="feature-example-image glass-border" 
+            />
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="logout-modal-overlay">
+          <div className="logout-modal">
+            <h2>Logout Confirmation</h2>
+            <p>Are you sure you want to logout?</p>
+            <div className="logout-modal-actions">
+              <button className="logout-btn" onClick={confirmLogout}>Confirm</button>
+              <button className="logout-btn logout-btn-cancel" onClick={() => setShowLogoutModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+--- FILE: frontend/src/styles/ActivityApp.css ---
+
+@import "./WorkspaceShared.css";
+
+/* =========================================
+   3-COLUMN ACTIVITY SPLIT LAYOUT
+   ========================================= */
+.activity-left-panel, .activity-right-panel { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden;}
+.activity-left-panel { border-right: 1px solid var(--border-light); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease;}
+.activity-right-panel { border-left: 1px solid var(--border-light); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease;}
+.activity-center-panel { display: flex; flex-direction: column; background-color: var(--panel-bg); position: relative; height: 100%; transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+
+/* Lesson Selection Outline Dropdown */
+.activity-selector-container { padding: 16px 20px; background-color: var(--app-bg); border-bottom: 1px solid var(--border-light); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02); }
+.activity-selector-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; color: var(--purple-main); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.activity-selector-dropdown { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-light); outline: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; background-color: var(--panel-bg); color: var(--text-main); transition: all 0.2s ease; appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237928ca%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 14px top 50%; background-size: 10px auto; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); }
+.activity-selector-dropdown:hover { border-color: var(--purple-main); }
+
+.activity-panel-header { padding: 20px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+.activity-panel-header h2, .activity-panel-header h3 { margin: 0; color: var(--text-main); font-size: 1.1rem; display: flex; align-items: center; gap: 8px; font-weight: 800;}
+.activity-panel-content { padding: 20px; flex: 1; overflow-y: auto; }
+
+/* Left Panel Task Description Typography */
+.activity-task-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; margin-top: 10px; }
+.activity-title-text { margin: 0; font-size: 1.4rem; color: var(--purple-main); font-weight: 800; }
+.difficulty-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; text-transform: capitalize;}
+.difficulty-badge.easy { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+.difficulty-badge.medium { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+.difficulty-badge.hard, .difficulty-badge.advanced { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+
+.activity-card { font-size: 0.95rem; color: var(--text-main); }
+
+/* Right Panel: Test Cases UI */
+.test-cases-counter { font-size: 0.8rem; color: var(--text-muted); font-weight: bold; }
+.test-case-card { border: 1px solid var(--border-light); border-radius: 12px; margin-bottom: 15px; background-color: var(--app-bg); transition: all 0.3s ease; overflow: hidden; }
+.test-case-card.passing { border-color: #10B981; background-color: rgba(16, 185, 129, 0.05); }
+.test-case-card.failing { border-color: #EF4444; background-color: rgba(239, 68, 68, 0.05); }
+
+.test-case-header { display: flex; align-items: center; justify-content: space-between; padding: 15px; cursor: pointer; user-select: none; background-color: transparent; transition: background-color 0.2s ease; }
+.test-case-header:hover { background-color: rgba(0, 0, 0, 0.02); }
+.test-case-header-left { display: flex; align-items: center; }
+
+.test-case-indicator { width: 14px; height: 14px; border: 2px solid var(--border-light); border-radius: 50%; margin-right: 10px; background-color: transparent; transition: all 0.3s ease; }
+.test-case-indicator.passing { border-color: #10B981; background-color: #10B981; }
+.test-case-indicator.failing { border-color: #EF4444; background-color: #EF4444; }
+
+.test-case-title { color: var(--text-main); font-size: 0.95rem; font-weight: bold; }
+.test-case-card.passing .test-case-title { color: #059669; }
+.test-case-card.failing .test-case-title { color: #DC2626; }
+
+.test-case-chevron { color: var(--text-muted); transition: transform 0.3s ease; }
+.test-case-card.passing .test-case-chevron { color: #10B981; }
+.test-case-card.failing .test-case-chevron { color: #EF4444; }
+.test-case-chevron.open { transform: rotate(90deg); }
+
+.test-case-details { padding: 0 15px 15px 15px; font-size: 0.85rem; color: var(--text-muted); animation: slideDown 0.3s ease-out; }
+.test-case-row { margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px; }
+.test-case-label { font-weight: 800; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.test-case-code { font-family: 'Fira Code', monospace; color: var(--purple-main); background: var(--panel-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-light); word-break: break-all; font-size: 0.8rem; }
+
+.test-case-status-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+
+/* Activity Specific Sidebar Toggle Overrides */
+.sidebar-toggle-btn.right-panel-toggle { left: auto; right: 0; border-radius: 8px 0 0 8px; }
+.sidebar-toggle-btn.right-panel-toggle.closed .toggle-icon { transform: rotate(180deg); }
+
+.activity-split.left-hidden .activity-left-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
+.activity-split.left-hidden .gutter.gutter-horizontal:first-of-type { display: none !important; }
+.activity-split.right-hidden .activity-right-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
+.activity-split.right-hidden .gutter.gutter-horizontal:last-of-type { display: none !important; }
+
+.activity-split.left-hidden .activity-center-panel,
+.activity-split.right-hidden .activity-center-panel {
+  flex: 1 !important;
+  width: auto !important;
+}
+
+/* AES & ROG Badges */
+.aes-badge { background: var(--purple-alpha); border: 1px solid rgba(121, 40, 202, 0.3); color: var(--purple-main); }
+.aes-badge .total-label { color: var(--purple-main); }
+.rog-badge { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669; }
+.rog-badge .total-label { color: #059669; }
+
+/* Interactive Hover Tooltips */
+.info-tooltip { position: relative; display: inline-flex; align-items: center; margin-left: 6px; cursor: help; color: inherit; opacity: 0.7; transition: opacity 0.2s; }
+.info-tooltip:hover { opacity: 1; }
+
+.tooltip-text { 
+    visibility: hidden; opacity: 0; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%) translateY(5px);
+    background-color: var(--dark-surface); color: var(--text-on-dark); text-align: left; padding: 12px 16px; border-radius: 8px;
+    width: 240px; font-size: 0.8rem; font-family: 'Inter', sans-serif; font-weight: normal; letter-spacing: normal; text-transform: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.2s ease; z-index: 1000; border: 1px solid var(--dark-border); pointer-events: none;
+}
+.info-tooltip:hover .tooltip-text { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
+.tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--dark-surface) transparent transparent transparent; }
+.tooltip-title { display: block; font-weight: bold; margin-bottom: 6px; color: #FFFFFF; font-size: 0.85rem;}
 
 --- FILE: frontend/src/styles/AssessmentPage.css ---
 
@@ -820,6 +1920,17 @@
   transition: all 0.3s ease;
 }
 
+/* Ensure password text doesn't hide underneath the toggle icon */
+.auth-input-wrap input.password-input {
+  padding-right: 2.75rem;
+}
+
+/* Hide native Edge/IE password reveal toggle so it doesn't overlap our custom one */
+.auth-input-wrap input::-ms-reveal,
+.auth-input-wrap input::-ms-clear {
+  display: none;
+}
+
 .auth-input-icon {
   position: absolute;
   left: 1rem;
@@ -829,6 +1940,29 @@
   font-size: 1.1rem;
   pointer-events: none;
   transition: color 0.3s ease;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #C994FF;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.password-toggle-btn:hover,
+.password-toggle-btn:focus {
+  color: #E058FB;
+  outline: none;
 }
 
 .form-group input:focus {
@@ -6046,2611 +7180,3 @@ body {
 
 .save-modal-confirm-btn { padding: 10px 20px; border-radius: 8px; border: none; background: var(--purple-main); color: white; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(121, 40, 202, 0.3); }
 .save-modal-confirm-btn:hover { background: var(--purple-hover); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(121, 40, 202, 0.4); }
-
---- FILE: frontend/src/styles/MemoryVisualizer.css ---
-
-/* MemoryVisualizer.css */
-.memory-visualizer {
-  background-color: #1e1e2e;
-  border-radius: 8px;
-  padding: 1.25rem;
-  color: #ecf0f1;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  font-family: 'Inter', -apple-system, sans-serif;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.memory-visualizer.empty-state {
-  align-items: center;
-  justify-content: center;
-  color: #7f8c8d;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-/* Header & Badges */
-.memory-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #34495e;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.header-icon {
-  color: #3498db;
-  font-size: 1.25rem;
-}
-
-.header-title h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.trace-depth-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: #2c3e50;
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-family: 'Fira Code', monospace;
-  font-weight: bold;
-  color: #3498db;
-  border: 1px solid #34495e;
-}
-
-/* Grid Layout */
-.memory-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1rem;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-.memory-grid::-webkit-scrollbar {
-  width: 6px;
-}
-.memory-grid::-webkit-scrollbar-thumb {
-  background-color: #454d5a;
-  border-radius: 4px;
-}
-
-.no-vars {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #7f8c8d;
-  font-style: italic;
-  padding: 1rem;
-  background-color: #252836;
-  border-radius: 6px;
-}
-
-/* Memory Cards */
-.memory-card {
-  background-color: #252836;
-  border-top: 4px solid;
-  border-radius: 6px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-.memory-card.hovered {
-  transform: translateY(-2px);
-  background-color: #2a2d3d;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
-
-.card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.card-name-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.card-icon {
-  font-size: 1rem;
-  display: flex;
-}
-
-.card-name {
-  font-weight: bold;
-  font-family: 'Fira Code', monospace;
-  font-size: 1rem;
-  color: #ffffff;
-}
-
-.card-stats {
-  font-size: 0.75rem;
-  color: #bdc3c7;
-  font-family: 'Fira Code', monospace;
-  background-color: #1e1e2e;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-}
-
-/* The Restored Visual Segments */
-.memory-segments-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: #1e1e2e;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #34495e;
-}
-
-.segment-label {
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  color: #7f8c8d;
-  font-weight: bold;
-}
-
-.segment-blocks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  flex-grow: 1;
-  align-items: center;
-}
-
-.segment-block {
-  width: 12px;
-  height: 16px;
-  border-radius: 2px;
-  box-shadow: inset 0 0 2px rgba(0,0,0,0.5);
-}
-
-.segment-overflow {
-  color: #95a5a6;
-  font-weight: bold;
-  letter-spacing: 2px;
-  margin-left: 4px;
-}
-
-/* Explanation Box */
-.card-explanation {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  padding: 0.75rem;
-  font-size: 0.8rem;
-  color: #bdc3c7;
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  border-left: 3px solid;
-  line-height: 1.4;
-  margin-top: 0.25rem;
-}
-
-.explanation-icon {
-  margin-top: 0.1rem;
-  flex-shrink: 0;
-  font-size: 0.9rem;
-}
-
-.explanation-text {
-  flex-grow: 1;
-}
-
-/* Footer of the card */
-.card-bottom {
-  display: flex;
-  justify-content: flex-end;
-  border-top: 1px dashed #34495e;
-  padding-top: 0.5rem;
-}
-
-.space-complexity {
-  font-size: 0.75rem;
-  color: #e74c3c;
-  font-family: 'Fira Code', monospace;
-  font-weight: bold;
-}
-
---- FILE: frontend/src/styles/ProfilePage.css ---
-
-/* frontend/src/styles/ProfilePage.css */
-
-:root {
-  --purple-main: #7928CA;
-  --purple-hover: #5E1A9D;
-  --purple-alpha: rgba(121, 40, 202, 0.1);
-  --dark-bg: #1D0B30;
-  
-  --text-main: #1E293B;
-  --text-muted: #64748B;
-  
-  --app-bg: #F4F7F9;
-  --panel-bg: #FFFFFF;
-  --border-light: #E2E8F0;
-  
-  --green-success: #10B981;
-  --blue-info: #0EA5E9;
-  --orange-warn: #F59E0B;
-}
-
-.profile-page-v2 {
-  min-height: 100vh;
-  background-color: var(--app-bg);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: var(--text-main);
-  padding-bottom: 60px;
-}
-
-.profile-container-v2 {
-  max-width: 1050px;
-  width: 92%;
-  margin: 30px auto 0;
-  animation: slideFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes slideFadeUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* =========================================================
-   1. Hero Cover Area 
-========================================================= */
-.profile-cover {
-  height: 180px;
-  border-radius: 20px 20px 0 0;
-  background: linear-gradient(135deg, var(--dark-bg) 0%, var(--purple-main) 100%);
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-}
-
-.cover-pattern {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px);
-  background-size: 32px 32px;
-  opacity: 0.7;
-}
-
-/* =========================================================
-   2. Main Profile Header (Overlapping Card)
-========================================================= */
-.profile-header-card {
-  background: var(--panel-bg);
-  border-radius: 0 0 20px 20px;
-  padding: 0 40px 30px;
-  display: flex;
-  align-items: flex-end;
-  gap: 30px;
-  box-shadow: 0 8px 30px rgba(121, 40, 202, 0.08);
-  position: relative;
-  margin-bottom: 30px;
-  border: 1px solid var(--border-light);
-  border-top: none;
-}
-
-.profile-avatar-wrapper {
-  position: relative;
-  margin-top: -65px; 
-}
-
-.profile-avatar-v2 {
-  width: 130px;
-  height: 130px;
-  border-radius: 50%;
-  background: var(--panel-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3.5rem;
-  font-weight: 800;
-  color: var(--purple-main);
-  border: 6px solid var(--panel-bg);
-  box-shadow: 0 8px 25px rgba(121, 40, 202, 0.2);
-  text-transform: uppercase;
-}
-
-.avatar-status-badge {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 22px;
-  height: 22px;
-  background-color: var(--green-success);
-  border: 4px solid var(--panel-bg);
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-}
-
-.profile-user-details {
-  flex: 1;
-  padding-bottom: 5px;
-}
-
-.user-title-row {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 4px;
-}
-
-.profile-user-details h1 {
-  margin: 0;
-  font-size: 2rem;
-  color: var(--text-main);
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.role-badge {
-  background: var(--purple-alpha);
-  color: var(--purple-main);
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  border: 1px solid rgba(121, 40, 202, 0.2);
-}
-
-.user-email {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 1.05rem;
-  font-weight: 500;
-}
-
-.profile-header-actions {
-  padding-bottom: 10px;
-}
-
-.btn-resume-learning {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--purple-main);
-  color: #FFFFFF;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  font-size: 1rem;
-  box-shadow: 0 6px 15px rgba(121, 40, 202, 0.3);
-  transition: all 0.2s ease;
-}
-
-.btn-resume-learning:hover {
-  transform: translateY(-2px);
-  background: var(--purple-hover);
-  box-shadow: 0 8px 20px rgba(121, 40, 202, 0.4);
-}
-
-/* =========================================================
-   3. Dashboard Grid Layout 
-========================================================= */
-.profile-content-grid {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 30px;
-  align-items: start;
-}
-
-/* Left Sidebar (Stats) */
-.profile-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.sidebar-title {
-  margin: 0 0 5px 5px;
-  font-size: 1.1rem;
-  color: var(--text-main);
-  font-weight: 800;
-  letter-spacing: -0.3px;
-}
-
-.stat-box {
-  background: var(--panel-bg);
-  padding: 18px 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(0,0,0, 0.03);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: transform 0.2s;
-  border: 1px solid var(--border-light);
-}
-
-.stat-box:hover {
-  transform: translateX(5px);
-  border-color: rgba(121, 40, 202, 0.3);
-}
-
-.stat-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  flex-shrink: 0;
-}
-
-.stat-icon-wrapper.blue { background: rgba(14, 165, 233, 0.1); color: var(--blue-info); }
-.stat-icon-wrapper.purple { background: var(--purple-alpha); color: var(--purple-main); }
-.stat-icon-wrapper.orange { background: rgba(245, 158, 11, 0.1); color: var(--orange-warn); }
-.stat-icon-wrapper.green { background: rgba(16, 185, 129, 0.1); color: var(--green-success); }
-
-.stat-info h4 {
-  margin: 0 0 4px 0;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 700;
-}
-
-.stat-info p {
-  margin: 0;
-  font-size: 1.3rem;
-  color: var(--text-main);
-}
-
-.text-muted {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-/* Right Main Content (Mastery Feed) */
-.profile-main-content {
-  background: var(--panel-bg);
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 4px 15px rgba(0,0,0, 0.03);
-  border: 1px solid var(--border-light);
-}
-
-.content-header-row {
-  margin-bottom: 25px;
-}
-
-.content-header-row h2 {
-  margin: 0 0 4px 0;
-  font-size: 1.4rem;
-  color: var(--text-main);
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.mastery-subtitle {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-}
-
-.mastery-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.mastery-card-container {
-  display: flex;
-  flex-direction: column;
-  background: var(--app-bg);
-  border-radius: 12px;
-  border: 1px solid var(--border-light);
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.mastery-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  cursor: pointer;
-  background: transparent;
-  transition: background-color 0.2s;
-}
-
-.mastery-card:hover {
-  background: rgba(0,0,0,0.02);
-}
-
-.mastery-card.expanded {
-  background: #FFFFFF;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.mastery-card.completed {
-  background: rgba(16, 185, 129, 0.04);
-}
-
-.mastery-card-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.mastery-module-number {
-  width: 44px;
-  height: 44px;
-  background: var(--purple-alpha);
-  color: var(--purple-main);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 1.1rem;
-}
-
-.mastery-card.completed .mastery-module-number {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--green-success);
-}
-
-.mastery-details h4 {
-  margin: 0 0 4px 0;
-  font-size: 1.05rem;
-  color: var(--text-main);
-  font-weight: 700;
-}
-
-.mastery-fraction {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.mod-inline-metric {
-  color: var(--purple-main);
-  font-weight: 700;
-}
-
-.mastery-card-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  width: 280px;
-}
-
-.progress-bar-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.progress-bar-track {
-  flex: 1;
-  height: 8px;
-  background: var(--border-light);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: var(--purple-main);
-  border-radius: 4px;
-  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.progress-bar-fill.gold {
-  background: var(--green-success);
-}
-
-.progress-percentage {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-main);
-  min-width: 40px;
-  text-align: right;
-  font-family: 'Fira Code', monospace;
-}
-
-.module-chevron {
-  color: var(--text-muted);
-  font-size: 1.3rem;
-  transition: transform 0.3s ease;
-}
-
-.module-chevron.rotated {
-  transform: rotate(180deg);
-  color: var(--purple-main);
-}
-
-/* =========================================================
-   4. Module Dropdown Details (Lessons & Activities) 
-========================================================= */
-.module-dropdown-content {
-  padding: 20px;
-  background: #FFFFFF;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  animation: slideDownFade 0.3s ease-out forwards;
-}
-
-@keyframes slideDownFade {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.lesson-block {
-  border-left: 3px solid var(--border-light);
-  padding-left: 15px;
-}
-
-.lesson-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.lesson-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.lesson-check {
-  color: var(--green-success);
-  font-size: 1.1rem;
-}
-
-.activities-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.activity-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--app-bg);
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border-light);
-}
-
-.activity-row.empty-row {
-  justify-content: flex-start;
-  color: var(--text-muted);
-  font-style: italic;
-  font-size: 0.85rem;
-}
-
-.act-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.act-icon {
-  color: var(--purple-main);
-  opacity: 0.7;
-}
-
-.act-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.act-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.act-difficulty {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-.act-difficulty.easy { color: var(--green-success); }
-.act-difficulty.medium { color: var(--orange-warn); }
-.act-difficulty.hard, .act-difficulty.advanced { color: #EF4444; }
-
-.act-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.metric-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-family: "Fira Code", monospace;
-}
-
-.aes-badge.perfect { background: rgba(16, 185, 129, 0.1); color: var(--green-success); border: 1px solid rgba(16, 185, 129, 0.3);}
-.aes-badge.good { background: var(--purple-alpha); color: var(--purple-main); border: 1px solid rgba(121, 40, 202, 0.3);}
-.aes-badge.empty { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-light); opacity: 0.6;}
-
-.rog-badge.active { background: rgba(245, 158, 11, 0.1); color: var(--orange-warn); border: 1px solid rgba(245, 158, 11, 0.3);}
-.rog-badge.empty { display: none; }
-
-/* Loading State */
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--border-light);
-  border-top: 4px solid var(--purple-main);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-/* =========================================================
-   5. TOOLTIP STYLES (AES & ROG)
-========================================================= */
-.info-tooltip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  cursor: help;
-  margin-left: 6px;
-  color: var(--text-muted);
-  vertical-align: middle;
-}
-
-.info-tooltip:hover {
-  color: var(--purple-main);
-}
-
-.tooltip-text {
-  visibility: hidden;
-  width: 260px;
-  background-color: #1E293B;
-  color: #F8FAFC;
-  text-align: left;
-  border-radius: 8px;
-  padding: 12px 14px;
-  position: absolute;
-  z-index: 1000;
-  bottom: 150%;
-  left: 50%;
-  transform: translateX(-50%);
-  opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  font-size: 0.8rem;
-  font-weight: 500;
-  line-height: 1.5;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-  pointer-events: none;
-}
-
-.tooltip-text::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -6px;
-  border-width: 6px;
-  border-style: solid;
-  border-color: #1E293B transparent transparent transparent;
-}
-
-.info-tooltip:hover .tooltip-text {
-  visibility: visible;
-  opacity: 1;
-  transform: translateX(-50%) translateY(5px);
-}
-
-.tooltip-title {
-  display: block;
-  font-weight: 800;
-  color: #38BDF8;
-  margin-bottom: 4px;
-  font-size: 0.85rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 900px) {
-  .profile-content-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .profile-sidebar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-}
-
-@media (max-width: 600px) {
-  .profile-header-card {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 0 20px 25px;
-  }
-  
-  .user-title-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .mastery-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-  
-  .mastery-card-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .activity-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-}
-
-/* ==========================================================================
-   APPEND TO BOTTOM OF ProfilePage.css
-   Milestone Curriculum, Badges & Gatekeeper Styles (Iconic Violet Theme)
-   ========================================================================== */
-
-.chronological-curriculum {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.milestone-card-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.milestone-card {
-  background: rgba(139, 92, 246, 0.08);
-  border: 1.5px solid rgba(139, 92, 246, 0.4);
-  border-radius: 14px;
-  padding: 20px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: all 0.25s ease;
-}
-
-.milestone-card.completed {
-  background: rgba(124, 58, 237, 0.15);
-  border-color: #8b5cf6;
-}
-
-.milestone-card.ready {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(109, 40, 217, 0.28) 100%);
-  border-color: #a855f7;
-  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.25);
-}
-
-.milestone-card.locked {
-  background: rgba(30, 27, 75, 0.35);
-  border-color: rgba(139, 92, 246, 0.18);
-  opacity: 0.88;
-}
-
-.milestone-badge {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.pre-badge {
-  background: #ede9fe;
-  color: #6d28d9;
-  border: 1px solid #c4b5fd;
-}
-
-.post-badge {
-  background: #7c3aed;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.45);
-}
-
-.post-badge.locked {
-  background: #3b0764;
-  color: #a78bfa;
-  box-shadow: none;
-}
-
-.milestone-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 8px;
-}
-
-.milestone-status.cleared,
-.milestone-status.validated {
-  background: #ede9fe;
-  color: #5b21b6;
-  border: 1px solid #ddd6fe;
-}
-
-.milestone-status.disabled {
-  background: rgba(139, 92, 246, 0.1);
-  color: #dfd4ff;
-  border: 1px dashed rgba(139, 92, 246, 0.35);
-}
-
-.status-inline-icon {
-  font-size: 16px;
-}
-
-.btn-milestone-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-
-.btn-milestone-action.violet {
-  background: #7c3aed;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
-}
-
-.btn-milestone-action.violet:hover {
-  background: #6d28d9;
-  transform: translateY(-1px);
-}
-
-.btn-milestone-action.gold {
-  background: linear-gradient(135deg, #8b5cf6, #d946ef);
-  color: #ffffff;
-  box-shadow: 0 4px 15px rgba(217, 70, 239, 0.4);
-}
-
-.btn-milestone-action.gold:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
-}
-
-.locked-reason-span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #f5f3ff;
-  font-size: 13px;
-}
-
-.inline-lock-icon {
-  color: #a855f7;
-  flex-shrink: 0;
-}
-
-.guest-warning-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #ddd6fe;
-  background: rgba(109, 40, 217, 0.3);
-  border: 1px solid #8b5cf6;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.status-icon.warning {
-  color: #c4b5fd;
-  flex-shrink: 0;
-}
-
-.module-quiz-block {
-  margin-top: 12px;
-  border-top: 1px dashed rgba(139, 92, 246, 0.35);
-  padding-top: 14px;
-}
-
-.quiz-label {
-  color: #c4b5fd;
-}
-
-.quiz-icon {
-  color: #a855f7;
-  font-size: 18px;
-}
-
-.btn-take-quiz {
-  font-size: 12px;
-  font-weight: 600;
-  color: #ede9fe;
-  background: rgba(124, 58, 237, 0.35);
-  border: 1px solid #8b5cf6;
-  padding: 6px 14px;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: all 0.15s ease;
-}
-
-.btn-take-quiz:hover {
-  background: #7c3aed;
-  color: #ffffff;
-}
-
---- FILE: frontend/src/styles/Projects.css ---
-
-/* frontend/src/styles/Projects.css */
-
-/* =========================================================
-   1. Base Layout
-========================================================= */
-.projects-bento-layout {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: #F4F7F9;
-  color: #3C2D76;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-}
-
-.projects-bento-content {
-  flex: 1;
-  padding: 32px 24px;
-  display: flex;
-  justify-content: center;
-}
-
-.projects-grid-container {
-  width: 100%;
-  max-width: 1280px;
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  animation: slideFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes slideFadeUp {
-  0% { opacity: 0; transform: translateY(15px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-/* =========================================================
-   2. Hero Section
-========================================================= */
-.projects-hero {
-  background: #FFFFFF;
-  border-radius: 20px;
-  padding: 36px 40px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 4px 20px rgba(60, 45, 118, 0.04);
-  border: 1px solid rgba(60, 45, 118, 0.05);
-  position: relative;
-  overflow: hidden;
-}
-
-.projects-hero::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 6px;
-  height: 100%;
-  background: linear-gradient(180deg, #5A1398 0%, #7F57F9 100%);
-}
-
-.hero-text {
-  max-width: 500px;
-}
-
-.hero-title {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #1E293B;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.5px;
-}
-
-.hero-subtitle {
-  font-size: 1.05rem;
-  color: #64748B;
-  margin: 0;
-  line-height: 1.5;
-}
-
-.hero-primary-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: linear-gradient(135deg, #5A1398 0%, #7F57F9 100%);
-  color: #FFFFFF;
-  border: none;
-  padding: 16px 28px;
-  border-radius: 14px;
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(127, 87, 249, 0.3);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
-}
-
-.hero-primary-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(127, 87, 249, 0.4);
-}
-
-.hero-primary-btn:active {
-  transform: translateY(1px);
-}
-
-/* =========================================================
-   3. Projects Bento Grid
-========================================================= */
-.projects-bento-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.bento-project-card {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: 16px;
-  padding: 24px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(60, 45, 118, 0.02);
-  height: 100%;
-}
-
-.bento-project-card:hover {
-  transform: translateY(-4px);
-  border-color: #7F57F9;
-  box-shadow: 0 12px 24px rgba(127, 87, 249, 0.12);
-}
-
-.project-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
-.project-icon-wrapper {
-  background: rgba(127, 87, 249, 0.1);
-  color: #7F57F9;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-delete-project {
-  background: transparent;
-  border: none;
-  color: #CBD5E1;
-  padding: 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bento-project-card:hover .btn-delete-project {
-  color: #94A3B8;
-}
-
-.btn-delete-project:hover {
-  background: #FEE2E2 !important;
-  color: #EF4444 !important;
-}
-
-.project-card-body {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.project-title {
-  margin: 0;
-  color: #1E293B;
-  font-size: 1.2rem;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.project-meta-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.meta-date {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: #64748B;
-  font-weight: 500;
-}
-
-.sync-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 700;
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: 8px;
-}
-
-.sync-status.synced {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10B981;
-}
-
-.sync-status.local {
-  background: rgba(245, 158, 11, 0.1);
-  color: #F59E0B;
-}
-
-.project-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #7F57F9;
-  font-weight: 700;
-  font-size: 0.95rem;
-  padding-top: 16px;
-  margin-top: 16px;
-  border-top: 1px solid #F1F5F9;
-  transition: color 0.2s ease;
-}
-
-.bento-project-card:hover .project-card-footer {
-  color: #5A1398;
-}
-
-
-/* =========================================================
-   4. Loading & Empty States
-========================================================= */
-.projects-loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  color: #64748B;
-  font-size: 1.1rem;
-  gap: 16px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(127, 87, 249, 0.2);
-  border-top-color: #7F57F9;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.projects-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-  background: #FFFFFF;
-  border: 2px dashed #CBD5E1;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(60, 45, 118, 0.02);
-}
-
-.empty-state-icon {
-  width: 80px;
-  height: 80px;
-  background: #F8FAFC;
-  color: #94A3B8;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-.empty-title {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: #1E293B;
-  margin: 0 0 12px 0;
-}
-
-.empty-desc {
-  font-size: 1rem;
-  color: #64748B;
-  margin: 0 0 32px 0;
-  max-width: 500px;
-  line-height: 1.6;
-}
-
-.empty-action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #F8FAFC;
-  color: #5A1398;
-  border: 1px solid #E2E8F0;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.empty-action-btn:hover {
-  background: #F1F5F9;
-  border-color: #CBD5E1;
-  color: #3C2D76;
-}
-
-/* =========================================================
-   5. Responsive Adjustments
-========================================================= */
-@media (max-width: 768px) {
-  .projects-hero {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 24px;
-    padding: 24px;
-  }
-  
-  .projects-bento-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
---- FILE: frontend/src/styles/TestCaseTester.css ---
-
-/* frontend/src/styles/ProfilePage.css */
-
-:root {
-  --purple-main: #7928CA;
-  --purple-hover: #5E1A9D;
-  --purple-alpha: rgba(121, 40, 202, 0.1);
-  --dark-bg: #1D0B30;
-  
-  --text-main: #1E293B;
-  --text-muted: #64748B;
-  
-  --app-bg: #F4F7F9;
-  --panel-bg: #FFFFFF;
-  --border-light: #E2E8F0;
-  
-  --green-success: #10B981;
-  --blue-info: #0EA5E9;
-}
-
-.profile-page-v2 {
-  min-height: 100vh;
-  background-color: var(--app-bg);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: var(--text-main);
-  padding-bottom: 60px;
-}
-
-.profile-container-v2 {
-  max-width: 1050px;
-  width: 92%;
-  margin: 30px auto 0;
-  animation: slideFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* =========================================================
-   1. Hero Cover Area 
-========================================================= */
-.profile-cover {
-  height: 180px;
-  border-radius: 20px 20px 0 0;
-  background: linear-gradient(135deg, var(--dark-bg) 0%, var(--purple-main) 100%);
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-}
-
-.cover-pattern {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px);
-  background-size: 32px 32px;
-  opacity: 0.7;
-}
-
-/* =========================================================
-   2. Main Profile Header (Overlapping Card)
-========================================================= */
-.profile-header-card {
-  background: var(--panel-bg);
-  border-radius: 0 0 20px 20px;
-  padding: 0 40px 30px;
-  display: flex;
-  align-items: flex-end;
-  gap: 30px;
-  box-shadow: 0 8px 30px rgba(121, 40, 202, 0.08);
-  position: relative;
-  margin-bottom: 30px;
-  border: 1px solid var(--border-light);
-  border-top: none;
-}
-
-.profile-avatar-wrapper {
-  position: relative;
-  margin-top: -65px; 
-}
-
-.profile-avatar-v2 {
-  width: 130px;
-  height: 130px;
-  border-radius: 50%;
-  background: var(--panel-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3.5rem;
-  font-weight: 800;
-  color: var(--purple-main);
-  border: 6px solid var(--panel-bg);
-  box-shadow: 0 8px 25px rgba(121, 40, 202, 0.2);
-  text-transform: uppercase;
-}
-
-.avatar-status-badge {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 22px;
-  height: 22px;
-  background-color: var(--green-success);
-  border: 4px solid var(--panel-bg);
-  border-radius: 50%;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-}
-
-.profile-user-details {
-  flex: 1;
-  padding-bottom: 5px;
-}
-
-.user-title-row {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 4px;
-}
-
-.profile-user-details h1 {
-  margin: 0;
-  font-size: 2rem;
-  color: var(--text-main);
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.role-badge {
-  background: var(--purple-alpha);
-  color: var(--purple-main);
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  border: 1px solid rgba(121, 40, 202, 0.2);
-}
-
-.user-email {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 1.05rem;
-  font-weight: 500;
-}
-
-.profile-header-actions {
-  padding-bottom: 10px;
-}
-
-.btn-resume-learning {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--purple-main);
-  color: #FFFFFF;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  font-size: 1rem;
-  box-shadow: 0 6px 15px rgba(121, 40, 202, 0.3);
-  transition: all 0.2s ease;
-}
-
-.btn-resume-learning:hover {
-  transform: translateY(-2px);
-  background: var(--purple-hover);
-  box-shadow: 0 8px 20px rgba(121, 40, 202, 0.4);
-}
-
-/* =========================================================
-   3. Dashboard Grid Layout 
-========================================================= */
-.profile-content-grid {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 30px;
-  align-items: start;
-}
-
-/* Left Sidebar (Stats) */
-.profile-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.sidebar-title {
-  margin: 0 0 5px 5px;
-  font-size: 1.1rem;
-  color: var(--text-main);
-  font-weight: 800;
-  letter-spacing: -0.3px;
-}
-
-.stat-box {
-  background: var(--panel-bg);
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(0,0,0, 0.03);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: transform 0.2s;
-  border: 1px solid var(--border-light);
-}
-
-.stat-box:hover {
-  transform: translateX(5px);
-  border-color: rgba(121, 40, 202, 0.3);
-}
-
-.stat-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-}
-
-.stat-icon-wrapper.blue { background: rgba(14, 165, 233, 0.1); color: var(--blue-info); }
-.stat-icon-wrapper.purple { background: var(--purple-alpha); color: var(--purple-main); }
-.stat-icon-wrapper.green { background: rgba(16, 185, 129, 0.1); color: var(--green-success); }
-
-.stat-info h4 {
-  margin: 0 0 4px 0;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 700;
-}
-
-.stat-info p {
-  margin: 0;
-  font-size: 1.3rem;
-  color: var(--text-main);
-}
-
-.text-muted {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-/* Right Main Content (Mastery Feed) */
-.profile-main-content {
-  background: var(--panel-bg);
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 4px 15px rgba(0,0,0, 0.03);
-  border: 1px solid var(--border-light);
-}
-
-.content-header-row {
-  margin-bottom: 25px;
-}
-
-.content-header-row h2 {
-  margin: 0 0 4px 0;
-  font-size: 1.4rem;
-  color: var(--text-main);
-  font-weight: 800;
-  letter-spacing: -0.5px;
-}
-
-.mastery-subtitle {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-}
-
-.mastery-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.mastery-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-radius: 12px;
-  background: var(--app-bg);
-  border: 1px solid var(--border-light);
-  transition: all 0.2s ease;
-}
-
-.mastery-card:hover {
-  background: var(--panel-bg);
-  box-shadow: 0 4px 12px rgba(121, 40, 202, 0.08);
-  border-color: rgba(121, 40, 202, 0.3);
-}
-
-.mastery-card.completed {
-  background: rgba(16, 185, 129, 0.04);
-  border-color: rgba(16, 185, 129, 0.2);
-}
-
-.mastery-card-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.mastery-module-number {
-  width: 44px;
-  height: 44px;
-  background: var(--purple-alpha);
-  color: var(--purple-main);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 1.1rem;
-}
-
-.mastery-card.completed .mastery-module-number {
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--green-success);
-}
-
-.mastery-details h4 {
-  margin: 0 0 4px 0;
-  font-size: 1.05rem;
-  color: var(--text-main);
-  font-weight: 700;
-}
-
-.mastery-fraction {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.mastery-card-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  width: 250px;
-}
-
-.progress-bar-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.progress-bar-track {
-  flex: 1;
-  height: 8px;
-  background: var(--border-light);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: var(--purple-main);
-  border-radius: 4px;
-  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.progress-bar-fill.gold {
-  background: var(--green-success);
-}
-
-.progress-percentage {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-main);
-  min-width: 40px;
-  text-align: right;
-  font-family: 'Fira Code', monospace;
-}
-
-/* Animations & Media Queries */
-@keyframes slideFadeUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 900px) {
-  .profile-content-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .profile-sidebar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-}
-
-@media (max-width: 600px) {
-  .profile-header-card {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 0 20px 25px;
-  }
-  
-  .user-title-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .mastery-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-  
-  .mastery-card-right {
-    width: 100%;
-    padding-left: 60px;
-    box-sizing: border-box;
-  }
-}
-
---- FILE: frontend/src/styles/UserHeader.css ---
-
-.user-header-logo-text {
-  color: #FFFFFF !important;
-}
-
-/* --- USER AVATAR & BUTTON --- */
-.user-menu {
-  position: relative;
-}
-
-.user-menu-btn {
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  outline: none;
-  transition: transform 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.user-menu-btn:hover {
-  transform: scale(1.05);
-}
-
-.user-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
-  color: #FFFFFF;
-  font-weight: bold;
-  font-size: 1.1rem;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 10px rgba(127, 87, 249, 0.3);
-  text-transform: uppercase;
-}
-
-/* --- DROPDOWN MENU (Glassmorphism) --- */
-.user-dropdown {
-  position: absolute;
-  top: 130%;
-  right: 0;
-  width: 240px;
-  background: rgba(20, 10, 40, 0.85); /* Dark translucent */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 0.5rem 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  z-index: 100;
-  overflow: hidden;
-  animation: dropdownFade 0.2s ease forwards;
-}
-
-@keyframes dropdownFade {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.user-dropdown-head {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1.5rem 1rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  margin-bottom: 0.5rem;
-}
-
-.dropdown-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
-  color: #FFFFFF;
-  font-weight: bold;
-  font-size: 1.5rem;
-  margin-bottom: 0.75rem;
-  box-shadow: 0 4px 15px rgba(127, 87, 249, 0.4);
-  text-transform: uppercase;
-}
-
-.user-name {
-  color: #FFFFFF;
-  font-weight: 700;
-  font-size: 1.1rem;
-  margin-bottom: 0.25rem;
-  text-align: center;
-}
-
-.user-email {
-  color: #A396B8;
-  font-size: 0.85rem;
-  text-align: center;
-  word-break: break-all;
-}
-
-.user-dd-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 0.75rem 1.25rem;
-  background: transparent;
-  border: none;
-  color: #E0E0E0;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.user-dd-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #FFFFFF;
-}
-
-.user-dd-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.05);
-  margin: 0.5rem 0;
-}
-
-.user-dd-item.danger {
-  color: #FF6B6B;
-}
-
-.user-dd-item.danger:hover {
-  background: rgba(255, 107, 107, 0.1);
-  color: #FF8787;
-}
-
---- FILE: frontend/src/styles/UserHomePage.css ---
-
-/* frontend/src/styles/HomePage.css */
-
-/* Global Layout & Scrollbar */
-.landing-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: radial-gradient(circle at top right, #3A0C6A 0%, #160D33 40%, #0A051A 100%);
-  color: #F5F5F5;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.landing-container::-webkit-scrollbar {
-  display: none;
-}
-
-.landing-main {
-  flex: 1;
-  padding: 4rem 2rem;
-  max-width: 1280px;
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.landing-main::-webkit-scrollbar {
-  display: none;
-}
-
-/* --- HERO SECTION --- */
-.hero {
-  margin-bottom: 8rem;
-  position: relative;
-  z-index: 1;
-}
-
-.home-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4rem;
-  min-height: 70vh;
-}
-
-.home-hero-copy {
-  flex: 1.2;
-  min-width: 280px;
-  max-width: 650px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.hero-badge {
-  display: inline-block;
-  align-self: flex-start;
-  padding: 0.5rem 1rem;
-  background: rgba(181, 112, 250, 0.1);
-  border: 1px solid rgba(181, 112, 250, 0.3);
-  border-radius: 20px;
-  color: #C994FF;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.slogan-text {
-  color: #FFFFFF;
-  font-size: 4.5rem;
-  font-weight: 800;
-  line-height: 1.1;
-  margin: 0;
-  letter-spacing: -0.02em;
-}
-
-.accent {
-  background: linear-gradient(135deg, #B570FA, #E058FB);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-subtitle {
-  font-size: 1.25rem;
-  color: #A396B8;
-  margin: 0;
-  line-height: 1.6;
-  max-width: 90%;
-}
-
-/* Buttons */
-.hero-buttons {
-  display: flex;
-  gap: 1.25rem;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  margin-top: 1rem;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
-  color: #FFFFFF;
-  padding: 0.85rem 2.25rem;
-  border-radius: 50px;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 1.1rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 25px rgba(127, 87, 249, 0.4);
-  border: none;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(224, 88, 251, 0.6);
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.03);
-  color: #FFFFFF;
-  padding: 0.85rem 2.25rem;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: 1.1rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: #B570FA;
-  transform: translateY(-3px);
-}
-
-.btn-icon-inline {
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-
-/* Hero Media & Animations */
-.home-hero-media {
-  flex: 1;
-  min-width: 280px;
-  display: flex;
-  justify-content: center;
-  position: relative;
-}
-
-.hero-glow {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(127, 87, 249, 0.3) 0%, rgba(224, 88, 251, 0) 70%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 0;
-  pointer-events: none;
-}
-
-.home-hero-image {
-  width: min(100%, 600px);
-  height: auto;
-  position: relative;
-  z-index: 1;
-  filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.4));
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0px); }
-}
-
-/* --- FEATURE CARDS SECTION --- */
-.feature-cards {
-  margin-bottom: 8rem;
-}
-
-.section-header {
-  text-align: center;
-  margin-bottom: 4rem;
-}
-
-.feature-cards h2, .features-content h2 {
-  font-size: 2.5rem;
-  color: #FFFFFF;
-  margin-bottom: 1rem;
-  font-weight: 800;
-}
-
-.section-subtitle {
-  color: #A396B8;
-  font-size: 1.15rem;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
-}
-
-.glass-panel {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
-
-.card {
-  padding: 2.5rem 2rem;
-  border-radius: 20px;
-  text-align: left;
-  transition: all 0.4s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.card:hover {
-  transform: translateY(-10px);
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(181, 112, 250, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 20px rgba(127, 87, 249, 0.1);
-}
-
-.card:hover::before {
-  opacity: 1;
-}
-
-.card-icon {
-  margin-bottom: 1.5rem;
-}
-
-.card-icon-badge {
-  width: 56px;
-  height: 56px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  background: rgba(127, 87, 249, 0.15);
-  border: 1px solid rgba(127, 87, 249, 0.3);
-  box-shadow: inset 0 0 20px rgba(224, 88, 251, 0.1);
-}
-
-.card h3 {
-  color: #FFFFFF;
-  margin-bottom: 1rem;
-  font-size: 1.4rem;
-  font-weight: 700;
-}
-
-.card p {
-  color: #A396B8;
-  font-size: 1rem;
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* --- EVERYTHING YOU NEED SECTION --- */
-.features-list {
-  display: flex;
-  gap: 5rem;
-  align-items: center;
-  margin-bottom: 4rem;
-}
-
-.features-content {
-  flex: 1;
-  min-width: 300px;
-}
-
-.features-description {
-  color: #A396B8;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  margin-bottom: 2.5rem;
-}
-
-.modern-list {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.modern-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  padding: 1rem 1.25rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: background 0.3s ease;
-}
-
-.modern-list li:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(181, 112, 250, 0.2);
-}
-
-.list-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
-  border-radius: 50%;
-  color: white;
-  font-size: 0.8rem;
-  font-weight: bold;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.modern-list span {
-  color: #E0E0E0;
-  font-size: 1.05rem;
-  line-height: 1.4;
-}
-
-.relative-container {
-  position: relative;
-}
-
-.feature-image-container {
-  flex: 1;
-  min-width: 300px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.feature-glow {
-  position: absolute;
-  width: 80%;
-  height: 80%;
-  background: radial-gradient(circle, rgba(127, 87, 249, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 0;
-}
-
-.glass-border {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 16px;
-}
-
-.feature-example-image {
-  width: 100%;
-  max-width: 550px;
-  height: auto;
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
-  object-fit: contain;
-}
-
-.feature-example-image:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 30px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(127, 87, 249, 0.15);
-}
-
-/* --- RESPONSIVE DESIGN --- */
-
-/* Large screens/Tablets */
-@media (max-width: 1024px) {
-  .landing-main {
-    padding: 2rem;
-  }
-
-  .home-hero {
-    gap: 2rem;
-    min-height: 60vh;
-  }
-
-  .slogan-text {
-    font-size: 3.5rem;
-  }
-
-  .features-list {
-    gap: 3rem;
-  }
-}
-
-/* Tablets / Mobile Landscape */
-@media (max-width: 768px) {
-  .hero {
-    margin-bottom: 5rem;
-  }
-
-  .home-hero {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 3rem;
-  }
-
-  .hero-badge {
-    align-self: center;
-  }
-
-  .home-hero-copy {
-    max-width: 100%;
-    align-items: center;
-  }
-
-  .hero-subtitle {
-    max-width: 100%;
-  }
-
-  .hero-buttons {
-    justify-content: center;
-  }
-
-  .home-hero-image {
-    max-width: 450px;
-  }
-
-  .slogan-text {
-    font-size: 3rem;
-  }
-
-  .feature-cards {
-    margin-bottom: 5rem;
-  }
-
-  .features-list {
-    flex-direction: column;
-    text-align: center;
-    gap: 4rem;
-  }
-
-  .modern-list li {
-    text-align: left;
-  }
-  
-  .feature-image-container {
-    width: 100%;
-    order: -1;
-  }
-}
-
-/* Mobile */
-@media (max-width: 480px) {
-  .landing-main {
-    padding: 1.5rem 1rem;
-  }
-
-  .slogan-text {
-    font-size: 2.25rem;
-  }
-
-  .hero-subtitle {
-    font-size: 1rem;
-  }
-
-  .home-hero-image {
-    max-width: 100%;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    width: 100%;
-    font-size: 1rem;
-  }
-
-  .feature-cards h2, .features-content h2 {
-    font-size: 2rem;
-  }
-
-  .cards-grid {
-    grid-template-columns: 1fr;
-  }
-}
-/* --- HEADER / NAV SECTION --- */
-.landing-nav {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background: rgba(10, 5, 26, 0.6); /* Blends with the dark background */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: #F5F5F5;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  position: relative;
-  z-index: 10;
-}
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-}
-
-.logo-img {
-  width: 45px;
-  height: 45px;
-  object-fit: contain;
-}
-
-.logo-text {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #FFFFFF;
-  letter-spacing: -0.5px;
-}
-
-.nav-links {
-  display: flex;
-  gap: 1.25rem;
-  align-items: center;
-}
-
-.nav-btn {
-  padding: 0.6rem 1.25rem;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
-}
-
-.nav-btn.signin {
-  background-color: transparent;
-  color: #E0E0E0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.nav-btn.signin:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #FFFFFF;
-  border-color: #B570FA;
-}
-
-.nav-btn.signup {
-  background: linear-gradient(135deg, #7F57F9, #E058FB);
-  color: #FFFFFF;
-  border: none;
-  box-shadow: 0 4px 15px rgba(127, 87, 249, 0.3);
-}
-
-.nav-btn.signup:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(224, 88, 251, 0.5);
-}
-
-/* Mobile Nav adjustments */
-@media (max-width: 768px) {
-  .landing-nav {
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1.25rem 1rem;
-  }
-  .nav-links {
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-}
