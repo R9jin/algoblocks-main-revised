@@ -125,7 +125,7 @@ if __name__ == ""__main__"" :
     print(""Minimum of values in range ["", qs, 
           "","", qe, ""]"", ""is ="", RMQ(st, n, qs, qe)); 
   
-# This code is contributed by AnkitRai01 ,linear,linear,,"
+# This code is contributed by AnkitRai01 ,linear,logn,,"
 "# LCM of given range queries using Segment Tree
 MAX = 1000
  
@@ -626,7 +626,7 @@ print(""Maximum area is"",
        max_area_histogram(hist)) 
     
 # This code is contributed  
-# by Vishnudev C.,linear,nlogn,,"
+# by Vishnudev C.,linear,linear,,"
 "# Given a binary matrix of M X N of
 # integers, you need to return only
 # unique rows of binary array
@@ -1030,7 +1030,7 @@ updatebit(BITTree, len(freq), 3, 6)
 print(""Sum of elements in arr[0..5]""+
                     "" after update is "" + str(getsum(BITTree,5)))
  
-# This code is contributed by Raju Varshney,linear,nlogn,,"
+# This code is contributed by Raju Varshney,linear,linear,,"
 "'''Python3  program to implement 2D Binary Indexed Tree
    
 2D BIT is basically a BIT where each element is another BIT.
@@ -1226,7 +1226,7 @@ m = len(q)
    
 answerQueries(q, m, BIT);
  
-# This code is contributed by phasing17,quadratic,nlogn,,"
+# This code is contributed by phasing17,quadratic,n2log2n,,"
 "# Python3 program to count inversions using 
 # Binary Indexed Tree 
   
@@ -1381,7 +1381,7 @@ if __name__ == '__main__':
     n = len(arr)
     print(""Number of inversions are : "",getInvCount(arr, n))
   
-# This code is contributed by mohit kumar 29,linear,nlogn,,"
+# This code is contributed by mohit kumar 29,quadratic,n2logn,,"
 "# A simple python O(n^3) program
 # to count inversions of size 3
  
@@ -1685,7 +1685,7 @@ print(""Preorder traversal of the"",
 myTree.preOrder(root)
 print()
  
-# This code is contributed by Ajitesh Pathak,linear,logn,,"
+# This code is contributed by Ajitesh Pathak,linear,linear,,"
 "# Python3 program to find N'th
 # element in a set formed
 # by sum of two arrays
@@ -1870,7 +1870,7 @@ if isBalanced(root):
 else:
     print(""Tree is not balanced"")
  
-# This code is contributed by Shweta Singh,linear,quadratic,,"
+# This code is contributed by Shweta Singh,constant,quadratic,,"
 """""""
 Python3 program to check if a tree is height-balanced
 """"""
@@ -1930,7 +1930,7 @@ if __name__ == '__main__':
     else:
         print(""Balanced"")
  
-# This code is contributed by Shweta Singh,linear,linear,,"
+# This code is contributed by Shweta Singh,constant,linear,,"
 "# Python3 program to find 
 # the number of islands using 
 # Disjoint Set data structure.
@@ -2556,7 +2556,7 @@ if (__name__ == ""__main__""):
     id = 12345
     shortURL = idToShortURL(id)
     print(""Short URL from 12345 is : "", shortURL)
-    print(""ID from"", shortURL, ""is : "", shortURLToId(shortURL)),constant,linear,,"
+    print(""ID from"", shortURL, ""is : "", shortURLToId(shortURL)),logn,logn,,"
 "# Python program for reversal algorithm of array rotation
   
 # Function to reverse arr[] from index start to end
@@ -2665,7 +2665,7 @@ array = [1, 2, 3, 4, 5]
 # send array to rotateArray function
 rotateArray(array)
  
-print(*array)  # 5 1 2 3 4,constant,linear,,"
+print(*array)  # 5 1 2 3 4,linear,linear,,"
 "# Python Program to search an element
 # in a sorted and pivoted array
  
@@ -2738,7 +2738,7 @@ if __name__ == '__main__':
     print(""Index of the element is : "", \
           pivotedBinarySearch(arr1, n, key))
  
-# This is contributed by Smitha Dinesh Semwal,constant,logn,,"
+# This is contributed by Smitha Dinesh Semwal,logn,logn,,"
 "# Search an element in sorted and rotated array using
 # single pass of Binary Search
  
@@ -2778,7 +2778,7 @@ if __name__ == '__main__':
     else:
         print(""Key not found"")
  
-# This code is contributed by Shreyanshi Arun,constant,logn,,"
+# This code is contributed by Shreyanshi Arun,logn,logn,,"
 "# Python3 program to find a
 # pair with a given sum in
 # a sorted and rotated array
@@ -3084,7 +3084,7 @@ if __name__ == '__main__':
     N = len(arr)
     print(countRotations(arr, N))
  
-# This code is contributed by Smitha Dinesh Semwal,logn,logn,,"
+# This code is contributed by Smitha Dinesh Semwal,constant,logn,,"
 "# Returns count of rotations for an array which
 # is first sorted in ascending order, then rotated
  
@@ -3310,7 +3310,7 @@ if __name__ == '__main__':
     print(""The minimum element is "" + \
           str(findMin(arr, 0, N-1)))
  
-# This code is contributed by Pratik Chhajer,constant,logn,,"
+# This code is contributed by Pratik Chhajer,logn,logn,,"
 "# Python3 program for right rotation of
 # an array (Reversal Algorithm)
  
@@ -3530,7 +3530,7 @@ if __name__ == '__main__':
     print(""Maximum Hamming Distance: "", max_hamming_distance(arr))
     end = time.time()
     print(f""Execution Time = {end - start}"")
-# This code is contributed by Vivek_Kumar_Sinha,constant,quadratic,,"
+# This code is contributed by Vivek_Kumar_Sinha,linear,quadratic,,"
 "# Python Program to solve queries on Left and Right
 # Circular shift on array
  
@@ -4308,7 +4308,7 @@ if __name__ == ""__main__"":
     printArray(arr, n)
  
 # This code is contributed
-# by ChitraNayal,linear,nlogn,,"
+# by ChitraNayal,constant,quadratic,,"
 "# Python3 program to Rearrange positive
 # and negative numbers in a array
  
@@ -4398,7 +4398,7 @@ RearrangePosNeg(arr, 0, arr_size - 1)
 printArray(arr, arr_size)
  
 # This code is contributed by
-# mohit kumar 29,logn,nlogn,,"
+# mohit kumar 29,linear,nlogn,,"
 "# Python3 program to Rearrange positive
 # and negative numbers in an array
  
@@ -5013,7 +5013,7 @@ k = 3
 print(""K'th smallest element is"",
        kthSmallest(arr, 0, n - 1, k))
  
-# This code is contributed by Mohit Kumar,constant,nlogn,,"
+# This code is contributed by Mohit Kumar,linear,quaratic,,"
 "# Program for kth largest element in a 2d array
 # sorted row-wise and column-wise
 from sys import maxsize
@@ -5149,7 +5149,7 @@ n = 4
 mat = [[10, 20, 30, 40],[15, 25, 35, 45],[25, 29, 37, 48],[32, 33, 39, 50]]
 print(f""7th smallest element is {kthSmallest(mat, 4, 7)}"")
  
-# This code is contributed by shinjanpatra,linear,nlogn,,"
+# This code is contributed by shinjanpatra,constant,nlognlogV,,"
 "# Python program to implement above approach
 def kthSmallest(mat, n, k):
          
@@ -5201,7 +5201,7 @@ matrix = [[1, 5, 9], [10, 11, 13], [12, 13, 15]]
 k = 8
 print(""8th smallest element is"", kthSmallest(matrix, k))
  
-# This code is comtributed by Tapesh (tapeshdua420),linear,quadratic,,"
+# This code is comtributed by Tapesh (tapeshdua420),k,n2logk,,"
 "# Python3 program to find maximum
 # in arr[] of size n 
   
@@ -5352,7 +5352,7 @@ arr = [12, 45, 1, -1, 45,
 n = len(arr)
 find3largest(arr, n)
  
-# This code is contributed by mohit kumar,constant,nlogn,,"
+# This code is contributed by mohit kumar,linear,nlogn,,"
 "# Python program to implement
 # the above approach
  
@@ -5490,7 +5490,7 @@ n = len(a)
 print(""Mean ="", findMean(a, n))
 print(""Median ="", findMedian(a, n))
  
-# This code is contributed by Smitha Dinesh Semwal,constant,nlogn,,"
+# This code is contributed by Smitha Dinesh Semwal,linear,nlogn,,"
 "# python3 program to find med in
 # stream of running integers
 from heapq import *
@@ -5574,7 +5574,7 @@ arr = [198, 76, 544, 123, 154, 675]
 k = 2
 n = len(arr)
 print (""Minimum product is"",
-       minProduct(arr, n, k)),linear,nlogn,,"
+       minProduct(arr, n, k)),linear,n+klogn,,"
 "# Python program to find out k maximum
 # non-overlapping subarray sums.
  
@@ -5732,7 +5732,7 @@ a = [1, 2, 3, 4]
 n = len(a)
 print(kthDiff(a, n, k))
  
-# This code is contributed by Mohit Kumar,constant,nlogn,,"
+# This code is contributed by Mohit Kumar,linear,nlog2n,,"
 "# Python3 program to find second
 # largest element in an array
  
@@ -5748,7 +5748,7 @@ def print2largest(arr,
     return
   
   # Sort the array
-  arr.sort
+  arr.sort()
   
   # Start from second last
   # element as the largest
@@ -5771,7 +5771,7 @@ arr = [12, 35, 1, 10, 34, 1]
 n = len(arr)
 print2largest(arr, n)
  
-# This code is contributed by divyeshrabadiya07,constant,nlogn,,"
+# This code is contributed by divyeshrabadiya07,linear,nlogn,,"
 "# Python3 program to find
 # second largest element
 # in an array

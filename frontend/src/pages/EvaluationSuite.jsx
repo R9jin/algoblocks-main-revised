@@ -269,12 +269,31 @@ export default function EvaluationSuite() {
 
   const downloadFailuresLog = (details) => {
     const mismatches = details.filter(d => !d.isCompletelyCorrect);
-    let logText = "=== EVALUATION FAILURES LOG ===\n\n";
     
     if (mismatches.length === 0) {
-        logText += "No mismatches found. Perfect accuracy!\n";
-    } else {
-        mismatches.forEach(m => {
+        let logText = "=== EVALUATION FAILURES LOG ===\n\nNo mismatches found. Perfect accuracy!\n";
+        const blob = new Blob([logText], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "evaluation_failures_log.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+    }
+
+    const numChunks = 30;
+    const chunkSize = Math.ceil(mismatches.length / numChunks);
+
+    for (let i = 0; i < numChunks; i++) {
+        const chunk = mismatches.slice(i * chunkSize, (i + 1) * chunkSize);
+        if (chunk.length === 0) continue;
+
+        let logText = `=== EVALUATION FAILURES LOG (Part ${i + 1}) ===\n\n`;
+        
+        chunk.forEach(m => {
             logText += `[${m.id} - ${m.name}]\n`;
             logText += `Time Expected: ${m.expectedTime} | Actual: ${m.predictedTime}\n`;
             logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
@@ -287,17 +306,19 @@ export default function EvaluationSuite() {
             }
             logText += `${'-'.repeat(60)}\n\n`;
         });
+
+        setTimeout(() => {
+            const blob = new Blob([logText], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `evaluation_failures_log_part_${i + 1}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, i * 500); 
     }
-    
-    const blob = new Blob([logText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "evaluation_failures_log.txt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const filteredDetails = (results?.details || []).filter((item) => {
