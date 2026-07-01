@@ -7035,44 +7035,18 @@ print(""Minimum distance between "", x, "" and "",
       y, ""is"", minDist(arr, n, x, y))
  
 # This code is contributed by ""Abhishek Sharma 44"",constant,quadratic,,"
-"import sys
- 
-def minDist(arr, n, x, y):
-     
-    #previous index and min distance
-    i=0
-    p=-1
-    min_dist = sys.maxsize;
-     
-    for i in range(n):
-     
-        if(arr[i] ==x or arr[i] == y):
-         
-            #we will check if p is not equal to -1 and
-            #If the element at current index matches with
-            #the element at index p , If yes then update
-            #the minimum distance if needed
-            if(p != -1 and arr[i] != arr[p]):
-                min_dist = min(min_dist,i-p)
-              
-            #update the previous index
-            p=i
-         
-     
-    #If distance is equal to int max
-    if(min_dist == sys.maxsize):
-       return -1
-    return min_dist
- 
-  
-# Driver program to test above function */
-arr = [3, 5, 4, 2, 6, 3, 0, 0, 5, 4, 8, 3]
-n = len(arr)
-x = 3
-y = 6
-print (""Minimum distance between %d and %d is %d\n""%( x, y,minDist(arr, n, x, y)));
- 
-# This code is contributed by Shreyanshi Arun.,constant,linear,,"
+"import sysdef minDist(arr, x, y):prev_index = -1min_dist = sys.maxsizefor i in range(len(arr)):
+    if arr[i] == x or arr[i] == y:
+
+        # If we have seen x or y before and
+        # the current element is different
+        if prev_index != -1 and arr[i] != arr[prev_index]:
+            min_dist = min(min_dist, i - prev_index)
+
+        prev_index = i
+
+return -1 if min_dist == sys.maxsize else min_dist
+Driver codearr = [3, 5, 4, 2, 6, 3, 0, 0, 5, 4, 8, 3]x = 3y = 6result = minDist(arr, x, y)print(f""Minimum distance between {x} and {y} is {result}"")"
 "# Python program to Find the minimum
 # distance between two numbers
 import sys
@@ -7623,7 +7597,7 @@ arr4 = [1, 1, 3, 4]
 n4 = len(arr4)
 print(findSmallest(arr4, n4))
  
-# This code is.contributed by Smitha Dinesh Semwal,constant,nlogn,,"
+# This code is.contributed by Smitha Dinesh Semwal,constant,linear,,"
 "# Python3 program to print largest contiguous array sum
  
 from sys import maxsize
@@ -7718,7 +7692,7 @@ if __name__ == ""__main__"":
     # Function call
     print(""Minimum difference is "" + str(findMinDiff(arr, n)))
  
-# This code is contributed by Pratik Chhajer,constant,nlogn,,"
+# This code is contributed by Pratik Chhajer,linear,nlogn,,"
 "# A Simple python program to find longest common
 # subarray of two binary arrays with same sum
  
@@ -7970,7 +7944,7 @@ print('Following is sorted array')
 print_array(arr)
  
 # This code is contributed by
-# Veerat Beri(viratberi),logn,nlogn,,"
+# Veerat Beri(viratberi),linear,nlogn,,"
 "# Python function to sort the array arr[0..n-1] in wave form,
 # i.e., arr[0] >= arr[1] <= arr[2] >= arr[3] <= arr[4] >= arr[5]
 def sortInWave(arr, n):
@@ -8139,7 +8113,7 @@ else :
      
  
 # This code is contributed
-# by Nikita Tiwari.,constant,quadratic,,"
+# by Nikita Tiwari.,linear,n2logn,,"
 "# Python3 program to test whether array
 # can be sorted by swapping adjacent
 # elements using boolean array
@@ -8496,7 +8470,7 @@ def getNumOfInversions(A):
 if __name__ == '__main__':
     A = [1, 20, 6, 4, 5]
     result = getNumOfInversions(A)
-    print(f'Number of inversions are {result}'),linear,nlogn,,"
+    print(f'Number of inversions are {result}'),linear,quadratic,,"
 "# Python3 program to find shortest
 # subarray which is unsorted
  
@@ -8924,7 +8898,7 @@ if __name__ == ""__main__"":
  
     printMedian(arr, n)
  
-# This code is contributed by rakeshsahni,constant,quadratic,,"
+# This code is contributed by rakeshsahni,logn,quadratic,,"
 "# Python code to implement the approach
  
 from heapq import heappush, heappop, heapify
@@ -9174,7 +9148,7 @@ if __name__ == '__main__':
     print(""Second Array:  "")
     print(','.join(str(x) for x in arr2))
  
-# This code is contributed by gauravrajput1,constant,nlogn,,"
+# This code is contributed by gauravrajput1,linear,n2logn,,"
 "arr1 = [1, 5, 9, 10, 15, 20 ];
 arr2 =[ 2, 3, 8, 13 ];
  
@@ -9777,7 +9751,7 @@ if (hasArrayTwoCandidates(A, len(A), n)):
 else:
     print(""No"")
  
-# This code is contributed by __Devesh Agrawal__,constant,nlogn,,"
+# This code is contributed by __Devesh Agrawal__,linear,quadratic,,"
 "# Python program to check for the sum
 # condition to be satisfied
  
@@ -9934,7 +9908,7 @@ arr_size = len(A)
 # Function calling
 printPairs(A, arr_size, n)
  
-# This code is contributed by subhammahato348,constant,linear,,"
+# This code is contributed by subhammahato348,linear,linear,,"
 "# Python 3 program to search an element in an array
 # where difference between adjacent elements is atmost k
  
@@ -10342,7 +10316,7 @@ print (int(singleNumber(a)))
 a = [15, 18, 16, 18, 16, 15, 89]
 print (int(singleNumber(a)))
  
-# This code is contributed by ""Abhishek Sharma 44"",linear,nlogn,,"
+# This code is contributed by ""Abhishek Sharma 44"",linear,linear,,"
 "def singleelement(arr, n):
     low = 0
     high = n - 2
@@ -10587,7 +10561,7 @@ if __name__ == '__main__':
     print(findMaxSum(arr, n))
  
 # This code is contributed by
-# Surendra_Gangwar,linear,quadratic,,"
+# Surendra_Gangwar,constant,quadratic,,"
 "# Python3 program to find
 # maximum equilibrium sum.
  
@@ -10882,7 +10856,7 @@ def ceilSearch(arr, low, high, x):
         return -1 
   
     # get the index of middle element of arr[low..high]*/
-    mid = (low + high)/2;  # low + (high - low)/2 */
+    mid = (low + high) // 2;  # low + (high - low)/2 */
   
     # If x is same as middle element, then return mid */
     if arr[mid] == x:
@@ -10915,7 +10889,7 @@ if index == -1:
 else:
     print (""ceiling of %d is %d""%(x, arr[index]))
  
-# This code is contributed by Shreyanshi Arun,constant,logn,,"
+# This code is contributed by Shreyanshi Arun,logn,logn,,"
 "# Python3 program to find Majority
 # element in an array
  
@@ -12308,7 +12282,7 @@ row2 = 3
 col2 = 3
 multiplyMatrix(row1, col1, A, row2, col2, B)
  
-# This code is contributed by sahilshelangia,logn,quadratic,,"
+# This code is contributed by sahilshelangia,cubic,cubic,,"
 "# Python3 program to print Lower
 # triangular and Upper triangular
 # matrix of an array
@@ -12408,7 +12382,7 @@ if __name__ == ""__main__"":
     # Function call
     for x in spiralOrder(a):
         print(x, end="" "")
-    print(),linear,linear,,"
+    print(),quadratic,quadratic,,"
 "# Python3 program to print
 # given matrix in spiral form
  
@@ -12519,7 +12493,7 @@ if __name__ == ""__main__"":
     # Function Call
     printdata(arr, 0, 0, R, C)
  
-# This code is contributed by avsadityavardhan,constant,quadratic,,"
+# This code is contributed by avsadityavardhan,linear,quadratic,,"
 "# Python3 program for the above approach
  
 R = 4
@@ -12612,7 +12586,7 @@ if __name__ == ""__main__"":
     res = spirallyTraverse(a)
     print(*res)
  
-# This code is contributed by rag2127,constant,quadratic,,"
+# This code is contributed by rag2127,v+e,v+e,,"
 "# Python program to find unique element in matrix
  
 # function that calculate unique element
@@ -13328,7 +13302,7 @@ else:
     print(""arr2[] is not a subset of arr1[] "")
  
  
-# This code is contributed by chandan_jnu,linear,nlogn,,"
+# This code is contributed by chandan_jnu,linear,quadratic,,"
 "# Python3 program to find whether an array
 # is subset of another array
  
@@ -13370,7 +13344,7 @@ if __name__ == '__main__':
     else:
         print(""arr2[] is not a subset of arr1[] "")
  
-# This code is contributed by akhilsaini,linear,nlogn,,"
+# This code is contributed by akhilsaini,linear,linear,,"
 "# Python3 code
 arr1 = [11, 1, 13, 21, 3, 7]
 arr2 = [11, 3, 7, 1]
@@ -13711,7 +13685,7 @@ root = sortedArrayToBST(arr)
 print ""PreOrder Traversal of constructed BST "",
 preOrder(root)
  
-# This code is contributed by Ishita Tripathi,logn,linear,,"
+# This code is contributed by Ishita Tripathi,linear,nlogn,,"
 "# Python3 program to transform a BST to sum tree
  
 class Node:
@@ -14176,7 +14150,7 @@ if __name__ == '__main__':
     inorder(root)
  
 # This code is contributed by
-# Shubham Singh(SHUBHAMSINGH10),linear,nlogn,,"
+# Shubham Singh(SHUBHAMSINGH10),linear,quadratic,,"
 "# Class to create a new Tree Node
 class newNode:
     def __init__(self, data: int):
@@ -14300,7 +14274,7 @@ def main():
 if __name__ == ""__main__"":
     main()
  
-# This code is contributed by Koushik Reddy Bukkasamudram,logn,linear,,"
+# This code is contributed by Koushik Reddy Bukkasamudram,linear,linear,,"
 "# Python program to Merge two BSTs with limited extra space
  
 # Structure of a BST Node
@@ -14442,7 +14416,7 @@ if __name__ == '__main__':
   # Function call
   print(""\nMinimum value in BST is %d"" % (minValue(root)))
  
-# This code is contributed by Nikhil Kumar Singh(nickzuck_007),linear,linear,,"
+# This code is contributed by Nikhil Kumar Singh(nickzuck_007),n+m,n+m,,"
 "# Python program for an efficient solution to check if
 # a given array can represent Preorder traversal of
 # a Binary Search Tree
@@ -14566,7 +14540,7 @@ n3 = len(preorder3)
 if (not canRepresentBST(preorder3, n3)):
   print(""preorder3 can represent BST"")
 else:
-  print(""preorder3 can not represent BST  :(""),logn,linear,,"
+  print(""preorder3 can not represent BST  :(""),linear,linear,,"
 "# A recursive python program to find LCA of two nodes
 # n1 and n2
  
@@ -14632,7 +14606,7 @@ n2 = 22
 t = lca(root, n1, n2)
 print(""LCA of %d and %d is %d"" % (n1, n2, t.data))
  
-# This code is contributed by Nikhil Kumar Singh(nickzuck_007),logn,constant,,"
+# This code is contributed by Nikhil Kumar Singh(nickzuck_007),linear,linear,,"
 "# A recursive python program to find LCA of two nodes
 # n1 and n2
  
@@ -14695,7 +14669,7 @@ if __name__ == '__main__':
   n2 = 22
   t = lca(root, n1, n2)
   print(""LCA of %d and %d is %d"" % (n1, n2, t.data))
-# This Code is Contributed by Sumit Bhardwaj (Timus),constant,constant,,"
+# This Code is Contributed by Sumit Bhardwaj (Timus),constant,linear,,"
 "# A Python3 program to check for Identical
 # BSTs without building the trees
  
@@ -14854,7 +14828,7 @@ if __name__ == '__main__':
     for k in range(1,8):
         kthLargest(root, k)
           
-# This code is contributed by PranchalK,logn,linear,,"
+# This code is contributed by PranchalK,linear,linear,,"
 "# Python3 code for finding K-th largest
 # Node using O(1) extra memory and
 # reverse Morris traversal.
@@ -15374,7 +15348,7 @@ if __name__ == '__main__':
      
     print(""Pairs = "", countPairs(root1, root2, x))
  
-# This code is contributed by bgangwar59,logn,linear,,"
+# This code is contributed by bgangwar59,n+m,n+m,,"
 "# Python program to find closest
 # value in Binary search Tree
  
@@ -15722,7 +15696,7 @@ if __name__ == '__main__':
                                              end = "" "")
     inorderTraversal(root)
  
-# This code is contributed by PranchalK,constant,linear,,"
+# This code is contributed by PranchalK,linear,linear,,"
 "# Python program to find BST keys in given range
  
 # A binary tree node
@@ -15765,7 +15739,7 @@ root.left.right = Node(12)
  
 Print(root, k1, k2)
  
-# This code is contributed by Nikhil Kumar Singh(nickzuck_007),logn,linear,,"
+# This code is contributed by Nikhil Kumar Singh(nickzuck_007),linear,linear,,"
 "# Python3 code to print BST keys in given Range
 # in constant space using Morris traversal.
  
