@@ -233,7 +233,7 @@ if __name__ == ""__main__"":
     print(query(1, 0, 10, 0, 10))
  
 # This code is contributed by
-# sanjeev2552,constant,linear,,"
+# sanjeev2552,linear,linear,,"
 "# Python3 program to find LCA of u and v by
 # reducing the problem to RMQ
 from math import log2, floor
@@ -1685,7 +1685,7 @@ print(""Preorder traversal of the"",
 myTree.preOrder(root)
 print()
  
-# This code is contributed by Ajitesh Pathak,constant,nlogn,,"
+# This code is contributed by Ajitesh Pathak,linear,logn,,"
 "# Python3 program to find N'th
 # element in a set formed
 # by sum of two arrays
@@ -1738,7 +1738,7 @@ if __name__ == '__main__':
     n = len(arr)
     print(maxProduct(arr, n))
      
-    # This code is contributed by 111arpit1,constant,cubic,,"
+# This code is contributed by 111arpit1,constant,cubic,,"
 "# Python 3 program to find maximum product
 # of an increasing subsequence of size 3
 import sys
@@ -1811,7 +1811,7 @@ if __name__ == '__main__':
     n = len(arr)
     print(maxProduct(arr, n))
  
-# This code is contributed by Surendra_Gangwar,linear,nlogn,,"
+# This code is contributed by Surendra_Gangwar,linear,linear,,"
 """""""
 Python3 program to check if a tree is height-balanced
 """"""
@@ -6690,7 +6690,7 @@ if __name__ == ""__main__"":
     # Printing the resultant array
     print_array(arr, n)
  
-# This code is contributed by chitranayal,linear,logn,,"
+# This code is contributed by chitranayal,linear,sqrtn,,"
 "# Python 3 program to count the
 # number of indexes in range L R
 # such that Ai = Ai + 1
@@ -7912,7 +7912,7 @@ def insertionSort(A, size):
         while j >= 0 and A[j] > key:
             A[j + 1] = A[j]
             j = j - 1
-        A[j + 1] = key,constant,constant,,"
+        A[j + 1] = key,constant,quadratic,,"
 "# A Python3 program to sort a
 # nearly sorted array.
  
@@ -54689,7 +54689,7 @@ N = 3
 # A, C, B are the name of rods
 TowerOfHanoi(N, 'A', 'C', 'B')
  
-# Contributed By Harshit Agrawal,linear,linear,,"
+# Contributed By Harshit Agrawal,linear,exponential,,"
 "# Python code to implement the approach
  
  

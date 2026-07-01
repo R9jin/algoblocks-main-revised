@@ -30,6 +30,10 @@ def preprocess_source(source_code):
     and common syntactical typos into valid Python 3 before AST parsing.
     """
     try:
+        # Fix unescaped newlines in string literals that crash the AST
+        source_code = re.sub(r"'\s*\n\s*'", r"'\\n'", source_code)
+        source_code = re.sub(r'"\s*\n\s*"', r'"\\n"', source_code)
+        
         source_code = re.sub(r'\bxrange\(', 'range(', source_code)
         
         def fix_print_comma(m):
@@ -1039,7 +1043,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if context_w > self.max_complexity:
                 self.max_complexity = context_w
                 if context_w < 150: 
-                    self.max_poly_str = self._build_time_str(tot_dims, 0, 0, 0, 0)
+                    # Fix: Make sure max_poly_str retains logarithmic components
+                    self.max_poly_str = self._build_time_str(tot_dims, tot_log, 0, 0, 0)
                     self.max_log = tot_log
                     self.max_sqrt = tot_sqrt
                     self.max_graph_ve = tot_graph
@@ -1256,9 +1261,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if not does_linear_work:
             for called_info in self.call_graph.get(node.name, []):
                 called = called_info['target']
+                # Fix: Don't let a recursive function upgrade its own complexity just because the first pass had linear bounds
+                if called == node.name: continue
                 if called in self.custom_functions:
                     called_rel = self.custom_functions[called]
-                    if called_rel != "T(n)" and ("n" in called_rel or "V" in called_rel):
+                    # Fix: Ensure O(log n) sub-routines don't falsely trigger linear work flags
+                    if called_rel != "T(n)" and called_rel not in ["O(1)", "O(log n)", "O(sqrt n)"] and ("n" in called_rel or "V" in called_rel):
                         does_linear_work = True
                         break
                 if called in self.symbol_table and called != node.name:
@@ -1512,13 +1520,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         else_rec = self.recursive_calls_count
         else_tree = self.tree_traversal_calls
         
-        is_search = any(k in (self.current_function_name or "").lower() for k in ['search', 'find', 'query', 'get', 'has'])
-        if is_search and (if_rec == 1 or else_rec == 1):
-            self.recursive_calls_count = prev_rec + max(if_rec, else_rec)
-        else:
-            self.recursive_calls_count = prev_rec + if_rec + else_rec
-            
-        self.tree_traversal_calls = prev_tree + if_tree + else_tree
+        # Fix: Using max tracks the single worst-case mutually exclusive path 
+        # naturally preserving AVL, BST, branching recursion complexity
+        self.recursive_calls_count = prev_rec + max(if_rec, else_rec)
+        self.tree_traversal_calls = prev_tree + max(if_tree, else_tree)
         self.in_if_depth -= 1
 
     def visit_ListComp(self, node):
@@ -1776,11 +1781,14 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             is_local_accumulation = True
             
         active_loops = [d for d in self.loop_stack if d != '1']
+        
+        # Fix: Exclude adjacency list buildup (graphs) from space complexity penalization
         if is_accumulating and len(active_loops) > 0 and is_local_accumulation:
-            if is_appending_list:
-                self.max_space_weight = max(self.max_space_weight, 2)
-            else:
-                self.max_space_weight = max(self.max_space_weight, 1)
+            if not getattr(self, 'in_graph_context', False):
+                if is_appending_list:
+                    self.max_space_weight = max(self.max_space_weight, 2)
+                else:
+                    self.max_space_weight = max(self.max_space_weight, 1)
 
         if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(getattr(node, 'func', None), 'id', '') == 'append':
             self.add_logic_hint(node, "Logic Hint (Amortized Analysis): mainly, the `.append()` operation is mainly O(1) constant time, but occasionally triggers an O(n) background array resize sequence when memory capacity is breached.")
@@ -1788,10 +1796,13 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         if getattr(getattr(node, 'func', None), 'attr', '') == 'remove' or getattr(getattr(node, 'func', None), 'id', '') == 'remove':
             self.add_logic_hint(node, "Logic Hint: The `.remove()` operation is O(n) linear time for Lists mainly finding and shifting elements. However, it is mainly O(1) constant time for Sets.")
 
-        if isinstance(getattr(node, 'func', None), ast.Name):
-            f_id = node.func.id
-            if f_id == 'set2': f_id = 'set'
-            f_id = self.aliases.get(f_id, f_id)
+        # Fix: Method call ast.Attribute custom function delegation
+        func_node = getattr(node, 'func', None)
+        f_id_extracted = getattr(func_node, 'id', getattr(func_node, 'attr', None))
+        is_custom = f_id_extracted in self.custom_functions or f_id_extracted == self.current_function_name or f_id_extracted in self.indirect_recursive_funcs
+
+        if is_custom:
+            f_id = self.aliases.get(f_id_extracted, f_id_extracted)
             is_indirect_call = f_id in self.indirect_recursive_funcs and self.current_function_name in self.indirect_recursive_funcs
             
             if f_id == self.current_function_name or is_indirect_call:
@@ -1809,7 +1820,16 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.has_recursion_in_loop = True  
 
                 self.record_line(node, time_override="T(placeholder)", space_override="O(1)", custom_op="Recursive Call", is_recursive_call=True)
-            elif f_id in self.builtin_complexities and f_id in bare_builtins:
+            else:
+                call_comp = self.custom_functions[f_id]
+                self.record_line(node, time_override=call_comp, space_override=self.custom_space.get(f_id, "O(1)"), custom_op="Function Call")
+
+        elif isinstance(func_node, ast.Name):
+            f_id = func_node.id
+            if f_id == 'set2': f_id = 'set'
+            f_id = self.aliases.get(f_id, f_id)
+            
+            if f_id in self.builtin_complexities and f_id in bare_builtins:
                 if f_id in ['set', 'list', 'dict', 'deque', 'tuple']:
                     has_args = bool(getattr(node, 'args', []))
                     is_single_arg = False
@@ -1849,25 +1869,23 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 
                 if is_linear: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Print (Iterable)")
                 else: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Print Statement")
-            elif f_id in self.custom_functions:
-                call_comp = self.custom_functions[f_id]
-                self.record_line(node, time_override=call_comp, space_override=self.custom_space.get(f_id, "O(1)"), custom_op="Function Call")
             else: self.record_line(node, time_override=None, space_override=None)
-        elif isinstance(getattr(node, 'func', None), ast.Attribute):
-            if node.func.attr == 'pop':
-                is_dict = isinstance(getattr(node.func, 'value', None), ast.Name) and self.var_types.get(node.func.value.id) == 'dict'
+            
+        elif isinstance(func_node, ast.Attribute):
+            if func_node.attr == 'pop':
+                is_dict = isinstance(getattr(func_node, 'value', None), ast.Name) and self.var_types.get(func_node.value.id) == 'dict'
                 if len(getattr(node, 'args', [])) > 0:
                     if is_dict: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
                     else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
                 else:
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
-            elif node.func.attr == 'popleft':
+            elif func_node.attr == 'popleft':
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop Left (Deque)")
-            elif node.func.attr == 'remove':
-                is_set = isinstance(getattr(node.func, 'value', None), ast.Name) and self.var_types.get(node.func.value.id) == 'set'
+            elif func_node.attr == 'remove':
+                is_set = isinstance(getattr(func_node, 'value', None), ast.Name) and self.var_types.get(func_node.value.id) == 'set'
                 if is_set: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
                 else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
-            elif node.func.attr == 'copy':
+            elif func_node.attr == 'copy':
                 curr_f = self.current_function_name or ""
                 is_rec = any(c['target'] == curr_f for c in self.call_graph.get(curr_f, []))
                 if is_rec or getattr(self, 'in_accumulation_context', False):
@@ -1875,10 +1893,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Deep Copy Allocation")
                 else:
                     self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Shallow Copy")
-            elif node.func.attr == 'append':
+            elif func_node.attr == 'append':
                 if getattr(self, 'in_graph_context', False):
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Append")
-                elif is_appending_list and len(active_loops) > 0 and is_local_accumulation:
+                # Fix: Make sure graph contexts bypass 2D allocation penalty for looping appends
+                elif is_appending_list and len(active_loops) > 0 and is_local_accumulation and not getattr(self, 'in_graph_context', False):
                     self.max_space_weight = max(self.max_space_weight, 2)
                     sp_str = "O(n * m)" if "n * m" in self.max_poly_str else "O(n^2)"
                     self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override=sp_str, custom_op="Append Row")
@@ -1888,12 +1907,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 else:
                     self.record_line(node, time_override="O(1) amortized", space_override="O(1)", custom_op="Append")
                     
-            elif node.func.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
-                b = self.builtin_complexities.get(node.func.attr, {'time': 'O(1)', 'space': 'O(1)'})
-                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize())
-            elif node.func.attr in self.builtin_complexities:
-                b = self.builtin_complexities[node.func.attr]
-                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=node.func.attr.capitalize())
+            elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
+                b = self.builtin_complexities.get(func_node.attr, {'time': 'O(1)', 'space': 'O(1)'})
+                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
+            elif func_node.attr in self.builtin_complexities:
+                b = self.builtin_complexities[func_node.attr]
+                self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
             else: 
                 self.record_line(node, time_override=None, space_override=None)
         
