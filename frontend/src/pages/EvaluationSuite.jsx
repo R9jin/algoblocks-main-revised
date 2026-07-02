@@ -357,6 +357,43 @@ export default function EvaluationSuite() {
     return <span className="f1-poor">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
   };
 
+  const processReport = (report) => {
+    if (!report || !report.perClass) return report;
+    const newPerClass = { ...report.perClass };
+
+    const mergeKeys = (sourceKey, targetKey) => {
+      if (newPerClass[sourceKey]) {
+        const source = newPerClass[sourceKey];
+        const target = newPerClass[targetKey] || { precision: 0, recall: 0, f1Score: 0, support: 0 };
+        
+        const totalSupport = source.support + target.support;
+        if (totalSupport > 0) {
+          target.precision = ((source.precision * source.support) + (target.precision * target.support)) / totalSupport;
+          target.recall = ((source.recall * source.support) + (target.recall * target.support)) / totalSupport;
+          target.f1Score = ((source.f1Score * source.support) + (target.f1Score * target.support)) / totalSupport;
+        }
+        target.support = totalSupport;
+        
+        newPerClass[targetKey] = target;
+        delete newPerClass[sourceKey];
+      }
+    };
+
+    // Fulfill frontend merging and renaming requirements
+    mergeKeys("O(exponential)", "O(2^n)");
+    mergeKeys("O(v)", "O(V)");
+
+    if (newPerClass["O(quartic)"]) {
+      newPerClass["O(n^4)"] = newPerClass["O(quartic)"];
+      delete newPerClass["O(quartic)"];
+    }
+
+    return { ...report, perClass: newPerClass };
+  };
+
+  const processedTimeReport = results?.timeReport ? processReport(results.timeReport) : null;
+  const processedSpaceReport = results?.spaceReport ? processReport(results.spaceReport) : null;
+
   return (
     <div className="eval-suite-container">
       
@@ -832,7 +869,7 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {results && results.timeReport && results.spaceReport && (
+        {processedTimeReport && processedSpaceReport && (
           <div className="eval-sklearn-container">
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
@@ -857,15 +894,15 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall ⓘ</th>
-                      <th title="Harmonic Mean Balance">F1-Score ⓘ</th>
-                      <th title="Ground truth dataset count">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.keys(results.timeReport.perClass).map((cKey) => {
-                      const row = results.timeReport.perClass[cKey];
+                    {Object.keys(processedTimeReport.perClass).map((cKey) => {
+                      const row = processedTimeReport.perClass[cKey];
                       return (
                         <tr key={`time_${cKey}`}>
                           <td className="td-class-code">{cKey}</td>
@@ -886,16 +923,16 @@ export default function EvaluationSuite() {
                     </tr>
                     <tr>
                       <td>macro avg</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.precision)}</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.recall)}</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.precision)}</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.recall)}</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
@@ -911,15 +948,15 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall ⓘ</th>
-                      <th title="Harmonic Mean Balance">F1-Score ⓘ</th>
-                      <th title="Ground truth dataset count">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.keys(results.spaceReport.perClass).map((cKey) => {
-                      const row = results.spaceReport.perClass[cKey];
+                    {Object.keys(processedSpaceReport.perClass).map((cKey) => {
+                      const row = processedSpaceReport.perClass[cKey];
                       return (
                         <tr key={`space_${cKey}`}>
                           <td className="td-class-code">{cKey}</td>
@@ -940,16 +977,16 @@ export default function EvaluationSuite() {
                     </tr>
                     <tr>
                       <td>macro avg</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.precision)}</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.recall)}</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.precision)}</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.recall)}</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
@@ -1090,7 +1127,7 @@ export default function EvaluationSuite() {
                                           {lineItem.hasGroundTruth && lineItem.expTime ? (
                                             <div className="dual-comp-badge">
                                               <span className="comp-exp">Exp: <strong>{lineItem.expTime}</strong></span>
-                                              <span className="comp-arrow">→</span>
+                                              <span className="comp-arrow">&rarr;</span>
                                               <span className={`comp-act ${lineItem.isTimeMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predTime}</span>
                                             </div>
                                           ) : (
@@ -1102,7 +1139,7 @@ export default function EvaluationSuite() {
                                           {lineItem.hasGroundTruth && lineItem.expSpace ? (
                                             <div className="dual-comp-badge">
                                               <span className="comp-exp">Exp: <strong>{lineItem.expSpace}</strong></span>
-                                              <span className="comp-arrow">→</span>
+                                              <span className="comp-arrow">&rarr;</span>
                                               <span className={`comp-act ${lineItem.isSpaceMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predSpace}</span>
                                             </div>
                                           ) : (

@@ -1,3 +1,4 @@
+# evaluation_metrics.py
 import json
 import csv
 import sys
@@ -46,32 +47,34 @@ EQUIVALENCE_MAP = {
     "O(1) amortized": "O(1)",
     "O(V)": "O(V + E)",
     "O(n^0.5)": "O(sqrt n)",
-    "O(V + E)": "O(V + E)"
+    "O(V + E)": "O(V + E)",
+    "O(exponential)": "O(2^n)",
+    "O(quartic)": "O(n^4)"
 }
 
 def normalize_complexity(c):
     if not c: return "O(1)"
-    c = c.lower().strip().replace(" ", "")
+    c = str(c).lower().strip().replace(" ", "")
     
     # Strip outer O(...) for easier mapping
     if c.startswith("o(") and c.endswith(")"):
         c = c[2:-1]
         
-    if c in ("1", "constant"): return "O(1)"
-    if c in ("n", "linear"): return "O(n)"
-    if c in ("n^2", "quadratic"): return "O(n^2)"
-    if c in ("n^3", "cubic"): return "O(n^3)"
-    if c in ("n^4", "quartic"): return "O(n^4)"
-    if c in ("nlogn", "n*logn", "log(n)*n"): return "O(n log n)"
-    if c in ("logn", "log(n)", "log"): return "O(log n)"
-    if c in ("sqrtn", "sqrt(n)", "sqrt", "n^0.5"): return "O(sqrt n)"
-    if c in ("v+e", "e+v", "v", "e"): return "O(V + E)"
-    if c in ("n*m", "nm", "m*n"): return "O(n^2)"
-    if c in ("n^2logn", "n*n*logn"): return "O(n^2 log n)"
-    if c in ("n!", "factorial"): return "O(n!)"
-    if c in ("n*n!",): return "O(n * n!)"
-    if c in ("2^n", "exponential"): return "O(2^n)"
-    if c in ("3^n",): return "O(3^n)"
+    if c in ("1", "constant", "o(1)"): return "O(1)"
+    if c in ("n", "linear", "o(n)"): return "O(n)"
+    if c in ("n^2", "quadratic", "o(n^2)"): return "O(n^2)"
+    if c in ("n^3", "cubic", "o(n^3)"): return "O(n^3)"
+    if c in ("n^4", "quartic", "o(n^4)"): return "O(n^4)"
+    if c in ("nlogn", "n*logn", "log(n)*n", "o(nlogn)"): return "O(n log n)"
+    if c in ("logn", "log(n)", "log", "o(logn)"): return "O(log n)"
+    if c in ("sqrtn", "sqrt(n)", "sqrt", "n^0.5", "o(sqrtn)"): return "O(sqrt n)"
+    if c in ("v+e", "e+v", "v", "e", "o(v+e)"): return "O(V + E)"
+    if c in ("n*m", "nm", "m*n", "o(n*m)"): return "O(n^2)"
+    if c in ("n^2logn", "n*n*logn", "o(n^2logn)"): return "O(n^2 log n)"
+    if c in ("n!", "factorial", "o(n!)"): return "O(n!)"
+    if c in ("n*n!", "o(n*n!)"): return "O(n * n!)"
+    if c in ("2^n", "exponential", "o(2^n)", "o(exponential)"): return "O(2^n)"
+    if c in ("3^n", "o(3^n)"): return "O(3^n)"
     
     return f"O({c})"
 
@@ -259,10 +262,10 @@ def calculate_metrics(injected_dataset=None):
                                 f"Code Snippet:\n{code_snippet[:300]}...\n{'-'*60}")
 
         y_true_time.append(expected_time)
-        y_pred_time.append(EQUIVALENCE_MAP.get(actual_time, actual_time))
+        y_pred_time.append(normalize_complexity(EQUIVALENCE_MAP.get(actual_time, actual_time)))
         
         y_true_space.append(expected_space)
-        y_pred_space.append(EQUIVALENCE_MAP.get(actual_space, actual_space))
+        y_pred_space.append(normalize_complexity(EQUIVALENCE_MAP.get(actual_space, actual_space)))
 
         details_list.append({
             "id": item.get('id', f"case_{index}"),
