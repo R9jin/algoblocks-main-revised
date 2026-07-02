@@ -4515,6 +4515,7 @@ if __name__ == ""__main__"":
     print(query(7, 8))
      
 # This code is contributed by Rituraj Jain,nlogn,nlogn,,",,
+"",,
 "# Python program to find total 
 # count of an element in a range
  
@@ -13151,6 +13152,7 @@ matrix = [['O', 'O', 'O', 'O', 'G'],
 findDistance(matrix)
  
 # This code is contributed by mohit kumar 29,quadratic,quadratic,,",,
+"",,
 "# Python3 code to check if
 # cyclic order is possible
 # among strings under given
@@ -13321,6 +13323,7 @@ if __name__ == '__main__':
     selectKcities(n, weights, k)
  
 # This code is contributed by mohit kumar 29.,linear,quadratic,,",,
+"",,
 "# Python 3 program to find whether an array
 # is subset of another array
  
@@ -19506,6 +19509,7 @@ n = len(arr)
 print(countNum(arr, n))
  
 # This code is contributed by Sam007,constant,nlogn,,",,
+"",,
 "# Python 3 program to calculate sum of
 # lengths of subarrays of distinct elements.
  
@@ -19855,6 +19859,7 @@ if __name__ == ""__main__"":
     n = len(arr)
     findFibSubset(arr, n)      
  # This code is contributed by Rajat Kumar (GLA University),constant,linear,,",,
+"",,
 "# A brute force approach based Python3 program to
 # find if there is a rectangle with 1 as corners.
  
@@ -27198,6 +27203,8 @@ for i in range(N):
  
 # This code is contributed
 # by Anant Agarwal.,quadratic,quadratic,,",,
+"",,
+"",,
 "# A Dynamic Programming based Python3 program to
 # count paths with exactly 'k' coins
 R = 3
@@ -27363,6 +27370,7 @@ print(""Minimum Initial Points Required:"",
  
 # This code is contributed by
 # Mohit kumar 29 (IIIT gwalior),quadratic,quadratic,,",,
+"",,
 "# Python3 program to demonstrate working of LIFO
  
 # Pushing element on the top of the stack
@@ -41588,6 +41596,7 @@ n = len(arr);
 print(addBinary(arr, n));
      
 # This code is contributed by mits,linear,quadratic,,",,
+"",,
 "# Python3 program to print nth permutation
 # with using next_permute()
  
