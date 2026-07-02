@@ -1,569 +1,7 @@
 ﻿--- PROJECT SNAPSHOT (PART 8 OF 10) ---
 
---- TIMESTAMP: 2026-06-29 19:49:54 ---
+--- TIMESTAMP: 2026-07-02 22:13:03 ---
 
-
---- FILE: frontend/src/components/PythonCodeEditor.jsx ---
-
-// frontend/src/components/PythonCodeEditor.jsx
-import Editor from "@monaco-editor/react";
-import { handleEditorWillMount } from "../utils/asymptoticParser.jsx";
-import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
-
-export default function PythonCodeEditor({
-  viewMode = "workspace",
-  pythonCode = "",
-  isEditingCode = false,
-  syntaxErrors = [],
-  onSyncToBlocks,
-  onChangeCode,
-  onMountEditor
-}) {
-  const hasSyntaxErrors = syntaxErrors && syntaxErrors.length > 0;
-
-  return (
-    <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"}>
-      <div className="python-header">
-        <span className="python-sync-status">
-          {isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}
-        </span>
-        <button
-          onClick={onSyncToBlocks}
-          disabled={!isEditingCode || hasSyntaxErrors}
-          className={`python-sync-btn ${isEditingCode && !hasSyntaxErrors ? "active" : "disabled"}`}
-        >
-          Sync to Blocks
-        </button>
-      </div>
-
-      <div className="editor-wrapper">
-        <Editor
-          height="100%"
-          language="python"
-          theme="algoblocks-light"
-          beforeMount={handleEditorWillMount}
-          onMount={onMountEditor}
-          value={pythonCode}
-          onChange={onChangeCode}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 15,
-            fontFamily: "Consolas, 'Courier New', monospace",
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            padding: { top: 16 }
-          }}
-        />
-        <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
-      </div>
-    </div>
-  );
-}
-
---- FILE: frontend/src/components/TestCaseTester.jsx ---
-
-import { useEffect, useRef, useState } from "react";
-import { FiCheckCircle, FiChevronDown, FiClock, FiCpu, FiLock, FiPlay, FiXCircle } from "react-icons/fi";
-import "../styles/TestCaseTester.css";
-
-// Helper copied from original formatters/utils logic to accurately grade complexity tests
-const getComplexityWeight = (complexity) => {
-  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
-  if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
-  if (comp.includes("2^n") || comp.includes("2â¿") || comp.includes("t(n-1)+t(n-2)")) return 8;
-  if (comp.includes("n^3") || comp.includes("nÂ³")) return 7;
-  if (comp.includes("n^2") || comp.includes("nÂ²") || comp.includes("t(n-1)+o(n)")) return 6;
-  if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 5;
-  if (comp.includes("v+e")) return 4.5;
-  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;
-  if (comp.includes("âˆšn") || comp.includes("sqrt")) return 3;
-  if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
-  if (comp.includes("o(1)")) return 1;
-  return 0;
-};
-
-export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(n)", targetSpace = "O(n)", onTestComplete }) {
-  const [results, setResults] = useState([]);
-  const [isTesting, setIsTesting] = useState(false);
-  const [error, setError] = useState(null);
-  const [analysisData, setAnalysisData] = useState(null);
-  const [expandedTests, setExpandedTests] = useState({});
-  const workerRef = useRef(null);
-
-  useEffect(() => {
-    // Initialize the Web Worker
-    workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url));
-
-    workerRef.current.onmessage = (event) => {
-      const { type, results: workerResults, error: workerError, data } = event.data;
-      
-      if (type === "ANALYZE_RESULT") {
-        setAnalysisData(data);
-        const formattedTestCases = testCases.map(tc => ({
-          ...tc,
-          input: tc.call || tc.input,
-          call: tc.call || tc.input 
-        }));
-        
-        // After analysis is complete, trigger the actual run tests
-        workerRef.current.postMessage({
-          type: "RUN_TESTS", 
-          code: pythonCode,
-          testCases: formattedTestCases
-        });
-      } else if (type === "TEST_RESULTS") {
-        
-        // Segregate original tests to inject the complexity checks inside
-        const visibleTests = workerResults.filter(r => !r.isHidden);
-        const hiddenTests = workerResults.filter(r => r.isHidden);
-
-        const actualTime = analysisData?.total || "O(1)";
-        const actualSpace = analysisData?.space_total || "O(1)";
-
-        const actualTimeWeight = getComplexityWeight(actualTime);
-        const targetTimeWeight = getComplexityWeight(targetTime);
-        const timePassed = actualTimeWeight > 0 && actualTimeWeight <= targetTimeWeight;
-
-        const actualSpaceWeight = getComplexityWeight(actualSpace);
-        const targetSpaceWeight = getComplexityWeight(targetSpace);
-        const spacePassed = actualSpaceWeight > 0 && actualSpaceWeight <= targetSpaceWeight;
-
-        const compTests = [
-          { isComplexityTest: true, isTime: true, title: "Time Complexity Check", expected: `â‰¤ ${targetTime}`, actual: actualTime, passed: timePassed, isHidden: false, call: "Static Code Analysis" },
-          { isComplexityTest: true, isTime: false, title: "Space Complexity Check", expected: `â‰¤ ${targetSpace}`, actual: actualSpace, passed: spacePassed, isHidden: false, call: "Static Code Analysis" }
-        ];
-
-        // Ensure array conforms to layout: regular, complexity, then hidden tests
-        const finalResults = [...visibleTests, ...compTests, ...hiddenTests];
-
-        setResults(finalResults);
-        setIsTesting(false);
-        // Reset expansions on new test run
-        setExpandedTests({});
-        
-        const passedCount = finalResults.filter(r => r.passed).length;
-        if (onTestComplete) {
-          onTestComplete(passedCount, finalResults.length);
-        }
-
-      } else if (type === "ERROR") {
-        setError(workerError);
-        setIsTesting(false);
-      }
-    };
-
-    return () => {
-      if (workerRef.current) workerRef.current.terminate();
-    };
-  }, [onTestComplete, pythonCode, testCases, targetTime, targetSpace, analysisData]);
-
-  const handleRunTests = () => {
-    if (!pythonCode || !testCases || testCases.length === 0) return;
-    
-    setIsTesting(true);
-    setError(null);
-    setResults([]);
-
-    // Chain starts with analysis (to get accurate BigO targets) then flows automatically to Run Tests inside the message handler
-    workerRef.current.postMessage({
-      type: "ANALYZE_CODE",
-      code: pythonCode
-    });
-  };
-
-  const toggleTest = (index) => {
-    setExpandedTests(prev => ({ ...prev, [index]: !prev[index] }));
-  };
-
-  const getTestIcon = (res) => {
-    if (res.isHidden) return <FiLock className="tct-icon locked" />;
-    if (res.isComplexityTest) {
-      return res.isTime ? <FiClock className={`tct-icon ${res.passed ? 'passed' : 'failed'}`} /> 
-                        : <FiCpu className={`tct-icon ${res.passed ? 'passed' : 'failed'}`} />;
-    }
-    return res.passed ? <FiCheckCircle className="tct-icon passed" /> : <FiXCircle className="tct-icon failed" />;
-  };
-
-  const passedCount = results.filter(r => r.passed).length;
-  const totalCount = results.length;
-
-  return (
-    <div className="tct-container">
-      <div className="tct-header">
-        <div className="tct-header-title">
-          <h3>Test Cases</h3>
-          {totalCount > 0 && !isTesting && (
-            <span className={`tct-counter ${passedCount === totalCount ? 'perfect' : ''}`}>
-              {passedCount}/{totalCount} Passed
-            </span>
-          )}
-        </div>
-        <button 
-          className={`tct-run-btn ${isTesting ? 'running' : ''}`} 
-          onClick={handleRunTests} 
-          disabled={isTesting || !pythonCode}
-        >
-          <FiPlay /> {isTesting ? "Evaluating..." : "Run Tests"}
-        </button>
-      </div>
-
-      {error && (
-        <div className="tct-error-banner">
-          <strong>Execution Error:</strong>
-          <p>{error}</p>
-        </div>
-      )}
-
-      <div className="tct-results-list">
-        {results.length === 0 && !isTesting && !error && (
-          <div className="tct-empty-state">
-            <FiPlay size={32} className="tct-empty-icon" />
-            <p>Click "Run Tests" to evaluate your code against the required conditions.</p>
-          </div>
-        )}
-
-        {results.map((res, index) => {
-          const displayTitle = res.isComplexityTest ? res.title : res.isHidden ? `Hidden Test` : `Test Case ${index + 1}`;
-          const isExpanded = expandedTests[index];
-          const statusClass = res.passed ? "passed" : "failed";
-
-          return (
-            <div key={index} className={`tct-card ${statusClass}`}>
-              <div 
-                className="tct-card-header" 
-                onClick={() => !res.isHidden && toggleTest(index)}
-                style={{ cursor: res.isHidden ? "default" : "pointer" }}
-              >
-                <div className="tct-card-title-group">
-                  {getTestIcon(res)}
-                  <strong className={`tct-card-title ${statusClass}`}>{displayTitle}</strong>
-                </div>
-                
-                <div className="tct-card-status-group">
-                  {res.isHidden && <span className="tct-hidden-badge">Locked</span>}
-                  {!res.isHidden && (
-                    <FiChevronDown className={`tct-chevron ${isExpanded ? 'open' : ''} ${statusClass}`} />
-                  )}
-                </div>
-              </div>
-              
-              {isExpanded && !res.isHidden && (
-                <div className="tct-card-body">
-                  <div className="tct-detail-row">
-                    <span className="tct-detail-label">{res.isComplexityTest ? "Metric Constraint:" : "Input:"}</span>
-                    <code className="tct-detail-code">{res.call || res.input || "No Input"}</code>
-                  </div>
-                  <div className="tct-detail-row">
-                    <span className="tct-detail-label">{res.isComplexityTest ? "Requirement:" : "Expected Output:"}</span>
-                    <code className="tct-detail-code">{res.expected}</code>
-                  </div>
-                  <div className="tct-detail-row status-row">
-                    <span className="tct-detail-label">Result:</span>
-                    <span className={`tct-detail-status ${statusClass}`}>
-                       {res.passed ? "Passed" : res.error ? "Failed (Execution Error)" : "Failed (Incorrect Output)"}
-                    </span>
-                  </div>
-                  
-                  {(!res.passed || res.error) && (
-                    <div className="tct-detail-row error-row">
-                       <span className="tct-detail-label">{res.isComplexityTest ? "Your Assessment:" : "Your Output:"}</span>
-                       <pre className={`tct-error-output ${res.error ? "has-error" : ""}`}>
-                         {res.error ? res.error : (res.actual !== undefined ? res.actual : "No Output")}
-                       </pre>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
---- FILE: frontend/src/components/UserHeader.jsx ---
-
-// frontend/src/components/UserHeader.jsx
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  LuActivity,
-  LuFolder,
-  LuLayoutDashboard,
-  LuLogOut,
-  LuUser
-} from "react-icons/lu";
-import { useNavigate } from "react-router-dom";
-import "../styles/UserHeader.css";
-import { startBackgroundSync } from "../utils/syncManager.js";
-import LogoutConfirmModal from "./LogoutConfirmModal";
-
-// FIX: Added onLogoutClick to the component props
-export default function UserHeader({ user, onLogoutClick }) {
-  const [open, setOpen] = useState(false);
-  const [showLogout, setShowLogout] = useState(false);
-  const menuRef = useRef(null);
-  const navigate = useNavigate();
-
-  const isAdmin = user?.isAdmin === true || user?.role === "admin";
-
-  const initials = useMemo(() => {
-    const parts = (user?.name || "User").trim().split(/\s+/);
-    const a = parts[0]?.[0] || "U";
-    const b = parts.length > 1 ? parts[parts.length - 1][0] : "";
-    return (a + b).toUpperCase();
-  }, [user?.name]);
-
-  useEffect(() => {
-    const onDocClick = (e) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-
-    const onEsc = (e) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onEsc);
-
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, []);
-
-  const handleLogout = () => {
-    if (navigator.onLine) {
-      startBackgroundSync().catch(console.error);
-    }
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.replace("/");
-  };
-
-  return (
-    <>
-      <nav className="landing-nav">
-        <div
-          className="logo-container"
-          onClick={() => navigate("/")}
-          style={{ cursor: "pointer" }}
-        >
-          <img
-            src="/assets/algoblocks_logo.png"
-            alt="AlgoBlocks Logo"
-            className="logo-img"
-          />
-          <h1 className="logo-text user-header-logo-text" style={{ color: "#EBE4FF" }}>
-            ALGOBLOCKS
-          </h1>
-        </div>
-
-        <div className="nav-links">
-          <div className="user-menu" ref={menuRef}>
-            <button
-              type="button"
-              className="user-menu-btn"
-              onClick={() => setOpen((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={open}
-            >
-              <span className="user-avatar" aria-hidden="true">
-                {initials}
-              </span>
-            </button>
-
-            {open && (
-              <div className="user-dropdown" role="menu">
-                <div className="user-dropdown-head">
-                  <div className="dropdown-avatar" aria-hidden="true">
-                    {initials}
-                  </div>
-                  <div className="user-name">
-                    {user?.name || "User"}
-                  </div>
-                  <div className="user-email">
-                    {user?.email || ""}
-                  </div>
-                </div>
-
-                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/profile"); }} role="menuitem">
-                  <LuUser size={18} aria-hidden="true" /> My Profile
-                </button>
-                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/dashboard"); }} role="menuitem">
-                  <LuLayoutDashboard size={18} aria-hidden="true" /> Go to Dashboard
-                </button>
-                <button type="button" className="user-dd-item" onClick={() => { setOpen(false); navigate("/projects"); }} role="menuitem">
-                  <LuFolder size={18} aria-hidden="true" /> Projects
-                </button>
-                
-                {isAdmin && (
-                  <>
-                    <div className="user-dd-divider" />
-                    <button 
-                      type="button" 
-                      className="user-dd-item" 
-                      style={{ color: "#10B981", fontWeight: "bold" }}
-                      onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
-                      role="menuitem"
-                    >
-                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
-                    </button>
-                  </>
-                )}
-
-                <div className="user-dd-divider" />
-                
-                {/* FIX: Trigger the parent prop if it exists, otherwise use fallback */}
-                <button 
-                  type="button" 
-                  className="user-dd-item danger" 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setOpen(false); 
-                    if (onLogoutClick) {
-                      onLogoutClick(); 
-                    } else {
-                      setShowLogout(true);
-                    }
-                  }} 
-                  role="menuitem"
-                >
-                  <LuLogOut size={18} aria-hidden="true" /> Sign Out
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {/* Fallback modal for pages that don't pass onLogoutClick */}
-      <LogoutConfirmModal isOpen={showLogout} onClose={() => setShowLogout(false)} onLogoutClick={handleLogout} />
-    </>
-  );
-}
-
---- FILE: frontend/src/components/WorkspaceFooterBar.jsx ---
-
-// frontend/src/components/WorkspaceFooterBar.jsx
-import { FiActivity, FiBookOpen, FiTerminal } from "react-icons/fi";
-
-export default function WorkspaceFooterBar({
-  bottomPanel,
-  onTogglePanel,
-  onOpenBigOModal,
-  children
-}) {
-  return (
-    <footer className="workspace-footer">
-      <div className="footer-left">
-        <button className={`footer-tab ${bottomPanel === "console" ? "active" : ""}`} onClick={() => onTogglePanel("console")}>
-          <FiTerminal size={16} /> Console
-        </button>
-        <button className={`footer-tab ${bottomPanel === "complexity" ? "active" : ""}`} onClick={() => onTogglePanel("complexity")}>
-          <FiActivity size={16} /> Complexity
-        </button>
-        <button className="footer-tab big-o-btn" onClick={onOpenBigOModal}>
-          <FiBookOpen size={16} /> Big O Reference
-        </button>
-      </div>
-      <div className="footer-right">
-        {children}
-      </div>
-    </footer>
-  );
-}
-
---- FILE: frontend/src/components/WorkspaceHeader.jsx ---
-
-// frontend/src/components/WorkspaceHeader.jsx
-import { FiArrowLeft, FiCode, FiDownload, FiGrid, FiPlay, FiSave, FiUpload } from "react-icons/fi";
-import { Link } from "react-router-dom";
-import "../styles/MainApp.css";
-
-export default function WorkspaceHeader({
-  viewMode,
-  setViewMode,
-  runCode,
-  handleExport,
-  handleImport,
-  handleSaveToDB,
-  currentProjectTitle,
-  isEvaluating,
-  isAdmin,
-  isGuest
-}) {
-  return (
-    <header className="workspace-header-purple">
-      <div className="wh-left">
-        <Link to="/dashboard" className="wh-back-btn">
-          <FiArrowLeft size={18} />
-          <span>Dashboard</span>
-        </Link>
-        <div className="wh-divider"></div>
-        <h2 className="wh-project-title">
-          {currentProjectTitle || "Untitled Project"}
-        </h2>
-      </div>
-
-      <div className="wh-center">
-        <div className="wh-view-toggle">
-          <button 
-            className={`wh-toggle-btn ${viewMode === 'workspace' ? 'active' : ''}`}
-            onClick={() => setViewMode('workspace')}
-          >
-            <FiGrid size={16} /> Blocks
-          </button>
-          <button 
-            className={`wh-toggle-btn ${viewMode === 'python' ? 'active' : ''}`}
-            onClick={() => setViewMode('python')}
-          >
-            <FiCode size={16} /> Python
-          </button>
-        </div>
-      </div>
-
-      <div className="wh-right">
-        {!isGuest && (
-          <div className="wh-file-actions">
-            <button className="wh-action-icon" onClick={handleExport} title="Export JSON">
-              <FiDownload size={18} />
-            </button>
-            <label className="wh-action-icon" title="Import JSON">
-              <FiUpload size={18} />
-              <input 
-                type="file" 
-                accept=".json" 
-                style={{ display: "none" }} 
-                onChange={handleImport} 
-              />
-            </label>
-          </div>
-        )}
-
-        {!isGuest && (
-          <button className="wh-btn-save" onClick={handleSaveToDB}>
-            <FiSave size={16} /> Save
-          </button>
-        )}
-
-        <button 
-          className={`wh-btn-run ${isEvaluating ? 'running' : ''}`} 
-          onClick={runCode}
-          disabled={isEvaluating}
-        >
-          <FiPlay size={16} fill={isEvaluating ? "transparent" : "currentColor"} /> 
-          {isEvaluating ? "Running..." : "Run Code"}
-        </button>
-      </div>
-    </header>
-  );
-}
 
 --- FILE: frontend/src/context/PyodideContext.jsx ---
 
@@ -3645,22 +3083,29 @@ export default function EvaluationSuite() {
       if (rows.length < 2) return [];
       
       const headers = rows[0].map(h => h.trim());
-      const codeIdx = headers.indexOf('code');
+      const codeIdx = headers.indexOf('code') !== -1 ? headers.indexOf('code') : 0;
       const spaceIdx = headers.indexOf('space_complexity');
       const timeIdx = headers.indexOf('time_complexity');
       
       const dataset = [];
-      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'n*m'];
+      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', 'n*n!', 'factorial'];
 
       for (let i = 1; i < rows.length; i++) {
-        if (rows[i].length < headers.length) continue; 
+        // Robust malformed CSV check (Allows row length 1 to trigger fallback split)
+        if (!rows[i] || rows[i].length === 0 || (rows[i].length === 1 && !rows[i][0].trim())) continue; 
         
-        let codeText = rows[i][codeIdx] || '';
-        let spaceComp = rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
-        let timeComp = rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
+        let codeText = rows[i][codeIdx] !== undefined ? rows[i][codeIdx] : (rows[i][0] || '');
+        let spaceComp = spaceIdx !== -1 && rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
+        let timeComp = timeIdx !== -1 && rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
         
         if (!spaceComp && !timeComp && codeText.includes(',')) {
            const parts = codeText.split(',');
+           
+           // Clean up trailing empty columns from excel save bloat
+           while (parts.length > 0 && !parts[parts.length - 1].replace(/"/g, '').trim()) {
+               parts.pop();
+           }
+
            if (parts.length >= 3) {
                let possibleTime = parts[parts.length - 1].trim().replace(/"/g, '').toLowerCase();
                let possibleSpace = parts[parts.length - 2].trim().replace(/"/g, '').toLowerCase();
@@ -3730,17 +3175,35 @@ export default function EvaluationSuite() {
 
   const downloadFailuresLog = (details) => {
     const mismatches = details.filter(d => !d.isCompletelyCorrect);
-    let logText = "=== EVALUATION FAILURES LOG ===\n\n";
     
     if (mismatches.length === 0) {
-        logText += "No mismatches found. Perfect accuracy!\n";
-    } else {
-        mismatches.forEach(m => {
+        let logText = "=== EVALUATION FAILURES LOG ===\n\nNo mismatches found. Perfect accuracy!\n";
+        const blob = new Blob([logText], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "evaluation_failures_log.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+    }
+
+    const numChunks = 7;
+    const chunkSize = Math.ceil(mismatches.length / numChunks);
+    
+    for (let i = 0; i < numChunks; i++) {
+        const chunk = mismatches.slice(i * chunkSize, (i + 1) * chunkSize);
+        if (chunk.length === 0) continue;
+
+        let logText = `=== EVALUATION FAILURES LOG (Part ${i + 1}) ===\n\n`;
+        
+        chunk.forEach(m => {
             logText += `[${m.id} - ${m.name}]\n`;
             logText += `Time Expected: ${m.expectedTime} | Actual: ${m.predictedTime}\n`;
             logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
-            logText += `Diagnostic Explanation: ${m.explanation}\n`;
-            logText += `Code Snippet:\n${m.codeSnippet.slice(0, 300)}...\n`;
+            logText += `Full Code:\n${m.codeSnippet}\n`;
             if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
               logText += `\nLine Level Mismatches:\n`;
               m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
@@ -3749,17 +3212,19 @@ export default function EvaluationSuite() {
             }
             logText += `${'-'.repeat(60)}\n\n`;
         });
+
+        setTimeout(() => {
+            const blob = new Blob([logText], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `evaluation_failures_log_part_${i + 1}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, i * 500); 
     }
-    
-    const blob = new Blob([logText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "evaluation_failures_log.txt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const filteredDetails = (results?.details || []).filter((item) => {
@@ -3797,6 +3262,43 @@ export default function EvaluationSuite() {
     if (s >= 0.40) return <span className="f1-warning">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
     return <span className="f1-poor">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
   };
+
+  const processReport = (report) => {
+    if (!report || !report.perClass) return report;
+    const newPerClass = { ...report.perClass };
+
+    const mergeKeys = (sourceKey, targetKey) => {
+      if (newPerClass[sourceKey]) {
+        const source = newPerClass[sourceKey];
+        const target = newPerClass[targetKey] || { precision: 0, recall: 0, f1Score: 0, support: 0 };
+        
+        const totalSupport = source.support + target.support;
+        if (totalSupport > 0) {
+          target.precision = ((source.precision * source.support) + (target.precision * target.support)) / totalSupport;
+          target.recall = ((source.recall * source.support) + (target.recall * target.support)) / totalSupport;
+          target.f1Score = ((source.f1Score * source.support) + (target.f1Score * target.support)) / totalSupport;
+        }
+        target.support = totalSupport;
+        
+        newPerClass[targetKey] = target;
+        delete newPerClass[sourceKey];
+      }
+    };
+
+    // Fulfill frontend merging and renaming requirements
+    mergeKeys("O(exponential)", "O(2^n)");
+    mergeKeys("O(v)", "O(V)");
+
+    if (newPerClass["O(quartic)"]) {
+      newPerClass["O(n^4)"] = newPerClass["O(quartic)"];
+      delete newPerClass["O(quartic)"];
+    }
+
+    return { ...report, perClass: newPerClass };
+  };
+
+  const processedTimeReport = results?.timeReport ? processReport(results.timeReport) : null;
+  const processedSpaceReport = results?.spaceReport ? processReport(results.spaceReport) : null;
 
   return (
     <div className="eval-suite-container">
@@ -4140,7 +3642,7 @@ export default function EvaluationSuite() {
           </div>
         </div>
 
-        {results && results.totalLinesTested > 0 && (
+        {results && results.totalLinesTested >= 0 && (
           <div className="eval-status-banner line-stats-banner">
             <div className="eval-status-group">
               <FiLayers style={{ color: "#7928CA" }} size={20} />
@@ -4152,11 +3654,11 @@ export default function EvaluationSuite() {
             <div className="eval-status-group" style={{ gap: "24px" }}>
               <div>
                 <span className="eval-status-label-sm">Line Time Acc: </span>
-                <strong style={{ color: "#10B981", fontSize: "16px" }}>{((results.lineTimePassed / results.totalLinesTested) * 100).toFixed(1)}%</strong>
+                <strong style={{ color: "#10B981", fontSize: "16px" }}>{results.totalLinesTested > 0 ? ((results.lineTimePassed / results.totalLinesTested) * 100).toFixed(1) : "0.0"}%</strong>
               </div>
               <div>
                 <span className="eval-status-label-sm">Line Space Acc: </span>
-                <strong style={{ color: "#0EA5E9", fontSize: "16px" }}>{((results.lineSpacePassed / results.totalLinesTested) * 100).toFixed(1)}%</strong>
+                <strong style={{ color: "#0EA5E9", fontSize: "16px" }}>{results.totalLinesTested > 0 ? ((results.lineSpacePassed / results.totalLinesTested) * 100).toFixed(1) : "0.0"}%</strong>
               </div>
             </div>
           </div>
@@ -4273,7 +3775,7 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {results && results.timeReport && results.spaceReport && (
+        {processedTimeReport && processedSpaceReport && (
           <div className="eval-sklearn-container">
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
@@ -4298,15 +3800,15 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision â“˜</th>
-                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall â“˜</th>
-                      <th title="Harmonic Mean Balance">F1-Score â“˜</th>
-                      <th title="Ground truth dataset count">Support â“˜</th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.keys(results.timeReport.perClass).map((cKey) => {
-                      const row = results.timeReport.perClass[cKey];
+                    {Object.keys(processedTimeReport.perClass).map((cKey) => {
+                      const row = processedTimeReport.perClass[cKey];
                       return (
                         <tr key={`time_${cKey}`}>
                           <td className="td-class-code">{cKey}</td>
@@ -4327,16 +3829,16 @@ export default function EvaluationSuite() {
                     </tr>
                     <tr>
                       <td>macro avg</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.precision)}</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.recall)}</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.precision)}</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.recall)}</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
@@ -4352,15 +3854,15 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision â“˜</th>
-                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall â“˜</th>
-                      <th title="Harmonic Mean Balance">F1-Score â“˜</th>
-                      <th title="Ground truth dataset count">Support â“˜</th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.keys(results.spaceReport.perClass).map((cKey) => {
-                      const row = results.spaceReport.perClass[cKey];
+                    {Object.keys(processedSpaceReport.perClass).map((cKey) => {
+                      const row = processedSpaceReport.perClass[cKey];
                       return (
                         <tr key={`space_${cKey}`}>
                           <td className="td-class-code">{cKey}</td>
@@ -4381,16 +3883,16 @@ export default function EvaluationSuite() {
                     </tr>
                     <tr>
                       <td>macro avg</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.precision)}</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.recall)}</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.precision)}</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.recall)}</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
@@ -4531,7 +4033,7 @@ export default function EvaluationSuite() {
                                           {lineItem.hasGroundTruth && lineItem.expTime ? (
                                             <div className="dual-comp-badge">
                                               <span className="comp-exp">Exp: <strong>{lineItem.expTime}</strong></span>
-                                              <span className="comp-arrow">â†’</span>
+                                              <span className="comp-arrow">&rarr;</span>
                                               <span className={`comp-act ${lineItem.isTimeMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predTime}</span>
                                             </div>
                                           ) : (
@@ -4543,7 +4045,7 @@ export default function EvaluationSuite() {
                                           {lineItem.hasGroundTruth && lineItem.expSpace ? (
                                             <div className="dual-comp-badge">
                                               <span className="comp-exp">Exp: <strong>{lineItem.expSpace}</strong></span>
-                                              <span className="comp-arrow">â†’</span>
+                                              <span className="comp-arrow">&rarr;</span>
                                               <span className={`comp-act ${lineItem.isSpaceMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predSpace}</span>
                                             </div>
                                           ) : (
@@ -7646,4 +7148,1787 @@ export default function ProfilePage() {
       </div>
     </div>
   );
+}
+
+--- FILE: frontend/src/pages/Projects.jsx ---
+
+// frontend/src/pages/Projects.jsx
+import { useEffect, useState } from "react";
+import { FiChevronRight, FiClock, FiCloud, FiFileText, FiFolder, FiHardDrive, FiPlus, FiRefreshCw, FiTrash2 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import DashboardHeader from "../components/DashboardHeader";
+import { projectsDB, syncQueueDB } from "../db";
+import "../styles/Projects.css";
+import { syncManager } from "../utils/syncManager";
+
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+export default function Projects() {
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [globalSyncing, setGlobalSyncing] = useState(false);
+  const [syncState, setSyncState] = useState({ syncing: false, pendingCount: 0, lastSynced: null });
+
+  useEffect(() => {
+    loadProjects();
+    
+    const handleAutoSync = () => loadProjects();
+    const onStart = () => setGlobalSyncing(true);
+    const onEnd = () => { setGlobalSyncing(false); loadProjects(); };
+
+    window.addEventListener("online", handleAutoSync);
+    window.addEventListener("localDataSynced", handleAutoSync);
+    window.addEventListener("sync-start", onStart);
+    window.addEventListener("sync-end", onEnd);
+    return () => {
+      window.removeEventListener("online", handleAutoSync);
+      window.removeEventListener("localDataSynced", handleAutoSync);
+      window.removeEventListener("sync-start", onStart);
+      window.removeEventListener("sync-end", onEnd);
+    };
+  }, []);
+
+  const normalizeEpoch = (val) => {
+    if (!val) return Date.now();
+    if (typeof val === 'string') {
+      const parsed = new Date(val).getTime();
+      return isNaN(parsed) ? Date.now() : parsed;
+    }
+    return typeof val === 'number' && val < 10000000000 ? val * 1000 : val;
+  };
+
+  const formatDisplayDate = (val) => {
+    const ms = normalizeEpoch(val);
+    return new Date(ms).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const loadProjects = async () => {
+    try {
+      setSyncState(prev => ({ ...prev, syncing: true }));
+      const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+      if (!storedUser) {
+        setLoading(false);
+        setSyncState(prev => ({ ...prev, syncing: false }));
+        return;
+      }
+      const user = JSON.parse(storedUser);
+
+      // 1. PULL CLOUD DATA
+      if (navigator.onLine && API_BASE) {
+        try {
+          const token = localStorage.getItem("token") || sessionStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          };
+
+          const res = await fetch(`${API_BASE}/api/projects?userId=${encodeURIComponent(user.email)}`, { headers });
+          const contentType = res.headers.get("content-type") || "";
+          
+          if (res.ok && contentType.includes("application/json")) {
+            const data = await res.json();
+            let cloudProjects = Array.isArray(data?.projects) ? data.projects : (Array.isArray(data) ? data : []);
+
+            for (const cp of cloudProjects) {
+              if (cp.owner_id === user.email || cp.userId === user.email) {
+                await projectsDB.setItem(cp._id, { ...cp, synced: true, updatedAt: normalizeEpoch(cp.updatedAt || cp.updated_at) });
+              }
+            }
+          }
+        } catch (fetchErr) {
+          console.warn("Cloud pull degraded gracefully to offline storage:", fetchErr);
+        }
+      }
+
+      // 2. CHECK QUEUE COUNT
+      const queueKeys = await syncQueueDB.keys();
+      const pendingUploads = queueKeys.filter(k => k.includes("local_proj") || k.startsWith("sync_project") || k.startsWith("local_"));
+
+      // 3. READ LOCAL DB
+      const loadedProjects = [];
+      await projectsDB.iterate((value) => {
+        if (value.owner_id === user.email || value.userId === user.email) {
+          loadedProjects.push({
+            ...value,
+            updatedAt: normalizeEpoch(value.updatedAt || value.updated_at)
+          });
+        }
+      });
+
+      setProjects(loadedProjects.sort((a, b) => b.updatedAt - a.updatedAt));
+      setSyncState({ syncing: false, pendingCount: pendingUploads.length, lastSynced: new Date() });
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+      setSyncState(prev => ({ ...prev, syncing: false }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManualTrigger = async () => {
+    setSyncState(prev => ({ ...prev, syncing: true }));
+    if (syncManager?.processSyncQueue) {
+      await syncManager.processSyncQueue();
+    }
+    await loadProjects();
+  };
+
+  const handleDeleteProject = async (e, projectId) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
+
+    try {
+      await projectsDB.removeItem(projectId);
+      if (projectId.startsWith('local_')) {
+        await syncQueueDB.removeItem(projectId);
+      } else {
+        await syncQueueDB.setItem(`delete_${projectId}`, {
+          type: 'PROJECT', action: 'DELETE', data: { _id: projectId }
+        });
+      }
+      setProjects(projects.filter(p => p._id !== projectId));
+      loadProjects();
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+    }
+  };
+
+  const isActivelySyncing = syncState.syncing || globalSyncing;
+
+  return (
+    <div className="projects-bento-layout">
+      <style>{`
+        @keyframes projSpin { 100% { transform: rotate(360deg); } }
+        .spin-anim { animation: projSpin 1s linear infinite; }
+      `}</style>
+
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+
+      <main className="projects-bento-content">
+        <div className="projects-grid-container">
+          
+          <section className="bento-hero-card projects-hero">
+            <div className="hero-text">
+              <h1 className="hero-title">My Projects</h1>
+              <p className="hero-subtitle">Manage, edit, and load your saved algorithm workspaces.</p>
+            </div>
+            <button className="hero-primary-btn" onClick={() => navigate('/workspace')}>
+              <FiPlus size={20} strokeWidth={3} />
+              <span>Blank Workspace</span>
+            </button>
+          </section>
+
+          {/* Live Sync Status Bar */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', marginBottom: '16px', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem' }}>
+              {isActivelySyncing ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60A5FA' }}>
+                  <FiRefreshCw className="spin-anim" /> Synchronizing cloud storage...
+                </span>
+              ) : (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10B981' }}>
+                  <FiCloud /> Storage up to date {syncState.lastSynced && `(${syncState.lastSynced.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`}
+                </span>
+              )}
+
+              {syncState.pendingCount > 0 && (
+                <span style={{ background: '#F59E0B', color: '#000', padding: '2px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '800' }}>
+                  {syncState.pendingCount} Local Pending
+                </span>
+              )}
+            </div>
+
+            <button 
+              onClick={handleManualTrigger} 
+              disabled={isActivelySyncing}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '6px 14px', borderRadius: '8px', cursor: isActivelySyncing ? 'wait' : 'pointer', fontSize: '0.82rem', fontWeight: '600' }}
+            >
+              <FiRefreshCw className={isActivelySyncing ? "spin-anim" : ""} /> Force Sync
+            </button>
+          </div>
+
+          <section className="projects-list-section">
+            {loading ? (
+              <div className="projects-loading-state">
+                <div className="spinner"></div>
+                <p>Reading workspace databases...</p>
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="projects-empty-state">
+                <div className="empty-state-icon"><FiFileText size={48} /></div>
+                <h3 className="empty-title">No projects found</h3>
+                <p className="empty-desc">You haven't saved any algorithmic workspaces to the cloud yet. Start a new blank workspace to begin building!</p>
+                <button className="empty-action-btn" onClick={() => navigate('/workspace')}>
+                  <FiPlus size={18} strokeWidth={3} /> Create First Project
+                </button>
+              </div>
+            ) : (
+              <div className="projects-bento-grid">
+                {projects.map(proj => (
+                  <div key={proj._id} className="bento-project-card" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
+                    <div className="project-card-top">
+                      <div className="project-icon-wrapper"><FiFolder size={24} /></div>
+                      <button className="btn-delete-project" title="Delete Project" onClick={(e) => handleDeleteProject(e, proj._id)}>
+                        <FiTrash2 size={18} />
+                      </button>
+                    </div>
+                    
+                    <div className="project-card-body">
+                      <h3 className="project-title">{proj.title || proj.name || "Untitled Project"}</h3>
+                      <div className="project-meta-info">
+                        <span className="meta-date">
+                          <FiClock size={14} /> {formatDisplayDate(proj.updatedAt)}
+                        </span>
+                        <span className={`sync-status ${proj.synced ? "synced" : "local"}`}>
+                          {proj.synced ? <><FiCloud size={14} /> Cloud</> : <><FiHardDrive size={14} /> Local</>}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="project-card-footer">
+                      <span className="open-text">Open Project</span>
+                      <FiChevronRight size={18} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+        </div>
+      </main>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/pages/SignIn.jsx ---
+
+// frontend/src/pages/SignIn.jsx
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
+import { useState } from "react";
+import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
+import "../styles/Auth.css";
+
+export default function SignIn() {
+  const [email, setEmail] = useState(""); 
+  const [password, setPassword] = useState(""); 
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); 
+  const [rememberMe, setRememberMe] = useState(false);
+  
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  
+  const navigate = useNavigate(); 
+
+  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID; 
+
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
+  };
+
+  const syncUserCloudData = async (userEmail, token) => {
+    try {
+      await Promise.all([
+        projectsDB.clear(),
+        templatesDB.clear(),
+        syncQueueDB.clear()
+      ]); 
+
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      };
+
+      const [projRes, tempRes] = await Promise.all([
+        fetch(`${API_BASE}/api/projects`, { headers }),
+        fetch(`${API_BASE}/api/templates`, { headers })
+      ]); 
+
+      if (projRes.ok) {
+        const projData = await projRes.json();
+        if (projData.status === 'success') {
+          for (let p of projData.projects) {
+            if (p.owner_id === userEmail) {
+              await projectsDB.setItem(p._id, { ...p, synced: true });
+            }
+          }
+        }
+      } 
+
+      if (tempRes.ok) {
+        const tempData = await tempRes.json();
+        if (tempData.status === 'success') {
+          for (let t of tempData.templates) {
+            if (t.owner_id === userEmail) {
+              await templatesDB.setItem(t._id, { ...t, synced: true });
+            }
+          }
+        }
+      } 
+    } catch (error) {
+      console.warn("Could not pull data from cloud. Proceeding with local data.", error); 
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true); 
+
+    try {
+      const response = await fetch(`${API_BASE}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      }); 
+
+      const data = await response.json(); 
+
+      if (!response.ok || data.status !== "success") {
+        showToast(data.detail || "Invalid email or password"); 
+        setIsLoading(false);
+        return;
+      }
+
+      const activeStorage = rememberMe ? localStorage : sessionStorage;
+      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+      
+      // FIX: Wipe BOTH key variations from the inactive storage to prevent leakage
+      inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
+      inactiveStorage.removeItem("user");
+
+      // FIX: Save BOTH key variations to active storage so ALL pages pass auth checks
+      activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
+      activeStorage.setItem("user", JSON.stringify({
+        email: data.email,
+        name: data.name,
+        progress: data.progress || {},
+        assessments: data.assessments || {}
+      })); 
+
+      await syncUserCloudData(data.email, data.token); 
+      navigate("/dashboard"); 
+      
+    } catch (error) {
+      console.error(error); 
+      showToast("Server not reachable. Check backend connection."); 
+    } finally {
+      setIsLoading(false); 
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsLoading(true); 
+    try {
+      await Promise.all([
+        projectsDB.clear(),
+        templatesDB.clear(),
+        syncQueueDB.clear()
+      ]); 
+
+      // FIX: Wipe ALL token keys
+      localStorage.removeItem("authToken");
+      sessionStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+
+      sessionStorage.setItem("user", JSON.stringify({
+        email: `guest_${Date.now()}@algoblocks.local`,
+        name: "Guest User",
+        isGuest: true,
+        progress: {},
+        assessments: {}
+      })); 
+
+      navigate("/dashboard"); 
+    } catch (error) {
+      console.error("Guest login failed:", error); 
+      showToast("Failed to initialize guest session.");
+    } finally {
+      setIsLoading(false); 
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.status !== "success") {
+        showToast(data.detail || "Google authentication failed");
+        return;
+      }
+
+      const activeStorage = rememberMe ? localStorage : sessionStorage;
+      const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+      
+      // FIX: Wipe BOTH key variations from inactive storage
+      inactiveStorage.removeItem("authToken");
+      inactiveStorage.removeItem("token");
+      inactiveStorage.removeItem("user");
+
+      // FIX: Save BOTH key variations so ALL pages pass auth checks
+      activeStorage.setItem("authToken", data.token);
+      activeStorage.setItem("token", data.token);
+      
+      // Save full user object to ensure offline loading functions properly
+      activeStorage.setItem("user", JSON.stringify({
+        email: data.email,
+        name: data.name,
+        progress: data.progress || {},
+        assessments: data.assessments || {}
+      }));
+
+      await syncUserCloudData(data.email, data.token);
+      navigate("/dashboard");
+      
+    } catch (error) {
+      console.error("Google Authentication error:", error);
+      showToast("Server not reachable. Check backend connection.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
+        {toast.message}
+      </div>
+
+      <div className="auth-container">
+        <div className="auth-card">
+
+          {/* ACADEMIC RESEARCH NOTICE */}
+          <div className="auth-research-banner">
+            <div className="banner-icon-wrapper">
+              <FiAlertTriangle size={18} />
+            </div>
+            <div className="banner-text">
+              <strong>Academic Research Notice</strong>
+              <p>
+                To ensure data validity for this thesis, please use <b>strictly one account</b> throughout your evaluation. 
+                Progress, assessments, and learning analytics are being actively monitored and recorded to a single ID.
+              </p>
+            </div>
+          </div>
+
+          <h2>Sign In to AlgoBlocks</h2>
+          <form onSubmit={handleSubmit}>
+            
+            <div className="form-group">
+              <label>Email</label>
+              <div className="auth-input-wrap">
+                <FiMail className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  disabled={isLoading}
+                /> 
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Password</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  disabled={isLoading}
+                  className="password-input"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+                Stay signed in
+              </label>
+            </div>
+            
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              {isLoading ? "Signing In..." : "Sign In"}
+            </button> 
+
+            <div className="social-divider">
+              <span>OR</span>
+            </div> 
+
+            <div className="google-auth-wrapper">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => showToast("Google Sign-In sequence interrupted.")}
+                theme="outline" 
+                size="large"
+                shape="rectangular"
+                text="signin_with"
+              />
+            </div>
+
+            <button
+              type="button"
+              className="auth-button guest-button"
+              onClick={handleGuestLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? "Preparing..." : "Continue as Guest"}
+            </button> 
+
+          </form>
+
+          <div className="auth-links">
+            <Link to="/forgot-password">Forgot password?</Link>
+            <p>Don't have an account? <Link to="/signup">Sign up</Link></p>
+          </div> 
+        </div>
+      </div>
+    </GoogleOAuthProvider>
+  );
+}
+
+--- FILE: frontend/src/pages/SignUp.jsx ---
+
+// frontend/src/pages/SignUp.jsx
+import { useState } from "react";
+import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import { projectsDB, syncQueueDB, templatesDB } from "../db";
+import "../styles/Auth.css";
+
+export default function SignUp() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  
+  const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
+  
+  const navigate = useNavigate();
+  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+  const showToast = (message, type = "error") => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast({ visible: false, message: "", type: "error" });
+    }, 4000);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.status === "success") {
+        const activeStorage = rememberMe ? localStorage : sessionStorage;
+        const inactiveStorage = rememberMe ? sessionStorage : localStorage;
+        
+        inactiveStorage.removeItem("authToken");
+        inactiveStorage.removeItem("token");
+        inactiveStorage.removeItem("user");
+
+        // BUG-06 Fix: Mirror both authToken and token keys
+        activeStorage.setItem("authToken", data.token);
+        activeStorage.setItem("token", data.token);
+        
+        // BUG-08 Fix: Initialize complete user schema
+        activeStorage.setItem("user", JSON.stringify({ 
+          email: data.email, 
+          name: data.name,
+          progress: {},
+          assessments: {}
+        }));
+
+        navigate("/home");
+      } else {
+        let errorMessage = "Sign up failed. Please try again.";
+        if (typeof data.detail === "string") {
+            errorMessage = data.detail;
+        } else if (Array.isArray(data.detail)) {
+            errorMessage = data.detail.map(err => err.msg).join(" | ");
+        }
+        
+        showToast(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error connecting to server:", error);
+      showToast("Failed to connect to the server.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([
+        projectsDB.clear(), 
+        templatesDB.clear(), 
+        syncQueueDB.clear()
+      ]);
+
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("authToken");
+      sessionStorage.removeItem("token");
+
+      const guestToken = `guest_token_${Date.now()}`;
+      sessionStorage.setItem("authToken", guestToken);
+      sessionStorage.setItem("token", guestToken);
+
+      sessionStorage.setItem("user", JSON.stringify({
+          email: `guest_${Date.now()}@algoblocks.local`,
+          name: "Guest User",
+          isGuest: true,
+          progress: {},
+          assessments: {}
+      }));
+
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Guest login failed:", error);
+      showToast("Failed to initialize guest session.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
+        {toast.message}
+      </div>
+
+      <div className="auth-container">
+        <div className="auth-card">
+          
+          <div className="auth-research-banner">
+            <div className="banner-icon-wrapper">
+              <FiAlertTriangle size={18} />
+            </div>
+            <div className="banner-text">
+              <strong>Participant Protocol</strong>
+              <p>
+                By creating an account, you agree to participate in an educational system evaluation. 
+                <b> Please do not create multiple accounts.</b> Your learning data, assessments, and code executions are monitored strictly for research integrity.
+              </p>
+            </div>
+          </div>
+
+          <h2>Create Account</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Full Name</label>
+              <div className="auth-input-wrap">
+                <FiUser className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <div className="auth-input-wrap">
+                <FiMail className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" aria-hidden="true" />
+                {/* BUG-11 Fix: Enforce HTML5 minLength={6} */}
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  required
+                  minLength={6}
+                  disabled={isLoading}
+                  className="password-input"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+              />
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+                Stay signed in
+              </label>
+            </div>
+            
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              {isLoading ? "Signing Up..." : "Sign Up"}
+            </button>
+
+            <div style={{ textAlign: "center", margin: "15px 0", color: "#888", fontSize: "0.9rem" }}>
+              <span>â€” OR â€”</span>
+            </div>
+            <button 
+              type="button" 
+              className="auth-button" 
+              onClick={handleGuestLogin} 
+              disabled={isLoading}
+              style={{ backgroundColor: "#6c757d", border: "none" }}
+            >
+              {isLoading ? "Preparing..." : "Continue as Guest"}
+            </button>
+
+          </form>
+
+          <div className="auth-links">
+            <p>Already have an account?<Link to="/signin">Sign in</Link></p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+--- FILE: frontend/src/pages/UserHomePage.jsx ---
+
+// frontend/src/pages/UserHomePage.jsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Footer from "../components/Footer";
+import UserHeader from "../components/UserHeader";
+import "../styles/UserHomePage.css";
+
+import { IoArrowForward } from "react-icons/io5";
+import { LuBookOpen, LuChartBar, LuCirclePlay, LuFolder } from "react-icons/lu";
+
+export default function UserHomePage() {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser || "{}"));
+    } else {
+      navigate("/"); // Protect the route
+    }
+  }, [navigate]);
+
+  const confirmLogout = () => {
+    // 1. Nuke all stored auth data completely
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 2. HARD REDIRECT FIRST. DO NOT UPDATE REACT STATE (do not call setShowLogoutModal(false))
+    // This prevents protected routes from intercepting the transition.
+    window.location.replace("/");
+  };
+
+  if (!user) return null;
+
+  return (
+    <div className="landing-container user-homepage">
+      <UserHeader user={user} onLogoutClick={() => setShowLogoutModal(true)} />
+      <main className="landing-main">
+        {/* Hero Section */}
+        <section className="hero home-hero">
+          <div className="home-hero-copy">
+            <div className="hero-badge">Welcome Back, {user.name}!</div>
+            
+            <h1 className="slogan-text">
+              Think in <span className="accent">Steps</span>.<br />
+              <span className="accent">Analyze</span> in Depth.
+            </h1>
+
+            <p className="hero-subtitle">
+              Continue where you left off, open a saved project, or start a new workspace
+              with line-by-line time and space complexity feedback.
+            </p>
+
+            <div className="hero-buttons">
+              <button 
+                className="btn-primary" 
+                onClick={() => navigate('/dashboard')}
+              >
+                Continue to Dashboard
+                <IoArrowForward className="btn-icon-inline" aria-hidden="true" />
+              </button>
+
+              <button className="btn-secondary" type="button">
+                <LuCirclePlay className="btn-icon-inline" aria-hidden="true" />
+                Watch Demo
+              </button>
+            </div>
+          </div>
+
+          <div className="home-hero-media" aria-hidden="true">
+            <div className="hero-glow"></div>
+            <img
+              src="/assets/programming-code-editor-illustration-design-vector-removebg-preview.png"
+              alt="Programming code editor illustration"
+              className="home-hero-image"
+            />
+          </div>
+        </section>
+
+        {/* Feature Cards Section */}
+        <section className="feature-cards">
+          <div className="section-header">
+            <h2>Your Learning Hub</h2>
+            <p className="section-subtitle">
+              Quick actions to practice, review projects, and improve your algorithm solutions.
+            </p>
+          </div>
+
+          <div className="cards-grid">
+            <div className="card glass-panel" onClick={() => navigate("/projects")} style={{ cursor: "pointer" }}>
+              <div className="card-icon">
+                <span className="card-icon-badge">
+                  <LuFolder size={28} color="#E058FB" aria-hidden="true" />
+                </span>
+              </div>
+              <h3>Open Saved Projects</h3>
+              <p>Resume previous sessions and refine your logic with line-by-line complexity insights.</p>
+            </div>
+
+            <div className="card glass-panel" onClick={() => navigate("/learning-path")} style={{ cursor: "pointer" }}>
+              <div className="card-icon">
+                <span className="card-icon-badge">
+                  <LuBookOpen size={28} color="#E058FB" aria-hidden="true" />
+                </span>
+              </div>
+              <h3>Learning Mode</h3>
+              <p>Practice guided tasks with structured hints to strengthen your step-by-step understanding.</p>
+            </div>
+
+            <div className="card glass-panel" onClick={() => navigate('/workspace')} style={{ cursor: "pointer" }}>
+              <div className="card-icon">
+                <span className="card-icon-badge">
+                  <LuChartBar size={28} color="#E058FB" aria-hidden="true" />
+                </span>
+              </div>
+              <h3>Performance Feedback</h3>
+              <p>See how edits change Big-O and identify where inefficiencies appear in your solution.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Everything You Need Section */}
+        <section className="features-list">
+          <div className="features-content">
+            <h2>Everything You Need, in One Place</h2>
+            <p className="features-description">
+              Master the fundamentals of computer science with tools designed to make complex theories visual and interactive.
+            </p>
+            <ul className="modern-list">
+              <li>
+                <div className="list-icon">âœ“</div>
+                <span>Continue learning with saved sessions and templates</span>
+              </li>
+              <li>
+                <div className="list-icon">âœ“</div>
+                <span>Line-by-line time and space complexity feedback</span>
+              </li>
+              <li>
+                <div className="list-icon">âœ“</div>
+                <span>Python code output for review and submission</span>
+              </li>
+              <li>
+                <div className="list-icon">âœ“</div>
+                <span>Access dashboard, history, and settings anytime</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="feature-image-container relative-container">
+            <div className="feature-glow"></div>
+            <img 
+              src="/assets/example.png" 
+              alt="AlgoBlocks Interface Example" 
+              className="feature-example-image glass-border" 
+            />
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="logout-modal-overlay">
+          <div className="logout-modal">
+            <h2>Logout Confirmation</h2>
+            <p>Are you sure you want to logout?</p>
+            <div className="logout-modal-actions">
+              <button className="logout-btn" onClick={confirmLogout}>Confirm</button>
+              <button className="logout-btn logout-btn-cancel" onClick={() => setShowLogoutModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+--- FILE: frontend/src/styles/ActivityApp.css ---
+
+@import "./WorkspaceShared.css";
+
+/* =========================================
+   3-COLUMN ACTIVITY SPLIT LAYOUT
+   ========================================= */
+.activity-left-panel, .activity-right-panel { background-color: var(--panel-bg); display: flex; flex-direction: column; height: 100%; overflow: hidden;}
+.activity-left-panel { border-right: 1px solid var(--border-light); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease;}
+.activity-right-panel { border-left: 1px solid var(--border-light); transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), min-width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease;}
+.activity-center-panel { display: flex; flex-direction: column; background-color: var(--panel-bg); position: relative; height: 100%; transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+
+/* Lesson Selection Outline Dropdown */
+.activity-selector-container { padding: 16px 20px; background-color: var(--app-bg); border-bottom: 1px solid var(--border-light); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02); }
+.activity-selector-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; color: var(--purple-main); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.activity-selector-dropdown { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-light); outline: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; background-color: var(--panel-bg); color: var(--text-main); transition: all 0.2s ease; appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237928ca%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 14px top 50%; background-size: 10px auto; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03); }
+.activity-selector-dropdown:hover { border-color: var(--purple-main); }
+
+.activity-panel-header { padding: 20px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+.activity-panel-header h2, .activity-panel-header h3 { margin: 0; color: var(--text-main); font-size: 1.1rem; display: flex; align-items: center; gap: 8px; font-weight: 800;}
+.activity-panel-content { padding: 20px; flex: 1; overflow-y: auto; }
+
+/* Left Panel Task Description Typography */
+.activity-task-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; margin-top: 10px; }
+.activity-title-text { margin: 0; font-size: 1.4rem; color: var(--purple-main); font-weight: 800; }
+.difficulty-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; text-transform: capitalize;}
+.difficulty-badge.easy { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+.difficulty-badge.medium { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+.difficulty-badge.hard, .difficulty-badge.advanced { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+
+.activity-card { font-size: 0.95rem; color: var(--text-main); }
+
+/* Right Panel: Test Cases UI */
+.test-cases-counter { font-size: 0.8rem; color: var(--text-muted); font-weight: bold; }
+.test-case-card { border: 1px solid var(--border-light); border-radius: 12px; margin-bottom: 15px; background-color: var(--app-bg); transition: all 0.3s ease; overflow: hidden; }
+.test-case-card.passing { border-color: #10B981; background-color: rgba(16, 185, 129, 0.05); }
+.test-case-card.failing { border-color: #EF4444; background-color: rgba(239, 68, 68, 0.05); }
+
+.test-case-header { display: flex; align-items: center; justify-content: space-between; padding: 15px; cursor: pointer; user-select: none; background-color: transparent; transition: background-color 0.2s ease; }
+.test-case-header:hover { background-color: rgba(0, 0, 0, 0.02); }
+.test-case-header-left { display: flex; align-items: center; }
+
+.test-case-indicator { width: 14px; height: 14px; border: 2px solid var(--border-light); border-radius: 50%; margin-right: 10px; background-color: transparent; transition: all 0.3s ease; }
+.test-case-indicator.passing { border-color: #10B981; background-color: #10B981; }
+.test-case-indicator.failing { border-color: #EF4444; background-color: #EF4444; }
+
+.test-case-title { color: var(--text-main); font-size: 0.95rem; font-weight: bold; }
+.test-case-card.passing .test-case-title { color: #059669; }
+.test-case-card.failing .test-case-title { color: #DC2626; }
+
+.test-case-chevron { color: var(--text-muted); transition: transform 0.3s ease; }
+.test-case-card.passing .test-case-chevron { color: #10B981; }
+.test-case-card.failing .test-case-chevron { color: #EF4444; }
+.test-case-chevron.open { transform: rotate(90deg); }
+
+.test-case-details { padding: 0 15px 15px 15px; font-size: 0.85rem; color: var(--text-muted); animation: slideDown 0.3s ease-out; }
+.test-case-row { margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px; }
+.test-case-label { font-weight: 800; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.test-case-code { font-family: 'Fira Code', monospace; color: var(--purple-main); background: var(--panel-bg); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-light); word-break: break-all; font-size: 0.8rem; }
+
+.test-case-status-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; }
+
+/* Activity Specific Sidebar Toggle Overrides */
+.sidebar-toggle-btn.right-panel-toggle { left: auto; right: 0; border-radius: 8px 0 0 8px; }
+.sidebar-toggle-btn.right-panel-toggle.closed .toggle-icon { transform: rotate(180deg); }
+
+.activity-split.left-hidden .activity-left-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
+.activity-split.left-hidden .gutter.gutter-horizontal:first-of-type { display: none !important; }
+.activity-split.right-hidden .activity-right-panel { width: 0 !important; min-width: 0 !important; opacity: 0; border: none; padding: 0 !important; overflow: hidden !important; }
+.activity-split.right-hidden .gutter.gutter-horizontal:last-of-type { display: none !important; }
+
+.activity-split.left-hidden .activity-center-panel,
+.activity-split.right-hidden .activity-center-panel {
+  flex: 1 !important;
+  width: auto !important;
+}
+
+/* AES & ROG Badges */
+.aes-badge { background: var(--purple-alpha); border: 1px solid rgba(121, 40, 202, 0.3); color: var(--purple-main); }
+.aes-badge .total-label { color: var(--purple-main); }
+.rog-badge { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669; }
+.rog-badge .total-label { color: #059669; }
+
+/* Interactive Hover Tooltips */
+.info-tooltip { position: relative; display: inline-flex; align-items: center; margin-left: 6px; cursor: help; color: inherit; opacity: 0.7; transition: opacity 0.2s; }
+.info-tooltip:hover { opacity: 1; }
+
+.tooltip-text { 
+    visibility: hidden; opacity: 0; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%) translateY(5px);
+    background-color: var(--dark-surface); color: var(--text-on-dark); text-align: left; padding: 12px 16px; border-radius: 8px;
+    width: 240px; font-size: 0.8rem; font-family: 'Inter', sans-serif; font-weight: normal; letter-spacing: normal; text-transform: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.2s ease; z-index: 1000; border: 1px solid var(--dark-border); pointer-events: none;
+}
+.info-tooltip:hover .tooltip-text { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(0); }
+.tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--dark-surface) transparent transparent transparent; }
+.tooltip-title { display: block; font-weight: bold; margin-bottom: 6px; color: #FFFFFF; font-size: 0.85rem;}
+
+--- FILE: frontend/src/styles/AssessmentPage.css ---
+
+/* frontend/src/styles/AssessmentPage.css */
+
+.assessment-page {
+  min-height: 100vh;
+  background: #f5f3ff;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.assessment-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60vh;
+  font-size: 1.1rem;
+  color: #5A1398;
+}
+
+/* â”€â”€ WRAPPER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.assessment-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.assessment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.assessment-tag {
+  display: inline-block;
+  background: #ede9ff;
+  color: #5A1398;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  margin-bottom: 0.5rem;
+}
+
+.assessment-title-block h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e1b3a;
+  margin: 0 0 0.35rem;
+}
+
+.assessment-subtitle {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 520px;
+}
+
+.assessment-meta {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.meta-pill {
+  background: #fff;
+  border: 1px solid #e2deff;
+  color: #5b5675;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* â”€â”€ PROGRESS BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.assessment-progress-bar {
+  height: 6px;
+  background: #e2deff;
+  border-radius: 99px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.assessment-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c5cff, #a78bfa);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+/* â”€â”€ BODY LAYOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.assessment-body {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .assessment-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* â”€â”€ QUESTION NAVIGATOR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.question-navigator {
+  background: #fff;
+  border: 1px solid #e2deff;
+  border-radius: 14px;
+  padding: 1.25rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.question-navigator h4 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5A1398;
+  margin: 0 0 1rem;
+}
+
+.question-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.nav-dot {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 2px solid #e2deff;
+  background: #f8f6ff;
+  color: #5b5675;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-dot:hover { border-color: #5A1398; color: #5A1398; }
+.nav-dot.answered { background: #ede9ff; border-color: #5A1398; color: #5A1398; }
+.nav-dot.active { background: #5A1398; border-color: #5A1398; color: #fff; }
+
+.nav-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #f8f6ff;
+  border: 2px solid #e2deff;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.legend-dot.answered { background: #ede9ff; border-color: #5A1398; }
+.legend-dot.active { background: #5A1398; border-color: #5A1398; }
+
+/* â”€â”€ QUESTION CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.question-main { flex: 1; }
+
+.question-card {
+  background: #fff;
+  border: 1px solid #e2deff;
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.question-counter {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a78bfa;
+  margin-bottom: 1rem;
+}
+
+.question-text {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1e1b3a;
+  line-height: 1.6;
+  margin: 0 0 1.75rem;
+}
+
+/* â”€â”€ OPTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.option-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  background: #f8f6ff;
+  border: 2px solid #e2deff;
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.option-btn:hover:not(:disabled) {
+  border-color: #5A1398;
+  background: #ede9ff;
+}
+
+.option-btn.selected {
+  border-color: #5A1398;
+  background: #ede9ff;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e2deff;
+  color: #5A1398;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.option-btn.selected .option-letter {
+  background: #5A1398;
+  color: #fff;
+}
+
+.option-text {
+  font-size: 0.92rem;
+  color: #1e1b3a;
+  line-height: 1.5;
+}
+
+/* â”€â”€ NAV ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.question-nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  border: 2px solid #e2deff;
+  background: #fff;
+  color: #5b5675;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-btn:hover:not(:disabled) { border-color: #5A1398; color: #5A1398; }
+.nav-btn:disabled { opacity: 0.4; cursor: default; }
+
+.nav-btn.primary {
+  background: #5A1398;
+  border-color: #5A1398;
+  color: #fff;
+}
+.nav-btn.primary:hover { background: #6344e8; border-color: #6344e8; }
+
+.nav-btn.submit {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+.nav-btn.submit:hover:not(:disabled) { background: #16a34a; border-color: #16a34a; }
+.nav-btn.submit:disabled { background: #86efac; border-color: #86efac; cursor: not-allowed; opacity: 1; }
+
+.submit-warning {
+  text-align: center;
+  font-size: 0.82rem;
+  color: #f97316;
+  margin-top: 0.75rem;
+}
+
+/* â”€â”€ RESULTS SCREEN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.assessment-results-wrapper {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.results-card {
+  background: #fff;
+  border: 1px solid #e2deff;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 4px 24px rgba(124, 92, 255, 0.08);
+}
+
+.results-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.results-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  border: 3px solid;
+  border-radius: 16px;
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.results-icon { font-size: 2.5rem; }
+.results-label { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.results-score {
+  font-size: 4rem;
+  font-weight: 800;
+  margin: 0.25rem 0;
+  line-height: 1;
+}
+
+.results-subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.results-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e1b3a;
+}
+
+.stat-label {
+  font-size: 0.78rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* â”€â”€ REVIEW LIST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.results-review {
+  border-top: 1px solid #f0eeff;
+  padding-top: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.results-review h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #5A1398;
+  margin: 0 0 1rem;
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.review-item {
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid;
+}
+.review-item.correct { border-color: #bbf7d0; background: #f0fdf4; }
+.review-item.incorrect { border-color: #fecaca; background: #fff5f5; }
+
+.review-item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.review-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #5A1398;
+  background: #ede9ff;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.review-icon { margin-top: 2px; flex-shrink: 0; }
+
+.review-question {
+  font-size: 0.88rem;
+  color: #1e1b3a;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.review-answer-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  margin-left: 3rem;
+  font-size: 0.82rem;
+}
+
+.your-answer { color: #ef4444; }
+.correct-answer { color: #22c55e; }
+.explanation-text { color: #64748b; font-style: italic; margin-top: 0.2rem; }
+
+/* â”€â”€ RESULTS ACTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.results-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-retake {
+  padding: 0.75rem 1.75rem;
+  border-radius: 10px;
+  border: 2px solid #e2deff;
+  background: #fff;
+  color: #5A1398;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-retake:hover { border-color: #5A1398; background: #ede9ff; }
+
+.btn-proceed {
+  padding: 0.75rem 1.75rem;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #7c5cff, #a78bfa);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-proceed:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.results-note {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #64748b;
+  background: #f8f6ff;
+  border: 1px solid #e2deff;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+/* â”€â”€ AUTO-SAVE / DRAFT ADDITIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+.meta-pill.saved {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #22c55e;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+/* Draft restored banner */
+.draft-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 0.75rem 1.1rem;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  color: #92400e;
+  flex-wrap: wrap;
+}
+
+.draft-discard-btn {
+  background: none;
+  border: 1.5px solid #d97706;
+  color: #d97706;
+  border-radius: 7px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.draft-discard-btn:hover { background: #d97706; color: #fff; }
+
+/* Previous result banner */
+.prev-result-banner {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 0.7rem 1.1rem;
+  margin-bottom: 1rem;
+  font-size: 0.86rem;
+  color: #0369a1;
+}
+
+/* Attempt line under score */
+.results-attempt {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0.25rem 0 0;
+}
+
+/* â”€â”€ CODE ANALYSIS QUESTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+.question-counter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.question-counter {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a78bfa;
+}
+
+.code-question-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #1e1b3a;
+  color: #a78bfa;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.7rem;
+  border-radius: 20px;
+  border: 1px solid #3d2d8a;
+}
+
+/* Code block container */
+.question-code-block {
+  background: #1e1b3a;
+  border: 1px solid #3d2d8a;
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #16133a;
+  border-bottom: 1px solid #3d2d8a;
+}
+
+.code-block-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #a78bfa;
+  text-transform: uppercase;
+}
+
+.code-block-pre {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: #e2d9ff;
+  white-space: pre;
+}
+
+.code-block-pre code {
+  font-family: inherit;
+}
+
+/* Navigator dot for code questions */
+.nav-dot.code-q {
+  border-color: #a78bfa;
+  color: #5A1398;
+  background: #f0ebff;
+}
+.nav-dot.code-q.active {
+  background: #5A1398;
+  color: #fff;
+}
+.nav-dot.code-q.answered {
+  background: #ede9ff;
+  border-color: #5A1398;
+}
+
+.legend-dot.code-q {
+  background: #f0ebff;
+  border-color: #a78bfa;
+}
+
+/* CODE tag in review list */
+.review-code-tag {
+  display: inline-block;
+  background: #1e1b3a;
+  color: #a78bfa;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.06em;
+}
+
+/* Code snippet in answer review (for wrong answers) */
+.review-code-snippet {
+  background: #1e1b3a;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+}
+
+.review-code-snippet pre {
+  margin: 0;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: #e2d9ff;
+  white-space: pre;
 }

@@ -1,651 +1,7 @@
 ﻿--- PROJECT SNAPSHOT (PART 4 OF 10) ---
 
---- TIMESTAMP: 2026-06-29 19:49:54 ---
+--- TIMESTAMP: 2026-07-02 22:13:03 ---
 
-
---- FILE: frontend/public/data/curriculum/module-4/lesson-4-3.json ---
-
-{
-  "lessonId": "lesson-4-3",
-  "moduleId": "module-4",
-  "title": "Activity Selection Problem",
-  "description": "Learn how **greedy scheduling** selects the maximum number of non-overlapping activities through **earliest-finish-time optimization**.",
-  "difficulty": "Beginner",
-  "estimatedTime": "45 min",
-  "prerequisites": "Coin Change Problem",
-  "tags": ["activity selection", "greedy algorithms", "scheduling"],
-  "activities": [
-    {
-      "id": "m4_l3_a1",
-      "title": "Sort by End Time"
-    },
-    {
-      "id": "m4_l3_a2",
-      "title": "Event Scheduler"
-    },
-    {
-      "id": "m4_l3_a3",
-      "title": "Conflict Detector"
-    },
-    {
-      "id": "m4_l3_a4",
-      "title": "Total Time Scheduled"
-    },
-    {
-      "id": "m4_l3_a5",
-      "title": "Room Allocator"
-    }
-  ],
-  "sections": [
-    {
-      "id": "introduction",
-      "type": "introduction",
-      "title": "Introduction",
-      "content": "The **Activity Selection Problem** is one of the most well-known applications of Greedy Algorithms.\n*  You are given a set of activities, each with a **start time** and a **finish time**.\n*  Only one activity can be performed at a time, so you **cannot have overlapping activities**.\n*  The goal is to select the **maximum number of non-overlapping activities**.\n\nImagine you are a conference organizer with one meeting room:\n1.  You receive multiple session requests, each with a start and end time.\n2.  You want to schedule **as many sessions as possible**.\n3.  Which sessions should you choose? The greedy answer is to **always pick the session that ends earliest** because this leaves the most remaining time for other sessions.\n\nThis problem demonstrates how local greedy decisions can produce **globally optimal scheduling solutions**. It is a perfect example of when greedy works and why.\n\nThe earliest-finish-first strategy is counterintuitive to some people who might think earliest start is better, but it is **provably optimal**. This problem is a classic in computer science and appears in many real-world scheduling applications."
-    },
-    {
-      "id": "why-problem-matters",
-      "type": "concept",
-      "title": "Why This Problem Matters",
-      "content": "Many real-world systems involve scheduling limited resources. Classrooms, airport runways, meeting rooms, CPU processors, and manufacturing systems **cannot handle multiple overlapping tasks simultaneously**. Efficient scheduling improves productivity, resource usage, and execution efficiency.\n\nExamples of scheduling challenges:\n*  A university with one lecture hall needs to **schedule as many classes as possible** without overlap.\n*  An airport runway can only handle one plane at a time, so it needs to **maximize takeoff and landing slots**.\n*  A single-core processor receives jobs and must **maximize the number completed**.\n\nPoor scheduling leads to wasted resources like empty classrooms, idle runways, or unused CPU cycles. Greedy scheduling maximizes utilization without complex computation.\n\nThe Activity Selection Problem models this challenge computationally. It provides an **optimal solution strategy** that is both fast and easy to implement. Understanding this problem helps you solve many real-world scheduling challenges.",
-      "bullets": [
-        "**Maximizes** resource usage efficiency.",
-        "Demonstrates **greedy scheduling optimization**.",
-        "Appears in **many real-world systems**.",
-        "Introduces **compatibility checking** and interval scheduling."
-      ]
-    },
-    {
-      "id": "problem-setup",
-      "type": "deep_dive",
-      "title": "Problem Setup",
-      "content": "Let us define the problem formally:\n*  You are given a set of activities, each defined by a **start time and finish time**, where start time is less than finish time.\n*  The goal is to select a **maximum-size subset of activities** where no two activities overlap.\n\n**Two activities are compatible if they do not overlap.** That means one finishes before or exactly when the other starts. For example, activity A1 from 1 to 4 and activity A4 from 5 to 7 are compatible because 4 is less than or equal to 5.\n\nConsider these example activities:\n1.  **A1** is from 1 to 4.\n2.  **A2** is from 3 to 5.\n3.  **A3** is from 0 to 6.\n4.  **A4** is from 5 to 7.\n5.  **A5** is from 8 to 9.\n\nThe objective is to select the **maximum number of compatible activities**. Two activities are compatible if their time intervals do not overlap. Understanding this compatibility condition is the foundation of the algorithm."
-    },
-    {
-      "id": "overlapping-activities",
-      "type": "concept",
-      "title": "Understanding Overlapping Activities",
-      "content": "To build intuition, let us examine how overlaps work and why careful selection matters. Two intervals `[s1, f1]` and `[s2, f2]` overlap if they share any time in common. For compatibility, we require that **one ends before or exactly when the other starts**.\n\nUsing the previous example:\n*  Suppose we first select **activity A1** from 1 to 4.\n*  **Activity A2** from 3 to 5 *cannot be selected* after A1 because A2 starts at 3 and A1 finishes at 4. Since 3 is less than 4, A2 begins before A1 finishes. This creates a scheduling conflict.\n*  **Activity A3** from 0 to 6 also overlaps with A1 because A3 starts before A1 and ends after A1 starts.\n*  **Activity A4** from 5 to 7 is *compatible* with A1 because 5 is greater than or equal to 4.\n*  **Activity A5** from 8 to 9 is *compatible* with A4 if A4 is selected because 8 is greater than or equal to 7.\n\nIf you choose a long activity early, you **block many others**. If you choose a short, early-finishing activity, you **preserve flexibility**. This is the core intuition behind earliest-finish-first greedy."
-    },
-    {
-      "id": "core-greedy-idea",
-      "type": "concept",
-      "title": "Core Greedy Idea",
-      "content": "The greedy strategy is simple. **Always select the activity that finishes earliest** among the remaining compatible activities.\n\nFollow these steps:\n1.  First, **sort all activities** by their finish time in ascending order.\n2.  **Select the first activity** in the sorted list, which is the one that finishes earliest.\n3.  For each subsequent activity in sorted order, if its start time is **greater than or equal to** the last selected activity's finish time, select it.\n4.  Otherwise, **skip it** because it overlaps.\n\nAt first, this may seem unusual. Why not select the earliest starting activity?\n*  Consider Activity X from 1 to 100: It starts early but runs very long.\n*  Consider Activity Y from 2 to 3: It starts slightly later but finishes very quickly.\n*  If you pick X, you **block everything else**. If you pick Y, you finish at time 3 and can **still schedule many more activities**.\n\nChoosing the earliest finishing activity **maximizes the remaining time available** for future activities. This increases the chance of selecting additional compatible activities later. Early finishing preserves scheduling flexibility."
-    },
-    {
-      "id": "why-earliest-finishing-works",
-      "type": "deep_dive",
-      "title": "Why Earliest Finishing Works",
-      "content": "The greedy strategy works for activity selection because it satisfies the **Greedy Choice Property**.\n\n*  Suppose we select an activity that finishes very late, such as from 1 to 10. This **blocks many future activities**. The schedule would have one long activity and then nothing else.\n*  However, if we instead choose an activity that finishes early, such as from 1 to 3, **more scheduling space remains afterward**. You can then fit additional activities in the remaining time from 3 to infinity.\n\nThere exists an optimal solution that includes the activity with the earliest finish time.\n*  Consider any optimal solution.\n*  If it already contains the earliest finishing activity, done.\n*  If it contains some other activity `k` as its first activity, since the earliest finishing activity finishes earlier or at the same time, we can **replace activity k with the earliest finishing activity**.\n*  This replacement does not cause any conflicts and the number of activities remains the same.\n\nOnce we select the earliest finishing activity, we remove all activities that overlap with it. The remaining problem is the same type, so the greedy choice can be applied again. This is why the greedy strategy works correctly for this problem."
-    },
-    {
-      "id": "step-by-step-example",
-      "type": "deep_dive",
-      "title": "Step-by-Step Execution Example",
-      "content": "Let us walk through the complete algorithm with detailed tracing.\nThe unsorted activities are `A1 (1,4)`, `A2 (3,5)`, `A3 (0,6)`, `A4 (5,7)`, and `A5 (8,9)`.\n\n**Step 1: Sort by finish time**\n*  The sorted order becomes `A1(1,4)`, `A2(3,5)`, `A3(0,6)`, `A4(5,7)`, `A5(8,9)`.\n\n**Step 2: Initialize variables**\n*  Set `last_finish` to -1 and `selected` to an empty list.\n\n**Step 3: Iterate through activities**\n*  **Check A1 (1,4):** Is 1 greater than or equal to -1? Yes. **Select A1.** Update `last_finish` to 4.\n*  **Check A2 (3,5):** Is 3 greater than or equal to 4? No. A2 overlaps, so **skip it**.\n*  **Check A3 (0,6):** Is 0 greater than or equal to 4? No. A3 overlaps, so **skip it**.\n*  **Check A4 (5,7):** Is 5 greater than or equal to 4? Yes. **Select A4.** Update `last_finish` to 7.\n*  **Check A5 (8,9):** Is 8 greater than or equal to 7? Yes. **Select A5.** Update `last_finish` to 9.\n\n**Final Result:**\n*  The final selected activities are A1 from 1 to 4, A4 from 5 to 7, and A5 from 8 to 9.\n*  **Total activities selected is 3**.\n*  If we had chosen earliest start time, we would pick A3 first and get only 1 activity. Earliest finish works because it leaves the maximum remaining time."
-    },
-    {
-      "id": "timeline-visualization",
-      "type": "concept",
-      "title": "Timeline Visualization",
-      "content": "Visualizing activity intervals helps explain overlap detection and scheduling compatibility.\nLet us represent the activities graphically:\n*  A1 runs from 1 to 4.\n*  A2 runs from 3 to 5.\n*  A3 runs from 0 to 6.\n*  A4 runs from 5 to 7.\n*  A5 runs from 8 to 9.\n\nAfter sorting by finish time, the order is **A1, A2, A3, A4, A5**.\nThe greedy selection process flows as follows:\n1.  First selects **A1**.\n2.  Then **A2 overlaps** with A1 because it starts at 3 which is before A1 finishes at 4, so skip.\n3.  **A3 also overlaps**, so skip.\n4.  **A4 is compatible** because it starts at 5 which is after A1 finishes at 4, so select A4.\n5.  **A5 is compatible** because it starts at 8 which is after A4 finishes at 7, so select A5.\n\nThe final selected schedule is A1 from 1 to 4, then A4 from 5 to 7, then A5 from 8 to 9.\nThe visualization shows how compatible activities avoid overlap. The gaps between activities represent idle time that is necessary because no activities fit in those gaps. The algorithm **maximizes count, not utilization**."
-    },
-    {
-      "id": "implementation",
-      "type": "concept",
-      "title": "Python Implementation",
-      "content": "Activity Selection implementations usually **sort activities by finish time** before greedily selecting compatible intervals. The basic version returns the list of selected activities.\n\n1.  First, sort activities by finish time in ascending order using the `key` parameter with a lambda function that returns the finish time.\n2.  Then initialize `selected` as an empty list and `last_finish` to negative infinity (or -1 if times are non-negative).\n3.  For each activity in sorted order, check if the start time is greater than or equal to `last_finish`.\n4.  If yes, the activity is compatible. Append it to `selected` and update `last_finish` to its finish time.\n5.  If no, skip the activity because it overlaps.\n\nThe **count only version** returns the number of activities selected instead of the list, which is more memory efficient.\nThe compatibility checking function demonstrates how to test if two activities overlap. Two activities are compatible if one finishes before or exactly when the other starts.\n\nThe examples below show these different implementations.",
-      "codeSnippets": [
-        {
-          "title": "Activity Selection implementation",
-          "language": "python",
-          "code": "activities = [\n    (1, 4),\n    (3, 5),\n    (0, 6),\n    (5, 7),\n    (8, 9)\n]\n\nactivities.sort(key=lambda x: x[1])\n\nselected = []\nlast_finish = -1\n\nfor start, finish in activities:\n    if start >= last_finish:\n        selected.append((start, finish))\n        last_finish = finish\n\nprint(selected)"
-        },
-        {
-          "title": "Count compatible activities",
-          "language": "python",
-          "code": "activities = [(1, 3), (2, 5), (4, 6), (6, 8)]\n\nactivities.sort(key=lambda x: x[1])\n\ncount = 0\nlast_finish = -1\n\nfor start, finish in activities:\n    if start >= last_finish:\n        count += 1\n        last_finish = finish\n\nprint(count)"
-        },
-        {
-          "title": "Compatibility checking demonstration",
-          "language": "python",
-          "code": "a1 = (1, 4)\na2 = (5, 7)\n\nif a2[0] >= a1[1]:\n    print('Compatible')\nelse:\n    print('Overlapping')"
-        }
-      ]
-    },
-    {
-      "id": "complexity-analysis",
-      "type": "deep_dive",
-      "title": "Complexity Analysis",
-      "content": "Analyzing the time and space complexity reveals why the greedy approach is optimal:\n\n*  **Sorting Step:** Sorting activities by finish time requires **O(n log n)** time. This dominates the runtime for large n. Python's Timsort is efficient with O(n log n) worst case.\n*  **Selection Step:** After sorting, the algorithm performs only one linear traversal to select compatible activities. This is **O(n)** time. Each activity is examined exactly once.\n*  **Total Time Complexity:** The total time complexity is **O(n log n)**.\n\n*  **Space Complexity:** Space complexity is **O(1)** for the count only version because only a few tracking variables are required. The version storing selected activities uses **O(k)** space where `k` is the number of selected activities, which is at most n.\n\nA brute-force solution would try all `2^n` subsets and check each for conflicts, taking **O(2^n) time**, which is impossible for large n. The greedy algorithm is exponentially faster.\n\nThe chart below compares O(n), O(n log n), and O(n squared). Sorting dominates, but O(n log n) is very efficient and scales well even for millions of activities.",
-      "chart": {
-        "title": "Activity Selection complexity",
-        "description": "Sorting dominates the runtime of Activity Selection, while compatibility checking only requires linear traversal afterward.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(n)", "O(n log n)", "O(n^2)"]
-      }
-    },
-    {
-      "id": "why-greedy-works",
-      "type": "concept",
-      "title": "Why This Problem Is Greedy",
-      "content": "The Activity Selection Problem satisfies both properties needed for a greedy algorithm to be optimal. These are the **Greedy Choice Property** and **Optimal Substructure**.\n\n**Greedy Choice Property:**\n*  There exists an optimal solution that includes the activity with the earliest finish time.\n*  If an optimal solution does not include the earliest finishing activity, replace its first activity with the earliest finishing one.\n*  This does not cause conflicts and gives the same number of activities.\n\n**Optimal Substructure:**\n*  After choosing the earliest finishing activity, the remaining problem, which consists of activities that start after it finishes, is a **smaller instance of the same problem**.\n*  The optimal solution for the whole problem contains optimal solutions for these subproblems.\n\nChoosing the earliest finishing activity **never reduces future scheduling opportunities**. Early finishing preserves the maximum remaining time for additional compatible activities. Any other choice would finish later, leaving less or equal time for subsequent activities.\n\nThis is why the greedy strategy works correctly for this problem. The problem structure ensures that **local optimality (earliest finish)** leads to **global optimality (maximum count)**. Not all scheduling problems have this property, but activity selection does."
-    },
-    {
-      "id": "applications",
-      "type": "real_world_connection",
-      "title": "Real-World Applications",
-      "content": "The Activity Selection Problem appears in CPU scheduling, classroom scheduling, airline runway allocation, manufacturing systems, operating systems, conference management, and cloud infrastructure scheduling.\n\n*  **CPU scheduling:** Shortest Job First and Earliest Deadline First use similar greedy principles.\n*  **Classroom scheduling:** A university with one lecture hall can schedule the maximum number of classes using this algorithm.\n*  **Airport allocation:** An airport with one runway can maximize takeoff and landing slots.\n*  **Booking systems:** A conference room booking system can maximize the number of meetings scheduled per day.\n*  **Manufacturing:** A manufacturing system with a single machine can maximize the number of jobs completed.\n*  **Media recording:** A television show recorder can record as many shows as possible on one channel.\n\nMany modern scheduling systems rely heavily on greedy optimization strategies. The basic activity selection can be extended to **weighted activity selection** where each activity has a weight and you maximize total weight, but that requires dynamic programming. Multiple resources like multiple rooms or processors require different algorithms. However, the simple greedy algorithm for maximizing count is widely used because it is **fast, optimal, and easy to implement**."
-    },
-    {
-      "id": "misconceptions",
-      "type": "key_concept",
-      "title": "Common Beginner Mistakes",
-      "subsections": [
-        {
-          "id": "earliest-start",
-          "title": "Mistake: Selecting earliest starting activities",
-          "content": "Starting earlier **does not guarantee maximum scheduling flexibility**. A long activity that starts early can block many subsequent activities. The correct greedy choice is earliest finish time, not earliest start."
-        },
-        {
-          "id": "ignoring-sorting",
-          "title": "Mistake: Ignoring sorting",
-          "content": "The greedy strategy **depends on finish-time ordering**. If activities are processed in arbitrary order, the algorithm may not find the optimal solution. Always sort activities by finish time in ascending order as the first step."
-        },
-        {
-          "id": "wrong-overlap",
-          "title": "Mistake: Incorrect overlap checking",
-          "content": "Activities are compatible if `current.start >= last_finish`. Using greater than (`>`) without equal would reject activities that start exactly when the previous finishes, unnecessarily reducing the schedule. **Use greater than or equal (`>=`)** to allow back-to-back scheduling."
-        }
-      ]
-    },
-    {
-      "id": "takeaways",
-      "type": "summary",
-      "title": "Key Takeaways",
-      "bullets": [
-        "The Activity Selection Problem **maximizes compatible activities**.",
-        "Activities must **not overlap**.",
-        "The greedy strategy selects the **earliest finishing activity first**.",
-        "Early finishing **maximizes future scheduling flexibility**.",
-        "**Sorting by finish time** is essential.",
-        "The algorithm achieves **O(n log n)** complexity."
-      ]
-    }
-  ],
-  "references": [
-    {
-      "title": "Programiz - Greedy Algorithm",
-      "url": "https://www.programiz.com/dsa/greedy-algorithm"
-    },
-    {
-      "title": "GeeksforGeeks - Activity Selection Problem",
-      "url": "https://www.geeksforgeeks.org/activity-selection-problem-greedy-algo-1/"
-    },
-    {
-      "title": "AlgoDaily - Activity Selection Greedy Algorithm",
-      "url": "https://algodaily.com/lessons/activity-selection-problem"
-    },
-    {
-      "title": "Wikipedia - Activity Selection Problem",
-      "url": "https://en.wikipedia.org/wiki/Activity_selection_problem"
-    },
-    {
-      "title": "Kleinberg, J., & Tardos, E. (2005). Algorithm Design. Pearson Education.",
-      "url": ""
-    }
-  ]
-}
-
---- FILE: frontend/public/data/curriculum/module-5/lesson-5-1.json ---
-
-{
-  "lessonId": "lesson-5-1",
-  "moduleId": "module-5",
-  "title": "Dynamic Programming Fundamentals",
-  "description": "Learn how **Dynamic Programming** solves overlapping subproblems efficiently by storing and reusing previously computed results.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "50 min",
-  "prerequisites": "Greedy Algorithms",
-  "tags": ["dynamic programming", "memoization", "tabulation", "optimization"],
-  "activities": [
-    {
-      "id": "m5_l1_a1",
-      "title": "Array Caching"
-    },
-    {
-      "id": "m5_l1_a2",
-      "title": "Cache Lookup"
-    },
-    {
-      "id": "m5_l1_a3",
-      "title": "Top-Down Blueprint"
-    },
-    {
-      "id": "m5_l1_a4",
-      "title": "Bottom-Up Build"
-    },
-    {
-      "id": "m5_l1_a5",
-      "title": "Execution Comparison"
-    }
-  ],
-  "sections": [
-    {
-      "id": "introduction",
-      "type": "introduction",
-      "title": "Introduction",
-      "content": "**Dynamic Programming (DP)** is one of the most powerful algorithmic techniques in computer science. It solves complex problems by breaking them into smaller subproblems, solving each subproblem exactly once, and **storing the results for future use**.\n\nImagine calculating the Fibonacci sequence manually:\n* You compute `Fib(5)` = `Fib(4) + Fib(3)`.\n* To compute `Fib(4)`, you need `Fib(3) + Fib(2)`.\n* You end up computing `Fib(3)` multiple times.\n\nA smarter approach is to write down each Fibonacci number as you compute it. When you need `Fib(3)` again, you just look it up. **This is Dynamic Programming.**\n\n* The name was coined by mathematician **Richard Bellman** in the 1950s.\n* \"Programming\" here means planning or optimization (like in linear programming), not writing computer code.\n* \"Dynamic\" refers to the multi-stage decision process.\n\nDynamic Programming dramatically improves efficiency for problems involving repeated recursive computation, overlapping subproblems, and optimization tasks. It is fundamental in AI systems, pathfinding algorithms, financial modeling, and game development."
-    },
-    {
-      "id": "why-dp-matters",
-      "type": "concept",
-      "title": "Why Dynamic Programming Matters",
-      "content": "Some recursive algorithms repeatedly solve the exact same problems over and over. This redundancy creates **exponential time complexity**, making problems impossible to solve for large inputs.\n\nFor example, recursive Fibonacci computation repeatedly recalculates identical values:\n* `Fib(5)` calls `Fib(4)` and `Fib(3)`.\n* `Fib(4)` calls `Fib(3)` and `Fib(2)`.\n* `Fib(3)` is computed twice.\n\nThe inefficiency scales disastrously:\n1.  For `n=40`, naive recursive Fibonacci makes about **331 million calls**.\n2.  For `n=100`, it would take longer than the **age of the universe**.\n\nDynamic Programming solves this by remembering already-computed answers and reusing them. For Fibonacci, this transforms exponential time `O(2^n)` into linear time `O(n)`. For `n=100`, DP takes **microseconds** while naive recursion is impossible.\n\nThis pattern saves computationally heavy problems like shortest paths, sequence alignment, knapsack optimization, and edit distance from being intractable.",
-      "bullets": [
-        "**Avoids** repeated recursive computation.",
-        "**Improves scalability** dramatically from exponential to polynomial.",
-        "**Reduces** unnecessary work by caching.",
-        "**Optimizes** complex multi-stage recursive problems."
-      ]
-    },
-    {
-      "id": "core-idea",
-      "type": "concept",
-      "title": "Core Idea of Dynamic Programming",
-      "content": "Dynamic Programming works using two critical mathematical properties: **Overlapping Subproblems** and **Optimal Substructure**. The algorithm stores intermediate answers so repeated subproblems do not need to be recomputed.\n\nFor any DP problem, you must systematically answer four questions:\n1.  **What are the subproblems?** (e.g., for Fibonacci, the subproblem is `Fib(n)`)\n2.  **How do subproblems relate?** (e.g., `Fib(n) = Fib(n-1) + Fib(n-2)`)\n3.  **What are the base cases?** (e.g., `Fib(0) = 0` and `Fib(1) = 1`)\n4.  **What order should you solve the subproblems?** (e.g., solve from 0 up to n)\n\nBy carefully defining these four steps, larger optimal solutions are seamlessly built from smaller optimal solutions."
-    },
-    {
-      "id": "overlapping-subproblems",
-      "type": "deep_dive",
-      "title": "Overlapping Subproblems",
-      "content": "**Overlapping subproblems** occur when the same smaller problem appears repeatedly during execution. This is the key property that makes Dynamic Programming beneficial.\n\nSuppose we compute Fibonacci of 5. The recursion tree shows:\n* `Fib(3)` appears 2 times.\n* `Fib(2)` appears 3 times.\n* `Fib(1)` appears 5 times.\n\nInstead of recalculating them every time, DP stores previously computed answers and reuses them. Without DP, the number of recursive calls is about `O(2^n)`. With DP, each subproblem is solved exactly once:\n* **n=40 Naive:** ~331 million calls.\n* **n=40 DP:** exactly 41 unique computations.\n\n**How do you detect them?** Draw the recursion tree. If you see the exact same subproblem appearing in multiple branches, you have overlap. (Note: Divide and Conquer algorithms like Merge Sort have *independent* subproblems with no overlap, so DP does not help there)."
-    },
-    {
-      "id": "optimal-substructure",
-      "type": "concept",
-      "title": "Optimal Substructure",
-      "content": "**Optimal Substructure** means the optimal solution to a large problem can be built strictly from optimal solutions to smaller subproblems. This property is essential for both Dynamic Programming and Greedy Algorithms.\n\nExamples of Optimal Substructure:\n* **Shortest Path:** If the shortest path from A to C goes through B, then the path from A to B *must* be the shortest path from A to B. \n* **Fibonacci:** The value of `Fib(n)` depends entirely on the optimal (correct) values of `Fib(n-1)` and `Fib(n-2)`.\n* **Knapsack:** The optimal set of items for capacity W either includes item `i` or not. If it includes item `i`, the remaining capacity must be optimally filled with the remaining items.\n\nBoth Greedy and DP require optimal substructure, but they differ in how they build solutions:\n* **Greedy:** Makes one choice and then solves the remaining subproblem.\n* **DP:** Considers multiple choices, solves all necessary subproblems, and takes the absolute best among them."
-    },
-    {
-      "id": "dp-vs-brute-force",
-      "type": "deep_dive",
-      "title": "Dynamic Programming vs Brute Force",
-      "content": "Brute-force recursive solutions repeatedly expand duplicate branches and recompute identical values. \n\n* **The Naive Trap:** The recursion tree grows exponentially because each call branches into multiple subcalls, and overlapping subproblems are recomputed from scratch each time. For Fibonacci, `T(n) = T(n-1) + T(n-2) + O(1)`, which solves to **O(2^n)**.\n* **The DP Solution:** DP avoids this repetition by caching previous results so each subproblem is solved exactly once.\n\nComplexity Breakdowns for DP:\n* **Memoization DP:** takes `O(n)` time and `O(n)` space.\n* **Tabulation DP:** takes `O(n)` time and `O(n)` space.\n* **Space-Optimized DP:** takes `O(n)` time and `O(1)` space.\n\nThis transforms slow recursive solutions into scalable algorithms. Without DP, recursive Fibonacci for `n=100` would take 10^20 years. With DP, it takes microseconds. The improvement is literally from impossible to instant."
-    },
-    {
-      "id": "redundant-computation",
-      "type": "deep_dive",
-      "title": "Understanding Redundant Computation",
-      "content": "Let us examine redundant computation in detail to understand why DP is so powerful. For `Fib(5)`, the recursion repeatedly computes `Fib(3)` twice, `Fib(2)` three times, `Fib(1)` five times, and `Fib(0)` three times. Total calls are 15.\n\nThe exponential explosion happens because for `Fib(n)`, the number of recursive calls is approximately `2^n`:\n* **Fib(10):** ~100 calls (fine).\n* **Fib(30):** ~1 million calls (slow).\n* **Fib(40):** ~331 million calls (very slow).\n* **Fib(50):** ~1 trillion calls (impossible).\n\nDynamic Programming eliminates duplicate computation by storing answers after they are first solved. Each subproblem is computed exactly once. For `n=40`, naive recursion makes 331 million calls while DP makes only 41 calculations. The savings factor is over **8 million times**."
-    },
-    {
-      "id": "memoization",
-      "type": "concept",
-      "title": "Memoization (Top-Down)",
-      "content": "**Memoization** is a top-down Dynamic Programming approach that uses recursion combined with caching. It is often the most intuitive way to implement DP because it starts from the original problem and recursively breaks it down.\n\nThe Memoization Pattern:\n1.  **Check the cache:** Before solving a subproblem, the algorithm checks whether the answer already exists inside memory (usually a dictionary or array).\n2.  **Return if found:** If the answer already exists, the stored value is reused immediately without further recursion.\n3.  **Compute if missing:** If it is a base case, compute the result directly. Otherwise, combine results from recursive calls on smaller subproblems.\n4.  **Store and Return:** Store the result in the cache and return it.\n\nMemoization is intuitive because it follows natural recursive thinking. It employs **lazy evaluation**â€”if some subproblems are not needed, they are never computed. However, it incurs recursion overhead and carries the risk of stack overflow errors for excessively deep recursion limits."
-    },
-    {
-      "id": "memoization-workflow",
-      "type": "deep_dive",
-      "title": "Memoization Workflow Trace",
-      "content": "Let us trace through memoization for `Fib(5)` to understand how caching eliminates redundant computation. Initially, the memo dictionary is empty.\n\n1.  Call `fib(5)`. Check cache for 5, not found. Need `fib(4) + fib(3)`.\n2.  Call `fib(4)`. Check cache for 4, not found. Need `fib(3) + fib(2)`.\n3.  Call `fib(3)`. Check cache for 3, not found. Need `fib(2) + fib(1)`.\n4.  Call `fib(2)`. Check cache for 2, not found. Need `fib(1) + fib(0)`.\n5.  Call `fib(1)`. Base case, return 1. **Store memo[1]=1**.\n6.  Call `fib(0)`. Base case, return 0. **Store memo[0]=0**.\n7.  Back to `fib(2)`. `fib(2) = 1 + 0 = 1`. **Store memo[2]=1**.\n8.  Back to `fib(3)`. Need `fib(1)` again. Check cache for 1, **found**, return 1. `fib(3) = 1 + 1 = 2`. **Store memo[3]=2**.\n9.  Back to `fib(4)`. Need `fib(2)` again. Check cache for 2, **found**, return 1. `fib(4) = 2 + 1 = 3`. **Store memo[4]=3**.\n10. Back to `fib(5)`. Need `fib(3)` again. Check cache for 3, **found**, return 2. `fib(5) = 3 + 2 = 5`. **Store memo[5]=5**.\n\nTotal unique computations are only 6 values (0 to 5), compared to 15 calls in naive recursion."
-    },
-    {
-      "id": "trading-space-for-time",
-      "type": "concept",
-      "title": "Trading Space for Time: Memoization",
-      "content": "When a recursive algorithm solves the exact same subproblem multiple times, we can use an Array or Dictionary as a \"notepad\" to save the answer the first time we find it. This technique is known as memoization. By checking this \"notepad\" before doing the underlying math, the algorithm guarantees it never recalculates the same branch twice. You are actively trading memory space (to store the notepad) for execution time. This simple optimization reduces exponential time complexity from $O(2^n)$ down to linear time $O(n)$."
-    },
-    {
-      "id": "tabulation",
-      "type": "concept",
-      "title": "Tabulation (Bottom-Up)",
-      "content": "**Tabulation** is a bottom-up Dynamic Programming approach that builds solutions iteratively from the smallest subproblems upward. It avoids recursion entirely, using loops and arrays instead.\n\nInstead of recursion, the algorithm begins from the smallest subproblems and iteratively builds larger solutions:\n1.  Values are progressively filled inside a table structure (array/matrix).\n2.  Each new value depends strictly on previously computed entries.\n\nFor Fibonacci:\n* Create an array `dp` of size `n+1`.\n* Set base cases: `dp[0] = 0` and `dp[1] = 1`.\n* Loop `i` from `2` to `n`: set `dp[i] = dp[i-1] + dp[i-2]`.\n* Return `dp[n]`.\n\nTabulation has no recursion overhead, no risk of stack overflow, and highly predictable sequential memory usage. However, it *must* solve all subproblems from 0 to n, even if a specific logic path wouldn't necessarily require all of them. It can also be less intuitive than memoization to set up."
-    },
-    {
-      "id": "memoization-vs-tabulation",
-      "type": "deep_dive",
-      "title": "Memoization vs Tabulation",
-      "content": "Both are valid implementations of Dynamic Programming, but they excel in different scenarios:\n\n* **Execution Style:** Memoization uses top-down recursion with caching. Tabulation uses bottom-up iterative table construction.\n* **Subproblem Coverage:** Memoization only solves needed subproblems (lazy). Tabulation eagerly solves all subproblems in sequence.\n* **Memory/Stack:** Memoization relies on the call stack (can cause Stack Overflow on deep trees). Tabulation uses simple loops (no stack limits).\n* **Speed/Overhead:** Memoization carries function call and dictionary lookup overhead. Tabulation uses highly optimized sequential array access (often faster).\n* **Space Optimization:** Memoization is harder to space-optimize. Tabulation can frequently be optimized to `O(1)` space by discarding older row data.\n\n**When to use which:** Use memoization when the recurrence is naturally recursive or only a fraction of the state space will be visited. Use tabulation when all subproblems must be computed anyway, or when absolute maximum performance and recursion safety are required."
-    },
-    {
-      "id": "why-dp-powerful",
-      "type": "concept",
-      "title": "Why Dynamic Programming Is Powerful",
-      "content": "Dynamic Programming can dramatically reduce computational complexity, frequently transforming exponential runtime into linear or polynomial runtime.\n\nComplexity Reductions via DP:\n* **Fibonacci:** Reduces `O(2^n)` to `O(n)`.\n* **Edit Distance:** Reduces `O(3^n)` to `O(m * n)`.\n* **Knapsack:** Reduces `O(2^n)` to `O(n * W)`.\n* **Matrix Chain Multiplication:** Reduces `O(2^n)` to `O(n^3)`.\n\nTo understand this scale, for `n=100`:\n* `O(2^n)` is ~`1.27 Ã— 10^30` operations (**impossible**).\n* `O(n^3)` is `1,000,000` operations (**milliseconds**).\n* `O(n^2)` is `10,000` operations (**instant**).\n* `O(n)` is `100` operations (**instant**).\n\nThis transforms impractical algorithms into scalable real-world solutions used in modern tech.",
-      "chart": {
-        "title": "Dynamic Programming optimization",
-        "description": "Dynamic Programming reduces repeated recursive computation by reusing previously solved subproblems.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
-      }
-    },
-    {
-      "id": "common-dp-problems",
-      "type": "concept",
-      "title": "Common Dynamic Programming Problems",
-      "content": "Dynamic Programming is the underlying engine for many classic computer science problems:\n\n* **Fibonacci Sequence:** Computes the nth number in `O(n)` time.\n* **Coin Change:** Finds minimum coins for a target in `O(n * amount)` time.\n* **0/1 Knapsack:** Maximizes value within weight capacity in `O(n * W)` time.\n* **Longest Common Subsequence (LCS):** Finds longest sequence common to two strings in `O(m * n)` time.\n* **Edit Distance:** Finds minimum operations to convert strings in `O(m * n)` time.\n* **Matrix Chain Multiplication:** Finds optimal parenthesization in `O(n^3)` time.\n* **Shortest Path:** Bellman-Ford and Floyd-Warshall use DP to route networks.\n\nThese problems teach essential optimization patterns: 1D DP (Fibonacci), 2D DP (Knapsack/LCS), Interval DP (Matrix Chain), and Tree DP."
-    },
-    {
-      "id": "general-dp-pattern",
-      "type": "concept",
-      "title": "General Dynamic Programming Pattern",
-      "content": "Most Dynamic Programming algorithms can be solved by systematically following these 4 steps:\n\n1.  **Define the State:** What smaller problem can you solve to build the larger solution? \n    * *Fibonacci:* `dp[i]` is the ith Fibonacci number.\n    * *Knapsack:* `dp[i][w]` is max value using first `i` items with capacity `w`.\n2.  **Define the Recurrence Relation:** How does the larger solution relate to smaller ones?\n    * *Fibonacci:* `dp[i] = dp[i-1] + dp[i-2]`.\n    * *Knapsack:* `dp[i][w] = max(dp[i-1][w], dp[i-1][w-wt[i]] + val[i])`.\n3.  **Define the Base Cases:** What are the absolute smallest subproblems?\n    * *Fibonacci:* `dp[0] = 0` and `dp[1] = 1`.\n    * *Knapsack:* `dp[0][w] = 0`.\n4.  **Determine Order of Computation:** Choose Top-Down (Memoization) or Bottom-Up (Tabulation)."
-    },
-    {
-      "id": "complexity-improvement",
-      "type": "deep_dive",
-      "title": "Complexity Improvement Example",
-      "content": "Let us analyze the concrete complexity improvement from naive recursion to DP using Fibonacci:\n\n* **Naive Recursive:** `O(1.618^n)`. For `n=40`, this is ~331 million calls.\n* **Memoization:** `O(n)` time, `O(n)` space. For `n=40`, exactly 41 unique calls.\n* **Tabulation:** `O(n)` time, `O(n)` space. Iterative array loop.\n* **Space-Optimized Tabulation:** `O(n)` time, `O(1)` space. Two tracking variables.\n\nExecution Time Impact:\n* `n=40`: Naive takes ~0.5 seconds. DP takes microseconds.\n* `n=50`: Naive takes ~60 seconds. DP takes microseconds.\n* `n=100`: Naive takes over 10^20 years. DP takes microseconds.\n\nDP dramatically reduces recursion depth, repeated computation, and execution time. The difference between exponential and linear is the difference between mathematically impossible and trivial."
-    },
-    {
-      "id": "implementation",
-      "type": "concept",
-      "title": "Python Implementations",
-      "content": "Dynamic Programming implementations commonly use memoization dictionaries or iterative tables to store previously computed results.\n\n* **Memoization:** Uses recursion with a dictionary cache. Before computing `fib(n)`, check if `n` is in the memo. If yes, return it. If not, compute recursively, store, and return.\n* **Tabulation:** Uses an iterative array `dp` of size `n+1`. Set base cases, loop from 2 to n, computing each value from the previous ones.\n* **Space-Optimized Tabulation:** Uses only two variables because each Fibonacci value depends *only* on the two previous values. Update `a` and `b` in a rolling window `O(1)` space.\n\nPython's `@lru_cache(maxsize=None)` decorator from the `functools` module provides built-in memoization for any recursive function.",
-      "codeSnippets": [
-        {
-          "title": "Memoized Fibonacci",
-          "language": "python",
-          "code": "memo = {}\n\ndef fib(n):\n    if n in memo:\n        return memo[n]\n\n    if n <= 1:\n        return n\n\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\n\nprint(fib(10))"
-        },
-        {
-          "title": "Tabulation Fibonacci",
-          "language": "python",
-          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    dp = [0] * (n + 1)\n    dp[1] = 1\n\n    for i in range(2, n + 1):\n        dp[i] = dp[i - 1] + dp[i - 2]\n\n    return dp[n]\n\nprint(fib(10))"
-        },
-        {
-          "title": "Simple memoization cache demonstration",
-          "language": "python",
-          "code": "cache = {}\n\ndef square(n):\n    if n in cache:\n        return cache[n]\n\n    cache[n] = n * n\n    return cache[n]\n\nprint(square(5))\nprint(square(5))"
-        }
-      ]
-    },
-    {
-      "id": "real-world-applications",
-      "type": "real_world_connection",
-      "title": "Real-World Applications",
-      "content": "Dynamic Programming appears natively in countless real-world engineering systems:\n\n* **Google Maps & Routing:** Uses shortest path algorithms (Bellman-Ford, Floyd-Warshall) to find optimal real-time routes.\n* **Genomics & Biology:** DNA sequence alignment uses DP (Needleman-Wunsch, Smith-Waterman) to find genome similarities. The Human Genome Project relied heavily on DP.\n* **NLP & Word Processing:** Spell check and autocorrect use the DP Edit Distance algorithm to find the closest matching word in a dictionary.\n* **AI & Machine Learning:** Recommendation systems use DP sequence modeling. Game AI uses DP in minimax with transposition tables.\n* **Finance:** DP is used for portfolio optimization and options pricing."
-    },
-    {
-      "id": "misconceptions",
-      "type": "key_concept",
-      "title": "Common Beginner Misconceptions",
-      "subsections": [
-        {
-          "id": "dp-is-recursion",
-          "title": "Mistake: Dynamic Programming is just recursion",
-          "content": "Recursion is only *one* implementation approach (Memoization). The core DP idea is **reusing solved subproblems**. Tabulation uses loops/iteration, not recursion. DP is a strategy for avoiding redundant computation."
-        },
-        {
-          "id": "memo-tab-different",
-          "title": "Mistake: Memoization and tabulation are totally different algorithms",
-          "content": "Both are Dynamic Programming techniques solving the exact same recurrence logic. They solely differ in execution direction (top-down vs bottom-up) and syntax (recursion vs iteration)."
-        },
-        {
-          "id": "arrays-only",
-          "title": "Mistake: DP always uses 1D/2D arrays",
-          "content": "Dynamic Programming may use arrays, matrices, hash maps, trees, or graph nodes depending on the problem structure. You must choose the data structure that accurately models your state representation."
-        }
-      ]
-    },
-    {
-      "id": "takeaways",
-      "type": "summary",
-      "title": "Key Takeaways",
-      "bullets": [
-        "Dynamic Programming **reuses previously computed results**.",
-        "DP solves **overlapping subproblems** highly efficiently.",
-        "**Memoization** uses top-down recursion with caching.",
-        "**Tabulation** uses bottom-up iterative table construction.",
-        "DP dramatically reduces redundant computation from **exponential to polynomial**.",
-        "DP is heavily utilized in modern **optimization, routing, and AI systems**."
-      ]
-    }
-  ],
-  "references": [
-    {
-      "title": "Programiz - Dynamic Programming",
-      "url": "https://www.programiz.com/dsa/dynamic-programming"
-    },
-    {
-      "title": "GeeksforGeeks - Dynamic Programming Introduction",
-      "url": "https://www.geeksforgeeks.org/dynamic-programming/"
-    },
-    {
-      "title": "Wikipedia - Dynamic Programming",
-      "url": "https://en.wikipedia.org/wiki/Dynamic_programming"
-    },
-    {
-      "title": "Cormen, T. H., Leiserson, C. E., Rivest, R. L., & Stein, C. (2009). Introduction to Algorithms (3rd ed.). MIT Press.",
-      "url": "https://mitpress.mit.edu/9780262033848/introduction-to-algorithms/"
-    }
-  ]
-}
-
---- FILE: frontend/public/data/curriculum/module-5/lesson-5-2.json ---
-
-{
-  "lessonId": "lesson-5-2",
-  "moduleId": "module-5",
-  "title": "Fibonacci Optimization",
-  "description": "Learn how Dynamic Programming optimizes Fibonacci computation using **memoization, tabulation, and space-efficient iterative techniques**.",
-  "difficulty": "Intermediate",
-  "estimatedTime": "50 min",
-  "prerequisites": "Dynamic Programming Fundamentals",
-  "tags": ["dynamic programming", "fibonacci", "memoization", "tabulation"],
-  "activities": [
-    {
-      "id": "m5_l2_a1",
-      "title": "Naive Fibonacci"
-    },
-    {
-      "id": "m5_l2_a2",
-      "title": "Memoized Fibonacci"
-    },
-    {
-      "id": "m5_l2_a3",
-      "title": "Tabulated Fibonacci"
-    },
-    {
-      "id": "m5_l2_a4",
-      "title": "Space-Optimized Fibonacci"
-    },
-    {
-      "id": "m5_l2_a5",
-      "title": "Sequence Generator"
-    }
-  ],
-  "sections": [
-    {
-      "id": "introduction",
-      "type": "introduction",
-      "title": "Introduction",
-      "content": "The Fibonacci sequence is one of the most famous examples used to demonstrate Dynamic Programming optimization. \n\n* The sequence follows the rule **`F(n) = F(n-1) + F(n-2)`** with base cases `F(0) = 0` and `F(1) = 1`.\n* The sequence begins: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144.\n\nAlthough recursive Fibonacci appears simple and elegant, **naive recursion repeatedly recomputes identical Fibonacci values** many times. For `F(40)`, naive recursion makes over 300 million function calls. For `F(100)`, it would take longer than the age of the universe.\n\nDynamic Programming optimizes this process by storing previously computed results. Instead of recomputing `F(30)` thousands of times, compute it once, store it, and look it up when needed. This transforms the algorithm from exponential `O(2^n)` to linear `O(n)`.\n\nThis lesson walks through each optimization step from the slowest to the fastest implementation: Naive Recursion -> Memoization -> Tabulation -> Space-Optimized Iteration."
-    },
-    {
-      "id": "why-fibonacci-important",
-      "type": "concept",
-      "title": "Why Fibonacci Is Important in Dynamic Programming",
-      "content": "The Fibonacci problem is the **\"Hello World\" of Dynamic Programming**. It perfectly illustrates core DP concepts without the complexity of 2D tables or complex state definitions.\n\nA recursive Fibonacci algorithm repeatedly solves identical smaller values again and again. You can see exactly the same `F(3)` being computed multiple times in the recursion tree. This repetition is highly visible, measurable, and easy to understand.\n\nKey learning outcomes include:\n1.  **Seeing overlapping subproblems** in the recursion tree.\n2.  **Learning memoization** by adding a simple cache.\n3.  **Learning tabulation** by building from the bottom up.\n4.  **Noticing space optimization** by realizing only the last two values actually matter.\n\nUnderstanding Fibonacci optimization builds the foundation for all DP problems. The exact same pattern applies to climbing stairs, coin change, and knapsack algorithms.",
-      "bullets": [
-        "Demonstrates **overlapping subproblems** clearly.",
-        "Introduces **memoization** and **tabulation** directly.",
-        "Shows how DP cleanly eliminates **redundant computation**.",
-        "Teaches step-by-step **optimization reasoning**."
-      ]
-    },
-    {
-      "id": "understanding-sequence",
-      "type": "deep_dive",
-      "title": "Understanding the Fibonacci Sequence",
-      "content": "The Fibonacci sequence begins 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377. \n\nEach number is generated using the recurrence relation: **`current = previous + previousPrevious`**.\n* For example, `F(5) = F(4) + F(3)`.\n* And `F(4) = F(3) + F(2)`.\n* Notice that **`F(3)` appears in both calculations**. This overlap matters enormously.\n\nIf you compute `F(5)` recursively, you compute `F(3)` twice, `F(2)` three times, `F(1)` five times, and `F(0)` three times. For larger `n`, the redundancy becomes astronomical. `F(40)` computes `F(3)` over 10 million times.\n\nInterestingly, as `n` grows, the ratio `F(n+1) / F(n)` approaches the **golden ratio (phi)** which is roughly 1.618. This mathematical beauty makes Fibonacci fascinating, but the computational cost without DP is prohibitive."
-    },
-    {
-      "id": "naive-recursion",
-      "type": "concept",
-      "title": "Naive Recursive Fibonacci",
-      "content": "A basic recursive Fibonacci implementation directly translates the mathematical definition into code. It is elegant to read, but terribly inefficient to execute: `if n <= 1 return n, else return fib(n-1) + fib(n-2)`.\n\nThe recursion repeatedly branches into two calls for almost every invocation, creating **exponential recursive growth**:\n* `fib(5)`: 15 calls\n* `fib(10)`: 177 calls\n* `fib(20)`: 21,891 calls\n* `fib(30)`: 2.7 million calls\n* `fib(40)`: 331 million calls\n* `fib(100)`: ~1.2 Ã— 10^21 calls\n\nThe recursion itself is not the problem (Binary Search is recursive and very fast). The issue is **overlapping subproblems**â€”where the same identical computation is repeated many thousands of times."
-    },
-    {
-      "id": "redundant-recursion",
-      "type": "deep_dive",
-      "title": "Visualizing Redundant Recursion",
-      "content": "Let us trace through `fib(5)` to see exactly where redundancy occurs in the recursion tree:\n* `fib(5)` calls `fib(4)` and `fib(3)`.\n* `fib(4)` calls `fib(3)` and `fib(2)`.\n* `fib(3)` calls `fib(2)` and `fib(1)`.\n* `fib(2)` calls `fib(1)` and `fib(0)`.\n\n**Call Count Analysis for fib(5):**\n* `fib(0)` computed 3 times.\n* `fib(1)` computed 5 times.\n* `fib(2)` computed 3 times.\n* `fib(3)` computed 2 times.\n* `fib(4)` computed 1 time.\n* `fib(5)` computed 1 time.\n\nTotal calls: **15**. \n\nEach call to `fib(3)` spawns the entire subtree of `fib(3)` again, even though the mathematical answer never changes. Dynamic Programming eliminates these duplicates by storing previously computed answers. Once `fib(3)` is computed, any future request for `fib(3)` simply looks up the cached answer."
-    },
-    {
-      "id": "why-recursive-slow",
-      "type": "concept",
-      "title": "Why Recursive Fibonacci Is Slow",
-      "content": "Naive recursive Fibonacci repeatedly expands into two recursive calls, creating exponential growth bounded by `O(2^n)`. More precisely, the number of calls grows like **`phi^n`**, where `phi` is ~1.618 (the golden ratio).\n\nLet `T(n)` be the number of recursive calls for `fib(n)`:\n* `T(0) = 1`, `T(1) = 1`\n* `T(n) = T(n-1) + T(n-2) + 1`\n* This mathematically solves to `T(n) â‰ˆ 2 * (phi^n / sqrt(5))`.\n\nBecause this growth is exponential, as input size increases, recursive calls explode. The issue is not the stack; it is the **amnesia**â€”each recursive call does not know that its subproblems have been computed before."
-    },
-    {
-      "id": "memoization",
-      "type": "concept",
-      "title": "Memoization Optimization",
-      "content": "Memoization solves repeated computation by storing already-computed Fibonacci values in a cache. This is the **Top-Down** approach because it starts from the target `n` and recursively breaks down to base cases.\n\n* **Check the cache:** Before calculating, check if the answer exists inside memory (a dictionary or array).\n* **Return if solved:** If solved earlier, reuse the value immediately without recursing further.\n* **Compute, Store, Return:** If not solved, compute recursively, store the result in the cache, and return it.\n\nThis completely prevents repeated recursion. The recursion tree collapses from an exponential binary tree to a linear chain-like tree. \n\n**Benefits:** It preserves natural recursive thinking, uses **lazy evaluation** (only computes what's strictly needed), and is easy to add to naive code. \n**Drawbacks:** Uses `O(n)` stack space for recursion, risking `RecursionError` for extremely large `n`."
-    },
-    {
-      "id": "memoization-workflow",
-      "type": "deep_dive",
-      "title": "Memoized Fibonacci Workflow",
-      "content": "Let us trace memoized Fibonacci for `fib(5)`. Initially the memo dictionary is empty.\n\n1.  Call `fib(5)`. Not in memo. Need `fib(4)`.\n2.  Call `fib(4)`. Not in memo. Need `fib(3)`.\n3.  Call `fib(3)`. Not in memo. Need `fib(2)`.\n4.  Call `fib(2)`. Not in memo. Need `fib(1)`.\n5.  Call `fib(1)`. Base case, returns 1. **Store memo[1]=1**.\n6.  Call `fib(0)`. Base case, returns 0. **Store memo[0]=0**.\n7.  `fib(2)` resolves: 1 + 0 = 1. **Store memo[2]=1**.\n8.  Back to `fib(3)`. Needs `fib(1)`. Check memo: **Found 1!** No recursion. `fib(3) = 1 + 1 = 2`. **Store memo[3]=2**.\n9.  Back to `fib(4)`. Needs `fib(2)`. Check memo: **Found 1!** No recursion. `fib(4) = 2 + 1 = 3`. **Store memo[4]=3**.\n10. Back to `fib(5)`. Needs `fib(3)`. Check memo: **Found 2!** No recursion. `fib(5) = 3 + 2 = 5`. **Store memo[5]=5**.\n\nOnly **6 unique computations** occurred compared to 15 in naive recursion."
-    },
-    {
-      "id": "memoized-implementation",
-      "type": "concept",
-      "title": "Memoized Fibonacci Implementation",
-      "content": "Memoized Fibonacci preserves recursion while caching values. There are three common ways to implement it:\n\n1.  **Dictionary Memo:** Works for any `n` and handles sparse keys safely. Pass a dictionary into the recursive function (or use a global/class scope), check `if n in memo`, and `memo[n] = result`.\n2.  **List Memo (Array):** More efficient for contiguous `n` ranges. Initialize a list `memo = [-1] * (n + 1)`. Check `if memo[k] != -1` to avoid recalculating.\n3.  **Functools `@lru_cache`:** Python provides built-in memoization. Just add `@lru_cache(maxsize=None)` above the naive recursive function, and Python's C-backend handles the caching dictionary automatically.",
-      "codeSnippets": [
-        {
-          "title": "Memoized Fibonacci",
-          "language": "python",
-          "code": "memo = {}\n\ndef fib(n):\n    if n in memo:\n        return memo[n]\n\n    if n <= 1:\n        return n\n\n    memo[n] = fib(n - 1) + fib(n - 2)\n    return memo[n]\n\nprint(fib(10))"
-        }
-      ]
-    },
-    {
-      "id": "tabulation",
-      "type": "concept",
-      "title": "Tabulation Optimization",
-      "content": "Tabulation is the **Bottom-Up** DP approach that builds Fibonacci values iteratively from the smallest subproblems upward. Instead of recursion, it uses a standard `for` loop and an array table.\n\nSetup Steps:\n1.  Create an array `dp` of size `n+1`.\n2.  Initialize base cases: `dp[0] = 0` and `dp[1] = 1`.\n3.  Loop `i` from `2` to `n`: `dp[i] = dp[i-1] + dp[i-2]`.\n4.  Return `dp[n]`.\n\n**Pros:** Tabulation has **no recursion overhead** (loops are faster than function calls), zero risk of stack overflow, and cache-friendly sequential memory access.\n**Cons:** It must compute *all* values from 0 to `n` comprehensively, even if a more complex problem algorithmically didn't require every single sub-state. It requires building the entire sequence table."
-    },
-    {
-      "id": "tabulation-implementation",
-      "type": "concept",
-      "title": "Tabulation Fibonacci Implementation",
-      "content": "Tabulation avoids recursion overhead while maintaining linear `O(n)` efficiency.\n\n* **The Full Table Version:** Creates an array `dp` of size `n+1`. It sets `dp[0]=0`, `dp[1]=1`, loops up to `n`, and returns `dp[n]`. This definitively uses `O(n)` space in RAM.\n* **The Sequence Generator:** If an application actually requires the *entire sequence* (not just the nth number), the tabulation `dp` array is exactly what you need to return.\n\nThe space complexity is `O(n)` because we store the entire array of answers. However, if we only want the final answer `dp[n]`, storing the full array is a waste of memory. This can be heavily optimized.",
-      "codeSnippets": [
-        {
-          "title": "Tabulation Fibonacci",
-          "language": "python",
-          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    dp = [0] * (n + 1)\n    dp[1] = 1\n\n    for i in range(2, n + 1):\n        dp[i] = dp[i - 1] + dp[i - 2]\n\n    return dp[n]\n\nprint(fib(10))"
-        }
-      ]
-    },
-    {
-      "id": "complexity-comparison",
-      "type": "deep_dive",
-      "title": "Complexity Comparison",
-      "content": "Understanding the complexity differences proves the mathematical power of Dynamic Programming:\n\n* **Naive Recursion:** `O(2^n)` Time, `O(n)` Space (Stack). `n=40` is ~331M calls. `n=100` is impossible.\n* **Memoization:** `O(n)` Time, `O(n)` Space (Stack + Cache). `n=40` is 40 calls. `n=100` is 100 calls.\n* **Tabulation:** `O(n)` Time, `O(n)` Space (Array). `n=40` is 40 loop iterations.\n* **Space-Optimized Tabulation:** `O(n)` Time, **`O(1)` Space** (Variables).\n\nFor `n=40`, naive recursion takes roughly 0.5 seconds, while DP takes microsecondsâ€”an improvement of **8 million times**. For `n=100`, naive recursion would outlast the universe, while DP completes instantly.",
-      "chart": {
-        "title": "Fibonacci optimization comparison",
-        "description": "Dynamic Programming dramatically reduces Fibonacci computation from exponential growth to linear growth.",
-        "maxN": 32,
-        "normalize": true,
-        "curves": ["O(n)", "O(n^2)", "O(2^n)"]
-      }
-    },
-    {
-      "id": "space-optimization",
-      "type": "concept",
-      "title": "Space Optimization (Iterative)",
-      "content": "The tabulation approach can be hyper-optimized. Notice the recurrence: `dp[i] = dp[i-1] + dp[i-2]`. Each Fibonacci value **only depends on the two immediately previous values**.\n\nWhen computing `F(10)`, you need `F(9)` and `F(8)`. You **do not** need `F(7)` anymore. You can discard old values and only keep a \"sliding window\" of the two most recent numbers.\n\n* Initialize `a = 0` (represents F(i-2)) and `b = 1` (represents F(i-1)).\n* For `i` from 2 to `n`, compute `current = a + b`.\n* Shift the window forward: `a = b`, and `b = current`.\n* Return `b`.\n\nThis `O(1)` space algorithm uses only standard integer variables. For `n = 1,000,000`, full tabulation would use 8 Megabytes for the array. Space-optimized uses **24 bytes**. That is a 333,000x memory savings."
-    },
-    {
-      "id": "optimized-iterative",
-      "type": "concept",
-      "title": "Optimized Iterative Fibonacci",
-      "content": "The space-optimized iterative implementation is the gold standard for generating a specific Fibonacci number in production environments.\n\n* **Time:** `O(n)`\n* **Space:** `O(1)`\n* **Stack:** No recursion overhead or depth limits.\n* **Memory:** No array allocation overhead.\n\n**When to use which implementation?**\n1.  **Naive Recursion:** Only for teaching mathematical mapping. Never use in production.\n2.  **Memoization:** Best when the recurrence is highly complex/multi-dimensional and you only want to visit exactly the states you need.\n3.  **Tabulation (Array):** Best when you explicitly need to return or query the *entire history* of the sequence.\n4.  **Space-Optimized (Variables):** Best for production when you only need the final `F(n)` result.",
-      "codeSnippets": [
-        {
-          "title": "Space-optimized Fibonacci",
-          "language": "python",
-          "code": "def fib(n):\n    if n <= 1:\n        return n\n\n    prev2 = 0\n    prev1 = 1\n\n    for i in range(2, n + 1):\n        current = prev1 + prev2\n        prev2 = prev1\n        prev1 = current\n\n    return prev1\n\nprint(fib(10))"
-        }
-      ]
-    },
-    {
-      "id": "memoization-vs-tabulation",
-      "type": "deep_dive",
-      "title": "Memoization vs Tabulation in Fibonacci",
-      "content": "Both memoization and tabulation completely resolve the overlapping subproblem issue, differing solely in execution geometry.\n\n* **Memoization (Top-Down):** Recursively works down to base cases. Uses `O(n)` recursion stack space + `O(n)` cache space. It only solves subproblems strictly reachable from `n`.\n* **Tabulation (Bottom-Up):** Iteratively builds from base cases up to `n`. Uses `O(n)` array space (or `O(1)` if optimized) and avoids the call stack entirely.\n\nMemoization often feels easier conceptually because it mimics the mathematical recurrence exactly. Tabulation requires mentally reversing the graph. However, for Fibonacci specifically, the space-optimized Tabulation with `O(1)` memory is the undisputed best practice."
-    },
-    {
-      "id": "real-world-importance",
-      "type": "real_world_connection",
-      "title": "Real-World Importance",
-      "content": "While calculating Fibonacci numbers is mostly an academic exercise, the exact optimization patterns learned here map identically to complex engineering tasks:\n\n* **Shortest Path Algorithms:** Dijkstra and Bellman-Ford use DP principles because checking the same intermediate node repeatedly is inefficient.\n* **Bioinformatics:** DNA sequence alignment (Needleman-Wunsch) uses 2D tabulation DP to align genomes without exponential recursion.\n* **Natural Language Processing:** Spell-check engines (Edit Distance) use caching to find string matches optimally.\n* **Resource Allocation:** Knapsack problems use DP to figure out cargo loading or financial investment thresholds.\n\nThe leap from Naive Fibonacci to Memoized Fibonacci is the exact same intellectual leap required to build modern AI and routing engines."
-    },
-    {
-      "id": "misconceptions",
-      "type": "key_concept",
-      "title": "Common Beginner Mistakes",
-      "subsections": [
-        {
-          "id": "recursion-bad",
-          "title": "Mistake: Thinking recursion is inherently inefficient",
-          "content": "Recursion *only* becomes deeply inefficient when overlapping subproblems repeatedly recompute identical work. Tree traversal (DFS) or Binary Search are recursive and lightning fast. The villain is the amnesia of re-computing, not the recursion itself."
-        },
-        {
-          "id": "memoization-library",
-          "title": "Mistake: Confusing memoization with Python libraries",
-          "content": "Memoization is a theoretical algorithmic strategy for caching results. While Python's `functools.lru_cache` perfectly implements it, it is critical to know how to write your own dictionary cache for languages/situations that lack built-in decorators."
-        },
-        {
-          "id": "dp-arrays-only",
-          "title": "Mistake: Believing DP always requires arrays",
-          "content": "Dynamic Programming may use dictionaries, matrices, trees, or single variables. For Fibonacci, integer variables work (`O(1)`). For Graph DP, a Dictionary keyed by Node objects is standard. Use what fits the state."
-        }
-      ]
-    },
-    {
-      "id": "takeaways",
-      "type": "summary",
-      "title": "Key Takeaways",
-      "bullets": [
-        "Fibonacci perfectly demonstrates **overlapping subproblems**.",
-        "Naive recursion repeatedly recomputes identical values (`O(2^n)`).",
-        "**Memoization** stores computed results in a cache for reuse (Top-Down).",
-        "**Tabulation** builds answers iteratively in an array (Bottom-Up).",
-        "Dynamic Programming reduces Fibonacci to **linear time (`O(n)`)**.",
-        "**Space optimization** can reduce memory complexity to absolute `O(1)`."
-      ]
-    }
-  ],
-  "references": [
-    {
-      "title": "Programiz - Dynamic Programming",
-      "url": "https://www.programiz.com/dsa/dynamic-programming"
-    },
-    {
-      "title": "GeeksforGeeks - Overlapping Subproblems in DP",
-      "url": "https://www.geeksforgeeks.org/overlapping-subproblems-property-in-dynamic-programming-dp-1/"
-    },
-    {
-      "title": "Wikipedia - Dynamic Programming",
-      "url": "https://en.wikipedia.org/wiki/Dynamic_programming"
-    },
-    {
-      "title": "Kleinberg, J., & Tardos, E. (2005). Algorithm Design. Pearson Education.",
-      "url": "https://www.pearson.com/en-us/subject-catalog/p/algorithm-design/P200000003348/9780321295354"
-    }
-  ]
-}
 
 --- FILE: frontend/public/data/curriculum/module-5/lesson-5-3.json ---
 
@@ -16003,6 +15359,141 @@ const curriculumIndex = [
   }
 ]
 
+--- FILE: frontend/public/data/evaluation/processed/clean_dataset.py ---
+
+import csv
+import re
+
+def clean_dataset():
+    input_file = 'algo_blocks_dataset.csv'
+    output_file = 'algo_blocks_dataset_cleaned.csv'
+
+    # Expanded niche patterns to catch normalized strings
+    # (e.g., 'nnlogn' catches 'n * n * log n')
+    niche_patterns = [
+        r'n2logn', 
+        r'nnlogn',
+        r'n2logk', 
+        r'nnlogk',
+        r'nlognlogv', 
+        r'n\+klogn',
+        r'nlog2n',
+        r'sqrtn'
+    ]
+    
+    # Compile a regex pattern to match any of the niche complexities
+    combined_pattern = re.compile('|'.join(niche_patterns))
+
+    removed_count = 0
+    kept_count = 0
+
+    try:
+        with open(input_file, mode='r', encoding='utf-8') as infile, \
+             open(output_file, mode='w', encoding='utf-8', newline='') as outfile:
+            
+            # Read the CSV as a dictionary
+            reader = csv.DictReader(infile)
+            
+            # Ensure the output file maintains the exact same headers
+            if not reader.fieldnames:
+                print("Error: Could not read headers from the CSV.")
+                return
+                
+            writer = csv.DictWriter(outfile, fieldnames=reader.fieldnames)
+            writer.writeheader()
+            
+            for row in reader:
+                # Safely get the time_complexity value
+                raw_time_comp = str(row.get('time_complexity', ''))
+                
+                # Normalize the string to catch all formatting variations:
+                # 1. Convert to lowercase
+                normalized_time = raw_time_comp.lower()
+                # 2. Remove whitespace, parentheses, carets, and asterisks
+                normalized_time = re.sub(r'[\s\(\)\^\*]', '', normalized_time)
+                # 3. Strip the leading 'o' (from O notation) if it exists
+                if normalized_time.startswith('o'):
+                    normalized_time = normalized_time[1:]
+                
+                # Check if the normalized string contains any of our niche patterns
+                if combined_pattern.search(normalized_time):
+                    print(f"Filtering out row with complexity: {raw_time_comp}")
+                    removed_count += 1
+                else:
+                    writer.writerow(row)
+                    kept_count += 1
+
+        print(f"\nDataset cleaning complete.")
+        print(f"Original dataset untouched. Cleaned data saved to: '{output_file}'")
+        print(f"-> Rows kept: {kept_count}")
+        print(f"-> Rows removed: {removed_count}")
+
+    except FileNotFoundError:
+        print(f"Error: Could not find '{input_file}'. Ensure the script is in the same directory as your dataset.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+if __name__ == "__main__":
+    clean_dataset()
+
+--- FILE: frontend/public/data/evaluation/processed/compress_dataset.py ---
+
+import csv
+
+def compress_dataset():
+    # Use your cleaned dataset as the input if you want to build on the previous step,
+    # or change this to 'algo_blocks_dataset.csv' if you are starting fresh.
+    input_file = 'algo_blocks_dataset.csv'
+    output_file = 'algo_blocks_dataset_compressed.csv'
+
+    removed_count = 0
+    kept_count = 0
+
+    try:
+        with open(input_file, mode='r', encoding='utf-8') as infile, \
+             open(output_file, mode='w', encoding='utf-8', newline='') as outfile:
+            
+            reader = csv.DictReader(infile)
+            
+            if not reader.fieldnames:
+                print("Error: Could not read headers from the CSV.")
+                return
+                
+            writer = csv.DictWriter(outfile, fieldnames=reader.fieldnames)
+            writer.writeheader()
+            
+            for row in reader:
+                # 1. Check if the entire row is completely blank
+                is_completely_blank = True
+                for value in row.values():
+                    if value and str(value).strip():
+                        is_completely_blank = False
+                        break
+                
+                # 2. Check if the 'code' column specifically is missing/blank
+                # A row without code is useless for the AlgoBlocks AST analyzer
+                code_content = str(row.get('code', '')).strip()
+                
+                # If the row is completely blank OR it has no code snippet, drop it
+                if is_completely_blank or not code_content:
+                    removed_count += 1
+                else:
+                    writer.writerow(row)
+                    kept_count += 1
+
+        print(f"\nDataset compression complete.")
+        print(f"Original dataset untouched. Compressed data saved to: '{output_file}'")
+        print(f"-> Valid rows kept: {kept_count}")
+        print(f"-> Blank/Gap rows removed: {removed_count}")
+
+    except FileNotFoundError:
+        print(f"Error: Could not find '{input_file}'. Ensure the script is in the exact same directory.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+if __name__ == "__main__":
+    compress_dataset()
+
 --- FILE: frontend/public/data/optimizations/m1_opt_1.json ---
 
 {
@@ -17116,4 +16607,711 @@ const curriculumIndex = [
     "backpack": []
   },
   "pythonCode": "def two_sum_sorted(arr, target):\n    for i in range(len(arr)):\n        for j in range(i + 1, len(arr)):\n            if arr[i] + arr[j] == target:\n                return [arr[i], arr[j]]\n\n    return []"
+}
+
+--- FILE: frontend/public/data/optimizations/m2_opt_2.json ---
+
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "16de4ad5-6ff1-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "arr",
+                "id": "arr"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "find_majority_sorted"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "controls_for",
+                "id": "0debe942-b834-4",
+                "fields": {
+                  "VAR": {
+                    "id": "i"
+                  }
+                },
+                "inputs": {
+                  "FROM": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "9bd0ed1d-1461-4",
+                      "fields": {
+                        "NUM": 0
+                      }
+                    }
+                  },
+                  "TO": {
+                    "block": {
+                      "type": "lists_length",
+                      "id": "8c320a34-dae3-4",
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "eec7407a-97b7-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "arr"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "BY": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "b34a379d-d1e5-4",
+                      "fields": {
+                        "NUM": 1
+                      }
+                    }
+                  },
+                  "DO": {
+                    "block": {
+                      "type": "variables_set",
+                      "id": "eaf6eda2-2515-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "count"
+                        }
+                      },
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "dc371e22-929f-4",
+                            "fields": {
+                              "NUM": 0
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "controls_for",
+                          "id": "7c86f44b-6de2-4",
+                          "fields": {
+                            "VAR": {
+                              "id": "j"
+                            }
+                          },
+                          "inputs": {
+                            "FROM": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "7ad5e6e1-773e-4",
+                                "fields": {
+                                  "NUM": 0
+                                }
+                              }
+                            },
+                            "TO": {
+                              "block": {
+                                "type": "lists_length",
+                                "id": "feaad075-74f5-4",
+                                "inputs": {
+                                  "VALUE": {
+                                    "block": {
+                                      "type": "variables_get",
+                                      "id": "d83b5d80-6e15-4",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "arr"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "BY": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "a9a8f9b5-fc2a-4",
+                                "fields": {
+                                  "NUM": 1
+                                }
+                              }
+                            },
+                            "DO": {
+                              "block": {
+                                "type": "controls_if",
+                                "id": "6748da3e-37e3-4",
+                                "inputs": {
+                                  "IF0": {
+                                    "block": {
+                                      "type": "logic_compare",
+                                      "id": "f5c3a762-90a1-4",
+                                      "fields": {
+                                        "OP": "EQ"
+                                      },
+                                      "inputs": {
+                                        "A": {
+                                          "block": {
+                                            "type": "lists_getIndex",
+                                            "id": "9f0f3abc-cebc-4",
+                                            "fields": {
+                                              "MODE": "GET",
+                                              "WHERE": "FROM_START"
+                                            },
+                                            "inputs": {
+                                              "VALUE": {
+                                                "block": {
+                                                  "type": "variables_get",
+                                                  "id": "0d27b18f-6e8d-4",
+                                                  "fields": {
+                                                    "VAR": {
+                                                      "id": "arr"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "AT": {
+                                                "block": {
+                                                  "type": "variables_get",
+                                                  "id": "80d44f3e-258e-4",
+                                                  "fields": {
+                                                    "VAR": {
+                                                      "id": "i"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "B": {
+                                          "block": {
+                                            "type": "lists_getIndex",
+                                            "id": "3a73421a-0b2b-4",
+                                            "fields": {
+                                              "MODE": "GET",
+                                              "WHERE": "FROM_START"
+                                            },
+                                            "inputs": {
+                                              "VALUE": {
+                                                "block": {
+                                                  "type": "variables_get",
+                                                  "id": "1e6513de-4e09-4",
+                                                  "fields": {
+                                                    "VAR": {
+                                                      "id": "arr"
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "AT": {
+                                                "block": {
+                                                  "type": "variables_get",
+                                                  "id": "17ba08f2-9ebd-4",
+                                                  "fields": {
+                                                    "VAR": {
+                                                      "id": "j"
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "DO0": {
+                                    "block": {
+                                      "type": "math_assignment",
+                                      "id": "0eec9eb1-42f2-4",
+                                      "fields": {
+                                        "VAR": {
+                                          "id": "count"
+                                        },
+                                        "OP": "ADD"
+                                      },
+                                      "inputs": {
+                                        "DELTA": {
+                                          "block": {
+                                            "type": "math_number",
+                                            "id": "57396279-fb7d-4",
+                                            "fields": {
+                                              "NUM": 1
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "controls_if",
+                              "id": "64f2a958-7ae8-4",
+                              "inputs": {
+                                "IF0": {
+                                  "block": {
+                                    "type": "logic_compare",
+                                    "id": "3f439989-3b49-4",
+                                    "fields": {
+                                      "OP": "GT"
+                                    },
+                                    "inputs": {
+                                      "A": {
+                                        "block": {
+                                          "type": "variables_get",
+                                          "id": "3039196e-7089-4",
+                                          "fields": {
+                                            "VAR": {
+                                              "id": "count"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "B": {
+                                        "block": {
+                                          "type": "math_advanced_operators",
+                                          "id": "70300b6c-ddf0-4",
+                                          "fields": {
+                                            "OP": "FLOOR_DIV"
+                                          },
+                                          "inputs": {
+                                            "A": {
+                                              "block": {
+                                                "type": "lists_length",
+                                                "id": "88d73175-521c-4",
+                                                "inputs": {
+                                                  "VALUE": {
+                                                    "block": {
+                                                      "type": "variables_get",
+                                                      "id": "317f5774-aeb1-4",
+                                                      "fields": {
+                                                        "VAR": {
+                                                          "id": "arr"
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "B": {
+                                              "block": {
+                                                "type": "math_number",
+                                                "id": "72512b22-b0be-4",
+                                                "fields": {
+                                                  "NUM": 2
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "DO0": {
+                                  "block": {
+                                    "type": "procedure_return_value",
+                                    "id": "2ba62406-5283-4",
+                                    "inputs": {
+                                      "VALUE": {
+                                        "block": {
+                                          "type": "lists_getIndex",
+                                          "id": "76ddce73-ec35-4",
+                                          "fields": {
+                                            "MODE": "GET",
+                                            "WHERE": "FROM_START"
+                                          },
+                                          "inputs": {
+                                            "VALUE": {
+                                              "block": {
+                                                "type": "variables_get",
+                                                "id": "a2cc72d7-d412-4",
+                                                "fields": {
+                                                  "VAR": {
+                                                    "id": "arr"
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "AT": {
+                                              "block": {
+                                                "type": "variables_get",
+                                                "id": "19589809-e072-4",
+                                                "fields": {
+                                                  "VAR": {
+                                                    "id": "i"
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "math_number",
+                "id": "8fb3edfb-71bb-4",
+                "fields": {
+                  "NUM": 0
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "arr",
+        "id": "arr"
+      },
+      {
+        "name": "count",
+        "id": "count"
+      },
+      {
+        "name": "j",
+        "id": "j"
+      },
+      {
+        "name": "i",
+        "id": "i"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def find_majority_sorted(arr):\n    for i in range(len(arr)):\n        count = 0\n\n        for j in range(len(arr)):\n            if arr[i] == arr[j]:\n                count += 1\n\n        if count > len(arr) // 2:\n            return arr[i]\n\n    return 0"
+}
+
+--- FILE: frontend/public/data/optimizations/m2_opt_3.json ---
+
+{
+  "type": "algoblocks_project",
+  "version": "1.0",
+  "title": "algoblocks_workspace",
+  "blocklyJson": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "procedures_defreturn",
+          "id": "fb42ea47-68d3-4",
+          "x": 20,
+          "y": 20,
+          "extraState": {
+            "params": [
+              {
+                "name": "arr",
+                "id": "arr"
+              }
+            ]
+          },
+          "icons": {
+            "comment": {
+              "text": "Describe this function...",
+              "pinned": false,
+              "height": 80,
+              "width": 160
+            }
+          },
+          "fields": {
+            "NAME": "has_duplicates_opt"
+          },
+          "inputs": {
+            "STACK": {
+              "block": {
+                "type": "controls_for",
+                "id": "1859cb96-834c-4",
+                "fields": {
+                  "VAR": {
+                    "id": "i"
+                  }
+                },
+                "inputs": {
+                  "FROM": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "09b7348a-df70-4",
+                      "fields": {
+                        "NUM": 0
+                      }
+                    }
+                  },
+                  "TO": {
+                    "block": {
+                      "type": "lists_length",
+                      "id": "2895adc0-fa63-4",
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "variables_get",
+                            "id": "efbbb3d2-3ca3-4",
+                            "fields": {
+                              "VAR": {
+                                "id": "arr"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "BY": {
+                    "block": {
+                      "type": "math_number",
+                      "id": "6e262fd0-917b-4",
+                      "fields": {
+                        "NUM": 1
+                      }
+                    }
+                  },
+                  "DO": {
+                    "block": {
+                      "type": "controls_for",
+                      "id": "d2eb0cd2-0e0e-4",
+                      "fields": {
+                        "VAR": {
+                          "id": "j"
+                        }
+                      },
+                      "inputs": {
+                        "FROM": {
+                          "block": {
+                            "type": "math_arithmetic",
+                            "id": "69a14bd6-95d7-4",
+                            "fields": {
+                              "OP": "ADD"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "5c802632-0f2f-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "i"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "math_number",
+                                  "id": "dcb6697e-5d99-4",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "TO": {
+                          "block": {
+                            "type": "lists_length",
+                            "id": "1539a836-4a4b-4",
+                            "inputs": {
+                              "VALUE": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "cef63fcf-be3a-4",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "arr"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "BY": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "d2cd308a-cf71-4",
+                            "fields": {
+                              "NUM": 1
+                            }
+                          }
+                        },
+                        "DO": {
+                          "block": {
+                            "type": "controls_if",
+                            "id": "b29eb228-54c1-4",
+                            "inputs": {
+                              "IF0": {
+                                "block": {
+                                  "type": "logic_compare",
+                                  "id": "39317f3e-08cf-4",
+                                  "fields": {
+                                    "OP": "EQ"
+                                  },
+                                  "inputs": {
+                                    "A": {
+                                      "block": {
+                                        "type": "lists_getIndex",
+                                        "id": "6028631d-daea-4",
+                                        "fields": {
+                                          "MODE": "GET",
+                                          "WHERE": "FROM_START"
+                                        },
+                                        "inputs": {
+                                          "VALUE": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "a1803f54-7884-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "arr"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "AT": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "204fbc8a-2e6c-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "i"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "B": {
+                                      "block": {
+                                        "type": "lists_getIndex",
+                                        "id": "1410e98d-1592-4",
+                                        "fields": {
+                                          "MODE": "GET",
+                                          "WHERE": "FROM_START"
+                                        },
+                                        "inputs": {
+                                          "VALUE": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "4cc57721-db6e-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "arr"
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "AT": {
+                                            "block": {
+                                              "type": "variables_get",
+                                              "id": "4c4c1daa-6b95-4",
+                                              "fields": {
+                                                "VAR": {
+                                                  "id": "j"
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "DO0": {
+                                "block": {
+                                  "type": "procedure_return_value",
+                                  "id": "127b4811-6c63-4",
+                                  "inputs": {
+                                    "VALUE": {
+                                      "block": {
+                                        "type": "logic_boolean",
+                                        "id": "f2a817fb-a690-4",
+                                        "fields": {
+                                          "BOOL": "TRUE"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "RETURN": {
+              "block": {
+                "type": "logic_boolean",
+                "id": "b4bf0dd3-bbe6-4",
+                "fields": {
+                  "BOOL": "FALSE"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": [
+      {
+        "name": "arr",
+        "id": "arr"
+      },
+      {
+        "name": "j",
+        "id": "j"
+      },
+      {
+        "name": "i",
+        "id": "i"
+      }
+    ],
+    "backpack": []
+  },
+  "pythonCode": "def has_duplicates_opt(arr):\n    for i in range(len(arr)):\n        for j in range(i + 1, len(arr)):\n            if arr[i] == arr[j]:\n                return True\n\n    return False"
 }

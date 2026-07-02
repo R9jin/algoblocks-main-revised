@@ -1,7 +1,7 @@
 // frontend/src/pages/SignIn.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
-import { FiAlertTriangle, FiLock, FiMail } from "react-icons/fi";
+import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
@@ -9,6 +9,7 @@ import "../styles/Auth.css";
 export default function SignIn() {
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState(""); 
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
   const [rememberMe, setRememberMe] = useState(false);
   
@@ -246,13 +247,23 @@ export default function SignIn() {
               <div className="auth-input-wrap">
                 <FiLock className="auth-input-icon" aria-hidden="true" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
                   disabled={isLoading}
-                /> 
+                  className="password-input"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
               </div>
             </div>
             

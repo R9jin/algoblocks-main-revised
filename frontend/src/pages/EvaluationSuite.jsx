@@ -177,22 +177,29 @@ export default function EvaluationSuite() {
       if (rows.length < 2) return [];
       
       const headers = rows[0].map(h => h.trim());
-      const codeIdx = headers.indexOf('code');
+      const codeIdx = headers.indexOf('code') !== -1 ? headers.indexOf('code') : 0;
       const spaceIdx = headers.indexOf('space_complexity');
       const timeIdx = headers.indexOf('time_complexity');
       
       const dataset = [];
-      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'n*m'];
+      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', 'n*n!', 'factorial'];
 
       for (let i = 1; i < rows.length; i++) {
-        if (rows[i].length < headers.length) continue; 
+        // Robust malformed CSV check (Allows row length 1 to trigger fallback split)
+        if (!rows[i] || rows[i].length === 0 || (rows[i].length === 1 && !rows[i][0].trim())) continue; 
         
-        let codeText = rows[i][codeIdx] || '';
-        let spaceComp = rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
-        let timeComp = rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
+        let codeText = rows[i][codeIdx] !== undefined ? rows[i][codeIdx] : (rows[i][0] || '');
+        let spaceComp = spaceIdx !== -1 && rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
+        let timeComp = timeIdx !== -1 && rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
         
         if (!spaceComp && !timeComp && codeText.includes(',')) {
            const parts = codeText.split(',');
+           
+           // Clean up trailing empty columns from excel save bloat
+           while (parts.length > 0 && !parts[parts.length - 1].replace(/"/g, '').trim()) {
+               parts.pop();
+           }
+
            if (parts.length >= 3) {
                let possibleTime = parts[parts.length - 1].trim().replace(/"/g, '').toLowerCase();
                let possibleSpace = parts[parts.length - 2].trim().replace(/"/g, '').toLowerCase();
@@ -262,17 +269,35 @@ export default function EvaluationSuite() {
 
   const downloadFailuresLog = (details) => {
     const mismatches = details.filter(d => !d.isCompletelyCorrect);
-    let logText = "=== EVALUATION FAILURES LOG ===\n\n";
     
     if (mismatches.length === 0) {
-        logText += "No mismatches found. Perfect accuracy!\n";
-    } else {
-        mismatches.forEach(m => {
+        let logText = "=== EVALUATION FAILURES LOG ===\n\nNo mismatches found. Perfect accuracy!\n";
+        const blob = new Blob([logText], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "evaluation_failures_log.txt";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+    }
+
+    const numChunks = 7;
+    const chunkSize = Math.ceil(mismatches.length / numChunks);
+    
+    for (let i = 0; i < numChunks; i++) {
+        const chunk = mismatches.slice(i * chunkSize, (i + 1) * chunkSize);
+        if (chunk.length === 0) continue;
+
+        let logText = `=== EVALUATION FAILURES LOG (Part ${i + 1}) ===\n\n`;
+        
+        chunk.forEach(m => {
             logText += `[${m.id} - ${m.name}]\n`;
             logText += `Time Expected: ${m.expectedTime} | Actual: ${m.predictedTime}\n`;
             logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
-            logText += `Diagnostic Explanation: ${m.explanation}\n`;
-            logText += `Code Snippet:\n${m.codeSnippet.slice(0, 300)}...\n`;
+            logText += `Full Code:\n${m.codeSnippet}\n`;
             if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
               logText += `\nLine Level Mismatches:\n`;
               m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
@@ -281,17 +306,19 @@ export default function EvaluationSuite() {
             }
             logText += `${'-'.repeat(60)}\n\n`;
         });
+
+        setTimeout(() => {
+            const blob = new Blob([logText], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `evaluation_failures_log_part_${i + 1}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, i * 500); 
     }
-    
-    const blob = new Blob([logText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "evaluation_failures_log.txt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   const filteredDetails = (results?.details || []).filter((item) => {
@@ -329,6 +356,43 @@ export default function EvaluationSuite() {
     if (s >= 0.40) return <span className="f1-warning">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
     return <span className="f1-poor">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
   };
+
+  const processReport = (report) => {
+    if (!report || !report.perClass) return report;
+    const newPerClass = { ...report.perClass };
+
+    const mergeKeys = (sourceKey, targetKey) => {
+      if (newPerClass[sourceKey]) {
+        const source = newPerClass[sourceKey];
+        const target = newPerClass[targetKey] || { precision: 0, recall: 0, f1Score: 0, support: 0 };
+        
+        const totalSupport = source.support + target.support;
+        if (totalSupport > 0) {
+          target.precision = ((source.precision * source.support) + (target.precision * target.support)) / totalSupport;
+          target.recall = ((source.recall * source.support) + (target.recall * target.support)) / totalSupport;
+          target.f1Score = ((source.f1Score * source.support) + (target.f1Score * target.support)) / totalSupport;
+        }
+        target.support = totalSupport;
+        
+        newPerClass[targetKey] = target;
+        delete newPerClass[sourceKey];
+      }
+    };
+
+    // Fulfill frontend merging and renaming requirements
+    mergeKeys("O(exponential)", "O(2^n)");
+    mergeKeys("O(v)", "O(V)");
+
+    if (newPerClass["O(quartic)"]) {
+      newPerClass["O(n^4)"] = newPerClass["O(quartic)"];
+      delete newPerClass["O(quartic)"];
+    }
+
+    return { ...report, perClass: newPerClass };
+  };
+
+  const processedTimeReport = results?.timeReport ? processReport(results.timeReport) : null;
+  const processedSpaceReport = results?.spaceReport ? processReport(results.spaceReport) : null;
 
   return (
     <div className="eval-suite-container">
@@ -805,7 +869,7 @@ export default function EvaluationSuite() {
           </div>
         )}
 
-        {results && results.timeReport && results.spaceReport && (
+        {processedTimeReport && processedSpaceReport && (
           <div className="eval-sklearn-container">
             <div className="eval-sklearn-header">
               <div className="eval-sklearn-header-left">
@@ -830,15 +894,15 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall ⓘ</th>
-                      <th title="Harmonic Mean Balance">F1-Score ⓘ</th>
-                      <th title="Ground truth dataset count">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.keys(results.timeReport.perClass).map((cKey) => {
-                      const row = results.timeReport.perClass[cKey];
+                    {Object.keys(processedTimeReport.perClass).map((cKey) => {
+                      const row = processedTimeReport.perClass[cKey];
                       return (
                         <tr key={`time_${cKey}`}>
                           <td className="td-class-code">{cKey}</td>
@@ -859,16 +923,16 @@ export default function EvaluationSuite() {
                     </tr>
                     <tr>
                       <td>macro avg</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.precision)}</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.recall)}</td>
-                      <td>{renderMetricCell(results.timeReport.macroAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.precision)}</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.recall)}</td>
-                      <td>{renderMetricCell(results.timeReport.weightedAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
@@ -884,15 +948,15 @@ export default function EvaluationSuite() {
                   <thead>
                     <tr>
                       <th>Complexity Class</th>
-                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision ⓘ</th>
-                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall ⓘ</th>
-                      <th title="Harmonic Mean Balance">F1-Score ⓘ</th>
-                      <th title="Ground truth dataset count">Support ⓘ</th>
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) | Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.keys(results.spaceReport.perClass).map((cKey) => {
-                      const row = results.spaceReport.perClass[cKey];
+                    {Object.keys(processedSpaceReport.perClass).map((cKey) => {
+                      const row = processedSpaceReport.perClass[cKey];
                       return (
                         <tr key={`space_${cKey}`}>
                           <td className="td-class-code">{cKey}</td>
@@ -913,16 +977,16 @@ export default function EvaluationSuite() {
                     </tr>
                     <tr>
                       <td>macro avg</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.precision)}</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.recall)}</td>
-                      <td>{renderMetricCell(results.spaceReport.macroAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                     <tr className="tr-weighted">
                       <td>weighted avg</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.precision)}</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.recall)}</td>
-                      <td>{renderMetricCell(results.spaceReport.weightedAvg.f1Score)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.precision)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.f1Score)}</td>
                       <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
                     </tr>
                   </tbody>
@@ -1063,7 +1127,7 @@ export default function EvaluationSuite() {
                                           {lineItem.hasGroundTruth && lineItem.expTime ? (
                                             <div className="dual-comp-badge">
                                               <span className="comp-exp">Exp: <strong>{lineItem.expTime}</strong></span>
-                                              <span className="comp-arrow">→</span>
+                                              <span className="comp-arrow">&rarr;</span>
                                               <span className={`comp-act ${lineItem.isTimeMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predTime}</span>
                                             </div>
                                           ) : (
@@ -1075,7 +1139,7 @@ export default function EvaluationSuite() {
                                           {lineItem.hasGroundTruth && lineItem.expSpace ? (
                                             <div className="dual-comp-badge">
                                               <span className="comp-exp">Exp: <strong>{lineItem.expSpace}</strong></span>
-                                              <span className="comp-arrow">→</span>
+                                              <span className="comp-arrow">&rarr;</span>
                                               <span className={`comp-act ${lineItem.isSpaceMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predSpace}</span>
                                             </div>
                                           ) : (
