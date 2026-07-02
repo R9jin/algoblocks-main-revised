@@ -125,7 +125,7 @@ if __name__ == ""__main__"" :
     print(""Minimum of values in range ["", qs, 
           "","", qe, ""]"", ""is ="", RMQ(st, n, qs, qe)); 
   
-# This code is contributed by AnkitRai01,linear,logn",,
+# This code is contributed by AnkitRai01 ,linear,logn,,",,
 "# LCM of given range queries using Segment Tree
 MAX = 1000
  
@@ -687,6 +687,7 @@ if __name__ ==""__main__"":
       
 # This code is contributed by
 # Shubham Singh(SHUBHAMSINGH10),linear,nlogn,,",,
+"",,
 "# A simple python O(n^3) program
 # to count inversions of size 3
  
@@ -3516,7 +3517,8 @@ k = 3
 print(""K'th smallest element is"",
        kthSmallest(arr, 0, n - 1, k))
  
-# This code is contributed by Mohit Kumar,linear,quadratic,,",,
+# This code is contributed by Mohit Kumar,linear,quaratic,,",,
+"",,
 "# Python program to implement above approach
 def kthSmallest(mat, n, k):
          
@@ -3543,6 +3545,7 @@ res = kthSmallest(mat, 4, 7)
 print(""7th smallest element is ""+ str(res))
  
 # This code is contributed by shinjanpatra,quadratic,quadratic,,",,
+"",,
 "# Python3 program to find maximum
 # in arr[] of size n 
   
@@ -3861,6 +3864,33 @@ arr = [5, 15, 10, 20, 3]
 printMedians(arr, len(arr))
   
 # This code is contributed by cavi4762.,linear,nlogn,,",,
+"# Python3 program to find minimum
+# product of k elements in an array
+ 
+import math
+import heapq
+ 
+def minProduct(arr, n, k):
+ 
+    heapq.heapify(arr)
+    count = 0
+    ans = 1
+ 
+    # One by one extract
+    # items from min heap
+    while ( arr ) and count < k:
+        x = heapq.heappop(arr)
+        ans = ans * x
+        count = count + 1
+     
+    return ans;
+ 
+# Driver method
+arr = [198, 76, 544, 123, 154, 675]
+k = 2
+n = len(arr)
+print (""Minimum product is"",
+       minProduct(arr, n, k)),linear,n+klogn,,",,
 "# Python program to find out k maximum
 # non-overlapping subarray sums.
  
@@ -3969,6 +3999,7 @@ arr = [1, 5, 8, 9, 6, 7, 3, 4, 2, 0]
 n = len(arr)
 k = 5
 printSmall(arr, n, k),constant,quadratic,,",,
+"",,
 "# Python3 program to find second
 # largest element in an array
  
@@ -6306,6 +6337,7 @@ printArray(mPlusN, m+n)
  
 # This code is contributed
 # by Anant Agarwal.,constant,linear,,",,
+"",,
 "# Python3 program to test whether array
 # can be sorted by swapping adjacent
 # elements using boolean array
@@ -7209,6 +7241,7 @@ for i in range(n):
  
 # This code is contributed
 # by Anant Agarwal.,constant,quadratic,,",,
+"",,
 "arr1 = [1, 5, 9, 10, 15, 20 ];
 arr2 =[ 2, 3, 8, 13 ];
  

@@ -286,7 +286,7 @@ export default function EvaluationSuite() {
 
     const numChunks = 30;
     const chunkSize = Math.ceil(mismatches.length / numChunks);
-
+    
     for (let i = 0; i < numChunks; i++) {
         const chunk = mismatches.slice(i * chunkSize, (i + 1) * chunkSize);
         if (chunk.length === 0) continue;
