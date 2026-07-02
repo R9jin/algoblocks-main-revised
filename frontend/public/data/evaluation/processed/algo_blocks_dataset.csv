@@ -233,7 +233,7 @@ if __name__ == ""__main__"":
     print(query(1, 0, 10, 0, 10))
  
 # This code is contributed by
-# sanjeev2552,linear,linear,,",,
+# sanjeev2552,linear,logn,,",,
 "# Python3 program for range minimum  
 # query using segment tree
   
@@ -36647,7 +36647,7 @@ if __name__==""__main__"":
     str2 = ""GeeksforGeeks""
     print(rightrotate(str2, 2))
  
-# This code is contributed by Rutvik_56,constant,linear,,",,
+# This code is contributed by Rutvik_56,linear,linear,,",,
 "# Python3 program for Left
 # Rotation and Right
 # Rotation of a String
@@ -36804,7 +36804,7 @@ def findRotations(Str):
 Str = ""abc""
 print(findRotations(Str))
  
-# This code is contributed by shinjanpatra,constant,quadratic,,",,
+# This code is contributed by shinjanpatra,linear,quadratic,,",,
 "# Python 3 program to determine minimum
 # number of rotations required to yield
 # same string.
@@ -36974,7 +36974,7 @@ if __name__ == ""__main__"" :
     else :
         print(""No"")
          
-# This code is contributed by Ryuga,linear,cubic,,",,
+# This code is contributed by Ryuga,linear,quadratic,,",,
 "# Python program to reverse a string using recursion
  
 # Function to print reverse of the passed string
@@ -37065,7 +37065,7 @@ Str = ""I AM A GEEK""
 Str = reverse_words(Str)
 print(Str)
  
-# This code is contributed by shinjanpatra,constant,linear,,",,
+# This code is contributed by shinjanpatra,linear,quadratic,,",,
 "# Python3 program to reverse string without
 # affecting it's special character
 def rev(s, l, r) :
@@ -37217,7 +37217,7 @@ def preserveSpace(Str):
 Str = ""internship at geeks for geeks""
 preserveSpace(Str);
  
-# This code is contributed by avanitrachhadiya2155,constant,linear,,",,
+# This code is contributed by avanitrachhadiya2155,linear,linear,,",,
 "# Python3 Program for removing characters
 # from reversed string where vowels are
 # present in original string
@@ -37482,7 +37482,7 @@ if(possibleOrderAmongString(arr, N) ==
 else:
     print(""Ordering is possible"")
  
-# This code is contributed by avanitrachhadiya2155,linear,linear,,",,
+# This code is contributed by avanitrachhadiya2155,v+e,v+e,,",,
 "# Python3 program to sort an Array of
 # Strings according to their lengths
  
@@ -37555,7 +37555,7 @@ arr = [""GeeksforGeeks"", ""I"", ""from"", ""am""]
 # Passing list to printsorted function
 printsorted(arr)
  
-# this code is contributed by vikkycirus,constant,nlogn,,",,
+# this code is contributed by vikkycirus,linear,nlogn,,",,
 "# Python3 program to sort a string
 # of characters
  
@@ -37569,7 +37569,7 @@ def sortString(str) :
 s = ""geeksforgeeks""
 sortString(s)
  
-# This code is contributed by Smitha,constant,nlogn,,",,
+# This code is contributed by Smitha,linear,nlogn,,",,
 "# Python 3 program to sort a string
 # of characters
  
@@ -37624,7 +37624,7 @@ if __name__==""__main__"":
     main()
  
 # This code is contributed by
-# prabhat kumar singh,constant,constant,,",,
+# prabhat kumar singh,constant,nlogn,,",,
 "# Python program to sort a string of characters
 # in descending order
  
@@ -37726,7 +37726,7 @@ str = ""geeksforgeeks""
 n = len(str)
 print(sortString(str, n))
  
-# This code is contributed by Anant Agarwal.,constant,linear,,",,
+# This code is contributed by Anant Agarwal.,linear,linear,,",,
 "# Python 3 implementation to sort the given
 # string without using any sorting technique
 def sortString(st, n):
@@ -37757,7 +37757,7 @@ if __name__ == ""__main__"":
     n = len(st)
     print(sortString(st, n))
  
-    # This code is contributed by ukasp.,constant,linear,,",,
+    # This code is contributed by ukasp.,linear,linear,,",,
 "# Python3 program for above implementation
 MAX_CHAR = 26
  
@@ -37897,7 +37897,7 @@ if __name__ == ""__main__"":
     s = ""AAB""
     printAllPermutations(s)
  
-# This code is contributed by Chitranayal,linear,quadratic,,",,
+# This code is contributed by Chitranayal,linear,n*n!,,",,
 "# Python program to get minimum cost to sort
 # strings by reversal operation
  
@@ -38074,7 +38074,7 @@ if __name__ == '__main__':
  
 # This is  Code contributed by
 # Ashwin Viswanathan
-# Additional Updates by Meghna Natraj,logn,logn,,",,
+# Additional Updates by Meghna Natraj,constant,linear,,",,
 "# Python3 Program to find maximum
 # lowercase alphabets present
 # between two uppercase alphabets
@@ -38215,7 +38215,7 @@ for i in str:
         x+=loweralphabets[upperalphabets.index(i)]
     else:
         x+=upperalphabets[loweralphabets.index(i)]
-print(x),constant,linear,,",,
+print(x),linear,linear,,",,
 "# Python3 program to convert a
 # sentence to gOOGLE cASE.
 def convert(str):
@@ -38289,7 +38289,7 @@ def convert( s):
 str = ""I get intern at geeksforgeeks""
 print(convert(str))
  
-# This code is contributed by Gitanjali.,constant,linear,,",,
+# This code is contributed by Gitanjali.,linear,linear,,",,
 "# Python program to convert
 # given sentence to camel case.
  
@@ -38319,7 +38319,7 @@ if __name__==""__main__"":
      
 # This code is contributed
 # prabhat kumar singh
-    ,constant,linear,,",,
+    ,linear,quadratic,,",,
 "# Python code to print all permutations
 # with respect to cases
  
@@ -38353,7 +38353,7 @@ def permute(inp):
 # Driver code
 permute(""ABC"")
  
-# This code is contributed by Sachin Bisht,linear,quadratic,,",,
+# This code is contributed by Sachin Bisht,linear,n*2n,,",,
 "# Python3 program to get toggle case of a string
 x = 32;
  
@@ -38377,7 +38377,7 @@ print(""Original string: "", end = """");
 str = toggleCase(str);
 print(str);
  
-# This code is contributed by 29AjayKumar,constant,linear,,",,
+# This code is contributed by 29AjayKumar,linear,quadratic,,",,
 "# Python3 code for above approach
 def idToShortURL(id):
     map = ""abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789""
@@ -38407,7 +38407,7 @@ if (__name__ == ""__main__""):
     id = 12345
     shortURL = idToShortURL(id)
     print(""Short URL from 12345 is : "", shortURL)
-    print(""ID from"", shortURL, ""is : "", shortURLToId(shortURL)),constant,linear,,",,
+    print(""ID from"", shortURL, ""is : "", shortURLToId(shortURL)),logn,logn,,",,
 "# Python program to print the first non-repeating character
  
 string = ""geeksforgeeks""
@@ -38642,7 +38642,7 @@ def findFirstNonRepeating():
 # Driver program
 findFirstNonRepeating()
  
-# This code is contributed by BHAVYA JAIN,constant,linear,,",,
+# This code is contributed by BHAVYA JAIN,linear,quadratic,,",,
 "# Python3 program to check if a can be converted to
 # a that has repeated subs of length k.
  
@@ -38774,7 +38774,7 @@ if __name__ == '__main__':
      
     print(stringReduction(str))
  
-# This code is contributed by mohit kumar 29,linear,linear,,",,
+# This code is contributed by mohit kumar 29,cubic,cubic,,",,
 "# Python3 program to find smallest possible
 # length of a string of only three characters
  
@@ -39207,7 +39207,7 @@ if __name__ == ""__main__"":
     print(firstRep(s), end="""")
     print(""\n"", end="""")
  
-# This code is contributed by Aarti_Rathi,constant,linear,,",,
+# This code is contributed by Aarti_Rathi,linear,linear,,",,
 "# Python program to find the first
 # repeated character in a string
 def firstRepeatedChar(str):
@@ -39482,7 +39482,7 @@ if __name__ == '__main__':
     printString(str, 'e', 2)
  
 # This code is contributed
-# by 29AjayKumar,constant,linear,,",,
+# by 29AjayKumar,linear,linear,,",,
 "# Python3 Program to find all occurrences of the word in
 # a matrix
 ROW = 3
@@ -39546,7 +39546,7 @@ mat = [['B', 'N', 'E', 'Y', 'S'],
 word = list(""DES"")
 findWords(mat, word, len(word) - 1)
      
-# This code is contributed by SHUBHAMSINGH10,quadratic,quadratic,,",,
+# This code is contributed by SHUBHAMSINGH10,linear,exponential,,",,
 "# Python3 program to arrange given string
  
 # Function which arrange the given string
@@ -39635,7 +39635,7 @@ x = 1223355;
 print(""Max occurring digit is"",
               maxOccurring(x));
  
-# This code is contributed by mits.,constant,constant,,",,
+# This code is contributed by mits.,constant,linear,,",,
 "# Python3 program to bring all spaces
 # in front of string using swapping technique
  
@@ -39661,7 +39661,7 @@ s = moveSpaceInFront(s);
 print(s);
  
 # This code is contributed
-# by Princi Singh,constant,linear,,",,
+# by Princi Singh,linear,quadratic,,",,
 "# Python3 program to bring all spaces
 # in front of string using swapping technique
  
@@ -39724,7 +39724,7 @@ if __name__ == ""__main__"":
     amendSentence(string)
  
 # This code is contributed by
-# sanjeev2552,constant,linear,,",,
+# sanjeev2552,linear,linear,,",,
 "# Python program to Remove
 # extra spaces from a string
 input_string = \
@@ -39747,7 +39747,7 @@ for index in range(len(input_string)):
     elif input_string[index - 1] != ' ':
         space_flag = True
  
-print (''.join(output_string)),constant,linear,,",,
+print (''.join(output_string)),linear,linear,,",,
 "# Python 3 program to find the string which
 # contain the first character of each word
 # of another string.
@@ -39781,7 +39781,7 @@ if __name__ == ""__main__"":
     str = ""geeks for geeks""
     print(firstLetterWord(str))
  
-# This code is contributed by ita_c,linear,linear,,",,
+# This code is contributed by ita_c,linear,quadratic,,",,
 "# An efficient Python3 implementation
 # of above approach
 charBuffer = []
