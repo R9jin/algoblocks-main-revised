@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 6 OF 10) ---
 
---- TIMESTAMP: 2026-07-02 22:13:03 ---
+--- TIMESTAMP: 2026-07-03 06:16:28 ---
 
 
 --- FILE: frontend/public/python_engine/analyzer.py ---
@@ -3735,6 +3735,8 @@ def calculate_metrics(injected_dataset=None):
 
     time_accuracy = (overall_time_correct / total_algorithms) * 100 if total_algorithms > 0 else 0
     space_accuracy = (overall_space_correct / total_algorithms) * 100 if total_algorithms > 0 else 0
+    time_error_rate = 100.0 - time_accuracy
+    space_error_rate = 100.0 - space_accuracy
     line_time_acc = (lines_time_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
     line_space_acc = (lines_space_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
 
@@ -3756,7 +3758,9 @@ def calculate_metrics(injected_dataset=None):
     print(f"Total Algorithms Tested   : {total_algorithms}")
     print(f"Total Lines Evaluated     : {total_lines_evaluated}")
     print(f"1. Time Complexity Detection Acc  : {time_accuracy:.2f}%")
+    print(f"   Time Complexity Error Rate     : {time_error_rate:.2f}%")
     print(f"2. Space Complexity Detection Acc : {space_accuracy:.2f}%")
+    print(f"   Space Complexity Error Rate    : {space_error_rate:.2f}%")
     print(f"3. Average Processing Time        : {mean_ms:.2f} ms")
     
     time_report_dict = {}
@@ -3784,9 +3788,11 @@ def calculate_metrics(injected_dataset=None):
         "timePassed": overall_time_correct,
         "timeFailed": total_algorithms - overall_time_correct,
         "timeAccuracyRate": round(time_accuracy, 1),
+        "timeErrorRate": round(time_error_rate, 1),
         "spacePassed": overall_space_correct,
         "spaceFailed": total_algorithms - overall_space_correct,
         "spaceAccuracyRate": round(space_accuracy, 1),
+        "spaceErrorRate": round(space_error_rate, 1),
         "perfectPassed": perfect_passed_count,
         "totalLinesTested": total_lines_evaluated,
         "lineTimePassed": lines_time_correct,

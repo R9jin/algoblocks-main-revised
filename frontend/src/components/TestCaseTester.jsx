@@ -3,19 +3,42 @@ import { FiCheckCircle, FiChevronDown, FiClock, FiCpu, FiLock, FiPlay, FiXCircle
 import "../styles/TestCaseTester.css";
 
 // Helper copied from original formatters/utils logic to accurately grade complexity tests
+// Helper accurately synced with analyzer.py `_get_weight` logic to accurately grade complexity tests
 const getComplexityWeight = (complexity) => {
+  // Normalize string: lowercase and remove all whitespace
   const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
-  if (comp.includes("n!") || comp.includes("n*t(n-1)")) return 9;
-  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("t(n-1)+t(n-2)")) return 8;
-  if (comp.includes("n^3") || comp.includes("n³")) return 7;
-  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("t(n-1)+o(n)")) return 6;
-  if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 5;
-  if (comp.includes("v+e")) return 4.5;
-  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 4;
-  if (comp.includes("√n") || comp.includes("sqrt")) return 3;
-  if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 2;
-  if (comp.includes("o(1)")) return 1;
-  return 0;
+  
+  if (comp.includes("deadcode")) return -1;
+  
+  // Highest order bounds
+  if (comp.includes("n*n!") || comp.includes("t(n)=n*t(n-1)")) return 115;
+  if (comp.includes("n!")) return 110;
+  if (comp.includes("3^n")) return 105;
+  if (comp.includes("2^n") || comp.includes("2ⁿ") || comp.includes("t(n-1)+t(n-2)")) return 100;
+  
+  // Polynomial bounds
+  if (comp.includes("n^5")) return 50;
+  if (comp.includes("n^4")) return 40;
+  if (comp.includes("n^3") || comp.includes("n³") || comp.includes("n^2*m") || comp.includes("n*m^2") || comp.includes("n*m*p") || comp.includes("n*p*k")) return 30;
+  if (comp.includes("n^2logn") || comp.includes("n²logn")) return 25;
+  if (comp.includes("n^2") || comp.includes("n²") || comp.includes("n*m") || comp.includes("n*p") || comp.includes("m*n") || comp.includes("t(n-1)+o(n)")) return 20;
+  
+  // Linearithmic
+  if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 15;
+  
+  // Graph/Linear Variations
+  if (comp.includes("v+e") || comp === "o(v)") return 12;
+  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("o(p)") || comp.includes("o(k)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 10;
+  
+  // Sub-linear bounds
+  if (comp.includes("sqrt") || comp.includes("√n")) return 7;
+  if (comp.includes("logmin")) return 6;
+  if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 5;
+  
+  // Constant bounds
+  if (comp.includes("o(1)") || comp.includes("definition")) return 1;
+  
+  return 0; // Fallback / Unrecognized
 };
 
 export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(n)", targetSpace = "O(n)", onTestComplete }) {

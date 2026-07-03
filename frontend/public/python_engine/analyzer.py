@@ -126,6 +126,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'pow': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Calculates exponentiation efficiently.'},
             'join': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Concatenates an iterable of strings into a single string.'},
             'split': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Scans a string to divide it into substrings.'},
+            'find': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Linearly scans a string to find a substring.'},
+            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Scans a collection to count appearances.'},
+            'replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates string replacing occurrences.'},
+            'startswith': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Checks substring prefix.'},
+            'endswith': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Checks substring suffix.'},
             'list': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Populates a new list containing all iterable elements.'},
             'set': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Populates a new set containing only unique elements.'},
             'dict': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates a new dictionary.'},
@@ -148,8 +153,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'str': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Converts object to string.'},
             'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Searches and removes occurrence shifting elements.'},
             'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Searches to find target index.'},
-            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Scans collection to count appearances.'},
-            'replace': {'time': 'O(n * m)', 'space': 'O(n)', 'desc': 'Creates string replacing occurrences.'},
             'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates a shallow copy.'},
             'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Reverses order of items.'},
             'extend': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'Appends iterable items.'},
@@ -363,6 +366,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if isinstance(expr_node, ast.Name):
                 name_u = expr_node.id.upper()
                 if name_u in ['N', 'M', 'V', 'E', 'K', 'T', 'L', 'R', 'C', 'W', 'H', 'ROW', 'COL', 'SIZE', 'LEN']: return False
+                if any(k in name_u for k in ['MAX', 'CHARS', 'NO_OF_CHARS', 'ALPHABET']): return True
                 if expr_node.id.isupper(): return True
                 if any(k in expr_node.id.lower() for k in ['max', 'min', 'mod', 'inf', 'limit', 'cap']): return True
                 return False
@@ -538,6 +542,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     for sub in safe_walk(child):
                         if isinstance(sub, ast.Call) and isinstance(getattr(sub, 'func', None), ast.Attribute):
                             if sub.func.attr in ['pop', 'popleft']: has_queue_while = True
+                        if isinstance(sub, ast.Call) and getattr(getattr(sub, 'func', None), 'attr', '') == 'pop' and getattr(sub, 'args', []):
+                            if extract_constant(sub.args[0]) == 0: has_queue_while = True
                 if isinstance(child, ast.For):
                     if isinstance(child.iter, ast.Subscript): has_neighbor_for = True
                     if isinstance(child.iter, ast.Name) and any(kw in child.iter.id.lower() for kw in ['neighbor', 'adj', 'graph', 'child']): has_neighbor_for = True
@@ -646,9 +652,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 for child in safe_walk(node.test):
                     if isinstance(child, ast.Subscript) and isinstance(getattr(child.value, 'value', None), ast.Name):
                         if child.value.value.id.lower() in ['v', 'freq', 'count', 'map', 'visited', 'vis']:
-                            pops_container = True
+                            return True
+                    if isinstance(child, ast.Name):
+                        if child.id.lower() in ['start', 'left', 'l', 'j']:
+                            return True
                                     
-            return pops_container
+            return False
         except Exception:
             return False
 

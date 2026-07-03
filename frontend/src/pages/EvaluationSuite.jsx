@@ -13,7 +13,10 @@ import {
   FiHelpCircle, FiLayers,
   FiList,
   FiPlay,
-  FiRefreshCw, FiTrendingUp, FiXCircle, FiZap
+  FiRefreshCw,
+  FiTrendingDown,
+  FiTrendingUp,
+  FiXCircle, FiZap
 } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { usePyodide } from "../context/PyodideContext";
@@ -773,6 +776,13 @@ export default function EvaluationSuite() {
               </div>
             </div>
 
+            <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+              <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }}/> Time Error Rate</div>
+              <div className="eval-stat-value val-danger">
+                {results.timeErrorRate}%
+              </div>
+            </div>
+
             <div className="eval-stat-card">
               <div className="eval-stat-title">Time Passed</div>
               <div className="eval-stat-value val-success">{results.timePassed}</div>
@@ -787,6 +797,13 @@ export default function EvaluationSuite() {
               <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }}/> Space Accuracy</div>
               <div className="eval-stat-value" style={{ color: results.spaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
                 {results.spaceAccuracyRate}%
+              </div>
+            </div>
+
+            <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+              <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }}/> Space Error Rate</div>
+              <div className="eval-stat-value val-danger">
+                {results.spaceErrorRate}%
               </div>
             </div>
 

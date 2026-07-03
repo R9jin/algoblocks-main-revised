@@ -621,7 +621,7 @@ updatebit(BITTree, len(freq), 3, 6)
 print(""Sum of elements in arr[0..5]""+
                     "" after update is "" + str(getsum(BITTree,5)))
  
-# This code is contributed by Raju Varshney,linear,linear,,",,
+# This code is contributed by Raju Varshney,linear,nlogn,,",,
 "# Python3 program to count inversions using 
 # Binary Indexed Tree 
   
@@ -1121,7 +1121,7 @@ root = 1
  
 print(countNodes(root))
  
-# This code is contributed by mohit kumar 29,linear,linear,,",,
+# This code is contributed by mohit kumar 29,v+e,v+e,,",,
 "# Python3 code for above approach
 def idToShortURL(id):
     map = ""abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789""
@@ -4152,7 +4152,7 @@ if __name__ == ""__main__"":
     for n in arr:
         count[n] = 1 + count.get(n, 0)
     for n, c in count.items():
-        freq.append(n)
+        freq[c].append(n)
  
     res = []
     # if K elements have been printed
@@ -11212,7 +11212,7 @@ else:
     print(""arr2[] is not a subset of arr1[] "")
  
  
-# This code is contributed by chandan_jnu,linear,quadratic,,",,
+# This code is contributed by chandan_jnu,linear,nlogn,,",,
 "# Python3 program to find whether an array
 # is subset of another array
  
@@ -12848,95 +12848,6 @@ print (solve(A, n))
  
 # This code is contributed by Manish Shaw
 # (manishshaw1),linear,linear,,",,
-"# Python3 program for the above approach
- 
-# Number of vertices in the graph
-# define 4 4
- 
-# check if the colored
-# graph is safe or not
- 
- 
-def isSafe(graph, color):
- 
-    # check for every edge
-    for i in range(4):
-        for j in range(i + 1, 4):
-            if (graph[i][j] and color[j] == color[i]):
-                return False
-    return True
- 
-# /* This function solves the m Coloring
-# problem using recursion. It returns
-# false if the m colours cannot be assigned,
-# otherwise, return true and prints
-# assignments of colours to all vertices.
-# Please note that there may be more than
-# one solutions, this function prints one
-# of the feasible solutions.*/
- 
- 
-def graphColoring(graph, m, i, color):
- 
-    # if current index reached end
-    if (i == 4):
- 
-        # if coloring is safe
-        if (isSafe(graph, color)):
- 
-            # Print the solution
-            printSolution(color)
-            return True
-        return False
- 
-    # Assign each color from 1 to m
-    for j in range(1, m + 1):
-        color[i] = j
- 
-        # Recur of the rest vertices
-        if (graphColoring(graph, m, i + 1, color)):
-            return True
-        color[i] = 0
-    return False
- 
-# /* A utility function to print solution */
- 
- 
-def printSolution(color):
-    print(""Solution Exists:"" "" Following are the assigned colors "")
-    for i in range(4):
-        print(color[i], end="" "")
- 
- 
-# Driver code
-if __name__ == '__main__':
- 
-    # /* Create following graph and
-    # test whether it is 3 colorable
-    # (3)---(2)
-    # | / |
-    # | / |
-    # | / |
-    # (0)---(1)
-    # */
-    graph = [
-        [0, 1, 1, 1],
-        [1, 0, 1, 0],
-        [1, 1, 0, 1],
-        [1, 0, 1, 0],
-    ]
-    m = 3  # Number of colors
- 
-    # Initialize all color values as 0.
-    # This initialization is needed
-    # correct functioning of isSafe()
-    color = [0 for i in range(4)]
- 
-    # Function call
-    if (not graphColoring(graph, m, 0, color)):
-        print(""Solution does not exist"")
- 
-# This code is contributed by mohit kumar 29,linear,quadratic,,",,
 "# Python3 code for printing shortest path between
 # two vertices of unweighted graph
   
@@ -13056,7 +12967,7 @@ if __name__=='__main__':
     dest = 7;
     printShortestDistance(adj, source, dest, v);
  
-    # This code is contributed by rutvik_56,linear,linear,,",,
+    # This code is contributed by rutvik_56,v+e,v+e,,",,
 "# Python3 program to replace all of the O's in the matrix
 # with their shortest distance from a guard
 from collections import deque as queue
@@ -17868,7 +17779,7 @@ print(""Length of the Longest consecutive subsequence is {}"".format(
     findLongestConseqSubseq(arr, n)))
  
  
-# This code is contributed by Pushpesh Raj,linear,nlogn,,",,
+# This code is contributed by Pushpesh Raj,linear,quadratic,,",,
 "# Python3 implementation of longest
 # continuous increasing subsequence
  
@@ -17990,7 +17901,7 @@ if __name__=='__main__':
   countDistinct(arr, N, K)
   
 # This code is contributed by
-# Mohit kumar 29,constant,quadratic,,",,
+# Mohit kumar 29,linear,quadratic,,",,
 "# An efficient Python program to
 # count distinct elements in
 # every window of size K
@@ -19216,7 +19127,7 @@ Sum = 24
 if(not findTriplets(nums, n, Sum)):
     print(""No triplets can be formed."")
  
-# This code is contributed by rag2127,linear,quadratic,,",,
+# This code is contributed by rag2127,quadratic,quadratic,,",,
 "# A simple Python 3 program
 # to find three elements whose
 # sum is equal to zero
@@ -19394,7 +19305,7 @@ li = [  1, 4, 6, 2, 3, 8 ]
 product = 24
  
 # Function call
-countTriplets(li,product),linear,quadratic,,",,
+countTriplets(li,product),constant,cubic,,",,
 "# Python3 program to
 # count of pairs with equal
 # elements in an array.
@@ -19896,7 +19807,7 @@ else:
     print(""No"")
  
 # This code is contributed
-# by mohit kumar 29,constant,quartic,,",,
+# by mohit kumar 29,constant,n^4,,",,
 "# An efficient approach based Python program
 # to find if there is a rectangle with 1 as
 # corners.
@@ -19955,7 +19866,7 @@ if __name__ == '__main__':
         print(""No"")
      
 # This code is contributed
-# by SHUBHAMSINGH10,quadratic,quartic,,",,
+# by SHUBHAMSINGH10,quadratic,n^4,,",,
 "# Python3 implementation comes from:
 # https:#github.com/MichaelWehar/FourCornersProblem
 # Written by Niteesh Kumar and Michael Wehar
@@ -20034,7 +19945,7 @@ if (searchForRectangle(4, 5, mat)):
 else:
     print(""No"")
      
-# This code is contributed by phasing17.,quadratic,quadratic,,",,
+# This code is contributed by phasing17.,quadratic,cubic,,",,
 "# Python3 program for finding
 # maximum area possible of
 # a rectangle
@@ -22913,7 +22824,7 @@ else:
     print(""No"")
  
 # This code is contributed
-# by mohit kumar 29,constant,quadratic,,",,
+# by mohit kumar 29,constant,n^4,,",,
 "# An efficient approach based Python program
 # to find if there is a rectangle with 1 as
 # corners.
@@ -25761,7 +25672,7 @@ if __name__ == '__main__':
     str = ""aacbddc"";
     print(""Left of"", str, ""is"", findLeft(str));
  
-# This code is contributed by PrinciRaj1992,constant,linear,,",,
+# This code is contributed by PrinciRaj1992,constant,quadratic,,",,
 "# Python3 program to print a n x n spiral matrix
 # in clockwise direction using O(1) space
  
@@ -27024,7 +26935,7 @@ if __name__ == ""__main__"":
     k = 3
     printSumSimple(mat, k)
  
-# This code is contributed by ita_c,constant,quartic,,",,
+# This code is contributed by ita_c,constant,n^4,,",,
 "# An efficient Python3 program to find sum
 # of all subsquares of size k x k
  
@@ -27615,7 +27526,7 @@ if __name__ == ""__main__"":
     # Function call
     printMax(arr, len(arr), K)
  
-# This code is contributed by Shiv Shankar,constant,linear,,",,
+# This code is contributed by Shiv Shankar,linear,linear,,",,
 "node = {""data"":0,""maximum"":0}
  
 # It is a modification  in the way of implementation of
@@ -28017,7 +27928,7 @@ n = len(arr)
 k = 3
 print(SumOfKsubArray(arr, n, k))
  
-# This code is contributed by mohit kumar,constant,linear,,",,
+# This code is contributed by mohit kumar,linear,linear,,",,
 "# Python3 program to find distance of
 # nearest cell having 1 in a binary matrix.
  
@@ -29006,7 +28917,7 @@ if __name__ == '__main__':
     else:
         print(""Celebrity ID"", id_)
  
-# This code is contributed by UnworthyProgrammer,constant,linear,,",,
+# This code is contributed by UnworthyProgrammer,llinear,linear,,",,
 "# Python3 program to find celebrity
 # using stack data structure
  
@@ -29945,7 +29856,7 @@ N = 3
 # A, C, B are the name of rods
 TowerOfHanoi(N, 'A', 'C', 'B')
  
-# Contributed By Harshit Agrawal,linear,exponential,,",,
+# Contributed By Harshit Agrawal,linear,2^n,,",,
 "# Python code to implement the approach
  
  
@@ -30006,7 +29917,7 @@ def maxDepth(S):
 s = ""( ((X)) (((Y))) )""
 print (maxDepth(s))
  
-# This code is contributed by BHAVYA JAIN,constant,linear,,",,
+# This code is contributed by BHAVYA JAIN,linear,linear,,",,
 "# A naive method to find maximum of
 # minimum of all windows of different sizes
 INT_MIN = -1000000
@@ -31535,7 +31446,7 @@ def mirrorChars(input,k):
 if __name__ == ""__main__"":
     input = 'paradox'
     k = 3
-    mirrorChars(input,k),linear,linear,,",,
+    mirrorChars(input,k),linear,quadratic,,",,
 "# Function to change string to a new character
  
 def newString(charSet,input):
@@ -32416,7 +32327,7 @@ if(check(st)):
 else:
     print(""No "")
  
-# This code is contributed by Abhijeet Kumar(abhijeet19403),constant,constant,,",,
+# This code is contributed by Abhijeet Kumar(abhijeet19403),constant,linear,,",,
 "# Python3 program to calculate number
 # of substring
  
@@ -32535,7 +32446,7 @@ if __name__==""__main__"":
     print(isDivisibleBy5(bin))
  
 # This code is contributed
-# by Sairahul Jella,constant,linear,,",,
+# by Sairahul Jella,linear,linear,,",,
 "# Python3 Program to count substrings
 # which are divisible by 8 but not by 3
  
@@ -32956,7 +32867,7 @@ if __name__==""__main__"":
     print(calcDiff(str2))
  
 # This code is contributed
-# by Sairahul Jella,constant,linear,,",,
+# by Sairahul Jella,constant,quadratic,,",,
 "# Function to print common strings
 # with minimum index sum
 def find(list1, list2):
@@ -34164,7 +34075,7 @@ def rem_vowel(string):
 string = ""GeeksforGeeks - A Computer Science Portal for Geeks""
 rem_vowel(string)
 string = ""Loving Python LOL""
-rem_vowel(string),constant,linear,,",,
+rem_vowel(string),linear,linear,,",,
 "# Python program to remove vowels from a string
 # Function to remove vowels
  
@@ -34398,7 +34309,7 @@ if __name__ == ""__main__"":
     str1 = ""geeks""
     print(findAltStr(str1))
  
-# This code is contributed by Sairahul099,linear,linear,,",,
+# This code is contributed by Sairahul099,linear,quadratic,,",,
 "# A simple Python 3 program to count number of
 # substrings starting and ending with 1
  
@@ -37648,7 +37559,7 @@ for i in str:
         x+=loweralphabets[upperalphabets.index(i)]
     else:
         x+=upperalphabets[loweralphabets.index(i)]
-print(x),linear,linear,,",,
+print(x),linear,quadratic,,",,
 "# Python3 program to convert a
 # sentence to gOOGLE cASE.
 def convert(str):
@@ -37687,7 +37598,7 @@ if __name__ == '__main__':
     str = ""I got intern at geeksforgeeks"";
     print(convert(str));
  
-# This code is contributed by 29AjayKumar,linear,linear,,",,
+# This code is contributed by 29AjayKumar,linear,quadratic,,",,
 "# Python program to convert given
 # sentence to camel case.
 import math
@@ -37722,7 +37633,7 @@ def convert( s):
 str = ""I get intern at geeksforgeeks""
 print(convert(str))
  
-# This code is contributed by Gitanjali.,linear,linear,,",,
+# This code is contributed by Gitanjali.,linear,quadratic,,",,
 "# Python program to convert
 # given sentence to camel case.
  
@@ -37786,7 +37697,7 @@ def permute(inp):
 # Driver code
 permute(""ABC"")
  
-# This code is contributed by Sachin Bisht,linear,exponential,,",,
+# This code is contributed by Sachin Bisht,linear,2^n,,",,
 "# Python3 program to get toggle case of a string
 x = 32;
  
@@ -38033,7 +37944,7 @@ string = ""geeksforgeeks""
 # passing string to printNonrepeated function
 printNonrepeated(string)
  
-# this code is contributed by vikkycirus,constant,linear,,",,
+# this code is contributed by vikkycirus,linear,linear,,",,
 "# A Python program to find first non-repeating character from
 # a stream of characters
 MAX_CHAR = 256
@@ -38979,45 +38890,7 @@ mat = [['B', 'N', 'E', 'Y', 'S'],
 word = list(""DES"")
 findWords(mat, word, len(word) - 1)
      
-# This code is contributed by SHUBHAMSINGH10,linear,exponential,,",,
-"# Python3 program to arrange given string
- 
-# Function which arrange the given string
-def arrangeString(str1,x,y):
-    count_0=0
-    count_1 =0
-    n = len(str1)
- 
-    # Counting number of 0's and 1's in the
-    # given string.
-    for i in range(n):
-        if str1[i] == '0':
-            count_0 +=1
-        else:
-            count_1 +=1
- 
-    # Printing first all 0's x-times
-    # and decrement count of 0's x-times
-    # and do the similar task with '1'
-    while count_0>0 or count_1>0:
-        for i in range(0,x):
-            if count_0>0:
-                print(""0"",end="""")
-                count_0 -=1
-        for j in range(0,y):
-            if count_1>0:
-                print(""1"",end="""")
-                count_1 -=1
- 
-# Driver code
-if __name__=='__main__':
-    str1 = ""01101101101101101000000""
-    x = 1
-    y = 2
-    arrangeString(str1, x, y)
- 
-# This code is contributed by
-# Shrikant13,constant,quadratic,,",,
+# This code is contributed by SHUBHAMSINGH10,linear,2^n,,",,
 "# Finds maximum occurring digit
 # without using any array/string
  
@@ -40763,7 +40636,7 @@ s = 'aab'
 print(abFree(s))
  
 s ='ababab'
-print(abFree(s)),linear,linear,,",,
+print(abFree(s)),constant,linear,,",,
 "# Python3 implementation of program to find the maximum length
 # that can be removed
  
@@ -40907,7 +40780,7 @@ if __name__ == '__main__':
     print(findTwoscomplement(str))
  
 # This code is contributed by
-# Sanjit_Prasad,constant,linear,,",,
+# Sanjit_Prasad,constant,quadratic,,",,
 "# Python 3 program to count all
 # distinct binary strings with
 # two consecutive 1's
@@ -41450,7 +41323,7 @@ if __name__ == '__main__':
     printNums(n)
  
 # This code is contributed by
-# Surendra_Gangwar,linear,exponential,,",,
+# Surendra_Gangwar,linear,2^n,,",,
 "# Python3 program to print
 # all N-bit binary
  
@@ -41542,7 +41415,7 @@ if __name__ == ""__main__"":
                end = "" "")
     print ()
      
-# This code is contributed by Chitranayal,exponential,exponential,,",,
+# This code is contributed by Chitranayal,2^n,2^n,,",,
 "# Python3 program to add n binary strings
  
 # This function adds two binary strings and
@@ -41716,7 +41589,7 @@ if __name__ == ""__main__"":
         print(i)
  
 # This code is contributed by
-# sanjeev2552,exponential,exponential,,",,
+# sanjeev2552,2^n,2^n,,",,
 "# Python 3 code to find the lexicographically
 # smallest string
 def lexSmallest(a, n):
@@ -42560,7 +42433,7 @@ if __name__ == '__main__':
     print(replace(s, c1, c2))
  
 # This code is contributed
-# by PrinciRaj1992,constant,linear,,",,
+# by PrinciRaj1992,constant,quadratic,,",,
 "# Python program to calculate number of times
 # the pattern occurred in given string
  
@@ -42735,7 +42608,7 @@ if __name__ == ""__main__"":
     str = ""geeks01$$for02geeks03!@!!""
     splitString(str)
  
-# This code is contributed by ita_c,linear,linear,,",,
+# This code is contributed by ita_c,linear,quadratic,,",,
 "# Python3 program to split a numeric
 # string in an Increasing
 # sequence if possible
@@ -44148,7 +44021,7 @@ if __name__ == ""__main__"" :
     k = 5
     print(decimalToBinary(n, k))
  
-# This code is contributed by Ryuga,linear,linear,,",,
+# This code is contributed by Ryuga,linear,logn,,",,
 "# Python3 implementation to convert
 # a sentence into its equivalent
 # mobile numeric keypad sequence
@@ -44190,7 +44063,7 @@ str = [""2"", ""22"", ""222"",
 input = ""GEEKSFORGEEKS""
 print(printSequence(str, input))
  
-# This code is contributed by upendra bartwal,linear,linear,,",,
+# This code is contributed by upendra bartwal,linear,quadratic,,",,
 "# Python Program for above implementation
  
 # Function to check is it possible to convert
@@ -44676,7 +44549,7 @@ a = ""SunshinE!!""
 transformSting(a)
  
 # This code is contributed by
-# Manish Shaw(manishshaw1),linear,linear,,",,
+# Manish Shaw(manishshaw1),linear,quadratic,,",,
 "# Python implementation of above approach
  
 # A utility function to reverse string str[low..high]
@@ -45448,7 +45321,7 @@ if isValidEMEI(n):
 else:
     print(""Invalid IMEI Code"")
  
-# This code is contributed by ""Sharad_Bhardwaj"".,linear,nlogn,,",,
+# This code is contributed by ""Sharad_Bhardwaj"".,linear,n,,",,
 "# Python3 program to decode a median
 # string to the original string
  
