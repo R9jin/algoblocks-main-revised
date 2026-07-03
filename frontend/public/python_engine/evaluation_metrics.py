@@ -164,7 +164,8 @@ def calculate_metrics(injected_dataset=None):
                             pos_time = parts[-1].strip().replace('"', '').lower()
                             pos_space = parts[-2].strip().replace('"', '').lower()
                             
-                            valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', 'n*n!', 'factorial']
+                            # Added '2^n', '3^n' and other exponential variants to valid array 
+                            valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n', 'n*n!', 'factorial']
                             if pos_time in valids or pos_time.startswith('o('):
                                 time_comp = pos_time
                                 space_comp = pos_space
@@ -174,8 +175,8 @@ def calculate_metrics(injected_dataset=None):
                         "id": f"tasty_csv_{reader.line_num}",
                         "name": f"Tasty Algo {reader.line_num}",
                         "code": code_text,
-                        "expected_overall_time": time_comp if time_comp else 'O(1)',
                         "expected_overall_space": space_comp if space_comp else 'O(1)',
+                        "expected_overall_time": time_comp if time_comp else 'O(1)',
                         "category": "Tasty Processed CSV"
                     })
         
@@ -307,6 +308,8 @@ def calculate_metrics(injected_dataset=None):
 
     time_accuracy = (overall_time_correct / total_algorithms) * 100 if total_algorithms > 0 else 0
     space_accuracy = (overall_space_correct / total_algorithms) * 100 if total_algorithms > 0 else 0
+    time_error_rate = 100.0 - time_accuracy
+    space_error_rate = 100.0 - space_accuracy
     line_time_acc = (lines_time_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
     line_space_acc = (lines_space_correct / total_lines_evaluated) * 100 if total_lines_evaluated > 0 else 0
 
@@ -328,7 +331,9 @@ def calculate_metrics(injected_dataset=None):
     print(f"Total Algorithms Tested   : {total_algorithms}")
     print(f"Total Lines Evaluated     : {total_lines_evaluated}")
     print(f"1. Time Complexity Detection Acc  : {time_accuracy:.2f}%")
+    print(f"   Time Complexity Error Rate     : {time_error_rate:.2f}%")
     print(f"2. Space Complexity Detection Acc : {space_accuracy:.2f}%")
+    print(f"   Space Complexity Error Rate    : {space_error_rate:.2f}%")
     print(f"3. Average Processing Time        : {mean_ms:.2f} ms")
     
     time_report_dict = {}
@@ -356,9 +361,11 @@ def calculate_metrics(injected_dataset=None):
         "timePassed": overall_time_correct,
         "timeFailed": total_algorithms - overall_time_correct,
         "timeAccuracyRate": round(time_accuracy, 1),
+        "timeErrorRate": round(time_error_rate, 1),
         "spacePassed": overall_space_correct,
         "spaceFailed": total_algorithms - overall_space_correct,
         "spaceAccuracyRate": round(space_accuracy, 1),
+        "spaceErrorRate": round(space_error_rate, 1),
         "perfectPassed": perfect_passed_count,
         "totalLinesTested": total_lines_evaluated,
         "lineTimePassed": lines_time_correct,

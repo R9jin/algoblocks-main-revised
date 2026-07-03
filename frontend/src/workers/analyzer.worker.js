@@ -9,7 +9,7 @@ function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
 
-  s = s.replace(/²/g, "^2").replace(/³/g, "^3").replace(/ⁿ/g, "^n");
+  s = s.replace(/Â²/g, "^2").replace(/Â³/g, "^3").replace(/â ¿/g, "^n");
   s = s.replace(/^o\((.*)\)$/, "$1");
 
   if (s === "1" || s === "constant") return "O(1)";
@@ -25,7 +25,7 @@ function strictBigONormalizer(raw) {
   if (s.includes("v+e") || s.includes("e+v")) return "O(V + E)";
   if (s.includes("n*m") || s.includes("m*n")) return "O(n * m)";
   if (s.includes("logmin") || s.includes("gcd")) return "O(log min(a, b))";
-  if (s.includes("sqrtn") || s.includes("√n")) return "O(sqrt n)";
+  if (s.includes("sqrtn") || s.includes("âˆšn")) return "O(sqrt n)";
 
   return `O(${s})`;
 }
@@ -647,9 +647,11 @@ json.dumps(res)
             timePassed: timePassedCount,
             timeFailed: dataset.length - timePassedCount,
             timeAccuracyRate: parseFloat(timeAcc.toFixed(2)),
+            timeErrorRate: parseFloat((100 - timeAcc).toFixed(2)),
             spacePassed: spacePassedCount,
             spaceFailed: dataset.length - spacePassedCount,
             spaceAccuracyRate: parseFloat(spaceAcc.toFixed(2)),
+            spaceErrorRate: parseFloat((100 - spaceAcc).toFixed(2)),
             perfectPassed: bothPassedCount,
             perfectAccuracyRate: parseFloat(perfectAcc.toFixed(2)),
             totalLinesTested: totalLinesTestedCount,
