@@ -1,0 +1,82 @@
+[
+  {
+    "id": "algo_n_191",
+    "name": "Python 3 implementation to find the length of",
+    "code": "# Python 3 implementation to find the length of\n# longest subarray having count of 1's one\n# more than count of 0's\n \n# function to find the length of longest\n# subarray having count of 1's one more\n# than count of 0's\n \n \ndef lenOfLongSubarr(arr, n):\n \n    # unordered_map 'um' implemented as\n    # hash table\n    um = {}\n    sum = 0\n    maxLen = 0\n \n    # traverse the given array\n    for i in range(n):\n \n        # consider '0' as '-1'\n        if arr[i] == 0:\n            sum += -1\n        else:\n            sum += 1\n \n        # when subarray starts form index '0'\n        if (sum == 1):\n            maxLen = i + 1\n \n        # make an entry for 'sum' if it is\n        # not present in 'um'\n        elif (sum not in um):\n            um[sum] = i\n \n        # check if 'sum-1' is present in 'um'\n        # or not\n        if ((sum - 1) in um):\n            # update maxLength\n            if (maxLen < (i - um[sum - 1])):\n                maxLen = i - um[sum - 1]\n \n    # required maximum length\n    return maxLen\n \n \n# Driver code\nif __name__ == '__main__':\n    arr = [0, 1, 1, 0, 0, 1]\n    n = len(arr)\n    print(\"Length =\", lenOfLongSubarr(arr, n))\n \n# This code is contributed by\n# Surendra_Gangwar",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_1_192",
+    "name": "Queries for same characters in a repeated",
+    "code": "# Queries for same characters in a repeated\n# string\n \n# Print whether index i and j have same\n# element or not.\ndef query(s, i, j):\n    n = len(s)\n \n    # Finding relative position of index i,j.\n    i %= n\n    j %= n\n \n    # Checking is element are same at index i, j.\n    print(\"Yes\") if s[i] == s[j] else print(\"No\")\n \n# Driver code\nif __name__ == \"__main__\":\n    X = \"geeksforgeeks\"\n    query(X, 0, 8)\n    query(X, 8, 13)\n    query(X, 6, 15)\n \n# This code is contributed by\n# sanjeev2552",
+    "expected_overall_time": "O(1)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_n_193",
+    "name": "Python program for the above approach",
+    "code": "# Python program for the above approach\n \n# Returns the maximum length\n \n \ndef maxLen(arr):\n \n    # NOTE: Dictionary in python is\n    # implemented as Hash Maps\n    # Create an empty hash map (dictionary)\n    hash_map = {}\n \n    # Initialize result\n    max_len = 0\n \n    # Initialize sum of elements\n    curr_sum = 0\n \n    # Traverse through the given array\n    for i in range(len(arr)):\n \n        # Add the current element to the sum\n        curr_sum += arr[i]\n \n        if curr_sum == 0:\n            max_len = i + 1\n \n        # NOTE: 'in' operation in dictionary\n        # to search key takes O(1). Look if\n        # current sum is seen before\n        if curr_sum in hash_map:\n            max_len = max(max_len, i - hash_map[curr_sum])\n        else:\n \n            # else put this sum in dictionary\n            hash_map[curr_sum] = i\n \n    return max_len\n \n \n# Driver's code\nif __name__ == \"__main__\":\n \n    # test array\n    arr = [15, -2, 2, -8, 1, 7, 10, 13]\n \n    # Function call\n    print(\"Length of the longest 0 sum subarray is % d\" % maxLen(arr))",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_n_194",
+    "name": "Python program to print all words that",
+    "code": "# Python program to print all words that\n# have the same unique character set\n \n# Function to group all strings with same characters\nfrom collections import Counter\n \ndef groupStrings(input):\n    # traverse all strings one by one\n    # dict is an empty dictionary\n    dict={}\n     \n    for word in input:\n        # sort the current string and take it's\n        # sorted value as key\n        # sorted return list of sorted characters\n        # we need to join them to get key as string\n        # Counter() method returns dictionary with frequency of\n        # each character as value\n        wordDict=Counter(word)\n \n        # now get list of keys\n        key = wordDict.keys()\n \n        # now sort these keys\n        key = sorted(key)\n \n        # join these characters to produce key string\n        key = ''.join(key)\n         \n        # now check if this key already exist in\n        # dictionary or not\n        # if exist then simply append current word\n        # in mapped list on key\n        # otherwise first assign empty list to key and\n        # then append current word in it\n        if key in dict.keys():\n            dict[key].append(word)\n        else:\n            dict[key]=[]\n            dict[key].append(word)\n \n        # now traverse complete dictionary and print\n        # list of mapped strings in each key separated by ,\n    for (key,value) in dict.items():\n        print (','.join(dict[key]))\n         \n# Driver program\nif __name__ == \"__main__\":\n    input=['may','student','students','dog','studentssess','god','cat','act','tab','bat','flow','wolf','lambs','amy','yam','balms','looped','poodle']\n    groupStrings(input)",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_n_195",
+    "name": "Python3 program to find whether an array",
+    "code": "# Python3 program to find whether an array\n# is subset of another array\n \n# Return true if arr2[] is a subset of arr1[]\n \n \ndef isSubset(arr1, m, arr2, n):\n \n    # Create a Frequency Table using STL\n    frequency = {}\n \n    # Increase the frequency of each element\n    # in the frequency table.\n    for i in range(0, m):\n        if arr1[i] in frequency:\n            frequency[arr1[i]] = frequency[arr1[i]] + 1\n        else:\n            frequency[arr1[i]] = 1\n \n    # Decrease the frequency if the\n    # element was found in the frequency\n    # table with the frequency more than 0.\n    # else return 0 and if loop is\n    # completed return 1.\n    for i in range(0, n):\n        if (frequency[arr2[i]] > 0):\n            frequency[arr2[i]] -= 1\n        else:\n            return False\n \n    return True\n \n \n# Driver Code\nif __name__ == '__main__':\n \n    arr1 = [11, 1, 13, 21, 3, 7]\n    arr2 = [11, 3, 7, 1]\n \n    m = len(arr1)\n    n = len(arr2)\n \n    if (isSubset(arr1, m, arr2, n)):\n        print(\"arr2[] is subset of arr1[] \")\n    else:\n        print(\"arr2[] is not a subset of arr1[] \")\n \n# This code is contributed by akhilsaini",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_n_196",
+    "name": "Python program to sort an array with",
+    "code": "# Python program to sort an array with\n# 0, 1 and 2 in a single pass\n \n# Function to sort array\n \n \ndef sort012(a, arr_size):\n    lo = 0\n    hi = arr_size - 1\n    mid = 0\n    # Iterate till all the elements\n    # are sorted\n    while mid <= hi:\n        # If the element is 0\n        if a[mid] == 0:\n            a[lo], a[mid] = a[mid], a[lo]\n            lo = lo + 1\n            mid = mid + 1\n        # If the element is 1\n        elif a[mid] == 1:\n            mid = mid + 1\n        # If the element is 2\n        else:\n            a[mid], a[hi] = a[hi], a[mid]\n            hi = hi - 1\n    return a\n \n# Function to print array\n \n \ndef printArray(a):\n    for k in a:\n        print(k, end=' ')\n \n \n# Driver Program\narr = [0, 1, 1, 0, 1, 2, 1, 2, 0, 0, 0, 1]\narr_size = len(arr)\narr = sort012(arr, arr_size)\nprintArray(arr)\n \n# Contributed by Harshit Agrawal",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_n_197",
+    "name": "Python3 program to reverse order of vowels",
+    "code": "# Python3 program to reverse order of vowels\n \n# utility function to check for vowel\ndef isVowel(c):\n    if (c == 'a' or c == 'A' or c == 'e' or\n        c == 'E' or c == 'i' or c == 'I' or\n        c == 'o' or c == 'O' or c == 'u' or c == 'U'):\n        return True\n    return False\n \n# Function to reverse order of vowels\ndef reverserVowel(string):\n    j = 0\n    vowel = [0] * len(string)\n    string = list(string)\n \n    # Storing the vowels separately\n    for i in range(len(string)):\n        if isVowel(string[i]):\n            vowel[j] = string[i]\n            j += 1\n \n    # Placing the vowels in the reverse\n    # order in the string\n    for i in range(len(string)):\n        if isVowel(string[i]):\n            j -= 1\n            string[i] = vowel[j]\n \n    return ''.join(string)\n \n# Driver Code\nif __name__ == \"__main__\":\n    string = \"hello world\"\n    print(reverserVowel(string))\n \n# This code is contributed by\n# sanjeev2552",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(n)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_n2_198",
+    "name": "Python3 program to Find another array",
+    "code": "# Python3 program to Find another array\n# such that the hamming distance\n# from the original array is maximum\n \n# requires O(n*n) time and O(1) extra space;\n \n# Return the maximum hamming distance of a rotation\ndef maxHamming(arr, n):\n     \n    # outer loop for how much rotation\n    hmmd = 0\n \n    for j in range(1,n):\n        hmmd = 0\n        #inner loop to compare elements with elements on shifted index\n        for i in range(n):\n            if(arr[i] != arr[(i + j) % n]):\n                hmmd += 1\n         \n            #max possible hamming distance is n, no need to check further\n        if(hmmd == n):\n            return n\n    return hmmd\n \n# driver program\narr = [2, 4, 6, 8]\nn = len(arr)\nprint(maxHamming(arr, n))   \n \n \n# This code is contributed by shinjanpatra",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_n_199",
+    "name": "Python3 program to find next permutation in a",
+    "code": "# Python3 program to find next permutation in a\n# binary string.\n \n# Function to find the next greater number\n# with same number of 1's and 0's\ndef nextGreaterWithSameDigits(bnum):\n    l = len(bnum)\n    bnum = list(bnum)\n    for i in range(l - 2, 0, -1):\n         \n        # locate first 'i' from end such that\n        # bnum[i]=='0' and bnum[i+1]=='1'\n        # swap these value and break\n        if (bnum[i] == '0' and bnum[i + 1] == '1'):\n            ch = bnum[i]\n            bnum[i] = bnum[i + 1]\n            bnum[i + 1] = ch        \n            break\n         \n    # if no swapping performed\n    if (i == 0):\n        return \"no greater number\"\n         \n    # Since we want the smallest next value,\n    # shift all 1's at the end in the binary\n    # substring starting from index 'i+2'\n    j = i + 2\n    k = l - 1\n    while (j < k):\n        if (bnum[j] == '1' and bnum[k] == '0'):\n            ch = bnum[j]\n            bnum[j] = bnum[k]\n            bnum[k] = ch\n            j += 1\n            k -= 1\n             \n        # special case while swapping if '0'\n        # occurs then break\n        else if (bnum[i] == '0'):\n            break\n        else:\n            j += 1\n     \n    # required next greater number\n    return bnum\n \n# Driver code\nbnum = \"10010\"\nprint(\"Binary representation of next greater number = \",*nextGreaterWithSameDigits(bnum),sep=\"\")\n \n# This code is contributed by shubhamsingh10",
+    "expected_overall_time": "O(n)",
+    "expected_overall_space": "O(1)",
+    "line_metrics": []
+  },
+  {
+    "id": "algo_n2_200",
+    "name": "Python3 program to find length of",
+    "code": "# Python3 program to find length of\n# the longest balanced subsequence\n \ndef maxLength(s, n):\n     \n    dp = [[0 for i in range(n)]\n             for i in range(n)]\n              \n    # Considering all balanced\n    # substrings of length 2\n    for i in range(n - 1):\n        if (s[i] == '(' and s[i + 1] == ')'):\n            dp[i][i + 1] = 2\n \n    # Considering all other substrings\n    for l in range(2, n):\n        i = -1\n        for j in range(l, n):\n            i += 1\n            if (s[i] == '(' and s[j] == ')'):\n                dp[i][j] = 2 + dp[i + 1][j - 1]\n            for k in range(i, j):\n                dp[i][j] = max(dp[i][j], dp[i][k] +\n                                         dp[k + 1][j])\n    return dp[0][n - 1]\n \n# Driver Code\ns = \"()(((((()\"\nn = len(s)\nprint(maxLength(s, n))\n \n# This code is contributed\n# by sahishelangia",
+    "expected_overall_time": "O(n^2)",
+    "expected_overall_space": "O(n^2)",
+    "line_metrics": []
+  }
+]
