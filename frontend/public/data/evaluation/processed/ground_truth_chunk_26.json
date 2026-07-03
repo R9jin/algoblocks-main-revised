@@ -5,7 +5,23 @@
     "code": "def rotate(arr, n):\n    i = 0\n    j = n - 1\n    while i != j:\n      arr[i], arr[j] = arr[j], arr[i]\n      i = i + 1\n    pass\n \n \n# Driver function\narr= [1, 2, 3, 4, 5]\nn = len(arr)\nprint (\"Given array is\")\nfor i in range(0, n):\n    print (arr[i], end = ' ')\n \nrotate(arr, n)\n \nprint (\"\\nRotated array is\")\nfor i in range(0, n):\n    print (arr[i], end = ' ')",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 2, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 3, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 4, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 5, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 11, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 13, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 14, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 15, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 17, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 19, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 20, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 21, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"}
+    ]
   },
   {
     "id": "algo_n_252",
@@ -13,7 +29,29 @@
     "code": "# Optimized Python3 program\n# to check if two strings\n# are k anagram or not.\nMAX_CHAR = 26;\n \n# Function to check if str1\n# and str2 are k-anagram or not\ndef areKAnagrams(str1, str2, k):\n    # If both strings are\n    # not of equal length\n    # then return false\n \n    n = len(str1);\n    if (len(str2) != n):\n        return False;\n \n    hash_str1 = [0]*(MAX_CHAR);\n \n    # Store the occurrence of\n    # all characters in a hash_array\n    for i in range(n):\n        hash_str1[ord(str1[i]) - ord('a')]+=1;\n \n    # Store the occurrence of all\n    # characters in a hash_array\n    count = 0;\n    for i in range(n):\n        if (hash_str1[ord(str2[i]) - ord('a')] > 0):\n            hash_str1[ord(str2[i]) - ord('a')]-=1;\n        else:\n            count+=1;\n \n        if (count > k):\n            return False;\n \n    # Return true if count is\n    # less than or equal to k\n    return True;\n \n# Driver code\nstr1 = \"fodr\";\nstr2 = \"gork\";\nk = 2;\nif (areKAnagrams(str1, str2, k) == True):\n    print(\"Yes\");\nelse:\n    print(\"No\");\n         \n# This code is contributed by mits",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 13, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 14, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 16, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 20, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 21, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 24, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 25, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 26, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 27, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 29, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 31, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 32, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 36, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 39, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 40, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 41, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 42, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 43, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 45, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"}
+    ]
   },
   {
     "id": "algo_n_253",
@@ -21,7 +59,26 @@
     "code": "# Python3 program to find all distinct characters\n# in a String\n \nMAX_CHAR = 256\n \n# Function to print distinct characters in\n# given Str[]\ndef printDistinct(Str):\n \n    n = len(Str)\n \n    # count[x] is going to store count of\n    # character 'x' in Str. If x is not present,\n    # then it is going to store 0.\n    count = [0 for i in range(MAX_CHAR)]\n \n    # index[x] is going to store index of character\n    # 'x' in Str. If x is not present or x is\n    # more than once, then it is going to store a value\n    # (for example, length of String) that cannot be\n    # a valid index in Str[]\n    index = [n for i in range(MAX_CHAR)]\n \n \n    # Traverse the input String\n    for i in range(n):\n         \n        # Find current character and increment its\n        # count\n        x = ord(Str[i])\n        count[x] += 1\n \n        # If this is first occurrence, then set value\n        # in index as index of it.\n        if (count[x] == 1 and x !=' '):\n            index[x] = i\n \n        # If character repeats, then remove it from\n        # index[]\n        if (count[x] == 2):\n            index[x] = n\n \n \n    # Since size of index is constant, below operations\n    # take constant time.\n    index=sorted(index)\n \n    for i in range(MAX_CHAR):\n        if index[i] == n:\n            break\n        print(Str[index[i]],end=\"\")\n \n# Driver code\n \nStr = \"GeeksforGeeks\"\nprintDistinct(Str)\n \n# This code is contributed by mohit kumar 29",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 9, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 14, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 21, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 25, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 29, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 30, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 34, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 35, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 39, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 40, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 45, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 47, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 48, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 49, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 50, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 54, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 55, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"}
+    ]
   },
   {
     "id": "algo_nlogn_254",
@@ -29,7 +86,21 @@
     "code": "# Python 3 program to print an array\n# in alternate sorted manner.\n \n# Function to print alternate sorted\n# values\ndef alternateSort(arr, n):\n \n    # Sorting the array\n    arr.sort()\n \n    # Printing the last element of array\n    # first and then first element and then\n    # second last element and then second\n    # element and so on.\n    i = 0\n    j = n-1\n     \n    while (i < j):\n     \n        print(arr[j], end =\" \")\n        j-= 1\n        print(arr[i], end =\" \")\n        i+= 1\n \n    # If the total element in array is odd\n    # then print the last middle element.\n    if (n % 2 != 0):\n        print(arr[i])\n \n \n# Driver code\narr = [1, 12, 4, 6, 7, 10]\nn = len(arr)\n \nalternateSort(arr, n)\n \n# This code is contributed by\n# Smitha Dinesh Semwal",
     "expected_overall_time": "O(n log n)",
     "expected_overall_space": "O(1)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 8, "local_time": "O(n log n)", "global_time": "O(n log n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 13, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 14, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 16, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 18, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 19, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 20, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 21, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 25, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 26, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 30, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 31, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 33, "local_time": "O(n log n)", "global_time": "O(n log n)", "local_space": "O(1)", "global_space": "O(1)"}
+    ]
   },
   {
     "id": "algo_n2_255",
@@ -37,7 +108,20 @@
     "code": "# Python3 program to convert a\n# sentence to gOOGLE cASE.\ndef convert(str):\n   \n    # empty strings\n    w = \"\"\n    z = \"\";\n \n    # convert input string\n    # to upper case\n    str = str.upper() + \" \";\n \n    for i in range(len(str)):\n \n        # checki if character is not\n        # a space and adding it to\n        # string w\n        ch = str[i];\n        if (ch != ' '):\n            w = w + ch;\n        else:\n \n            # converting first character\n            # to lower case and subsequent\n            # initial letter of another\n            # word to lower case\n            z = (z + (w[0]).lower() +\n                 w[1:len(w)] + \" \");\n            w = \"\";\n \n    return z;\n \n# Driver code\nif __name__ == '__main__':\n   \n    str = \"I got intern at geeksforgeeks\";\n    print(convert(str));\n \n# This code is contributed by 29AjayKumar",
     "expected_overall_time": "O(n^2)",
     "expected_overall_space": "O(n)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 6, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 7, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 11, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 13, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 18, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 19, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 20, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 26, "local_time": "O(n)", "global_time": "O(n^2)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 28, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 30, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 35, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 36, "local_time": "O(n^2)", "global_time": "O(n^2)", "local_space": "O(n)", "global_space": "O(n)"}
+    ]
   },
   {
     "id": "algo_n_256",
@@ -45,7 +129,15 @@
     "code": "# Function to concatenated string with uncommon\n# characters of two strings\n \ndef uncommonConcat(str1, str2):\n \n    # convert both strings into set\n    set1 = set(str1)\n    set2 = set(str2)\n \n    # Performing symmetric difference operation of set\n    # to pull out uncommon characters\n    uncommon = list(set1 ^ set2)\n \n    # join each character without space to get\n    # final string\n    print( ''.join(uncommon) )\n \n# Driver program\nif __name__ == \"__main__\":\n    str1 = 'aacdb'\n    str2 = 'gafd'\n    uncommonConcat(str1,str2)",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(n)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 7, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 8, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 12, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 16, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 20, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 21, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 22, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(n)", "global_space": "O(n)"}
+    ]
   },
   {
     "id": "algo_n_257",
@@ -53,7 +145,18 @@
     "code": "# Python code to find if we can make first string\n# from second by deleting some characters from\n# second and rearranging remaining characters.\nfrom collections import Counter\n \ndef makeString(str1,str2):\n \n    # convert both strings into dictionaries\n    # output will be like str1=\"aabbcc\",\n    # dict1={'a':2,'b':2,'c':2}\n    # str2 = 'abbbcc', dict2={'a':1,'b':3,'c':2}\n    dict1 = Counter(str1)\n    dict2 = Counter(str2)\n \n    # take intersection of two dictionaries\n    # output will be result = {'a':1,'b':2,'c':2}\n    result = dict1 & dict2\n \n    # compare resultant dictionary with first\n    # dictionary comparison first compares keys\n    # and then compares their corresponding values\n    return result == dict1\n \n# Driver program\nif __name__ == \"__main__\":\n    str1 = 'ABHISHEKsinGH'\n    str2 = 'gfhfBHkooIHnfndSHEKsiAnG'\n    if (makeString(str1,str2)==True):\n        print(\"Possible\")\n    else:\n        print(\"Not Possible\")",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 4, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 11, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 12, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 16, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 20, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 24, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 25, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 26, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 27, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 29, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"}
+    ]
   },
   {
     "id": "algo_n_258",
@@ -61,7 +164,22 @@
     "code": "# Python program to count number\n# of 0s in the given row-wise\n# and column-wise sorted\n# binary matrix.\n \n# Function to count number\n# of 0s in the given\n# row-wise and column-wise\n# sorted binary matrix.\ndef countZeroes(mat):\n     \n    # start from bottom-left\n    # corner of the matrix\n    N = 5;\n    row = N - 1;\n    col = 0;\n \n    # stores number of\n    # zeroes in the matrix\n    count = 0;\n \n    while (col < N):\n         \n        # move up until\n        # you find a 0\n        while (mat[row][col]):\n             \n            # if zero is not found\n            # in current column, we\n            # are done\n            if (row < 0):\n                return count;\n            row = row - 1;\n \n        # add 0s present in\n        # current column to result\n        count = count + (row + 1);\n \n        # move right to\n        # next column\n        col = col + 1;\n \n    return count;\n     \n# Driver Code\nmat = [[0, 0, 0, 0, 1],\n       [0, 0, 0, 1, 1],\n       [0, 1, 1, 1, 1],\n       [1, 1, 1, 1, 1],\n       [1, 1, 1, 1, 1]];\n \nprint( countZeroes(mat));\n \n# This code is contributed\n# by chandan_jnu",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 13, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 14, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 18, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 20, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 24, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 29, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 30, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 31, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 35, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 39, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 41, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 44, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 50, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"}
+    ]
   },
   {
     "id": "algo_nlogn_259",
@@ -69,7 +187,26 @@
     "code": "# Python3 program to convert an array\n# in reduced form\ndef convert(arr, n):\n    # Create a temp array and copy contents\n    # of arr[] to temp\n    temp = [arr[i] for i in range (n) ]\n     \n    # Sort temp array\n    temp.sort()\n     \n    # create a map\n    umap = {}\n     \n     \n    # One by one insert elements of sorted\n    # temp[] and assign them values from 0\n    # to n-1\n    val = 0\n    for i in range (n):\n        umap[temp[i]] = val\n        val += 1\n     \n    # Convert array by taking positions from umap\n    for i in range (n):\n        arr[i] = umap[arr[i]]\n     \ndef printArr(arr, n):\n    for i in range(n):\n        print(arr[i], end = \" \")\n \n# Driver Code\nif __name__ == \"__main__\":\n    arr = [10, 20, 15, 12, 11, 50]\n    n = len(arr)\n    print(\"Given Array is \")\n    printArr(arr, n)\n    convert(arr , n)\n    print(\"\\n\\nConverted Array is \")\n    printArr(arr, n)\n \n# This code is contributed by Abhishek Gupta",
     "expected_overall_time": "O(n log n)",
     "expected_overall_space": "O(n)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 5, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 8, "local_time": "O(n log n)", "global_time": "O(n log n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 11, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 17, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 18, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 19, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 20, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 23, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 24, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 27, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 28, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 32, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 33, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 34, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 35, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 36, "local_time": "O(n log n)", "global_time": "O(n log n)", "local_space": "O(n)", "global_space": "O(n)"},
+      {"lineno": 37, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(n)"},
+      {"lineno": 38, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(n)"}
+    ]
   },
   {
     "id": "algo_n_260",
@@ -77,6 +214,27 @@
     "code": "# Python 3 program to find K'th character \n# in decrypted string\n  \n# Function to find K'th character \n# in Encoded String\ndef encodedChar(str, k):\n      \n    # expand string variable is used \n    # to store final string after \n    # decompressing string str\n    expand = \"\"\n  \n    # Current substring\n    freq = 0 # Count of current substring\n    i = 0\n    while(i < len(str)):\n        temp = \"\" # Current substring\n        freq = 0 # count frequency of current substring\n  \n        # read characters until you find \n        # a number or end of string\n        while (i < len(str) and\n               ord(str[i]) >= ord('a') and \n               ord(str[i]) <= ord('z')):\n                     \n            # push character in temp\n            temp += str[i]\n            i += 1\n  \n        # read number for how many times string temp\n        # will be repeated in decompressed string\n        while (i < len(str) and \n               ord(str[i]) >= ord('1') and\n               ord(str[i]) <= ord('9')):\n                     \n            # generating frequency of temp\n            freq = freq * 10 + ord(str[i]) - ord('0')\n            i += 1\n  \n        # now append string temp into expand\n        # equal to its frequency\n        for j in range(1, freq + 1, 1):\n            expand += temp\n  \n    # this condition is to handle the case\n    # when string str is ended with alphabets\n    # not with numeric value\n    if (freq == 0):\n        expand += temp\n  \n    return expand[k - 1]\n  \n# Driver Code\nif __name__ == '__main__':\n    str = \"ab4c12ed3\"\n    k = 21\n    print(encodedChar(str, k))\n  \n# This code is contributed by\n# Shashank_Sharma",
     "expected_overall_time": "O(n)",
     "expected_overall_space": "O(1)",
-    "line_metrics": []
+    "line_metrics": [
+      {"lineno": 9, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 12, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 13, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 14, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 15, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 16, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 20, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 24, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 25, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 29, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 33, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 34, "local_time": "O(1)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 38, "local_time": "O(freq)", "global_time": "O(freq)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 39, "local_time": "O(1)", "global_time": "O(freq)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 44, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 45, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 47, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 51, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 52, "local_time": "O(1)", "global_time": "O(1)", "local_space": "O(1)", "global_space": "O(1)"},
+      {"lineno": 53, "local_time": "O(n)", "global_time": "O(n)", "local_space": "O(1)", "global_space": "O(1)"}
+    ]
   }
 ]

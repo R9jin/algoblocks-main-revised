@@ -1,131 +1,7 @@
 ﻿--- PROJECT SNAPSHOT (PART 2 OF 10) ---
 
---- TIMESTAMP: 2026-07-03 06:16:28 ---
+--- TIMESTAMP: 2026-07-04 05:59:25 ---
 
-
---- FILE: api/services/project_service.py ---
-
-# api/services/project_service.py
-from repositories.project_repo import ProjectRepository
-from models import ProjectSyncRequest
-from fastapi import HTTPException
-from datetime import datetime
-
-class ProjectService:
-    @staticmethod
-    def get_user_projects(user_id: str):
-        if not user_id:
-            raise HTTPException(status_code=400, detail="Missing userId")
-        projects = ProjectRepository.find_by_user(user_id)
-        return {"status": "success", "projects": projects}
-
-    @staticmethod
-    def save_project(req: ProjectSyncRequest):
-        proj_name = req.name or req.title or "Untitled Project"
-        update_data = {
-            "name": proj_name,
-            "title": proj_name,
-            "description": req.description or "",
-            "workspace": req.workspace or {},
-            "pythonCode": req.pythonCode or "",
-            "updatedAt": datetime.utcnow().isoformat(),
-            "userId": req.userId,
-            "owner_id": req.userId
-        }
-
-        if req.projectId and not str(req.projectId).startswith("local_"):
-            result = ProjectRepository.update(req.projectId, req.userId, update_data)
-            if result.matched_count == 0:
-                raise HTTPException(status_code=404, detail="Project not found or unauthorized")
-            return {"status": "success", "projectId": req.projectId, "synced": True}
-        else:
-            update_data["createdAt"] = update_data["updatedAt"]
-            project_id = ProjectRepository.insert(update_data)
-            return {"status": "success", "projectId": project_id, "synced": True}
-
-    @staticmethod
-    def delete_project(payload: dict):
-        project_id = payload.get("projectId")
-        user_id = payload.get("userId") or payload.get("owner_id")
-
-        if not project_id or not user_id:
-            raise HTTPException(status_code=400, detail="Missing projectId or userId")
-
-        result = ProjectRepository.delete(project_id, user_id)
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Project not found or unauthorized")
-
-        return {"status": "success"}
-
---- FILE: api/services/template_service.py ---
-
-# api/services/template_service.py
-from repositories.template_repo import TemplateRepository
-
-class TemplateService:
-    @staticmethod
-    def get_templates_by_category(category: str):
-        templates = TemplateRepository.find_by_category(category)
-        return {"status": "success", "templates": templates}
-
-    @staticmethod
-    def get_all_templates():
-        templates = TemplateRepository.find_all()
-        return {"status": "success", "templates": templates}
-
-    # ADDED/UPDATED: Method to handle saving/updating a template
-    @staticmethod
-    def save_template(req):
-        # Convert pydantic model to dict, exclude unset so we don't push nulls unnecessarily
-        # Support both Pydantic V1 (.dict()) and Pydantic V2 (.model_dump()) depending on FastAPI version
-        if hasattr(req, "model_dump"):
-            template_data = req.model_dump(exclude_unset=True)
-        elif hasattr(req, "dict"):
-            template_data = req.dict(exclude_unset=True)
-        else:
-            template_data = dict(req)
-        
-        # Ensure owner_id is set so frontend sync catches it
-        if template_data.get("userId") and not template_data.get("owner_id"):
-            template_data["owner_id"] = template_data["userId"]
-            
-        template_id = template_data.pop("templateId", None)
-        
-        if template_id:
-            # Update existing
-            updated_id = TemplateRepository.update(template_id, template_data)
-            return {
-                "status": "success", 
-                "message": "Template updated successfully", 
-                "templateId": updated_id
-            }
-        else:
-            # Insert new
-            inserted_id = TemplateRepository.save(template_data)
-            return {
-                "status": "success", 
-                "message": "Template saved successfully", 
-                "templateId": inserted_id
-            }
-
---- FILE: frontend/README.md ---
-
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
 
 --- FILE: frontend/eslint.config.js ---
 
@@ -15841,6 +15717,1316 @@ export default defineConfig([
       ],
       "answer": 2,
       "explanation": "Activity Selection is O(n log n) overall: sorting takes O(n log n), and the greedy selection loop is O(n) \u2014 the sort dominates the total complexity."
+    }
+  ]
+}
+
+--- FILE: frontend/public/data/assessments/module-5.json ---
+
+{
+  "moduleId": "module-5",
+  "moduleTitle": "Dynamic Programming",
+  "questions": [
+    {
+      "id": "m5_q1",
+      "question": "What is Dynamic Programming?",
+      "options": [
+        "A programming paradigm that uses blocks instead of text",
+        "An optimization technique that solves complex problems by breaking them into overlapping subproblems and storing their results to avoid recomputation",
+        "A brute-force technique that tries all possibilities systematically",
+        "A divide-and-conquer technique that never stores intermediate results"
+      ],
+      "answer": 1,
+      "explanation": "Dynamic Programming solves problems with overlapping subproblems and optimal substructure by caching sub-results (memoization or tabulation) to avoid redundant work."
+    },
+    {
+      "id": "m5_q2",
+      "type": "code",
+      "code": "cache = {}\ndef fib_memo(n):\n    if n in cache:\n        return cache[n]        # O(1) lookup\n    if n <= 1:\n        return n\n    cache[n] = fib_memo(n-1) + fib_memo(n-2)\n    return cache[n]",
+      "question": "What technique is this and what is its time complexity compared to naive recursion?",
+      "options": [
+        "Tabulation \u2014 O(n\u00b2) due to the dictionary overhead",
+        "Memoization (top-down DP) \u2014 O(n) because each subproblem is computed once and cached, vs O(2\u207f) for naive recursion",
+        "Greedy \u2014 O(log n) because the cache halves the problem each time",
+        "Memoization \u2014 still O(2\u207f) because recursive calls are not eliminated"
+      ],
+      "answer": 1,
+      "explanation": "This is top-down memoization. The cache ensures each of the n unique subproblems (fib(0) through fib(n)) is computed exactly once \u2014 reducing time from O(2\u207f) to O(n) while using O(n) space for the cache."
+    },
+    {
+      "id": "m5_q3",
+      "question": "What is Tabulation?",
+      "options": [
+        "A top-down recursive approach with caching",
+        "Documenting algorithm steps in a spreadsheet",
+        "A bottom-up DP approach that iteratively fills a table starting from base cases, building up to the target answer",
+        "A technique for sorting data into category tables"
+      ],
+      "answer": 2,
+      "explanation": "Tabulation is bottom-up DP: it fills a table iteratively from the smallest subproblems upward, avoiding recursion and stack overflow risks entirely."
+    },
+    {
+      "id": "m5_q4",
+      "question": "Is Memoization top-down or bottom-up?",
+      "options": [
+        "Bottom-up \u2014 it starts from the base case and builds upward",
+        "Neither \u2014 memoization avoids the concept of direction",
+        "Top-down \u2014 it starts from the main problem and recursively breaks it into subproblems, caching results",
+        "Both simultaneously"
+      ],
+      "answer": 2,
+      "explanation": "Memoization is top-down: the algorithm starts with the full problem, recursively decomposes it, and stores results as subproblems are solved."
+    },
+    {
+      "id": "m5_q5",
+      "type": "code",
+      "code": "def fib_tabulation(n):\n    if n <= 1:\n        return n\n    dp = [0] * (n + 1)   # allocate table of size n+1\n    dp[0], dp[1] = 0, 1\n    for i in range(2, n + 1):\n        dp[i] = dp[i-1] + dp[i-2]\n    return dp[n]",
+      "question": "What is the time and space complexity of this tabulation approach?",
+      "options": [
+        "Time: O(2\u207f), Space: O(n)",
+        "Time: O(n log n), Space: O(1)",
+        "Time: O(n) \u2014 one loop iteration per value; Space: O(n) \u2014 dp array stores n+1 values",
+        "Time: O(n), Space: O(1) \u2014 no extra storage needed"
+      ],
+      "answer": 2,
+      "explanation": "The loop runs n times computing each Fibonacci value once \u2192 O(n) time. The dp array allocates n+1 slots \u2192 O(n) space. This is the standard bottom-up tabulation tradeoff."
+    },
+    {
+      "id": "m5_q6",
+      "question": "What is the complexity of naive recursive Fibonacci?",
+      "options": [
+        "O(n) \u2014 linear",
+        "O(n log n) \u2014 linearithmic",
+        "O(2\u207f) \u2014 exponential, due to massive redundant recomputation of subproblems",
+        "O(n\u00b2) \u2014 quadratic"
+      ],
+      "answer": 2,
+      "explanation": "Naive recursive Fibonacci is O(2\u207f) because it recomputes the same subproblems exponentially \u2014 fib(n) calls fib(n-1) and fib(n-2), each of which spawn two more calls, and so on."
+    },
+    {
+      "id": "m5_q7",
+      "question": "What is the complexity of DP-optimized Fibonacci?",
+      "options": [
+        "O(2\u207f) \u2014 same as naive recursion",
+        "O(n log n) \u2014 due to the caching overhead",
+        "O(n) \u2014 linear, since each subproblem is computed exactly once",
+        "O(log n) \u2014 because DP halves the problem"
+      ],
+      "answer": 2,
+      "explanation": "With memoization or tabulation, each of the n Fibonacci values is computed exactly once and stored, reducing complexity from O(2\u207f) to O(n)."
+    },
+    {
+      "id": "m5_q8",
+      "type": "code",
+      "code": "def fib_naive(n):           # called on fib(5)\n    if n <= 1: return n\n    return fib_naive(n-1) + fib_naive(n-2)\n\n# Call tree for fib(5):\n# fib(5) \u2192 fib(4) + fib(3)\n# fib(4) \u2192 fib(3) + fib(2)   \u2190 fib(3) computed AGAIN\n# fib(3) \u2192 fib(2) + fib(1)   \u2190 fib(2) computed AGAIN",
+      "question": "What problem does this call tree reveal and what DP property does it violate?",
+      "options": [
+        "No problem \u2014 each call computes a different value",
+        "Overlapping subproblems \u2014 fib(3) and fib(2) are recomputed multiple times, exactly the redundancy DP eliminates through caching",
+        "Optimal substructure violation \u2014 Fibonacci cannot be solved with DP",
+        "Stack overflow \u2014 recursion is too deep for any input"
+      ],
+      "answer": 1,
+      "explanation": "The call tree shows fib(3) computed at least twice and fib(2) at least three times for fib(5) alone. This redundant recomputation of overlapping subproblems is what makes naive recursion O(2\u207f) \u2014 and exactly what memoization/tabulation eliminates."
+    },
+    {
+      "id": "m5_q9",
+      "question": "What is the 0/1 Knapsack Problem?",
+      "options": [
+        "A problem of making change with minimum coins",
+        "A problem of finding the shortest path in a weighted graph",
+        "A problem of selecting a subset of items with given weights and values to maximize total value without exceeding a weight capacity, where each item is either taken (1) or not (0)",
+        "A problem of sorting items by their value-to-weight ratio"
+      ],
+      "answer": 2,
+      "explanation": "0/1 Knapsack asks: given n items each with a weight and value, which items maximize total value while staying within a weight limit? Each item is binary \u2014 included or excluded."
+    },
+    {
+      "id": "m5_q10",
+      "question": "Are fractional items allowed in 0/1 Knapsack?",
+      "options": [
+        "Yes, items can be split to fill remaining capacity",
+        "Yes, but only for items weighing less than 1 unit",
+        "No, each item must be taken entirely or left entirely \u2014 no fractions",
+        "Fractional amounts are automatically rounded to whole numbers"
+      ],
+      "answer": 2,
+      "explanation": "The '0/1' in the name means each item is a binary choice: take it completely (1) or don't take it at all (0). This is what prevents a simple greedy solution from working."
+    },
+    {
+      "id": "m5_q11",
+      "type": "code",
+      "code": "def knapsack_01(weights, values, capacity):\n    n = len(weights)\n    dp = [[0]*(capacity+1) for _ in range(n+1)]  # (n+1) \u00d7 (capacity+1) table\n    for i in range(1, n+1):\n        for w in range(capacity+1):\n            if weights[i-1] <= w:\n                dp[i][w] = max(dp[i-1][w],\n                               values[i-1] + dp[i-1][w-weights[i-1]])\n            else:\n                dp[i][w] = dp[i-1][w]\n    return dp[n][capacity]",
+      "question": "What are the time and space complexities of this 0/1 Knapsack DP solution?",
+      "options": [
+        "Time: O(n\u00b2), Space: O(n)",
+        "Time: O(n \u00d7 capacity), Space: O(n \u00d7 capacity) \u2014 the nested loop fills an (n+1)\u00d7(capacity+1) table",
+        "Time: O(2\u207f), Space: O(n \u00d7 capacity)",
+        "Time: O(n log n), Space: O(capacity)"
+      ],
+      "answer": 1,
+      "explanation": "The nested loops fill every cell of the (n+1)\u00d7(capacity+1) DP table once \u2192 O(n \u00d7 capacity) time. The table itself takes O(n \u00d7 capacity) space. This is the classic pseudo-polynomial complexity of 0/1 Knapsack."
+    },
+    {
+      "id": "m5_q12",
+      "question": "What is Longest Common Subsequence (LCS)?",
+      "options": [
+        "The longest string that appears contiguously in both input strings",
+        "The longest sequence of characters that appears in the same relative order in both strings, but not necessarily contiguously",
+        "The shortest string needed to encode both inputs",
+        "The string formed by concatenating both inputs and removing duplicates"
+      ],
+      "answer": 1,
+      "explanation": "LCS finds the longest sequence present in both strings in the same order \u2014 unlike substrings, the characters don't need to be adjacent."
+    },
+    {
+      "id": "m5_q13",
+      "question": "Does LCS require letters to be strictly contiguous?",
+      "options": [
+        "Yes, characters must appear consecutively in both strings",
+        "Yes, but only in one of the two strings",
+        "No, the characters must appear in the same relative order but can be non-contiguous",
+        "No, LCS ignores order entirely and just counts shared characters"
+      ],
+      "answer": 2,
+      "explanation": "LCS characters must appear in the same relative order in both sequences but can be spread out with gaps between them \u2014 this makes LCS distinct from Longest Common Substring."
+    },
+    {
+      "id": "m5_q14",
+      "type": "code",
+      "code": "def lcs(s1, s2):\n    m, n = len(s1), len(s2)\n    dp = [[0]*(n+1) for _ in range(m+1)]\n    for i in range(1, m+1):\n        for j in range(1, n+1):\n            if s1[i-1] == s2[j-1]:\n                dp[i][j] = dp[i-1][j-1] + 1   # match\n            else:\n                dp[i][j] = max(dp[i-1][j], dp[i][j-1])  # no match\n    return dp[m][n]\n\nlcs('ABCBDAB', 'BDCAB')  # returns 4",
+      "question": "What are the time and space complexities of this LCS implementation?",
+      "options": [
+        "Time: O(m + n), Space: O(1)",
+        "Time: O(m \u00d7 n), Space: O(m \u00d7 n) \u2014 both driven by the (m+1)\u00d7(n+1) DP table",
+        "Time: O(m \u00d7 n), Space: O(m + n)",
+        "Time: O(2^(m+n)), Space: O(m \u00d7 n)"
+      ],
+      "answer": 1,
+      "explanation": "The two nested loops each run m and n times respectively, filling every cell of the (m+1)\u00d7(n+1) matrix \u2192 O(m\u00d7n) time. The matrix itself is stored in memory \u2192 O(m\u00d7n) space."
+    },
+    {
+      "id": "m5_q15",
+      "question": "What is the space-time tradeoff?",
+      "options": [
+        "The tradeoff between writing faster code and writing more readable code",
+        "The tradeoff where using more memory to store precomputed results can reduce execution time, or vice versa",
+        "The tradeoff between using loops and recursion",
+        "The tradeoff between time to develop an algorithm and time to run it"
+      ],
+      "answer": 1,
+      "explanation": "Space-time tradeoff means spending extra memory (e.g., a DP cache or lookup table) to save computation time \u2014 DP is the classic example of accepting O(n) or O(n\u00b2) space to avoid exponential recomputation."
+    }
+  ]
+}
+
+--- FILE: frontend/public/data/assessments/module-6.json ---
+
+{
+  "moduleId": "module-6",
+  "moduleTitle": "Backtracking",
+  "questions": [
+    {
+      "id": "m6_q1",
+      "question": "What is Backtracking?",
+      "options": [
+        "An algorithm that always moves forward without revisiting choices",
+        "A brute-force technique that randomly shuffles the search order",
+        "A systematic search algorithm that builds a solution incrementally and abandons a partial solution as soon as it determines it cannot lead to a valid complete solution",
+        "A technique for sorting elements using a recursive pivot"
+      ],
+      "answer": 2,
+      "explanation": "Backtracking explores a solution space incrementally and prunes branches early ('backtracks') when a partial solution violates constraints \u2014 avoiding unnecessary full exploration."
+    },
+    {
+      "id": "m6_q2",
+      "type": "code",
+      "code": "def permutations(arr, path=[]):\n    if len(path) == len(arr):\n        print(path)      # base case: complete permutation\n        return\n    for i in range(len(arr)):\n        if arr[i] not in path:\n            path.append(arr[i])       # choose\n            permutations(arr, path)   # explore\n            path.pop()                # unchoose (backtrack)",
+      "question": "What is the time complexity of generating all permutations and what is the base case?",
+      "options": [
+        "O(n\u00b2) \u2014 nested loop; base case is when path is empty",
+        "O(n!) \u2014 n choices for first position, n-1 for second, etc.; base case is when path length equals array length",
+        "O(2\u207f) \u2014 binary choices; base case is when arr is empty",
+        "O(n log n) \u2014 like merge sort; base case is a single element"
+      ],
+      "answer": 1,
+      "explanation": "Generating all permutations has O(n!) complexity \u2014 n choices for position 1, n-1 for position 2, down to 1 for the last. The base case is when path.length == arr.length, meaning a complete valid permutation has been built."
+    },
+    {
+      "id": "m6_q3",
+      "question": "How does backtracking differ from brute force?",
+      "options": [
+        "Backtracking is always faster because it sorts data first",
+        "They are identical \u2014 backtracking is just a formal name for brute force",
+        "Backtracking uses pruning to abandon invalid partial solutions early, while pure brute force generates and evaluates all complete candidates",
+        "Brute force uses recursion; backtracking does not"
+      ],
+      "answer": 2,
+      "explanation": "Pure brute force generates every complete candidate before checking validity. Backtracking checks validity incrementally and abandons branches as soon as a constraint is violated \u2014 often far more efficient."
+    },
+    {
+      "id": "m6_q4",
+      "question": "What is a permutation?",
+      "options": [
+        "A selection of elements where order does not matter",
+        "An arrangement of all elements of a set in a specific order, where every arrangement is considered distinct",
+        "A subset of elements chosen without replacement",
+        "A sorted version of the original sequence"
+      ],
+      "answer": 1,
+      "explanation": "A permutation is an ordered arrangement of elements. For n distinct items, there are n! possible permutations \u2014 order matters."
+    },
+    {
+      "id": "m6_q5",
+      "type": "code",
+      "code": "def subsets(arr, index=0, current=[]):\n    print(current)               # record current subset\n    for i in range(index, len(arr)):\n        current.append(arr[i])   # include arr[i]\n        subsets(arr, i+1, current)\n        current.pop()            # exclude arr[i] (backtrack)\n\nsubsets([1, 2, 3])  # prints: [], [1], [1,2], [1,2,3], [1,3], [2], [2,3], [3]",
+      "question": "How many subsets does this generate for an array of size n, and what is the time complexity?",
+      "options": [
+        "n subsets, O(n) time",
+        "n! subsets, O(n!) time",
+        "2\u207f subsets, O(2\u207f) time \u2014 each element has two choices: included or excluded",
+        "n\u00b2 subsets, O(n\u00b2) time"
+      ],
+      "answer": 2,
+      "explanation": "For each element there are two choices: include or exclude. With n elements, this gives 2\u207f possible subsets. The recursive backtracking visits each subset exactly once \u2192 O(2\u207f) time complexity."
+    },
+    {
+      "id": "m6_q6",
+      "question": "What is the N-Queens problem?",
+      "options": [
+        "Placing N queens on an N\u00d7N chessboard such that no two queens attack each other",
+        "Finding the shortest path through an N\u00d7N grid",
+        "Sorting N queens by their row position",
+        "Counting the number of ways to fill an N\u00d7N grid with 0s and 1s"
+      ],
+      "answer": 0,
+      "explanation": "N-Queens places N queens on an N\u00d7N board so no two queens share the same row, column, or diagonal \u2014 a classic constraint satisfaction problem solved with backtracking."
+    },
+    {
+      "id": "m6_q7",
+      "question": "How do you validate safety in N-Queens?",
+      "options": [
+        "Check that no two queens occupy the same row, same column, or same diagonal",
+        "Verify that queens are placed in increasing row order",
+        "Ensure no two queens are on adjacent cells (including diagonals)",
+        "Check that the total number of queens equals N\u00b2"
+      ],
+      "answer": 0,
+      "explanation": "A queen placement is safe if no previously placed queen shares the same column, upper-left diagonal, or upper-right diagonal with the new queen."
+    },
+    {
+      "id": "m6_q8",
+      "type": "code",
+      "code": "def is_safe(board, row, col, n):\n    # Check same column\n    for i in range(row):\n        if board[i][col] == 1:\n            return False\n    # Check upper-left diagonal\n    i, j = row-1, col-1\n    while i >= 0 and j >= 0:\n        if board[i][j] == 1: return False\n        i -= 1; j -= 1\n    # Check upper-right diagonal  \n    i, j = row-1, col+1\n    while i >= 0 and j < n:\n        if board[i][j] == 1: return False\n        i -= 1; j += 1\n    return True",
+      "question": "What happens in the N-Queens solver when is_safe() returns False?",
+      "options": [
+        "The algorithm terminates immediately with no solution",
+        "The algorithm places the queen anyway and continues",
+        "The algorithm backtracks \u2014 skips this column placement, tries the next column, and if all columns fail, returns to the previous row to try a different column",
+        "The algorithm restarts from the beginning with a different board size"
+      ],
+      "answer": 2,
+      "explanation": "When is_safe() returns False, the constraint is violated and the algorithm backtracks: it skips the current column, tries the next one, and if all columns in the current row fail, it returns (backtracks) to the previous row to undo that placement and try alternatives."
+    },
+    {
+      "id": "m6_q9",
+      "question": "What is state tracking?",
+      "options": [
+        "Recording the current configuration of choices made so far, enabling the algorithm to undo them when backtracking",
+        "A technique for measuring how long the algorithm has been running",
+        "Counting the number of recursive calls made during execution",
+        "Logging every comparison performed during the search"
+      ],
+      "answer": 0,
+      "explanation": "State tracking maintains the current partial solution (e.g., a path array or boolean 'used' array) so it can be correctly restored when the algorithm backtracks from an invalid path."
+    },
+    {
+      "id": "m6_q10",
+      "question": "How is a maze solved using backtracking?",
+      "options": [
+        "By computing the shortest path using Dijkstra's algorithm",
+        "By trying each direction (up, down, left, right) recursively, marking cells as visited, and backtracking (unmark) when a dead end is reached",
+        "By sorting all possible paths by length and selecting the shortest",
+        "By using binary search to locate the exit cell"
+      ],
+      "answer": 1,
+      "explanation": "Backtracking maze solving explores available moves recursively, marks visited cells to prevent loops, and unmarks them when backtracking from dead ends until the exit is found."
+    },
+    {
+      "id": "m6_q11",
+      "type": "code",
+      "code": "# BROKEN maze solver \u2014 no visited tracking\ndef solve_broken(maze, r, c):\n    if r == EXIT_ROW and c == EXIT_COL:\n        return True\n    # Try all 4 directions \u2014 no visited check!\n    for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:\n        if solve_broken(maze, r+dr, c+dc):\n            return True\n    return False\n\n# FIXED solver\ndef solve_fixed(maze, r, c, visited):\n    if r == EXIT_ROW and c == EXIT_COL:\n        return True\n    visited[r][c] = True             # mark before recursing\n    for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:\n        nr, nc = r+dr, c+dc\n        if not visited[nr][nc]:\n            if solve_fixed(maze, nr, nc, visited):\n                return True\n    visited[r][c] = False            # unmark on backtrack\n    return False",
+      "question": "Why does the broken version cause infinite recursion while the fixed version does not?",
+      "options": [
+        "The broken version uses too many direction variables",
+        "The broken version never marks cells as visited, allowing it to move back to already-explored cells and cycle forever; the fixed version marks/unmarks cells to prevent revisiting",
+        "The fixed version uses more memory, making it slower but correct",
+        "The broken version's base case is wrong \u2014 it never reaches EXIT"
+      ],
+      "answer": 1,
+      "explanation": "Without the visited array, the solver can move right then immediately left then right again, cycling infinitely. Marking cells as True before recursing prevents revisiting; unmarking on backtrack (False) allows other valid paths to use those cells."
+    },
+    {
+      "id": "m6_q12",
+      "question": "What causes an infinite loop in a recursive maze solver?",
+      "options": [
+        "Using too many variables in the recursive function",
+        "The recursion depth exceeding the stack size",
+        "Failing to mark cells as visited, allowing the algorithm to revisit the same cells repeatedly and cycle infinitely",
+        "Choosing the wrong starting position in the maze"
+      ],
+      "answer": 2,
+      "explanation": "Without marking visited cells, the solver keeps returning to previously explored cells, creating cycles that never terminate \u2014 the visited flag breaks these cycles."
+    },
+    {
+      "id": "m6_q13",
+      "question": "What serves as the base case in backtracking?",
+      "options": [
+        "When all elements have been compared at least once",
+        "When the recursion depth reaches the maximum stack size",
+        "When a complete valid solution is found (e.g., all queens placed, path reaches exit, all elements assigned)",
+        "When the first invalid constraint is detected"
+      ],
+      "answer": 2,
+      "explanation": "The base case is when a valid complete solution has been constructed \u2014 at this point the algorithm records or prints the solution and returns, stopping further recursion on that branch."
+    },
+    {
+      "id": "m6_q14",
+      "type": "code",
+      "code": "def subset_sum(arr, index, target, current):\n    if target == 0:\n        print(current)   # found a valid subset!\n        return\n    if index == len(arr) or target < 0:\n        return           # pruning: overshoot or exhausted\n    # Include arr[index]\n    subset_sum(arr, index+1, target-arr[index],\n               current+[arr[index]])\n    # Exclude arr[index]\n    subset_sum(arr, index+1, target, current)",
+      "question": "What is the role of 'target < 0' in this Subset Sum backtracking solution?",
+      "options": [
+        "It's an error \u2014 target should never go below zero",
+        "It handles negative numbers in the input array",
+        "It is a pruning condition \u2014 if the remaining target goes negative, the current path already overshoots the goal so the branch is abandoned immediately without exploring further",
+        "It checks if the array index has gone out of bounds"
+      ],
+      "answer": 2,
+      "explanation": "The 'target < 0' check is pruning \u2014 once the running sum exceeds the target, no further additions can fix it (assuming positive numbers). Returning immediately abandons this dead-end branch, avoiding unnecessary recursive calls and improving performance over pure brute force."
+    },
+    {
+      "id": "m6_q15",
+      "question": "Why is backtracking considered an advanced problem-solving technique?",
+      "options": [
+        "Because it requires specialized hardware to run efficiently",
+        "Because it combines recursive state-space exploration with constraint-based pruning, requiring careful design of the choose, explore, unchoose pattern",
+        "Because it always produces exponential time complexity with no improvement over brute force",
+        "Because it can only be applied to graph problems"
+      ],
+      "answer": 1,
+      "explanation": "Backtracking requires understanding recursion, state management, constraint formulation, and the choose-explore-unchoose pattern \u2014 making it conceptually more demanding than straightforward iterative approaches."
+    }
+  ]
+}
+
+--- FILE: frontend/public/data/curriculum/module-0/lesson-0-1.json ---
+
+{
+  "lessonId": "lesson-0-1",
+  "moduleId": "module-0",
+  "title": "The AlgoBlocks Workspace",
+  "description": "Welcome to AlgoBlocks. Before building algorithms, it is important to understand the structure of the environment where visual programs are created and executed. This lesson introduces the block-based workspace, explains how visual programming reduces syntax-related errors, and demonstrates how block arrangements correspond to executable Python code. The goal is to establish a clear understanding of how computational logic is represented visually and translated into structured program output.",
+  "difficulty": "Beginner",
+  "estimatedTime": "15 min",
+  "prerequisites": "None",
+  "tags": [
+    "workspace",
+    "visual programming",
+    "algorithm basics"
+  ],
+  "activities": [
+    {
+      "id": "m0_l1_a1",
+      "title": "Your First Program"
+    },
+    {
+      "id": "m0_l1_a2",
+      "title": "Returning Text"
+    },
+    {
+      "id": "m0_l1_a3",
+      "title": "Using Inputs (Parameters)"
+    },
+    {
+      "id": "m0_l1_a4",
+      "title": "Joining Text Together"
+    },
+    {
+      "id": "m0_l1_a5",
+      "title": "Making a List"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "Before constructing algorithms, it is essential to understand the environment in which they are developed. Unlike text-based programming, where a missing semicolon or incorrect indentation can halt progress, visual programming environments prioritize logic over syntax. AlgoBlocks is a visual programming system designed for educational purposes to reduce cognitive overheadâ€”the mental effort required to remember and apply language-specific rules. By removing the need to manually write syntax-heavy code, it allows beginners to focus on what a program should do rather than how to type it correctly.\n\nInstead of worrying about syntax rules like parentheses, brackets, or keyword order, learners work with block-based constructs that visually represent logical operations. Each block is shaped and color-coded to indicate its function. These blocks are designed to snap together only in valid combinations, preventing common syntax and structural errors.\n\nBlocks can be connected end-to-end or nested inside one another to form sequences that define complete program behavior. This drag-and-drop approach allows students to quickly experiment with different logical arrangements. As a result, learners can dedicate their mental energy to core computational thinking skills: sequencing, logic design, and problem decomposition."
+    },
+    {
+      "id": "workspace-overview",
+      "type": "concept",
+      "title": "Overview of the Workspace",
+      "content": "The workspace is carefully organized into main functional areas, each serving a distinct role in the program creation process. Together, these components provide an intuitive environment for constructing, visualizing, and testing algorithms.",
+      "subsections": [
+        {
+          "id": "toolbox",
+          "title": "The Toolbox",
+          "content": "Typically located on the left side of the screen, the Toolbox contains categorized programming blocks grouped by function. Each category can be expanded or collapsed to keep the workspace organized. The available categories mirror standard Python capabilities:",
+          "bullets": [
+            "**Logic:** Conditionals (If/Else), comparisons, boolean operators, and data type checking.",
+            "**Loops:** Repeat, While, For-Each, and loop flow controls (Pass, Break, Continue).",
+            "**Math:** Numbers, basic arithmetic, advanced operators (Floor division, Bitwise), min/max, and random generation.",
+            "**Text:** String creation, code comments, joining text, splitting, and case formatting.",
+            "**Input / Output:** Print messages to the console and prompt the user for input.",
+            "**Data Structures:** Dedicated categories for Lists, Dictionaries, and Sets & Tuples to organize collections.",
+            "**Stacks & Queues:** Specialized blocks (Push, Pop, Enqueue, Dequeue) for advanced abstract data types.",
+            "**Variables:** Create memory storage and seamlessly swap data between variables.",
+            "**Functions:** Define custom, reusable procedures and return values.",
+            "**Raw Python:** Direct injection of text-based code blocks for advanced users bypassing visual constraints."
+          ]
+        },
+        {
+          "id": "block-anatomy",
+          "title": "Understanding Block Anatomy and Colors",
+          "content": "Not all blocks can connect to each other. Their visual shapes indicate their structural role within the algorithm:",
+          "bullets": [
+            "**Statement Blocks:** These feature a notch on the top and a bump on the bottom. They stack vertically and execute one after another in a continuous sequence.",
+            "**Value Blocks:** These feature a puzzle-piece tab on the left side. They cannot exist independently; they must be plugged into the input slots of statement blocks to provide data, such as text or numbers.",
+            "**Color Coding:** The toolbox organizes categories by color to reduce visual fatigue. For example, Logic blocks are purple, Math blocks are blue, Text blocks are gold, and Lists are teal. Associating colors with functions accelerates the development process."
+          ]
+        },
+        {
+          "id": "workspace-canvas",
+          "title": "The Workspace Canvas",
+          "content": "Occupying the central area, this is where learners drag blocks from the Toolbox and connect them to define program logic. Blocks snap together automatically when brought close to a valid connection point. The canvas also displays visual hints to show where a new block can be inserted. Complex programs can be organized vertically to represent sequential flow or nested to represent conditional branches inside loops."
+        },
+        {
+          "id": "workspace-controls",
+          "title": "Workspace Controls and Error Correction",
+          "content": "Managing the workspace canvas is a fundamental skill. If an incorrect block is placed, it can be removed by dragging it to the trash receptacle icon or by accessing the right-click context menu and selecting the delete option. Furthermore, the right-click menu offers a duplication feature, allowing developers to quickly replicate existing blocks and accelerate the construction of repetitive logic."
+        },
+        {
+          "id": "real-time-python",
+          "title": "Real-time Python Code Generation",
+          "content": "As blocks are added, removed, or rearranged, the system automatically generates equivalent Python code in a side panel. This feature allows learners to observe the direct relationship between visual logic and textual programming representation. If a visual structure is incomplete, such as a missing variable input, the interface will generate a red error badge. Clicking this badge reveals how the system translates incomplete visual logic into standard Python syntax errors, serving as an active debugging tool."
+        },
+        {
+          "id": "output-console",
+          "title": "The Output Console",
+          "content": "Typically located at the bottom of the interface, the output console is where execution data is displayed. When the user clicks the Run button, the generated Python code executes, and any output appears in the console. The console also displays execution timing and line-by-line tracing for debugging purposes. If a program contains an infinite loop or logical error, the console provides a stop button and a clear error message pointing to the problematic block."
+        }
+      ]
+    },
+    {
+      "id": "sequential-execution",
+      "type": "deep_dive",
+      "title": "Understanding Sequential Execution",
+      "content": "Programs execute according to a sequential control flow model unless explicitly modified by control structures such as loops or conditionals. Understanding this flow is fundamental to building correct algorithms.",
+      "subsections": [
+        {
+          "id": "what-is-sequential",
+          "title": "What is Sequential Execution?",
+          "content": "Sequential execution follows a top-to-bottom evaluation model in which each instruction is executed in the order it appears from the first connected block to the last. For example, consider this sequence:",
+          "bullets": [
+            "1. print \"First\"",
+            "2. print \"Second\"",
+            "3. print \"Third\""
+          ]
+        },
+        {
+          "id": "micro-transition-sequence",
+          "title": "Micro-Transition: One Step at a Time",
+          "content": "Before attempting complex logic, practice connecting two basic blocks together. If 'print A' is placed above 'print B', the system will always process 'A' before 'B'. Mastering this simple top-to-bottom flow is the first step toward building reliable software."
+        },
+        {
+          "id": "sequential-behavior",
+          "title": "Execution Behavior",
+          "content": "The program will always print the statements in that exact order. If you swap the positions of the first and second blocks, the output changes accordingly. This behavior reflects the fundamental execution model used in imperative programming languages."
+        },
+        {
+          "id": "why-order-matters",
+          "title": "Why Order Matters",
+          "content": "Correct ordering of instructions is essential. Misordering operations can lead to incorrect program output or logical errors that are difficult to trace. For example, consider a program that calculates an average:",
+          "bullets": [
+            "**Correct order:** Calculate the sum, then divide to find the average, then print the result.",
+            "**Incorrect order:** Print the average, then calculate the sum. This prints an undefined or previous value, producing an error or incorrect result."
+          ]
+        },
+        {
+          "id": "visualizing-flow",
+          "title": "Visualizing Flow",
+          "content": "Sequential execution is made explicit through the vertical arrangement of blocks. A vertical stack clearly shows the order of execution. Loops and conditionals create containers that hold inner blocks, but even inside those containers, execution remains sequential."
+        }
+      ]
+    },
+    {
+      "id": "visual-learning",
+      "type": "real_world_connection",
+      "title": "Why Visual Learning Matters",
+      "content": "Traditional programming instruction often introduces a high cognitive load due to syntax requirements and abstract control flow representation. Beginners can spend the majority of their time fixing syntax errors rather than solving problems, which can hinder early-stage understanding of algorithmic logic.",
+      "subsections": [
+        {
+          "id": "reducing-barriers",
+          "title": "How Visual Programming Reduces Barriers",
+          "content": "Visual programming reduces these barriers by allowing learners to construct programs through direct manipulation of logical components. Instead of memorizing indentation rules, a learner drags an 'if' block, snaps a comparison block into its condition slot, and attaches action blocks inside its body. The environment enforces correctness by preventing blocks from connecting in invalid ways."
+        },
+        {
+          "id": "construction-based",
+          "title": "Construction-Based Learning",
+          "content": "This approach supports construction-based learning, where understanding is developed through active creation rather than passive observation. When learners build a working calculator or a simple program block by block, they internalize concepts like variables, conditionals, and loops through hands-on experimentation."
+        },
+        {
+          "id": "focus-algorithmic",
+          "title": "Focus on Algorithmic Reasoning",
+          "content": "Because syntax is no longer an obstacle, learners can focus on higher-level skills:",
+          "bullets": [
+            "**Algorithmic reasoning:** Designing step-by-step solutions to problems.",
+            "**Pattern recognition:** Identifying when to use a loop instead of repeated manual instructions.",
+            "**Structural decomposition:** Breaking a complex task into manageable sub-algorithms.",
+            "**Debugging:** Tracing execution order without being derailed by typographical errors."
+          ]
+        },
+        {
+          "id": "scaffolding-text",
+          "title": "Scaffolding to Text-Based Languages",
+          "content": "As learners progress, the real-time Python code panel gradually familiarizes them with textual syntax. Observing the direct translation of visual blocks into code makes the transition to writing text-based Python manually much smoother."
+        }
+      ]
+    },
+    {
+      "id": "python-to-blocks",
+      "type": "concept",
+      "title": "Translating Python to Blocks",
+      "content": "Throughout this curriculum, algorithms are often explained using standard Python terminology. To bridge this gap, here is a direct mapping key to help translate text syntax into the visual toolbox:",
+      "subsections": [
+        {
+          "id": "translate-functions",
+          "title": "Defining Functions",
+          "content": "When referencing function definitions, open the Functions toolbox and select the appropriate block to encapsulate your logic."
+        },
+        {
+          "id": "translate-loops",
+          "title": "Iterating with Loops",
+          "content": "When referencing an iterative sequence, open the Loops toolbox and utilize the blocks designed to count or repeat operations."
+        },
+        {
+          "id": "translate-arrays",
+          "title": "Appending to Arrays",
+          "content": "When appending data to a list, open the Lists toolbox and select the block configured to append items to the end of a list structure."
+        },
+        {
+          "id": "translate-dictionaries",
+          "title": "Using Hash Maps",
+          "content": "When referring to Hash Maps or Key-Value pairs, open the Dictionaries toolbox and use the block labeled 'set key in dictionary'."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "The workspace provides a structured, learner-friendly educational environment for constructing and executing visual programs. With this understanding of the workspace, you are now prepared to begin your first programming activities. Remember to experiment freely, utilize the output console for feedback, and consult the Python code panel as a learning reference.",
+      "subsections": [
+        {
+          "id": "sum-components",
+          "title": "Three Main Components",
+          "content": "The workspace is divided into three key areas:",
+          "bullets": [
+            "**Toolbox:** A categorized collection of structural and logical blocks.",
+            "**Workspace Canvas:** The area where blocks are arranged and connected to form algorithms.",
+            "**Output Console:** Displays program output, runtime metrics, and errors."
+          ]
+        },
+        {
+          "id": "sum-real-time",
+          "title": "Real-Time Feedback",
+          "content": "The system automatically generates equivalent Python code and highlights potential errors, allowing you to observe how visual logic translates to text-based syntax."
+        },
+        {
+          "id": "sum-sequential",
+          "title": "Sequential Execution",
+          "content": "Programs run from the top block to the bottom block unless loops or conditionals modify the flow. Understanding this model is fundamental to debugging and algorithm design."
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "Blockly Documentation",
+      "url": "https://developers.google.com/blockly"
+    },
+    {
+      "title": "Visual Programming Concepts",
+      "url": "https://scratch.mit.edu"
+    }
+  ]
+}
+
+--- FILE: frontend/public/data/curriculum/module-0/lesson-0-2.json ---
+
+{
+  "lessonId": "lesson-0-2",
+  "moduleId": "module-0",
+  "title": "Core Blockly Components",
+  "description": "Understand the fundamental Blockly components used to build algorithms visually. This lesson deeply covers variables, loops, conditionals, arrays, and math operations. By the end, you will know how to select and combine these components to solve problems ranging from simple calculations to complex data processing tasks.",
+  "difficulty": "Beginner",
+  "estimatedTime": "25 min",
+  "prerequisites": "The Workspace",
+  "tags": [
+    "blockly",
+    "variables",
+    "loops",
+    "conditions",
+    "arrays"
+  ],
+  "activities": [
+    {
+      "id": "m0_l2_a1",
+      "title": "Storing Data in Variables"
+    },
+    {
+      "id": "m0_l2_a2",
+      "title": "Making Decisions (If/Else)"
+    },
+    {
+      "id": "m0_l2_a3",
+      "title": "Repeating Actions (Loops)"
+    },
+    {
+      "id": "m0_l2_a4",
+      "title": "Defensive Programming: Safe Array Access"
+    },
+    {
+      "id": "m0_l2_a5",
+      "title": "Adding to a List"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "Blockly components help students build algorithms through visual programming. Each block represents a core programming instruction. By combining these blocks, learners can create complete algorithms without managing typographical syntax.",
+      "subsections": [
+        {
+          "id": "intro-what-are-components",
+          "title": "What are Core Components?",
+          "content": "Just as an engineer relies on specific tools, a programmer relies on fundamental logical constructs. In computer science, almost every application is built using the same core elements. These elements are represented as connectable, color-coded blocks."
+        },
+        {
+          "id": "intro-the-five-pillars",
+          "title": "The Five Pillars of Programming",
+          "content": "To solve programming problems effectively, you must master these five core component types:",
+          "bullets": [
+            "**Variables:** The allocated memory of your program.",
+            "**Loops:** The engines of repetition.",
+            "**Conditionals:** The decision-makers.",
+            "**Arrays:** The organizers of data.",
+            "**Math Operations:** The execution of calculations."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "variables",
+      "type": "concept",
+      "title": "Variables: The Program's Memory",
+      "content": "Variables store information temporarily while an algorithm runs. Without variables, a program has no memory of past events or inputs.",
+      "subsections": [
+        {
+          "id": "var-concept",
+          "title": "Concept: Allocated Storage",
+          "content": "Think of a variable as a labeled container in the computer's memory. You assign the container a recognizable name, and you can retrieve or overwrite its contents at any point during execution."
+        },
+        {
+          "id": "var-data-types",
+          "title": "Common Data Types",
+          "content": "A variable can hold different types of information. The blocks adapt to handle:",
+          "bullets": [
+            "**Numbers:** Used for mathematical operations and loop counting.",
+            "**Strings:** Used for text, words, and characters.",
+            "**Booleans:** Used for binary logic, holding strictly True or False states."
+          ]
+        },
+        {
+          "id": "var-operations",
+          "title": "Variable Operations",
+          "content": "In the Variables toolbox, you will perform three primary actions:",
+          "bullets": [
+            "**Create:** Defining a new variable and assigning it a descriptive identifier.",
+            "**Set (Initialization):** Assigning a variable its starting baseline value.",
+            "**Change (Update):** Modifying an existing variable based on its current value, such as incrementing a counter by 1."
+          ]
+        },
+        {
+          "id": "var-best-practices",
+          "title": "Best Practices",
+          "content": "Always initialize your variables at the top of your algorithm. Attempting to modify a variable before it has been set will cause a runtime error, as the system does not have a baseline value to manipulate."
+        }
+      ]
+    },
+    {
+      "id": "loops",
+      "type": "deep_dive",
+      "title": "Loops: The Engines of Repetition",
+      "content": "Loops allow algorithms to execute instructions repeatedly. Instead of manually stacking the same operation multiple times, a programmer uses a single loop. This keeps algorithms efficient and scalable.",
+      "subsections": [
+        {
+          "id": "loops-types",
+          "title": "Types of Loops",
+          "content": "There are three primary loop structures available in the toolbox:",
+          "bullets": [
+            "**The Repeat Loop (Counted):** Executes a specific number of times. Use this when the exact number of iterations is known in advance.",
+            "**The While Loop (Conditional):** Executes continuously as long as a specific condition evaluates to True. Use this when the required number of iterations is dynamic or unknown.",
+            "**The For-Each Loop (Iterative):** Automatically traverses every single item in an array sequentially."
+          ]
+        },
+        {
+          "id": "micro-transition-loops",
+          "title": "Micro-Transition: The Clock Analogy",
+          "content": "Before constructing nested loops, where one loop resides inside another, it helps to understand their behavior mechanically. Consider a clock where the minute hand must complete 60 full iterations before the hour hand increments once. Ensure you are comfortable executing and observing a single loop before attempting to nest them."
+        },
+        {
+          "id": "loops-pointer-paradigm",
+          "title": "The Pointer Paradigm",
+          "content": "As you advance, you must often transition from automatic For-Each loops to manual state manipulation. Using a While loop combined with custom variables allows you to traverse arrays from both ends simultaneously. This manual control is a fundamental technique for writing optimized algorithms."
+        },
+        {
+          "id": "loops-pitfalls",
+          "title": "Common Pitfalls to Avoid",
+          "content": "When working with loops, carefully monitor your termination conditions:",
+          "bullets": [
+            "**Infinite Loops:** Occurs in a 'While' loop if the condition never resolves to False. Ensure there is an operation inside the loop that updates the target variable.",
+            "**Off-By-One Errors:** Occurs when a loop executes one iteration too many or one iteration too few due to incorrect boundary conditions."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "conditions",
+      "type": "concept",
+      "title": "Conditional Logic: Making Decisions",
+      "content": "Conditional logic allows algorithms to branch into different execution paths. Using these blocks, your program can evaluate its current state and select the appropriate operation dynamically.",
+      "subsections": [
+        {
+          "id": "cond-toolbox",
+          "title": "The Logic Toolbox",
+          "content": "Decisions are driven by evaluating conditions that result in either True or False. There are two categories of logic blocks to build these evaluations:",
+          "bullets": [
+            "**Comparisons:** Blocks that assess the relationship between two values, such as equality or magnitude.",
+            "**Boolean Operators:** Blocks that combine multiple conditions, utilizing strict AND, OR, and NOT logic."
+          ]
+        },
+        {
+          "id": "cond-structures",
+          "title": "Structural Variants",
+          "content": "The execution path is shaped by specific conditional structures:",
+          "bullets": [
+            "**If Block:** A single path that executes exclusively when the condition is true.",
+            "**If / Else Block:** A standard bifurcation. It executes the first path if true, and defaults to the second path if false.",
+            "**If / Else-If / Else Block:** A multi-path decision. Evaluates conditions sequentially from top to bottom."
+          ]
+        },
+        {
+          "id": "cond-nested",
+          "title": "Nested Conditionals",
+          "content": "Placing an 'If' block inside another 'If' block allows the algorithm to evaluate secondary sub-conditions. For example, verifying a user's administrative status before checking their secondary permissions."
+        }
+      ]
+    },
+    {
+      "id": "arrays",
+      "type": "concept",
+      "title": "Arrays: Organizing Collections",
+      "content": "Arrays store multiple related values inside a single, ordered structure. Instead of creating numerous independent variables for a dataset, data is consolidated into a single array block.",
+      "subsections": [
+        {
+          "id": "arr-zero-index",
+          "title": "Zero-Based Indexing",
+          "content": "In computational systems, indexing begins at 0. The position of an item inside an array is its index.",
+          "bullets": [
+            "The initial item in the array is located at Index 0.",
+            "The second item is located at Index 1.",
+            "The final item is located at the total length of the array minus 1."
+          ]
+        },
+        {
+          "id": "micro-transition-arrays",
+          "title": "Micro-Transition: Safe Array Reading",
+          "content": "Modifying items in an array can introduce complex logical errors. A recommended method is to practice reading from a list using a standard loop first. Small, safe steps prevent your program from crashing."
+        },
+        {
+          "id": "arr-operations",
+          "title": "Array Operations",
+          "content": "The Arrays toolbox provides blocks to manipulate collections dynamically:",
+          "bullets": [
+            "**Get / Set at Index:** Retrieve the value at a specific position, or overwrite it.",
+            "**Append / Insert:** Insert a new item at the terminal end of the array or within a specific index.",
+            "**Length:** Calculate the total number of items currently housed within the array structure."
+          ]
+        },
+        {
+          "id": "arr-iteration",
+          "title": "Iterating Through Arrays",
+          "content": "Arrays and loops naturally complement one another. The most standard algorithmic pattern involves applying a 'For-Each' loop to an array, allowing the program to systematically evaluate or process every item contained within the collection."
+        }
+      ]
+    },
+    {
+      "id": "math-operations",
+      "type": "real_world_connection",
+      "title": "Math Operations: The Engine of Calculation",
+      "content": "Algorithms frequently rely on math operations to manipulate variables, score data, control loop increments, and process array boundaries.",
+      "subsections": [
+        {
+          "id": "math-available",
+          "title": "Available Math Blocks",
+          "content": "The Math toolbox provides comprehensive support for standard arithmetic, advanced operators such as Modulo and Exponents, utility functions for rounding, and random integer generation."
+        },
+        {
+          "id": "math-order",
+          "title": "Order of Operations",
+          "content": "Math blocks snap together horizontally, and their execution strictly follows standard mathematical order of operations. The innermost nested block is calculated first, resolving outward. This structural hierarchy is vital when chaining multiple blocks into complex formulas."
+        }
+      ]
+    },
+    {
+      "id": "beyond-the-core",
+      "type": "deep_dive",
+      "title": "Exploring Beyond the Core Components",
+      "content": "While variables, loops, conditionals, arrays, and math establish the foundation of algorithmic logic, the toolbox contains additional categories necessary for advanced applications.",
+      "subsections": [
+        {
+          "id": "other-categories",
+          "title": "Other Toolbox Categories",
+          "content": "Depending on the activity requirements, supplementary toolboxes are provided:",
+          "bullets": [
+            "**Input / Output (I/O):** Blocks utilized to print messages to the console or request user input during execution.",
+            "**Text / Strings:** Blocks configured to manipulate alphabetical data, concatenate sentences, evaluate string length, or adjust case formatting.",
+            "**Functions (Procedures):** Advanced components that bundle complex groups of instructions into a single, reusable custom block."
+          ]
+        },
+        {
+          "id": "power-of-experimentation",
+          "title": "The Power of Experimentation",
+          "content": "The most effective method for understanding a new component is structural experimentation.",
+          "bullets": [
+            "**Direct Manipulation:** Place an unfamiliar block onto the canvas, input test values, and execute the code to observe the console output.",
+            "**Python Observation:** Monitor the real-time Python panel. Deploying a new visual block and reviewing its instantaneous translation into Python syntax provides immediate insight into language operations."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "You have now mastered the theory behind the five core components and learned how to explore the remaining toolbox categories. Constructing robust algorithms requires evaluating how these individual components synthesize with one another.",
+      "subsections": [
+        {
+          "id": "sum-combining",
+          "title": "Combining Components",
+          "content": "A complete algorithm rarely uses just one component type. Consider an algorithm designed to find the highest score in a classroom:",
+          "bullets": [
+            "1. **(Arrays)** Create a list of all student scores.",
+            "2. **(Variables)** Create a variable representing the highest score and set it to 0.",
+            "3. **(Loops)** Use a For-Each loop to evaluate every score in the array.",
+            "4. **(Conditionals)** Inside the loop, use an IF block to check if the current score is greater than the recorded highest variable.",
+            "5. **(Variables)** If true, update the highest variable to equal the current score."
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "Blockly Official Documentation",
+      "url": "https://developers.google.com/blockly"
+    },
+    {
+      "title": "Programiz â€” Python Programming Basics",
+      "url": "https://www.programiz.com/python-programming"
+    }
+  ]
+}
+
+--- FILE: frontend/public/data/curriculum/module-0/lesson-0-3.json ---
+
+{
+  "lessonId": "lesson-0-3",
+  "moduleId": "module-0",
+  "title": "The Complexity Analyzer",
+  "description": "Learn how the Complexity Analyzer evaluates algorithm efficiency and performance scalability. This lesson introduces time complexity, space complexity, and Big-O notation. By the end, you will understand why certain algorithmic structures degrade processing speed, how block arrangements dictate memory consumption, and how to utilize the system's analytical readouts to engineer optimized solutions.",
+  "difficulty": "Beginner",
+  "estimatedTime": "25 min",
+  "prerequisites": "Core Blockly Components",
+  "tags": [
+    "complexity",
+    "performance",
+    "analysis"
+  ],
+  "activities": [
+    {
+      "id": "m0_l3_a1",
+      "title": "Checking How Fast Code Runs"
+    },
+    {
+      "id": "m0_l3_a2",
+      "title": "Loops Make Code Take Longer"
+    },
+    {
+      "id": "m0_l3_a3",
+      "title": "Loops Inside Loops"
+    },
+    {
+      "id": "m0_l3_a4",
+      "title": "Checking Both Paths"
+    },
+    {
+      "id": "m0_l3_a5",
+      "title": "Math is Faster than Loops"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction to Scalability",
+      "content": "Developing efficient algorithms is critical because modern software systems must process massive datasets seamlessly. An algorithm that functions adequately with 10 elements may cause a system timeout when subjected to 10,000 elements.\n\nSoftware engineering extends beyond merely achieving the correct output. It requires analyzing how the computational workload scales when the input size expands. This involves recognizing unnecessary iteration and identifying redundant memory allocations.",
+      "subsections": [
+        {
+          "id": "intro-analyzer",
+          "title": "The Complexity Tab",
+          "content": "The workspace features a dedicated Complexity tab designed to evaluate the structural efficiency of the visual blocks placed on the canvas. Activating this panel triggers an automated mathematical analysis of your algorithm.\n\nIt computes two primary metrics: Time Complexity, representing the scaling of operational steps, and Space Complexity, representing the scaling of supplementary memory usage. These metrics are expressed using standard Big-O notation."
+        },
+        {
+          "id": "intro-graph",
+          "title": "The Complexity Graph",
+          "content": "Beneath the metric scores, the interface renders a Complexity Graph. This chart is a theoretical visualization rather than a real-time execution monitor.\n\nIt provides a standardized representation of the Big-O mathematical curve associated with your logic. If an algorithm evaluates to O(nÂ²), the graph displays a steep quadratic trajectory. This visual aid is intended to clarify how aggressive performance degradation becomes within specific complexity classes as data volume increases."
+        }
+      ]
+    },
+    {
+      "id": "time-complexity",
+      "type": "concept",
+      "title": "Understanding Time Complexity",
+      "content": "Time complexity measures the theoretical escalation in computational operations relative to the input size, denoted as 'n'. It evaluates the worst-case scenario and omits constant multipliers, focusing entirely on the underlying growth trend.",
+      "subsections": [
+        {
+          "id": "tc-common",
+          "title": "Standard Time Complexities",
+          "content": "The analyzer categorizes algorithmic logic into several foundational growth patterns:",
+          "bullets": [
+            "**O(1) Constant Time:** The operation requires a fixed amount of work regardless of the input size. Example: Evaluating a mathematical formula or accessing a specific array index.",
+            "**O(n) Linear Time:** The required operations scale in direct, one-to-one proportion with the input size. Example: A single loop iterating sequentially through a dataset.",
+            "**O(nÂ²) Quadratic Time:** The operational workload scales with the square of the input size. Example: A nested loop structure, where the inner loop executes fully for every single iteration of the outer loop.",
+            "**O(log n) Logarithmic Time:** A highly efficient growth rate where the algorithm systematically fractions the dataset, discarding a portion of the workload during each step. Example: Binary Search."
+          ]
+        },
+        {
+          "id": "micro-transition-o-n-squared",
+          "title": "Visualizing Quadratic Growth",
+          "content": "To conceptualize O(nÂ²) scaling, consider a networking protocol where every node must communicate with every other node. If a network contains 5 nodes, the system must process 25 distinct interactions. When nested loops are constructed in the workspace, the Complexity Graph will immediately reflect this compounding operational cost."
+        }
+      ]
+    },
+    {
+      "id": "space-complexity",
+      "type": "concept",
+      "title": "Understanding Space Complexity",
+      "content": "Space Complexity evaluates the supplementary memory allocation required by an algorithm to complete its execution. Managing memory efficiently is a hallmark of optimized software design.",
+      "subsections": [
+        {
+          "id": "sc-memory-allocation",
+          "title": "Allocation versus Mutation",
+          "content": "When a program utilizes blocks that dynamically append elements to an array based on an input parameter, it requests new physical memory addresses. Because this memory requirement scales alongside the data, the analyzer assigns an O(n) Space metric.\n\nConversely, when an algorithm updates an existing variable or swaps data within an existing array structure, it modifies the data in-place. Because no new scalable memory is provisioned, the analyzer recognizes this efficiency with an O(1) Space metric."
+        }
+      ]
+    },
+    {
+      "id": "system-tools",
+      "type": "deep_dive",
+      "title": "System Tools for Optimization",
+      "content": "The learning environment is equipped with utilities to assist in resolving performance bottlenecks.",
+      "subsections": [
+        {
+          "id": "tool-bigo-modal",
+          "title": "The Big O Reference Modal",
+          "content": "Located in the workspace footer, the 'Big O Reference' button opens a comprehensive analytical table. This modal serves as a static academic resource detailing the definitions, examples, and graphical representations of distinct complexity classes."
+        },
+        {
+          "id": "tool-bottlenecks",
+          "title": "Resolving Algorithmic Bottlenecks",
+          "content": "A bottleneck is a localized segment of logic that severely degrades overall performance. For instance, calculating the sum of a sequence via iteration forces an O(n) linear operation. Recognizing that mathematical formulas can bypass this iteration allows the developer to substitute the loop with a static equation, successfully neutralizing the bottleneck and attaining O(1) execution."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "The Complexity Analyzer dictates how algorithm design impacts systemic scalability. Consistent optimization requires a balanced evaluation of both Time and Space metrics.",
+      "subsections": [
+        {
+          "id": "sum-workflow",
+          "title": "Analytical Workflow",
+          "content": "Apply the following process when refining algorithms:",
+          "bullets": [
+            "1. Construct the initial logic utilizing the workspace canvas.",
+            "2. Activate the Complexity tab to review the automated Big-O classifications.",
+            "3. Analyze the theoretical growth trajectory presented in the Complexity Graph.",
+            "4. If severe degradation such as O(nÂ²) is detected, isolate and refactor the nested logic structures.",
+            "5. Use the Big O Reference table in the footer to learn about efficient alternative approaches."
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "GeeksforGeeks â€” Analysis of Algorithms",
+      "url": "https://www.geeksforgeeks.org/analysis-algorithms-big-o-analysis/"
+    },
+    {
+      "title": "Programiz â€” Time Complexity",
+      "url": "https://www.programiz.com/dsa/time-complexity"
+    }
+  ]
+}
+
+--- FILE: frontend/public/data/curriculum/module-0/lesson-0-4.json ---
+
+{
+  "lessonId": "lesson-0-4",
+  "moduleId": "module-0",
+  "title": "Memory Visualizer",
+  "description": "Examine how variables, arrays, and execution stacks transition during algorithmic processing using the Memory Visualizer. This lesson details how to monitor the internal lifecycle of data, observing precise memory allocations, variable mutations, and recursive frame generation. By the end of this module, you will possess the analytical capability to debug state anomalies and verify array integrity.",
+  "difficulty": "Beginner",
+  "estimatedTime": "20 min",
+  "prerequisites": "The Complexity Analyzer",
+  "tags": [
+    "memory",
+    "variables",
+    "visualization"
+  ],
+  "activities": [
+    {
+      "id": "m0_l4_a1",
+      "title": "Memory Usage"
+    },
+    {
+      "id": "m0_l4_a2",
+      "title": "Fixed Memory Sizes"
+    },
+    {
+      "id": "m0_l4_a3",
+      "title": "Growing Lists Use More Memory"
+    },
+    {
+      "id": "m0_l4_a4",
+      "title": "Growing Text Uses Memory Too"
+    },
+    {
+      "id": "m0_l4_a5",
+      "title": "Swapping Variables Cleanly"
+    }
+  ],
+  "sections": [
+    {
+      "id": "introduction",
+      "type": "introduction",
+      "title": "Introduction",
+      "content": "Algorithms require active memory management to warehouse data dynamically. Every variable initialization, array expansion, and procedural function call consumes memory. Comprehending these internal state transitions is a requisite skill for engineering stable software.",
+      "subsections": [
+        {
+          "id": "intro-visualizer",
+          "title": "Real-Time State Inspection",
+          "content": "Standard debugging often obscures intermediate calculations, presenting only the final console output. The Memory Visualizer exposes the underlying data state, allowing developers to monitor:",
+          "bullets": [
+            "The precise moment a variable is allocated in memory.",
+            "The iterative process of value mutation and assignment.",
+            "The systematic deallocation of memory frames upon function resolution."
+          ]
+        },
+        {
+          "id": "intro-real-time",
+          "title": "Real-Time State Tracking",
+          "content": "This makes abstract programming concepts easier to understand by tracking state changes in real time. You can watch a counter variable increment step-by-step, see what happens when you swap two variables, and observe how an array grows as items are appended."
+        }
+      ]
+    },
+    {
+      "id": "variables-memory",
+      "type": "concept",
+      "title": "Variable State Changes",
+      "content": "Variables act as designated memory addresses. The visualizer tracks the identifier label, the active data type, and the continuous history of value modifications.",
+      "subsections": [
+        {
+          "id": "var-tracking",
+          "title": "Tracking the Boxes",
+          "content": "The Memory Visualizer shows you the variable name, its current value, its data type, and a history of how the value changed. You can step through each change to see the algorithm's logic unfold."
+        },
+        {
+          "id": "micro-transition-swapping",
+          "title": "Micro-Transition: Safe Data Swapping",
+          "content": "A fundamental exercise in memory management is exchanging the data between two distinct variables. Without an auxiliary holding location, data will be overwritten and permanently lost. The visualizer clearly demonstrates the necessity of a temporary variable to safeguard data integrity during a standard swap operation."
+        },
+        {
+          "id": "var-swapping",
+          "title": "The Auxiliary Variable Concept",
+          "content": "To execute a manual swap between variable 'a' and variable 'b', a temporary address must be provisioned. The visual sequence reflects:",
+          "bullets": [
+            "Baseline Initialization: 'a' equals 5, 'b' equals 10.",
+            "Auxiliary Storage: A temporary variable secures the value of 'a'.",
+            "Data Overwrite: The value of 'b' is transferred to 'a'.",
+            "Resolution: The secured temporary value is deposited into 'b'."
+          ]
+        },
+        {
+          "id": "var-mistakes",
+          "title": "Diagnosing Data Loss",
+          "content": "If the auxiliary variable step is omitted, the visualizer will immediately demonstrate both memory addresses mirroring the same value, highlighting the exact step where the initial data was destroyed. The visualizer makes this mistake obvious immediately."
+        }
+      ]
+    },
+    {
+      "id": "arrays-memory",
+      "type": "concept",
+      "title": "Tracking Arrays",
+      "content": "Arrays aggregate sequences of data within a structured format, managed via numeric indices.",
+      "subsections": [
+        {
+          "id": "arr-zero-index",
+          "title": "Index Verification",
+          "content": "As established in previous lessons, the visualizer reinforces zero-based indexing. Arrays will graphically register index 0 as the primary element location, automatically shifting subsequent indices when elements are appended or popped."
+        },
+        {
+          "id": "arr-visualizing",
+          "title": "Visualizing Array Operations",
+          "content": "The Memory Visualizer displays arrays as expandable lists. It highlights operations visually:",
+          "bullets": [
+            "When an element changes, that row flashes.",
+            "Newly added elements highlight clearly.",
+            "Removed elements fade out and remaining items shift their indices automatically."
+          ]
+        },
+        {
+          "id": "arr-off-by-one",
+          "title": "Identifying Boundary Violations",
+          "content": "Off-by-one errors manifest visually as attempts to read or mutate memory indices that have not been allocated. Utilizing the visualizer to step through a loop ensures the algorithm terminates precisely before an out-of-bounds violation occurs."
+        },
+        {
+          "id": "arr-defensive-programming",
+          "title": "Defensive Programming",
+          "content": "Use the memory visualizer to observe what happens when an algorithm is fed an empty array. If your code immediately tries to access the first item of an empty list, it will crash because that memory index does not exist. To prevent this, always practice Defensive Programming. Teach yourself to build an 'Edge Case Check' at the very top of your functions. This ensures your code safely halts before executing invalid memory operations."
+        }
+      ]
+    },
+    {
+      "id": "introduction-to-memory",
+      "type": "concept",
+      "title": "Introduction to Memory",
+      "content": "Understanding how memory allocation works is critical for writing efficient algorithms. When you create a brand new list or dynamically add items to an existing one, your program must request additional physical memory from the computer to store each new item. Because the memory required grows directly with the number of items you add, creating lists takes up O(n) space. Conversely, when you update an existing variable's value or use a swap block to exchange two variables, you are not creating new memory boxes; you are simply changing what is inside the existing boxes. This is called modifying 'in-place'. Because no new memory is allocated, updating and swapping variables takes a highly efficient O(1) space."
+    },
+    {
+      "id": "call-stack",
+      "type": "deep_dive",
+      "title": "Understanding the Call Stack",
+      "content": "Function executions are structurally managed by the computer using a Last-In-First-Out model known as the Call Stack.",
+      "subsections": [
+        {
+          "id": "cs-frames",
+          "title": "Stack Frames",
+          "content": "When a function is invoked, the system allocates a stack frame to warehouse its specific local parameters. When the function returns a value, that specific frame is dismantled, and execution resumes at the previous tier."
+        },
+        {
+          "id": "cs-recursion",
+          "title": "Visualizing Recursive Depth",
+          "content": "Recursion occurs when a function invokes itself. The visualizer models this by stacking localized frames sequentially. For a procedural countdown originating at 3, the stack will visually compile three independent frames before executing the base case and resolving downward."
+        },
+        {
+          "id": "cs-overflow",
+          "title": "Stack Overflow Diagnosis",
+          "content": "Each recursive frame has its own independent parameter value. When the base case is reached, frames pop off in reverse order. If your recursion logic is broken and never reaches the base case, you will see frames piling up endlessly in the visualizer, and this is what causes a Stack Overflow bug."
+        },
+        {
+          "id": "cs-variable-scoping",
+          "title": "Variable Scoping: Local vs. Global",
+          "content": "When writing recursive algorithms, variable scoping is critical. Variables created generically in the workspace might act as global variables, meaning deeper recursive calls will overwrite the data of higher calls. To prevent stack frames from corrupting each other, it is vital to use local function parameters to safely isolate your data within each specific level of recursion."
+        }
+      ]
+    },
+    {
+      "id": "state-tracking",
+      "type": "concept",
+      "title": "State Tracking & Rollback",
+      "content": "Advanced algorithms, such as Backtracking, heavily rely on a pattern known as choose, explore, and unchoose. Because memory persists, if you append an item to a list to test a potential path, you must remember to undo that action when exploring alternative routes.",
+      "subsections": [
+        {
+          "id": "st-rollback",
+          "title": "The Importance of Popping",
+          "content": "If you add an element to an array before making a recursive call, you must explicitly pop it off the list immediately after the recursive call finishes. The Memory Visualizer is the perfect tool to verify that your arrays are correctly rolling back to their previous states rather than accumulating incorrect guesses."
+        }
+      ]
+    },
+    {
+      "id": "real-world",
+      "type": "real_world_connection",
+      "title": "Why Memory Visualization Matters",
+      "content": "Many programming bugs happen because developers misunderstand how memory changes during execution. The Memory Visualizer helps you catch these bugs instantly.",
+      "subsections": [
+        {
+          "id": "rw-debugging",
+          "title": "Faster Debugging",
+          "content": "For example, if you are calculating an average but accidentally reset the total variable inside the loop instead of before it, the visualizer will show the total dropping back to zero on every iteration. You will spot the bug in seconds rather than hours."
+        },
+        {
+          "id": "rw-professional-tools",
+          "title": "Professional Tools",
+          "content": "Professional developers use similar memory visualization tools every day:",
+          "bullets": [
+            "Browser DevTools show JavaScript variables in real time.",
+            "IDE debuggers like VS Code and PyCharm have watch panels that track variable changes.",
+            "Memory profilers help find leaks and inefficiencies in large servers."
+          ]
+        },
+        {
+          "id": "rw-conclusion",
+          "title": "Building Engineering Skills",
+          "content": "By learning the Memory Visualizer in AlgoBlocks, you are building the exact same core debugging skills used by software engineers at major tech companies."
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "title": "Lesson Summary",
+      "content": "The Memory Visualizer makes invisible memory operations visible and concrete. Memory is not magic; you can observe and understand it.",
+      "subsections": [
+        {
+          "id": "sum-workflow",
+          "title": "The Visualizer Workflow",
+          "content": "To effectively use the Memory Visualizer while building your algorithms:",
+          "bullets": [
+            "1. Open the visualizer panel.",
+            "2. Run your code step-by-step.",
+            "3. Watch variables change to ensure your logic is mathematically correct.",
+            "4. Inspect arrays after each operation to catch off-by-one errors.",
+            "5. Observe the Call Stack when using functions to ensure you do not cause a Stack Overflow."
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "title": "MDN Web Docs â€” Memory Management",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Memory_Management"
+    },
+    {
+      "title": "Visualgo",
+      "url": "https://visualgo.net/en"
     }
   ]
 }

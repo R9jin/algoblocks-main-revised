@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 10) ---
 
---- TIMESTAMP: 2026-07-03 06:16:28 ---
+--- TIMESTAMP: 2026-07-04 05:59:25 ---
 
 
 --- FILE: README.md ---
@@ -164,6 +164,11 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'pow': {'time': 'O(log n)', 'space': 'O(1)', 'desc': 'Calculates exponentiation efficiently.'},
             'join': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Concatenates an iterable of strings into a single string.'},
             'split': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Scans a string to divide it into substrings.'},
+            'find': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Linearly scans a string to find a substring.'},
+            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Scans a collection to count appearances.'},
+            'replace': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates string replacing occurrences.'},
+            'startswith': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Checks substring prefix.'},
+            'endswith': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Checks substring suffix.'},
             'list': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Populates a new list containing all iterable elements.'},
             'set': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Populates a new set containing only unique elements.'},
             'dict': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates a new dictionary.'},
@@ -186,8 +191,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'str': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Converts object to string.'},
             'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Searches and removes occurrence shifting elements.'},
             'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Searches to find target index.'},
-            'count': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Scans collection to count appearances.'},
-            'replace': {'time': 'O(n * m)', 'space': 'O(n)', 'desc': 'Creates string replacing occurrences.'},
             'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates a shallow copy.'},
             'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Reverses order of items.'},
             'extend': {'time': 'O(m)', 'space': 'O(m)', 'desc': 'Appends iterable items.'},
@@ -401,6 +404,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if isinstance(expr_node, ast.Name):
                 name_u = expr_node.id.upper()
                 if name_u in ['N', 'M', 'V', 'E', 'K', 'T', 'L', 'R', 'C', 'W', 'H', 'ROW', 'COL', 'SIZE', 'LEN']: return False
+                if any(k in name_u for k in ['MAX', 'CHARS', 'NO_OF_CHARS', 'ALPHABET']): return True
                 if expr_node.id.isupper(): return True
                 if any(k in expr_node.id.lower() for k in ['max', 'min', 'mod', 'inf', 'limit', 'cap']): return True
                 return False
@@ -576,6 +580,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     for sub in safe_walk(child):
                         if isinstance(sub, ast.Call) and isinstance(getattr(sub, 'func', None), ast.Attribute):
                             if sub.func.attr in ['pop', 'popleft']: has_queue_while = True
+                        if isinstance(sub, ast.Call) and getattr(getattr(sub, 'func', None), 'attr', '') == 'pop' and getattr(sub, 'args', []):
+                            if extract_constant(sub.args[0]) == 0: has_queue_while = True
                 if isinstance(child, ast.For):
                     if isinstance(child.iter, ast.Subscript): has_neighbor_for = True
                     if isinstance(child.iter, ast.Name) and any(kw in child.iter.id.lower() for kw in ['neighbor', 'adj', 'graph', 'child']): has_neighbor_for = True
@@ -684,9 +690,12 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 for child in safe_walk(node.test):
                     if isinstance(child, ast.Subscript) and isinstance(getattr(child.value, 'value', None), ast.Name):
                         if child.value.value.id.lower() in ['v', 'freq', 'count', 'map', 'visited', 'vis']:
-                            pops_container = True
+                            return True
+                    if isinstance(child, ast.Name):
+                        if child.id.lower() in ['start', 'left', 'l', 'j']:
+                            return True
                                     
-            return pops_container
+            return False
         except Exception:
             return False
 
@@ -2098,7 +2107,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 mult_node = node.value.right if isinstance(node.value.left, (ast.List, ast.Tuple)) else node.value.left
                 is_fixed_const = self._is_constant_expr(mult_node)
                 val = extract_constant(mult_node)
-                if val is not None and isinstance(val, (int, float)) and val > 100:
+                if val is not None and isinstance(val, (int, float)) and val > 1500:
                     is_fixed_const = False
                         
                 if is_fixed_const:
@@ -5595,3 +5604,127 @@ class AuthService:
                 synced_count += 1
                 
         return {"status": "success", "message": "Batch sync completed", "synced_items": synced_count}
+
+--- FILE: api/services/project_service.py ---
+
+# api/services/project_service.py
+from repositories.project_repo import ProjectRepository
+from models import ProjectSyncRequest
+from fastapi import HTTPException
+from datetime import datetime
+
+class ProjectService:
+    @staticmethod
+    def get_user_projects(user_id: str):
+        if not user_id:
+            raise HTTPException(status_code=400, detail="Missing userId")
+        projects = ProjectRepository.find_by_user(user_id)
+        return {"status": "success", "projects": projects}
+
+    @staticmethod
+    def save_project(req: ProjectSyncRequest):
+        proj_name = req.name or req.title or "Untitled Project"
+        update_data = {
+            "name": proj_name,
+            "title": proj_name,
+            "description": req.description or "",
+            "workspace": req.workspace or {},
+            "pythonCode": req.pythonCode or "",
+            "updatedAt": datetime.utcnow().isoformat(),
+            "userId": req.userId,
+            "owner_id": req.userId
+        }
+
+        if req.projectId and not str(req.projectId).startswith("local_"):
+            result = ProjectRepository.update(req.projectId, req.userId, update_data)
+            if result.matched_count == 0:
+                raise HTTPException(status_code=404, detail="Project not found or unauthorized")
+            return {"status": "success", "projectId": req.projectId, "synced": True}
+        else:
+            update_data["createdAt"] = update_data["updatedAt"]
+            project_id = ProjectRepository.insert(update_data)
+            return {"status": "success", "projectId": project_id, "synced": True}
+
+    @staticmethod
+    def delete_project(payload: dict):
+        project_id = payload.get("projectId")
+        user_id = payload.get("userId") or payload.get("owner_id")
+
+        if not project_id or not user_id:
+            raise HTTPException(status_code=400, detail="Missing projectId or userId")
+
+        result = ProjectRepository.delete(project_id, user_id)
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Project not found or unauthorized")
+
+        return {"status": "success"}
+
+--- FILE: api/services/template_service.py ---
+
+# api/services/template_service.py
+from repositories.template_repo import TemplateRepository
+
+class TemplateService:
+    @staticmethod
+    def get_templates_by_category(category: str):
+        templates = TemplateRepository.find_by_category(category)
+        return {"status": "success", "templates": templates}
+
+    @staticmethod
+    def get_all_templates():
+        templates = TemplateRepository.find_all()
+        return {"status": "success", "templates": templates}
+
+    # ADDED/UPDATED: Method to handle saving/updating a template
+    @staticmethod
+    def save_template(req):
+        # Convert pydantic model to dict, exclude unset so we don't push nulls unnecessarily
+        # Support both Pydantic V1 (.dict()) and Pydantic V2 (.model_dump()) depending on FastAPI version
+        if hasattr(req, "model_dump"):
+            template_data = req.model_dump(exclude_unset=True)
+        elif hasattr(req, "dict"):
+            template_data = req.dict(exclude_unset=True)
+        else:
+            template_data = dict(req)
+        
+        # Ensure owner_id is set so frontend sync catches it
+        if template_data.get("userId") and not template_data.get("owner_id"):
+            template_data["owner_id"] = template_data["userId"]
+            
+        template_id = template_data.pop("templateId", None)
+        
+        if template_id:
+            # Update existing
+            updated_id = TemplateRepository.update(template_id, template_data)
+            return {
+                "status": "success", 
+                "message": "Template updated successfully", 
+                "templateId": updated_id
+            }
+        else:
+            # Insert new
+            inserted_id = TemplateRepository.save(template_data)
+            return {
+                "status": "success", 
+                "message": "Template saved successfully", 
+                "templateId": inserted_id
+            }
+
+--- FILE: frontend/README.md ---
+
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
