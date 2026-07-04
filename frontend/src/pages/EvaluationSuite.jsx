@@ -169,6 +169,19 @@ export default function EvaluationSuite() {
       return stitchedArray;
     }
 
+    if (mode === "chunks") {
+      setStatusText("Fetching Ground Truth Chunks (01 to 29)...");
+      let stitchedArray = [];
+      for (let i = 1; i <= 29; i++) {
+        const paddedNum = i.toString().padStart(2, '0');
+        const partJson = await safeFetchJson(`/data/evaluation/processed/ground_truth_chunk_${paddedNum}.json`);
+        if (partJson) {
+          stitchedArray = stitchedArray.concat(partJson);
+        }
+      }
+      return stitchedArray;
+    }
+
     if (mode === "tasty") {
       setStatusText("Fetching Tasty Processed Dataset (CSV)...");
       const csvText = await safeFetchText("/data/evaluation/processed/algo_blocks_dataset.csv");
@@ -188,7 +201,6 @@ export default function EvaluationSuite() {
       const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n', 'n*n!', 'factorial'];
 
       for (let i = 1; i < rows.length; i++) {
-        // Robust malformed CSV check (Allows row length 1 to trigger fallback split)
         if (!rows[i] || rows[i].length === 0 || (rows[i].length === 1 && !rows[i][0].trim())) continue; 
         
         let codeText = rows[i][codeIdx] !== undefined ? rows[i][codeIdx] : (rows[i][0] || '');
@@ -198,7 +210,6 @@ export default function EvaluationSuite() {
         if (!spaceComp && !timeComp && codeText.includes(',')) {
            const parts = codeText.split(',');
            
-           // Clean up trailing empty columns from excel save bloat
            while (parts.length > 0 && !parts[parts.length - 1].replace(/"/g, '').trim()) {
                parts.pop();
            }
@@ -243,7 +254,8 @@ export default function EvaluationSuite() {
       const textbookData = await fetchActiveGauntletData("textbook");
       const codeforcesData = await fetchActiveGauntletData("codeforces");
       const tastyData = await fetchActiveGauntletData("tasty");
-      return [...textbookData, ...codeforcesData, ...tastyData];
+      const chunksData = await fetchActiveGauntletData("chunks");
+      return [...textbookData, ...codeforcesData, ...tastyData, ...chunksData];
     }
 
     return [];
@@ -304,7 +316,11 @@ export default function EvaluationSuite() {
             if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
               logText += `\nLine Level Mismatches:\n`;
               m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
-                logText += `  -> Line ${l.lineno}: Time Exp [${l.expTime}] Act [${l.predTime}] | Space Exp [${l.expSpace}] Act [${l.predSpace}]\n`;
+                logText += `  -> Line ${l.lineno}:\n`;
+                logText += `     LT Exp [${l.expLocalTime || '-'}] Act [${l.predLocalTime || '-'}]\n`;
+                logText += `     GT Exp [${l.expGlobalTime || '-'}] Act [${l.predGlobalTime || '-'}]\n`;
+                logText += `     LS Exp [${l.expLocalSpace || '-'}] Act [${l.predLocalSpace || '-'}]\n`;
+                logText += `     GS Exp [${l.expGlobalSpace || '-'}] Act [${l.predGlobalSpace || '-'}]\n`;
               });
             }
             logText += `${'-'.repeat(60)}\n\n`;
@@ -360,6 +376,23 @@ export default function EvaluationSuite() {
     return <span className="f1-poor">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
   };
 
+  // Safe renderer for the dropdown metrics to completely prevent "Ghost text"
+  const renderDualBadge = (expVal, predVal, isMatch) => {
+    const safeExp = (expVal && expVal !== 'undefined' && expVal !== '-') ? expVal : null;
+    const safePred = (predVal && predVal !== 'undefined') ? predVal : '-';
+
+    if (safeExp) {
+      return (
+        <div className="dual-comp-badge">
+          <span className="comp-exp">Exp: <strong>{safeExp}</strong></span>
+          <span className="comp-arrow">&rarr;</span>
+          <span className={`comp-act ${isMatch ? "comp-pass" : "comp-fail"}`}>{safePred}</span>
+        </div>
+      );
+    }
+    return <span className="comp-act comp-neutral">{safePred}</span>;
+  };
+
   const processReport = (report) => {
     if (!report || !report.perClass) return report;
     const newPerClass = { ...report.perClass };
@@ -382,7 +415,6 @@ export default function EvaluationSuite() {
       }
     };
 
-    // Fulfill frontend merging and renaming requirements
     mergeKeys("O(exponential)", "O(2^n)");
     mergeKeys("O(v)", "O(V)");
 
@@ -701,6 +733,13 @@ export default function EvaluationSuite() {
               disabled={isRunning}
             >
               CodeComplex Curated (104)
+            </button>
+            <button 
+              onClick={() => !isRunning && setDatasetOption("chunks")}
+              className={`dataset-btn ${datasetOption === "chunks" ? "active-ds" : ""}`}
+              disabled={isRunning}
+            >
+              Ground Truth Chunks (01-29)
             </button>
             <button 
               onClick={() => !isRunning && setDatasetOption("tasty")}
@@ -1102,7 +1141,6 @@ export default function EvaluationSuite() {
                         </td>
                       </tr>
 
-                      {/* --- REVEALING LINE BY LINE CHECKING DROPDOWN WITH FOOTER SUMMARY --- */}
                       {isExpanded && (
                         <tr className="tr-dropdown-content">
                           <td colSpan="7" className="td-dropdown-cell">
@@ -1127,9 +1165,10 @@ export default function EvaluationSuite() {
                                     <tr>
                                       <th>Line #</th>
                                       <th>Source Statement</th>
-                                      <th>AST Operation</th>
-                                      <th>Time Complexity (Expected vs Actual)</th>
-                                      <th>Space Complexity (Expected vs Actual)</th>
+                                      <th>Local Time</th>
+                                      <th>Global Time</th>
+                                      <th>Local Space</th>
+                                      <th>Global Space</th>
                                       <th>Line Status</th>
                                     </tr>
                                   </thead>
@@ -1138,30 +1177,29 @@ export default function EvaluationSuite() {
                                       <tr key={`line_${row.id}_${lineItem.lineno}_${lIdx}`} className={!lineItem.isPassed && lineItem.hasGroundTruth ? "line-tr-fail" : ""}>
                                         <td className="line-td-num">{lineItem.lineno}</td>
                                         <td className="line-td-code"><code>{lineItem.lineOfCode || "-"}</code></td>
-                                        <td className="line-td-op"><span className="op-pill">{lineItem.operation}</span></td>
                                         
                                         <td className="line-td-comp">
-                                          {lineItem.hasGroundTruth && lineItem.expTime ? (
-                                            <div className="dual-comp-badge">
-                                              <span className="comp-exp">Exp: <strong>{lineItem.expTime}</strong></span>
-                                              <span className="comp-arrow">&rarr;</span>
-                                              <span className={`comp-act ${lineItem.isTimeMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predTime}</span>
-                                            </div>
-                                          ) : (
-                                            <span className="comp-act comp-neutral">{lineItem.predTime}</span>
-                                          )}
+                                          {lineItem.hasGroundTruth 
+                                            ? renderDualBadge(lineItem.expLocalTime, lineItem.predLocalTime, lineItem.ltMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predLocalTime || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-comp">
-                                          {lineItem.hasGroundTruth && lineItem.expSpace ? (
-                                            <div className="dual-comp-badge">
-                                              <span className="comp-exp">Exp: <strong>{lineItem.expSpace}</strong></span>
-                                              <span className="comp-arrow">&rarr;</span>
-                                              <span className={`comp-act ${lineItem.isSpaceMatch ? "comp-pass" : "comp-fail"}`}>{lineItem.predSpace}</span>
-                                            </div>
-                                          ) : (
-                                            <span className="comp-act comp-neutral">{lineItem.predSpace}</span>
-                                          )}
+                                          {lineItem.hasGroundTruth 
+                                            ? renderDualBadge(lineItem.expGlobalTime, lineItem.predGlobalTime, lineItem.gtMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predGlobalTime || "-"}</span>}
+                                        </td>
+
+                                        <td className="line-td-comp">
+                                          {lineItem.hasGroundTruth 
+                                            ? renderDualBadge(lineItem.expLocalSpace, lineItem.predLocalSpace, lineItem.lsMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predLocalSpace || "-"}</span>}
+                                        </td>
+
+                                        <td className="line-td-comp">
+                                          {lineItem.hasGroundTruth 
+                                            ? renderDualBadge(lineItem.expGlobalSpace, lineItem.predGlobalSpace, lineItem.gsMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predGlobalSpace || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-status">
@@ -1179,7 +1217,7 @@ export default function EvaluationSuite() {
                                     ))}
                                     {(!row.lineValidationResults || row.lineValidationResults.length === 0) && (
                                       <tr>
-                                        <td colSpan="6" style={{ padding: "28px", textAlign: "center", color: "#64748B" }}>
+                                        <td colSpan="7" style={{ padding: "28px", textAlign: "center", color: "#64748B" }}>
                                           No statement-level AST trace recorded for this dataset snippet.
                                         </td>
                                       </tr>
@@ -1188,7 +1226,6 @@ export default function EvaluationSuite() {
                                 </table>
                               </div>
 
-                              {/* OVERALL RESULTS AT THE BOTTOM RIGHT OR WRONG */}
                               <div className="dropdown-box-footer">
                                 <div className="dbf-verdict">
                                   <span>Overall Algorithm Verdict:</span>
