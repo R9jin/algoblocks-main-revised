@@ -71,6 +71,9 @@ export default function DashboardHeader({
     window.location.replace("/");
   };
 
+  // Check multiple admin identifier formats to ensure compatibility with the backend payload
+  const isUserAdmin = user?.role === "admin" || user?.role === "Admin" || user?.isAdmin === true || user?.is_admin === true;
+
   return (
     <>
       <style>{`
@@ -131,8 +134,8 @@ export default function DashboardHeader({
                   <LuFolder size={18} /> Projects
                 </button>
 
-                {/* RESTRICTED: Only revealed if account holds admin privileges */}
-                {user?.isAdmin && (
+                {/* RESTRICTED: Admin-only features */}
+                {isUserAdmin && (
                   <>
                     <div className="user-dd-divider" />
                     <button 
