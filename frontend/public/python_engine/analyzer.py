@@ -2224,11 +2224,72 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Expr(self, node): 
+        # IGNORE COMMENTS/DOCSTRINGS: If it's just a loose string, skip recording it entirely
         if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Comment / Docstring")
-        elif not isinstance(node.value, (ast.Call, ast.ListComp, ast.SetComp, ast.DictComp, ast.Yield, ast.YieldFrom)):
+            self.generic_visit(node)
+            return
+            
+        if not isinstance(node.value, (ast.Call, ast.ListComp, ast.SetComp, ast.DictComp, ast.Yield, ast.YieldFrom)):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Expression")
+            
         self.generic_visit(node)      
+
+    def visit_Pass(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pass")
+        self.generic_visit(node)
+
+    def visit_Break(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Break")
+        self.generic_visit(node)
+
+    def visit_Continue(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Continue")
+        self.generic_visit(node)
+
+    def visit_Assert(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Assertion")
+        self.generic_visit(node)
+
+    def visit_Delete(self, node):
+        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Delete")
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import")
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import From")
+        self.generic_visit(node)
+
+    def visit_Global(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Global Declaration")
+        self.generic_visit(node)
+
+    def visit_Nonlocal(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Nonlocal Declaration")
+        self.generic_visit(node)
+
+    def visit_Raise(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Raise Exception")
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node):
+        self.record_line(node, time_override="Definition", space_override="O(1)", custom_op="Class Definition")
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
+
+    def visit_AsyncFunctionDef(self, node):
+        self.visit_FunctionDef(node)
+
+    def visit_AsyncFor(self, node):
+        self.visit_For(node)
+
+    def visit_AsyncWith(self, node):
+        self.visit_With(node)
+
+    def visit_Match(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pattern Matching")
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
 
     def get_final_asymptotic_badge(self):
         all_comps = " ".join([str(d.get('global_time', '')) for d in self._details] + [str(d.get('local_time', '')) for d in self._details])
@@ -2417,6 +2478,7 @@ def analyze_source_code(source_code):
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
         results = fallback_analyzer(source_code)
+        results["error"] = str(e) # Expose the error so it doesn't fail silently
         
     end_time = time.perf_counter()
     results["analysis_time_ms"] = (end_time - start_time) * 1000

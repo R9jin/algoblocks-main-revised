@@ -1245,3 +1245,14 @@
   background-color: #7928CA;
   box-shadow: 0 4px 12px rgba(121, 40, 202, 0.25);
 }
+
+.btn-dropdown-error {
+  background-color: #FEF2F2 !important;
+  color: #991B1B !important;
+  border-color: #FECACA !important;
+}
+
+.btn-dropdown-error:hover {
+  background-color: #FEE2E2 !important;
+  color: #7F1D1D !important;
+}

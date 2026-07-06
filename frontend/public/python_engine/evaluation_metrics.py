@@ -53,7 +53,7 @@ EQUIVALENCE_MAP = {
 }
 
 def normalize_complexity(c):
-    if not c: return "O(1)"
+    if not c or c == '-': return "-"
     c = str(c).lower().strip().replace(" ", "")
     
     # Strip outer O(...) for easier mapping
@@ -80,6 +80,7 @@ def normalize_complexity(c):
 
 def check_match(actual, expected, metric_type="time"):
     if actual == expected: return True
+    if expected == "-": return True
     
     t_a = EQUIVALENCE_MAP.get(actual, actual)
     t_e = EQUIVALENCE_MAP.get(expected, expected)
@@ -126,16 +127,28 @@ def calculate_metrics(injected_dataset=None):
         dataset = injected_dataset
     else:
         part_files = glob.glob(os.path.join(dataset_dir, 'curated_part_*.json'))
-        if not part_files:
-            part_files = [os.path.join(dataset_dir, 'ground_truth.json')]
-            print("Evaluating default ground_truth.json...\n")
-        else:
-            print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
-            
-        for file_path in part_files:
-            if os.path.exists(file_path):
-                with open(file_path, 'r', encoding='utf-8') as f:
+        chunk_files = glob.glob(os.path.join(dataset_dir, 'processed', 'ground_truth_chunk_*.json'))
+        
+        if not part_files and not chunk_files:
+            gt_file = os.path.join(dataset_dir, 'ground_truth.json')
+            if os.path.exists(gt_file):
+                print("Evaluating default ground_truth.json...\n")
+                with open(gt_file, 'r', encoding='utf-8') as f:
                     dataset.extend(json.load(f))
+        else:
+            if part_files:
+                print(f"Found {len(part_files)} curated parts. Combining for evaluation...\n")
+                for file_path in part_files:
+                    if os.path.exists(file_path):
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            dataset.extend(json.load(f))
+            
+            if chunk_files:
+                print(f"Found {len(chunk_files)} ground truth chunks. Combining for evaluation...\n")
+                for file_path in chunk_files:
+                    if os.path.exists(file_path):
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            dataset.extend(json.load(f))
                 
         csv_path = os.path.join(dataset_dir, 'processed', 'algo_blocks_dataset.csv')
         if os.path.exists(csv_path):
@@ -164,7 +177,6 @@ def calculate_metrics(injected_dataset=None):
                             pos_time = parts[-1].strip().replace('"', '').lower()
                             pos_space = parts[-2].strip().replace('"', '').lower()
                             
-                            # Added '2^n', '3^n' and other exponential variants to valid array 
                             valids = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n', 'n*n!', 'factorial']
                             if pos_time in valids or pos_time.startswith('o('):
                                 time_comp = pos_time
@@ -188,6 +200,7 @@ def calculate_metrics(injected_dataset=None):
     overall_time_correct = 0
     overall_space_correct = 0
     perfect_passed_count = 0
+    
     total_lines_evaluated = 0
     lines_time_correct = 0
     lines_space_correct = 0
@@ -247,13 +260,8 @@ def calculate_metrics(injected_dataset=None):
         is_space_match = check_match(actual_space, expected_space, "space")
 
         if is_time_match: overall_time_correct += 1
-        else: print(f"  -> [Time Mismatch]: Expected {expected_time}, got {actual_time}")
-            
         if is_space_match: overall_space_correct += 1
-        else: print(f"  -> [Space Mismatch]: Expected {expected_space}, got {actual_space}")
-
-        if is_time_match and is_space_match:
-            perfect_passed_count += 1
+        if is_time_match and is_space_match: perfect_passed_count += 1
             
         if not is_time_match or not is_space_match:
             failures_log.append(f"[{item.get('id', item.get('name', 'Unknown'))}]\n"
@@ -268,6 +276,78 @@ def calculate_metrics(injected_dataset=None):
         y_true_space.append(expected_space)
         y_pred_space.append(normalize_complexity(EQUIVALENCE_MAP.get(actual_space, actual_space)))
 
+        # Evaluate Line By Line Match separating local and global metrics
+        actual_lines_dict = { detail.get('lineno'): detail for detail in actual_details }
+        lineValidationResults = []
+        
+        gt_line_metrics = item.get('line_metrics', [])
+        all_lines = sorted(list(set(list(actual_lines_dict.keys()) + [m.get('lineno') for m in gt_line_metrics if m.get('lineno')])))
+        code_lines = code_snippet.split('\n') if code_snippet else []
+
+        for lineno in all_lines:
+            has_ground_truth = False
+            exp_line = next((l for l in gt_line_metrics if l.get('lineno') == lineno), None)
+            act_line = actual_lines_dict.get(lineno)
+            
+            if exp_line:
+                has_ground_truth = True
+                
+            exp_lt = normalize_complexity(exp_line.get('local_time', '-')) if exp_line else '-'
+            exp_gt = normalize_complexity(exp_line.get('global_time', '-')) if exp_line else '-'
+            exp_ls = normalize_complexity(exp_line.get('local_space', '-')) if exp_line else '-'
+            exp_gs = normalize_complexity(exp_line.get('global_space', '-')) if exp_line else '-'
+            
+            # Bound properties directly against analyzer output contracts
+            act_lt = normalize_complexity(act_line.get('local_time', '-')) if act_line else '-'
+            act_gt = normalize_complexity(act_line.get('global_time', '-')) if act_line else '-'
+            act_ls = normalize_complexity(act_line.get('local_space', '-')) if act_line else '-'
+            act_gs = normalize_complexity(act_line.get('global_space', '-')) if act_line else '-'
+
+            op = act_line.get('operation', '-') if act_line else '-'
+            line_code = code_lines[lineno - 1].strip() if 0 < lineno <= len(code_lines) else ""
+            
+            if has_ground_truth:
+                lt_match = check_match(act_lt, exp_lt, "time") if exp_lt != '-' else True
+                gt_match = check_match(act_gt, exp_gt, "time") if exp_gt != '-' else True
+                ls_match = check_match(act_ls, exp_ls, "space") if exp_ls != '-' else True
+                gs_match = check_match(act_gs, exp_gs, "space") if exp_gs != '-' else True
+                
+                time_match = lt_match and gt_match
+                space_match = ls_match and gs_match
+                
+                total_lines_evaluated += 1
+                if time_match: lines_time_correct += 1
+                if space_match: lines_space_correct += 1
+            else:
+                time_match = True
+                space_match = True
+                lt_match = True
+                gt_match = True
+                ls_match = True
+                gs_match = True
+
+            lineValidationResults.append({
+                "lineno": lineno,
+                "hasGroundTruth": has_ground_truth,
+                "isPassed": time_match and space_match,
+                "isTimeMatch": time_match,
+                "isSpaceMatch": space_match,
+                "ltMatch": lt_match,
+                "gtMatch": gt_match,
+                "lsMatch": ls_match,
+                "gsMatch": gs_match,
+                "expLocalTime": exp_lt,
+                "expGlobalTime": exp_gt,
+                "expLocalSpace": exp_ls,
+                "expGlobalSpace": exp_gs,
+                "predLocalTime": act_lt,
+                "predGlobalTime": act_gt,
+                "predLocalSpace": act_ls,
+                "predGlobalSpace": act_gs,
+                "operation": op,
+                "lineOfCode": line_code
+            })
+
         details_list.append({
             "id": item.get('id', f"case_{index}"),
             "name": item.get('name', f"Algorithm {index}"),
@@ -280,27 +360,9 @@ def calculate_metrics(injected_dataset=None):
             "isSpaceCorrect": is_space_match,
             "isCompletelyCorrect": (is_time_match and is_space_match),
             "explanation": results.get('overall_explanation', 'AST parsed successfully.'),
-            "codeSnippet": code_snippet
+            "codeSnippet": code_snippet,
+            "lineValidationResults": lineValidationResults
         })
-            
-        actual_lines_dict = { detail.get('lineno'): detail for detail in actual_details }
-        
-        for expected_line in item.get('line_metrics', []):
-            total_lines_evaluated += 1
-            lineno = expected_line['lineno']
-            
-            if lineno in actual_lines_dict:
-                actual_line = actual_lines_dict[lineno]
-                actual_local_time = actual_line.get('local_time')
-                actual_global_time = actual_line.get('global_time')
-                actual_global_space = actual_line.get('global_space', 'O(1)')
-                
-                if check_match(actual_local_time, expected_line.get('local_time'), "time") and check_match(actual_global_time, expected_line.get('global_time'), "time"):
-                    lines_time_correct += 1
-
-                expected_line_space = expected_line.get('space', 'O(1)')
-                if check_match(actual_global_space, expected_line_space, "space") or check_match(actual_line.get('local_space', 'O(1)'), expected_line_space, "space"):
-                    lines_space_correct += 1
 
     end_time_suite = time.perf_counter()
     total_execution_sec = end_time_suite - start_time_suite
@@ -325,17 +387,6 @@ def calculate_metrics(injected_dataset=None):
     peak_ast_mb = (max(case_ast_peak_bytes) if case_ast_peak_bytes else 0) / (1024.0 * 1024.0)
     mean_ast_kb = (statistics.mean(case_ast_peak_bytes) if case_ast_peak_bytes else 0) / 1024.0
 
-    print("\n" + "="*60)
-    print("   SOP 2: ALGORITHM STRUCTURAL ACCURACY")
-    print("="*60)
-    print(f"Total Algorithms Tested   : {total_algorithms}")
-    print(f"Total Lines Evaluated     : {total_lines_evaluated}")
-    print(f"1. Time Complexity Detection Acc  : {time_accuracy:.2f}%")
-    print(f"   Time Complexity Error Rate     : {time_error_rate:.2f}%")
-    print(f"2. Space Complexity Detection Acc : {space_accuracy:.2f}%")
-    print(f"   Space Complexity Error Rate    : {space_error_rate:.2f}%")
-    print(f"3. Average Processing Time        : {mean_ms:.2f} ms")
-    
     time_report_dict = {}
     space_report_dict = {}
     

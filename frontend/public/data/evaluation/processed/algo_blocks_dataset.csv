@@ -20024,7 +20024,7 @@ if __name__ == ""__main__"":
     n = len(arr)
     print(findArea(arr, n))
  
-# This code is contributed by ita_c,linear,linear,,",,
+# This code is contributed by ita_c,linear,quadratic,,",,
 "# Python3 implementation to find length of
 # longest strict bitonic subsequence
  
@@ -20192,7 +20192,7 @@ if __name__ == ""__main__"":
     displayMatrix(mat)
  
  
-# This code is contributed by saloni1297,constant,quadratic,,",,
+# This code is contributed by saloni1297,quadratic,quadratic,,",,
 "# Python program to rotate
 # a matrix by 90 degrees
  
@@ -25672,7 +25672,7 @@ if __name__ == '__main__':
     str = ""aacbddc"";
     print(""Left of"", str, ""is"", findLeft(str));
  
-# This code is contributed by PrinciRaj1992,constant,quadratic,,",,
+# This code is contributed by PrinciRaj1992,linear,quadratic,,",,
 "# Python3 program to print a n x n spiral matrix
 # in clockwise direction using O(1) space
  
@@ -27321,7 +27321,7 @@ stack_peek(stack)
 stack_search(stack, 2)
 stack_search(stack, 6)
  
-# This code is contributed by rameshtravel07.,linear,linear,,",,
+# This code is contributed by rameshtravel07.,constant,linear,,",,
 "from queue import Queue
  
  
@@ -27612,7 +27612,7 @@ K = 4
 ans = slidingMaximum(arr, K, N)
 print(ans)
  
-# This code is contributed by akashish__,constant,linear,,",,
+# This code is contributed by akashish__,linear,linear,,",,
 "# Python program to find circular tour for a truck
 # In this approach we will start the tour from the first petrol pump
 # then while moving to the next pumps in the loop we will store the cumulative

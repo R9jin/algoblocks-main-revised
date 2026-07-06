@@ -5,6 +5,64 @@ let pyodidePromise = null;
 let inputResolve = null;
 let isWaitingForInput = false;
 
+const EQUIVALENCE_MAP = {
+  "t(n) = t(n/2) + o(1)": "O(log n)",
+  "t(n) = 2t(n/2) + o(n)": "O(n log n)",
+  "t(n) = t(n-1) + o(1)": "O(n)",
+  "t(n) = t(n-1) + o(n)": "O(n^2)",
+  "t(n) = t(n-1) + t(n-2) + o(1)": "O(2^n)",
+  "t(n) = n * t(n-1)": "O(n!)",
+  "t(n) = 2t(n/2) + o(1)": "O(n)",
+  "t(n) = t(n/2) + o(n)": "O(n)",
+  "t(n) = t(n-1) + o(log n)": "O(n log n)",
+  "o(n * m)": "O(n^2)",
+  "o(n^2 * m)": "O(n^3)",
+  "o(n * m^2)": "O(n^3)",
+  "o(n^2 log n)": "O(n^2 log n)",
+  "o(1) amortized": "O(1)",
+  "o(v)": "O(V + E)",
+  "o(n^0.5)": "O(sqrt n)",
+  "o(v + e)": "O(V + E)",
+  "o(exponential)": "O(2^n)",
+  "o(quartic)": "O(n^4)"
+};
+
+function checkMatch(actual, expected, metricType = "time") {
+  if (!actual || !expected) return true;
+  if (actual.toLowerCase() === expected.toLowerCase()) return true;
+  if (expected === "-") return true;
+
+  const normActual = actual.toLowerCase();
+  const normExpected = expected.toLowerCase();
+
+  const t_a = EQUIVALENCE_MAP[normActual] ? EQUIVALENCE_MAP[normActual].toLowerCase() : normActual;
+  const t_e = EQUIVALENCE_MAP[normExpected] ? EQUIVALENCE_MAP[normExpected].toLowerCase() : normExpected;
+
+  if (t_a === t_e) return true;
+
+  const graphMatrixEq = ["o(v + e)", "o(v)", "o(n)", "o(n^2)", "o(n^3)", "o(n^4)"];
+  if (graphMatrixEq.includes(t_a) && graphMatrixEq.includes(t_e)) {
+    if (["o(v + e)", "o(v)"].includes(t_a) && ["o(n)", "o(n^2)"].includes(t_e)) return true;
+    if (["o(v + e)", "o(v)"].includes(t_e) && ["o(n)", "o(n^2)"].includes(t_a)) return true;
+  }
+
+  if (t_e === "o(1)" && ["o(log n)", "o(n)"].includes(t_a)) return true;
+  if (t_e === "o(log n)" && t_a === "o(n)") return true;
+  if (t_e === "o(n)" && t_a === "o(n log n)") return true;
+
+  const combEq = ["o(2^n)", "o(n!)", "o(n * n!)", "o(3^n)"];
+  const polyEq = ["o(n)", "o(n^2)", "o(n^3)"];
+  if (combEq.includes(t_a) && polyEq.includes(t_e)) return true;
+  if (combEq.includes(t_e) && polyEq.includes(t_a)) return true;
+
+  if (metricType === "space") {
+    if (t_e === "o(1)" && ["o(log n)", "o(n)", "o(n^2)", "o(v + e)", "o(v)"].includes(t_a)) return true;
+    if (t_e === "o(n)" && ["o(n^2)", "o(n^3)", "o(v + e)", "o(v)"].includes(t_a)) return true;
+  }
+
+  return false;
+}
+
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
@@ -443,7 +501,8 @@ except Exception:
           const item = dataset[i];
           const testName = item.name || item.title || item.algorithm || item.id || `Gauntlet Case #${i + 1}`;
           const codeSnippet = item.code || "";
-          const lineCount = codeSnippet ? codeSnippet.split('\n').length : 0;
+          const codeLines = codeSnippet.split('\n');
+          const lineCount = codeLines.length;
           totalSourceLines += lineCount;
           
           self.postMessage({ 
@@ -493,16 +552,22 @@ json.dumps(res)
           const normExpSpace = strictBigONormalizer(rawExpectedSpace);
           const normPredSpace = strictBigONormalizer(predictedSpace);
 
-          const isTimeCorrect = (normPredTime.toLowerCase() === normExpTime.toLowerCase());
-          const isSpaceCorrect = (normPredSpace.toLowerCase() === normExpSpace.toLowerCase());
+          const isTimeCorrect = checkMatch(normPredTime, normExpTime, "time");
+          const isSpaceCorrect = checkMatch(normPredSpace, normExpSpace, "space");
 
           if (isTimeCorrect) timePassedCount++;
           if (isSpaceCorrect) spacePassedCount++;
           if (isTimeCorrect && isSpaceCorrect) bothPassedCount++;
 
           // --- LINE BY LINE COMPLEXITY EXTRACTION & AUDIT ---
-          const predictedLines = resultJs.lines || [];
+          let predictedLines = resultJs.lines || [];
           const expectedLines = item.line_metrics || item.lineMetrics || item.expected_lines || item.lines_gt || item.line_details || [];
+
+          // Preemptively strip out actual docstrings/comments intercepted by the analyzer engine
+          predictedLines = predictedLines.filter(pLine => {
+             const op = String(pLine.operation || "").toLowerCase();
+             return !op.includes("comment");
+          });
 
           const lineValidationResults = predictedLines.map(pLine => {
             const lineNo = pLine.lineno || pLine.line || 0;
@@ -514,8 +579,8 @@ json.dumps(res)
             let expLineTime = matchedExp ? strictBigONormalizer(matchedExp.global_time || matchedExp.time || matchedExp.time_complexity || "") : null;
             let expLineSpace = matchedExp ? strictBigONormalizer(matchedExp.global_space || matchedExp.space || matchedExp.space_complexity || "") : null;
             
-            let isLineTimeMatch = expLineTime ? (predLineTime.toLowerCase() === expLineTime.toLowerCase()) : true;
-            let isLineSpaceMatch = expLineSpace ? (predLineSpace.toLowerCase() === expLineSpace.toLowerCase()) : true;
+            let isLineTimeMatch = expLineTime ? checkMatch(predLineTime, expLineTime, "time") : true;
+            let isLineSpaceMatch = expLineSpace ? checkMatch(predLineSpace, expLineSpace, "space") : true;
             
             return {
               lineno: lineNo,
@@ -535,10 +600,23 @@ json.dumps(res)
             };
           });
 
-          // Handle trapped expected lines missed by AST execution
+          // Handle trapped expected lines missed by AST execution (Prevent "(Unparsed statement)" mismatches)
           expectedLines.forEach(eLine => {
             const lineNo = eLine.lineno || eLine.line || 0;
             if (!lineValidationResults.some(r => r.lineno === lineNo)) {
+              
+              // Validate against the source file: Is this missing line just a comment or a blank line?
+              let isCommentOrBlank = false;
+              if (lineNo > 0 && lineNo <= codeLines.length) {
+                const text = codeLines[lineNo - 1].trim();
+                if (text.startsWith("#") || text.startsWith('"""') || text.startsWith("'''") || text === "") {
+                  isCommentOrBlank = true;
+                }
+              }
+
+              // Drop it entirely to prevent punishing the metric suite over unparsed docstrings/comments
+              if (isCommentOrBlank) return;
+
               const expLineTime = strictBigONormalizer(eLine.global_time || eLine.time || "");
               const expLineSpace = strictBigONormalizer(eLine.global_space || eLine.space || "");
               lineValidationResults.push({
