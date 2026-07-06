@@ -221,13 +221,11 @@ export default function EvaluationSuite() {
                let isSpaceValid = validComplexities.includes(possibleSpace) || possibleSpace.startsWith('o(');
                
                if (isTimeValid && isSpaceValid) {
-     
                    timeComp = possibleTime;
                    spaceComp = possibleSpace;
                    parts.pop(); 
                    parts.pop(); 
                    codeText = parts.join(','); 
- 
                }
            }
         }
@@ -235,7 +233,6 @@ export default function EvaluationSuite() {
         codeText = codeText
             .replace(/\\n/g, '\n')           
             .replace(/\\t/g, '    ')         
-       
             .replace(/^["']|["']$/g, '')     
             .replace(/^\s+|\s+$/g, '');      
         
@@ -243,10 +240,8 @@ export default function EvaluationSuite() {
           id: `tasty_csv_${i}`,
           name: `Tasty Algo ${i}`,
           code: codeText,
-          expected_overall_space: spaceComp ||
-"O(1)",
-          expected_overall_time: timeComp ||
-"O(1)",
+          expected_overall_space: spaceComp || "O(1)",
+          expected_overall_time: timeComp || "O(1)",
           category: "Tasty Processed CSV"
         });
       }
@@ -285,8 +280,16 @@ export default function EvaluationSuite() {
     worker.postMessage({ type: "RUN_BENCHMARK_SUITE", dataset: gauntletPayload });
   };
 
+  // Safe Extraction Logic For Download
+  const anyMismatchCount = results?.details.filter(d => 
+    !d.isCompletelyCorrect || d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
+  ).length || 0;
+
   const downloadFailuresLog = (details) => {
-    const mismatches = details.filter(d => !d.isCompletelyCorrect);
+    const mismatches = details.filter(d => 
+        !d.isCompletelyCorrect || d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
+    );
+
     if (mismatches.length === 0) {
         let logText = "=== EVALUATION FAILURES LOG ===\n\nNo mismatches found. Perfect accuracy!\n";
         const blob = new Blob([logText], { type: "text/plain" });
@@ -315,20 +318,17 @@ export default function EvaluationSuite() {
             logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
             logText += `Full Code:\n${m.codeSnippet}\n`;
             if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
-       
               logText += `\nLine Level Mismatches:\n`;
               m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
                 logText += `  -> Line ${l.lineno}:\n`;
                 logText += `     LT Exp [-] Act [${l.localTime || '-'}]\n`;
-                
                 logText += `     GT Exp [${l.expTime || '-'}] Act [${l.predTime || '-'}]\n`;
                 logText += `     LS Exp [-] Act [${l.localSpace || '-'}]\n`;
-                logText += `     GS Exp [${l.expSpace ||
-'-'}] Act [${l.predSpace || '-'}]\n`;
+                logText += `     GS Exp [${l.expSpace || '-'}] Act [${l.predSpace || '-'}]\n`;
               });
             }
             logText += `${'-'.repeat(60)}\n\n`;
-});
+        });
 
         setTimeout(() => {
             const blob = new Blob([logText], { type: "text/plain" });
@@ -337,20 +337,33 @@ export default function EvaluationSuite() {
             a.href = url;
             a.download = `evaluation_failures_log_part_${i + 1}.txt`;
             document.body.appendChild(a);
-     
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, i * 500);
-}
+    }
   };
 
+  // Filter Details with Line Error Context
   const filteredDetails = (results?.details || []).filter((item) => {
-    if (activeTab === "time_pass") return item.isTimeCorrect;
-    if (activeTab === "space_pass") return item.isSpaceCorrect;
-    if (activeTab === "mismatch") return (!item.isTimeCorrect || !item.isSpaceCorrect);
+    const gtLines = item.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
+    const lineFails = gtLines.filter(l => !l.isPassed).length;
+    const hasLineMismatch = lineFails > 0;
+
+    if (activeTab === "overall_pass") return item.isTimeCorrect && item.isSpaceCorrect;
+    if (activeTab === "line_pass") return gtLines.length > 0 && !hasLineMismatch;
+    if (activeTab === "mismatch") return (!item.isTimeCorrect || !item.isSpaceCorrect || hasLineMismatch);
     return true;
   });
+
+  const linePassCount = results?.details.filter(d => 
+    d.lineValidationResults?.some(l => l.hasGroundTruth) && 
+    !d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
+  ).length || 0;
+
+  const overallPassCount = results?.details.filter(d => d.isCompletelyCorrect).length || 0;
+
+
   const renderMetricCell = (val) => {
     if (val === undefined || val === null || val === "-" || val === "") return <span>-</span>;
     const num = parseFloat(val);
@@ -365,14 +378,13 @@ export default function EvaluationSuite() {
         <span className="metric-raw">({num <= 1.0 ? num.toFixed(2) : num})</span>
       </div>
     );
-};
+  };
 
   const renderF1Badge = (scoreStr) => {
     const s = parseFloat(scoreStr);
     if (isNaN(s)) return <span>-</span>;
     const pct = s <= 1.0 ? s * 100 : s;
-    const pctFormatted = Number.isInteger(pct) ?
-`${pct}%` : `${pct.toFixed(1).replace('.0', '')}%`;
+    const pctFormatted = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1).replace('.0', '')}%`;
     
     if (s >= 0.80) return <span className="f1-excellent">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
     if (s >= 0.60) return <span className="f1-good">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
@@ -380,10 +392,8 @@ export default function EvaluationSuite() {
     return <span className="f1-poor">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
   };
 
-  // Safe renderer for the dropdown metrics to completely prevent "Ghost text"
   const renderDualBadge = (expVal, predVal, isMatch) => {
-    const safeExp = (expVal && expVal !== 'undefined' && expVal !== '-') ?
-expVal : null;
+    const safeExp = (expVal && expVal !== 'undefined' && expVal !== '-') ? expVal : null;
     const safePred = (predVal && predVal !== 'undefined') ? predVal : '-';
     if (safeExp) {
       return (
@@ -393,7 +403,7 @@ expVal : null;
           <span className={`comp-act ${isMatch ? "comp-pass" : "comp-fail"}`}>{safePred}</span>
         </div>
       );
-}
+    }
     return <span className="comp-act comp-neutral">{safePred}</span>;
   };
 
@@ -410,12 +420,12 @@ expVal : null;
           target.precision = ((source.precision * source.support) + (target.precision * target.support)) / totalSupport;
           target.recall = ((source.recall * source.support) + (target.recall * target.support)) / totalSupport;
           target.f1Score = ((source.f1Score * source.support) + (target.f1Score * target.support)) / totalSupport;
-}
+        }
         target.support = totalSupport;
         
         newPerClass[targetKey] = target;
         delete newPerClass[sourceKey];
-}
+      }
     };
 
     mergeKeys("O(exponential)", "O(2^n)");
@@ -429,9 +439,9 @@ expVal : null;
     return { ...report, perClass: newPerClass };
   };
 
-  const processedTimeReport = results?.timeReport ?
-processReport(results.timeReport) : null;
+  const processedTimeReport = results?.timeReport ? processReport(results.timeReport) : null;
   const processedSpaceReport = results?.spaceReport ? processReport(results.spaceReport) : null;
+  
   return (
     <div className="eval-suite-container">
       
@@ -510,7 +520,7 @@ A high Precision value indicates
                   that the AST-based analysis engine rarely assigns an incorrect complexity class,
                   minimizing false positive classifications and improving the reliability of reported
                   algorithmic complexity results.
-</p>
+                </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #10B981" }}>
@@ -541,7 +551,7 @@ A high Recall value indicates that
                   the system rarely overlooks valid algorithmic patterns, thereby minimizing false
                   negatives and providing comprehensive complexity detection across the evaluation
                   dataset.
-</p>
+                </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #8B5CF6" }}>
@@ -558,7 +568,7 @@ A high Recall value indicates that
                   >
                     F1-Score (Balanced Performance)
                   </span>
-                  <span className="metric-formula">2 Ã— (P Ã— R) / (P + R)</span>
+                  <span className="metric-formula">2 × (P × R) / (P + R)</span>
               
                 </div>
 
@@ -573,7 +583,7 @@ Unlike a simple
                   while the other is low.
 Consequently, a high F1-Score indicates that the complexity
                   classification engine produces predictions that are both accurate and comprehensive.
-</p>
+                </p>
               </div>
 
               <div className="metric-card-info" style={{ borderLeft: "4px solid #64748B" }}>
@@ -606,7 +616,7 @@ Although it does not directly measure predictive
 Performance metrics computed from larger support values are
                   generally considered more representative and statistically reliable than those derived
                   from only a small number of observations.
-</p>
+                </p>
               </div>
 
               <div className="metric-interactive-box">
@@ -618,7 +628,7 @@ Performance metrics computed from larger support values are
 
                 <p className="interactive-box-subtitle">
                   Adjust the classification outcomes below to observe how changes in True Positives, False Positives, and False Negatives affect Precision, Recall, and the F1-Score in real time.
-</p>
+                </p>
 
                 <div className="sandbox-controls">
                   <div className="slider-group">
@@ -699,7 +709,7 @@ Performance metrics computed from larger support values are
                     style={{ backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" }}
                   >
                     <span style={{ color: "#6B21A8" 
-}}>F1-Score</span>
+                    }}>F1-Score</span>
                     <strong style={{ color: "#6D28D9" }}>
                       {(simF1 * 100).toFixed(1)}%
                     </strong>
@@ -715,12 +725,10 @@ Performance metrics computed from larger support values are
                   <FiActivity size={16} />
                   <span>
                     {simF1 >= 0.8
-                      ?
-"The simulated classification results indicate strong overall performance, demonstrating a well-balanced combination of prediction accuracy and detection coverage."
-: simF1 >= 0.6
-                      ?
-"The simulated results indicate moderate classification performance. Improving either Precision or Recall would increase the overall F1-Score."
-: "The simulated results indicate low classification performance. A significant imbalance between Precision and Recall reduces the F1-Score, suggesting that prediction accuracy, detection coverage, or both require improvement."}
+                      ? "The simulated classification results indicate strong overall performance, demonstrating a well-balanced combination of prediction accuracy and detection coverage."
+                      : simF1 >= 0.6
+                      ? "The simulated results indicate moderate classification performance. Improving either Precision or Recall would increase the overall F1-Score."
+                      : "The simulated results indicate low classification performance. A significant imbalance between Precision and Recall reduces the F1-Score, suggesting that prediction accuracy, detection coverage, or both require improvement."}
                   </span>
                 </div>
               </div>
@@ -829,7 +837,7 @@ className="eval-modal-footer">
             <strong className="eval-status-target">{statusText}</strong>
           </div>
           <div className="eval-status-group">
-            {results && results.details.filter(d => !d.isCompletelyCorrect).length > 0 && (
+            {results && anyMismatchCount > 0 && (
                 <button className="eval-btn-inspect" onClick={() => downloadFailuresLog(results.details)} style={{marginRight: "15px", display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px"}}>
      
                   <FiDownload size={14} /> Download Error Logs (TXT)
@@ -853,7 +861,7 @@ className="eval-modal-footer">
               <div>
                 <strong style={{ display: "block", color: "#0F172A", fontSize: "14px" }}>Statement-Level Ground Truth Audit</strong>
                 
-<span style={{ fontSize: "12px", color: "#64748B" }}>Verified {results.totalLinesTested} individual source lines against academic ground truth annotations.</span>
+                <span style={{ fontSize: "12px", color: "#64748B" }}>Verified {results.totalLinesTested} individual source lines against academic ground truth annotations.</span>
               </div>
             </div>
             <div className="eval-status-group" style={{ gap: "24px" }}>
@@ -1071,7 +1079,7 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                         </tr>
              
                       );
-})}
+                    })}
 
                     <tr className="tr-divider">
                       <td>overall accuracy</td>
@@ -1138,7 +1146,7 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                         </tr>
              
                       );
-})}
+                    })}
 
                     <tr className="tr-divider">
                       <td>overall accuracy</td>
@@ -1177,45 +1185,43 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
         {results && (
           <div className="eval-table-container">
             <div className="eval-filter-navbar">
-          
               <span className="eval-filter-label">Filter Output:</span>
-              <button onClick={() => setActiveTab("all")} className={`eval-filter-btn ${activeTab === "all" ?
-"filter-all-active" : "filter-all-idle"}`}>
+              <button onClick={() => setActiveTab("all")} className={`eval-filter-btn ${activeTab === "all" ? "filter-all-active" : "filter-all-idle"}`}>
                 All Algorithms ({results.details.length})
               </button>
-              <button onClick={() => setActiveTab("time_pass")} className={`eval-filter-btn ${activeTab === "time_pass" ?
-"filter-pass-active" : "filter-pass-idle"}`}>
-                Time Match ({results.timePassed})
+              <button onClick={() => setActiveTab("overall_pass")} className={`eval-filter-btn ${activeTab === "overall_pass" ? "filter-pass-active" : "filter-pass-idle"}`}>
+                Overall T/S Match ({overallPassCount})
               </button>
-              <button onClick={() => setActiveTab("space_pass")} className={`eval-filter-btn ${activeTab === "space_pass" ?
-"filter-pass-active" : "filter-pass-idle"}`} style={{ backgroundColor: activeTab === "space_pass" ? "#0EA5E9" : "", color: activeTab === "space_pass" ?
-"#FFFFFF" : "" }}>
-                Space Match ({results.spacePassed})
+              <button onClick={() => setActiveTab("line_pass")} className={`eval-filter-btn ${activeTab === "line_pass" ? "filter-pass-active" : "filter-pass-idle"}`} style={{ backgroundColor: activeTab === "line_pass" ? "#0EA5E9" : "", color: activeTab === "line_pass" ? "#FFFFFF" : "" }}>
+                Line-Level Match ({linePassCount})
               </button>
-              <button onClick={() => setActiveTab("mismatch")} className={`eval-filter-btn ${activeTab === "mismatch" ?
-"filter-fail-active" : "filter-fail-idle"}`}>
-                Any Mismatch ({results.details.length - results.perfectPassed})
+              <button onClick={() => setActiveTab("mismatch")} className={`eval-filter-btn ${activeTab === "mismatch" ? "filter-fail-active" : "filter-fail-idle"}`}>
+                Any Mismatch ({anyMismatchCount})
               </button>
             </div>
 
             <table className="eval-table">
               <thead>
                 <tr className="eval-table-header">
-        
                   <th>Algorithm Title</th>
                   <th>Domain Category</th>
                   <th>Ground Truth (T / S)</th>
                   <th>AST Model Output (T / S)</th>
-                  <th>Time Status</th>
-      
-                  <th>Space Status</th>
-                  <th>Diagnostic & Verification</th>
+                  <th>Time (Overall)</th>
+                  <th>Space (Overall)</th>
+                  <th>Lines (Detailed)</th>
+                  <th>Verification Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredDetails.map((row, idx) => {
     
                   const isExpanded = !!expandedRows[row.id];
+                  const gtLines = row.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
+                  const lineFails = gtLines.filter(l => !l.isPassed).length;
+                  const hasLineMismatch = lineFails > 0;
+                  const hasLines = gtLines.length > 0;
+
                   return (
                     <React.Fragment key={`${row.id}_${idx}`}>
                       <tr className={isExpanded ? "tr-expanded-parent" : ""}>
@@ -1229,46 +1235,46 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                         
                         <td>
                           <code className="code-badge-gt" style={{ marginBottom: "4px" }}>
- 
                             T: {row.expectedTime}
                           </code>
                           <code className="code-badge-gt" style={{ backgroundColor: "#E0F2FE", color: "#0369A1", borderColor: "#BAE6FD" }}>
-           
                            S: {row.expectedSpace}
                           </code>
                         </td>
 
                         <td>
-        
-                          <code className={row.isTimeCorrect ?
-"code-badge-pred-pass" : "code-badge-pred-fail"} style={{ marginBottom: "4px" }}>
+                          <code className={row.isTimeCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ marginBottom: "4px" }}>
                             T: {row.predictedTime}
                           </code>
-                          <code className={row.isSpaceCorrect ?
-"code-badge-pred-pass" : "code-badge-pred-fail"} style={{ backgroundColor: row.isSpaceCorrect ? "#ECFDF5" : "#FEF2F2", color: row.isSpaceCorrect ? "#0EA5E9" : "#991B1B", borderColor: row.isSpaceCorrect ?
-"#A7F3D0" : "#FECACA" }}>
+                          <code className={row.isSpaceCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ backgroundColor: row.isSpaceCorrect ? "#ECFDF5" : "#FEF2F2", color: row.isSpaceCorrect ? "#0EA5E9" : "#991B1B", borderColor: row.isSpaceCorrect ? "#A7F3D0" : "#FECACA" }}>
                             S: {row.predictedSpace}
                           </code>
                         </td>
 
                   
                         <td>
-                          {row.isTimeCorrect ?
-(
+                          {row.isTimeCorrect ? (
                             <span className="eval-verdict verdict-pass"><FiCheckCircle size={15}/> Pass</span>
                           ) : (
                             <span className="eval-verdict verdict-fail"><FiXCircle size={15}/> Mismatch</span>
-        
                           )}
                         </td>
 
                         <td>
-                          {row.isSpaceCorrect ?
-(
+                          {row.isSpaceCorrect ? (
                             <span className="eval-verdict verdict-pass" style={{ color: "#0EA5E9" }}><FiCheckCircle size={15}/> Pass</span>
                           ) : (
                             <span className="eval-verdict verdict-fail"><FiXCircle size={15}/> Mismatch</span>
-    
+                          )}
+                        </td>
+
+                        <td>
+                          {!hasLines ? (
+                            <span className="eval-verdict" style={{color: "#94A3B8"}}>-</span>
+                          ) : hasLineMismatch ? (
+                            <span className="eval-verdict verdict-fail" title={`${lineFails} lines mismatched`}><FiXCircle size={15}/> {lineFails} Mismatched</span>
+                          ) : (
+                            <span className="eval-verdict verdict-pass" style={{color: "#10B981"}}><FiCheckCircle size={15}/> Perfect</span>
                           )}
                         </td>
 
@@ -1279,10 +1285,8 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                               <FiCode size={14} /> Inspect AST
                             </button>
          
-                            <button onClick={() => toggleRowDropdown(row.id)} className={`eval-btn-dropdown ${isExpanded ?
-"active-dropdown" : ""}`}>
-                              <FiList size={14} /> <span>{isExpanded ?
-"Hide Lines" : "Line Checks"}</span> {isExpanded ? <FiChevronUp size={14}/> : <FiChevronDown size={14}/>}
+                            <button onClick={() => toggleRowDropdown(row.id)} className={`eval-btn-dropdown ${isExpanded ? "active-dropdown" : ""} ${hasLineMismatch && !isExpanded ? "btn-dropdown-error" : ""}`}>
+                              <FiList size={14} /> <span>{isExpanded ? "Hide Lines" : (hasLineMismatch ? "Review Errors" : "Line Checks")}</span> {isExpanded ? <FiChevronUp size={14}/> : <FiChevronDown size={14}/>}
                             </button>
                           </div>
                         </td>
@@ -1291,7 +1295,7 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
 
                       {isExpanded && (
                         <tr className="tr-dropdown-content">
-                          <td colSpan="7" className="td-dropdown-cell">
+                          <td colSpan="8" className="td-dropdown-cell">
             
                             <div className="line-checks-dropdown-box">
                               <div className="dropdown-box-header">
@@ -1306,8 +1310,7 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                                   <span className="line-count-pill">
     
                                     <FiLayers size={13} style={{ marginRight: "5px" }}/>
-                                    {row.lineValidationResults?.length ||
-0} Statements Evaluated
+                                    {row.lineValidationResults?.length || 0} Statements Evaluated
                                   </span>
                                 </div>
                               </div>
@@ -1333,52 +1336,36 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                          
                                   <tbody>
                                     {(row.lineValidationResults || []).map((lineItem, lIdx) => (
-                                      <tr key={`line_${row.id}_${lineItem.lineno}_${lIdx}`} className={!lineItem.isPassed && lineItem.hasGroundTruth ?
-"line-tr-fail" : ""}>
+                                      <tr key={`line_${row.id}_${lineItem.lineno}_${lIdx}`} className={!lineItem.isPassed && lineItem.hasGroundTruth ? "line-tr-fail" : ""}>
                                         <td className="line-td-num">{lineItem.lineno}</td>
-                                        <td className="line-td-code"><code>{lineItem.lineOfCode ||
-"-"}</code></td>
+                                        <td className="line-td-code"><code>{lineItem.lineOfCode || "-"}</code></td>
                                         
                                         <td className="line-td-comp">
-                   
                                         {lineItem.hasGroundTruth 
-                                            ?
-renderDualBadge("-", lineItem.localTime, true)
-                                            : <span className="comp-act comp-neutral">{lineItem.localTime ||
-"-"}</span>}
+                                            ? renderDualBadge("-", lineItem.localTime, true)
+                                            : <span className="comp-act comp-neutral">{lineItem.localTime || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-comp">
-                   
                                         {lineItem.hasGroundTruth 
-                                            ?
-renderDualBadge(lineItem.expTime, lineItem.predTime, lineItem.isTimeMatch)
-                                            : <span className="comp-act comp-neutral">{lineItem.predTime ||
-"-"}</span>}
+                                            ? renderDualBadge(lineItem.expTime, lineItem.predTime, lineItem.isTimeMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predTime || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-comp">
-                   
                                         {lineItem.hasGroundTruth 
-                                            ?
-renderDualBadge("-", lineItem.localSpace, true)
-                                            : <span className="comp-act comp-neutral">{lineItem.localSpace ||
-"-"}</span>}
+                                            ? renderDualBadge("-", lineItem.localSpace, true)
+                                            : <span className="comp-act comp-neutral">{lineItem.localSpace || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-comp">
-                   
                                         {lineItem.hasGroundTruth 
-                                            ?
-renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
-                                            : <span className="comp-act comp-neutral">{lineItem.predSpace ||
-"-"}</span>}
+                                            ? renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predSpace || "-"}</span>}
                                         </td>
 
                                         <td className="line-td-status">
-                   
-                                        {lineItem.hasGroundTruth ?
-(
+                                        {lineItem.hasGroundTruth ? (
                                             lineItem.isPassed ? (
                                               <span className="line-verdict verdict-pass"><FiCheckCircle size={13}/> Match</span>
     
@@ -1387,7 +1374,6 @@ renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
         
                                             )
                                           ) : (
-                    
                                             <span className="line-verdict verdict-none">AST Verified</span>
                                           )}
                                
@@ -1400,7 +1386,7 @@ renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
                                      
                                         <td colSpan="7" style={{ padding: "28px", textAlign: "center", color: "#64748B" }}>
                                           No statement-level AST trace recorded for this dataset snippet.
-</td>
+                                        </td>
                                       </tr>
                                     )}
                           
@@ -1425,8 +1411,7 @@ renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
                                   <div className="dbf-metric-item">
                                     <span>Overall Time:</span>
        
-                                     <strong className={row.isTimeCorrect ?
-"verdict-pass" : "verdict-fail"}>
+                                     <strong className={row.isTimeCorrect ? "verdict-pass" : "verdict-fail"}>
                                       Exp {row.expectedTime} vs Act {row.predictedTime}
                                     </strong>
                     
@@ -1434,8 +1419,7 @@ renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
                                   <div className="dbf-metric-item">
                                     <span>Overall Space:</span>
               
-                                      <strong className={row.isSpaceCorrect ?
-"verdict-pass" : "verdict-fail"}>
+                                      <strong className={row.isSpaceCorrect ? "verdict-pass" : "verdict-fail"}>
                                       Exp {row.expectedSpace} vs Act {row.predictedSpace}
                                     </strong>
                     
@@ -1451,7 +1435,7 @@ renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
                     </React.Fragment>
     
                   );
-})}
+                })}
               </tbody>
             </table>
             

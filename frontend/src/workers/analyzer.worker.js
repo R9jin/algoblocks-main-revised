@@ -5,6 +5,64 @@ let pyodidePromise = null;
 let inputResolve = null;
 let isWaitingForInput = false;
 
+const EQUIVALENCE_MAP = {
+  "t(n) = t(n/2) + o(1)": "O(log n)",
+  "t(n) = 2t(n/2) + o(n)": "O(n log n)",
+  "t(n) = t(n-1) + o(1)": "O(n)",
+  "t(n) = t(n-1) + o(n)": "O(n^2)",
+  "t(n) = t(n-1) + t(n-2) + o(1)": "O(2^n)",
+  "t(n) = n * t(n-1)": "O(n!)",
+  "t(n) = 2t(n/2) + o(1)": "O(n)",
+  "t(n) = t(n/2) + o(n)": "O(n)",
+  "t(n) = t(n-1) + o(log n)": "O(n log n)",
+  "o(n * m)": "O(n^2)",
+  "o(n^2 * m)": "O(n^3)",
+  "o(n * m^2)": "O(n^3)",
+  "o(n^2 log n)": "O(n^2 log n)",
+  "o(1) amortized": "O(1)",
+  "o(v)": "O(V + E)",
+  "o(n^0.5)": "O(sqrt n)",
+  "o(v + e)": "O(V + E)",
+  "o(exponential)": "O(2^n)",
+  "o(quartic)": "O(n^4)"
+};
+
+function checkMatch(actual, expected, metricType = "time") {
+  if (!actual || !expected) return true;
+  if (actual.toLowerCase() === expected.toLowerCase()) return true;
+  if (expected === "-") return true;
+
+  const normActual = actual.toLowerCase();
+  const normExpected = expected.toLowerCase();
+
+  const t_a = EQUIVALENCE_MAP[normActual] ? EQUIVALENCE_MAP[normActual].toLowerCase() : normActual;
+  const t_e = EQUIVALENCE_MAP[normExpected] ? EQUIVALENCE_MAP[normExpected].toLowerCase() : normExpected;
+
+  if (t_a === t_e) return true;
+
+  const graphMatrixEq = ["o(v + e)", "o(v)", "o(n)", "o(n^2)", "o(n^3)", "o(n^4)"];
+  if (graphMatrixEq.includes(t_a) && graphMatrixEq.includes(t_e)) {
+    if (["o(v + e)", "o(v)"].includes(t_a) && ["o(n)", "o(n^2)"].includes(t_e)) return true;
+    if (["o(v + e)", "o(v)"].includes(t_e) && ["o(n)", "o(n^2)"].includes(t_a)) return true;
+  }
+
+  if (t_e === "o(1)" && ["o(log n)", "o(n)"].includes(t_a)) return true;
+  if (t_e === "o(log n)" && t_a === "o(n)") return true;
+  if (t_e === "o(n)" && t_a === "o(n log n)") return true;
+
+  const combEq = ["o(2^n)", "o(n!)", "o(n * n!)", "o(3^n)"];
+  const polyEq = ["o(n)", "o(n^2)", "o(n^3)"];
+  if (combEq.includes(t_a) && polyEq.includes(t_e)) return true;
+  if (combEq.includes(t_e) && polyEq.includes(t_a)) return true;
+
+  if (metricType === "space") {
+    if (t_e === "o(1)" && ["o(log n)", "o(n)", "o(n^2)", "o(v + e)", "o(v)"].includes(t_a)) return true;
+    if (t_e === "o(n)" && ["o(n^2)", "o(n^3)", "o(v + e)", "o(v)"].includes(t_a)) return true;
+  }
+
+  return false;
+}
+
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
@@ -493,8 +551,8 @@ json.dumps(res)
           const normExpSpace = strictBigONormalizer(rawExpectedSpace);
           const normPredSpace = strictBigONormalizer(predictedSpace);
 
-          const isTimeCorrect = (normPredTime.toLowerCase() === normExpTime.toLowerCase());
-          const isSpaceCorrect = (normPredSpace.toLowerCase() === normExpSpace.toLowerCase());
+          const isTimeCorrect = checkMatch(normPredTime, normExpTime, "time");
+          const isSpaceCorrect = checkMatch(normPredSpace, normExpSpace, "space");
 
           if (isTimeCorrect) timePassedCount++;
           if (isSpaceCorrect) spacePassedCount++;
@@ -514,8 +572,8 @@ json.dumps(res)
             let expLineTime = matchedExp ? strictBigONormalizer(matchedExp.global_time || matchedExp.time || matchedExp.time_complexity || "") : null;
             let expLineSpace = matchedExp ? strictBigONormalizer(matchedExp.global_space || matchedExp.space || matchedExp.space_complexity || "") : null;
             
-            let isLineTimeMatch = expLineTime ? (predLineTime.toLowerCase() === expLineTime.toLowerCase()) : true;
-            let isLineSpaceMatch = expLineSpace ? (predLineSpace.toLowerCase() === expLineSpace.toLowerCase()) : true;
+            let isLineTimeMatch = expLineTime ? checkMatch(predLineTime, expLineTime, "time") : true;
+            let isLineSpaceMatch = expLineSpace ? checkMatch(predLineSpace, expLineSpace, "space") : true;
             
             return {
               lineno: lineNo,

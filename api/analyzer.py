@@ -1651,20 +1651,6 @@ class ComplexityAnalyzer(ast.NodeVisitor):
 
         if not is_const: 
             if is_harmonic:
-                self.log_loop_depth += 1
-                has_log_call = False 
-            elif is_sqrt:
-                self.sqrt_loop_depth = getattr(self, 'sqrt_loop_depth', 0) + 1
-            elif dim:
-                self.active_poly_dims.append(dim)
-        
-        if has_log_call: self.log_loop_depth += 1
-        
-        self.current_depth += 1
-        self._visit_block(node.body)
-        
-        if not is_const: 
-            if is_harmonic:
                 self.log_loop_depth -= 1
             elif is_sqrt:
                 self.sqrt_loop_depth -= 1
@@ -2230,6 +2216,98 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Expression")
         self.generic_visit(node)      
 
+    def visit_Pass(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pass")
+        self.generic_visit(node)
+
+    def visit_Break(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Break")
+        self.generic_visit(node)
+
+    def visit_Continue(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Continue")
+        self.generic_visit(node)
+
+    def visit_Global(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Global Declaration")
+        self.generic_visit(node)
+
+    def visit_Nonlocal(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Nonlocal Declaration")
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import")
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import")
+        self.generic_visit(node)
+
+    def visit_Assert(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Assertion")
+        self.generic_visit(node)
+
+    def visit_Delete(self, node):
+        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Delete")
+        self.generic_visit(node)
+
+    def visit_Raise(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Raise Exception")
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Type Annotation")
+        self.generic_visit(node)
+
+    def visit_ExceptHandler(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Except Block")
+        self.current_depth += 1
+        self.generic_visit(node)
+        self.current_depth -= 1
+        
+    def visit_ClassDef(self, node):
+        self.record_line(node, time_override="Definition", space_override="O(1)", custom_op="Class Definition")
+        self.current_depth += 1
+        self.generic_visit(node)
+        self.current_depth -= 1
+
+    def _fill_unparsed_statements(self):
+        recorded_lines = {d['lineno'] for d in self._details}
+        for i, line in enumerate(self.source_lines):
+            lineno = i + 1
+            if lineno not in recorded_lines:
+                text = line.strip()
+                if not text:
+                    continue
+                
+                t_val = "O(1)"
+                s_val = "O(1)"
+                op = "Unparsed Statement"
+                
+                if text.startswith('#'):
+                    op = "Comment"
+                elif text in ['else:', 'try:', 'finally:'] or text.startswith('elif '):
+                    op = "Control Flow"
+                elif text.startswith('def '):
+                    op = "Definition"
+                elif text.startswith('class '):
+                    op = "Class Definition"
+                else:
+                    if 'for ' in text or 'while ' in text:
+                        t_val = "O(n)"
+                
+                entry = {
+                    "lineno": lineno, "lineOfCode": text, "operation": op,
+                    "local_time": t_val, "global_time": t_val,
+                    "local_space": s_val, "global_space": s_val,
+                    "indent": self.current_depth, "color": "#7f8c8d", "weight": 1,
+                    "time_explanation": "Inferred operation.", "space_explanation": "Inferred memory.",
+                    "hits": 0, "memory_state": {}
+                }
+                self._details.append(entry)
+        self._details.sort(key=lambda x: x['lineno'])
+
     def get_final_asymptotic_badge(self):
         all_comps = " ".join([str(d.get('global_time', '')) for d in self._details] + [str(d.get('local_time', '')) for d in self._details])
         
@@ -2402,6 +2480,9 @@ def analyze_source_code(source_code):
         # Second Pass: Resolve forward references and accurately map calls
         analyzer.reset_state()
         analyzer.visit(tree)
+        
+        # Post-Processing Pass: Reconcile unparsed statements structurally
+        analyzer._fill_unparsed_statements()
         
         overall_exp = analyzer.get_overall_explanation(tree)
                 
