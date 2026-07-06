@@ -1,7 +1,448 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 10) ---
 
---- TIMESTAMP: 2026-07-06 10:59:59 ---
+--- TIMESTAMP: 2026-07-07 07:40:05 ---
 
+
+--- FILE: api/routers/admin_router.py ---
+
+# api/routers/admin_router.py
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Dict, Any
+
+from repositories.user_repo import UserRepository
+from security import get_current_admin_user
+from limiter import limiter
+from fastapi import Request
+
+router = APIRouter()
+
+@router.get("/users")
+@limiter.limit("30/minute")
+def get_all_users(request: Request, admin_email: str = Depends(get_current_admin_user)):
+    try:
+        users = UserRepository.find_all_users()
+        return {"status": "success", "users": users}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/users/{target_email}/status")
+@limiter.limit("20/minute")
+def update_user_status(
+    request: Request, 
+    target_email: str, 
+    payload: Dict[str, str], 
+    admin_email: str = Depends(get_current_admin_user)
+):
+    new_status = payload.get("status")
+    if new_status not in ["Active", "Suspended"]:
+        raise HTTPException(status_code=400, detail="Invalid status provided.")
+        
+    if target_email == admin_email:
+        raise HTTPException(status_code=403, detail="Admins cannot suspend their own accounts.")
+
+    result = UserRepository.update_user_status(target_email, new_status)
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    return {"status": "success", "message": f"User status updated to {new_status}"}
+
+@router.delete("/users/{target_email}")
+@limiter.limit("10/minute")
+def delete_user(request: Request, target_email: str, admin_email: str = Depends(get_current_admin_user)):
+    if target_email == admin_email:
+        raise HTTPException(status_code=403, detail="Admins cannot delete their own accounts.")
+        
+    # Check if user is the last admin before deletion (optional safeguard)
+    target_user = UserRepository.find_by_email(target_email)
+    if target_user and target_user.get("isAdmin"):
+        admin_count = len([u for u in UserRepository.find_all_users() if u.get("isAdmin")])
+        if admin_count <= 1:
+            raise HTTPException(status_code=403, detail="Cannot delete the last remaining administrator.")
+
+    result = UserRepository.delete_user(target_email)
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    return {"status": "success", "message": "User permanently deleted."}
+
+--- FILE: frontend/src/pages/AdminUserManagement.jsx ---
+
+import { useEffect, useState } from "react";
+import {
+    LuBan,
+    LuCheckCircle,
+    LuRefreshCw,
+    LuShield,
+    LuTrash2,
+    LuUser,
+    LuUsers
+} from "react-icons/lu";
+import DashboardHeader from "../components/DashboardHeader"; // Adjust path if necessary
+import "../styles/AdminUserManagement.css";
+
+const AdminUserManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:8000/api/admin/users", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to fetch users");
+      
+      setUsers(data.users || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleStatusToggle = async (email, currentStatus) => {
+    const newStatus = currentStatus === "Active" ? "Suspended" : "Active";
+    if (!window.confirm(`Are you sure you want to change this account's status to ${newStatus}?`)) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:8000/api/admin/users/${email}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to update status");
+
+      // Update local state to reflect the change immediately
+      setUsers(users.map(user => 
+        user.email === email ? { ...user, status: newStatus } : user
+      ));
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const handleDelete = async (email) => {
+    if (!window.confirm("WARNING: Are you sure you want to permanently delete this account? This action cannot be undone.")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`http://localhost:8000/api/admin/users/${email}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to delete user");
+
+      // Remove the deleted user from local state
+      setUsers(users.filter(user => user.email !== email));
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  return (
+    <div className="admin-dashboard-container">
+      <DashboardHeader />
+      
+      <main className="main-content">
+        <div className="header-container">
+          <h1 className="page-title">
+            <LuUsers size={28} color="#3b82f6" /> User Management
+          </h1>
+          <button 
+            onClick={fetchUsers}
+            className="refresh-btn"
+          >
+            <LuRefreshCw size={16} /> Refresh
+          </button>
+        </div>
+
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="loading-message">Loading users...</div>
+        ) : (
+          <div className="table-container">
+            <table className="user-table">
+              <thead className="table-head">
+                <tr>
+                  <th className="th-base">Name</th>
+                  <th className="th-base">Email</th>
+                  <th className="th-base">Role</th>
+                  <th className="th-base">Status</th>
+                  <th className="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.email} className="tr-body">
+                    <td className="td-name">{user.name}</td>
+                    <td className="td-email">{user.email}</td>
+                    <td className="td-base">
+                      {user.isAdmin ? (
+                        <span className="role-badge role-admin">
+                          <LuShield size={14} /> Admin
+                        </span>
+                      ) : (
+                        <span className="role-badge role-user">
+                          <LuUser size={14} /> User
+                        </span>
+                      )}
+                    </td>
+                    <td className="td-base">
+                      {user.status === "Suspended" ? (
+                        <span className="status-badge status-suspended">
+                          <LuBan size={14} /> Suspended
+                        </span>
+                      ) : (
+                        <span className="status-badge status-active">
+                          <LuCheckCircle size={14} /> Active
+                        </span>
+                      )}
+                    </td>
+                    <td className="td-actions">
+                      <div className="actions-container">
+                        <button 
+                          onClick={() => handleStatusToggle(user.email, user.status)}
+                          title={user.status === "Active" ? "Suspend Account" : "Activate Account"}
+                          className={`action-btn ${user.status === "Active" ? "btn-toggle-active" : "btn-toggle-suspended"}`}
+                        >
+                          {user.status === "Active" ? <LuBan size={16} /> : <LuCheckCircle size={16} />}
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(user.email)}
+                          title="Delete Account"
+                          className="action-btn btn-delete"
+                        >
+                          <LuTrash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan="5" className="no-users-cell">
+                      No users found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default AdminUserManagement;
+
+--- FILE: frontend/src/styles/AdminUserManagement.css ---
+
+.admin-dashboard-container {
+  min-height: 100vh;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.main-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.error-message {
+  padding: 1rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid #ef4444;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+}
+
+.table-container {
+  overflow-x: auto;
+  background-color: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table-head {
+  background-color: #0f172a;
+  border-bottom: 1px solid #334155;
+}
+
+.th-base {
+  padding: 1rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.th-actions {
+  padding: 1rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: right;
+}
+
+.tr-body {
+  border-bottom: 1px solid #334155;
+}
+
+.tr-body:last-child {
+  border-bottom: none;
+}
+
+.td-base {
+  padding: 1rem;
+}
+
+.td-name {
+  padding: 1rem;
+  font-weight: 500;
+}
+
+.td-email {
+  padding: 1rem;
+  color: #94a3b8;
+}
+
+.td-actions {
+  padding: 1rem;
+  text-align: right;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.role-admin {
+  color: #a855f7;
+  background-color: rgba(168, 85, 247, 0.1);
+  font-weight: bold;
+}
+
+.role-user {
+  color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status-suspended {
+  color: #ef4444;
+}
+
+.status-active {
+  color: #10b981;
+}
+
+.actions-container {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  padding: 0.5rem;
+  background-color: transparent;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-toggle-active {
+  color: #f59e0b;
+}
+
+.btn-toggle-suspended {
+  color: #10b981;
+}
+
+.btn-delete {
+  color: #ef4444;
+}
+
+.no-users-cell {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+}
 
 --- FILE: README.md ---
 
@@ -2107,7 +2548,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 mult_node = node.value.right if isinstance(node.value.left, (ast.List, ast.Tuple)) else node.value.left
                 is_fixed_const = self._is_constant_expr(mult_node)
                 val = extract_constant(mult_node)
-                if val is not None and isinstance(val, (int, float)) and val > 1500:
+                if val is not None and isinstance(val, (int, float)) and val > 100:
                     is_fixed_const = False
                         
                 if is_fixed_const:
@@ -2262,11 +2703,72 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Expr(self, node): 
+        # IGNORE COMMENTS/DOCSTRINGS: If it's just a loose string, skip recording it entirely
         if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Comment / Docstring")
-        elif not isinstance(node.value, (ast.Call, ast.ListComp, ast.SetComp, ast.DictComp, ast.Yield, ast.YieldFrom)):
+            self.generic_visit(node)
+            return
+            
+        if not isinstance(node.value, (ast.Call, ast.ListComp, ast.SetComp, ast.DictComp, ast.Yield, ast.YieldFrom)):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Expression")
+            
         self.generic_visit(node)      
+
+    def visit_Pass(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pass")
+        self.generic_visit(node)
+
+    def visit_Break(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Break")
+        self.generic_visit(node)
+
+    def visit_Continue(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Continue")
+        self.generic_visit(node)
+
+    def visit_Assert(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Assertion")
+        self.generic_visit(node)
+
+    def visit_Delete(self, node):
+        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Delete")
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import")
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import From")
+        self.generic_visit(node)
+
+    def visit_Global(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Global Declaration")
+        self.generic_visit(node)
+
+    def visit_Nonlocal(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Nonlocal Declaration")
+        self.generic_visit(node)
+
+    def visit_Raise(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Raise Exception")
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node):
+        self.record_line(node, time_override="Definition", space_override="O(1)", custom_op="Class Definition")
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
+
+    def visit_AsyncFunctionDef(self, node):
+        self.visit_FunctionDef(node)
+
+    def visit_AsyncFor(self, node):
+        self.visit_For(node)
+
+    def visit_AsyncWith(self, node):
+        self.visit_With(node)
+
+    def visit_Match(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pattern Matching")
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
 
     def get_final_asymptotic_badge(self):
         all_comps = " ".join([str(d.get('global_time', '')) for d in self._details] + [str(d.get('local_time', '')) for d in self._details])
@@ -2455,6 +2957,7 @@ def analyze_source_code(source_code):
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
         results = fallback_analyzer(source_code)
+        results["error"] = str(e) # Expose the error so it doesn't fail silently
         
     end_time = time.perf_counter()
     results["analysis_time_ms"] = (end_time - start_time) * 1000
@@ -3380,7 +3883,8 @@ from routers import (
     auth_router,
     project_router,
     analyze_router,
-    template_router
+    template_router,
+    admin_router
 )
 
 app = FastAPI(
@@ -3411,6 +3915,7 @@ app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
+app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin Operations"])
 
 @app.get("/api/health")
 async def health_check():
@@ -3604,73 +4109,3 @@ class ProjectRepository:
         except Exception:
             obj_id = project_id
         return projects_collection.delete_one({"_id": obj_id, "$or": [{"userId": user_id}, {"owner_id": user_id}]})
-
---- FILE: api/repositories/template_repo.py ---
-
-# api/repositories/template_repo.py
-from database import templates_collection
-from bson.objectid import ObjectId
-
-class TemplateRepository:
-    @staticmethod
-    def find_by_category(category: str):
-        templates = list(templates_collection.find({"category": category}))
-        for tpl in templates:
-            tpl["_id"] = str(tpl["_id"])
-        return templates
-
-    @staticmethod
-    def find_all():
-        templates = list(templates_collection.find({}))
-        for tpl in templates:
-            tpl["_id"] = str(tpl["_id"])
-        return templates
-
-    # ADDED: Save method to push to database
-    @staticmethod
-    def save(template_data: dict):
-        result = templates_collection.insert_one(template_data)
-        return str(result.inserted_id)
-
-    # ADDED: Update method for existing templates
-    @staticmethod
-    def update(template_id: str, template_data: dict):
-        try:
-            obj_id = ObjectId(template_id)
-        except Exception:
-            obj_id = template_id
-            
-        templates_collection.update_one(
-            {"_id": obj_id},
-            {"$set": template_data},
-            upsert=True
-        )
-        return str(template_id)
-
---- FILE: api/repositories/user_repo.py ---
-
-# api/repositories/user_repo.py
-from database import users_collection
-
-class UserRepository:
-    @staticmethod
-    def find_by_email(email: str):
-        return users_collection.find_one({"email": email}, {"_id": 0})
-
-    @staticmethod
-    def insert(user_data: dict):
-        return users_collection.insert_one(user_data)
-
-    @staticmethod
-    def update_progress(email: str, lesson_id: str, score: int):
-        users_collection.update_one(
-            {"email": email},
-            {"$set": {f"progress.{lesson_id}": score}}
-        )
-
-    @staticmethod
-    def update_assessment(email: str, assessment_key: str, data: dict):
-        users_collection.update_one(
-            {"email": email},
-            {"$set": {f"assessments.{assessment_key}": data}}
-        )

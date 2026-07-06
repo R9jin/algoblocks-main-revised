@@ -17,7 +17,8 @@ from routers import (
     auth_router,
     project_router,
     analyze_router,
-    template_router
+    template_router,
+    admin_router
 )
 
 app = FastAPI(
@@ -48,6 +49,7 @@ app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
+app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin Operations"])
 
 @app.get("/api/health")
 async def health_check():

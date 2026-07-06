@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from database import users_collection
 
 logger = logging.getLogger(__name__)
 
@@ -60,3 +61,18 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
     except jwt.InvalidTokenError as e:
         logger.warning(f"Rejected request: Invalid token - {str(e)}")
         raise credentials_exception
+
+async def get_current_admin_user(email: str = Depends(get_current_user_email)) -> str:
+    """
+    Dependency that checks if the currently authenticated user has the 'isAdmin' flag set to True.
+    """
+    user = users_collection.find_one({"email": email})
+    
+    if not user or not user.get("isAdmin"):
+        logger.warning(f"Rejected request: {email} attempted to access an admin-restricted endpoint.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator privileges required to perform this action."
+        )
+        
+    return email

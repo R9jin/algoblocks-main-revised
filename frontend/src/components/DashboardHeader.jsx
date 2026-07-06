@@ -1,6 +1,6 @@
 // frontend/src/components/DashboardHeader.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser } from "react-icons/lu";
+import { LuActivity, LuFolder, LuLayoutDashboard, LuLogOut, LuRefreshCw, LuUser, LuUsers } from "react-icons/lu";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/DashboardHeader.css";
 import { stopBackgroundSync, syncManager } from "../utils/syncManager";
@@ -143,6 +143,15 @@ export default function DashboardHeader({
                       role="menuitem"
                     >
                       <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                    </button>
+                    <button 
+                      type="button" 
+                      className="user-dd-item" 
+                      style={{ color: "#3b82f6", fontWeight: "bold" }}
+                      onClick={() => { setOpen(false); navigate("/admin/users"); }} 
+                      role="menuitem"
+                    >
+                      <LuUsers size={18} aria-hidden="true" /> User Management
                     </button>
                   </>
                 )}

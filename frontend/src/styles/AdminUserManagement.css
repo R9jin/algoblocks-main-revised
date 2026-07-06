@@ -1,0 +1,179 @@
+.admin-dashboard-container {
+  min-height: 100vh;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.main-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.error-message {
+  padding: 1rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid #ef4444;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+}
+
+.table-container {
+  overflow-x: auto;
+  background-color: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table-head {
+  background-color: #0f172a;
+  border-bottom: 1px solid #334155;
+}
+
+.th-base {
+  padding: 1rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.th-actions {
+  padding: 1rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: right;
+}
+
+.tr-body {
+  border-bottom: 1px solid #334155;
+}
+
+.tr-body:last-child {
+  border-bottom: none;
+}
+
+.td-base {
+  padding: 1rem;
+}
+
+.td-name {
+  padding: 1rem;
+  font-weight: 500;
+}
+
+.td-email {
+  padding: 1rem;
+  color: #94a3b8;
+}
+
+.td-actions {
+  padding: 1rem;
+  text-align: right;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.role-admin {
+  color: #a855f7;
+  background-color: rgba(168, 85, 247, 0.1);
+  font-weight: bold;
+}
+
+.role-user {
+  color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status-suspended {
+  color: #ef4444;
+}
+
+.status-active {
+  color: #10b981;
+}
+
+.actions-container {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  padding: 0.5rem;
+  background-color: transparent;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-toggle-active {
+  color: #f59e0b;
+}
+
+.btn-toggle-suspended {
+  color: #10b981;
+}
+
+.btn-delete {
+  color: #ef4444;
+}
+
+.no-users-cell {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+}
