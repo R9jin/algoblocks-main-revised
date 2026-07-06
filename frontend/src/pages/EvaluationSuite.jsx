@@ -304,7 +304,7 @@ export default function EvaluationSuite() {
         return;
     }
 
-    const numChunks = 7;
+    const numChunks = 5;
     const chunkSize = Math.ceil(mismatches.length / numChunks);
     
     for (let i = 0; i < numChunks; i++) {

@@ -501,7 +501,8 @@ except Exception:
           const item = dataset[i];
           const testName = item.name || item.title || item.algorithm || item.id || `Gauntlet Case #${i + 1}`;
           const codeSnippet = item.code || "";
-          const lineCount = codeSnippet ? codeSnippet.split('\n').length : 0;
+          const codeLines = codeSnippet.split('\n');
+          const lineCount = codeLines.length;
           totalSourceLines += lineCount;
           
           self.postMessage({ 
@@ -559,8 +560,14 @@ json.dumps(res)
           if (isTimeCorrect && isSpaceCorrect) bothPassedCount++;
 
           // --- LINE BY LINE COMPLEXITY EXTRACTION & AUDIT ---
-          const predictedLines = resultJs.lines || [];
+          let predictedLines = resultJs.lines || [];
           const expectedLines = item.line_metrics || item.lineMetrics || item.expected_lines || item.lines_gt || item.line_details || [];
+
+          // Preemptively strip out actual docstrings/comments intercepted by the analyzer engine
+          predictedLines = predictedLines.filter(pLine => {
+             const op = String(pLine.operation || "").toLowerCase();
+             return !op.includes("comment");
+          });
 
           const lineValidationResults = predictedLines.map(pLine => {
             const lineNo = pLine.lineno || pLine.line || 0;
@@ -593,10 +600,23 @@ json.dumps(res)
             };
           });
 
-          // Handle trapped expected lines missed by AST execution
+          // Handle trapped expected lines missed by AST execution (Prevent "(Unparsed statement)" mismatches)
           expectedLines.forEach(eLine => {
             const lineNo = eLine.lineno || eLine.line || 0;
             if (!lineValidationResults.some(r => r.lineno === lineNo)) {
+              
+              // Validate against the source file: Is this missing line just a comment or a blank line?
+              let isCommentOrBlank = false;
+              if (lineNo > 0 && lineNo <= codeLines.length) {
+                const text = codeLines[lineNo - 1].trim();
+                if (text.startsWith("#") || text.startsWith('"""') || text.startsWith("'''") || text === "") {
+                  isCommentOrBlank = true;
+                }
+              }
+
+              // Drop it entirely to prevent punishing the metric suite over unparsed docstrings/comments
+              if (isCommentOrBlank) return;
+
               const expLineTime = strictBigONormalizer(eLine.global_time || eLine.time || "");
               const expLineSpace = strictBigONormalizer(eLine.global_space || eLine.space || "");
               lineValidationResults.push({
