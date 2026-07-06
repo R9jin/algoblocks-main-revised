@@ -297,6 +297,7 @@ def calculate_metrics(injected_dataset=None):
             exp_ls = normalize_complexity(exp_line.get('local_space', '-')) if exp_line else '-'
             exp_gs = normalize_complexity(exp_line.get('global_space', '-')) if exp_line else '-'
             
+            # Bound properties directly against analyzer output contracts
             act_lt = normalize_complexity(act_line.get('local_time', '-')) if act_line else '-'
             act_gt = normalize_complexity(act_line.get('global_time', '-')) if act_line else '-'
             act_ls = normalize_complexity(act_line.get('local_space', '-')) if act_line else '-'
