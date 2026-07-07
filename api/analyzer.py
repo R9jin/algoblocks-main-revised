@@ -136,7 +136,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'dict': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates a new dictionary.'},
             'tuple': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates an immutable sequence.'},
             'deque': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Initializes a double-ended queue.'},
-            'append': {'time': 'O(1) amortized', 'space': 'O(1)', 'desc': 'Adds an element to the end of a list.'},
+            'append': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Adds an element to the end of a list. Evaluated as worst-case O(n) due to potential array resizing overhead.'},
+            'add': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Adds an element to a set. Evaluated as worst-case O(n) due to potential hash collisions.'},
             'insert': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Places an element at a specific index shifting others.'},
             'max': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Linearly scans through a sequence for largest.'},
             'min': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Linearly scans through a sequence for smallest.'},
@@ -151,7 +152,8 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'bool': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Evaluates truthiness.'},
             'type': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns class type.'},
             'str': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Converts object to string.'},
-            'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Searches and removes occurrence shifting elements.'},
+            'remove': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Searches and removes occurrence shifting elements. Evaluated as worst-case O(n).'},
+            'pop': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Removes and returns element. Evaluated as worst-case O(n) for dictionaries/lists.'},
             'index': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Searches to find target index.'},
             'copy': {'time': 'O(n)', 'space': 'O(n)', 'desc': 'Creates a shallow copy.'},
             'reverse': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Reverses order of items.'},
@@ -164,7 +166,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             'items': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Returns dict items view.'},
             'range': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Creates mathematical range object.'},
             'clear': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Empties the container.'},
-            'get': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Looks up dictionary key.'},
+            'get': {'time': 'O(n)', 'space': 'O(1)', 'desc': 'Looks up dictionary key. Evaluated as worst-case O(n) due to hash collisions.'},
             'popleft': {'time': 'O(1)', 'space': 'O(1)', 'desc': 'Removes first element of deque.'}
         }
         self.aliases = {}
@@ -1204,7 +1206,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                         is_constant_collection = True
 
             if is_hash_map:
-                self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Set/Dict)")
+                self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Membership Check (Set/Dict Worst-Case)")
             elif is_constant_collection:
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Membership Check (Constant Size)")
             else:
@@ -1587,7 +1589,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             return
             
         if self._is_amortized_inner_loop(node):
-            self.record_line(node, time_override="O(1) amortized", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Linear Loop")
+            self.record_line(node, time_override="O(n)", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Linear Loop (Worst-Case O(n))")
             self.current_depth += 1; self._visit_block(node.body); self.current_depth -= 1
             self.loop_depth -= 1
             self.loop_stack.pop()
@@ -1684,7 +1686,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.loop_stack.append('1' if is_const else 'n')
         
         if self._is_amortized_inner_loop(node):
-            self.record_line(node, time_override="O(1) amortized", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Linear Loop")
+            self.record_line(node, time_override="O(n)", global_time_override="O(n)", space_override="O(1)", custom_op="Amortized Linear Loop (Worst-Case O(n))")
             self.current_depth += 1; self._visit_block(node.body); self.current_depth -= 1
             self.loop_depth -= 1
             self.loop_stack.pop()
@@ -1792,10 +1794,10 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                     self.max_space_weight = max(self.max_space_weight, 1)
 
         if getattr(getattr(node, 'func', None), 'attr', '') == 'append' or getattr(getattr(node, 'func', None), 'id', '') == 'append':
-            self.add_logic_hint(node, "Logic Hint (Amortized Analysis): mainly, the `.append()` operation is mainly O(1) constant time, but occasionally triggers an O(n) background array resize sequence when memory capacity is breached.")
+            self.add_logic_hint(node, "Logic Hint (Worst-Case Analysis): While `.append()` is typically O(1) amortized, the worst-case time complexity is O(n) when a background array resize is triggered.")
         
         if getattr(getattr(node, 'func', None), 'attr', '') == 'remove' or getattr(getattr(node, 'func', None), 'id', '') == 'remove':
-            self.add_logic_hint(node, "Logic Hint: The `.remove()` operation is O(n) linear time for Lists mainly finding and shifting elements. However, it is mainly O(1) constant time for Sets.")
+            self.add_logic_hint(node, "Logic Hint: The `.remove()` operation is O(n) linear time for Lists mainly finding and shifting elements. However, it is mainly O(n) worst-case time for Sets during severe hash collisions.")
 
         func_node = getattr(node, 'func', None)
         f_id_extracted = getattr(func_node, 'id', getattr(func_node, 'attr', None))
@@ -1875,7 +1877,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if func_node.attr == 'pop':
                 is_dict = isinstance(getattr(func_node, 'value', None), ast.Name) and self.var_types.get(func_node.value.id) == 'dict'
                 if len(getattr(node, 'args', [])) > 0:
-                    if is_dict: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from Dictionary")
+                    if is_dict: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from Dictionary (Worst-Case)")
                     else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Pop from specific index")
                 else:
                     self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop from end / set")
@@ -1883,7 +1885,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pop Left (Deque)")
             elif func_node.attr == 'remove':
                 is_set = isinstance(getattr(func_node, 'value', None), ast.Name) and self.var_types.get(func_node.value.id) == 'set'
-                if is_set: self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Remove from Set")
+                if is_set: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from Set (Worst-Case)")
                 else: self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Remove from List")
             elif func_node.attr == 'copy':
                 curr_f = self.current_function_name or ""
@@ -1899,15 +1901,15 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 elif is_appending_list and len(active_loops) > 0 and is_local_accumulation and not getattr(self, 'in_graph_context', False):
                     self.max_space_weight = max(self.max_space_weight, 2)
                     sp_str = "O(n * m)" if "n * m" in self.max_poly_str else "O(n^2)"
-                    self.record_line(node, time_override="O(1)", space_override="O(1)", global_space_override=sp_str, custom_op="Append Row")
+                    self.record_line(node, time_override="O(n)", space_override="O(1)", global_space_override=sp_str, custom_op="Append Row")
                     self.generic_visit(node)
                     self.in_accumulation_context = prev_acc
                     return
                 else:
-                    self.record_line(node, time_override="O(1) amortized", space_override="O(1)", custom_op="Append")
+                    self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Append (Worst-Case)")
                     
             elif func_node.attr in ['add', 'insert', 'update', 'clear', 'union', 'intersection', 'difference', 'get', 'keys', 'values', 'items']:
-                b = self.builtin_complexities.get(func_node.attr, {'time': 'O(1)', 'space': 'O(1)'})
+                b = self.builtin_complexities.get(func_node.attr, {'time': 'O(n)', 'space': 'O(1)'})
                 self.record_line(node, time_override=b['time'], space_override=b['space'], custom_op=func_node.attr.capitalize())
             elif func_node.attr in self.builtin_complexities:
                 b = self.builtin_complexities[func_node.attr]
@@ -1941,7 +1943,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             base_var = getattr(node.targets[0].value, 'id', '')
             if self.var_types.get(base_var) == 'dict' and len(active_loops) > 0:
                 custom_op = "Dictionary Population"
-                t_ov = "O(1)"
+                t_ov = "O(n)"
                 s_ov = "O(n)"
                 self.max_space_weight = max(self.max_space_weight, 1)
             elif isinstance(getattr(node.targets[0], 'slice', None), ast.Slice):
@@ -2141,7 +2143,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
             if is_geometric:
                 if len(active_loops) > 0:
                     self.max_space_weight = max(self.max_space_weight, 4)
-                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Geometric Expansion")
+                    self.record_line(node, time_override="O(n)", space_override="O(n)", custom_op="Geometric Expansion (Worst-Case)")
                     self.max_exp = 1
                     return
 
