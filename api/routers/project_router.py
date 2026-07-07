@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Request, Depends
 from typing import Dict, Optional
 
-# FIX: Updated to ProjectSyncRequest to match models.py
 from models import ProjectSyncRequest
 from services.project_service import ProjectService
 from limiter import limiter
@@ -17,28 +16,28 @@ def get_user_projects(
     request: Request, 
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # Ensure graceful handling if token misses email
     if not trusted_email:
         return {"status": "success", "projects": []}
         
-    # Get projects from DB safely using the authenticated JWT email
     projects = ProjectService.get_user_projects(trusted_email)
     
-    # Ensure consistent dictionary return so frontend data.projects never breaks
     if isinstance(projects, list):
         return {"status": "success", "projects": projects}
         
     return projects
 
+@router.post("")
+@router.post("/")
 @router.post("/save")
 @limiter.limit("20/minute")
 def save_project(
     request: Request, 
-    req: ProjectSyncRequest, # FIX: Updated type hint
+    req: ProjectSyncRequest,
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # FIX: Use userId to match ProjectSyncRequest and ProjectService
     req.userId = trusted_email
+    if not req.owner_id:
+        req.owner_id = trusted_email
     return ProjectService.save_project(req)
 
 @router.post("/delete")
@@ -48,6 +47,7 @@ def delete_project(
     payload: Dict[str, str], 
     trusted_email: str = Depends(get_current_user_email)
 ):
-    # FIX: Inject userId instead of owner_id
     payload["userId"] = trusted_email
+    if "owner_id" not in payload:
+        payload["owner_id"] = trusted_email
     return ProjectService.delete_project(payload)

@@ -46,6 +46,8 @@ class AuthService:
             "status": "success",
             "email": req.email,
             "name": user.get("name"),
+            "role": user.get("role", "user"),
+            "isAdmin": user.get("isAdmin", False) or user.get("is_admin", False),
             "progress": user.get("progress", {}),
             "assessments": user.get("assessments", {}),
             "token": token
@@ -62,6 +64,8 @@ class AuthService:
             "name": req.name,
             "email": req.email,
             "password": hashed_password,
+            "role": "user",
+            "isAdmin": False,
             "progress": {},
             "assessments": {} 
         })
@@ -72,6 +76,8 @@ class AuthService:
             "status": "success",
             "email": req.email,
             "name": req.name,
+            "role": "user",
+            "isAdmin": False,
             "token": token
         }
 
@@ -172,6 +178,8 @@ class AuthService:
                     "name": name,
                     "email": email,
                     "password": None,
+                    "role": "user",
+                    "isAdmin": False,
                     "progress": {},
                     "assessments": {} 
                 })
@@ -183,6 +191,8 @@ class AuthService:
                 "status": "success",
                 "email": email,
                 "name": user.get("name"),
+                "role": user.get("role", "user"),
+                "isAdmin": user.get("isAdmin", False) or user.get("is_admin", False),
                 "progress": user.get("progress", {}),
                 "assessments": user.get("assessments", {}),
                 "token": backend_token

@@ -155,6 +155,11 @@
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
 }
 
+.line-stats-banner {
+  background-color: #F8FAFC;
+  border-left: 4px solid #7928CA;
+}
+
 .eval-status-group {
   display: flex;
   align-items: center;
@@ -222,7 +227,7 @@
 /* --- STATS KPI GRID --- */
 .eval-stats-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -561,7 +566,6 @@
   font-size: 14px;
 }
 
-/* Sandbox inside modal */
 .metric-interactive-box {
   background-color: #FFFFFF;
   border: 2px dashed #CBD5E1;
@@ -849,6 +853,12 @@
 .verdict-pass { color: #10B981; }
 .verdict-fail { color: #EF4444; }
 
+.action-buttons-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .eval-btn-inspect {
   background-color: #FFFFFF;
   color: #475569;
@@ -871,12 +881,268 @@
   box-shadow: 0 2px 4px rgba(121, 40, 202, 0.2);
 }
 
+.eval-btn-dropdown {
+  background-color: #F8FAFC;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.eval-btn-dropdown:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.eval-btn-dropdown.active-dropdown {
+  background-color: #F3E8FF;
+  color: #6D28D9;
+  border-color: #D8B4FE;
+}
+
 .eval-empty-state {
   padding: 48px;
   text-align: center;
   color: #64748B;
   font-weight: 500;
   font-size: 15px;
+}
+
+/* --- REVEALING LINE CHECKING DROPDOWN MATRIX --- */
+.tr-expanded-parent td {
+  background-color: #F8FAFC !important;
+  border-bottom: none !important;
+}
+
+.tr-dropdown-content td {
+  padding: 0 !important;
+  background-color: #F8FAFC;
+  border-bottom: 2px solid #CBD5E1 !important;
+}
+
+.td-dropdown-cell {
+  padding: 0 24px 24px 24px !important;
+}
+
+.line-checks-dropdown-box {
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  animation: dropdownSlideDown 0.2s ease-out;
+}
+
+@keyframes dropdownSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-box-header {
+  background-color: #F1F5F9;
+  padding: 14px 20px;
+  border-bottom: 1px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dbh-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dbh-icon {
+  color: #7928CA;
+}
+
+.dbh-left strong {
+  font-size: 14px;
+  color: #0F172A;
+}
+
+.dbh-sub {
+  font-size: 12px;
+  color: #64748B;
+  margin-left: 6px;
+}
+
+.line-count-pill {
+  background-color: #FFFFFF;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dropdown-table-wrapper {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.dropdown-line-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.dropdown-line-table th {
+  background-color: #F8FAFC;
+  color: #64748B;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #E2E8F0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.dropdown-line-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #334155;
+}
+
+.line-td-num {
+  font-family: Consolas, monospace;
+  font-weight: 700;
+  color: #94A3B8 !important;
+  width: 60px;
+}
+
+.line-td-code code {
+  font-family: Consolas, 'Courier New', monospace;
+  color: #0F172A;
+  background-color: #F8FAFC;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #E2E8F0;
+  display: inline-block;
+}
+
+.op-pill {
+  background-color: #F1F5F9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.dual-comp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #F8FAFC;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  font-family: Consolas, monospace;
+}
+
+.comp-exp {
+  color: #64748B;
+  font-size: 12px;
+}
+
+.comp-exp strong {
+  color: #0F172A;
+}
+
+.comp-arrow {
+  color: #CBD5E1;
+  font-size: 12px;
+}
+
+.comp-act {
+  font-weight: 800;
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.comp-pass { background-color: #D1FAE5; color: #065F46; }
+.comp-fail { background-color: #FEE2E2; color: #991B1B; }
+.comp-neutral { font-family: Consolas, monospace; font-weight: 700; color: #475569; }
+
+.line-tr-fail td {
+  background-color: #FFFAFA;
+}
+
+.line-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.verdict-none { color: #94A3B8; font-style: italic; }
+
+/* SUMMARY BAR AT BOTTOM OF DROPDOWN BAR */
+.dropdown-box-footer {
+  background-color: #F8FAFC;
+  border-top: 1px solid #CBD5E1;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dbf-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #475569;
+  font-weight: 600;
+}
+
+.dbf-verdict strong {
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dbf-metrics {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.dbf-metric-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.dbf-metric-item strong {
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
 }
 
 /* --- CODE INSPECTION MODAL --- */
@@ -978,4 +1244,15 @@
 .eval-btn-close:hover {
   background-color: #7928CA;
   box-shadow: 0 4px 12px rgba(121, 40, 202, 0.25);
+}
+
+.btn-dropdown-error {
+  background-color: #FEF2F2 !important;
+  color: #991B1B !important;
+  border-color: #FECACA !important;
+}
+
+.btn-dropdown-error:hover {
+  background-color: #FEE2E2 !important;
+  color: #7F1D1D !important;
 }

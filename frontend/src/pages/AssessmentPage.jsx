@@ -1,6 +1,6 @@
 // frontend/src/pages/AssessmentPage.jsx
 import { useEffect, useRef, useState } from "react";
-import { FiAward, FiCheck, FiChevronLeft, FiChevronRight, FiSave, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiAward, FiBarChart2, FiBookOpen, FiCheck, FiCheckCircle, FiChevronLeft, FiChevronRight, FiClock, FiFileText, FiInfo, FiLock, FiSave, FiTarget, FiTrendingUp, FiX } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import { assessmentsDB, progressDB, syncQueueDB } from "../db";
@@ -8,8 +8,13 @@ import "../styles/AssessmentPage.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// ── Storage helpers ──────────────────────────────────────────────────────────
-const getDraftKey = (moduleId, type) => `algoblocks_draft_${moduleId}_${type}`;
+// BUG-09 Fix: Scope draft keys by user email
+const getDraftKey = (moduleId, type) => {
+  const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+  const user = JSON.parse(userStr || "{}");
+  const userEmail = user.email || "anonymous";
+  return `algoblocks_draft_${userEmail}_${moduleId}_${type}`;
+};
 
 function saveDraft(moduleId, type, payload) {
   try {
@@ -31,12 +36,11 @@ function loadDraft(moduleId, type) {
 function clearDraft(moduleId, type) {
   try {
     localStorage.removeItem(getDraftKey(moduleId, type));
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
 
-// ── Shuffle ──────────────────────────────────────────────────────────────────
 function shuffleArray(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -46,7 +50,6 @@ function shuffleArray(arr) {
   return a;
 }
 
-// ── Code Block component ─────────────────────────────────────────────────────
 function CodeBlock({ code }) {
   if (!code) return null;
   return (
@@ -61,9 +64,8 @@ function CodeBlock({ code }) {
   );
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
 export default function AssessmentPage() {
-  const { moduleId, type } = useParams(); // type = "pre" | "post"
+  const { moduleId, type } = useParams();
   const navigate = useNavigate();
 
   const [questions, setQuestions] = useState([]);
@@ -86,11 +88,9 @@ export default function AssessmentPage() {
   const isGlobalPostTest = moduleId === "course-post-test";
   const moduleNum = (isGlobalPreTest || isGlobalPostTest) ? "Overall" : moduleId?.split("-").pop();
 
-  // ── 1. Load assessment JSON + restore draft / previous result ───────────────
   useEffect(() => {
     const load = async () => {
       try {
-        // OFFLINE FIRST: Check IndexedDB for previously submitted result
         const assessmentKey = `${moduleId}_${type}_assessment`;
         const existingResult = await assessmentsDB.getItem(assessmentKey);
         
@@ -98,11 +98,10 @@ export default function AssessmentPage() {
           const normalized = existingResult.data ? { ...existingResult, ...existingResult.data } : existingResult;
           setPrevResult(normalized);
 
-          // Thesis Data Integrity Lock: Prevent re-taking Pre-Test and Post-Test
           if (isGlobalPreTest || isGlobalPostTest) {
             setIsLocked(true);
             setLoading(false);
-            return; // Exit early so questions and drafts aren't loaded
+            return;
           }
         }
 
@@ -110,7 +109,6 @@ export default function AssessmentPage() {
         if (!res.ok) throw new Error("Assessment not found");
         const data = await res.json();
 
-        // Check if there's an in-progress draft (local storage)
         const draft = loadDraft(moduleId, type);
         if (draft && draft.questionIds) {
           const idMap = Object.fromEntries(data.questions.map((q) => [q.id, q]));
@@ -127,7 +125,6 @@ export default function AssessmentPage() {
           }
         }
 
-        // Fresh start — shuffle
         const shuffled = shuffleArray(data.questions);
         setQuestions(shuffled);
         setModuleTitle(data.moduleTitle);
@@ -140,7 +137,6 @@ export default function AssessmentPage() {
     load();
   }, [moduleId, type, isGlobalPreTest, isGlobalPostTest]);
 
-  // ── 2. Auto-save draft every 10 seconds while answering ────────────────────
   useEffect(() => {
     if (submitted || loading || questions.length === 0 || isLocked) return;
 
@@ -161,7 +157,6 @@ export default function AssessmentPage() {
     return () => clearInterval(autoSaveRef.current);
   }, [submitted, loading, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type, isLocked]);
 
-  // ── 4. Timer ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (submitted || loading || questions.length === 0 || isLocked) return;
     timerRef.current = setInterval(() => {
@@ -170,7 +165,6 @@ export default function AssessmentPage() {
     return () => clearInterval(timerRef.current);
   }, [submitted, loading, questions.length, isLocked]);
 
-  // ── 5. Save draft on tab close / visibility change ─────────────────────────
   useEffect(() => {
     if (isLocked) return;
 
@@ -213,7 +207,6 @@ export default function AssessmentPage() {
     };
   }, [submitted, questions, selectedAnswers, currentIndex, timeElapsed, moduleId, type, isLocked]);
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
     const s = (secs % 60).toString().padStart(2, "0");
@@ -221,13 +214,12 @@ export default function AssessmentPage() {
   };
 
   const getScoreLabel = (s) => {
-    if (s >= 90) return { label: "Excellent!", color: "#22c55e", icon: "🏆" };
-    if (s >= 75) return { label: "Proficient", color: "#3b82f6", icon: "🎯" };
-    if (s >= 60) return { label: "Developing", color: "#f97316", icon: "📈" };
-    return { label: "Needs Review", color: "#ef4444", icon: "📚" };
+    if (s >= 90) return { label: "Excellent!", color: "#22c55e", icon: <FiAward size={20} /> };
+    if (s >= 75) return { label: "Proficient", color: "#3b82f6", icon: <FiTarget size={20} /> };
+    if (s >= 60) return { label: "Developing", color: "#f97316", icon: <FiTrendingUp size={20} /> };
+    return { label: "Needs Review", color: "#ef4444", icon: <FiBookOpen size={20} /> };
   };
 
-  // ── Actions ──────────────────────────────────────────────────────────────────
   const handleSelectAnswer = (optionIndex) => {
     if (submitted || isLocked) return;
 
@@ -327,7 +319,7 @@ export default function AssessmentPage() {
         } else {
           throw new Error("Sync failed");
         }
-      } catch (err) {
+      } catch {
         const syncId = `sync_${Date.now()}`;
         await syncQueueDB.setItem(`${syncId}_assm`, queuePayloadAssm);
         await syncQueueDB.setItem(`${syncId}_prog`, queuePayloadProg);
@@ -363,11 +355,9 @@ export default function AssessmentPage() {
     setQuestions((prev) => shuffleArray(prev));
   };
 
-  // ── Derived values ───────────────────────────────────────────────────────────
   const answeredCount = Object.keys(selectedAnswers).length;
   const currentQuestion = questions[currentIndex];
 
-  // ── Loading / empty / locked guards ──────────────────────────────────────────
   if (loading) {
     return (
       <div className="assessment-page">
@@ -386,7 +376,7 @@ export default function AssessmentPage() {
           <div className="results-card">
             <div className="results-header">
               <div className="results-badge" style={{ borderColor: color }}>
-                <span className="results-icon">{icon}</span>
+                <span className="results-icon" style={{ display: "inline-flex", color }}>{icon}</span>
                 <span className="results-label" style={{ color }}>{label}</span>
               </div>
               <h1 className="results-score" style={{ color }}>{prevResult?.score || 0}%</h1>
@@ -394,8 +384,8 @@ export default function AssessmentPage() {
                 {isGlobalPreTest ? "Course Diagnostic Completed" : "Final Exam Completed"}
               </p>
               <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#fef2f2", borderLeft: "4px solid #ef4444", borderRadius: "0 8px 8px 0" }}>
-                <p className="results-note" style={{ color: "#b91c1c", margin: 0, fontWeight: "600", fontSize: "0.95rem" }}>
-                  🔒 For research and data integrity purposes, this assessment can only be taken once. Your score has been securely recorded.
+                <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b91c1c", margin: 0, fontWeight: "600", fontSize: "0.95rem" }}>
+                  <FiLock size={18} style={{ flexShrink: 0 }} /> For research and data integrity purposes, this assessment can only be taken once. Your score has been securely recorded.
                 </p>
               </div>
             </div>
@@ -419,7 +409,6 @@ export default function AssessmentPage() {
     );
   }
 
-  // ── RESULTS SCREEN (Immediately after submitting) ───────────────────────────
   if (submitted) {
     const { label, color, icon } = getScoreLabel(score);
     const correctCount = Math.round((score / 100) * questions.length);
@@ -430,7 +419,7 @@ export default function AssessmentPage() {
           <div className="results-card">
             <div className="results-header">
               <div className="results-badge" style={{ borderColor: color }}>
-                <span className="results-icon">{icon}</span>
+                <span className="results-icon" style={{ display: "inline-flex", color }}>{icon}</span>
                 <span className="results-label" style={{ color }}>{label}</span>
               </div>
               <h1 className="results-score" style={{ color }}>{score}%</h1>
@@ -488,7 +477,9 @@ export default function AssessmentPage() {
                           <span className="correct-answer">
                             Correct: <em>{q.options[q.answer]}</em>
                           </span>
-                          <span className="explanation-text">💡 {q.explanation}</span>
+                          <span className="explanation-text" style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                            <FiInfo style={{ marginTop: "3px", flexShrink: 0, color: "#eab308" }} /> {q.explanation}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -507,20 +498,26 @@ export default function AssessmentPage() {
             </div>
 
             {isGlobalPreTest && (
-              <p className="results-note">
-                📌 The curriculum is now fully unlocked. Use this score as a baseline to track your growth over the course! <br/> 
-                <strong>Note: This pre-test has now been locked.</strong>
+              <p className="results-note" style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                <FiInfo size={18} style={{ flexShrink: 0, marginTop: "2px" }} />
+                <span>
+                  The curriculum is now fully unlocked. Use this score as a baseline to track your growth over the course! <br/> 
+                  <strong>Note: This pre-test has now been locked.</strong>
+                </span>
               </p>
             )}
             {isGlobalPostTest && (
-              <p className="results-note" style={{ color: "#f59e0b", fontSize: "1.1rem" }}>
-                🎉 Congratulations on completing the AlgoBlocks curriculum! You have proven your mastery of algorithmic foundations.<br/>
-                <strong>Note: This post-test has now been locked.</strong>
+              <p className="results-note" style={{ display: "flex", alignItems: "flex-start", gap: "8px", color: "#f59e0b", fontSize: "1.1rem" }}>
+                <FiCheckCircle size={20} style={{ flexShrink: 0, marginTop: "2px" }} />
+                <span>
+                  Congratulations on completing the AlgoBlocks curriculum! You have proven your mastery of algorithmic foundations.<br/>
+                  <strong>Note: This post-test has now been locked.</strong>
+                </span>
               </p>
             )}
             {!(isGlobalPreTest || isGlobalPostTest) && score >= 75 && (
-              <p className="results-note" style={{ color: "#22c55e" }}>
-                ✅ Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
+              <p className="results-note" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#22c55e" }}>
+                <FiCheckCircle size={18} style={{ flexShrink: 0 }} /> Great performance! You've demonstrated strong understanding of Module {moduleNum} concepts.
               </p>
             )}
           </div>
@@ -529,7 +526,6 @@ export default function AssessmentPage() {
     );
   }
 
-  // ── QUESTION SCREEN ───────────────────────────────────────────────────────────
   return (
     <div className="assessment-page">
       <DashboardHeader />
@@ -548,11 +544,15 @@ export default function AssessmentPage() {
             </p>
           </div>
           <div className="assessment-meta">
-            <div className="meta-pill">⏱ {formatTime(timeElapsed)}</div>
-            <div className="meta-pill">📝 {answeredCount}/{questions.length} answered</div>
+            <div className="meta-pill" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiClock size={14} /> {formatTime(timeElapsed)}
+            </div>
+            <div className="meta-pill" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiFileText size={14} /> {answeredCount}/{questions.length} answered
+            </div>
             {lastSavedAt && (
-              <div className="meta-pill saved">
-                <FiSave size={12} />
+              <div className="meta-pill saved" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <FiSave size={14} />
                 Saved {new Date(lastSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
             )}
@@ -570,8 +570,8 @@ export default function AssessmentPage() {
 
         {prevResult && !hasDraft && (
           <div className="prev-result-banner">
-            <span>
-              📊 You previously scored <strong>{prevResult.score}%</strong> on this assessment
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiBarChart2 /> You previously scored <strong>{prevResult.score}%</strong> on this assessment
               (Attempt #{prevResult.attempts}).
             </span>
           </div>
@@ -671,8 +671,8 @@ export default function AssessmentPage() {
               </div>
 
               {answeredCount < questions.length && currentIndex === questions.length - 1 && (
-                <p className="submit-warning">
-                  ⚠ Please answer all {questions.length} questions before submitting.
+                <p className="submit-warning" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                  <FiAlertTriangle size={16} /> Please answer all {questions.length} questions before submitting.
                   ({questions.length - answeredCount} remaining)
                 </p>
               )}

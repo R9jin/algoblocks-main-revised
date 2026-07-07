@@ -1,7 +1,7 @@
 // frontend/src/pages/SignIn.jsx
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
-import { FiAlertTriangle, FiLock, FiMail } from "react-icons/fi";
+import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
@@ -9,6 +9,7 @@ import "../styles/Auth.css";
 export default function SignIn() {
   const [email, setEmail] = useState(""); 
   const [password, setPassword] = useState(""); 
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
   const [rememberMe, setRememberMe] = useState(false);
   
@@ -102,10 +103,12 @@ export default function SignIn() {
       activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("token", data.token);
       
-      // Save full user object to ensure offline loading functions properly
+      // Save full user object including admin status
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
+        role: data.role || "user",
+        isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
         progress: data.progress || {},
         assessments: data.assessments || {}
       })); 
@@ -140,6 +143,8 @@ export default function SignIn() {
         email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
         isGuest: true,
+        role: "guest",
+        isAdmin: false,
         progress: {},
         assessments: {}
       })); 
@@ -181,10 +186,12 @@ export default function SignIn() {
       activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("token", data.token);
       
-      // Save full user object to ensure offline loading functions properly
+      // Save full user object including admin status
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
+        role: data.role || "user",
+        isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
         progress: data.progress || {},
         assessments: data.assessments || {}
       }));
@@ -246,13 +253,23 @@ export default function SignIn() {
               <div className="auth-input-wrap">
                 <FiLock className="auth-input-icon" aria-hidden="true" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
                   disabled={isLoading}
-                /> 
+                  className="password-input"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
               </div>
             </div>
             

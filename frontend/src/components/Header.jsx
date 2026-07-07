@@ -4,25 +4,22 @@ import { Link } from "react-router-dom";
 export default function Header() {
 
   const handleGuestLogin = () => {
-    // Generate a random guest identity
     const guestId = `guest_${Math.floor(Math.random() * 1000000)}`;
     const guestUser = {
       _id: guestId,
       name: "Guest Explorer",
       email: `${guestId}@guest.local`,
-      isGuest: true, // Flag to identify guest users across the app
+      isGuest: true,
       progress: {},
       assessments: {}
     };
     
     const guestToken = `guest_token_${Date.now()}`;
     
-    // Store in localStorage to authenticate the session
     localStorage.setItem("user", JSON.stringify(guestUser));
     localStorage.setItem("token", guestToken);
     localStorage.setItem("authToken", guestToken);
     
-    // Hard redirect to immediately bypass any lingering React state
     window.location.href = "/dashboard";
   };
 

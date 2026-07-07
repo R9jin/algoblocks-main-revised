@@ -1,0 +1,337 @@
+/* frontend/src/styles/AdminUserManagement.css */
+
+.admin-page-wrapper {
+  background-color: #f8f8fb;
+  min-height: 100vh;
+  width: 100%;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-page-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 48px 24px 120px;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* --- HEADER --- */
+.admin-header {
+  margin-bottom: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.admin-header-left h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #241b52;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  letter-spacing: -0.5px;
+}
+
+.admin-header-left p {
+  color: #5b5675;
+  font-size: 1.1rem;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.admin-refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #5A1398;
+  color: #ffffff;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(90, 19, 152, 0.2);
+}
+
+.admin-refresh-btn:hover {
+  background-color: #4a0f7c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(90, 19, 152, 0.3);
+}
+
+/* --- TOOLBAR --- */
+.admin-toolbar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid #ece8f8;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-search-wrapper {
+  flex: 1;
+  min-width: 280px;
+  position: relative;
+}
+
+.admin-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.admin-search-input {
+  width: 100%;
+  padding: 14px 16px 14px 44px;
+  border: 1px solid #e2deff;
+  border-radius: 10px;
+  font-size: 1rem;
+  background: #f8f8fb;
+  color: #241b52;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.admin-search-input:focus {
+  border-color: #5A1398;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(90, 19, 152, 0.1);
+}
+
+.admin-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.admin-filter-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-filter-select {
+  padding: 14px 16px;
+  border: 1px solid #e2deff;
+  border-radius: 10px;
+  background: #f8f8fb;
+  color: #241b52;
+  font-weight: 600;
+  font-size: 0.95rem;
+  outline: none;
+  min-width: 180px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-filter-select:focus,
+.admin-filter-select:hover {
+  border-color: #5A1398;
+  background: #ffffff;
+}
+
+/* --- MESSAGES --- */
+.admin-message-box {
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-message-box.error {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-left: 4px solid #ef4444;
+}
+
+.admin-loading-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: #5A1398;
+  font-weight: 700;
+  font-size: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* --- TABLE --- */
+.admin-table-container {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #ece8f8;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+  overflow-x: auto;
+  width: 100%;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  background: #fcfbfe;
+  padding: 20px 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #5A1398;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 2px solid #ece8f8;
+}
+
+.admin-table td {
+  padding: 20px 24px;
+  border-bottom: 1px solid #ece8f8;
+  color: #5b5675;
+  vertical-align: middle;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: #f8f8fb;
+}
+
+.admin-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-user-name {
+  font-weight: 700;
+  color: #241b52;
+  font-size: 1.05rem;
+}
+
+.admin-user-email {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.th-actions,
+.td-actions {
+  text-align: right;
+}
+
+/* --- BADGES --- */
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.badge-admin {
+  background: #ede6ff;
+  color: #5A1398;
+  border: 1px solid #d8cbff;
+}
+
+.badge-user {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.badge-active {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-suspended {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* --- ACTIONS --- */
+.admin-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.admin-action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  background: #f8f8fb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-action-btn.suspend {
+  color: #d97706;
+}
+
+.admin-action-btn.suspend:hover {
+  background: #fffbeb;
+  border-color: #fde68a;
+  transform: translateY(-2px);
+}
+
+.admin-action-btn.activate {
+  color: #16a34a;
+}
+
+.admin-action-btn.activate:hover {
+  background: #dcfce7;
+  border-color: #bbf7d0;
+  transform: translateY(-2px);
+}
+
+.admin-action-btn.delete {
+  color: #dc2626;
+}
+
+.admin-action-btn.delete:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  transform: translateY(-2px);
+}
+
+.admin-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  font-weight: 500;
+}

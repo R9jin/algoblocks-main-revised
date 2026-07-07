@@ -1,20 +1,24 @@
 import os
 import sys
 
-# Tell Vercel/Python to look inside the 'api' folder for modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import db
+# BUG-05 Fix: Register SlowAPI limiter and middleware pipeline
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from limiter import limiter
 
 from routers import (
     auth_router,
     project_router,
     analyze_router,
-    template_router
-    # Removed progress_router to prevent route duplication and conflict
+    template_router,
+    admin_router
 )
 
 app = FastAPI(
@@ -23,16 +27,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration
+# BUG-05 Fix: Attach limiter state and exception handlers
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    # 1. Explicitly allow local development
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://algoblocks-main-revised.vercel.app" # Put your primary custom domain here if you have one
+        "https://algoblocks-main-revised.vercel.app"
     ], 
-    # 2. Dynamically allow ALL Vercel deployments (previews, branches, etc.)
     allow_origin_regex=r"https://.*\.vercel\.app", 
     allow_credentials=True,
     allow_methods=["*"],
@@ -43,7 +49,7 @@ app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
-# Duplicate progress routes removed; auth_router handles them safely with JWT context
+app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin Operations"])
 
 @app.get("/api/health")
 async def health_check():
@@ -60,5 +66,4 @@ async def health_check():
     }
 
 if __name__ == "__main__":
-    # Changed host to 127.0.0.1 to explicitly bind to IPv4 matching the Vite proxy
     uvicorn.run("index:app", host="127.0.0.1", port=8000, reload=True)

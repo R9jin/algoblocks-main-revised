@@ -1,22 +1,26 @@
 // frontend/src/pages/SignUp.jsx
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { useState } from "react";
-import { FiAlertTriangle, FiLock, FiMail, FiUser } from "react-icons/fi";
+import { FiAlertTriangle, FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
-import { projectsDB, syncQueueDB, templatesDB } from "../db";
 import "../styles/Auth.css";
 
 export default function SignUp() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
   
   const navigate = useNavigate();
-  const rawApiUrl = import.meta.env.VITE_API_URL || ""; 
+  
+  const rawApiUrl = import.meta.env.VITE_API_URL || "";
   const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const showToast = (message, type = "error") => {
     setToast({ visible: true, message, type });
@@ -27,102 +31,145 @@ export default function SignUp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      showToast("Passwords do not match");
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/signup`, {
+      const response = await fetch(`${API_BASE}/api/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password }),
+        headers: { "Content-Type": "application/json" },
+        // Explicitly hardcode standard user roles to prevent payload tampering
+        body: JSON.stringify({ 
+          name, 
+          email, 
+          password,
+          role: "user",
+          isAdmin: false 
+        }),
       });
 
       const data = await response.json();
 
-      if (response.ok && data.status === "success") {
-        const activeStorage = rememberMe ? localStorage : sessionStorage;
-        const inactiveStorage = rememberMe ? sessionStorage : localStorage;
-        
-        inactiveStorage.removeItem("authToken");
-        inactiveStorage.removeItem("user");
-
-        // FIXED: Adjusted to map the restored backend top-level dictionary
-        activeStorage.setItem("authToken", data.token);
-        activeStorage.setItem("user", JSON.stringify({ email: data.email, name: data.name }));
-
-        navigate("/home");
-      } else {
-        let errorMessage = "Sign up failed. Please try again.";
-        if (typeof data.detail === "string") {
-            errorMessage = data.detail;
-        } else if (Array.isArray(data.detail)) {
-            errorMessage = data.detail.map(err => err.msg).join(" | ");
-        }
-        
-        showToast(errorMessage);
+      if (!response.ok || data.status !== "success") {
+        showToast(data.detail || "Registration failed");
+        setIsLoading(false);
+        return;
       }
+
+      // If the backend auto-logs in the user after registration and returns a token
+      if (data.token) {
+        localStorage.removeItem("authToken");
+        sessionStorage.removeItem("authToken");
+        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
+
+        sessionStorage.setItem("authToken", data.token);
+        sessionStorage.setItem("token", data.token);
+        
+        // Force the local cache to recognize the new account strictly as a non-admin
+        sessionStorage.setItem("user", JSON.stringify({
+          email: data.email || email,
+          name: data.name || name,
+          role: "user",
+          isAdmin: false,
+          progress: {},
+          assessments: {}
+        }));
+        
+        navigate("/dashboard");
+      } else {
+        // If the backend requires a manual login step after registration
+        showToast("Registration successful! Redirecting to login...", "success");
+        setTimeout(() => navigate("/signin"), 2000);
+      }
+      
     } catch (error) {
-      console.error("Error connecting to server:", error);
-      showToast("Failed to connect to the server.");
+      console.error(error);
+      showToast("Server not reachable. Check backend connection.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGuestLogin = async () => {
+  const handleGoogleSuccess = async (credentialResponse) => {
     setIsLoading(true);
     try {
-      await Promise.all([
-        projectsDB.clear(), 
-        templatesDB.clear(), 
-        syncQueueDB.clear()
-      ]);
+      const response = await fetch(`${API_BASE}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Explicitly inject standard roles for new Google Auth users
+        body: JSON.stringify({ 
+          token: credentialResponse.credential,
+          role: "user", 
+          isAdmin: false 
+        }),
+      });
 
-      localStorage.removeItem("authToken");
+      const data = await response.json();
+
+      if (!response.ok || data.status !== "success") {
+        showToast(data.detail || "Google Registration failed");
+        return;
+      }
+
       sessionStorage.removeItem("authToken");
+      localStorage.removeItem("authToken");
+      sessionStorage.removeItem("token");
+      localStorage.removeItem("token");
 
+      sessionStorage.setItem("authToken", data.token);
+      sessionStorage.setItem("token", data.token);
+      
+      // Cache the Google user as a strict non-admin unless the backend explicitly overrides it
       sessionStorage.setItem("user", JSON.stringify({
-          email: `guest_${Date.now()}@algoblocks.local`,
-          name: "Guest User",
-          isGuest: true,
-          progress: {} 
+        email: data.email,
+        name: data.name,
+        role: data.role || "user",
+        isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
+        progress: data.progress || {},
+        assessments: data.assessments || {}
       }));
 
       navigate("/dashboard");
+      
     } catch (error) {
-      console.error("Guest login failed:", error);
-      showToast("Failed to initialize guest session.");
+      console.error("Google Authentication error:", error);
+      showToast("Server not reachable. Check backend connection.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <div className={`custom-toast ${toast.type} ${toast.visible ? 'visible' : ''}`}>
         {toast.message}
       </div>
 
       <div className="auth-container">
         <div className="auth-card">
-          
-          {/* ACADEMIC RESEARCH NOTICE */}
+
           <div className="auth-research-banner">
             <div className="banner-icon-wrapper">
               <FiAlertTriangle size={18} />
             </div>
             <div className="banner-text">
-              <strong>Participant Protocol</strong>
+              <strong>Academic Research Notice</strong>
               <p>
-                By creating an account, you agree to participate in an educational system evaluation. 
-                <b> Please do not create multiple accounts.</b> Your learning data, assessments, and code executions are monitored strictly for research integrity.
+                To ensure data validity for this thesis, please use <b>strictly one account</b> throughout your evaluation. 
+                Progress, assessments, and learning analytics are being actively monitored and recorded to a single ID.
               </p>
             </div>
           </div>
 
-          <h2>Create Account</h2>
+          <h2>Sign Up for AlgoBlocks</h2>
           <form onSubmit={handleSubmit}>
+            
             <div className="form-group">
               <label>Full Name</label>
               <div className="auth-input-wrap">
@@ -134,9 +181,10 @@ export default function SignUp() {
                   placeholder="Enter your full name"
                   required
                   disabled={isLoading}
-                />
+                /> 
               </div>
             </div>
+
             <div className="form-group">
               <label>Email</label>
               <div className="auth-input-wrap">
@@ -148,61 +196,86 @@ export default function SignUp() {
                   placeholder="Enter your email address"
                   required
                   disabled={isLoading}
-                />
+                /> 
               </div>
             </div>
+            
             <div className="form-group">
               <label>Password</label>
               <div className="auth-input-wrap">
                 <FiLock className="auth-input-icon" aria-hidden="true" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Create a password"
                   required
                   disabled={isLoading}
+                  className="password-input"
                 />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Confirm Password</label>
+              <div className="auth-input-wrap">
+                <FiLock className="auth-input-icon" aria-hidden="true" />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  required
+                  disabled={isLoading}
+                  className="password-input"
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  disabled={isLoading}
+                >
+                  {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
               </div>
             </div>
             
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px", gap: "8px" }}>
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                disabled={isLoading}
-                style={{ cursor: "pointer", width: "16px", height: "16px" }}
-              />
-              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#30363d", margin: 0 }}>
-                Stay signed in
-              </label>
-            </div>
-            
             <button type="submit" className="auth-button" disabled={isLoading}>
-              {isLoading ? "Signing Up..." : "Sign Up"}
-            </button>
+              {isLoading ? "Creating Account..." : "Sign Up"}
+            </button> 
 
-            <div style={{ textAlign: "center", margin: "15px 0", color: "#59636e", fontSize: "0.9rem" }}>
-              <span>— OR —</span>
+            <div className="social-divider">
+              <span>OR</span>
+            </div> 
+
+            <div className="google-auth-wrapper">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => showToast("Google Sign-Up sequence interrupted.")}
+                theme="outline" 
+                size="large"
+                shape="rectangular"
+                text="signup_with"
+              />
             </div>
-            <button 
-              type="button" 
-              className="auth-button guest-button"
-              onClick={handleGuestLogin} 
-              disabled={isLoading}
-            >
-              {isLoading ? "Preparing..." : "Continue as Guest"}
-            </button>
 
           </form>
 
           <div className="auth-links">
-            <p>Already have an account?<Link to="/signin">Sign in</Link></p>
-          </div>
+            <p>Already have an account? <Link to="/signin">Sign in</Link></p>
+          </div> 
         </div>
       </div>
-    </>
+    </GoogleOAuthProvider>
   );
 }

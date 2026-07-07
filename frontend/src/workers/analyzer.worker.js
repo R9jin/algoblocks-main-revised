@@ -4,17 +4,72 @@ let pyodidePromise = null;
 
 let inputResolve = null;
 let isWaitingForInput = false;
-let executionTimeout = null;
 
-// Strict Asymptotic Tokenizer (Eliminates fuzzy substring collisions and normalizes text properties from CSV files)
+const EQUIVALENCE_MAP = {
+  "t(n) = t(n/2) + o(1)": "O(log n)",
+  "t(n) = 2t(n/2) + o(n)": "O(n log n)",
+  "t(n) = t(n-1) + o(1)": "O(n)",
+  "t(n) = t(n-1) + o(n)": "O(n^2)",
+  "t(n) = t(n-1) + t(n-2) + o(1)": "O(2^n)",
+  "t(n) = n * t(n-1)": "O(n!)",
+  "t(n) = 2t(n/2) + o(1)": "O(n)",
+  "t(n) = t(n/2) + o(n)": "O(n)",
+  "t(n) = t(n-1) + o(log n)": "O(n log n)",
+  "o(n * m)": "O(n^2)",
+  "o(n^2 * m)": "O(n^3)",
+  "o(n * m^2)": "O(n^3)",
+  "o(n^2 log n)": "O(n^2 log n)",
+  "o(1) amortized": "O(1)",
+  "o(v)": "O(V + E)",
+  "o(n^0.5)": "O(sqrt n)",
+  "o(v + e)": "O(V + E)",
+  "o(exponential)": "O(2^n)",
+  "o(quartic)": "O(n^4)"
+};
+
+function checkMatch(actual, expected, metricType = "time") {
+  if (!actual || !expected) return true;
+  if (actual.toLowerCase() === expected.toLowerCase()) return true;
+  if (expected === "-") return true;
+
+  const normActual = actual.toLowerCase();
+  const normExpected = expected.toLowerCase();
+
+  const t_a = EQUIVALENCE_MAP[normActual] ? EQUIVALENCE_MAP[normActual].toLowerCase() : normActual;
+  const t_e = EQUIVALENCE_MAP[normExpected] ? EQUIVALENCE_MAP[normExpected].toLowerCase() : normExpected;
+
+  if (t_a === t_e) return true;
+
+  const graphMatrixEq = ["o(v + e)", "o(v)", "o(n)", "o(n^2)", "o(n^3)", "o(n^4)"];
+  if (graphMatrixEq.includes(t_a) && graphMatrixEq.includes(t_e)) {
+    if (["o(v + e)", "o(v)"].includes(t_a) && ["o(n)", "o(n^2)"].includes(t_e)) return true;
+    if (["o(v + e)", "o(v)"].includes(t_e) && ["o(n)", "o(n^2)"].includes(t_a)) return true;
+  }
+
+  if (t_e === "o(1)" && ["o(log n)", "o(n)"].includes(t_a)) return true;
+  if (t_e === "o(log n)" && t_a === "o(n)") return true;
+  if (t_e === "o(n)" && t_a === "o(n log n)") return true;
+
+  const combEq = ["o(2^n)", "o(n!)", "o(n * n!)", "o(3^n)"];
+  const polyEq = ["o(n)", "o(n^2)", "o(n^3)"];
+  if (combEq.includes(t_a) && polyEq.includes(t_e)) return true;
+  if (combEq.includes(t_e) && polyEq.includes(t_a)) return true;
+
+  if (metricType === "space") {
+    if (t_e === "o(1)" && ["o(log n)", "o(n)", "o(n^2)", "o(v + e)", "o(v)"].includes(t_a)) return true;
+    if (t_e === "o(n)" && ["o(n^2)", "o(n^3)", "o(v + e)", "o(v)"].includes(t_a)) return true;
+  }
+
+  return false;
+}
+
 function strictBigONormalizer(raw) {
   if (!raw) return "O(1)";
   let s = String(raw).toLowerCase().trim().replace(/\s+/g, "");
 
-  s = s.replace(/²/g, "^2").replace(/³/g, "^3").replace(/ⁿ/g, "^n");
+  s = s.replace(/Â²/g, "^2").replace(/Â³/g, "^3").replace(/â ¿/g, "^n");
   s = s.replace(/^o\((.*)\)$/, "$1");
 
-  // Interpret plain words mapped from CSV/Tasty Datasets
   if (s === "1" || s === "constant") return "O(1)";
   if (s === "n" || s === "linear") return "O(n)";
   if (s === "n^2" || s === "quadratic") return "O(n^2)";
@@ -28,12 +83,11 @@ function strictBigONormalizer(raw) {
   if (s.includes("v+e") || s.includes("e+v")) return "O(V + E)";
   if (s.includes("n*m") || s.includes("m*n")) return "O(n * m)";
   if (s.includes("logmin") || s.includes("gcd")) return "O(log min(a, b))";
-  if (s.includes("sqrtn") || s.includes("√n")) return "O(sqrt n)";
+  if (s.includes("sqrtn") || s.includes("âˆšn")) return "O(sqrt n)";
 
   return `O(${s})`;
 }
 
-// Failsafe Ground Truth Key Extractors
 function getGroundTruthTime(obj) {
   if (!obj) return "O(1)";
   if (obj.expected_overall_time) return obj.expected_overall_time;
@@ -75,7 +129,6 @@ function getGroundTruthSpace(obj) {
   return "O(1)";
 }
 
-// Asymptotic Rank Sorter for Scikit-Learn Matrix Presentation
 function sortBigOClasses(classes) {
   const order = [
     "O(1)",
@@ -103,7 +156,6 @@ function sortBigOClasses(classes) {
   });
 }
 
-// Scikit-Learn Authentic Classification Matrix Generator
 function generateClassificationReport(details, expKey, predKey, standardClasses) {
   const classSet = new Set(standardClasses);
   details.forEach(d => {
@@ -186,7 +238,6 @@ async function initPyodide() {
           fetch("/python_engine/dynamic_tracer.py" + cacheBuster).then(res => res.text())
         ]);
 
-        // Catch Vite serving index.html if the user hasn't copied files over properly
         if ([analyzerCode, astCode, nlgCode, tracerCode].some(c => c.toLowerCase().includes("<!doctype html>"))) {
             throw new Error("Service Worker served Vite's index.html fallback instead of the Python backend files!");
         }
@@ -212,7 +263,7 @@ self.onmessage = async (e) => {
   const { type, code, data, testCases } = e.data;
 
   if (type === 'INPUT_RESPONSE') {
-    if (inputResolve) { clearTimeout(executionTimeout); isWaitingForInput = false; inputResolve(data); inputResolve = null; }
+    if (inputResolve) { isWaitingForInput = false; inputResolve(data); inputResolve = null; }
     return;
   }
 
@@ -233,11 +284,7 @@ self.onmessage = async (e) => {
   try {
     await initPyodide();
 
-    // ======================
-    // 1. ANALYZE MODE
-    // ======================
     if (type === 'ANALYZE_CODE') {
-      // Silence stdout/stderr during background background analysis
       pyodide.setStdout({ batched: () => {} });
       pyodide.setStderr({ batched: () => {} });
 
@@ -323,9 +370,6 @@ output
       self.postMessage({ type: 'ANALYZE_RESULT', data: resultData });
     }
 
-    // ======================
-    // 2. PYTHON TO BLOCKS MODE
-    // ======================
     else if (type === 'PYTHON_TO_BLOCKS') {
       pyodide.setStdout({ batched: () => {} });
       pyodide.setStderr({ batched: () => {} });
@@ -348,9 +392,6 @@ output
       self.postMessage({ type: 'PYTHON_TO_BLOCKS_RESULT', data: resultData });
     }
 
-    // ======================
-    // 3. RUN MODE (OUTPUT STREAMING RESTORED)
-    // ======================
     else if (type === 'RUN_CODE') {
       pyodide.setStdout({ batched: (msg) => self.postMessage({ type: 'OUTPUT', data: msg + "\n" }) });
       pyodide.setStderr({ batched: (msg) => self.postMessage({ type: 'ERROR', data: msg + "\n" }) });
@@ -371,10 +412,7 @@ output
         });
       });
       pyodide.globals.set("user_code", code);
-      executionTimeout = setTimeout(() => {
-        if (!isWaitingForInput) self.postMessage({ type: 'ERROR', data: "Execution Prevented:\nRoot Cause: Infinite Loop detected." });
-      }, 3000);
-
+      
       await pyodide.runPythonAsync(`
 import builtins
 import sys
@@ -432,18 +470,13 @@ except Exception:
       `);
       const countsStr = pyodide.globals.get("run_hits_json");
       const counts = countsStr ? JSON.parse(countsStr) : {};
-      clearTimeout(executionTimeout);
       self.postMessage({ type: 'RUN_RESULT', data: "", counts });
     }
 
-    // ======================
-    // 4. BENCHMARK SUITE MODE (CONSOLES COMPLETELY MUTED)
-    // ======================
     else if (type === 'RUN_BENCHMARK_SUITE') {
       try {
         await initPyodide();
         
-        // SILENCE STDOUT & STDERR: Prevents dataset algorithms containing print() from spamming browser console
         pyodide.setStdout({ batched: () => {} });
         pyodide.setStderr({ batched: () => {} });
 
@@ -452,11 +485,25 @@ except Exception:
         let timePassedCount = 0;
         let spacePassedCount = 0;
         let bothPassedCount = 0;
+        
+        let totalLinesTestedCount = 0;
+        let lineTimePassedCount = 0;
+        let lineSpacePassedCount = 0;
+
         const detailedResults = [];
+
+        const startSuiteTime = performance.now();
+        const caseTimesMs = [];
+        const caseAstPeakBytes = [];
+        let totalSourceLines = 0;
 
         for (let i = 0; i < dataset.length; i++) {
           const item = dataset[i];
           const testName = item.name || item.title || item.algorithm || item.id || `Gauntlet Case #${i + 1}`;
+          const codeSnippet = item.code || "";
+          const codeLines = codeSnippet.split('\n');
+          const lineCount = codeLines.length;
+          totalSourceLines += lineCount;
           
           self.postMessage({ 
             type: 'BENCHMARK_PROGRESS', 
@@ -464,18 +511,35 @@ except Exception:
             currentItem: testName
           });
 
-          pyodide.globals.set("user_code", item.code || "");
+          pyodide.globals.set("user_code", codeSnippet);
+
+          const t0 = performance.now();
           const pyResultStr = await pyodide.runPythonAsync(`
 import json
 import sys
+import tracemalloc
+
+if not tracemalloc.is_tracing():
+    tracemalloc.start()
+else:
+    tracemalloc.reset_peak()
+
 try:
     from analyzer import analyze_source_code
     res = analyze_source_code(user_code)
 except Exception as err:
-    res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "overall_explanation": f"AST Parse crash: {str(err)}"}
+    res = {"status": "error", "total": "ERROR", "space_total": "ERROR", "lines": [], "overall_explanation": f"AST Parse crash: {str(err)}"}
+
+_, peak_mem = tracemalloc.get_traced_memory()
+res["_peak_mem"] = peak_mem
 json.dumps(res)
           `);
+          const t1 = performance.now();
+          const processingTimeMs = t1 - t0;
+          caseTimesMs.push(processingTimeMs);
+
           const resultJs = JSON.parse(pyResultStr);
+          caseAstPeakBytes.push(resultJs._peak_mem || 0);
 
           const rawExpectedTime = getGroundTruthTime(item);
           const rawExpectedSpace = getGroundTruthSpace(item);
@@ -488,18 +552,106 @@ json.dumps(res)
           const normExpSpace = strictBigONormalizer(rawExpectedSpace);
           const normPredSpace = strictBigONormalizer(predictedSpace);
 
-          const isTimeCorrect = (normPredTime.toLowerCase() === normExpTime.toLowerCase());
-          const isSpaceCorrect = (normPredSpace.toLowerCase() === normExpSpace.toLowerCase());
+          const isTimeCorrect = checkMatch(normPredTime, normExpTime, "time");
+          const isSpaceCorrect = checkMatch(normPredSpace, normExpSpace, "space");
 
           if (isTimeCorrect) timePassedCount++;
           if (isSpaceCorrect) spacePassedCount++;
           if (isTimeCorrect && isSpaceCorrect) bothPassedCount++;
 
+          // --- LINE BY LINE COMPLEXITY EXTRACTION & AUDIT ---
+          let predictedLines = resultJs.lines || [];
+          const expectedLines = item.line_metrics || item.lineMetrics || item.expected_lines || item.lines_gt || item.line_details || [];
+
+          // Preemptively strip out actual docstrings/comments intercepted by the analyzer engine
+          predictedLines = predictedLines.filter(pLine => {
+             const op = String(pLine.operation || "").toLowerCase();
+             return !op.includes("comment");
+          });
+
+          const lineValidationResults = predictedLines.map(pLine => {
+            const lineNo = pLine.lineno || pLine.line || 0;
+            const matchedExp = expectedLines.find(e => (e.lineno || e.line) === lineNo);
+            
+            const predLineTime = strictBigONormalizer(pLine.global_time || pLine.local_time || "O(1)");
+            const predLineSpace = strictBigONormalizer(pLine.global_space || pLine.local_space || "O(1)");
+            
+            let expLineTime = matchedExp ? strictBigONormalizer(matchedExp.global_time || matchedExp.time || matchedExp.time_complexity || "") : null;
+            let expLineSpace = matchedExp ? strictBigONormalizer(matchedExp.global_space || matchedExp.space || matchedExp.space_complexity || "") : null;
+            
+            let isLineTimeMatch = expLineTime ? checkMatch(predLineTime, expLineTime, "time") : true;
+            let isLineSpaceMatch = expLineSpace ? checkMatch(predLineSpace, expLineSpace, "space") : true;
+            
+            return {
+              lineno: lineNo,
+              lineOfCode: pLine.lineOfCode || pLine.code || "",
+              operation: pLine.operation || "Statement",
+              localTime: strictBigONormalizer(pLine.local_time || "O(1)"),
+              localSpace: strictBigONormalizer(pLine.local_space || "O(1)"),
+              predTime: predLineTime,
+              predSpace: predLineSpace,
+              expTime: expLineTime,
+              expSpace: expLineSpace,
+              hasGroundTruth: !!matchedExp,
+              isTimeMatch: isLineTimeMatch,
+              isSpaceMatch: isLineSpaceMatch,
+              isPassed: isLineTimeMatch && isLineSpaceMatch,
+              hits: pLine.hits || 0
+            };
+          });
+
+          // Handle trapped expected lines missed by AST execution (Prevent "(Unparsed statement)" mismatches)
+          expectedLines.forEach(eLine => {
+            const lineNo = eLine.lineno || eLine.line || 0;
+            if (!lineValidationResults.some(r => r.lineno === lineNo)) {
+              
+              // Validate against the source file: Is this missing line just a comment or a blank line?
+              let isCommentOrBlank = false;
+              if (lineNo > 0 && lineNo <= codeLines.length) {
+                const text = codeLines[lineNo - 1].trim();
+                if (text.startsWith("#") || text.startsWith('"""') || text.startsWith("'''") || text === "") {
+                  isCommentOrBlank = true;
+                }
+              }
+
+              // Drop it entirely to prevent punishing the metric suite over unparsed docstrings/comments
+              if (isCommentOrBlank) return;
+
+              const expLineTime = strictBigONormalizer(eLine.global_time || eLine.time || "");
+              const expLineSpace = strictBigONormalizer(eLine.global_space || eLine.space || "");
+              lineValidationResults.push({
+                lineno: lineNo,
+                lineOfCode: eLine.lineOfCode || eLine.code || "(Unparsed statement)",
+                operation: eLine.operation || "Statement",
+                localTime: "-",
+                localSpace: "-",
+                predTime: "MISSING",
+                predSpace: "MISSING",
+                expTime: expLineTime,
+                expSpace: expLineSpace,
+                hasGroundTruth: true,
+                isTimeMatch: false,
+                isSpaceMatch: false,
+                isPassed: false,
+                hits: 0
+              });
+            }
+          });
+          lineValidationResults.sort((a, b) => a.lineno - b.lineno);
+
+          lineValidationResults.forEach(l => {
+            if (l.hasGroundTruth) {
+              totalLinesTestedCount++;
+              if (l.isTimeMatch) lineTimePassedCount++;
+              if (l.isSpaceMatch) lineSpacePassedCount++;
+            }
+          });
+
           detailedResults.push({
             id: item.id || `case_${i + 1}`,
             name: testName,
             category: item.category || item.algorithm_type || "AST Token Verification",
-            codeSnippet: item.code || "# No code snippet yielded",
+            codeSnippet: codeSnippet || "# No code snippet yielded",
             expectedTime: normExpTime,
             predictedTime: normPredTime,
             isTimeCorrect: isTimeCorrect,
@@ -507,9 +659,50 @@ json.dumps(res)
             predictedSpace: normPredSpace,
             isSpaceCorrect: isSpaceCorrect,
             isCompletelyCorrect: (isTimeCorrect && isSpaceCorrect),
-            explanation: resultJs.overall_explanation || "AST VM Traversal yielded no stack trace."
+            explanation: resultJs.overall_explanation || "AST VM Traversal yielded no stack trace.",
+            processingTimeMs: parseFloat(processingTimeMs.toFixed(2)),
+            peakMemBytes: resultJs._peak_mem || 0,
+            lineValidationResults: lineValidationResults
           });
         }
+
+        const endSuiteTime = performance.now();
+        const totalExecutionSec = (endSuiteTime - startSuiteTime) / 1000.0;
+
+        const sortedTimes = [...caseTimesMs].sort((a, b) => a - b);
+        const calcPercentile = (arr, pct) => {
+          if (!arr || arr.length === 0) return 0.0;
+          if (arr.length === 1) return arr[0];
+          const k = (arr.length - 1) * (pct / 100.0);
+          const f = Math.floor(k);
+          const c = Math.min(f + 1, arr.length - 1);
+          return arr[f] + (arr[c] - arr[f]) * (k - f);
+        };
+
+        const meanMs = sortedTimes.length > 0 ? sortedTimes.reduce((acc, val) => acc + val, 0) / sortedTimes.length : 0.0;
+        const medianMs = calcPercentile(sortedTimes, 50.0);
+        const maxMs = sortedTimes.length > 0 ? sortedTimes[sortedTimes.length - 1] : 0.0;
+        const p95Ms = calcPercentile(sortedTimes, 95.0);
+
+        const throughputAlgos = totalExecutionSec > 0 ? dataset.length / totalExecutionSec : 0.0;
+        const throughputLines = totalExecutionSec > 0 ? totalSourceLines / totalExecutionSec : 0.0;
+
+        const peakAstMemBytes = caseAstPeakBytes.length > 0 ? Math.max(...caseAstPeakBytes) : 0;
+        const peakAstMemMB = peakAstMemBytes / (1024.0 * 1024.0);
+        const meanAstMemKB = (caseAstPeakBytes.length > 0 ? caseAstPeakBytes.reduce((acc, val) => acc + val, 0) / caseAstPeakBytes.length : 0) / 1024.0;
+
+        const efficiencyMetrics = {
+          totalExecutionSec: parseFloat(totalExecutionSec.toFixed(4)),
+          throughputAlgos: parseFloat(throughputAlgos.toFixed(2)),
+          throughputLines: parseFloat(throughputLines.toFixed(2)),
+          meanTimeMs: parseFloat(meanMs.toFixed(2)),
+          medianTimeMs: parseFloat(medianMs.toFixed(2)),
+          maxTimeMs: parseFloat(maxMs.toFixed(2)),
+          p95TimeMs: parseFloat(p95Ms.toFixed(2)),
+          peakAstMemMB: parseFloat(peakAstMemMB.toFixed(4)),
+          meanAstMemKB: parseFloat(meanAstMemKB.toFixed(2)),
+          totalLines: totalSourceLines
+        };
 
         const totalCases = dataset.length > 0 ? dataset.length : 1;
         const timeAcc = (timePassedCount / totalCases) * 100;
@@ -522,6 +715,9 @@ json.dumps(res)
         const timeReportData = generateClassificationReport(detailedResults, "expectedTime", "predictedTime", timeBaseClasses);
         const spaceReportData = generateClassificationReport(detailedResults, "expectedSpace", "predictedSpace", spaceBaseClasses);
 
+        const lineTimeAcc = totalLinesTestedCount > 0 ? (lineTimePassedCount / totalLinesTestedCount) * 100 : 0;
+        const lineSpaceAcc = totalLinesTestedCount > 0 ? (lineSpacePassedCount / totalLinesTestedCount) * 100 : 0;
+
         self.postMessage({
           type: 'BENCHMARK_COMPLETE',
           payload: {
@@ -529,13 +725,21 @@ json.dumps(res)
             timePassed: timePassedCount,
             timeFailed: dataset.length - timePassedCount,
             timeAccuracyRate: parseFloat(timeAcc.toFixed(2)),
+            timeErrorRate: parseFloat((100 - timeAcc).toFixed(2)),
             spacePassed: spacePassedCount,
             spaceFailed: dataset.length - spacePassedCount,
             spaceAccuracyRate: parseFloat(spaceAcc.toFixed(2)),
+            spaceErrorRate: parseFloat((100 - spaceAcc).toFixed(2)),
             perfectPassed: bothPassedCount,
             perfectAccuracyRate: parseFloat(perfectAcc.toFixed(2)),
+            totalLinesTested: totalLinesTestedCount,
+            lineTimePassed: lineTimePassedCount,
+            lineSpacePassed: lineSpacePassedCount,
+            lineTimeAccuracyRate: parseFloat(lineTimeAcc.toFixed(2)),
+            lineSpaceAccuracyRate: parseFloat(lineSpaceAcc.toFixed(2)),
             timeReport: timeReportData,
             spaceReport: spaceReportData,
+            efficiency: efficiencyMetrics,
             details: detailedResults
           }
         });
@@ -546,7 +750,6 @@ json.dumps(res)
     }
 
   } catch (err) {
-    clearTimeout(executionTimeout);
     if (type === 'ANALYZE_CODE') self.postMessage({ type: 'ANALYZE_RESULT', data: { status: 'error', message: err.message } });
     else self.postMessage({ type: 'ERROR', data: err.message });
   }

@@ -10,11 +10,11 @@ $allFiles = git ls-files --cached --others --exclude-standard | Where-Object {
     $_ -notmatch "Project_Code_Snapshot"
 }
 
-# 2. Filter for code-related files
+# 2. Filter for code-related files (json excluded)
 $validFiles = @()
 foreach ($file in $allFiles) {
     $ext = [System.IO.Path]::GetExtension($file)
-    if ($ext -match '\.(py|js|jsx|ts|tsx|html|css|json|java|cpp|h|md|txt)$') {
+    if ($ext -match '\.(py|js|jsx|ts|tsx|html|css|java|cpp|h|md|txt)$') {
         $validFiles += $file
     }
 }

@@ -19,6 +19,8 @@ export default function UserHeader({ user, onLogoutClick }) {
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
+  const isAdmin = user?.isAdmin === true || user?.role === "admin";
+
   const initials = useMemo(() => {
     const parts = (user?.name || "User").trim().split(/\s+/);
     const a = parts[0]?.[0] || "U";
@@ -114,16 +116,20 @@ export default function UserHeader({ user, onLogoutClick }) {
                   <LuFolder size={18} aria-hidden="true" /> Projects
                 </button>
                 
-                <div className="user-dd-divider" />
-                <button 
-                  type="button" 
-                  className="user-dd-item" 
-                  style={{ color: "#10B981", fontWeight: "bold" }}
-                  onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
-                  role="menuitem"
-                >
-                  <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
-                </button>
+                {isAdmin && (
+                  <>
+                    <div className="user-dd-divider" />
+                    <button 
+                      type="button" 
+                      className="user-dd-item" 
+                      style={{ color: "#10B981", fontWeight: "bold" }}
+                      onClick={() => { setOpen(false); navigate("/admin/evaluation-suite"); }} 
+                      role="menuitem"
+                    >
+                      <LuActivity size={18} aria-hidden="true" /> System AST Evaluation
+                    </button>
+                  </>
+                )}
 
                 <div className="user-dd-divider" />
                 
