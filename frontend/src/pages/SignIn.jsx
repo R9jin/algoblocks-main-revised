@@ -103,10 +103,12 @@ export default function SignIn() {
       activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("token", data.token);
       
-      // Save full user object to ensure offline loading functions properly
+      // Save full user object including admin status
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
+        role: data.role || "user",
+        isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
         progress: data.progress || {},
         assessments: data.assessments || {}
       })); 
@@ -141,6 +143,8 @@ export default function SignIn() {
         email: `guest_${Date.now()}@algoblocks.local`,
         name: "Guest User",
         isGuest: true,
+        role: "guest",
+        isAdmin: false,
         progress: {},
         assessments: {}
       })); 
@@ -182,10 +186,12 @@ export default function SignIn() {
       activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("token", data.token);
       
-      // Save full user object to ensure offline loading functions properly
+      // Save full user object including admin status
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
+        role: data.role || "user",
+        isAdmin: data.isAdmin === true || data.is_admin === true || data.role === "admin" || data.role === "Admin",
         progress: data.progress || {},
         assessments: data.assessments || {}
       }));

@@ -1,6 +1,6 @@
 ﻿--- PROJECT SNAPSHOT (PART 1 OF 10) ---
 
---- TIMESTAMP: 2026-07-06 10:59:59 ---
+--- TIMESTAMP: 2026-07-07 17:19:35 ---
 
 
 --- FILE: README.md ---
@@ -2107,7 +2107,7 @@ class ComplexityAnalyzer(ast.NodeVisitor):
                 mult_node = node.value.right if isinstance(node.value.left, (ast.List, ast.Tuple)) else node.value.left
                 is_fixed_const = self._is_constant_expr(mult_node)
                 val = extract_constant(mult_node)
-                if val is not None and isinstance(val, (int, float)) and val > 1500:
+                if val is not None and isinstance(val, (int, float)) and val > 100:
                     is_fixed_const = False
                         
                 if is_fixed_const:
@@ -2262,11 +2262,72 @@ class ComplexityAnalyzer(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Expr(self, node): 
+        # IGNORE COMMENTS/DOCSTRINGS: If it's just a loose string, skip recording it entirely
         if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-            self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Comment / Docstring")
-        elif not isinstance(node.value, (ast.Call, ast.ListComp, ast.SetComp, ast.DictComp, ast.Yield, ast.YieldFrom)):
+            self.generic_visit(node)
+            return
+            
+        if not isinstance(node.value, (ast.Call, ast.ListComp, ast.SetComp, ast.DictComp, ast.Yield, ast.YieldFrom)):
             self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Expression")
+            
         self.generic_visit(node)      
+
+    def visit_Pass(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pass")
+        self.generic_visit(node)
+
+    def visit_Break(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Break")
+        self.generic_visit(node)
+
+    def visit_Continue(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Continue")
+        self.generic_visit(node)
+
+    def visit_Assert(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Assertion")
+        self.generic_visit(node)
+
+    def visit_Delete(self, node):
+        self.record_line(node, time_override="O(n)", space_override="O(1)", custom_op="Delete")
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import")
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Import From")
+        self.generic_visit(node)
+
+    def visit_Global(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Global Declaration")
+        self.generic_visit(node)
+
+    def visit_Nonlocal(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Nonlocal Declaration")
+        self.generic_visit(node)
+
+    def visit_Raise(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Raise Exception")
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node):
+        self.record_line(node, time_override="Definition", space_override="O(1)", custom_op="Class Definition")
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
+
+    def visit_AsyncFunctionDef(self, node):
+        self.visit_FunctionDef(node)
+
+    def visit_AsyncFor(self, node):
+        self.visit_For(node)
+
+    def visit_AsyncWith(self, node):
+        self.visit_With(node)
+
+    def visit_Match(self, node):
+        self.record_line(node, time_override="O(1)", space_override="O(1)", custom_op="Pattern Matching")
+        self.current_depth += 1; self.generic_visit(node); self.current_depth -= 1
 
     def get_final_asymptotic_badge(self):
         all_comps = " ".join([str(d.get('global_time', '')) for d in self._details] + [str(d.get('local_time', '')) for d in self._details])
@@ -2455,6 +2516,7 @@ def analyze_source_code(source_code):
     except Exception as e:
         print(f"[AST CRASH FALLBACK TRIGGERED]: {e}")
         results = fallback_analyzer(source_code)
+        results["error"] = str(e) # Expose the error so it doesn't fail silently
         
     end_time = time.perf_counter()
     results["analysis_time_ms"] = (end_time - start_time) * 1000
@@ -3380,7 +3442,8 @@ from routers import (
     auth_router,
     project_router,
     analyze_router,
-    template_router
+    template_router,
+    admin_router
 )
 
 app = FastAPI(
@@ -3411,6 +3474,7 @@ app.include_router(auth_router.router, prefix="/api", tags=["Authentication"])
 app.include_router(project_router.router, prefix="/api/projects", tags=["Projects"])
 app.include_router(analyze_router.router, prefix="/api", tags=["Analysis"])
 app.include_router(template_router.router, prefix="/api/templates", tags=["Templates"])
+app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin Operations"])
 
 @app.get("/api/health")
 async def health_check():
@@ -3674,3 +3738,44 @@ class UserRepository:
             {"email": email},
             {"$set": {f"assessments.{assessment_key}": data}}
         )
+        
+    @staticmethod
+    def find_all_users():
+        # Exclude passwords and MongoDB ObjectIds from the response payload
+        users = list(users_collection.find({}, {"password": 0, "_id": 0}))
+        return users
+
+    @staticmethod
+    def update_user_status(email: str, status: str):
+        return users_collection.update_one(
+            {"email": email},
+            {"$set": {"status": status}}
+        )
+
+    @staticmethod
+    def delete_user(email: str):
+        return users_collection.delete_one({"email": email})
+
+--- FILE: api/requirements.txt ---
+
+fastapi==0.135.3
+uvicorn[standard]==0.44.0
+websockets==12.0
+pydantic==2.13.0
+pymongo[srv]==4.7.2
+python-dotenv==1.0.1
+requests==2.32.3
+slowapi==0.1.9
+pydantic[email]
+passlib[bcrypt]
+PyJWT
+
+# optional but already in your freeze (safe to keep)
+anyio==4.13.0
+click==8.3.2
+colorama==0.4.6
+h11==0.16.0
+idna==3.11
+typing_extensions==4.15.0
+google-auth==2.29.0
+requests==2.32.3

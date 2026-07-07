@@ -1,31 +1,69 @@
 ﻿--- PROJECT SNAPSHOT (PART 2 OF 10) ---
 
---- TIMESTAMP: 2026-07-06 10:59:59 ---
+--- TIMESTAMP: 2026-07-07 17:19:35 ---
 
 
---- FILE: api/requirements.txt ---
+--- FILE: api/routers/admin_router.py ---
 
-fastapi==0.135.3
-uvicorn[standard]==0.44.0
-websockets==12.0
-pydantic==2.13.0
-pymongo[srv]==4.7.2
-python-dotenv==1.0.1
-requests==2.32.3
-slowapi==0.1.9
-pydantic[email]
-passlib[bcrypt]
-PyJWT
+# api/routers/admin_router.py
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Dict, Any
 
-# optional but already in your freeze (safe to keep)
-anyio==4.13.0
-click==8.3.2
-colorama==0.4.6
-h11==0.16.0
-idna==3.11
-typing_extensions==4.15.0
-google-auth==2.29.0
-requests==2.32.3
+from repositories.user_repo import UserRepository
+from security import get_current_admin_user
+from limiter import limiter
+from fastapi import Request
+
+router = APIRouter()
+
+@router.get("/users")
+@limiter.limit("30/minute")
+def get_all_users(request: Request, admin_email: str = Depends(get_current_admin_user)):
+    try:
+        users = UserRepository.find_all_users()
+        return {"status": "success", "users": users}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/users/{target_email}/status")
+@limiter.limit("20/minute")
+def update_user_status(
+    request: Request, 
+    target_email: str, 
+    payload: Dict[str, str], 
+    admin_email: str = Depends(get_current_admin_user)
+):
+    new_status = payload.get("status")
+    if new_status not in ["Active", "Suspended"]:
+        raise HTTPException(status_code=400, detail="Invalid status provided.")
+        
+    if target_email == admin_email:
+        raise HTTPException(status_code=403, detail="Admins cannot suspend their own accounts.")
+
+    result = UserRepository.update_user_status(target_email, new_status)
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    return {"status": "success", "message": f"User status updated to {new_status}"}
+
+@router.delete("/users/{target_email}")
+@limiter.limit("10/minute")
+def delete_user(request: Request, target_email: str, admin_email: str = Depends(get_current_admin_user)):
+    if target_email == admin_email:
+        raise HTTPException(status_code=403, detail="Admins cannot delete their own accounts.")
+        
+    # Check if user is the last admin before deletion (optional safeguard)
+    target_user = UserRepository.find_by_email(target_email)
+    if target_user and target_user.get("isAdmin"):
+        admin_count = len([u for u in UserRepository.find_all_users() if u.get("isAdmin")])
+        if admin_count <= 1:
+            raise HTTPException(status_code=403, detail="Cannot delete the last remaining administrator.")
+
+    result = UserRepository.delete_user(target_email)
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    return {"status": "success", "message": "User permanently deleted."}
 
 --- FILE: api/routers/analyze_router.py ---
 
@@ -408,6 +446,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from database import users_collection
 
 logger = logging.getLogger(__name__)
 
@@ -462,6 +501,21 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
     except jwt.InvalidTokenError as e:
         logger.warning(f"Rejected request: Invalid token - {str(e)}")
         raise credentials_exception
+
+async def get_current_admin_user(email: str = Depends(get_current_user_email)) -> str:
+    """
+    Dependency that checks if the currently authenticated user has the 'isAdmin' flag set to True.
+    """
+    user = users_collection.find_one({"email": email})
+    
+    if not user or not user.get("isAdmin"):
+        logger.warning(f"Rejected request: {email} attempted to access an admin-restricted endpoint.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator privileges required to perform this action."
+        )
+        
+    return email
 
 --- FILE: api/semantic_nlg.py ---
 
@@ -1670,6 +1724,8 @@ class AuthService:
             "status": "success",
             "email": req.email,
             "name": user.get("name"),
+            "role": user.get("role", "user"),
+            "isAdmin": user.get("isAdmin", False) or user.get("is_admin", False),
             "progress": user.get("progress", {}),
             "assessments": user.get("assessments", {}),
             "token": token
@@ -1686,6 +1742,8 @@ class AuthService:
             "name": req.name,
             "email": req.email,
             "password": hashed_password,
+            "role": "user",
+            "isAdmin": False,
             "progress": {},
             "assessments": {} 
         })
@@ -1696,6 +1754,8 @@ class AuthService:
             "status": "success",
             "email": req.email,
             "name": req.name,
+            "role": "user",
+            "isAdmin": False,
             "token": token
         }
 
@@ -1796,6 +1856,8 @@ class AuthService:
                     "name": name,
                     "email": email,
                     "password": None,
+                    "role": "user",
+                    "isAdmin": False,
                     "progress": {},
                     "assessments": {} 
                 })
@@ -1807,6 +1869,8 @@ class AuthService:
                 "status": "success",
                 "email": email,
                 "name": user.get("name"),
+                "role": user.get("role", "user"),
+                "isAdmin": user.get("isAdmin", False) or user.get("is_admin", False),
                 "progress": user.get("progress", {}),
                 "assessments": user.get("assessments", {}),
                 "token": backend_token
@@ -2056,3 +2120,35 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+--- FILE: frontend/eslint.config.js ---
+
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])

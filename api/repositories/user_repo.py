@@ -23,3 +23,20 @@ class UserRepository:
             {"email": email},
             {"$set": {f"assessments.{assessment_key}": data}}
         )
+        
+    @staticmethod
+    def find_all_users():
+        # Exclude passwords and MongoDB ObjectIds from the response payload
+        users = list(users_collection.find({}, {"password": 0, "_id": 0}))
+        return users
+
+    @staticmethod
+    def update_user_status(email: str, status: str):
+        return users_collection.update_one(
+            {"email": email},
+            {"$set": {"status": status}}
+        )
+
+    @staticmethod
+    def delete_user(email: str):
+        return users_collection.delete_one({"email": email})

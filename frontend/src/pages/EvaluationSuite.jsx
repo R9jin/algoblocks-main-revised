@@ -29,7 +29,6 @@ export default function EvaluationSuite() {
   const { worker, isEngineReady } = usePyodide();
 
   useEffect(() => {
-    console.log("DUAL-DATASET GAUNTLET & SCIKIT-LEARN AUDIT MOUNTED!");
     const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!userStr) navigate("/");
   }, [navigate]);
@@ -280,8 +279,8 @@ export default function EvaluationSuite() {
     worker.postMessage({ type: "RUN_BENCHMARK_SUITE", dataset: gauntletPayload });
   };
 
-  // Safe Extraction Logic For Download
-  const anyMismatchCount = results?.details.filter(d =>
+  // Safe Extraction Logic For Download - We want to log ANY kind of mismatch (line or overall)
+  const totalErrorsCount = results?.details.filter(d =>
     !d.isCompletelyCorrect || d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
   ).length || 0;
 
@@ -344,25 +343,35 @@ export default function EvaluationSuite() {
     }
   };
 
-  // Filter Details with Line Error Context
+  // Filter Details separating strictly Overall and Line Context to prevent mixing metrics
   const filteredDetails = (results?.details || []).filter((item) => {
     const gtLines = item.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
     const lineFails = gtLines.filter(l => !l.isPassed).length;
     const hasLineMismatch = lineFails > 0;
 
-    if (activeTab === "overall_pass") return item.isTimeCorrect && item.isSpaceCorrect;
+    if (activeTab === "overall_pass") return item.isCompletelyCorrect;
     if (activeTab === "line_pass") return gtLines.length > 0 && !hasLineMismatch;
-    if (activeTab === "mismatch") return (!item.isTimeCorrect || !item.isSpaceCorrect || hasLineMismatch);
+    if (activeTab === "overall_mismatch") return !item.isCompletelyCorrect;
+    if (activeTab === "line_mismatch") return hasLineMismatch;
     return true;
   });
+
+  const overallPassCount = results?.details.filter(d => d.isCompletelyCorrect).length || 0;
+  const overallMismatchCount = results?.details.filter(d => !d.isCompletelyCorrect).length || 0;
 
   const linePassCount = results?.details.filter(d =>
     d.lineValidationResults?.some(l => l.hasGroundTruth) &&
     !d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
   ).length || 0;
+  const lineMismatchCount = results?.details.filter(d =>
+    d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
+  ).length || 0;
 
-  const overallPassCount = results?.details.filter(d => d.isCompletelyCorrect).length || 0;
-
+  // Calculate Line-level distinct metric derivations natively
+  const lineTimeErrorRate = results?.totalLinesTested > 0 ? (100 - results.lineTimeAccuracyRate).toFixed(1) : 0;
+  const lineSpaceErrorRate = results?.totalLinesTested > 0 ? (100 - results.lineSpaceAccuracyRate).toFixed(1) : 0;
+  const lineTimeFailed = results?.totalLinesTested > 0 ? (results.totalLinesTested - results.lineTimePassed) : 0;
+  const lineSpaceFailed = results?.totalLinesTested > 0 ? (results.totalLinesTested - results.lineSpacePassed) : 0;
 
   const renderMetricCell = (val) => {
     if (val === undefined || val === null || val === "-" || val === "") return <span>-</span>;
@@ -786,24 +795,6 @@ export default function EvaluationSuite() {
           </div>
 
           <div className="dataset-btn-group">
-            {/*
-    <button
-      onClick={() => !isRunning && setDatasetOption("textbook")}
-      className={`dataset-btn ${datasetOption === "textbook" ? "active-ds" : ""}`}
-      disabled={isRunning}
-    >
-      Textbook Ground Truth (106)
-    </button>
-
-    <button
-      onClick={() => !isRunning && setDatasetOption("codeforces")}
-      className={`dataset-btn ${datasetOption === "codeforces" ? "active-ds" : ""}`}
-      disabled={isRunning}
-    >
-      CodeComplex Curated (104)
-    </button>
-    */}
-
             <button
               onClick={() => !isRunning && setDatasetOption("chunks")}
               className={`dataset-btn ${datasetOption === "chunks" ? "active-ds" : ""}`}
@@ -811,24 +802,6 @@ export default function EvaluationSuite() {
             >
               Tasty Ground Truth Dataset
             </button>
-
-            {/*
-    <button
-      onClick={() => !isRunning && setDatasetOption("tasty")}
-      className={`dataset-btn ${datasetOption === "tasty" ? "active-ds" : ""}`}
-      disabled={isRunning}
-    >
-      Tasty Dataset (CSV)
-    </button>
-
-    <button
-      onClick={() => !isRunning && setDatasetOption("both")}
-      className={`dataset-btn ${datasetOption === "both" ? "active-ds" : ""}`}
-      disabled={isRunning}
-    >
-      Full Master Suite (All Combined)
-    </button>
-    */}
           </div>
         </div>
 
@@ -839,7 +812,7 @@ export default function EvaluationSuite() {
             <strong className="eval-status-target">{statusText}</strong>
           </div>
           <div className="eval-status-group">
-            {results && anyMismatchCount > 0 && (
+            {results && totalErrorsCount > 0 && (
               <button className="eval-btn-inspect" onClick={() => downloadFailuresLog(results.details)} style={{ marginRight: "15px", display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px" }}>
 
                 <FiDownload size={14} /> Download Error Logs (TXT)
@@ -855,33 +828,6 @@ export default function EvaluationSuite() {
           </div>
         </div>
 
-        {results && results.totalLinesTested >= 0 && (
-
-          <div className="eval-status-banner line-stats-banner">
-            <div className="eval-status-group">
-              <FiLayers style={{ color: "#7928CA" }} size={20} />
-              <div>
-                <strong style={{ display: "block", color: "#0F172A", fontSize: "14px" }}>Statement-Level Ground Truth Audit</strong>
-
-                <span style={{ fontSize: "12px", color: "#64748B" }}>Verified {results.totalLinesTested} individual source lines against academic ground truth annotations.</span>
-              </div>
-            </div>
-            <div className="eval-status-group" style={{ gap: "24px" }}>
-              <div>
-                <span className="eval-status-label-sm">Line Time Acc: </span>
-
-                <strong style={{ color: "#10B981", fontSize: "16px" }}>{results.totalLinesTested > 0 ?
-                  ((results.lineTimePassed / results.totalLinesTested) * 100).toFixed(1) : "0.0"}%</strong>
-              </div>
-              <div>
-                <span className="eval-status-label-sm">Line Space Acc: </span>
-                <strong style={{ color: "#0EA5E9", fontSize: "16px" }}>{results.totalLinesTested > 0 ?
-                  ((results.lineSpacePassed / results.totalLinesTested) * 100).toFixed(1) : "0.0"}%</strong>
-              </div>
-            </div>
-          </div>
-        )}
-
         {isRunning && (
           <div className="eval-progress-track">
             <div className="eval-progress-fill" style={{ width: `${progress}%` }}></div>
@@ -890,63 +836,131 @@ export default function EvaluationSuite() {
         )}
 
         {results && (
-          <div className="eval-stats-grid">
-            <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
-              <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Time Accuracy</div>
-              <div className={`eval-stat-value ${results.timeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
-
-                {results.timeAccuracyRate}%
+          <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiCode style={{ display: "inline", color: "#10B981", marginRight: "8px" }} /> Overall Algorithm Accuracy
+                </strong>
+                <span className="eval-sklearn-subtitle">
+                  Validates the final computed Time and Space complexity for each fully processed algorithm block.
+                </span>
               </div>
             </div>
 
-            <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
-              <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Time Error Rate</div>
-              <div className="eval-stat-value val-danger">
+            <div className="eval-stats-grid">
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Overall Time Accuracy</div>
+                <div className={`eval-stat-value ${results.timeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
+                  {results.timeAccuracyRate}%
+                </div>
+              </div>
 
-                {results.timeErrorRate}%
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Time Error Rate</div>
+                <div className="eval-stat-value val-danger">
+                  {results.timeErrorRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Overall Time Passed</div>
+                <div className="eval-stat-value val-success">{results.timePassed}</div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Overall Time Mismatches</div>
+                <div className={`eval-stat-value ${results.timeFailed > 0 ? "val-danger" : "val-muted"}`}>{results.timeFailed}</div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Overall Space Accuracy</div>
+                <div className="eval-stat-value" style={{ color: results.spaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
+                  {results.spaceAccuracyRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Space Error Rate</div>
+                <div className="eval-stat-value val-danger">
+                  {results.spaceErrorRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Overall Space Passed</div>
+                <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.spacePassed}</div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Overall Space Mismatches</div>
+                <div className={`eval-stat-value ${results.spaceFailed > 0 ? "val-danger" : "val-muted"}`}>{results.spaceFailed}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {results && results.totalLinesTested >= 0 && (
+          <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Statement-Level (Line-by-Line) Accuracy
+                </strong>
+                <span className="eval-sklearn-subtitle">
+                  Verified {results.totalLinesTested} individual source lines. This metric is strictly isolated from the Overall block.
+                </span>
               </div>
             </div>
 
-            <div className="eval-stat-card">
-              <div className="eval-stat-title">Time Passed</div>
-              <div className="eval-stat-value val-success">{results.timePassed}</div>
-            </div>
-
-
-            <div className="eval-stat-card">
-              <div className="eval-stat-title">Time Mismatches</div>
-              <div className={`eval-stat-value ${results.timeFailed > 0 ?
-                "val-danger" : "val-muted"}`}>{results.timeFailed}</div>
-            </div>
-
-            <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
-              <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Space Accuracy</div>
-              <div className="eval-stat-value" style={{
-                color: results.spaceAccuracyRate >= 65 ?
-                  "#0EA5E9" : "#F59E0B"
-              }}>
-                {results.spaceAccuracyRate}%
+            <div className="eval-stats-grid">
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Line Time Accuracy</div>
+                <div className={`eval-stat-value ${results.lineTimeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
+                  {results.totalLinesTested > 0 ? results.lineTimeAccuracyRate : "0.0"}%
+                </div>
               </div>
-            </div>
 
-            <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
-              <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Space Error Rate</div>
-
-              <div className="eval-stat-value val-danger">
-                {results.spaceErrorRate}%
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Time Error Rate</div>
+                <div className="eval-stat-value val-danger">
+                  {lineTimeErrorRate}%
+                </div>
               </div>
-            </div>
 
-            <div className="eval-stat-card">
-              <div className="eval-stat-title">Space Passed</div>
-              <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.spacePassed}</div>
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Line Time Passed</div>
+                <div className="eval-stat-value val-success">{results.lineTimePassed}</div>
+              </div>
 
-            </div>
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Line Time Mismatches</div>
+                <div className={`eval-stat-value ${lineTimeFailed > 0 ? "val-danger" : "val-muted"}`}>{lineTimeFailed}</div>
+              </div>
 
-            <div className="eval-stat-card">
-              <div className="eval-stat-title">Space Mismatches</div>
-              <div className={`eval-stat-value ${results.spaceFailed > 0 ?
-                "val-danger" : "val-muted"}`}>{results.spaceFailed}</div>
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Line Space Accuracy</div>
+                <div className="eval-stat-value" style={{ color: results.lineSpaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
+                  {results.totalLinesTested > 0 ? results.lineSpaceAccuracyRate : "0.0"}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Space Error Rate</div>
+                <div className="eval-stat-value val-danger">
+                  {lineSpaceErrorRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Line Space Passed</div>
+                <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.lineSpacePassed}</div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Line Space Mismatches</div>
+                <div className={`eval-stat-value ${lineSpaceFailed > 0 ? "val-danger" : "val-muted"}`}>{lineSpaceFailed}</div>
+              </div>
             </div>
           </div>
         )}
@@ -969,7 +983,7 @@ export default function EvaluationSuite() {
             <div className="eval-stats-grid" style={{ padding: "16px 20px 20px", gap: "16px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
               <div className="eval-stat-card" style={{ borderTop: "4px solid #F59E0B" }}>
 
-                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Suite Execution</div>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Total Benchmarking Time</div>
                 <div className="eval-stat-value" style={{ color: "#D97706" }}>
                   {results.efficiency.totalExecutionSec}s
                 </div>
@@ -1198,13 +1212,16 @@ Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalA
                 All Algorithms ({results.details.length})
               </button>
               <button onClick={() => setActiveTab("overall_pass")} className={`eval-filter-btn ${activeTab === "overall_pass" ? "filter-pass-active" : "filter-pass-idle"}`}>
-                Overall T/S Match ({overallPassCount})
+                Overall Match ({overallPassCount})
               </button>
               <button onClick={() => setActiveTab("line_pass")} className={`eval-filter-btn ${activeTab === "line_pass" ? "filter-pass-active" : "filter-pass-idle"}`} style={{ backgroundColor: activeTab === "line_pass" ? "#0EA5E9" : "", color: activeTab === "line_pass" ? "#FFFFFF" : "" }}>
-                Line-Level Match ({linePassCount})
+                Line Match ({linePassCount})
               </button>
-              <button onClick={() => setActiveTab("mismatch")} className={`eval-filter-btn ${activeTab === "mismatch" ? "filter-fail-active" : "filter-fail-idle"}`}>
-                Any Mismatch ({anyMismatchCount})
+              <button onClick={() => setActiveTab("overall_mismatch")} className={`eval-filter-btn ${activeTab === "overall_mismatch" ? "filter-fail-active" : "filter-fail-idle"}`}>
+                Overall Mismatch ({overallMismatchCount})
+              </button>
+              <button onClick={() => setActiveTab("line_mismatch")} className={`eval-filter-btn ${activeTab === "line_mismatch" ? "filter-fail-active" : "filter-fail-idle"}`}>
+                Line Mismatch ({lineMismatchCount})
               </button>
             </div>
 
