@@ -8,8 +8,10 @@ import {
   LuSearch,
   LuShield,
   LuTrash2,
+  LuTriangleAlert,
   LuUser,
-  LuUsers
+  LuUsers,
+  LuX
 } from "react-icons/lu";
 import DashboardHeader from "../components/DashboardHeader";
 import "../styles/AdminUserManagement.css";
@@ -26,7 +28,18 @@ const AdminUserManagement = () => {
   const [roleFilter, setRoleFilter] = useState("all"); 
   const [statusFilter, setStatusFilter] = useState("all"); 
 
-  // SAFELY PARSE CURRENT USER TO PREVENT JSON.parse CRASHES
+  // Custom Modal State
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: "alert", // 'alert' | 'confirm' | 'prompt'
+    title: "",
+    message: "",
+    isPassword: true,
+    isDanger: false,
+    onConfirm: null
+  });
+  const [modalInputValue, setModalInputValue] = useState("");
+
   const currentUser = useMemo(() => {
     try {
       const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -51,7 +64,6 @@ const AdminUserManagement = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Failed to fetch users");
       
-      // PREVENT FATAL ARRAY CRASHES IF API RETURNS AN OBJECT
       if (data && Array.isArray(data.users)) {
         setUsers(data.users);
       } else if (Array.isArray(data)) {
@@ -71,7 +83,7 @@ const AdminUserManagement = () => {
   }, []);
 
   const filteredUsers = useMemo(() => {
-    if (!Array.isArray(users)) return []; // Critical safety check to prevent .filter() crashes
+    if (!Array.isArray(users)) return []; 
     
     return users.filter(user => {
       const matchesSearch = 
@@ -91,82 +103,143 @@ const AdminUserManagement = () => {
     });
   }, [users, searchTerm, roleFilter, statusFilter]);
 
-  const handleStatusToggle = async (email, currentStatus) => {
+  // Modal Handlers
+  const showModal = (config) => {
+    setModalInputValue("");
+    setModalConfig({ ...modalConfig, isOpen: true, ...config });
+  };
+
+  const closeModal = () => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+    setModalInputValue("");
+  };
+
+  const handleModalConfirm = () => {
+    if (modalConfig.onConfirm) {
+      modalConfig.onConfirm(modalConfig.type === 'prompt' ? modalInputValue : null);
+    }
+    closeModal();
+  };
+
+  // Action Handlers
+  const handleStatusToggle = (email, currentStatus) => {
     if (currentUser.email && email === currentUser.email) {
-      alert("Security restriction: You cannot modify your own administrative account status.");
+      showModal({
+        type: "alert",
+        title: "Security Restriction",
+        message: "You cannot modify your own administrative account status."
+      });
       return;
     }
 
     const newStatus = currentStatus === "Active" || !currentStatus ? "Suspended" : "Active";
-    if (!window.confirm(`Are you sure you want to change this account's status to ${newStatus}?`)) return;
+    
+    showModal({
+      type: "confirm",
+      title: "Confirm Status Change",
+      message: `Are you sure you want to change this account's status to ${newStatus}?`,
+      isDanger: newStatus === "Suspended",
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+          const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/status`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ status: newStatus })
+          });
 
-    try {
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-      const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.detail || "Failed to update status");
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Failed to update status");
-
-      setUsers(users.map(u => 
-        u.email === email ? { ...u, status: newStatus } : u
-      ));
-    } catch (err) {
-      alert(`Error: ${err.message}`);
-    }
+          setUsers(users.map(u => 
+            u.email === email ? { ...u, status: newStatus } : u
+          ));
+        } catch (err) {
+          showModal({
+            type: "alert",
+            title: "Error",
+            message: err.message
+          });
+        }
+      }
+    });
   };
 
-  const handleDelete = async (email) => {
+  const handleDelete = (email) => {
     if (currentUser.email && email === currentUser.email) {
-      alert("Critical security boundary: You cannot delete your own active administrator profile.");
-      return;
-    }
-
-    const passwordPrompt = window.prompt(
-      `SECURITY VERIFICATION REQUIRED\n\nTo permanently delete account (${email}), please re-enter your current Admin password:`
-    );
-
-    if (passwordPrompt === null) return;
-    if (!passwordPrompt.trim()) {
-      alert("Deletion aborted: Password cannot be blank.");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-      
-      const verifyRes = await fetch(`${API_BASE}/api/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: currentUser.email, password: passwordPrompt })
+      showModal({
+        type: "alert",
+        title: "Critical Security Boundary",
+        message: "You cannot delete your own active administrator profile."
       });
-      
-      const verifyData = await verifyRes.json();
-      if (!verifyRes.ok || verifyData.status !== "success") {
-        throw new Error("Incorrect administrator password. Deletion cancelled.");
-      }
+      return;
+    }
 
-      const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`
+    showModal({
+      type: "prompt",
+      title: "Security Verification Required",
+      message: `To permanently delete account (${email}), please re-enter your current Admin password:`,
+      isPassword: true,
+      isDanger: true,
+      onConfirm: async (passwordPrompt) => {
+        if (!passwordPrompt || !passwordPrompt.trim()) {
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: "Deletion Aborted",
+              message: "Password cannot be blank."
+            });
+          }, 300); // slight delay to allow first modal to close cleanly
+          return;
         }
-      });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Failed to delete user");
+        try {
+          const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+          
+          const verifyRes = await fetch(`${API_BASE}/api/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: currentUser.email, password: passwordPrompt })
+          });
+          
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok || verifyData.status !== "success") {
+            throw new Error("Incorrect administrator password. Deletion cancelled.");
+          }
 
-      setUsers(users.filter(u => u.email !== email));
-      alert("User account successfully purged.");
-    } catch (err) {
-      alert(`Authorization Error: ${err.message}`);
-    }
+          const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}`, {
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.detail || "Failed to delete user");
+
+          setUsers(users.filter(u => u.email !== email));
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: "Success",
+              message: "User account successfully purged from the system."
+            });
+          }, 300);
+          
+        } catch (err) {
+          setTimeout(() => {
+            showModal({
+              type: "alert",
+              title: "Authorization Error",
+              message: err.message
+            });
+          }, 300);
+        }
+      }
+    });
   };
 
   return (
@@ -309,6 +382,58 @@ const AdminUserManagement = () => {
           </div>
         )}
       </div>
+
+      {/* CUSTOM ADMIN MODAL OVERLAY */}
+      {modalConfig.isOpen && (
+        <div className="admin-modal-overlay" onClick={(e) => {
+           if(e.target.className === 'admin-modal-overlay') closeModal();
+        }}>
+          <div className="admin-modal-card">
+            <div className={`admin-modal-header ${modalConfig.isDanger ? 'danger' : ''}`}>
+              <div className="admin-modal-title">
+                {modalConfig.isDanger ? <LuTriangleAlert size={22} /> : <LuShield size={22} />}
+                <h3>{modalConfig.title}</h3>
+              </div>
+              <button className="admin-modal-close" onClick={closeModal}>
+                <LuX size={20} />
+              </button>
+            </div>
+            
+            <div className="admin-modal-body">
+              <p>{modalConfig.message}</p>
+              {modalConfig.type === 'prompt' && (
+                <div className="admin-modal-input-wrapper">
+                  <input
+                    type={modalConfig.isPassword ? "password" : "text"}
+                    value={modalInputValue}
+                    onChange={(e) => setModalInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleModalConfirm();
+                    }}
+                    className="admin-modal-prompt-input"
+                    placeholder="Enter required credentials..."
+                    autoFocus
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="admin-modal-footer">
+              {modalConfig.type !== 'alert' && (
+                <button className="admin-btn-cancel" onClick={closeModal}>
+                  Cancel
+                </button>
+              )}
+              <button
+                className={`admin-btn-confirm ${modalConfig.isDanger ? 'danger' : ''}`}
+                onClick={handleModalConfirm}
+              >
+                {modalConfig.type === 'alert' ? 'Acknowledge' : 'Confirm Action'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

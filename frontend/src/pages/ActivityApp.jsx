@@ -192,7 +192,15 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       } else {
         const flushed = pendingOutputRef.current; pendingOutputRef.current = "";
         const resultData = data !== undefined && data !== null && data !== "" ? `\n${String(data)}` : "";
-        setConsoleOutput((prev) => prev + flushed + resultData + "\n> Program finished.\n");
+        const finalOutput = flushed + resultData;
+        let notice = "";
+        
+        // Provide friendly feedback for functions defined without any output/prints
+        if (finalOutput.trim() === "") {
+          notice = "\n> (Note: Code executed successfully, but no output was printed. Did you call your function?)";
+        }
+        
+        setConsoleOutput((prev) => prev + finalOutput + "\n> Program finished." + notice + "\n");
         if (counts) setLineExecutions((prev) => { const next = { ...prev }; Object.keys(counts).forEach((k) => (next[k] = Math.max(next[k] || 0, counts[k]))); return next; });
         setIsEvaluating(false); setIsWaitingForInput(false);
       }
@@ -636,10 +644,10 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
     }
 
     if (currentRog > 0) {
-      promptMsg += `\n\n📈 Optimization recognized: Your refactoring improved your score by +${currentRog} ROG points!`;
+      promptMsg += `\n\nOptimization recognized: Your refactoring improved your score by +${currentRog} ROG points!`;
     }
 
-    if (meetsThreshold) promptMsg += `\n\n🎉 Lesson Unlocked! You've successfully passed ${completionData.passedCount}/${completionData.threshold} required activities to advance.`;
+    if (meetsThreshold) promptMsg += `\n\nLesson Unlocked! You've successfully passed ${completionData.passedCount}/${completionData.threshold} required activities to advance.`;
     else promptMsg += `\n\nProgress: ${completionData.passedCount}/${completionData.threshold} required activities passed to advance.`;
 
     if (!isLast && nextActivity) {
@@ -693,24 +701,46 @@ const ActivityAppInner = ({ moduleId, activityId }) => {
       const taskId = activityDataResolved?.id || ""; const isIntroLevel = taskId === "l1-t1" || taskId === "l1-t3";
       let codeToRun = "";
 
-      if (isFunctionCall && !isIntroLevel) codeToRun = cleanPayload + `\n\ntry:\n    assert ${tc.call} == ${tc.expected}\n    print("TEST_PASSED_FLAG")\nexcept:\n    print("TEST_ERROR_FLAG")`;
-      else codeToRun = `${cleanPayload}\n${tc.call || ""}`;
+      if (isFunctionCall && !isIntroLevel) {
+          codeToRun = cleanPayload + `\n\ntry:\n    __student_res = ${tc.call}\n    if __student_res == ${tc.expected}:\n        print("TEST_PASSED_FLAG")\n    else:\n        print(f"TEST_FAILED_FLAG:{__student_res}")\nexcept Exception as e:\n    print(f"TEST_ERROR_FLAG:{type(e).__name__}: {str(e)}")`;
+      } else {
+          codeToRun = `${cleanPayload}\n${tc.call || ""}`;
+      }
 
       try {
-        const rawOutput = await executeTest(codeToRun); const actualOutput = rawOutput.trim();
+        const rawOutput = await executeTest(codeToRun); 
+        const actualOutput = rawOutput.trim();
         const expected = String(tc.expected).replace(/^['"]|['"]$/g, "").replace(/\\n/g, "\n").trim();
         let testPassed = false;
-        if (isFunctionCall && !isIntroLevel) { if (actualOutput.includes("TEST_PASSED_FLAG")) { passed++; functionalPassed++; testPassed = true; } }
-        else { if (actualOutput.trim() === expected) { passed++; functionalPassed++; testPassed = true; } }
+        let displayActual = actualOutput;
+
+        if (isFunctionCall && !isIntroLevel) {
+          if (actualOutput.includes("TEST_PASSED_FLAG")) {
+             passed++; functionalPassed++; testPassed = true;
+          } else if (actualOutput.includes("TEST_FAILED_FLAG:")) {
+             displayActual = actualOutput.split("TEST_FAILED_FLAG:").pop().trim();
+          } else if (actualOutput.includes("TEST_ERROR_FLAG:")) {
+             displayActual = "Error: " + actualOutput.split("TEST_ERROR_FLAG:").pop().trim();
+          } else {
+             displayActual = actualOutput;
+          }
+        } else {
+          if (actualOutput.trim() === expected) { 
+             passed++; functionalPassed++; testPassed = true; 
+          }
+        }
 
         fullOutput += `Test ${i + 1}: ${testPassed ? "PASSED" : "FAILED"}\n`;
         if (!testPassed) {
           if (tc.isHidden) fullOutput += `  [Hidden Test Case] Expected values and inputs are omitted.\n`;
-          else fullOutput += `  Expected: ${expected}\n  Actual: ${actualOutput}\n`;
+          else fullOutput += `  Expected: ${expected}\n  Actual: ${displayActual || "(No Output)"}\n`;
         }
         fullOutput += "\n";
         setConsoleOutput(fullOutput); setPassedTests(passed);
-      } catch (err) { fullOutput += `Test ${i + 1}: ERROR\n  Message: ${err.message}\n\n`; setConsoleOutput(fullOutput); }
+      } catch (err) { 
+        fullOutput += `Test ${i + 1}: ERROR\n  Message: ${err.message}\n\n`; 
+        setConsoleOutput(fullOutput); 
+      }
     }
 
     setIsEvaluating(false);

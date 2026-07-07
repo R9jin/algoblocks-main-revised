@@ -11,7 +11,7 @@ export default function SignIn() {
   const [password, setPassword] = useState(""); 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   
   const [toast, setToast] = useState({ visible: false, message: "", type: "error" });
   
@@ -94,16 +94,13 @@ export default function SignIn() {
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
-      // FIX: Wipe BOTH key variations from the inactive storage to prevent leakage
       inactiveStorage.removeItem("authToken");
       inactiveStorage.removeItem("token");
       inactiveStorage.removeItem("user");
 
-      // FIX: Save BOTH key variations to active storage so ALL pages pass auth checks
       activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("token", data.token);
       
-      // Save full user object including admin status
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
@@ -133,7 +130,6 @@ export default function SignIn() {
         syncQueueDB.clear()
       ]); 
 
-      // FIX: Wipe ALL token keys
       localStorage.removeItem("authToken");
       sessionStorage.removeItem("authToken");
       localStorage.removeItem("token");
@@ -177,16 +173,13 @@ export default function SignIn() {
       const activeStorage = rememberMe ? localStorage : sessionStorage;
       const inactiveStorage = rememberMe ? sessionStorage : localStorage;
       
-      // FIX: Wipe BOTH key variations from inactive storage
       inactiveStorage.removeItem("authToken");
       inactiveStorage.removeItem("token");
       inactiveStorage.removeItem("user");
 
-      // FIX: Save BOTH key variations so ALL pages pass auth checks
       activeStorage.setItem("authToken", data.token);
       activeStorage.setItem("token", data.token);
       
-      // Save full user object including admin status
       activeStorage.setItem("user", JSON.stringify({
         email: data.email,
         name: data.name,
@@ -216,7 +209,6 @@ export default function SignIn() {
       <div className="auth-container">
         <div className="auth-card">
 
-          {/* ACADEMIC RESEARCH NOTICE */}
           <div className="auth-research-banner">
             <div className="banner-icon-wrapper">
               <FiAlertTriangle size={18} />
@@ -224,7 +216,7 @@ export default function SignIn() {
             <div className="banner-text">
               <strong>Academic Research Notice</strong>
               <p>
-                To ensure data validity for this thesis, please use <b>strictly one account</b> throughout your evaluation. 
+                To ensure data validity for this educational purpose, please use <b>strictly one account</b> throughout your evaluation. 
                 Progress, assessments, and learning analytics are being actively monitored and recorded to a single ID.
               </p>
             </div>
@@ -282,7 +274,7 @@ export default function SignIn() {
                 disabled={isLoading}
                 style={{ cursor: "pointer", width: "16px", height: "16px" }}
               />
-              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#ccc", margin: 0 }}>
+              <label htmlFor="rememberMe" style={{ cursor: "pointer", fontSize: "0.9rem", color: "#30363d", margin: 0 }}>
                 Stay signed in
               </label>
             </div>
@@ -301,7 +293,8 @@ export default function SignIn() {
                 onError={() => showToast("Google Sign-In sequence interrupted.")}
                 theme="outline" 
                 size="large"
-                shape="rectangular"
+                shape="pill"
+                width="360"
                 text="signin_with"
               />
             </div>

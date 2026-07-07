@@ -1,6 +1,6 @@
 /* frontend/src/styles/LessonViewer.css */
 
-/* ✅ Full-page layout with fixed sidebar */
+/* Full-page layout with fixed sidebar */
 .lesson-viewer-wrapper {
   display: flex;
   min-height: 100vh;
@@ -8,7 +8,7 @@
 }
 
 .lesson-modules-sidebar {
-  width: 340px; /* INCREASED from 280px */
+  width: 340px;
   background: white;
   border-right: 1px solid #ece8f8;
   overflow-y: auto;
@@ -18,6 +18,11 @@
   display: flex;
   flex-direction: column;
   transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  
+  /* Bug Fix: Make sidebar sticky and independently scrollable */
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
 .lesson-modules-sidebar.hidden {
@@ -673,6 +678,10 @@ body {
     border-bottom: 1px solid #ece8f8;
     max-height: 280px;
     order: -1;
+    
+    /* Bug Fix: Reset sticky behavior on mobile so it scrolls naturally with the page */
+    position: relative;
+    height: auto;
   }
 
   .lesson-viewer-container {

@@ -143,3 +143,32 @@
   background: rgba(255, 107, 107, 0.1);
   color: #FF8787;
 }
+
+/* Signed-in header: light surfaces with accessible contrast. */
+.user-homepage .user-header-logo-text { color: #222222 !important; }
+.user-homepage .user-menu-btn {
+  border: 1px solid transparent;
+  border-radius: 50%;
+}
+.user-homepage .user-menu-btn:focus-visible {
+  outline: 3px solid rgba(127, 87, 249, 0.38);
+  outline-offset: 3px;
+}
+.user-homepage .user-avatar {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #c9b8ff, 0 4px 10px rgba(101, 65, 216, 0.2);
+}
+.user-homepage .user-dropdown {
+  color: #1f2328;
+  background: rgba(255, 255, 255, 0.98);
+  border-color: #d8dee4;
+  box-shadow: 0 12px 32px rgba(31, 35, 40, 0.16);
+}
+.user-homepage .user-dropdown-head { border-bottom-color: #d8dee4; }
+.user-homepage .user-name { color: #1f2328; }
+.user-homepage .user-email { color: #59636e; }
+.user-homepage .user-dd-item { color: #30363d; }
+.user-homepage .user-dd-item:hover { color: #5f35c9; background: #f0ebff; }
+.user-homepage .user-dd-divider { background: #d8dee4; }
+.user-homepage .user-dd-item.danger { color: #cf222e; }
+.user-homepage .user-dd-item.danger:hover { color: #a40e26; background: #ffebe9; }
