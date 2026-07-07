@@ -94,3 +94,47 @@
   border-color: #B570FA;
   transform: translateY(-2px);
 }
+
+/* Authentication modal light theme. */
+.logout-modal-overlay {
+  background: rgba(31, 35, 40, 0.42);
+}
+
+.logout-modal {
+  color: #1f2328;
+  background: rgba(255, 255, 255, 0.98);
+  border-color: #d8dee4;
+  box-shadow: 0 18px 48px rgba(31, 35, 40, 0.2);
+}
+
+.logout-modal h2 { color: #1f2328; }
+.logout-modal p { color: #59636e; }
+
+.logout-btn {
+  color: #ffffff;
+  background: linear-gradient(135deg, #6541d8, #9b2fae);
+  border: 1px solid transparent;
+  box-shadow: 0 4px 12px rgba(101, 65, 216, 0.24);
+}
+
+.logout-btn:hover {
+  box-shadow: 0 8px 20px rgba(101, 65, 216, 0.3);
+}
+
+.logout-btn-cancel {
+  color: #1f2328;
+  background: #ffffff;
+  border-color: #d8dee4;
+  box-shadow: 0 1px 2px rgba(31, 35, 40, 0.06);
+}
+
+.logout-btn-cancel:hover {
+  color: #5f35c9;
+  background: #f0ebff;
+  border-color: #a98cf7;
+}
+
+.logout-modal button:focus-visible {
+  outline: 3px solid rgba(127, 87, 249, 0.38);
+  outline-offset: 3px;
+}

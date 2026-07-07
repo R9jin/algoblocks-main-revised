@@ -27,7 +27,14 @@ export default function Header() {
     <nav className="landing-nav">
       <div className="logo-container">
         <img src="/assets/algoblocks_logo.png" alt="AlgoBlocks Logo" className="logo-img" />
-        <h1 className="logo-text" style={{ color: "#EBE4FF" }}>ALGOBLOCKS</h1>
+        <h1 className="logo-text" style={{ color: "#222222" }}>ALGOBLOCKS</h1>
+      </div>
+
+      <div className="homepage-nav-links" aria-label="Homepage sections">
+        <a href="#what-youll-learn">Learn</a>
+        <a href="#learning-journey">How It Works</a>
+        <a href="#learning-tools">Tools</a>
+        <a href="#learning-path">Learning Path</a>
       </div>
 
       <div className="nav-links">

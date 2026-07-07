@@ -6,7 +6,7 @@ export default function LogoutConfirmModal({ isOpen, onClose, onLogoutClick }) {
 
   return (
     <div className="logout-modal-overlay">
-      <div className="logout-modal glass-panel">
+      <div className="logout-modal">
         <h2>Logout Confirmation</h2>
         <p>Are you sure you want to sign out of AlgoBlocks?</p>
         <div className="logout-modal-actions">

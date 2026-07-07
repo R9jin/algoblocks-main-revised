@@ -3,20 +3,35 @@ import '../styles/Footer.css';
 
 export default function Footer() {
   return (
-    <>
-      {/*
-      <footer className="landing-footer">
-        <p className="footer-title">
-          <strong>AlgoBlocks</strong>
-        </p>
-        <p className="footer-subtitle">
-          A Computer Science Thesis Project
-        </p>
-        <p className="footer-disclaimer">
-          Built strictly for educational and research purposes.
-        </p>
-      </footer>
-      */}
-    </>
+    <footer className="landing-footer">
+      <div className="footer-content">
+        <div className="footer-brand">
+          <div className="footer-brand-name">
+            <img src="/assets/algoblocks_logo.png" alt="" className="footer-logo" />
+            <strong>ALGOBLOCKS</strong>
+          </div>
+          <p className="footer-tagline">Learn algorithms visually, one step at a time.</p>
+          <p className="footer-description">
+            Build with Blockly, generate Python code, and understand time and space
+            complexity through guided, interactive lessons.
+          </p>
+        </div>
+
+        <div className="footer-learning">
+          <h2>Learning with AlgoBlocks</h2>
+          <ul>
+            <li>Guided Lessons</li>
+            <li>Blockly Programming</li>
+            <li>Python Generation</li>
+            <li>Complexity Analysis</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="footer-bottom">
+        <p>AlgoBlocks is an educational platform built for learning and research purposes.</p>
+        <p>&copy; 2026 AlgoBlocks. All rights reserved.</p>
+      </div>
+    </footer>
   );
 }
