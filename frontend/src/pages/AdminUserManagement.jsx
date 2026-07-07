@@ -23,10 +23,19 @@ const AdminUserManagement = () => {
   
   // Search and Filter States
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all"); // 'all', 'admin', 'user'
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'active', 'suspended'
+  const [roleFilter, setRoleFilter] = useState("all"); 
+  const [statusFilter, setStatusFilter] = useState("all"); 
 
-  const currentUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+  // SAFELY PARSE CURRENT USER TO PREVENT JSON.parse CRASHES
+  const currentUser = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("user") || sessionStorage.getItem("user");
+      if (!stored || stored === "undefined") return {};
+      return JSON.parse(stored);
+    } catch (e) {
+      return {};
+    }
+  }, []);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -42,7 +51,14 @@ const AdminUserManagement = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "Failed to fetch users");
       
-      setUsers(data.users || data || []);
+      // PREVENT FATAL ARRAY CRASHES IF API RETURNS AN OBJECT
+      if (data && Array.isArray(data.users)) {
+        setUsers(data.users);
+      } else if (Array.isArray(data)) {
+        setUsers(data);
+      } else {
+        setUsers([]);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,16 +70,18 @@ const AdminUserManagement = () => {
     fetchUsers();
   }, []);
 
-  // Filtered and searched user list calculation
   const filteredUsers = useMemo(() => {
+    if (!Array.isArray(users)) return []; // Critical safety check to prevent .filter() crashes
+    
     return users.filter(user => {
       const matchesSearch = 
         (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
         (user.email || "").toLowerCase().includes(searchTerm.toLowerCase());
       
+      const isUserAdmin = user.isAdmin === true || user.role === "admin";
       const matchesRole = 
         roleFilter === "all" ? true : 
-        roleFilter === "admin" ? user.isAdmin === true : !user.isAdmin;
+        roleFilter === "admin" ? isUserAdmin : !isUserAdmin;
       
       const matchesStatus = 
         statusFilter === "all" ? true : 
@@ -74,7 +92,7 @@ const AdminUserManagement = () => {
   }, [users, searchTerm, roleFilter, statusFilter]);
 
   const handleStatusToggle = async (email, currentStatus) => {
-    if (email === currentUser.email) {
+    if (currentUser.email && email === currentUser.email) {
       alert("Security restriction: You cannot modify your own administrative account status.");
       return;
     }
@@ -104,9 +122,8 @@ const AdminUserManagement = () => {
     }
   };
 
-  // Secure Delete with Admin Password Re-Prompt
   const handleDelete = async (email) => {
-    if (email === currentUser.email) {
+    if (currentUser.email && email === currentUser.email) {
       alert("Critical security boundary: You cannot delete your own active administrator profile.");
       return;
     }
@@ -115,7 +132,7 @@ const AdminUserManagement = () => {
       `SECURITY VERIFICATION REQUIRED\n\nTo permanently delete account (${email}), please re-enter your current Admin password:`
     );
 
-    if (passwordPrompt === null) return; // Cancelled
+    if (passwordPrompt === null) return;
     if (!passwordPrompt.trim()) {
       alert("Deletion aborted: Password cannot be blank.");
       return;
@@ -124,7 +141,6 @@ const AdminUserManagement = () => {
     try {
       const token = localStorage.getItem("token") || localStorage.getItem("authToken");
       
-      // Step 1: Verify the admin's identity with their supplied password before destructive action
       const verifyRes = await fetch(`${API_BASE}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,7 +152,6 @@ const AdminUserManagement = () => {
         throw new Error("Incorrect administrator password. Deletion cancelled.");
       }
 
-      // Step 2: Proceed with execution of target user deletion
       const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}`, {
         method: "DELETE",
         headers: {
@@ -155,120 +170,126 @@ const AdminUserManagement = () => {
   };
 
   return (
-    <div className="admin-dashboard-container">
+    <div className="admin-page-wrapper">
       <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
       
-      <main className="main-content">
-        <div className="header-container">
-          <h1 className="page-title">
-            <LuUsers size={28} color="#3b82f6" /> User Management
-          </h1>
-          <button onClick={fetchUsers} className="refresh-btn">
-            <LuRefreshCw size={16} /> Refresh
+      <div className="admin-page-container">
+        
+        <div className="admin-header">
+          <div className="admin-header-left">
+            <h1><LuUsers size={38} color="#5A1398" /> System User Management</h1>
+            <p>Monitor, filter, and securely manage all registered student and administrator accounts across the AlgoBlocks platform.</p>
+          </div>
+          <button onClick={fetchUsers} className="admin-refresh-btn">
+            <LuRefreshCw size={20} /> Sync Directory
           </button>
         </div>
 
-        {/* SEARCH AND CONTROLS TOOLBAR */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "20px", background: "rgba(255, 255, 255, 0.03)", padding: "15px", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: "1 1 250px", background: "rgba(0,0,0,0.2)", padding: "8px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
-            <LuSearch size={18} color="#94a3b8" />
+        <div className="admin-toolbar">
+          <div className="admin-search-wrapper">
+            <LuSearch className="admin-search-icon" size={20} />
             <input 
               type="text" 
-              placeholder="Search by name or email..." 
+              placeholder="Search directory by name or email address..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ background: "transparent", border: "none", color: "white", outline: "none", width: "100%" }}
+              className="admin-search-input"
             />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <LuFilter size={16} color="#94a3b8" />
+          <div className="admin-filter-container">
+            <LuFilter size={20} color="#5b5675" />
             <select 
               value={roleFilter} 
               onChange={(e) => setRoleFilter(e.target.value)}
-              style={{ background: "#1e293b", color: "white", border: "1px solid #334155", padding: "8px 12px", borderRadius: "8px", outline: "none" }}
+              className="admin-filter-select"
             >
-              <option value="all">All Roles</option>
-              <option value="admin">Admins Only</option>
-              <option value="user">Users Only</option>
+              <option value="all">View All Roles</option>
+              <option value="admin">Administrators Only</option>
+              <option value="user">Standard Users Only</option>
             </select>
-          </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ background: "#1e293b", color: "white", border: "1px solid #334155", padding: "8px 12px", borderRadius: "8px", outline: "none" }}
+              className="admin-filter-select"
             >
-              <option value="all">All Statuses</option>
-              <option value="active">Active Only</option>
-              <option value="suspended">Suspended Only</option>
+              <option value="all">View All Statuses</option>
+              <option value="active">Active Accounts</option>
+              <option value="suspended">Suspended Accounts</option>
             </select>
           </div>
         </div>
 
         {error && (
-          <div className="error-message">
-            {error}
+          <div className="admin-message-box error">
+            <LuBan size={24} />
+            <span>{error}</span>
           </div>
         )}
 
         {loading ? (
-          <div className="loading-message">Loading directory...</div>
+          <div className="admin-loading-state">
+            <LuRefreshCw size={48} className="spinner-icon" style={{ animation: 'spin 2s linear infinite' }} />
+            <span>Fetching secure directory...</span>
+          </div>
         ) : (
-          <div className="table-container">
-            <table className="user-table">
-              <thead className="table-head">
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
                 <tr>
-                  <th className="th-base">Name</th>
-                  <th className="th-base">Email</th>
-                  <th className="th-base">Role</th>
-                  <th className="th-base">Status</th>
-                  <th className="th-actions">Actions (Secured)</th>
+                  <th>Identity</th>
+                  <th>System Role</th>
+                  <th>Access Status</th>
+                  <th className="th-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.map((user) => (
-                  <tr key={user.email} className="tr-body">
-                    <td className="td-name">{user.name || "Unnamed"}</td>
-                    <td className="td-email">{user.email}</td>
-                    <td className="td-base">
-                      {user.isAdmin ? (
-                        <span className="role-badge role-admin">
-                          <LuShield size={14} /> Admin
+                  <tr key={user.email || Math.random()}>
+                    <td>
+                      <div className="admin-user-info">
+                        <span className="admin-user-name">{user.name || "Unnamed Profile"}</span>
+                        <span className="admin-user-email">{user.email}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {user.isAdmin || user.role === "admin" ? (
+                        <span className="admin-badge badge-admin">
+                          <LuShield size={16} /> Administrator
                         </span>
                       ) : (
-                        <span className="role-badge role-user">
-                          <LuUser size={14} /> User
+                        <span className="admin-badge badge-user">
+                          <LuUser size={16} /> Student User
                         </span>
                       )}
                     </td>
-                    <td className="td-base">
+                    <td>
                       {user.status === "Suspended" ? (
-                        <span className="status-badge status-suspended">
-                          <LuBan size={14} /> Suspended
+                        <span className="admin-badge badge-suspended">
+                          <LuBan size={16} /> Suspended
                         </span>
                       ) : (
-                        <span className="status-badge status-active">
-                          <LuCheck size={14} /> Active
+                        <span className="admin-badge badge-active">
+                          <LuCheck size={16} /> Active Access
                         </span>
                       )}
                     </td>
                     <td className="td-actions">
-                      <div className="actions-container">
+                      <div className="admin-actions">
                         <button 
                           onClick={() => handleStatusToggle(user.email, user.status)}
-                          title={user.status === "Active" ? "Suspend Account" : "Activate Account"}
-                          className={`action-btn ${user.status === "Active" ? "btn-toggle-active" : "btn-toggle-suspended"}`}
+                          title={user.status === "Active" ? "Suspend Account Access" : "Restore Account Access"}
+                          className={`admin-action-btn ${user.status === "Active" ? "suspend" : "activate"}`}
                         >
-                          {user.status === "Active" ? <LuBan size={16} /> : <LuCheck size={16} />}
+                          {user.status === "Active" ? <LuBan size={20} /> : <LuCheck size={20} />}
                         </button>
                         <button 
                           onClick={() => handleDelete(user.email)}
-                          title="Delete Account (Requires Admin Password Re-entry)"
-                          className="action-btn btn-delete"
+                          title="Purge Account (Requires Admin Verification)"
+                          className="admin-action-btn delete"
                         >
-                          <LuTrash2 size={16} />
+                          <LuTrash2 size={20} />
                         </button>
                       </div>
                     </td>
@@ -276,8 +297,10 @@ const AdminUserManagement = () => {
                 ))}
                 {filteredUsers.length === 0 && !loading && (
                   <tr>
-                    <td colSpan="5" className="no-users-cell">
-                      No matching user accounts discovered.
+                    <td colSpan="4">
+                      <div className="admin-empty-state">
+                        No accounts match your current search and filter criteria.
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -285,7 +308,7 @@ const AdminUserManagement = () => {
             </table>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 };

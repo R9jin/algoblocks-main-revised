@@ -1,309 +1,7 @@
 ﻿--- PROJECT SNAPSHOT (PART 6 OF 10) ---
 
---- TIMESTAMP: 2026-07-07 07:40:05 ---
+--- TIMESTAMP: 2026-07-07 17:19:35 ---
 
-
---- FILE: frontend/src/components/PythonCodeEditor.jsx ---
-
-// frontend/src/components/PythonCodeEditor.jsx
-import Editor from "@monaco-editor/react";
-import { handleEditorWillMount } from "../utils/asymptoticParser.jsx";
-import FloatingErrorDropdown from "./FloatingErrorDropdown.jsx";
-
-export default function PythonCodeEditor({
-  viewMode = "workspace",
-  pythonCode = "",
-  isEditingCode = false,
-  syntaxErrors = [],
-  onSyncToBlocks,
-  onChangeCode,
-  onMountEditor
-}) {
-  const hasSyntaxErrors = syntaxErrors && syntaxErrors.length > 0;
-
-  return (
-    <div className={viewMode === "python" ? "python-view d-flex" : "python-view d-none"}>
-      <div className="python-header">
-        <span className="python-sync-status">
-          {isEditingCode ? "Unsaved code changes..." : "Code is synced with blocks."}
-        </span>
-        <button
-          onClick={onSyncToBlocks}
-          disabled={!isEditingCode || hasSyntaxErrors}
-          className={`python-sync-btn ${isEditingCode && !hasSyntaxErrors ? "active" : "disabled"}`}
-        >
-          Sync to Blocks
-        </button>
-      </div>
-
-      <div className="editor-wrapper">
-        <Editor
-          height="100%"
-          language="python"
-          theme="algoblocks-light"
-          beforeMount={handleEditorWillMount}
-          onMount={onMountEditor}
-          value={pythonCode}
-          onChange={onChangeCode}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 15,
-            fontFamily: "Consolas, 'Courier New', monospace",
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            padding: { top: 16 }
-          }}
-        />
-        <FloatingErrorDropdown syntaxErrors={syntaxErrors} />
-      </div>
-    </div>
-  );
-}
-
---- FILE: frontend/src/components/TestCaseTester.jsx ---
-
-import { useEffect, useRef, useState } from "react";
-import { FiCheckCircle, FiChevronDown, FiClock, FiCpu, FiLock, FiPlay, FiXCircle } from "react-icons/fi";
-import "../styles/TestCaseTester.css";
-
-// Helper copied from original formatters/utils logic to accurately grade complexity tests
-// Helper accurately synced with analyzer.py `_get_weight` logic to accurately grade complexity tests
-const getComplexityWeight = (complexity) => {
-  // Normalize string: lowercase and remove all whitespace
-  const comp = String(complexity || "").toLowerCase().replace(/\s+/g, "");
-  
-  if (comp.includes("deadcode")) return -1;
-  
-  // Highest order bounds
-  if (comp.includes("n*n!") || comp.includes("t(n)=n*t(n-1)")) return 115;
-  if (comp.includes("n!")) return 110;
-  if (comp.includes("3^n")) return 105;
-  if (comp.includes("2^n") || comp.includes("2â¿") || comp.includes("t(n-1)+t(n-2)")) return 100;
-  
-  // Polynomial bounds
-  if (comp.includes("n^5")) return 50;
-  if (comp.includes("n^4")) return 40;
-  if (comp.includes("n^3") || comp.includes("nÂ³") || comp.includes("n^2*m") || comp.includes("n*m^2") || comp.includes("n*m*p") || comp.includes("n*p*k")) return 30;
-  if (comp.includes("n^2logn") || comp.includes("nÂ²logn")) return 25;
-  if (comp.includes("n^2") || comp.includes("nÂ²") || comp.includes("n*m") || comp.includes("n*p") || comp.includes("m*n") || comp.includes("t(n-1)+o(n)")) return 20;
-  
-  // Linearithmic
-  if (comp.includes("nlogn") || comp.includes("2t(n/2)+o(n)") || comp.includes("t(n-1)+o(logn)")) return 15;
-  
-  // Graph/Linear Variations
-  if (comp.includes("v+e") || comp === "o(v)") return 12;
-  if (comp.includes("o(n)") || comp.includes("o(m)") || comp.includes("o(p)") || comp.includes("o(k)") || comp.includes("2t(n/2)+o(1)") || comp.includes("t(n/2)+o(n)") || comp.includes("t(n-1)+o(1)")) return 10;
-  
-  // Sub-linear bounds
-  if (comp.includes("sqrt") || comp.includes("âˆšn")) return 7;
-  if (comp.includes("logmin")) return 6;
-  if (comp.includes("logn") || comp.includes("log") || comp.includes("t(n/2)+o(1)")) return 5;
-  
-  // Constant bounds
-  if (comp.includes("o(1)") || comp.includes("definition")) return 1;
-  
-  return 0; // Fallback / Unrecognized
-};
-
-export default function TestCaseTester({ pythonCode, testCases, targetTime = "O(n)", targetSpace = "O(n)", onTestComplete }) {
-  const [results, setResults] = useState([]);
-  const [isTesting, setIsTesting] = useState(false);
-  const [error, setError] = useState(null);
-  const [analysisData, setAnalysisData] = useState(null);
-  const [expandedTests, setExpandedTests] = useState({});
-  const workerRef = useRef(null);
-
-  useEffect(() => {
-    // Initialize the Web Worker
-    workerRef.current = new Worker(new URL("../workers/analyzer.worker.js", import.meta.url));
-
-    workerRef.current.onmessage = (event) => {
-      const { type, results: workerResults, error: workerError, data } = event.data;
-      
-      if (type === "ANALYZE_RESULT") {
-        setAnalysisData(data);
-        const formattedTestCases = testCases.map(tc => ({
-          ...tc,
-          input: tc.call || tc.input,
-          call: tc.call || tc.input 
-        }));
-        
-        // After analysis is complete, trigger the actual run tests
-        workerRef.current.postMessage({
-          type: "RUN_TESTS", 
-          code: pythonCode,
-          testCases: formattedTestCases
-        });
-      } else if (type === "TEST_RESULTS") {
-        
-        // Segregate original tests to inject the complexity checks inside
-        const visibleTests = workerResults.filter(r => !r.isHidden);
-        const hiddenTests = workerResults.filter(r => r.isHidden);
-
-        const actualTime = analysisData?.total || "O(1)";
-        const actualSpace = analysisData?.space_total || "O(1)";
-
-        const actualTimeWeight = getComplexityWeight(actualTime);
-        const targetTimeWeight = getComplexityWeight(targetTime);
-        const timePassed = actualTimeWeight > 0 && actualTimeWeight <= targetTimeWeight;
-
-        const actualSpaceWeight = getComplexityWeight(actualSpace);
-        const targetSpaceWeight = getComplexityWeight(targetSpace);
-        const spacePassed = actualSpaceWeight > 0 && actualSpaceWeight <= targetSpaceWeight;
-
-        const compTests = [
-          { isComplexityTest: true, isTime: true, title: "Time Complexity Check", expected: `â‰¤ ${targetTime}`, actual: actualTime, passed: timePassed, isHidden: false, call: "Static Code Analysis" },
-          { isComplexityTest: true, isTime: false, title: "Space Complexity Check", expected: `â‰¤ ${targetSpace}`, actual: actualSpace, passed: spacePassed, isHidden: false, call: "Static Code Analysis" }
-        ];
-
-        // Ensure array conforms to layout: regular, complexity, then hidden tests
-        const finalResults = [...visibleTests, ...compTests, ...hiddenTests];
-
-        setResults(finalResults);
-        setIsTesting(false);
-        // Reset expansions on new test run
-        setExpandedTests({});
-        
-        const passedCount = finalResults.filter(r => r.passed).length;
-        if (onTestComplete) {
-          onTestComplete(passedCount, finalResults.length);
-        }
-
-      } else if (type === "ERROR") {
-        setError(workerError);
-        setIsTesting(false);
-      }
-    };
-
-    return () => {
-      if (workerRef.current) workerRef.current.terminate();
-    };
-  }, [onTestComplete, pythonCode, testCases, targetTime, targetSpace, analysisData]);
-
-  const handleRunTests = () => {
-    if (!pythonCode || !testCases || testCases.length === 0) return;
-    
-    setIsTesting(true);
-    setError(null);
-    setResults([]);
-
-    // Chain starts with analysis (to get accurate BigO targets) then flows automatically to Run Tests inside the message handler
-    workerRef.current.postMessage({
-      type: "ANALYZE_CODE",
-      code: pythonCode
-    });
-  };
-
-  const toggleTest = (index) => {
-    setExpandedTests(prev => ({ ...prev, [index]: !prev[index] }));
-  };
-
-  const getTestIcon = (res) => {
-    if (res.isHidden) return <FiLock className="tct-icon locked" />;
-    if (res.isComplexityTest) {
-      return res.isTime ? <FiClock className={`tct-icon ${res.passed ? 'passed' : 'failed'}`} /> 
-                        : <FiCpu className={`tct-icon ${res.passed ? 'passed' : 'failed'}`} />;
-    }
-    return res.passed ? <FiCheckCircle className="tct-icon passed" /> : <FiXCircle className="tct-icon failed" />;
-  };
-
-  const passedCount = results.filter(r => r.passed).length;
-  const totalCount = results.length;
-
-  return (
-    <div className="tct-container">
-      <div className="tct-header">
-        <div className="tct-header-title">
-          <h3>Test Cases</h3>
-          {totalCount > 0 && !isTesting && (
-            <span className={`tct-counter ${passedCount === totalCount ? 'perfect' : ''}`}>
-              {passedCount}/{totalCount} Passed
-            </span>
-          )}
-        </div>
-        <button 
-          className={`tct-run-btn ${isTesting ? 'running' : ''}`} 
-          onClick={handleRunTests} 
-          disabled={isTesting || !pythonCode}
-        >
-          <FiPlay /> {isTesting ? "Evaluating..." : "Run Tests"}
-        </button>
-      </div>
-
-      {error && (
-        <div className="tct-error-banner">
-          <strong>Execution Error:</strong>
-          <p>{error}</p>
-        </div>
-      )}
-
-      <div className="tct-results-list">
-        {results.length === 0 && !isTesting && !error && (
-          <div className="tct-empty-state">
-            <FiPlay size={32} className="tct-empty-icon" />
-            <p>Click "Run Tests" to evaluate your code against the required conditions.</p>
-          </div>
-        )}
-
-        {results.map((res, index) => {
-          const displayTitle = res.isComplexityTest ? res.title : res.isHidden ? `Hidden Test` : `Test Case ${index + 1}`;
-          const isExpanded = expandedTests[index];
-          const statusClass = res.passed ? "passed" : "failed";
-
-          return (
-            <div key={index} className={`tct-card ${statusClass}`}>
-              <div 
-                className="tct-card-header" 
-                onClick={() => !res.isHidden && toggleTest(index)}
-                style={{ cursor: res.isHidden ? "default" : "pointer" }}
-              >
-                <div className="tct-card-title-group">
-                  {getTestIcon(res)}
-                  <strong className={`tct-card-title ${statusClass}`}>{displayTitle}</strong>
-                </div>
-                
-                <div className="tct-card-status-group">
-                  {res.isHidden && <span className="tct-hidden-badge">Locked</span>}
-                  {!res.isHidden && (
-                    <FiChevronDown className={`tct-chevron ${isExpanded ? 'open' : ''} ${statusClass}`} />
-                  )}
-                </div>
-              </div>
-              
-              {isExpanded && !res.isHidden && (
-                <div className="tct-card-body">
-                  <div className="tct-detail-row">
-                    <span className="tct-detail-label">{res.isComplexityTest ? "Metric Constraint:" : "Input:"}</span>
-                    <code className="tct-detail-code">{res.call || res.input || "No Input"}</code>
-                  </div>
-                  <div className="tct-detail-row">
-                    <span className="tct-detail-label">{res.isComplexityTest ? "Requirement:" : "Expected Output:"}</span>
-                    <code className="tct-detail-code">{res.expected}</code>
-                  </div>
-                  <div className="tct-detail-row status-row">
-                    <span className="tct-detail-label">Result:</span>
-                    <span className={`tct-detail-status ${statusClass}`}>
-                       {res.passed ? "Passed" : res.error ? "Failed (Execution Error)" : "Failed (Incorrect Output)"}
-                    </span>
-                  </div>
-                  
-                  {(!res.passed || res.error) && (
-                    <div className="tct-detail-row error-row">
-                       <span className="tct-detail-label">{res.isComplexityTest ? "Your Assessment:" : "Your Output:"}</span>
-                       <pre className={`tct-error-output ${res.error ? "has-error" : ""}`}>
-                         {res.error ? res.error : (res.actual !== undefined ? res.actual : "No Output")}
-                       </pre>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 --- FILE: frontend/src/components/UserHeader.jsx ---
 
@@ -2284,6 +1982,302 @@ const ActivityApp = () => {
 
 export default ActivityApp;
 
+--- FILE: frontend/src/pages/AdminUserManagement.jsx ---
+
+// frontend/src/pages/AdminUserManagement.jsx
+import { useEffect, useMemo, useState } from "react";
+import {
+  LuBan,
+  LuCheck,
+  LuFilter,
+  LuRefreshCw,
+  LuSearch,
+  LuShield,
+  LuTrash2,
+  LuUser,
+  LuUsers
+} from "react-icons/lu";
+import DashboardHeader from "../components/DashboardHeader";
+import "../styles/AdminUserManagement.css";
+
+const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+
+const AdminUserManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Search and Filter States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all"); // 'all', 'admin', 'user'
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'active', 'suspended'
+
+  const currentUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const response = await fetch(`${API_BASE}/api/admin/users`, {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to fetch users");
+      
+      setUsers(data.users || data || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Filtered and searched user list calculation
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch = 
+        (user.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (user.email || "").toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesRole = 
+        roleFilter === "all" ? true : 
+        roleFilter === "admin" ? user.isAdmin === true : !user.isAdmin;
+      
+      const matchesStatus = 
+        statusFilter === "all" ? true : 
+        statusFilter === "active" ? user.status !== "Suspended" : user.status === "Suspended";
+        
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, searchTerm, roleFilter, statusFilter]);
+
+  const handleStatusToggle = async (email, currentStatus) => {
+    if (email === currentUser.email) {
+      alert("Security restriction: You cannot modify your own administrative account status.");
+      return;
+    }
+
+    const newStatus = currentStatus === "Active" || !currentStatus ? "Suspended" : "Active";
+    if (!window.confirm(`Are you sure you want to change this account's status to ${newStatus}?`)) return;
+
+    try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to update status");
+
+      setUsers(users.map(u => 
+        u.email === email ? { ...u, status: newStatus } : u
+      ));
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  // Secure Delete with Admin Password Re-Prompt
+  const handleDelete = async (email) => {
+    if (email === currentUser.email) {
+      alert("Critical security boundary: You cannot delete your own active administrator profile.");
+      return;
+    }
+
+    const passwordPrompt = window.prompt(
+      `SECURITY VERIFICATION REQUIRED\n\nTo permanently delete account (${email}), please re-enter your current Admin password:`
+    );
+
+    if (passwordPrompt === null) return; // Cancelled
+    if (!passwordPrompt.trim()) {
+      alert("Deletion aborted: Password cannot be blank.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      
+      // Step 1: Verify the admin's identity with their supplied password before destructive action
+      const verifyRes = await fetch(`${API_BASE}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: currentUser.email, password: passwordPrompt })
+      });
+      
+      const verifyData = await verifyRes.json();
+      if (!verifyRes.ok || verifyData.status !== "success") {
+        throw new Error("Incorrect administrator password. Deletion cancelled.");
+      }
+
+      // Step 2: Proceed with execution of target user deletion
+      const response = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(email)}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Failed to delete user");
+
+      setUsers(users.filter(u => u.email !== email));
+      alert("User account successfully purged.");
+    } catch (err) {
+      alert(`Authorization Error: ${err.message}`);
+    }
+  };
+
+  return (
+    <div className="admin-dashboard-container">
+      <DashboardHeader backTo="/dashboard" backText="Back to Dashboard" />
+      
+      <main className="main-content">
+        <div className="header-container">
+          <h1 className="page-title">
+            <LuUsers size={28} color="#3b82f6" /> User Management
+          </h1>
+          <button onClick={fetchUsers} className="refresh-btn">
+            <LuRefreshCw size={16} /> Refresh
+          </button>
+        </div>
+
+        {/* SEARCH AND CONTROLS TOOLBAR */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "20px", background: "rgba(255, 255, 255, 0.03)", padding: "15px", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: "1 1 250px", background: "rgba(0,0,0,0.2)", padding: "8px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <LuSearch size={18} color="#94a3b8" />
+            <input 
+              type="text" 
+              placeholder="Search by name or email..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ background: "transparent", border: "none", color: "white", outline: "none", width: "100%" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <LuFilter size={16} color="#94a3b8" />
+            <select 
+              value={roleFilter} 
+              onChange={(e) => setRoleFilter(e.target.value)}
+              style={{ background: "#1e293b", color: "white", border: "1px solid #334155", padding: "8px 12px", borderRadius: "8px", outline: "none" }}
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admins Only</option>
+              <option value="user">Users Only</option>
+            </select>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ background: "#1e293b", color: "white", border: "1px solid #334155", padding: "8px 12px", borderRadius: "8px", outline: "none" }}
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="suspended">Suspended Only</option>
+            </select>
+          </div>
+        </div>
+
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="loading-message">Loading directory...</div>
+        ) : (
+          <div className="table-container">
+            <table className="user-table">
+              <thead className="table-head">
+                <tr>
+                  <th className="th-base">Name</th>
+                  <th className="th-base">Email</th>
+                  <th className="th-base">Role</th>
+                  <th className="th-base">Status</th>
+                  <th className="th-actions">Actions (Secured)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => (
+                  <tr key={user.email} className="tr-body">
+                    <td className="td-name">{user.name || "Unnamed"}</td>
+                    <td className="td-email">{user.email}</td>
+                    <td className="td-base">
+                      {user.isAdmin ? (
+                        <span className="role-badge role-admin">
+                          <LuShield size={14} /> Admin
+                        </span>
+                      ) : (
+                        <span className="role-badge role-user">
+                          <LuUser size={14} /> User
+                        </span>
+                      )}
+                    </td>
+                    <td className="td-base">
+                      {user.status === "Suspended" ? (
+                        <span className="status-badge status-suspended">
+                          <LuBan size={14} /> Suspended
+                        </span>
+                      ) : (
+                        <span className="status-badge status-active">
+                          <LuCheck size={14} /> Active
+                        </span>
+                      )}
+                    </td>
+                    <td className="td-actions">
+                      <div className="actions-container">
+                        <button 
+                          onClick={() => handleStatusToggle(user.email, user.status)}
+                          title={user.status === "Active" ? "Suspend Account" : "Activate Account"}
+                          className={`action-btn ${user.status === "Active" ? "btn-toggle-active" : "btn-toggle-suspended"}`}
+                        >
+                          {user.status === "Active" ? <LuBan size={16} /> : <LuCheck size={16} />}
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(user.email)}
+                          title="Delete Account (Requires Admin Password Re-entry)"
+                          className="action-btn btn-delete"
+                        >
+                          <LuTrash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredUsers.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan="5" className="no-users-cell">
+                      No matching user accounts discovered.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default AdminUserManagement;
+
 --- FILE: frontend/src/pages/AssessmentPage.jsx ---
 
 // frontend/src/pages/AssessmentPage.jsx
@@ -3483,6 +3477,1486 @@ export default function Dashboard() {
 
         </div>
       </main>
+    </div>
+  );
+}
+
+--- FILE: frontend/src/pages/EvaluationSuite.jsx ---
+
+// frontend/src/pages/EvaluationSuite.jsx
+import React, { useEffect, useState } from "react";
+import {
+  FiActivity,
+  FiArrowLeft,
+  FiArrowRight,
+  FiBarChart2,
+  FiCheckCircle,
+  FiChevronDown, FiChevronUp,
+  FiClock, FiCode,
+  FiCornerDownRight,
+  FiCpu, FiDatabase,
+  FiDownload,
+  FiHelpCircle, FiLayers,
+  FiList,
+  FiPlay,
+  FiRefreshCw,
+  FiTrendingDown,
+  FiTrendingUp,
+  FiXCircle, FiZap
+} from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import { usePyodide } from "../context/PyodideContext";
+import "../styles/EvaluationSuite.css";
+import "../styles/MainApp.css";
+
+export default function EvaluationSuite() {
+  const navigate = useNavigate();
+  const { worker, isEngineReady } = usePyodide();
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (!userStr) navigate("/");
+  }, [navigate]);
+
+  const [isRunning, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState("System idle.");
+
+  const [results, setResults] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [selectedItemCode, setSelectedItemCode] = useState(null);
+  const [datasetOption, setDatasetOption] = useState("both");
+
+  const [expandedRows, setExpandedRows] = useState({});
+
+  // Explainer Modal State & Interactive Sandbox State
+  const [isMetricsHelpOpen, setIsMetricsHelpOpen] = useState(false);
+
+  const [sandboxTP, setSandboxTP] = useState(80);
+  const [sandboxFP, setSandboxFP] = useState(10);
+  const [sandboxFN, setSandboxFN] = useState(10);
+
+  // Real-time sandbox calculations
+  const simPrecision = sandboxTP / (sandboxTP + sandboxFP) || 0;
+  const simRecall = sandboxTP / (sandboxTP + sandboxFN) || 0;
+  const simF1 = (simPrecision + simRecall > 0) ?
+    (2 * simPrecision * simRecall) / (simPrecision + simRecall) : 0;
+
+  const toggleRowDropdown = (rowId) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [rowId]: !prev[rowId]
+    }));
+  };
+
+  useEffect(() => {
+    if (!worker) return;
+    const handleWorkerMessage = (e) => {
+      const { type, progress, currentItem, payload, error } = e.data;
+      if (type === "BENCHMARK_PROGRESS") {
+        setProgress(progress);
+        setStatusText(`Analyzing algorithm complexity for: ${currentItem}...`);
+      } else if (type === "BENCHMARK_COMPLETE") {
+        setResults(payload);
+
+        setIsLoading(false);
+        setStatusText("Benchmark evaluation completed successfully. Classification reports have been generated.");
+      } else if (type === "BENCHMARK_ERROR") {
+        alert(`Benchmark evaluation failed: ${error}`);
+        setIsLoading(false);
+        setStatusText("Benchmark evaluation terminated due to an unexpected error.");
+      }
+    };
+    worker.addEventListener("message", handleWorkerMessage);
+    return () => worker.removeEventListener("message", handleWorkerMessage);
+  }, [worker]);
+
+  // --- VITE SPA FALLBACK GUARDS ---
+  const safeFetchText = async (url) => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const text = await res.text();
+      if (text.trim().toLowerCase().startsWith("<!doctype") || text.trim().toLowerCase().startsWith("<html")) {
+        return null;
+      }
+      return text;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const safeFetchJson = async (url) => {
+    const text = await safeFetchText(url);
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const parseCSV = (csvText) => {
+    const results = [];
+    let isInsideQuotes = false;
+    let currentVal = '';
+    let row = [];
+
+    csvText = csvText.replace(/\r\n/g, '\n');
+    for (let i = 0; i < csvText.length; i++) {
+      const char = csvText[i];
+      const nextChar = csvText[i + 1];
+
+      if (isInsideQuotes && char === '\n' && currentVal.length > 15000) {
+        isInsideQuotes = false;
+      }
+
+      if (char === '"' && nextChar === '"') {
+        currentVal += '"';
+        i++;
+      } else if (char === '"') {
+        isInsideQuotes = !isInsideQuotes;
+      } else if (char === ',' && !isInsideQuotes) {
+        row.push(currentVal);
+        currentVal = '';
+      } else if (char === '\n' && !isInsideQuotes) {
+        row.push(currentVal);
+        results.push(row);
+        row = [];
+        currentVal = '';
+      } else {
+        currentVal += char;
+      }
+    }
+    if (currentVal || row.length > 0) {
+      row.push(currentVal);
+      results.push(row);
+    }
+    return results;
+  };
+
+  const fetchActiveGauntletData = async (mode) => {
+    setStatusText(`Resolving ${mode.toUpperCase()} dataset sources...`);
+    if (mode === "textbook") {
+      const data = await safeFetchJson("/data/evaluation/ground_truth.json");
+      if (!data) return [];
+      return data;
+    }
+
+    if (mode === "codeforces") {
+      const combData = await safeFetchJson("/data/evaluation/curated_ground_truth.json");
+      if (Array.isArray(combData) && combData.length > 0) return combData;
+
+      let stitchedArray = [];
+      for (let i = 1; i <= 5; i++) {
+        const partJson = await safeFetchJson(`/data/evaluation/curated_part_${i}.json`);
+        if (partJson) {
+          stitchedArray = stitchedArray.concat(partJson);
+        }
+      }
+      return stitchedArray;
+    }
+
+    if (mode === "chunks") {
+      setStatusText("Fetching Ground Truth Chunks (01 to 29)...");
+      let stitchedArray = [];
+      for (let i = 1; i <= 29; i++) {
+        const paddedNum = i.toString().padStart(2, '0');
+        const partJson = await safeFetchJson(`/data/evaluation/processed/ground_truth_chunk_${paddedNum}.json`);
+        if (partJson) {
+          stitchedArray = stitchedArray.concat(partJson);
+        }
+      }
+      return stitchedArray;
+    }
+
+    if (mode === "tasty") {
+      setStatusText("Fetching Tasty Processed Dataset (CSV)...");
+      const csvText = await safeFetchText("/data/evaluation/processed/algo_blocks_dataset.csv");
+      if (!csvText) {
+        alert("Failed to load Tasty dataset: algo_blocks_dataset.csv missing or HTML fallback triggered.");
+        return [];
+      }
+      const rows = parseCSV(csvText);
+      if (rows.length < 2) return [];
+      const headers = rows[0].map(h => h.trim());
+      const codeIdx = headers.indexOf('code') !== -1 ? headers.indexOf('code') : 0;
+      const spaceIdx = headers.indexOf('space_complexity');
+      const timeIdx = headers.indexOf('time_complexity');
+
+      const dataset = [];
+      const validComplexities = ['1', 'constant', 'n', 'linear', 'n^2', 'quadratic', 'n^3', 'cubic', 'n^4', 'quartic', 'logn', 'log(n)', 'nlogn', 'n log n', 'n*logn', 'np', 'v+e', 'v', 'e', 'n*m', 'sqrtn', 'sqrt(n)', 'sqrt n', 'exponential', '2^n', '3^n', 'n*n!', 'factorial'];
+      for (let i = 1; i < rows.length; i++) {
+        if (!rows[i] || rows[i].length === 0 || (rows[i].length === 1 && !rows[i][0].trim())) continue;
+        let codeText = rows[i][codeIdx] !== undefined ? rows[i][codeIdx] : (rows[i][0] || '');
+        let spaceComp = spaceIdx !== -1 && rows[i][spaceIdx] ? rows[i][spaceIdx].trim() : "";
+        let timeComp = timeIdx !== -1 && rows[i][timeIdx] ? rows[i][timeIdx].trim() : "";
+        if (!spaceComp && !timeComp && codeText.includes(',')) {
+          const parts = codeText.split(',');
+          while (parts.length > 0 && !parts[parts.length - 1].replace(/"/g, '').trim()) {
+            parts.pop();
+          }
+
+          if (parts.length >= 3) {
+            let possibleTime = parts[parts.length - 1].trim().replace(/"/g, '').toLowerCase();
+            let possibleSpace = parts[parts.length - 2].trim().replace(/"/g, '').toLowerCase();
+
+            let isTimeValid = validComplexities.includes(possibleTime) || possibleTime.startsWith('o(');
+            let isSpaceValid = validComplexities.includes(possibleSpace) || possibleSpace.startsWith('o(');
+
+            if (isTimeValid && isSpaceValid) {
+              timeComp = possibleTime;
+              spaceComp = possibleSpace;
+              parts.pop();
+              parts.pop();
+              codeText = parts.join(',');
+            }
+          }
+        }
+
+        codeText = codeText
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '    ')
+          .replace(/^["']|["']$/g, '')
+          .replace(/^\s+|\s+$/g, '');
+
+        dataset.push({
+          id: `tasty_csv_${i}`,
+          name: `Tasty Algo ${i}`,
+          code: codeText,
+          expected_overall_space: spaceComp || "O(1)",
+          expected_overall_time: timeComp || "O(1)",
+          category: "Tasty Processed CSV"
+        });
+      }
+      return dataset;
+    }
+
+    if (mode === "both") {
+      setStatusText("Assembling Mega Gauntlet...");
+      const textbookData = await fetchActiveGauntletData("textbook");
+      const codeforcesData = await fetchActiveGauntletData("codeforces");
+      const tastyData = await fetchActiveGauntletData("tasty");
+      const chunksData = await fetchActiveGauntletData("chunks");
+      return [...textbookData, ...codeforcesData, ...tastyData, ...chunksData];
+    }
+
+    return [];
+  };
+
+  const handleStartEvaluation = async () => {
+    if (!isEngineReady) {
+      alert("The Pyodide Python AST Engine is currently warming up in the background. Please wait 3 seconds.");
+      return;
+    }
+
+    setIsLoading(true); setProgress(0); setResults(null); setExpandedRows({});
+
+    const gauntletPayload = await fetchActiveGauntletData(datasetOption);
+    if (!gauntletPayload || gauntletPayload.length === 0) {
+      alert(`Critical Failure: Could not assemble data points for target [${datasetOption}]. Ensure JSON/CSV files exist inside /public/data/evaluation/`);
+      setIsLoading(false);
+      setStatusText("Dataset assembly failed.");
+      return;
+    }
+
+    setStatusText(`Deploying AST Gauntlet across ${gauntletPayload.length} algorithms...`);
+    worker.postMessage({ type: "RUN_BENCHMARK_SUITE", dataset: gauntletPayload });
+  };
+
+  // Safe Extraction Logic For Download - We want to log ANY kind of mismatch (line or overall)
+  const totalErrorsCount = results?.details.filter(d =>
+    !d.isCompletelyCorrect || d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
+  ).length || 0;
+
+  const downloadFailuresLog = (details) => {
+    const mismatches = details.filter(d =>
+      !d.isCompletelyCorrect || d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
+    );
+
+    if (mismatches.length === 0) {
+      let logText = "=== EVALUATION FAILURES LOG ===\n\nNo mismatches found. Perfect accuracy!\n";
+      const blob = new Blob([logText], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "evaluation_failures_log.txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    const numChunks = 5;
+    const chunkSize = Math.ceil(mismatches.length / numChunks);
+
+    for (let i = 0; i < numChunks; i++) {
+      const chunk = mismatches.slice(i * chunkSize, (i + 1) * chunkSize);
+      if (chunk.length === 0) continue;
+
+      let logText = `=== EVALUATION FAILURES LOG (Part ${i + 1}) ===\n\n`;
+      chunk.forEach(m => {
+        logText += `[${m.id} - ${m.name}]\n`;
+        logText += `Time Expected: ${m.expectedTime} | Actual: ${m.predictedTime}\n`;
+        logText += `Space Expected: ${m.expectedSpace} | Actual: ${m.predictedSpace}\n`;
+        logText += `Full Code:\n${m.codeSnippet}\n`;
+        if (m.lineValidationResults && m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).length > 0) {
+          logText += `\nLine Level Mismatches:\n`;
+          m.lineValidationResults.filter(l => !l.isPassed && l.hasGroundTruth).forEach(l => {
+            logText += `  -> Line ${l.lineno}:\n`;
+            logText += `     LT Exp [-] Act [${l.localTime || '-'}]\n`;
+            logText += `     GT Exp [${l.expTime || '-'}] Act [${l.predTime || '-'}]\n`;
+            logText += `     LS Exp [-] Act [${l.localSpace || '-'}]\n`;
+            logText += `     GS Exp [${l.expSpace || '-'}] Act [${l.predSpace || '-'}]\n`;
+          });
+        }
+        logText += `${'-'.repeat(60)}\n\n`;
+      });
+
+      setTimeout(() => {
+        const blob = new Blob([logText], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `evaluation_failures_log_part_${i + 1}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, i * 500);
+    }
+  };
+
+  // Filter Details separating strictly Overall and Line Context to prevent mixing metrics
+  const filteredDetails = (results?.details || []).filter((item) => {
+    const gtLines = item.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
+    const lineFails = gtLines.filter(l => !l.isPassed).length;
+    const hasLineMismatch = lineFails > 0;
+
+    if (activeTab === "overall_pass") return item.isCompletelyCorrect;
+    if (activeTab === "line_pass") return gtLines.length > 0 && !hasLineMismatch;
+    if (activeTab === "overall_mismatch") return !item.isCompletelyCorrect;
+    if (activeTab === "line_mismatch") return hasLineMismatch;
+    return true;
+  });
+
+  const overallPassCount = results?.details.filter(d => d.isCompletelyCorrect).length || 0;
+  const overallMismatchCount = results?.details.filter(d => !d.isCompletelyCorrect).length || 0;
+
+  const linePassCount = results?.details.filter(d =>
+    d.lineValidationResults?.some(l => l.hasGroundTruth) &&
+    !d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
+  ).length || 0;
+  const lineMismatchCount = results?.details.filter(d =>
+    d.lineValidationResults?.some(l => l.hasGroundTruth && !l.isPassed)
+  ).length || 0;
+
+  // Calculate Line-level distinct metric derivations natively
+  const lineTimeErrorRate = results?.totalLinesTested > 0 ? (100 - results.lineTimeAccuracyRate).toFixed(1) : 0;
+  const lineSpaceErrorRate = results?.totalLinesTested > 0 ? (100 - results.lineSpaceAccuracyRate).toFixed(1) : 0;
+  const lineTimeFailed = results?.totalLinesTested > 0 ? (results.totalLinesTested - results.lineTimePassed) : 0;
+  const lineSpaceFailed = results?.totalLinesTested > 0 ? (results.totalLinesTested - results.lineSpacePassed) : 0;
+
+  const renderMetricCell = (val) => {
+    if (val === undefined || val === null || val === "-" || val === "") return <span>-</span>;
+    const num = parseFloat(val);
+    if (isNaN(num)) return <span>{val}</span>;
+
+    const pct = num <= 1.0 ? num * 100 : num;
+    const pctFormatted = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1).replace('.0', '')}%`;
+
+    return (
+      <div className="dual-metric-cell">
+        <strong className="metric-pct">{pctFormatted}</strong>
+        <span className="metric-raw">({num <= 1.0 ? num.toFixed(2) : num})</span>
+      </div>
+    );
+  };
+
+  const renderF1Badge = (scoreStr) => {
+    const s = parseFloat(scoreStr);
+    if (isNaN(s)) return <span>-</span>;
+    const pct = s <= 1.0 ? s * 100 : s;
+    const pctFormatted = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1).replace('.0', '')}%`;
+
+    if (s >= 0.80) return <span className="f1-excellent">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
+    if (s >= 0.60) return <span className="f1-good">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
+    if (s >= 0.40) return <span className="f1-warning">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
+    return <span className="f1-poor">{pctFormatted} <small className="f1-sub">({s.toFixed(2)})</small></span>;
+  };
+
+  const renderDualBadge = (expVal, predVal, isMatch) => {
+    const safeExp = (expVal && expVal !== 'undefined' && expVal !== '-') ? expVal : null;
+    const safePred = (predVal && predVal !== 'undefined') ? predVal : '-';
+    if (safeExp) {
+      return (
+        <div className="dual-comp-badge">
+          <span className="comp-exp">Exp: <strong>{safeExp}</strong></span>
+          <span className="comp-arrow"><FiArrowRight size={12} /></span>
+          <span className={`comp-act ${isMatch ? "comp-pass" : "comp-fail"}`}>{safePred}</span>
+        </div>
+      );
+    }
+    return <span className="comp-act comp-neutral">{safePred}</span>;
+  };
+
+  const processReport = (report) => {
+    if (!report || !report.perClass) return report;
+    const newPerClass = { ...report.perClass };
+
+    const mergeKeys = (sourceKey, targetKey) => {
+      if (newPerClass[sourceKey]) {
+        const source = newPerClass[sourceKey];
+        const target = newPerClass[targetKey] || { precision: 0, recall: 0, f1Score: 0, support: 0 };
+        const totalSupport = source.support + target.support;
+        if (totalSupport > 0) {
+          target.precision = ((source.precision * source.support) + (target.precision * target.support)) / totalSupport;
+          target.recall = ((source.recall * source.support) + (target.recall * target.support)) / totalSupport;
+          target.f1Score = ((source.f1Score * source.support) + (target.f1Score * target.support)) / totalSupport;
+        }
+        target.support = totalSupport;
+
+        newPerClass[targetKey] = target;
+        delete newPerClass[sourceKey];
+      }
+    };
+
+    mergeKeys("O(exponential)", "O(2^n)");
+    mergeKeys("O(v)", "O(V)");
+
+    if (newPerClass["O(quartic)"]) {
+      newPerClass["O(n^4)"] = newPerClass["O(quartic)"];
+      delete newPerClass["O(quartic)"];
+    }
+
+    return { ...report, perClass: newPerClass };
+  };
+
+  const processedTimeReport = results?.timeReport ? processReport(results.timeReport) : null;
+  const processedSpaceReport = results?.spaceReport ? processReport(results.spaceReport) : null;
+
+  return (
+    <div className="eval-suite-container">
+
+      {selectedItemCode && (
+        <div className="modal-overlay" onClick={() => setSelectedItemCode(null)}>
+          <div className="eval-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="eval-modal-header">
+              <div>
+                <h3 className="eval-modal-title">{selectedItemCode.name}</h3>
+
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>ID: {selectedItemCode.id}</span>
+              </div>
+              <div className="eval-modal-badges">
+                <span className="eval-modal-badge-gt">
+                  GT Time: {selectedItemCode.expectedTime} | Space: {selectedItemCode.expectedSpace}
+
+                </span>
+              </div>
+            </div>
+
+            <div className="eval-section-label">Source Code Snippet</div>
+            <pre className="eval-code-preview">{selectedItemCode.codeSnippet}</pre>
+
+            <div className="eval-section-label">AST VM Profiler Explanation & Trace</div>
+            <div className="eval-explanation-box">{selectedItemCode.explanation}</div>
+
+
+            <div className="eval-modal-footer">
+              <button onClick={() => setSelectedItemCode(null)} className="eval-btn-close">Close View</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isMetricsHelpOpen && (
+        <div className="modal-overlay" onClick={() => setIsMetricsHelpOpen(false)}>
+          <div className="eval-modal-content metrics-help-modal"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="eval-modal-header">
+              <div>
+                <h3 className="eval-modal-title">Understanding Classification Performance Metrics</h3>
+                <span className="eval-dataset-subtitle">Learn how Precision, Recall, F1-Score, and Support are used to evaluate the performance of the Complexity Analyzer.</span>
+              </div>
+
+              <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close-sm">
+                <FiXCircle size={22} />
+              </button>
+            </div>
+
+            <div className="metrics-help-body">
+              <div className="metric-card-info" style={{ borderLeft: "4px solid #3B82F6" }}>
+
+                <div className="metric-card-header">
+                  <span
+                    className="metric-name-badge"
+                    style={{
+                      backgroundColor: "#EFF6FF",
+
+                      color: "#1D4ED8",
+                      border: "1px solid #BFDBFE"
+                    }}
+                  >
+                    Precision (Trustworthiness)
+
+                  </span>
+                  <span className="metric-formula">TP / (TP + FP)</span>
+                </div>
+
+                <p className="metric-desc">
+                  <strong>Measures the correctness of the engine's positive complexity predictions.</strong>
+
+                  <br />
+                  Precision represents the proportion of predicted complexity classifications that are
+                  actually correct according to the ground truth dataset.
+                  A high Precision value indicates
+                  that the AST-based analysis engine rarely assigns an incorrect complexity class,
+                  minimizing false positive classifications and improving the reliability of reported
+                  algorithmic complexity results.
+                </p>
+              </div>
+
+              <div className="metric-card-info" style={{ borderLeft: "4px solid #10B981" }}>
+                <div className="metric-card-header">
+                  <span
+                    className="metric-name-badge"
+
+                    style={{
+                      backgroundColor: "#ECFDF5",
+                      color: "#065F46",
+                      border: "1px solid #A7F3D0"
+
+                    }}
+                  >
+                    Recall (Detection Coverage)
+                  </span>
+                  <span className="metric-formula">TP / (TP + FN)</span>
+                </div>
+
+
+                <p className="metric-desc">
+                  <strong>Measures the engine's ability to identify all valid complexity classifications.</strong>
+                  <br />
+                  Recall represents the proportion of actual algorithm complexity classes that were
+
+                  successfully detected by the AST analysis engine.
+                  A high Recall value indicates that
+                  the system rarely overlooks valid algorithmic patterns, thereby minimizing false
+                  negatives and providing comprehensive complexity detection across the evaluation
+                  dataset.
+                </p>
+              </div>
+
+              <div className="metric-card-info" style={{ borderLeft: "4px solid #8B5CF6" }}>
+                <div className="metric-card-header">
+                  <span
+                    className="metric-name-badge"
+
+                    style={{
+                      backgroundColor: "#F5F3FF",
+                      color: "#6D28D9",
+                      border: "1px solid #DDD6FE"
+
+                    }}
+                  >
+                    F1-Score (Balanced Performance)
+                  </span>
+                  <span className="metric-formula">2 Ã— (P Ã— R) / (P + R)</span>
+
+                </div>
+
+                <p className="metric-desc">
+                  <strong>Provides a balanced evaluation of Precision and Recall.</strong>
+                  <br />
+                  The F1-Score is the harmonic mean of Precision and Recall, providing a single measure
+
+                  that reflects both prediction accuracy and detection completeness.
+                  Unlike a simple
+                  arithmetic average, the harmonic mean penalizes situations where one metric is high
+                  while the other is low.
+                  Consequently, a high F1-Score indicates that the complexity
+                  classification engine produces predictions that are both accurate and comprehensive.
+                </p>
+              </div>
+
+              <div className="metric-card-info" style={{ borderLeft: "4px solid #64748B" }}>
+                <div className="metric-card-header">
+                  <span
+                    className="metric-name-badge"
+
+                    style={{
+                      backgroundColor: "#F1F5F9",
+                      color: "#334155",
+                      border: "1px solid #CBD5E1"
+
+                    }}
+                  >
+                    Support (Ground Truth Frequency)
+                  </span>
+                  <span className="metric-formula">Actual Ground Truth Occurrences</span>
+                </div>
+
+
+                <p className="metric-desc">
+                  <strong>Represents the number of ground truth instances for each complexity class.</strong>
+                  <br />
+                  Support indicates how many samples belonging to a particular complexity category are
+
+                  present in the evaluation dataset.
+                  Although it does not directly measure predictive
+                  performance, Support provides important statistical context when interpreting Precision,
+                  Recall, and F1-Score.
+                  Performance metrics computed from larger support values are
+                  generally considered more representative and statistically reliable than those derived
+                  from only a small number of observations.
+                </p>
+              </div>
+
+              <div className="metric-interactive-box">
+                <h4 className="interactive-box-title">
+                  <FiCpu style={{ display: "inline", marginRight: "6px", color: "#7928CA" }} />
+                  Interactive Classification Metric Simulator
+
+                </h4>
+
+                <p className="interactive-box-subtitle">
+                  Adjust the classification outcomes below to observe how changes in True Positives, False Positives, and False Negatives affect Precision, Recall, and the F1-Score in real time.
+                </p>
+
+                <div className="sandbox-controls">
+                  <div className="slider-group">
+                    <label>
+                      True Positives (Correct Classifications): <strong>{sandboxTP} cases</strong>
+
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+
+                      value={sandboxTP}
+                      onChange={(e) => setSandboxTP(parseInt(e.target.value))}
+                    />
+                  </div>
+
+                  <div className="slider-group">
+
+                    <label>
+                      False Positives (Incorrect Positive Classifications): <strong>{sandboxFP} cases</strong>
+                    </label>
+                    <input
+
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={sandboxFP}
+                      onChange={(e) => setSandboxFP(parseInt(e.target.value))}
+
+                    />
+                  </div>
+
+                  <div className="slider-group">
+                    <label>
+                      False Negatives (Missed Classifications): <strong>{sandboxFN} cases</strong>
+
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+
+                      max="100"
+                      value={sandboxFN}
+                      onChange={(e) => setSandboxFN(parseInt(e.target.value))}
+                    />
+                  </div>
+
+                </div>
+
+                <div className="sandbox-results">
+                  <div className="sandbox-stat">
+                    <span>Precision</span>
+                    <strong style={{ color: "#1D4ED8" }}>
+
+                      {(simPrecision * 100).toFixed(1)}%
+                    </strong>
+                    <small className="stat-dec">
+                      ({simPrecision.toFixed(2)})
+                    </small>
+
+                  </div>
+
+                  <div className="sandbox-stat">
+                    <span>Recall</span>
+                    <strong style={{ color: "#065F46" }}>
+                      {(simRecall * 100).toFixed(1)}%
+
+                    </strong>
+                    <small className="stat-dec">
+                      ({simRecall.toFixed(2)})
+                    </small>
+                  </div>
+
+
+                  <div
+                    className="sandbox-stat"
+                    style={{ backgroundColor: "#F3E8FF", borderColor: "#D8B4FE" }}
+                  >
+                    <span style={{
+                      color: "#6B21A8"
+                    }}>F1-Score</span>
+                    <strong style={{ color: "#6D28D9" }}>
+                      {(simF1 * 100).toFixed(1)}%
+                    </strong>
+                    <small className="stat-dec">
+
+                      ({simF1.toFixed(2)})
+                    </small>
+                  </div>
+                </div>
+
+                <div className="sandbox-live-commentary">
+
+                  <FiActivity size={16} />
+                  <span>
+                    {simF1 >= 0.8
+                      ? "The simulated classification results indicate strong overall performance, demonstrating a well-balanced combination of prediction accuracy and detection coverage."
+                      : simF1 >= 0.6
+                        ? "The simulated results indicate moderate classification performance. Improving either Precision or Recall would increase the overall F1-Score."
+                        : "The simulated results indicate low classification performance. A significant imbalance between Precision and Recall reduces the F1-Score, suggesting that prediction accuracy, detection coverage, or both require improvement."}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="eval-modal-footer">
+              <button onClick={() => setIsMetricsHelpOpen(false)} className="eval-btn-close">Return to Benchmark Matrix</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="workspace-header-purple">
+        <div className="wh-left">
+          <Link to="/dashboard" className="wh-back-btn eval-exit-link">
+            <FiArrowLeft size={18}
+            /><span>Dashboard</span>
+          </Link>
+          <div className="wh-divider"></div>
+          <h2 className="wh-project-title eval-wh-title">
+            System Complexity Analyzer Benchmark<span className="wh-benchmark-badge">Benchmark Testing</span>
+          </h2>
+        </div>
+
+        <div className="wh-right">
+          <button
+
+            onClick={handleStartEvaluation}
+            disabled={isRunning ||
+              !isEngineReady}
+            className={`eval-btn-run ${isRunning || !isEngineReady ?
+              "eval-run-disabled" : "eval-run-ready"}`}
+          >
+            {isRunning ?
+              <FiRefreshCw className="spinner" size={16} /> : <FiPlay fill="#fff" size={16} />}
+            <span>{isRunning ?
+              `Running Benchmark (${progress}%)...` : "Execute Benchmark"}</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="eval-main-wrapper">
+
+        <div className="eval-dataset-selector-box">
+          <div className="eval-dataset-info">
+            <FiDatabase style={{ color: "#7928CA" }} size={24} />
+            <div>
+              <strong className="eval-dataset-title">Select Benchmark Dataset</strong>
+              <span className="eval-dataset-subtitle">
+                Select the benchmark dataset to evaluate the accuracy and performance of the system's Complexity Analyzer.
+              </span>
+            </div>
+          </div>
+
+          <div className="dataset-btn-group">
+            <button
+              onClick={() => !isRunning && setDatasetOption("chunks")}
+              className={`dataset-btn ${datasetOption === "chunks" ? "active-ds" : ""}`}
+              disabled={isRunning}
+            >
+              Tasty Ground Truth Dataset
+            </button>
+          </div>
+        </div>
+
+        <div className="eval-status-banner">
+          <div className="eval-status-group">
+
+            <span className="eval-status-label">Execution Target:</span>
+            <strong className="eval-status-target">{statusText}</strong>
+          </div>
+          <div className="eval-status-group">
+            {results && totalErrorsCount > 0 && (
+              <button className="eval-btn-inspect" onClick={() => downloadFailuresLog(results.details)} style={{ marginRight: "15px", display: "flex", alignItems: "center", gap: "5px", padding: "6px 12px" }}>
+
+                <FiDownload size={14} /> Download Error Logs (TXT)
+              </button>
+            )}
+            <span className="eval-status-label-sm">AST Virtual Machine:</span>
+            {isEngineReady ?
+              (
+                <span className="eval-vm-ready"><FiCheckCircle size={13} /> Pyodide 3.11 AST Active</span>
+              ) : (
+                <span className="eval-vm-booting"><FiRefreshCw className="spinner" size={13} /> Wasm Engine Initializing...</span>
+              )}
+          </div>
+        </div>
+
+        {isRunning && (
+          <div className="eval-progress-track">
+            <div className="eval-progress-fill" style={{ width: `${progress}%` }}></div>
+          </div>
+
+        )}
+
+        {results && (
+          <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiCode style={{ display: "inline", color: "#10B981", marginRight: "8px" }} /> Overall Algorithm Accuracy
+                </strong>
+                <span className="eval-sklearn-subtitle">
+                  Validates the final computed Time and Space complexity for each fully processed algorithm block.
+                </span>
+              </div>
+            </div>
+
+            <div className="eval-stats-grid">
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Overall Time Accuracy</div>
+                <div className={`eval-stat-value ${results.timeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
+                  {results.timeAccuracyRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Time Error Rate</div>
+                <div className="eval-stat-value val-danger">
+                  {results.timeErrorRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Overall Time Passed</div>
+                <div className="eval-stat-value val-success">{results.timePassed}</div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Overall Time Mismatches</div>
+                <div className={`eval-stat-value ${results.timeFailed > 0 ? "val-danger" : "val-muted"}`}>{results.timeFailed}</div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Overall Space Accuracy</div>
+                <div className="eval-stat-value" style={{ color: results.spaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
+                  {results.spaceAccuracyRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Overall Space Error Rate</div>
+                <div className="eval-stat-value val-danger">
+                  {results.spaceErrorRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Overall Space Passed</div>
+                <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.spacePassed}</div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Overall Space Mismatches</div>
+                <div className={`eval-stat-value ${results.spaceFailed > 0 ? "val-danger" : "val-muted"}`}>{results.spaceFailed}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {results && results.totalLinesTested >= 0 && (
+          <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Statement-Level (Line-by-Line) Accuracy
+                </strong>
+                <span className="eval-sklearn-subtitle">
+                  Verified {results.totalLinesTested} individual source lines. This metric is strictly isolated from the Overall block.
+                </span>
+              </div>
+            </div>
+
+            <div className="eval-stats-grid">
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Line Time Accuracy</div>
+                <div className={`eval-stat-value ${results.lineTimeAccuracyRate >= 65 ? "val-success" : "val-warning"}`}>
+                  {results.totalLinesTested > 0 ? results.lineTimeAccuracyRate : "0.0"}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Time Error Rate</div>
+                <div className="eval-stat-value val-danger">
+                  {lineTimeErrorRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Line Time Passed</div>
+                <div className="eval-stat-value val-success">{results.lineTimePassed}</div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Line Time Mismatches</div>
+                <div className={`eval-stat-value ${lineTimeFailed > 0 ? "val-danger" : "val-muted"}`}>{lineTimeFailed}</div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #0EA5E9" }}>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Line Space Accuracy</div>
+                <div className="eval-stat-value" style={{ color: results.lineSpaceAccuracyRate >= 65 ? "#0EA5E9" : "#F59E0B" }}>
+                  {results.totalLinesTested > 0 ? results.lineSpaceAccuracyRate : "0.0"}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EF4444" }}>
+                <div className="eval-stat-title"><FiTrendingDown style={{ display: "inline", marginRight: "4px" }} /> Line Space Error Rate</div>
+                <div className="eval-stat-value val-danger">
+                  {lineSpaceErrorRate}%
+                </div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Line Space Passed</div>
+                <div className="eval-stat-value" style={{ color: "#0EA5E9" }}>{results.lineSpacePassed}</div>
+              </div>
+
+              <div className="eval-stat-card">
+                <div className="eval-stat-title">Line Space Mismatches</div>
+                <div className={`eval-stat-value ${lineSpaceFailed > 0 ? "val-danger" : "val-muted"}`}>{lineSpaceFailed}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {results && results.efficiency && (
+          <div className="eval-sklearn-container" style={{ marginBottom: "24px" }}>
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+
+                <strong className="eval-sklearn-title">
+                  <FiZap style={{ display: "inline", color: "#F59E0B", marginRight: "8px" }} /> Computational Efficiency & Hardware Profiling Report
+                </strong>
+                <span className="eval-sklearn-subtitle">
+                  Execution efficiency benchmarks measuring Wasm AST engine throughput, latency percentiles, and memory
+                  allocation across {results.efficiency.totalLines} source lines of code.
+                </span>
+              </div>
+            </div>
+
+            <div className="eval-stats-grid" style={{ padding: "16px 20px 20px", gap: "16px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #F59E0B" }}>
+
+                <div className="eval-stat-title"><FiClock style={{ display: "inline", marginRight: "4px" }} /> Total Benchmarking Time</div>
+                <div className="eval-stat-value" style={{ color: "#D97706" }}>
+                  {results.efficiency.totalExecutionSec}s
+                </div>
+                <span style={{
+                  fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block"
+                }}>
+                  {results.totalTested} algorithms processed
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #3B82F6" }}>
+                <div className="eval-stat-title"><FiTrendingUp style={{ display: "inline", marginRight: "4px" }} /> Engine Throughput</div>
+
+                <div className="eval-stat-value" style={{ color: "#2563EB" }}>
+                  {results.efficiency.throughputAlgos} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>algos/s</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+
+                  {results.efficiency.throughputLines} lines/sec
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #8B5CF6" }}>
+                <div className="eval-stat-title"><FiActivity style={{ display: "inline", marginRight: "4px" }} /> Mean AST Latency</div>
+                <div className="eval-stat-value"
+                  style={{ color: "#7C3AED" }}>
+                  {results.efficiency.meanTimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Median: {results.efficiency.medianTimeMs} ms
+
+                </span>
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #EC4899" }}>
+                <div className="eval-stat-title"><FiBarChart2 style={{ display: "inline", marginRight: "4px" }} /> Latency (P95 / Max)</div>
+                <div className="eval-stat-value" style={{ color: "#DB2777" }}>
+
+                  {results.efficiency.p95TimeMs} <small style={{ fontSize: "13px", fontWeight: "normal", color: "#64748B" }}>ms</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Peak Max: {results.efficiency.maxTimeMs} ms
+                </span>
+
+              </div>
+
+              <div className="eval-stat-card" style={{ borderTop: "4px solid #10B981" }}>
+                <div className="eval-stat-title"><FiCpu style={{ display: "inline", marginRight: "4px" }} /> Peak Wasm Memory</div>
+                <div className="eval-stat-value" style={{ color: "#059669" }}>
+                  {results.efficiency.peakAstMemMB} <small style={{
+                    fontSize: "13px", fontWeight: "normal", color: "#64748B"
+                  }}>MB</small>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748B", marginTop: "4px", display: "block" }}>
+                  Mean Traversal: {results.efficiency.meanAstMemKB} KB
+                </span>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {processedTimeReport && processedSpaceReport && (
+          <div className="eval-sklearn-container">
+            <div className="eval-sklearn-header">
+              <div className="eval-sklearn-header-left">
+                <strong className="eval-sklearn-title">
+
+                  <FiLayers style={{ display: "inline", color: "#7928CA", marginRight: "8px" }} /> Classification Performance Report
+                </strong>
+                <span className="eval-sklearn-subtitle">Performance statistics generated from the benchmark dataset using the Scikit-learn classification report.
+                  Values are shown in both percentage and decimal formats for clarity.</span>
+              </div>
+              <button onClick={() => setIsMetricsHelpOpen(true)} className="eval-btn-metrics-help">
+                <FiHelpCircle size={16} /> Understand Metric Percentages
+              </button>
+            </div>
+
+
+            <div className="eval-sklearn-grid">
+
+              <div className="sklearn-table-box">
+                <div className="sklearn-table-title">
+                  <span>Time Complexity Validation Matrix</span>
+                  <span style={{ fontWeight: "normal", color: "#64748B" }}>Total Algorithms: {results.totalTested}</span>
+
+                </div>
+                <table className="sklearn-table">
+                  <thead>
+                    <tr>
+                      <th>Complexity Class</th>
+
+                      <th title="Precision = TP / (TP + FP) | Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) |
+Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                    </tr>
+
+                  </thead>
+                  <tbody>
+                    {Object.keys(processedTimeReport.perClass).map((cKey) => {
+                      const row = processedTimeReport.perClass[cKey];
+
+                      return (
+                        <tr key={`time_${cKey}`}>
+                          <td className="td-class-code">{cKey}</td>
+                          <td>{renderMetricCell(row.precision)}</td>
+
+                          <td>{renderMetricCell(row.recall)}</td>
+                          <td>{renderF1Badge(row.f1Score)}</td>
+                          <td className="td-support-count"><strong>{row.support}</strong> <small>cases</small></td>
+                        </tr>
+
+                      );
+                    })}
+
+                    <tr className="tr-divider">
+                      <td>overall accuracy</td>
+                      <td>-</td>
+                      <td>-</td>
+
+                      <td><strong style={{ color: "#10B981", fontSize: "14px" }}>{((results.timePassed / results.totalTested) * 100).toFixed(1)}%</strong> <small style={{ color: "#94A3B8" }}>({(results.timePassed / results.totalTested).toFixed(2)})</small></td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
+                    </tr>
+                    <tr>
+
+                      <td>macro avg</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedTimeReport.macroAvg.f1Score)}</td>
+
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
+                    </tr>
+                    <tr className="tr-weighted">
+                      <td>weighted avg</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.precision)}</td>
+
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedTimeReport.weightedAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
+                    </tr>
+                  </tbody>
+
+                </table>
+              </div>
+
+              <div className="sklearn-table-box">
+                <div className="sklearn-table-title">
+                  <span>Space Complexity Validation Matrix</span>
+                  <span style={{
+                    fontWeight:
+                      "normal", color: "#64748B"
+                  }}>Total Algorithms: {results.totalTested}</span>
+                </div>
+                <table className="sklearn-table">
+                  <thead>
+                    <tr>
+                      <th>Complexity Class</th>
+
+                      <th title="Precision = TP / (TP + FP) |
+Trustworthiness">Precision <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Recall = TP / (TP + FN) |
+Catch Rate">Recall <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Harmonic Mean Balance">F1-Score <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                      <th title="Ground truth dataset count">Support <FiHelpCircle size={12} style={{ display: "inline", verticalAlign: "middle" }} /></th>
+                    </tr>
+
+                  </thead>
+                  <tbody>
+                    {Object.keys(processedSpaceReport.perClass).map((cKey) => {
+                      const row = processedSpaceReport.perClass[cKey];
+
+                      return (
+                        <tr key={`space_${cKey}`}>
+                          <td className="td-class-code">{cKey}</td>
+                          <td>{renderMetricCell(row.precision)}</td>
+
+                          <td>{renderMetricCell(row.recall)}</td>
+                          <td>{renderF1Badge(row.f1Score)}</td>
+                          <td className="td-support-count"><strong>{row.support}</strong> <small>cases</small></td>
+                        </tr>
+
+                      );
+                    })}
+
+                    <tr className="tr-divider">
+                      <td>overall accuracy</td>
+                      <td>-</td>
+                      <td>-</td>
+
+                      <td><strong style={{ color: "#0EA5E9", fontSize: "14px" }}>{((results.spacePassed / results.totalTested) * 100).toFixed(1)}%</strong> <small style={{ color: "#94A3B8" }}>({(results.spacePassed / results.totalTested).toFixed(2)})</small></td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
+                    </tr>
+                    <tr>
+
+                      <td>macro avg</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.precision)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.recall)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.macroAvg.f1Score)}</td>
+
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
+                    </tr>
+                    <tr className="tr-weighted">
+                      <td>weighted avg</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.precision)}</td>
+
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.recall)}</td>
+                      <td>{renderMetricCell(processedSpaceReport.weightedAvg.f1Score)}</td>
+                      <td className="td-support-count"><strong>{results.totalTested}</strong> <small>cases</small></td>
+                    </tr>
+                  </tbody>
+
+                </table>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {results && (
+          <div className="eval-table-container">
+            <div className="eval-filter-navbar">
+              <span className="eval-filter-label">Filter Output:</span>
+              <button onClick={() => setActiveTab("all")} className={`eval-filter-btn ${activeTab === "all" ? "filter-all-active" : "filter-all-idle"}`}>
+                All Algorithms ({results.details.length})
+              </button>
+              <button onClick={() => setActiveTab("overall_pass")} className={`eval-filter-btn ${activeTab === "overall_pass" ? "filter-pass-active" : "filter-pass-idle"}`}>
+                Overall Match ({overallPassCount})
+              </button>
+              <button onClick={() => setActiveTab("line_pass")} className={`eval-filter-btn ${activeTab === "line_pass" ? "filter-pass-active" : "filter-pass-idle"}`} style={{ backgroundColor: activeTab === "line_pass" ? "#0EA5E9" : "", color: activeTab === "line_pass" ? "#FFFFFF" : "" }}>
+                Line Match ({linePassCount})
+              </button>
+              <button onClick={() => setActiveTab("overall_mismatch")} className={`eval-filter-btn ${activeTab === "overall_mismatch" ? "filter-fail-active" : "filter-fail-idle"}`}>
+                Overall Mismatch ({overallMismatchCount})
+              </button>
+              <button onClick={() => setActiveTab("line_mismatch")} className={`eval-filter-btn ${activeTab === "line_mismatch" ? "filter-fail-active" : "filter-fail-idle"}`}>
+                Line Mismatch ({lineMismatchCount})
+              </button>
+            </div>
+
+            <table className="eval-table">
+              <thead>
+                <tr className="eval-table-header">
+                  <th>Algorithm Title</th>
+                  <th>Domain Category</th>
+                  <th>Ground Truth (T / S)</th>
+                  <th>AST Model Output (T / S)</th>
+                  <th>Time (Overall)</th>
+                  <th>Space (Overall)</th>
+                  <th>Lines (Detailed)</th>
+                  <th>Verification Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDetails.map((row, idx) => {
+
+                  const isExpanded = !!expandedRows[row.id];
+                  const gtLines = row.lineValidationResults?.filter(l => l.hasGroundTruth) || [];
+                  const lineFails = gtLines.filter(l => !l.isPassed).length;
+                  const hasLineMismatch = lineFails > 0;
+                  const hasLines = gtLines.length > 0;
+
+                  return (
+                    <React.Fragment key={`${row.id}_${idx}`}>
+                      <tr className={isExpanded ? "tr-expanded-parent" : ""}>
+
+                        <td className="cell-algo-name">
+                          {row.name}
+                          <span style={{ display: "block", fontSize: "11px", color: "#94A3B8", fontWeight: "normal" }}>{row.id}</span>
+                        </td>
+
+                        <td className="cell-category">{row.category}</td>
+
+                        <td>
+                          <code className="code-badge-gt" style={{ marginBottom: "4px" }}>
+                            T: {row.expectedTime}
+                          </code>
+                          <code className="code-badge-gt" style={{ backgroundColor: "#E0F2FE", color: "#0369A1", borderColor: "#BAE6FD" }}>
+                            S: {row.expectedSpace}
+                          </code>
+                        </td>
+
+                        <td>
+                          <code className={row.isTimeCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ marginBottom: "4px" }}>
+                            T: {row.predictedTime}
+                          </code>
+                          <code className={row.isSpaceCorrect ? "code-badge-pred-pass" : "code-badge-pred-fail"} style={{ backgroundColor: row.isSpaceCorrect ? "#ECFDF5" : "#FEF2F2", color: row.isSpaceCorrect ? "#0EA5E9" : "#991B1B", borderColor: row.isSpaceCorrect ? "#A7F3D0" : "#FECACA" }}>
+                            S: {row.predictedSpace}
+                          </code>
+                        </td>
+
+
+                        <td>
+                          {row.isTimeCorrect ? (
+                            <span className="eval-verdict verdict-pass"><FiCheckCircle size={15} /> Pass</span>
+                          ) : (
+                            <span className="eval-verdict verdict-fail"><FiXCircle size={15} /> Mismatch</span>
+                          )}
+                        </td>
+
+                        <td>
+                          {row.isSpaceCorrect ? (
+                            <span className="eval-verdict verdict-pass" style={{ color: "#0EA5E9" }}><FiCheckCircle size={15} /> Pass</span>
+                          ) : (
+                            <span className="eval-verdict verdict-fail"><FiXCircle size={15} /> Mismatch</span>
+                          )}
+                        </td>
+
+                        <td>
+                          {!hasLines ? (
+                            <span className="eval-verdict" style={{ color: "#94A3B8" }}>-</span>
+                          ) : hasLineMismatch ? (
+                            <span className="eval-verdict verdict-fail" title={`${lineFails} lines mismatched`}><FiXCircle size={15} /> {lineFails} Mismatched</span>
+                          ) : (
+                            <span className="eval-verdict verdict-pass" style={{ color: "#10B981" }}><FiCheckCircle size={15} /> Perfect</span>
+                          )}
+                        </td>
+
+                        <td>
+                          <div className="action-buttons-group">
+
+                            <button onClick={() => setSelectedItemCode(row)} className="eval-btn-inspect">
+                              <FiCode size={14} /> Inspect AST
+                            </button>
+
+                            <button onClick={() => toggleRowDropdown(row.id)} className={`eval-btn-dropdown ${isExpanded ? "active-dropdown" : ""} ${hasLineMismatch && !isExpanded ? "btn-dropdown-error" : ""}`}>
+                              <FiList size={14} /> <span>{isExpanded ? "Hide Lines" : (hasLineMismatch ? "Review Errors" : "Line Checks")}</span> {isExpanded ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+                            </button>
+                          </div>
+                        </td>
+
+                      </tr>
+
+                      {isExpanded && (
+                        <tr className="tr-dropdown-content">
+                          <td colSpan="8" className="td-dropdown-cell">
+
+                            <div className="line-checks-dropdown-box">
+                              <div className="dropdown-box-header">
+                                <div className="dbh-left">
+
+                                  <FiCornerDownRight size={16} className="dbh-icon" />
+                                  <strong>Line-by-Line Complexity & Execution Verification</strong>
+                                  <span className="dbh-sub">Statement-level Big-O detection trace for {row.name}</span>
+
+                                </div>
+                                <div className="dbh-right">
+                                  <span className="line-count-pill">
+
+                                    <FiLayers size={13} style={{ marginRight: "5px" }} />
+                                    {row.lineValidationResults?.length || 0} Statements Evaluated
+                                  </span>
+                                </div>
+                              </div>
+
+
+                              <div className="dropdown-table-wrapper">
+                                <table className="dropdown-line-table">
+                                  <thead>
+
+                                    <tr>
+                                      <th>Line #</th>
+
+                                      <th>Source Statement</th>
+                                      <th>Local Time</th>
+                                      <th>Global Time</th>
+
+                                      <th>Local Space</th>
+                                      <th>Global Space</th>
+
+                                      <th>Line Status</th>
+                                    </tr>
+                                  </thead>
+
+                                  <tbody>
+                                    {(row.lineValidationResults || []).map((lineItem, lIdx) => (
+                                      <tr key={`line_${row.id}_${lineItem.lineno}_${lIdx}`} className={!lineItem.isPassed && lineItem.hasGroundTruth ? "line-tr-fail" : ""}>
+                                        <td className="line-td-num">{lineItem.lineno}</td>
+                                        <td className="line-td-code"><code>{lineItem.lineOfCode || "-"}</code></td>
+
+                                        <td className="line-td-comp">
+                                          {lineItem.hasGroundTruth
+                                            ? renderDualBadge("-", lineItem.localTime, true)
+                                            : <span className="comp-act comp-neutral">{lineItem.localTime || "-"}</span>}
+                                        </td>
+
+                                        <td className="line-td-comp">
+                                          {lineItem.hasGroundTruth
+                                            ? renderDualBadge(lineItem.expTime, lineItem.predTime, lineItem.isTimeMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predTime || "-"}</span>}
+                                        </td>
+
+                                        <td className="line-td-comp">
+                                          {lineItem.hasGroundTruth
+                                            ? renderDualBadge("-", lineItem.localSpace, true)
+                                            : <span className="comp-act comp-neutral">{lineItem.localSpace || "-"}</span>}
+                                        </td>
+
+                                        <td className="line-td-comp">
+                                          {lineItem.hasGroundTruth
+                                            ? renderDualBadge(lineItem.expSpace, lineItem.predSpace, lineItem.isSpaceMatch)
+                                            : <span className="comp-act comp-neutral">{lineItem.predSpace || "-"}</span>}
+                                        </td>
+
+                                        <td className="line-td-status">
+                                          {lineItem.hasGroundTruth ? (
+                                            lineItem.isPassed ? (
+                                              <span className="line-verdict verdict-pass"><FiCheckCircle size={13} /> Match</span>
+
+                                            ) : (
+                                              <span className="line-verdict verdict-fail"><FiXCircle size={13} /> Mismatch</span>
+
+                                            )
+                                          ) : (
+                                            <span className="line-verdict verdict-none">AST Verified</span>
+                                          )}
+
+                                        </td>
+                                      </tr>
+                                    ))}
+
+                                    {(!row.lineValidationResults || row.lineValidationResults.length === 0) && (
+                                      <tr>
+
+                                        <td colSpan="7" style={{ padding: "28px", textAlign: "center", color: "#64748B" }}>
+                                          No statement-level AST trace recorded for this dataset snippet.
+                                        </td>
+                                      </tr>
+                                    )}
+
+                                  </tbody>
+                                </table>
+                              </div>
+
+
+                              <div className="dropdown-box-footer">
+                                <div className="dbf-verdict">
+                                  <span>Overall Algorithm Verdict:</span>
+
+                                  {row.isCompletelyCorrect ? (
+                                    <strong className="verdict-pass"><FiCheckCircle size={16} /> PASSED OVERALL</strong>
+                                  ) : (
+
+                                    <strong className="verdict-fail"><FiXCircle size={16} /> FAILED OVERALL</strong>
+                                  )}
+                                </div>
+
+                                <div className="dbf-metrics">
+                                  <div className="dbf-metric-item">
+                                    <span>Overall Time:</span>
+
+                                    <strong className={row.isTimeCorrect ? "verdict-pass" : "verdict-fail"}>
+                                      Exp {row.expectedTime} vs Act {row.predictedTime}
+                                    </strong>
+
+                                  </div>
+                                  <div className="dbf-metric-item">
+                                    <span>Overall Space:</span>
+
+                                    <strong className={row.isSpaceCorrect ? "verdict-pass" : "verdict-fail"}>
+                                      Exp {row.expectedSpace} vs Act {row.predictedSpace}
+                                    </strong>
+
+                                  </div>
+                                </div>
+                              </div>
+
+
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {filteredDetails.length === 0 && (
+              <div className="eval-empty-state">No algorithms match the selected filter.</div>
+            )}
+          </div>
+
+        )}
+
+      </div>
     </div>
   );
 }
