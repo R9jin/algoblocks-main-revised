@@ -501,14 +501,27 @@ export default function MainApp() {
     }
   };
 
+  // FIX: Safely retrieve active workspace data before opening the modal
   const openSaveModal = () => {
-    if (!activeTab.blocklyJson && (!activeTab.pythonCode || activeTab.pythonCode === "# Drag blocks to generate Python code")) {
+    let currentJson = activeTab.blocklyJson;
+    let currentCode = activeTab.pythonCode;
+    
+    if (workspaceRefs.current[activeTabId] && typeof workspaceRefs.current[activeTabId].getWorkspaceJson === 'function') {
+      try {
+        currentJson = workspaceRefs.current[activeTabId].getWorkspaceJson();
+      } catch (err) {
+        console.warn("Could not extract live workspace JSON directly:", err);
+      }
+    }
+
+    if (!currentJson && (!currentCode || currentCode === "# Drag blocks to generate Python code")) {
       showToast("The workspace is empty. Nothing to save!", "error"); return;
     }
     if (!getUser()) { showToast("You must be logged in to save.", "error"); return; }
     if (isGuest) { showToast("Guest accounts cannot save projects or templates.", "error"); return; }
+    
     setSaveModal({
-      isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: null,
+      isOpen: true, isEditMetadataOnly: false, editingId: activeTab.currentLoadedId, editingData: currentJson,
       title: activeTab.title !== "Untitled Project" ? activeTab.title : "",
       description: "", category: "Custom Templates", saveType: activeTab.saveType,
     });
@@ -601,13 +614,30 @@ export default function MainApp() {
 
     const id = saveModal.editingId || (saveModal.saveType === "template" ? `local_tpl_${Date.now()}` : `local_proj_${Date.now()}`);
     const nowMs = Date.now();
+    
+    // Grab live blocks JSON safely
+    let currentBlocksJson = saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson;
+    if (!currentBlocksJson && workspaceRefs.current[activeTabId] && typeof workspaceRefs.current[activeTabId].getWorkspaceJson === 'function') {
+      try { currentBlocksJson = workspaceRefs.current[activeTabId].getWorkspaceJson(); } catch(e){}
+    }
+
     const payload = {
-      _id: id, title: saveModal.title, name: saveModal.title, description: saveModal.description,
+      _id: id, 
+      projectId: id,
+      templateId: id,
+      title: saveModal.title, 
+      name: saveModal.title, 
+      description: saveModal.description,
       category: saveModal.saveType === "template" ? saveModal.category : undefined,
-      data: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson,
-      workspace: { blocklyJson: saveModal.isEditMetadataOnly ? saveModal.editingData : activeTab.blocklyJson },
+      data: currentBlocksJson,
+      workspace: { blocklyJson: currentBlocksJson },
       pythonCode: activeTab.pythonCode || "",
-      owner_id: user.email, userId: user.email, synced: false, updatedAt: nowMs,
+      owner_id: user.email, 
+      userId: user.email, 
+      isSynced: false,
+      synced: false, 
+      timestamp: nowMs,
+      updatedAt: nowMs
     };
 
     const db = saveModal.saveType === "template" ? templatesDB : projectsDB;
@@ -615,21 +645,17 @@ export default function MainApp() {
 
     if (navigator && navigator.onLine && user.email && API_BASE) {
       try {
-        const endpoint = saveModal.saveType === "template" ? "/api/templates/save" : "/api/projects/save";
-        const fallbackEndpoint = saveModal.saveType === "template" ? "/api/templates" : "/api/projects";
+        const endpoint = saveModal.saveType === "template" ? "/api/templates" : "/api/projects";
         const apiPayload = saveModal.saveType === "template"
-          ? { templateId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: payload.data } }
-          : { projectId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, workspace: { blocklyJson: payload.data }, pythonCode: activeTab.pythonCode || "" };
+          ? { templateId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, category: saveModal.category, workspace: { blocklyJson: currentBlocksJson } }
+          : { projectId: id.startsWith("local_") ? null : id, userId: user.email, name: saveModal.title, description: saveModal.description, workspace: { blocklyJson: currentBlocksJson }, pythonCode: activeTab.pythonCode || "" };
         
-        let res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
-        if (res.status === 404) {
-           res = await fetch(`${API_BASE}${fallbackEndpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
-        }
+        const res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(apiPayload) });
         
-        if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
+        if (res.ok) {
           const responseData = await res.json();
           const realId = responseData.projectId || responseData.templateId || responseData._id || id;
-          payload._id = realId; payload.synced = true;
+          payload._id = realId; payload.isSynced = true; payload.synced = true;
           if (realId !== id) await db.removeItem(id);
           await db.setItem(realId, payload);
           showToast("Saved directly to cloud!", "success");
@@ -652,7 +678,6 @@ export default function MainApp() {
       updateTab(activeTabId, { title: saveModal.title, currentLoadedId: id, saveType: saveModal.saveType, isDirty: false, ignoreDirtyUntil: Date.now() + 1200 });
     }
     
-    // Force immediate background processing trigger
     if (syncManager?.processSyncQueue) {
        syncManager.processSyncQueue();
     }

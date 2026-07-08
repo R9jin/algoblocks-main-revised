@@ -28,14 +28,14 @@ def get_all_users(request: Request, admin_email: str = Depends(get_current_admin
         logger.error(f"Error fetching users via PostgreSQL: {str(e)}")
         raise HTTPException(status_code=500, detail="Error fetching users")
 
-@router.post("/users/status")
+@router.patch("/users/{email}/status")
 @limiter.limit("20/minute")
 def update_user_status(
+    email: str,
     request: Request,
     payload: Dict[str, Any] = Body(...), 
     admin_email: str = Depends(get_current_admin_user)
 ):
-    email = payload.get("email")
     status = payload.get("status")
     
     if not email or not status:
@@ -55,15 +55,13 @@ def update_user_status(
         logger.error(f"Error updating user status in PostgreSQL: {str(e)}")
         raise HTTPException(status_code=500, detail="Error updating user status")
 
-@router.post("/users/delete")
+@router.delete("/users/{email}")
 @limiter.limit("10/minute")
 def delete_user(
+    email: str,
     request: Request,
-    payload: Dict[str, Any] = Body(...), 
     admin_email: str = Depends(get_current_admin_user)
 ):
-    email = payload.get("email")
-    
     if not email:
         raise HTTPException(status_code=400, detail="Missing email")
         

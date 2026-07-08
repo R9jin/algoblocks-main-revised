@@ -19,12 +19,12 @@ class UserRepository:
         user_dict = dict(user)
         
         # Fetch associated JSONB progress
-        cursor.execute('SELECT data FROM progress WHERE email = %s', (email,))
+        cursor.execute('SELECT data FROM progress WHERE email = %s LIMIT 1', (email,))
         progress_row = cursor.fetchone()
         user_dict["progress"] = progress_row["data"] if progress_row else {}
         
         # Fetch associated JSONB assessments
-        cursor.execute('SELECT data FROM assessments WHERE email = %s', (email,))
+        cursor.execute('SELECT data FROM assessments WHERE email = %s LIMIT 1', (email,))
         assessment_row = cursor.fetchone()
         user_dict["assessments"] = assessment_row["data"] if assessment_row else {}
         
@@ -69,15 +69,17 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Ensure row exists
-        cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s) ON CONFLICT DO NOTHING', (email, '{}'))
-        
+        # Update existing row safely
         cursor.execute('''
             UPDATE progress 
             SET data = jsonb_set(data, %s, %s, true)
             WHERE email = %s
         ''', (f'{{{lesson_id}}}', json.dumps(score), email))
         
+        # If no row was updated, insert exactly one safely
+        if cursor.rowcount == 0:
+            cursor.execute('INSERT INTO progress (email, data) VALUES (%s, %s)', (email, json.dumps({lesson_id: score})))
+            
         cursor.close()
         conn.close()
 
@@ -86,15 +88,17 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Ensure row exists
-        cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s) ON CONFLICT DO NOTHING', (email, '{}'))
-        
+        # Update existing row safely
         cursor.execute('''
             UPDATE assessments 
             SET data = jsonb_set(data, %s, %s, true)
             WHERE email = %s
         ''', (f'{{{assessment_key}}}', json.dumps(data), email))
         
+        # If no row was updated, insert exactly one safely
+        if cursor.rowcount == 0:
+             cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s)', (email, json.dumps({assessment_key: data})))
+             
         cursor.close()
         conn.close()
         
@@ -103,14 +107,10 @@ class UserRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Join the relational table with the JSONB tracker tables
+        # Select purely from the unique users table to prevent duplicate identity rows
         cursor.execute('''
-            SELECT u.name, u.email, u.status, u.role, u.is_admin,
-                   COALESCE(p.data, '{}'::jsonb) as progress,
-                   COALESCE(a.data, '{}'::jsonb) as assessments
-            FROM users u
-            LEFT JOIN progress p ON u.email = p.email
-            LEFT JOIN assessments a ON u.email = a.email
+            SELECT id, name, email, status, role, is_admin
+            FROM users
         ''')
         users = cursor.fetchall()
         
@@ -132,7 +132,7 @@ class UserRepository:
     def delete_user(email: str):
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Due to ON DELETE CASCADE in the table creation, this will also wipe progress and assessments
+        # Due to ON DELETE CASCADE, this will wipe associated progress and assessments too
         cursor.execute('DELETE FROM users WHERE email = %s', (email,))
         rowcount = cursor.rowcount
         cursor.close()

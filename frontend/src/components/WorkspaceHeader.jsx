@@ -12,7 +12,6 @@ export default function WorkspaceHeader({
   handleSaveToDB,
   currentProjectTitle,
   isEvaluating,
-  isAdmin,
   isGuest
 }) {
   return (
@@ -51,7 +50,7 @@ export default function WorkspaceHeader({
             <button className="wh-action-icon" onClick={handleExport} title="Export JSON">
               <FiDownload size={18} />
             </button>
-            <label className="wh-action-icon" title="Import JSON">
+            <label className="wh-action-icon" title="Import JSON" style={{ cursor: "pointer", display: "inline-flex", alignItems: "center" }}>
               <FiUpload size={18} />
               <input 
                 type="file" 
@@ -64,13 +63,14 @@ export default function WorkspaceHeader({
         )}
 
         {!isGuest && (
-          <button className="wh-btn-save" onClick={handleSaveToDB}>
+          <button className="wh-btn-save" type="button" onClick={handleSaveToDB}>
             <FiSave size={16} /> Save
           </button>
         )}
 
         <button 
           className={`wh-btn-run ${isEvaluating ? 'running' : ''}`} 
+          type="button"
           onClick={runCode}
           disabled={isEvaluating}
         >

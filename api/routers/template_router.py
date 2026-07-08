@@ -13,7 +13,9 @@ router = APIRouter()
 def get_all_templates(userId: Optional[str] = Query(None)):
     return TemplateService.get_all_templates()
 
-# BUG-07 Fix: Require valid JWT token to persist templates
+# Added "" and "/" so syncManager's POST to /api/templates works
+@router.post("")
+@router.post("/")
 @router.post("/save")
 def save_template(req: TemplateSyncRequest, current_user: str = Depends(get_current_user_email)):
     try:
