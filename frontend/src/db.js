@@ -40,41 +40,64 @@ export const initDB = async () => {
             
             // Sync Queue for handling offline actions
             if (!db.objectStoreNames.contains("syncQueue")) {
-                db.createObjectStore("syncQueue", { keyPath: "id", autoIncrement: true });
+                const store = db.createObjectStore("syncQueue", { keyPath: "id", autoIncrement: true });
             }
         },
     });
 };
 
 // Factory to create standardized store wrappers with all required methods
-const createStoreWrapper = (storeName) => ({
-    async getAll() {
-        const db = await initDB();
-        return db.getAll(storeName);
-    },
-    async get(id) {
-        const db = await initDB();
-        return db.get(storeName, id);
-    },
-    async save(item) {
-        const db = await initDB();
-        return db.put(storeName, { ...item, timestamp: Date.now() });
-    },
-    async delete(id) {
-        const db = await initDB();
-        return db.delete(storeName, id);
-    },
-    async clear() {
-        const db = await initDB();
-        return db.clear(storeName);
-    }
-});
+const createStoreWrapper = (storeName, keyPath) => {
+    return {
+        async getAll() {
+            const db = await initDB();
+            return db.getAll(storeName);
+        },
+        async get(id) { 
+            const db = await initDB();
+            return db.get(storeName, id);
+        },
+        async save(item) {
+            const db = await initDB();
+            return db.put(storeName, { ...item, timestamp: Date.now() });
+        },
+        async delete(id) {
+            const db = await initDB();
+            return db.delete(storeName, id);
+        },
+        async clear() {
+            const db = await initDB();
+            return db.clear(storeName);
+        },
+        // Compatibility layer to prevent "db.setItem is not a function" and match localForage API
+        async getItem(id) {
+            return this.get(id);
+        },
+        async setItem(id, value) {
+            const payload = { ...value };
+            if (keyPath) {
+                payload[keyPath] = payload[keyPath] || id;
+            }
+            return this.save(payload);
+        },
+        async removeItem(id) {
+            return this.delete(id);
+        },
+        async iterate(callback) {
+            const allItems = await this.getAll();
+            for (let i = 0; i < allItems.length; i++) {
+                const item = allItems[i];
+                await callback(item, item[keyPath], i);
+            }
+        }
+    };
+};
 
-export const projectsDB = createStoreWrapper("projects");
-export const templatesDB = createStoreWrapper("templates");
-export const progressDB = createStoreWrapper("progress");
-export const assessmentsDB = createStoreWrapper("assessments");
-export const submissionsDB = createStoreWrapper("submissions");
+export const projectsDB = createStoreWrapper("projects", "projectId");
+export const templatesDB = createStoreWrapper("templates", "templateId");
+export const progressDB = createStoreWrapper("progress", "lesson_id");
+export const assessmentsDB = createStoreWrapper("assessments", "assessmentId");
+export const submissionsDB = createStoreWrapper("submissions", "activityId");
 
 export const syncQueueDB = {
     async add(action, payload) {
