@@ -89,10 +89,9 @@ class ProjectRepository:
             values.append(timestamp)
             
         if blockly_updates:
-            # jsonb_set allows updating specific keys inside the JSON object natively in Postgres
-            for key, val in blockly_updates.items():
-                set_clauses.append(f"blockly_data = jsonb_set(blockly_data, %s, %s, true)")
-                values.extend([f'{{{key}}}', json.dumps(val)])
+            # Safely merge updates into the JSONB object natively using PostgreSQL concatenation (||)
+            set_clauses.append("blockly_data = blockly_data || %s::jsonb")
+            values.append(json.dumps(blockly_updates))
                 
         if not set_clauses:
             return None

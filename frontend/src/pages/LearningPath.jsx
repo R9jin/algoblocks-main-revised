@@ -80,9 +80,17 @@ export default function LearningPath() {
   const [activitiesData, setActivitiesData] = useState({});
   const [isLoadingCurriculum, setIsLoadingCurriculum] = useState(true);
 
-  const storedUser = JSON.parse(
-    localStorage.getItem("user") || sessionStorage.getItem("user") || "{}"
-  );
+  // Safe JSON Parsing to prevent component unmount if local storage is malformed
+  let storedUser = {};
+  try {
+    storedUser = JSON.parse(
+      localStorage.getItem("user") || sessionStorage.getItem("user") || "{}"
+    );
+    if (!storedUser || typeof storedUser !== 'object') storedUser = {};
+  } catch (e) {
+    storedUser = {};
+  }
+  
   const userEmail = storedUser.email || "";
   const isGuest = storedUser.isGuest === true;
   const isAdmin = storedUser.role === "admin" || storedUser.isAdmin === true;
@@ -98,7 +106,6 @@ export default function LearningPath() {
     return aes >= 50 || sub.status === "passed";
   };
 
-  // Explicit mapping of variations for requirements matching the activity app logic
   const getMinReq = (moduleId, activities, isOpt = false) => {
     if (!activities || activities.length === 0) return 0;
     if (isOpt) return Math.min(2, activities.length); 
@@ -125,7 +132,7 @@ export default function LearningPath() {
       });
       
       await submissionsDB.iterate((val) => {
-        if (val.userId === userEmail || isGuest) {
+        if (val && (val.userId === userEmail || isGuest)) {
           if (!initialSubs[val.moduleId]) initialSubs[val.moduleId] = {};
           initialSubs[val.moduleId][val.activityId] = val;
         }
@@ -212,9 +219,10 @@ export default function LearningPath() {
   };
 
   const findMilestoneData = (keywords) => {
-    const cleanKws = keywords.map(k => k.toLowerCase().replace(/[-_ ]/g, ''));
+    const cleanKws = keywords.map(k => String(k).toLowerCase().replace(/[-_ ]/g, ''));
     for (const [k, v] of Object.entries(assessments || {})) {
-      const cleanKey = k.toLowerCase().replace(/[-_ ]/g, '');
+      // FIX: Added String() wrapper to prevent crashes when DB keys are numbers
+      const cleanKey = String(k).toLowerCase().replace(/[-_ ]/g, '');
       if (cleanKws.some(kw => cleanKey.includes(kw))) {
         if (v !== null && v !== undefined && (v.completed || v.passed || v.score !== undefined || v.correct !== undefined)) {
           return v;
@@ -225,11 +233,12 @@ export default function LearningPath() {
   };
 
   const getQuizData = (moduleId) => {
-    const modClean = moduleId.toLowerCase().replace(/[-_ ]/g, ''); 
+    const modClean = String(moduleId).toLowerCase().replace(/[-_ ]/g, ''); 
     const targetQuizKeys = [`${modClean}assessment`, `${modClean}quiz`, `${modClean}test`, modClean, `${modClean}postassessment`];
     
     for (const [k, v] of Object.entries(assessments || {})) {
-      const kc = k.toLowerCase().replace(/[-_ ]/g, '');
+      // FIX: Added String() wrapper for crash prevention 
+      const kc = String(k).toLowerCase().replace(/[-_ ]/g, '');
       if (targetQuizKeys.includes(kc)) {
         return v;
       }
