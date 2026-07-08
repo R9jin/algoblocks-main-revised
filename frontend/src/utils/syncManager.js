@@ -4,7 +4,7 @@ import { assessmentsDB, progressDB, projectsDB, submissionsDB, syncQueueDB, temp
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, '') + "/api";
 
 const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token) return null;
     return {
         "Content-Type": "application/json",
@@ -43,37 +43,50 @@ export const SyncManager = {
             const unsyncedTemplates = allTemplates.filter(t => !t.isSynced);
 
             // 2. Batch Sync Core Metrics (Progress, Assessments, Submissions) to Postgres JSONB
-            if (unsyncedProgress.length > 0 || unsyncedAssessments.length > 0 || unsyncedSubmissions.length > 0) {
-                const batchPayload = {
-                    progress: unsyncedProgress,
-                    assessments: unsyncedAssessments,
-                    submissions: unsyncedSubmissions
-                };
+            // The API endpoints are tailored for standard single-item updates, so we sync them individually here
+            for (const p of unsyncedProgress) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/update-progress`, {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify(p)
+                    });
+                    if (res.ok) await progressDB.save({ ...p, isSynced: true });
+                } catch (e) {
+                    console.error("Failed to sync progress", e);
+                }
+            }
 
-                const batchRes = await fetch(`${API_BASE_URL}/batch-sync`, {
-                    method: "POST",
-                    headers,
-                    body: JSON.stringify(batchPayload)
-                });
+            for (const a of unsyncedAssessments) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/update-assessment`, {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify(a)
+                    });
+                    if (res.ok) await assessmentsDB.save({ ...a, isSynced: true });
+                } catch (e) {
+                    console.error("Failed to sync assessment", e);
+                }
+            }
 
-                if (batchRes.ok) {
-                    // Mark as synced locally
-                    for (const p of unsyncedProgress) {
-                        await progressDB.save({ ...p, isSynced: true });
-                    }
-                    for (const a of unsyncedAssessments) {
-                        await assessmentsDB.save({ ...a, isSynced: true });
-                    }
-                    for (const s of unsyncedSubmissions) {
-                        await submissionsDB.save({ ...s, isSynced: true });
-                    }
+            for (const s of unsyncedSubmissions) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/sync-submission`, {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify(s)
+                    });
+                    if (res.ok) await submissionsDB.save({ ...s, isSynced: true });
+                } catch (e) {
+                    console.error("Failed to sync submission", e);
                 }
             }
 
             // 3. Sync Individual Projects
             for (const project of unsyncedProjects) {
                 try {
-                    const res = await fetch(`${API_BASE_URL}/projects/save`, {
+                    const res = await fetch(`${API_BASE_URL}/projects`, {
                         method: "POST",
                         headers,
                         body: JSON.stringify(project)
@@ -89,7 +102,7 @@ export const SyncManager = {
             // 4. Sync Individual Templates
             for (const template of unsyncedTemplates) {
                 try {
-                    const res = await fetch(`${API_BASE_URL}/templates/save`, {
+                    const res = await fetch(`${API_BASE_URL}/templates`, {
                         method: "POST",
                         headers,
                         body: JSON.stringify(template)
@@ -107,19 +120,17 @@ export const SyncManager = {
             for (const task of queue) {
                 try {
                     if (task.action === "DELETE_PROJECT") {
-                        const res = await fetch(`${API_BASE_URL}/projects/delete`, {
-                            method: "POST",
-                            headers,
-                            body: JSON.stringify({ projectId: task.payload.projectId })
+                        const res = await fetch(`${API_BASE_URL}/projects/${task.payload.projectId}`, {
+                            method: "DELETE",
+                            headers
                         });
                         if (res.ok) {
                             await syncQueueDB.remove(task.id);
                         }
                     } else if (task.action === "DELETE_TEMPLATE") {
-                        const res = await fetch(`${API_BASE_URL}/templates/delete`, {
-                            method: "POST",
-                            headers,
-                            body: JSON.stringify({ templateId: task.payload.templateId })
+                        const res = await fetch(`${API_BASE_URL}/templates/${task.payload.templateId}`, {
+                            method: "DELETE",
+                            headers
                         });
                         if (res.ok) {
                             await syncQueueDB.remove(task.id);
@@ -150,10 +161,9 @@ export const SyncManager = {
         if (!headers) return;
 
         try {
-            const res = await fetch(`${API_BASE_URL}/projects/delete`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({ projectId })
+            const res = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+                method: "DELETE",
+                headers
             });
             if (!res.ok) throw new Error("Failed to delete remotely");
         } catch (e) {
@@ -178,10 +188,9 @@ export const SyncManager = {
         if (!headers) return;
 
         try {
-            const res = await fetch(`${API_BASE_URL}/templates/delete`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({ templateId })
+            const res = await fetch(`${API_BASE_URL}/templates/${templateId}`, {
+                method: "DELETE",
+                headers
             });
             if (!res.ok) throw new Error("Failed to delete remotely");
         } catch (e) {
@@ -239,12 +248,11 @@ export const SyncManager = {
             const projRes = await fetch(`${API_BASE_URL}/projects`, { headers });
             if (projRes.ok) {
                 const projData = await projRes.json();
-                if (projData.projects) {
-                    for (const remoteProj of projData.projects) {
-                        const localProj = await projectsDB.get(remoteProj.projectId);
-                        if (!localProj || localProj.isSynced || (localProj.timestamp || 0) < (remoteProj.timestamp || 0)) {
-                            await projectsDB.save({ ...remoteProj, isSynced: true });
-                        }
+                const items = Array.isArray(projData) ? projData : projData.projects || [];
+                for (const remoteProj of items) {
+                    const localProj = await projectsDB.get(remoteProj.projectId);
+                    if (!localProj || localProj.isSynced || (localProj.timestamp || 0) < (remoteProj.timestamp || 0)) {
+                        await projectsDB.save({ ...remoteProj, isSynced: true });
                     }
                 }
             }
@@ -253,12 +261,11 @@ export const SyncManager = {
             const tplRes = await fetch(`${API_BASE_URL}/templates`, { headers });
             if (tplRes.ok) {
                 const tplData = await tplRes.json();
-                if (tplData.templates) {
-                    for (const remoteTpl of tplData.templates) {
-                        const localTpl = await templatesDB.get(remoteTpl.templateId);
-                        if (!localTpl || localTpl.isSynced || (localTpl.timestamp || 0) < (remoteTpl.timestamp || 0)) {
-                            await templatesDB.save({ ...remoteTpl, isSynced: true });
-                        }
+                const items = Array.isArray(tplData) ? tplData : tplData.templates || [];
+                for (const remoteTpl of items) {
+                    const localTpl = await templatesDB.get(remoteTpl.templateId);
+                    if (!localTpl || localTpl.isSynced || (localTpl.timestamp || 0) < (remoteTpl.timestamp || 0)) {
+                        await templatesDB.save({ ...remoteTpl, isSynced: true });
                     }
                 }
             }
@@ -279,6 +286,7 @@ export const startBackgroundSync = (intervalMs = 30000) => {
     
     // Initial sync on start
     SyncManager.syncDataWithServer();
+    SyncManager.pullRemoteState();
     
     // Set interval for periodic syncing
     syncIntervalId = setInterval(() => {
@@ -296,4 +304,5 @@ export const stopBackgroundSync = () => {
 // Automatically sync when coming back online
 window.addEventListener('online', () => {
     SyncManager.syncDataWithServer();
+    SyncManager.pullRemoteState();
 });

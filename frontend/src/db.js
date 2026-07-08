@@ -2,7 +2,7 @@
 import { openDB } from "idb";
 
 const DB_NAME = "AlgoBlocksDB";
-const DB_VERSION = 2; // Bumped version to flush out old MongoDB structures locally
+const DB_VERSION = 3; // Bumped version to ensure fresh object stores for PostgreSQL structure
 
 export const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
@@ -78,6 +78,10 @@ export const templatesDB = {
     async save(template) {
         const db = await initDB();
         return db.put("templates", { ...template, timestamp: Date.now() });
+    },
+    async delete(templateId) {
+        const db = await initDB();
+        return db.delete("templates", templateId);
     }
 };
 
