@@ -4,301 +4,296 @@ import { assessmentsDB, progressDB, projectsDB, submissionsDB, syncQueueDB, temp
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, '') + "/api";
 
 const getAuthHeaders = () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token") || sessionStorage.getItem("authToken");
-    if (!token) return { "Content-Type": "application/json" };
+    const token = localStorage.getItem("token");
+    if (!token) return null;
     return {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
     };
 };
 
-const addToSyncQueue = async (type, data) => {
-    try {
-        const id = `sync_${type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        await syncQueueDB.setItem(id, { type: type.toUpperCase(), action: "UPSERT", data, timestamp: Date.now() });
-        console.log(`[Offline] Saved ${type} to sync queue.`);
-    } catch (err) {
-        console.error("Failed to add to sync queue", err);
-    }
-};
-
-const notifySyncStart = () => window.dispatchEvent(new Event("sync-start"));
-const notifySyncEnd = () => window.dispatchEvent(new Event("sync-end"));
-
-export const syncManager = {
-    syncSubmission: async (activityId, code, output, isCompleted) => {
-        const payload = { activityId, code, output, isCompleted, timestamp: new Date().toISOString() };
-
-        try {
-            await submissionsDB.setItem(activityId, payload);
-            window.dispatchEvent(new Event("localDataSynced"));
-        } catch (err) { }
-
+export const SyncManager = {
+    /**
+     * Executes the main batch sync sequence pushing local changes to Postgres Neon
+     */
+    async syncDataWithServer() {
         if (!navigator.onLine) {
-            await addToSyncQueue("SUBMISSION", payload);
-            return { status: "offline_saved", message: "Saved locally. Will sync when online." };
+            console.log("Offline: Skipping background sync.");
+            return;
         }
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/sync-submission`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
-            if (response.status === 401) {
-                await addToSyncQueue("SUBMISSION", payload);
-                return false;
-            }
-            if (!response.ok) throw new Error(`Server returned ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            await addToSyncQueue("SUBMISSION", payload);
-            return false;
-        }
-    },
-
-    updateProgress: async (lessonId, progressData) => {
-        const payload = { lesson_id: lessonId, ...progressData };
-        try {
-            await progressDB.setItem(lessonId, payload);
-            window.dispatchEvent(new Event("localDataSynced"));
-        } catch (err) { }
-
-        if (!navigator.onLine) {
-            await addToSyncQueue("PROGRESS", payload);
-            return { status: "offline_saved" };
-        }
+        const headers = getAuthHeaders();
+        if (!headers) return; // User not logged in, ignore sync
 
         try {
-            const response = await fetch(`${API_BASE_URL}/update-progress`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
-            if (response.status === 401) {
-                await addToSyncQueue("PROGRESS", payload);
-                return false;
-            }
-            if (!response.ok) throw new Error("Failed to update progress");
-            return await response.json();
-        } catch (error) {
-            await addToSyncQueue("PROGRESS", payload);
-            return false;
-        }
-    },
+            // 1. Gather all unsynced data from IndexedDB
+            const allProgress = await progressDB.getAll();
+            const unsyncedProgress = allProgress.filter(p => !p.isSynced);
 
-    updateAssessment: async (assessmentKey, score, passed) => {
-        const payload = { key: assessmentKey, score: score, passed: passed, timestamp: new Date().toISOString() };
-        try {
-            await assessmentsDB.setItem(assessmentKey, payload);
-            window.dispatchEvent(new Event("localDataSynced"));
-        } catch (err) { }
+            const allAssessments = await assessmentsDB.getAll();
+            const unsyncedAssessments = allAssessments.filter(a => !a.isSynced);
 
-        if (!navigator.onLine) {
-            await addToSyncQueue("ASSESSMENT", payload);
-            return { status: "offline_saved" };
-        }
+            const allSubmissions = await submissionsDB.getAll();
+            const unsyncedSubmissions = allSubmissions.filter(s => !s.isSynced);
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/update-assessment`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(payload) });
-            if (response.status === 401) {
-                await addToSyncQueue("ASSESSMENT", payload);
-                return false;
-            }
-            if (!response.ok) throw new Error("Failed to update assessment");
-            return await response.json();
-        } catch (error) {
-            await addToSyncQueue("ASSESSMENT", payload);
-            return false;
-        }
-    },
+            const allProjects = await projectsDB.getAll();
+            const unsyncedProjects = allProjects.filter(p => !p.isSynced);
 
-    processSyncQueue: async () => {
-        if (!navigator.onLine) return;
-        notifySyncStart();
+            const allTemplates = await templatesDB.getAll();
+            const unsyncedTemplates = allTemplates.filter(t => !t.isSynced);
 
-        try {
-            const keys = await syncQueueDB.keys();
-            if (keys.length === 0) return;
+            // 2. Batch Sync Core Metrics (Progress, Assessments, Submissions) to Postgres JSONB
+            if (unsyncedProgress.length > 0 || unsyncedAssessments.length > 0 || unsyncedSubmissions.length > 0) {
+                const batchPayload = {
+                    progress: unsyncedProgress,
+                    assessments: unsyncedAssessments,
+                    submissions: unsyncedSubmissions
+                };
 
-            const batchPayload = { progress: [], submissions: [], assessments: [] };
-            const keysToDelete = [];
-
-            for (const key of keys) {
-                const item = await syncQueueDB.getItem(key);
-                if (!item) continue;
-
-                const itemType = (item.type || "").toUpperCase();
-                const itemData = item.data || item.payload;
-
-                if (!itemData && item.action !== "DELETE") {
-                    keysToDelete.push(key);
-                    continue;
-                }
-
-                if (itemType === "SUBMISSION") batchPayload.submissions.push(itemData);
-                else if (itemType === "PROGRESS") batchPayload.progress.push(itemData);
-                else if (itemType === "ASSESSMENT") batchPayload.assessments.push(itemData);
-                
-                // NATIVE WORKSPACE ENGINE: Intercept Projects & Templates
-                else if (itemType === "PROJECT" || itemType === "TEMPLATE") {
-                    const isTpl = itemType === "TEMPLATE";
-                    const targetDB = isTpl ? templatesDB : projectsDB;
-
-                    if (item.action === "DELETE") {
-                        try {
-                            const delId = itemData._id || itemData.id;
-                            const delRoute = isTpl ? `/templates/${delId}` : `/projects/${delId}`;
-                            await fetch(`${API_BASE_URL}${delRoute}`, { method: "DELETE", headers: getAuthHeaders() });
-                            keysToDelete.push(key);
-                        } catch (e) { continue; }
-                        continue;
-                    }
-
-                    try {
-                        const userEmail = itemData.userId || itemData.owner_id;
-                        const apiPayload = isTpl
-                            ? { templateId: itemData._id?.startsWith("local_") ? null : itemData._id, userId: userEmail, name: itemData.title || itemData.name, description: itemData.description || "", category: itemData.category || "Custom Templates", workspace: itemData.workspace || { blocklyJson: itemData.data } }
-                            : { projectId: itemData._id?.startsWith("local_") ? null : itemData._id, userId: userEmail, name: itemData.title || itemData.name, workspace: itemData.workspace || { blocklyJson: itemData.data }, pythonCode: itemData.pythonCode || "" };
-
-                        let primaryPath = isTpl ? "/templates/save" : "/projects/save";
-                        let res = await fetch(`${API_BASE_URL}${primaryPath}`, {
-                            method: "POST",
-                            headers: getAuthHeaders(),
-                            body: JSON.stringify(apiPayload)
-                        });
-
-                        // Fallback against strict REST prefix routes
-                        if (res.status === 404) {
-                            let fallbackPath = isTpl ? "/templates" : "/projects";
-                            res = await fetch(`${API_BASE_URL}${fallbackPath}`, {
-                                method: "POST",
-                                headers: getAuthHeaders(),
-                                body: JSON.stringify(apiPayload)
-                            });
-                        }
-
-                        if (res.ok) {
-                            const savedData = await res.json();
-                            const cloudId = savedData.projectId || savedData.templateId || savedData._id || itemData._id;
-                            
-                            const syncedDoc = { ...itemData, _id: cloudId, synced: true };
-                            if (cloudId !== itemData._id) {
-                                await targetDB.removeItem(itemData._id);
-                            }
-                            await targetDB.setItem(cloudId, syncedDoc);
-                            keysToDelete.push(key);
-                            window.dispatchEvent(new Event("localDataSynced"));
-                        } else if (res.status !== 401 && res.status >= 400 && res.status < 500) {
-                            keysToDelete.push(key); // Drop unfixable 4xx schemas
-                        }
-                    } catch (netErr) {
-                        continue; // Network partition, retry next cycle
-                    }
-                }
-                else {
-                    keysToDelete.push(key);
-                }
-            }
-
-            if (batchPayload.progress.length || batchPayload.submissions.length || batchPayload.assessments.length) {
-                const response = await fetch(`${API_BASE_URL}/batch-sync`, { 
-                    method: "POST", 
-                    headers: getAuthHeaders(), 
-                    body: JSON.stringify(batchPayload) 
+                const batchRes = await fetch(`${API_BASE_URL}/batch-sync`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify(batchPayload)
                 });
 
-                if (response.ok) {
-                    for (const key of keysToDelete) {
-                        await syncQueueDB.removeItem(key);
+                if (batchRes.ok) {
+                    // Mark as synced locally
+                    for (const p of unsyncedProgress) {
+                        await progressDB.save({ ...p, isSynced: true });
                     }
-                    console.log(`[Sync] Batch synced items successfully.`);
+                    for (const a of unsyncedAssessments) {
+                        await assessmentsDB.save({ ...a, isSynced: true });
+                    }
+                    for (const s of unsyncedSubmissions) {
+                        await submissionsDB.save({ ...s, isSynced: true });
+                    }
                 }
-            } else {
-                for (const key of keysToDelete) await syncQueueDB.removeItem(key);
             }
-        } catch (err) {
-            if (err.name === 'AbortError') return;
-            console.error("[Sync] Error processing sync queue:", err);
-        } finally {
-            notifySyncEnd();
-        }
-    }
-};
 
-export const syncDownFromServer = async () => {
-    notifySyncStart();
-    try {
+            // 3. Sync Individual Projects
+            for (const project of unsyncedProjects) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/projects/save`, {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify(project)
+                    });
+                    if (res.ok) {
+                        await projectsDB.save({ ...project, isSynced: true });
+                    }
+                } catch (e) {
+                    console.error(`Failed to sync project ${project.projectId}`, e);
+                }
+            }
+
+            // 4. Sync Individual Templates
+            for (const template of unsyncedTemplates) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/templates/save`, {
+                        method: "POST",
+                        headers,
+                        body: JSON.stringify(template)
+                    });
+                    if (res.ok) {
+                        await templatesDB.save({ ...template, isSynced: true });
+                    }
+                } catch (e) {
+                    console.error(`Failed to sync template ${template.templateId}`, e);
+                }
+            }
+
+            // 5. Process Offline Action Queue (e.g. Project or Template Deletions)
+            const queue = await syncQueueDB.getAll();
+            for (const task of queue) {
+                try {
+                    if (task.action === "DELETE_PROJECT") {
+                        const res = await fetch(`${API_BASE_URL}/projects/delete`, {
+                            method: "POST",
+                            headers,
+                            body: JSON.stringify({ projectId: task.payload.projectId })
+                        });
+                        if (res.ok) {
+                            await syncQueueDB.remove(task.id);
+                        }
+                    } else if (task.action === "DELETE_TEMPLATE") {
+                        const res = await fetch(`${API_BASE_URL}/templates/delete`, {
+                            method: "POST",
+                            headers,
+                            body: JSON.stringify({ templateId: task.payload.templateId })
+                        });
+                        if (res.ok) {
+                            await syncQueueDB.remove(task.id);
+                        }
+                    }
+                } catch (e) {
+                    console.error(`Failed to execute queued action: ${task.action}`, e);
+                }
+            }
+
+        } catch (error) {
+            console.error("Critical error during sync manager execution:", error);
+        }
+    },
+
+    /**
+     * Queues a project deletion to ensure it reaches Postgres when online
+     */
+    async queueProjectDeletion(projectId) {
+        await projectsDB.delete(projectId);
+        
+        if (!navigator.onLine) {
+            await syncQueueDB.add("DELETE_PROJECT", { projectId });
+            return;
+        }
+
         const headers = getAuthHeaders();
-        if (!headers.Authorization) return;
+        if (!headers) return;
 
-        const progRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
-        if (progRes.ok) {
-            const data = await progRes.json();
-            const progressList = data.progress || data;
-            if (Array.isArray(progressList)) {
-                for (const item of progressList) {
-                    const normalized = item.data ? { ...item, ...item.data } : item;
-                    await progressDB.setItem(normalized.key || normalized.lesson_id, normalized);
-                }
-            } else if (typeof progressList === 'object' && progressList !== null) {
-                for (const [key, val] of Object.entries(progressList)) {
-                    const normalized = typeof val === 'object' && val !== null ? (val.data ? { ...val, ...val.data } : val) : { score: val };
-                    await progressDB.setItem(key, normalized);
-                }
-            }
+        try {
+            const res = await fetch(`${API_BASE_URL}/projects/delete`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ projectId })
+            });
+            if (!res.ok) throw new Error("Failed to delete remotely");
+        } catch (e) {
+            await syncQueueDB.add("DELETE_PROJECT", { projectId });
+        }
+    },
+
+    /**
+     * Queues a template deletion to ensure it reaches Postgres when online
+     */
+    async queueTemplateDeletion(templateId) {
+        if(templatesDB.delete) {
+            await templatesDB.delete(templateId);
+        }
+        
+        if (!navigator.onLine) {
+            await syncQueueDB.add("DELETE_TEMPLATE", { templateId });
+            return;
         }
 
-        const assRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
-        if (assRes.ok) {
-            const data = await assRes.json();
-            const assessmentList = data.assessments || data;
-            if (Array.isArray(assessmentList)) {
-                for (const item of assessmentList) {
-                    const normalized = item.data ? { ...item, ...item.data } : item;
-                    await assessmentsDB.setItem(normalized.key || normalized.assessment_key, normalized);
-                }
-            } else if (typeof assessmentList === 'object' && assessmentList !== null) {
-                for (const [key, val] of Object.entries(assessmentList)) {
-                    const normalized = typeof val === 'object' && val !== null ? (val.data ? { ...val, ...val.data } : val) : val;
-                    await assessmentsDB.setItem(key, normalized);
+        const headers = getAuthHeaders();
+        if (!headers) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/templates/delete`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ templateId })
+            });
+            if (!res.ok) throw new Error("Failed to delete remotely");
+        } catch (e) {
+            await syncQueueDB.add("DELETE_TEMPLATE", { templateId });
+        }
+    },
+
+    /**
+     * Forces an immediate pull of the latest relational state from Postgres 
+     * and updates the local IndexedDB stores.
+     */
+    async pullRemoteState() {
+        if (!navigator.onLine) return;
+        const headers = getAuthHeaders();
+        if (!headers) return;
+
+        try {
+            // Pull Progress
+            const userRes = await fetch(`${API_BASE_URL}/get-progress`, { headers });
+            if (userRes.ok) {
+                const data = await userRes.json();
+                if (data.progress) {
+                    for (const [lesson_id, score] of Object.entries(data.progress)) {
+                        await progressDB.save({ lesson_id, score, isSynced: true });
+                    }
                 }
             }
-        }
 
-        const subRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
-        if (subRes.ok) {
-            const data = await subRes.json();
-            const submissionsList = data.submissions || data;
-            if (Array.isArray(submissionsList)) {
-                for (const item of submissionsList) {
-                    const normalized = item.data ? { ...item, ...item.data } : item;
-                    if (normalized.activityId) {
-                        await submissionsDB.setItem(normalized.activityId, normalized);
-                        if (normalized.userId && normalized.moduleId) {
-                            await submissionsDB.setItem(`${normalized.userId}_${normalized.moduleId}_${normalized.activityId}`, normalized);
+            // Pull Assessments
+            const assessmentRes = await fetch(`${API_BASE_URL}/get-assessments`, { headers });
+            if (assessmentRes.ok) {
+                const data = await assessmentRes.json();
+                if (data.assessments) {
+                    for (const [assessmentId, details] of Object.entries(data.assessments)) {
+                        await assessmentsDB.save({ assessmentId, ...details, isSynced: true });
+                    }
+                }
+            }
+
+            // Pull Submissions
+            const submissionsRes = await fetch(`${API_BASE_URL}/get-all-submissions`, { headers });
+            if (submissionsRes.ok) {
+                const subData = await submissionsRes.json();
+                if (subData.submissions) {
+                    for (const sub of subData.submissions) {
+                        const localSub = await submissionsDB.get(sub.activityId);
+                        if (!localSub || localSub.isSynced || (localSub.timestamp || 0) < (sub.timestamp || 0)) {
+                            await submissionsDB.save({ ...sub, isSynced: true });
                         }
                     }
                 }
             }
+
+            // Pull Projects
+            const projRes = await fetch(`${API_BASE_URL}/projects`, { headers });
+            if (projRes.ok) {
+                const projData = await projRes.json();
+                if (projData.projects) {
+                    for (const remoteProj of projData.projects) {
+                        const localProj = await projectsDB.get(remoteProj.projectId);
+                        if (!localProj || localProj.isSynced || (localProj.timestamp || 0) < (remoteProj.timestamp || 0)) {
+                            await projectsDB.save({ ...remoteProj, isSynced: true });
+                        }
+                    }
+                }
+            }
+            
+            // Pull Templates
+            const tplRes = await fetch(`${API_BASE_URL}/templates`, { headers });
+            if (tplRes.ok) {
+                const tplData = await tplRes.json();
+                if (tplData.templates) {
+                    for (const remoteTpl of tplData.templates) {
+                        const localTpl = await templatesDB.get(remoteTpl.templateId);
+                        if (!localTpl || localTpl.isSynced || (localTpl.timestamp || 0) < (remoteTpl.timestamp || 0)) {
+                            await templatesDB.save({ ...remoteTpl, isSynced: true });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Failed to pull remote Postgres state:", error);
         }
-        window.dispatchEvent(new Event("localDataSynced"));
-    } catch (error) { 
-        if (error.name === 'AbortError') return;
-        console.error("[Sync] Error pulling from server:", error);
-    } finally {
-        notifySyncEnd();
     }
 };
 
-let syncInterval = null;
+// ==========================================
+// Periodic Background Syncing Exports
+// ==========================================
+
+let syncIntervalId = null;
+
+export const startBackgroundSync = (intervalMs = 30000) => {
+    if (syncIntervalId) clearInterval(syncIntervalId);
+    
+    // Initial sync on start
+    SyncManager.syncDataWithServer();
+    
+    // Set interval for periodic syncing
+    syncIntervalId = setInterval(() => {
+        SyncManager.syncDataWithServer();
+    }, intervalMs);
+};
 
 export const stopBackgroundSync = () => {
-    if (syncInterval) {
-        clearInterval(syncInterval);
-        syncInterval = null;
+    if (syncIntervalId) {
+        clearInterval(syncIntervalId);
+        syncIntervalId = null;
     }
 };
 
-export const startBackgroundSync = () => {
-    syncDownFromServer();
-    syncManager.processSyncQueue();
-    
-    if (syncInterval) clearInterval(syncInterval);
-    
-    syncInterval = setInterval(() => { syncManager.processSyncQueue(); }, 30000);
-};
-
-window.addEventListener("online", () => syncManager.processSyncQueue());
+// Automatically sync when coming back online
+window.addEventListener('online', () => {
+    SyncManager.syncDataWithServer();
+});
