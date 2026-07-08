@@ -2,19 +2,19 @@
 import { openDB } from "idb";
 
 const DB_NAME = "AlgoBlocksDB";
-const DB_VERSION = 3; // Bumped version to ensure fresh object stores for PostgreSQL structure
+const DB_VERSION = 4; // Bumped to ensure clean schema application
 
 export const initDB = async () => {
     return openDB(DB_NAME, DB_VERSION, {
         upgrade(db, oldVersion, newVersion, transaction) {
-            // Projects: Uses projectId (string UUID) as the local key
+            // Projects: Uses projectId as the local key
             if (!db.objectStoreNames.contains("projects")) {
                 const store = db.createObjectStore("projects", { keyPath: "projectId" });
                 store.createIndex("userId", "userId", { unique: false });
                 store.createIndex("isSynced", "isSynced", { unique: false });
             }
 
-            // Templates: Uses templateId (string UUID) as the local key
+            // Templates: Uses templateId as the local key
             if (!db.objectStoreNames.contains("templates")) {
                 const store = db.createObjectStore("templates", { keyPath: "templateId" });
                 store.createIndex("category", "category", { unique: false });
@@ -46,77 +46,35 @@ export const initDB = async () => {
     });
 };
 
-// Database Access Wrappers
-export const projectsDB = {
+// Factory to create standardized store wrappers with all required methods
+const createStoreWrapper = (storeName) => ({
     async getAll() {
         const db = await initDB();
-        return db.getAll("projects");
+        return db.getAll(storeName);
     },
-    async get(projectId) {
+    async get(id) {
         const db = await initDB();
-        return db.get("projects", projectId);
+        return db.get(storeName, id);
     },
-    async save(project) {
+    async save(item) {
         const db = await initDB();
-        return db.put("projects", { ...project, timestamp: Date.now() });
+        return db.put(storeName, { ...item, timestamp: Date.now() });
     },
-    async delete(projectId) {
+    async delete(id) {
         const db = await initDB();
-        return db.delete("projects", projectId);
+        return db.delete(storeName, id);
+    },
+    async clear() {
+        const db = await initDB();
+        return db.clear(storeName);
     }
-};
+});
 
-export const templatesDB = {
-    async getAll() {
-        const db = await initDB();
-        return db.getAll("templates");
-    },
-    async get(templateId) {
-        const db = await initDB();
-        return db.get("templates", templateId);
-    },
-    async save(template) {
-        const db = await initDB();
-        return db.put("templates", { ...template, timestamp: Date.now() });
-    },
-    async delete(templateId) {
-        const db = await initDB();
-        return db.delete("templates", templateId);
-    }
-};
-
-export const progressDB = {
-    async getAll() {
-        const db = await initDB();
-        return db.getAll("progress");
-    },
-    async save(progress) {
-        const db = await initDB();
-        return db.put("progress", { ...progress, timestamp: Date.now() });
-    }
-};
-
-export const assessmentsDB = {
-    async getAll() {
-        const db = await initDB();
-        return db.getAll("assessments");
-    },
-    async save(assessment) {
-        const db = await initDB();
-        return db.put("assessments", { ...assessment, timestamp: Date.now() });
-    }
-};
-
-export const submissionsDB = {
-    async getAll() {
-        const db = await initDB();
-        return db.getAll("submissions");
-    },
-    async save(submission) {
-        const db = await initDB();
-        return db.put("submissions", { ...submission, timestamp: Date.now() });
-    }
-};
+export const projectsDB = createStoreWrapper("projects");
+export const templatesDB = createStoreWrapper("templates");
+export const progressDB = createStoreWrapper("progress");
+export const assessmentsDB = createStoreWrapper("assessments");
+export const submissionsDB = createStoreWrapper("submissions");
 
 export const syncQueueDB = {
     async add(action, payload) {
@@ -130,5 +88,9 @@ export const syncQueueDB = {
     async remove(id) {
         const db = await initDB();
         return db.delete("syncQueue", id);
+    },
+    async clear() {
+        const db = await initDB();
+        return db.clear("syncQueue");
     }
 };

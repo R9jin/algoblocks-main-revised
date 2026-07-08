@@ -48,22 +48,20 @@ export default function SignIn() {
 
       if (projRes.ok) {
         const projData = await projRes.json();
-        if (projData.status === 'success') {
-          for (let p of projData.projects) {
-            if (p.owner_id === userEmail) {
-              await projectsDB.setItem(p._id, { ...p, synced: true });
-            }
+        const projects = Array.isArray(projData.projects) ? projData.projects : (Array.isArray(projData) ? projData : []);
+        for (let p of projects) {
+          if (p.owner_id === userEmail || p.userId === userEmail) {
+            await projectsDB.save({ ...p, projectId: p.projectId || p._id, isSynced: true });
           }
         }
       } 
 
       if (tempRes.ok) {
         const tempData = await tempRes.json();
-        if (tempData.status === 'success') {
-          for (let t of tempData.templates) {
-            if (t.owner_id === userEmail) {
-              await templatesDB.setItem(t._id, { ...t, synced: true });
-            }
+        const templates = Array.isArray(tempData.templates) ? tempData.templates : (Array.isArray(tempData) ? tempData : []);
+        for (let t of templates) {
+          if (t.owner_id === userEmail || t.userId === userEmail) {
+            await templatesDB.save({ ...t, templateId: t.templateId || t._id, isSynced: true });
           }
         }
       } 

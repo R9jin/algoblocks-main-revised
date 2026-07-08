@@ -184,7 +184,7 @@ export default function Dashboard() {
             const cloudProjects = Array.isArray(pData.projects) ? pData.projects : (Array.isArray(pData) ? pData : []);
             for (const cp of cloudProjects) {
               if (cp.owner_id === user.email || cp.userId === user.email) {
-                await projectsDB.setItem(cp._id, { ...cp, synced: true });
+                await projectsDB.save({ ...cp, projectId: cp.projectId || cp._id, isSynced: true });
               }
             }
           }
@@ -195,7 +195,7 @@ export default function Dashboard() {
             const cloudTemplates = Array.isArray(tData.templates) ? tData.templates : (Array.isArray(tData) ? tData : []);
             for (const ct of cloudTemplates) {
               if (ct.owner_id === user.email || ct.userId === user.email) {
-                await templatesDB.setItem(ct._id, { ...ct, synced: true });
+                await templatesDB.save({ ...ct, templateId: ct.templateId || ct._id, isSynced: true });
               }
             }
           }
@@ -205,28 +205,21 @@ export default function Dashboard() {
         }
       }
 
-      const loadedProjects = [];
-      await projectsDB.iterate((value) => {
-        if (!user || value.owner_id === user.email || value.userId === user.email) {
-          loadedProjects.push(value);
-        }
-      });
-      const sortedProjects = loadedProjects.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      // Read from updated indexedDB wrapper
+      const allProjects = await projectsDB.getAll();
+      const userProjects = allProjects.filter((value) => !user || value.owner_id === user.email || value.userId === user.email);
+      const sortedProjects = userProjects.sort((a, b) => new Date(b.updatedAt || b.timestamp || 0) - new Date(a.updatedAt || a.timestamp || 0));
       setRecentProjects(sortedProjects.slice(0, 5));
 
-      const loadedTemplates = [];
-      await templatesDB.iterate((value) => {
-        if (!user || value.owner_id === user.email || value.userId === user.email) {
-          loadedTemplates.push({
-            ...value,
-            isSystem: false,
-            icon: "/assets/blocks-icon.png", 
-            desc: value.description || "User-created template",
-            name: value.title || value.name || "Untitled Template"
-          });
-        }
-      });
-      const sortedTemplates = loadedTemplates.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      const allTemplates = await templatesDB.getAll();
+      const userTpls = allTemplates.filter((value) => !user || value.owner_id === user.email || value.userId === user.email).map(value => ({
+        ...value,
+        isSystem: false,
+        icon: "/assets/blocks-icon.png", 
+        desc: value.description || "User-created template",
+        name: value.title || value.name || "Untitled Template"
+      }));
+      const sortedTemplates = userTpls.sort((a, b) => new Date(b.updatedAt || b.timestamp || 0) - new Date(a.updatedAt || a.timestamp || 0));
       setUserTemplates(sortedTemplates);
 
     } catch (error) {
@@ -236,7 +229,6 @@ export default function Dashboard() {
     }
   }, [currentUser]);
 
-  // LIVE EVENT BUS: Instantly flips Local tags to Cloud tags whenever background sync dispatches
   useEffect(() => {
     loadDashboardData();
 
@@ -275,7 +267,7 @@ export default function Dashboard() {
         const proj = { 
           data: template.blocks || template.data || template.workspace?.blocklyJson, 
           isTemplate: true, 
-          templateId: template._id, 
+          templateId: template.templateId || template._id, 
           name: template.name || template.title,
           title: template.name || template.title 
         };
@@ -378,7 +370,7 @@ export default function Dashboard() {
                 <div className="bento-category-group">
                   <div className="bento-template-grid">
                     {userTemplates.map((tpl, i) => (
-                      <div key={tpl._id || i} className="bento-template-card custom-template-card" onClick={() => handleTryTemplate(tpl)} style={{ borderTop: "3px solid #db7fff" }}>
+                      <div key={tpl.templateId || i} className="bento-template-card custom-template-card" onClick={() => handleTryTemplate(tpl)} style={{ borderTop: "3px solid #db7fff" }}>
                         <div className="template-card-header">
                           <div className="template-icon-wrapper" style={{ background: "rgba(108, 92, 231, 0.2)" }}>
                             <img src={tpl.icon} alt="icon" className="template-icon" />
@@ -452,7 +444,6 @@ export default function Dashboard() {
           <aside className="bento-sidebar-column">
             <div className="bento-recent-card">
               
-              {/* Dynamic Header with Live Spinning Sync Indicator */}
               <div className="recent-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <h3>Recent Projects</h3>
@@ -481,7 +472,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="bento-recent-list">
                     {recentProjects.map((proj) => (
-                      <div key={proj._id || proj.id} className="bento-recent-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
+                      <div key={proj.projectId || proj._id} className="bento-recent-item" onClick={() => navigate("/workspace", { state: { projectToLoad: proj } })}>
                         <div className="recent-item-icon">
                           <CodeIcon />
                         </div>
@@ -489,10 +480,10 @@ export default function Dashboard() {
                           <h4 className="recent-item-title">{proj.title || proj.name}</h4>
                           <div className="recent-item-meta">
                             <ClockIcon />
-                            <span>{new Date(proj.updatedAt || Date.now()).toLocaleDateString()}</span>
+                            <span>{new Date(proj.updatedAt || proj.timestamp || Date.now()).toLocaleDateString()}</span>
                             <span className="dot-separator">•</span>
-                            <span className={`sync-status ${proj.synced ? "synced" : "local"}`}>
-                              {proj.synced ? "Cloud" : "Local"}
+                            <span className={`sync-status ${proj.synced || proj.isSynced ? "synced" : "local"}`}>
+                              {proj.synced || proj.isSynced ? "Cloud" : "Local"}
                             </span>
                           </div>
                         </div>

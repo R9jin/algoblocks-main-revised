@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import OfflineIndicator from "./components/OfflineIndicator";
 import { PyodideProvider } from "./context/PyodideContext";
-import { startBackgroundSync } from "./utils/syncManager";
+import { startBackgroundSync, stopBackgroundSync } from "./utils/syncManager";
 
 // Lazy load ALL pages to prevent circular dependency crashes and reduce the initial load payload
 const AdminUserManagement = lazy(() => import('./pages/AdminUserManagement'));
@@ -51,9 +51,14 @@ function App() {
     const isValidUser = userStr && userStr !== "null" && userStr !== "undefined";
     const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
     
+    // Manage background sync lifecycle to prevent memory leaks and unauthenticated pings
     if (isValidUser && !isAuthPage) {
-      startBackgroundSync();
+      startBackgroundSync(30000); // 30 seconds interval
+    } else {
+      stopBackgroundSync();
     }
+
+    return () => stopBackgroundSync();
   }, [location.pathname]);
 
   return (
