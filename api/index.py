@@ -1,3 +1,4 @@
+# api/index.py
 import os
 import sys
 
@@ -6,8 +7,10 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import db
-# BUG-05 Fix: Register SlowAPI limiter and middleware pipeline
+
+# Initialize PostgreSQL Neon connection and hybrid tables
+import database 
+
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -27,7 +30,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# BUG-05 Fix: Attach limiter state and exception handlers
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
@@ -53,17 +55,7 @@ app.include_router(admin_router.router, prefix="/api/admin", tags=["Admin Operat
 
 @app.get("/api/health")
 async def health_check():
-    try:
-        db.command("ping")
-        db_status = "connected"
-    except Exception as e:
-        db_status = f"error: {str(e)}"
-
-    return {
-        "status": "healthy",
-        "database": db_status,
-        "version": "1.0.0"
-    }
+    return {"status": "ok", "message": "AlgoBlocks API is running smoothly on PostgreSQL Neon."}
 
 if __name__ == "__main__":
-    uvicorn.run("index:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("index:app", host="0.0.0.0", port=8000, reload=True)

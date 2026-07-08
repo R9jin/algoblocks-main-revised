@@ -1,10 +1,9 @@
 # api/routers/progress_router.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException
 import logging
 from ..models import ProgressUpdate, ActivitySubmission, AssessmentSubmission, BatchSyncPayload, SyncResponse
-from ..database import users_collection, progress_collection, submissions_collection, assessments_collection
-# BUG-10 Fix: Align with live security signature get_current_user_email
+from ..services.auth_service import AuthService
+from ..repositories.user_repo import UserRepository
 from ..security import get_current_user_email
 
 router = APIRouter()
@@ -16,24 +15,9 @@ async def update_progress(data: ProgressUpdate, current_user_email: str = Depend
         if data.email != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to update this progress")
 
-        users_collection.update_one(
-            {"email": current_user_email},
-            {"$set": {f"progress.{data.lesson_id}": data.score}},
-            upsert=True
-        )
-
-        progress_collection.update_one(
-            {"userId": current_user_email, "lessonId": data.lesson_id},
-            {
-                "$set": {
-                    "score": data.score,
-                    "completed": data.completed,
-                    "lastUpdated": data.dict().get("timestamp", None)
-                }
-            },
-            upsert=True
-        )
-
+        # Automatically handles SQL logic in user_repo via jsonb
+        AuthService.update_progress(data)
+        
         return {"status": "success", "message": "Progress updated"}
     except HTTPException:
         raise
@@ -50,15 +34,7 @@ async def sync_submission(data: ActivitySubmission, current_user_email: str = De
         submission_dict = data.dict()
         submission_dict["isSynced"] = True
 
-        submissions_collection.update_one(
-            {
-                "userId": current_user_email,
-                "moduleId": data.moduleId,
-                "activityId": data.activityId
-            },
-            {"$set": submission_dict},
-            upsert=True
-        )
+        AuthService.sync_submission(submission_dict)
 
         return {"status": "success", "message": "Submission synced"}
     except HTTPException:
@@ -73,14 +49,10 @@ async def sync_assessment(data: AssessmentSubmission, current_user_email: str = 
         if data.userId != current_user_email:
             raise HTTPException(status_code=403, detail="Not authorized to sync this assessment")
 
-        assessments_collection.update_one(
-            {
-                "userId": current_user_email,
-                "assessmentId": data.assessmentId
-            },
-            {"$set": data.dict()},
-            upsert=True
-        )
+        assessment_dict = data.dict()
+        assessment_dict["isSynced"] = True
+        
+        AuthService.sync_assessment(assessment_dict)
 
         return {"status": "success", "message": "Assessment synced"}
     except HTTPException:
@@ -92,53 +64,12 @@ async def sync_assessment(data: AssessmentSubmission, current_user_email: str = 
 @router.post("/batch-sync", response_model=SyncResponse)
 async def batch_sync(payload: BatchSyncPayload, current_user_email: str = Depends(get_current_user_email)):
     try:
-        synced_count = 0
-
-        if payload.progress:
-            for prog in payload.progress:
-                if prog.get("email") == current_user_email:
-                    progress_collection.update_one(
-                        {"userId": current_user_email, "lessonId": prog.get("lesson_id")},
-                        {"$set": prog},
-                        upsert=True
-                    )
-                    users_collection.update_one(
-                        {"email": current_user_email},
-                        {"$set": {f"progress.{prog.get('lesson_id')}": prog.get("score")}},
-                        upsert=True
-                    )
-                    synced_count += 1
-
-        if payload.submissions:
-            for sub in payload.submissions:
-                if sub.get("userId") == current_user_email:
-                    sub["isSynced"] = True
-                    submissions_collection.update_one(
-                        {
-                            "userId": current_user_email,
-                            "moduleId": sub.get("moduleId"),
-                            "activityId": sub.get("activityId")
-                        },
-                        {"$set": sub},
-                        upsert=True
-                    )
-                    synced_count += 1
-
-        if payload.assessments:
-            for ass in payload.assessments:
-                if ass.get("userId") == current_user_email:
-                    assessments_collection.update_one(
-                        {
-                            "userId": current_user_email,
-                            "assessmentId": ass.get("assessmentId")
-                        },
-                        {"$set": ass},
-                        upsert=True
-                    )
-                    synced_count += 1
-
-        return SyncResponse(status="success", message="Batch sync completed", synced_items=synced_count)
-
+        response = AuthService.batch_sync(payload.dict(), current_user_email)
+        return SyncResponse(
+            status=response["status"], 
+            message=response["message"], 
+            synced_items=response["synced_items"]
+        )
     except Exception as e:
         logger.error(f"Error in batch sync: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error during batch sync")
@@ -146,12 +77,9 @@ async def batch_sync(payload: BatchSyncPayload, current_user_email: str = Depend
 @router.get("/get-submission")
 async def get_submission(activityId: str, moduleId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
-        submission = submissions_collection.find_one(
-            {"userId": current_user_email, "moduleId": moduleId, "activityId": activityId},
-            {"_id": 0}
-        )
-        if submission:
-            return {"status": "success", "submission": submission}
+        res = AuthService.get_submission(current_user_email, activityId, moduleId)
+        if res.get("submission"):
+            return {"status": "success", "submission": res["submission"]}
         return {"status": "not_found", "submission": None}
     except Exception as e:
         logger.error(f"Error fetching submission: {str(e)}")
@@ -160,12 +88,9 @@ async def get_submission(activityId: str, moduleId: str, current_user_email: str
 @router.get("/get-assessment")
 async def get_assessment(assessmentId: str, current_user_email: str = Depends(get_current_user_email)):
     try:
-        assessment = assessments_collection.find_one(
-            {"userId": current_user_email, "assessmentId": assessmentId},
-            {"_id": 0}
-        )
-        if assessment:
-            return {"status": "success", "assessment": assessment}
+        res = AuthService.get_assessment(current_user_email, assessmentId)
+        if res.get("assessment"):
+            return {"status": "success", "assessment": res["assessment"]}
         return {"status": "not_found", "assessment": None}
     except Exception as e:
         logger.error(f"Error fetching assessment: {str(e)}")

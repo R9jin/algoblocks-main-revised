@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from database import users_collection
+
+# Replaced PyMongo collection with the PostgreSQL user repository
+from repositories.user_repo import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -64,15 +66,20 @@ async def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
 
 async def get_current_admin_user(email: str = Depends(get_current_user_email)) -> str:
     """
-    Dependency that checks if the currently authenticated user has the 'isAdmin' flag set to True.
+    Dependency that checks if the currently authenticated user has admin privileges in PostgreSQL.
     """
-    user = users_collection.find_one({"email": email})
+    user = UserRepository.find_by_email(email)
     
-    if not user or not user.get("isAdmin"):
+    # Using the fetched dictionary from the PG repository
+    is_admin = False
+    if user:
+        is_admin = user.get("isAdmin", False) or user.get("is_admin", False) or user.get("role") == "admin"
+        
+    if not user or not is_admin:
         logger.warning(f"Rejected request: {email} attempted to access an admin-restricted endpoint.")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Administrator privileges required to perform this action."
+            detail="Administrator privileges required to perform this action.",
         )
         
     return email

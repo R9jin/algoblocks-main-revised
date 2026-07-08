@@ -4,10 +4,11 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
 import bcrypt
+import json
 
 from repositories.user_repo import UserRepository
 from models import UserLogin, UserCreate, ProgressUpdate, AssessmentUpdateRequest
-from database import db
+from database import get_db_connection
 from security import create_access_token
 
 class AuthService:
@@ -228,11 +229,28 @@ class AuthService:
         
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
 
-        db["submissions"].update_one(
-            {"userId": user_id, "moduleId": module_id, "activityId": activity_id},
-            {"$set": safe_update_data},
-            upsert=True
-        )
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if submission exists using jsonb operators
+        cursor.execute('''
+            SELECT id FROM submissions 
+            WHERE "userId" = %s AND data->>'moduleId' = %s AND data->>'activityId' = %s
+        ''', (user_id, module_id, activity_id))
+        
+        existing = cursor.fetchone()
+        
+        if existing:
+            cursor.execute('''
+                UPDATE submissions SET data = %s WHERE id = %s
+            ''', (json.dumps(safe_update_data), existing['id']))
+        else:
+            cursor.execute('''
+                INSERT INTO submissions ("userId", data) VALUES (%s, %s)
+            ''', (user_id, json.dumps(safe_update_data)))
+            
+        cursor.close()
+        conn.close()
         return {"status": "success", "message": "Submission synced"}
 
     @staticmethod
@@ -240,12 +258,27 @@ class AuthService:
         if not email or not activityId:
              return {"status": "ignored"}
              
-        query = {"userId": email, "activityId": activityId}
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
         if moduleId:
-            query["moduleId"] = moduleId
+            cursor.execute('''
+                SELECT data FROM submissions 
+                WHERE "userId" = %s AND data->>'activityId' = %s AND data->>'moduleId' = %s
+            ''', (email, activityId, moduleId))
+        else:
+            cursor.execute('''
+                SELECT data FROM submissions 
+                WHERE "userId" = %s AND data->>'activityId' = %s
+            ''', (email, activityId))
             
-        submission = db["submissions"].find_one(query, {"_id": 0})
-        return {"status": "success", "submission": submission}
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if row:
+            return {"status": "success", "submission": row["data"]}
+        return {"status": "success", "submission": None}
 
     @staticmethod
     def sync_assessment(payload: dict):
@@ -269,11 +302,18 @@ class AuthService:
         ]
         safe_update_data = {k: payload[k] for k in allowed_fields if k in payload}
 
-        db["assessments"].update_one(
-            {"userId": user_id, "moduleId": module_id},
-            {"$set": safe_update_data},
-            upsert=True
-        )
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('INSERT INTO assessments (email, data) VALUES (%s, %s) ON CONFLICT DO NOTHING', (user_id, '{}'))
+        cursor.execute('''
+            UPDATE assessments 
+            SET data = jsonb_set(data, %s, %s, true)
+            WHERE email = %s
+        ''', (f'{{{module_id}}}', json.dumps(safe_update_data), user_id))
+        
+        cursor.close()
+        conn.close()
         return {"status": "success", "message": "Assessment synced"}
 
     @staticmethod
@@ -281,16 +321,30 @@ class AuthService:
         if not email or not moduleId:
             return {"status": "ignored"}
             
-        assessment = db["assessments"].find_one({"userId": email, "moduleId": moduleId}, {"_id": 0})
-        return {"status": "success", "assessment": assessment}
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT data->%s as assessment_data FROM assessments WHERE email = %s', (moduleId, email))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if row and row.get("assessment_data"):
+            return {"status": "success", "assessment": row["assessment_data"]}
+        return {"status": "success", "assessment": None}
     
     @staticmethod
     def get_all_submissions(email: str):
         if not email:
             return {"status": "ignored"}
             
-        submissions = list(db["submissions"].find({"userId": email}, {"_id": 0}))
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT data FROM submissions WHERE "userId" = %s', (email,))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
         
+        submissions = [row["data"] for row in rows]
         return {"status": "success", "submissions": submissions}
 
     @staticmethod

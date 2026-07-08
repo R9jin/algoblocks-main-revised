@@ -24,8 +24,6 @@ def signup_user(request: Request, req: UserCreate):
 def google_auth(request: Request, req: GoogleLoginRequest): 
     return AuthService.google_login(req.token)
 
-# 🛡️ PROTECTED ROUTES BELOW 🛡️
-
 @router.post("/update-progress")
 @limiter.limit("30/minute")
 def update_progress(request: Request, req: ProgressUpdate, trusted_email: str = Depends(get_current_user_email)):
@@ -74,8 +72,3 @@ def get_assessment(request: Request, moduleId: str = Query(...), trusted_email: 
 @limiter.limit("30/minute")
 def get_all_submissions(request: Request, trusted_email: str = Depends(get_current_user_email)):
     return AuthService.get_all_submissions(trusted_email)
-
-@router.post("/batch-sync", response_model=SyncResponse)
-@limiter.limit("15/minute")
-def batch_sync(request: Request, payload: BatchSyncPayload, trusted_email: str = Depends(get_current_user_email)):
-    return AuthService.batch_sync(payload.dict(), trusted_email)

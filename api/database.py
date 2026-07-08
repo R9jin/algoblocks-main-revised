@@ -1,35 +1,102 @@
-# api/database.py
 import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
-from pymongo import MongoClient
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-# BUG-17 Fix: Initialize structured application logger
 logger = logging.getLogger(__name__)
 
 api_dir = Path(__file__).resolve().parent
 env_path = api_dir / ".env"
 load_dotenv(dotenv_path=env_path)
 
-MONGO_URI = os.getenv("MONGODB_URI")
-if not MONGO_URI:
-    raise ValueError(f"No MONGODB_URI found in environment variables. Please check your .env file at {env_path}")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError(f"No DATABASE_URL found in environment variables. Please check your .env file at {env_path}.")
+
+def get_db_connection():
+    try:
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+        conn.autocommit = True
+        return conn
+    except Exception as e:
+        logger.error(f"Error connecting to PostgreSQL Neon: {e}", exc_info=True)
+        raise
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # RELATIONAL: Users Table for rigid credential management
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            status VARCHAR(50) DEFAULT 'active'
+        )
+    ''')
+
+    # HYBRID: Projects Table (Relational Sync/Keys + JSONB Blockly Data)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS projects (
+            id SERIAL PRIMARY KEY,
+            "projectId" VARCHAR(255) UNIQUE NOT NULL,
+            "userId" VARCHAR(255) REFERENCES users(email) ON DELETE CASCADE,
+            owner_id VARCHAR(255),
+            "isSynced" BOOLEAN DEFAULT FALSE,
+            timestamp BIGINT,
+            blockly_data JSONB NOT NULL
+        )
+    ''')
+    
+    # HYBRID: Templates Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS templates (
+            id SERIAL PRIMARY KEY,
+            "templateId" VARCHAR(255) UNIQUE NOT NULL,
+            category VARCHAR(255) NOT NULL,
+            "userId" VARCHAR(255),
+            owner_id VARCHAR(255),
+            "isSynced" BOOLEAN DEFAULT FALSE,
+            timestamp BIGINT,
+            blockly_data JSONB NOT NULL
+        )
+    ''')
+    
+    # HYBRID: Progress & Assessments (Relational Identity + JSONB State)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS progress (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) REFERENCES users(email) ON DELETE CASCADE,
+            data JSONB DEFAULT '{}'
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS assessments (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) REFERENCES users(email) ON DELETE CASCADE,
+            data JSONB DEFAULT '{}'
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS submissions (
+            id SERIAL PRIMARY KEY,
+            "userId" VARCHAR(255),
+            data JSONB NOT NULL
+        )
+    ''')
+    
+    cursor.close()
+    conn.close()
+    logger.info("Successfully connected to PostgreSQL Neon and verified hybrid tables.")
 
 try:
-    client = MongoClient(MONGO_URI)
-    db = client.get_default_database("algoblocks_db")
-    
-    projects_collection = db["projects"]
-    users_collection = db["users"]
-    templates_collection = db["templates"]
-    
-    # BUG-10 Fix: Explicitly define collections required by progress routers
-    progress_collection = db["progress"]
-    submissions_collection = db["submissions"]
-    assessments_collection = db["assessments"]
-    
-    logger.info("Successfully connected to MongoDB.")
+    init_db()
 except Exception as e:
-    logger.error(f"Error connecting to MongoDB: {e}", exc_info=True)
+    logger.error(f"Error initializing PostgreSQL Neon tables: {e}", exc_info=True)
     raise

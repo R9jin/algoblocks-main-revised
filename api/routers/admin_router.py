@@ -1,59 +1,80 @@
 # api/routers/admin_router.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
+from typing import List, Dict, Any
+import logging
 
-from repositories.user_repo import UserRepository
 from security import get_current_admin_user
+from repositories.user_repo import UserRepository
 from limiter import limiter
-from fastapi import Request
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("/users")
-@limiter.limit("30/minute")
+@limiter.limit("20/minute")
 def get_all_users(request: Request, admin_email: str = Depends(get_current_admin_user)):
     try:
         users = UserRepository.find_all_users()
+        
+        for user in users:
+            if "password" in user:
+                del user["password"]
+                
         return {"status": "success", "users": users}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching users via PostgreSQL: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching users")
 
-@router.patch("/users/{target_email}/status")
+@router.post("/users/status")
 @limiter.limit("20/minute")
 def update_user_status(
-    request: Request, 
-    target_email: str, 
-    payload: Dict[str, str], 
+    request: Request,
+    payload: Dict[str, Any] = Body(...), 
     admin_email: str = Depends(get_current_admin_user)
 ):
-    new_status = payload.get("status")
-    if new_status not in ["Active", "Suspended"]:
-        raise HTTPException(status_code=400, detail="Invalid status provided.")
+    email = payload.get("email")
+    status = payload.get("status")
+    
+    if not email or not status:
+        raise HTTPException(status_code=400, detail="Missing email or status")
         
-    if target_email == admin_email:
-        raise HTTPException(status_code=403, detail="Admins cannot suspend their own accounts.")
-
-    result = UserRepository.update_user_status(target_email, new_status)
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found.")
+    if email == admin_email:
+        raise HTTPException(status_code=400, detail="Cannot change your own status")
         
-    return {"status": "success", "message": f"User status updated to {new_status}"}
+    try:
+        rowcount = UserRepository.update_user_status(email, status)
+        if rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"status": "success", "message": f"User status updated to {status}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user status in PostgreSQL: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error updating user status")
 
-@router.delete("/users/{target_email}")
+@router.post("/users/delete")
 @limiter.limit("10/minute")
-def delete_user(request: Request, target_email: str, admin_email: str = Depends(get_current_admin_user)):
-    if target_email == admin_email:
-        raise HTTPException(status_code=403, detail="Admins cannot delete their own accounts.")
+def delete_user(
+    request: Request,
+    payload: Dict[str, Any] = Body(...), 
+    admin_email: str = Depends(get_current_admin_user)
+):
+    email = payload.get("email")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Missing email")
         
-    # Check if user is the last admin before deletion (optional safeguard)
-    target_user = UserRepository.find_by_email(target_email)
-    if target_user and target_user.get("isAdmin"):
-        admin_count = len([u for u in UserRepository.find_all_users() if u.get("isAdmin")])
-        if admin_count <= 1:
-            raise HTTPException(status_code=403, detail="Cannot delete the last remaining administrator.")
-
-    result = UserRepository.delete_user(target_email)
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="User not found.")
+    if email == admin_email:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
         
-    return {"status": "success", "message": "User permanently deleted."}
+    try:
+        # User deletion automatically cascades to progress and assessments due to ON DELETE CASCADE
+        rowcount = UserRepository.delete_user(email)
+        if rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"status": "success", "message": "User deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting user from PostgreSQL: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error deleting user")
