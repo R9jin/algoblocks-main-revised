@@ -33,11 +33,24 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             email VARCHAR(255) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
+            password VARCHAR(255),
             name VARCHAR(255) NOT NULL,
-            status VARCHAR(50) DEFAULT 'active'
+            status VARCHAR(50) DEFAULT 'active',
+            role VARCHAR(50) DEFAULT 'user',
+            is_admin BOOLEAN DEFAULT FALSE
         )
     ''')
+
+    # MIGRATION: the table above may already exist from before role/is_admin
+    # were added (CREATE TABLE IF NOT EXISTS won't add columns to an existing
+    # table). Every part of the app (login, signup, admin checks) reads/writes
+    # these two columns, so without this the columns never exist in Neon and
+    # no account can ever be recognized as an admin.
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT \'user\'')
+    cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE')
+    # Google-only accounts are inserted with password=None (see auth_service.google_login),
+    # which violates a NOT NULL constraint on a table created before this fix.
+    cursor.execute('ALTER TABLE users ALTER COLUMN password DROP NOT NULL')
 
     # HYBRID: Projects Table (Relational Sync/Keys + JSONB Blockly Data)
     cursor.execute('''

@@ -19,6 +19,9 @@ def get_all_users(request: Request, admin_email: str = Depends(get_current_admin
         for user in users:
             if "password" in user:
                 del user["password"]
+            # AdminUserManagement.jsx checks `user.isAdmin`, not the raw
+            # Postgres column name `is_admin`.
+            user["isAdmin"] = user.get("is_admin", False)
                 
         return {"status": "success", "users": users}
     except Exception as e:

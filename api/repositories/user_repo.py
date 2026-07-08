@@ -8,7 +8,7 @@ class UserRepository:
         cursor = conn.cursor()
         
         # Fetch relational user data
-        cursor.execute('SELECT id, name, email, password, status FROM users WHERE email = %s', (email,))
+        cursor.execute('SELECT id, name, email, password, status, role, is_admin FROM users WHERE email = %s', (email,))
         user = cursor.fetchone()
         
         if not user:
@@ -38,14 +38,17 @@ class UserRepository:
         cursor = conn.cursor()
         
         # 1. Insert strict relational data
+        is_admin = user_data.get("isAdmin", user_data.get("is_admin", False))
         cursor.execute('''
-            INSERT INTO users (name, email, password, status)
-            VALUES (%s, %s, %s, %s) RETURNING id
+            INSERT INTO users (name, email, password, status, role, is_admin)
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
         ''', (
             user_data.get("name"),
             user_data.get("email"),
             user_data.get("password"),
-            user_data.get("status", "active")
+            user_data.get("status", "active"),
+            user_data.get("role", "user"),
+            is_admin
         ))
         inserted_id = cursor.fetchone()["id"]
         
@@ -102,7 +105,7 @@ class UserRepository:
         
         # Join the relational table with the JSONB tracker tables
         cursor.execute('''
-            SELECT u.name, u.email, u.status, 
+            SELECT u.name, u.email, u.status, u.role, u.is_admin,
                    COALESCE(p.data, '{}'::jsonb) as progress,
                    COALESCE(a.data, '{}'::jsonb) as assessments
             FROM users u

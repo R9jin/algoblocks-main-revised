@@ -301,6 +301,26 @@ export const stopBackgroundSync = () => {
     }
 };
 
+// ==========================================
+// Compatibility exports
+// ==========================================
+// Several pages (DashboardHeader, Projects, MainApp, LearningPath) import a
+// lower-cased `syncManager` object with a `processSyncQueue()` method, and a
+// standalone `syncDownFromServer()` function. These names were used across
+// the app but never actually defined here after the Postgres migration,
+// which broke the module graph (any page importing them failed to load,
+// producing a blank screen). Re-export the real implementation under those
+// names so every caller resolves correctly.
+export const syncManager = {
+    ...SyncManager,
+    // Pushes any unsynced local data (including the offline action queue)
+    // up to the Postgres backend.
+    processSyncQueue: () => SyncManager.syncDataWithServer(),
+};
+
+// Pulls the latest server-side state down into local IndexedDB.
+export const syncDownFromServer = () => SyncManager.pullRemoteState();
+
 // Automatically sync when coming back online
 window.addEventListener('online', () => {
     SyncManager.syncDataWithServer();
